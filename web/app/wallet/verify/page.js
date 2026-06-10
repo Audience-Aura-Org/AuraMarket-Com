@@ -11,12 +11,11 @@ import {
   Smartphone, ChevronRight
 } from 'lucide-react';
 import { pollTransactionStatus, recheckTransaction } from '@/services/paymentProvider';
-import api from '@/services/api';
 import Link from 'next/link';
 import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
 
-// ── Payment State Machine ─────────────────────────────────────────────────────
+// â”€â”€ Payment State Machine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // States: 'loading' | 'pending' | 'successful' | 'failed' | 'timeout' | 'recheck'
 
 function VerifyContent() {
@@ -79,51 +78,13 @@ function VerifyContent() {
 
       stopPollingRef.current = stopFn;
 
-    } else if (gateway === 'mesomb') {
-      // MeSomb — poll our own /api/payments/mesomb/verify/:ref endpoint
-      setState('pending');
-      setMessage('A USSD prompt has been sent to your phone. Approve it to complete payment.');
-
-      let timeoutId;
-      let attempts = 0;
-      const MAX_ATTEMPTS = 120; // 120 × 5s = 10 min
-
-      const poll = async () => {
-        try {
-          attempts++;
-          const res = await api.get(`/payments/mesomb/verify/${ref}`);
-          const { status, reason: r } = res.data?.data || {};
-
-          if (status === 'SUCCESSFUL') {
-            setState('successful');
-            setMessage('Payment confirmed! Your account has been updated.');
-            refreshWalletBalance?.();
-            if (type === 'checkout') cartStore.clearCart();
-            return;
-          }
-          if (status === 'FAILED') {
-            setState('failed');
-            setReason(r || 'Payment was declined or expired. Please try again.');
-            setMessage('Your payment could not be processed.');
-            return;
-          }
-          // Still pending
-          if (attempts >= MAX_ATTEMPTS) {
-            setState('timeout');
-            setMessage('Verification is taking longer than expected. If you have already approved the prompt, your payment will be processed shortly. You can also use the Recheck button below.');
-            return;
-          }
-          timeoutId = setTimeout(poll, 5000);
-        } catch {
-          timeoutId = setTimeout(poll, 6000);
-        }
-      };
-
-      timeoutId = setTimeout(poll, 5000);
-      stopPollingRef.current = () => clearTimeout(timeoutId);
+    } else if (gateway && gateway !== 'eversend') {
+      setState('failed');
+      setMessage('This payment gateway has been removed from Auradime.');
+      setReason('Please return and use Aura Wallet or Eversend.');
 
     } else {
-      // Paystack or other — legacy redirect verify
+      // Paystack or other â€” legacy redirect verify
       setState('successful');
     }
 
@@ -139,17 +100,7 @@ function VerifyContent() {
     setState('recheck');
     setMessage(`Re-checking payment status from ${gateway}...`);
 
-    let result;
-    if (gateway === 'mesomb') {
-      try {
-        const res = await api.get(`/payments/mesomb/verify/${ref}`);
-        result = res.data?.data || { status: 'PENDING' };
-      } catch {
-        result = { status: 'PENDING', message: 'Could not reach server. Try again.' };
-      }
-    } else {
-      result = await recheckTransaction(gateway, ref);
-    }
+    const result = await recheckTransaction(gateway, ref);
 
     setRecheckLoading(false);
     if (result.status === 'SUCCESSFUL') {
@@ -256,7 +207,7 @@ function VerifyContent() {
               )}
             </div>
 
-            {/* Success — balance info */}
+            {/* Success â€” balance info */}
             {state === 'successful' && balanceAdded > 0 && (
               <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
                 <Wallet className="size-5 text-emerald-500 shrink-0" />
@@ -266,7 +217,7 @@ function VerifyContent() {
               </div>
             )}
 
-            {/* Pending — pulsing progress bar */}
+            {/* Pending â€” pulsing progress bar */}
             {(state === 'pending' || state === 'loading') && (
               <div className="w-full h-1.5 bg-[var(--glass-border)] rounded-full overflow-hidden mb-6">
                 <div className="h-full bg-[var(--accent)] rounded-full animate-[pulse_1.5s_ease-in-out_infinite] w-2/3" />

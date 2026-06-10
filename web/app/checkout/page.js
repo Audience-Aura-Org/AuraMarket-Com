@@ -46,7 +46,7 @@ const mergeCheckoutItems = (items = []) => {
 
 const VENDOR_MANAGED_LOGISTICS_ID = 'vendor_managed';
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 5;
-const isMobileMoneyPayment = (method) => method === 'mesomb' || method === 'eversend';
+const isMobileMoneyPayment = (method) => method === 'eversend';
 
 function CheckoutContent() {
   const router = useRouter();
@@ -65,12 +65,11 @@ function CheckoutContent() {
     phone: '',
     address: '',
     city: '',
-    paymentMethod: 'mesomb',
+    paymentMethod: 'wallet',
     escrowEnabled: true,
     logistics_company_id: VENDOR_MANAGED_LOGISTICS_ID,
     quartier: '',
     eversend: { phone: '', country: 'CM', currency: 'XAF' },
-    mesomb:   { phone: '', service: '' },
   });
     
   // Eversend Country/Currency Mapping
@@ -397,8 +396,7 @@ function CheckoutContent() {
 
     const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
     const isEversend = formData.paymentMethod === 'eversend';
-    const isMesomb  = formData.paymentMethod === 'mesomb';
-    const isExternal = isEversend || isMesomb;
+    const isExternal = isEversend;
     const computedCollectionFee = isExternal ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
     const totalAmount = computedOrderTotal + computedCollectionFee;
 
@@ -413,16 +411,6 @@ function CheckoutContent() {
       toast.error('Minimum amount for Eversend is 500 XAF');
       return;
     }
-    if (isMesomb && totalAmount < 50) {
-      setError(`Mobile Money requires a minimum payment of 50 XAF.`);
-      toast.error('Minimum amount for Mobile Money is 50 XAF');
-      return;
-    }
-    if (isMesomb && !formData.mesomb.phone && !formData.phone) {
-      toast.error('Please enter your Mobile Money number.');
-      return;
-    }
-
     if (!formData.quartier) {
       toast.error('Please select your delivery zone.');
       return;
@@ -463,7 +451,6 @@ function CheckoutContent() {
             escrow_enabled: !isPayOnDelivery && formData.escrowEnabled,
             payment_method: isPayOnDelivery ? 'pay_on_delivery'
               : isEversend ? 'eversend'
-              : isMesomb   ? 'mesomb'
               : (formData.escrowEnabled ? 'escrow' : 'wallet'),
             shipping_method: isVendorManagedDelivery ? 'vendor_managed' : 'logistics_partner',
             logistics_company_id: isVendorManagedDelivery ? null : formData.logistics_company_id,
@@ -490,38 +477,6 @@ function CheckoutContent() {
          } else {
             throw new Error("Failed to split cart into vendor nodes.");
          }
-      }
-
-      if (isMesomb) {
-        const mPhone = formData.mesomb.phone || formData.phone;
-        const mRes = await api.post('/payments/mesomb/initialize', {
-          amount: totalAmount,
-          phone: mPhone,
-          service: formData.mesomb.service || undefined,
-          order_ids: finalOrderIds,
-        });
-
-        if (!mRes.data.success) {
-          await markCreatedOrdersFailed('MeSomb collection failed before payment completed.', finalOrderIds);
-          setBlockReason('collection_failed');
-          setError(mRes.data.message || 'Mobile money collection failed. Please try again.');
-          setLoading(false);
-          return;
-        }
-
-        const { reference, status, instructions } = mRes.data.data;
-
-        if (status === 'SUCCESSFUL') {
-          toast.success('Payment confirmed! Your order is being processed.');
-          cartStore.clearCart();
-          setStep(3);
-          return;
-        }
-
-        // PENDING — redirect to polling page
-        toast.success(instructions || 'Check your phone for a payment prompt.');
-        router.push(`/wallet/verify?gateway=mesomb&type=checkout&ref=${reference}`);
-        return;
       }
 
       if (!isExternal) {
@@ -614,8 +569,6 @@ function CheckoutContent() {
 
       if (isPayOnDelivery) {
         toast.success('Order placed. Payment will be settled on delivery.');
-      } else if (isMesomb) {
-        // handled above with early return
       } else {
         toast.success(formData.paymentMethod === 'wallet' && formData.escrowEnabled ? 'Funds secured in Escrow Protocol.' : 'Direct payment completed successfully.');
       }
@@ -662,13 +615,6 @@ function CheckoutContent() {
 
   const paymentOptions = [
     {
-      id: 'mesomb',
-      label: 'MTN / Orange Money',
-      badge: 'Primary',
-      description: 'Direct USSD prompt for MTN MoMo and Orange Money.',
-      icon: Smartphone,
-    },
-    {
       id: 'wallet',
       label: 'Aura Wallet',
       badge: `${walletBalance.toLocaleString()} XAF`,
@@ -696,13 +642,6 @@ function CheckoutContent() {
   const selectPaymentMethod = (method) => {
     setPaymentOpen(false);
     setFormData((current) => {
-      if (method === 'mesomb') {
-        return {
-          ...current,
-          paymentMethod: 'mesomb',
-          mesomb: { ...current.mesomb, phone: current.mesomb.phone || current.phone },
-        };
-      }
       if (method === 'eversend') {
         return {
           ...current,
@@ -1103,39 +1042,6 @@ function CheckoutContent() {
                                  <div className={`w-12 h-6 rounded-full flex items-center p-1 transition-all ${formData.escrowEnabled ? 'bg-[var(--accent)]' : 'bg-[var(--text-secondary)]/20'}`}>
                                     <div className={`size-4 bg-white rounded-full shadow-sm transition-transform transform ${formData.escrowEnabled ? 'translate-x-[24px]' : 'translate-x-0'}`} />
                                  </div>
-                              </div>
-                           )}
-
-                           {formData.paymentMethod === 'mesomb' && (
-                              <div className="mt-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                                 <p className="text-[10px] lg:text-[11px] font-semibold tracking-widest uppercase text-[var(--accent)] mb-4 opacity-70">Mobile Money Details</p>
-                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div className="space-y-2">
-                                       <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">MoMo / Orange Number</label>
-                                       <input 
-                                          type="tel"
-                                          placeholder="677 XXX XXX or 690 XXX XXX"
-                                          value={formData.mesomb.phone}
-                                          onChange={e => setFormData({...formData, mesomb: {...formData.mesomb, phone: e.target.value}})}
-                                          className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
-                                       />
-                                    </div>
-                                    <div className="space-y-2">
-                                       <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Network</label>
-                                       <select
-                                          value={formData.mesomb.service}
-                                          onChange={e => setFormData({...formData, mesomb: {...formData.mesomb, service: e.target.value}})}
-                                          className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
-                                       >
-                                          <option value="">Auto-detect from number</option>
-                                          <option value="MTN">MTN Mobile Money</option>
-                                          <option value="ORANGE">Orange Money</option>
-                                       </select>
-                                    </div>
-                                 </div>
-                                 <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-3 leading-relaxed">
-                                    A USSD prompt will be sent to your phone. Approve it to complete payment.
-                                 </p>
                               </div>
                            )}
 

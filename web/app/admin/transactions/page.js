@@ -31,7 +31,7 @@ import {
   AdminLedgerTableHeader,
 } from '@/components/admin/AdminFinanceLayout';
 
-const GATEWAYS = ['eversend', 'mesomb', 'wallet', 'manual', 'paystack'];
+const GATEWAYS = ['eversend', 'wallet', 'manual', 'paystack'];
 const STATUS_FILTERS = ['all', 'completed', 'pending', 'failed'];
 
 const shortId = (value, length = 8) => String(value?._id || value || '').slice(-length).toUpperCase();
@@ -181,7 +181,6 @@ const formatGatewayName = (gateway) => {
   const labels = {
     paystack: 'Paystack',
     eversend: 'Eversend',
-    mesomb: 'MeSomb',
     wallet: 'Auradime wallet',
     manual: 'Manual admin entry',
     platform: 'Auradime platform',
@@ -232,7 +231,7 @@ const buildMoneyRoute = (tx, linkedOrders = []) => {
   if ((tx?.type === 'payment' || tx?.type === 'checkout') && linkedOrders.length > 0) {
     const orderCount = linkedOrders.length;
     const receiver = vendor?.name || 'Vendor order account';
-    const heldInEscrow = linkedOrders.some((order) => order?.payment_method === 'escrow' || order?.payment_method === 'mesomb' || order?.payment_method === 'eversend');
+    const heldInEscrow = linkedOrders.some((order) => order?.payment_method === 'escrow' || order?.payment_method === 'eversend');
     return {
       title: 'Payment route',
       rows: [
@@ -523,10 +522,10 @@ export default function AdminTransactionsPage() {
     try {
       const res = await api.post('/admin/transactions/sync-gateways');
       if (res.data.success) {
-        const { eversendImported = 0, mesombUpdated = 0, eversendUpdated = 0 } = res.data;
+        const { eversendImported = 0, eversendUpdated = 0 } = res.data;
         toast.success(
           res.data.message ||
-            `Sync done — Eversend: ${eversendImported} imported, ${eversendUpdated} updated; MeSomb: ${mesombUpdated} updated.`
+            `Sync done — Eversend: ${eversendImported} imported, ${eversendUpdated} updated.`
         );
         fetchTransactions();
         fetchStats();

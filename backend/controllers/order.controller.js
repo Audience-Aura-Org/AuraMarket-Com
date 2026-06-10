@@ -804,7 +804,7 @@ const cancelOrder = async (req, res, next) => {
     const pendingCheckoutFilter = {
       user_id: order.customer_id,
       order_ids: order._id,
-      gateway: { $in: ['mesomb', 'eversend'] },
+      gateway: 'eversend',
       status: 'pending',
     };
     await Transaction.updateMany(

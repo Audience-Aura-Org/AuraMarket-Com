@@ -92,7 +92,7 @@ export default function AdminWithdrawalsPage() {
   const [search, setSearch] = useState('');
   const [processing, setProc] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [approveGateway, setApproveGateway] = useState('mesomb');
+  const [approveGateway, setApproveGateway] = useState('eversend');
   const [currentPage, setCurrentPage] = useState(1);
   const [brokenRequesterImages, setBrokenRequesterImages] = useState({});
   const itemsPerPage = 10;
@@ -135,9 +135,7 @@ export default function AdminWithdrawalsPage() {
 
   useEffect(() => {
     if (!selected) return;
-    setApproveGateway(
-      selected.payoutGateway || (selected.withdrawalMethod === 'mesomb' ? 'mesomb' : 'eversend')
-    );
+    setApproveGateway('eversend');
   }, [selected]);
 
   const handleApprove = async (id) => {
@@ -542,7 +540,6 @@ export default function AdminWithdrawalsPage() {
                     <p className="text-[10px] font-medium text-[var(--text-secondary)]">Payout gateway</p>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { id: 'mesomb', label: 'MeSomb' },
                         { id: 'eversend', label: 'Eversend' },
                       ].map((g) => (
                         <button

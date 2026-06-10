@@ -1,6 +1,6 @@
 /**
  * controllers/withdrawal.controller.js
- * Auradime — Withdrawal Request System (Eversend / MeSomb Payout)
+ * Auradime — Withdrawal Request System (Eversend Payout)
  *
  * Flow:
  *   1. User/Vendor submits → status: "pending" (Immediate balance deduction & Pending Transaction)
@@ -16,13 +16,12 @@ require('../models/Store.model');
 const WithdrawalRequest = require('../models/WithdrawalRequest.model');
 const Transaction = require('../models/Transaction.model');
 const eversend = require('../services/eversend.service');
-const mesomb = require('../services/mesomb.service');
 const { sendNotification } = require('../utils/notifier');
 const crypto = require('crypto');
 
 const generateTxRef = () => `AURA-WD-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 const VALID_WITHDRAWAL_METHODS = ['momo', 'bank'];
-const VALID_PAYOUT_GATEWAYS = ['eversend', 'mesomb'];
+const VALID_PAYOUT_GATEWAYS = ['eversend'];
 
 const getWithdrawalDestination = (wr) => {
   const d = wr.recipientDetails || {};
@@ -401,23 +400,11 @@ const adminApproveWithdrawal = async (req, res) => {
       });
     }
 
-    const payoutGateway = requestedGateway || wr.payoutGateway || (wr.withdrawalMethod === 'mesomb' ? 'mesomb' : 'eversend');
+    const payoutGateway = requestedGateway || wr.payoutGateway || 'eversend';
     if (!VALID_PAYOUT_GATEWAYS.includes(payoutGateway)) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ success: false, message: 'Choose either mesomb or eversend as payout gateway.' });
-    }
-
-    if (payoutGateway === 'mesomb' && !wr.recipientDetails?.phoneNumber) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ success: false, message: 'MeSomb payouts require a mobile money phone number.' });
-    }
-
-    if (payoutGateway === 'mesomb' && wr.recipientDetails?.country !== 'CM') {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ success: false, message: 'MeSomb payouts are currently limited to Cameroon XAF mobile money.' });
+      return res.status(400).json({ success: false, message: 'Eversend is the only supported payout gateway.' });
     }
 
     let payoutResult = null;
@@ -428,78 +415,38 @@ const adminApproveWithdrawal = async (req, res) => {
     const txRef = wr._id.toString();
 
     try {
-      if (payoutGateway === 'mesomb') {
-        const detectedService = mesomb.detectOperator(recipientDetails.phoneNumber);
-        if (!detectedService) {
-          throw new Error('Could not detect MTN or Orange Money from the recipient phone number.');
-        }
+      const eversendMethod = wr.withdrawalMethod;
+      const quotation = await eversend.getPayoutQuotation(
+        wr.amount,
+        wr.currency,
+        wr.currency,
+        recipientDetails.country,
+        eversendMethod
+      );
+        
+      const balanceAfter = quotation?.data?.quotation?.sourceCurrencyBalanceAfter;
+      if (balanceAfter !== undefined && balanceAfter < 0) {
+        throw new Error(`Insufficient funds in Eversend ${wr.currency} wallet.`);
+      }
+        
+      quotationToken = quotation?.data?.token || quotation?.token;
+      if (!quotationToken) throw new Error('No quotation token returned from Eversend.');
 
-        try {
-          const appBalance = await mesomb.getApplicationBalance({
-            country: recipientDetails.country || 'CM',
-            service: detectedService,
-          });
-          if (appBalance !== null && appBalance < Number(wr.amount)) {
-            throw new Error(`MeSomb ${detectedService} balance is ${appBalance.toLocaleString()} ${wr.currency}, below the requested payout of ${Number(wr.amount).toLocaleString()} ${wr.currency}. Refill your MeSomb app balance or approve with Eversend.`);
-          }
-        } catch (balanceErr) {
-          if (/below the requested payout/i.test(balanceErr.message)) throw balanceErr;
-          console.warn('[MeSomb] Could not verify app balance before payout:', balanceErr.message);
-        }
-
-        payoutResult = await mesomb.payout({
-          amount: wr.amount,
-          phone: recipientDetails.phoneNumber,
-          currency: wr.currency,
-          country: recipientDetails.country || 'CM',
-          trxID: `WD-${txRef}`,
-          message: `Auradime withdrawal ${txRef.slice(-6).toUpperCase()}`,
-          customer: {
-            firstName: recipientDetails.firstName || '',
-            lastName: recipientDetails.lastName || '',
-            email: user.email || undefined,
-            phone: mesomb.normalisePhone(recipientDetails.phoneNumber),
-          },
-        });
-        payoutTxId = payoutResult.reference || getMesombTxId(payoutResult.raw || payoutResult);
-        payoutStatus = payoutResult.status;
-        if (payoutResult.failed) {
-          throw new Error(payoutResult.message || 'MeSomb rejected the payout.');
+      if (eversendMethod === 'momo') {
+        payoutResult = await eversend.executeMomoPayout(quotationToken, recipientDetails.phoneNumber, recipientDetails.firstName, recipientDetails.lastName, recipientDetails.country, txRef);
+      } else if (eversendMethod === 'bank') {
+        payoutResult = await eversend.executeBankPayout(quotationToken, recipientDetails.bankCode, recipientDetails.accountNumber, recipientDetails.firstName, recipientDetails.lastName, recipientDetails.country, txRef);
+      } else if (eversendMethod === 'eversend') {
+        if (recipientDetails.beneficiaryId) {
+          payoutResult = await eversend.executeBeneficiaryPayout(quotationToken, recipientDetails.beneficiaryId, txRef);
+        } else {
+          payoutResult = await eversend.executeEversendPayout(quotationToken, recipientDetails.eversendTag, txRef);
         }
       } else {
-        const eversendMethod = wr.withdrawalMethod === 'mesomb' ? 'momo' : wr.withdrawalMethod;
-        const quotation = await eversend.getPayoutQuotation(
-          wr.amount,
-          wr.currency,
-          wr.currency,
-          recipientDetails.country,
-          eversendMethod
-        );
-        
-        const balanceAfter = quotation?.data?.quotation?.sourceCurrencyBalanceAfter;
-        if (balanceAfter !== undefined && balanceAfter < 0) {
-          throw new Error(`Insufficient funds in Eversend ${wr.currency} wallet.`);
-        }
-        
-        quotationToken = quotation?.data?.token || quotation?.token;
-        if (!quotationToken) throw new Error('No quotation token returned from Eversend.');
-
-        if (eversendMethod === 'momo') {
-          payoutResult = await eversend.executeMomoPayout(quotationToken, recipientDetails.phoneNumber, recipientDetails.firstName, recipientDetails.lastName, recipientDetails.country, txRef);
-        } else if (eversendMethod === 'bank') {
-          payoutResult = await eversend.executeBankPayout(quotationToken, recipientDetails.bankCode, recipientDetails.accountNumber, recipientDetails.firstName, recipientDetails.lastName, recipientDetails.country, txRef);
-        } else if (eversendMethod === 'eversend') {
-          if (recipientDetails.beneficiaryId) {
-            payoutResult = await eversend.executeBeneficiaryPayout(quotationToken, recipientDetails.beneficiaryId, txRef);
-          } else {
-            payoutResult = await eversend.executeEversendPayout(quotationToken, recipientDetails.eversendTag, txRef);
-          }
-        } else {
-          throw new Error('Eversend cannot process this withdrawal method.');
-        }
-        payoutTxId = payoutResult?.data?.transactionId || payoutResult?.transactionId;
-        payoutStatus = payoutResult?.data?.status || payoutResult?.status || 'pending';
+        throw new Error('Eversend cannot process this withdrawal method.');
       }
+      payoutTxId = payoutResult?.data?.transactionId || payoutResult?.transactionId;
+      payoutStatus = payoutResult?.data?.status || payoutResult?.status || 'pending';
     } catch (payoutErr) {
       // Payout failed — refund user
       wr.status = 'failed';
@@ -535,20 +482,15 @@ const adminApproveWithdrawal = async (req, res) => {
 
       return res.status(502).json({
         success: false,
-        message: `${payoutGateway === 'mesomb' ? 'MeSomb' : 'Eversend'} payout failed: ${wr.failureReason}. Withdrawal marked as failed. User balance restored.`,
+        message: `Eversend payout failed: ${wr.failureReason}. Withdrawal marked as failed. User balance restored.`,
       });
     }
 
-    wr.status = payoutGateway === 'mesomb' && payoutStatus === 'SUCCESSFUL' ? 'completed' : 'approved';
+    wr.status = 'approved';
     wr.payoutGateway = payoutGateway;
-    if (payoutGateway === 'mesomb') {
-      wr.mesombTransactionId = payoutTxId || txRef;
-      wr.mesombStatus = payoutStatus;
-    } else {
-      wr.eversendTransactionId = payoutTxId;
-      wr.eversendQuotationToken = quotationToken;
-      wr.eversendStatus = payoutStatus;
-    }
+    wr.eversendTransactionId = payoutTxId;
+    wr.eversendQuotationToken = quotationToken;
+    wr.eversendStatus = payoutStatus;
     wr.reviewedBy = req.user._id;
     wr.reviewedAt = new Date();
     await wr.save({ session });
@@ -573,7 +515,7 @@ const adminApproveWithdrawal = async (req, res) => {
       try {
         await sendNotification(req.app, wr.requestedBy, {
           title: wr.status === 'completed' ? 'Withdrawal Successful' : 'Withdrawal Approved — Processing',
-          message: `Your withdrawal of ${wr.amount.toLocaleString()} ${wr.currency} has been approved via ${payoutGateway === 'mesomb' ? 'MeSomb' : 'Eversend'}. Reference: ${payoutTxId || wr._id}.`,
+          message: `Your withdrawal of ${wr.amount.toLocaleString()} ${wr.currency} has been approved via Eversend. Reference: ${payoutTxId || wr._id}.`,
           type: 'wallet_update',
           metadata: { withdrawal_id: wr._id, link: '/wallet' },
           sendEmail: true,
@@ -583,7 +525,7 @@ const adminApproveWithdrawal = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `Withdrawal approved. Payout sent to ${payoutGateway === 'mesomb' ? 'MeSomb' : 'Eversend'}.`,
+      message: 'Withdrawal approved. Payout sent to Eversend.',
       data: { withdrawal: wr, payoutGateway, payoutTransactionId: payoutTxId },
     });
   } catch (err) {
@@ -682,33 +624,35 @@ const adminRecheckWithdrawal = async (req, res) => {
       session.endSession();
       return res.status(404).json({ success: false, message: 'Withdrawal request not found.' });
     }
-    const payoutGateway = wr.payoutGateway || (wr.mesombTransactionId ? 'mesomb' : 'eversend');
-    const gatewayTxId = payoutGateway === 'mesomb' ? wr.mesombTransactionId : wr.eversendTransactionId;
+    const payoutGateway = wr.payoutGateway || (wr.eversendTransactionId ? 'eversend' : null);
+    if (!payoutGateway) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: 'No supported payout gateway is attached to this withdrawal.',
+      });
+    }
+
+    const gatewayTxId = wr.eversendTransactionId;
 
     if (!gatewayTxId) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ success: false, message: `No ${payoutGateway === 'mesomb' ? 'MeSomb' : 'Eversend'} transaction ID on this record. Cannot recheck.` });
+      return res.status(400).json({ success: false, message: 'No Eversend transaction ID on this record. Cannot recheck.' });
     }
 
     let txData;
     let normalizedStatus;
     try {
-      if (payoutGateway === 'mesomb') {
-        const result = await mesomb.getTransactionStatus(gatewayTxId);
-        txData = result?.data || result;
-        normalizedStatus = mesomb.mapStatus(txData);
-        wr.mesombStatus = normalizedStatus;
-      } else {
-        const result = await eversend.getTransactionStatus(gatewayTxId);
-        txData = result?.data || result;
-        normalizedStatus = (txData?.status || '').toUpperCase();
-        wr.eversendStatus = normalizedStatus;
-      }
+      const result = await eversend.getTransactionStatus(gatewayTxId);
+      txData = result?.data || result;
+      normalizedStatus = (txData?.status || '').toUpperCase();
+      wr.eversendStatus = normalizedStatus;
     } catch (e) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(502).json({ success: false, message: `${payoutGateway === 'mesomb' ? 'MeSomb' : 'Eversend'} status check failed: ${e.message}` });
+      return res.status(502).json({ success: false, message: `Eversend status check failed: ${e.message}` });
     }
 
     if (normalizedStatus === 'SUCCESSFUL') {
@@ -738,7 +682,7 @@ const adminRecheckWithdrawal = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        message: `Withdrawal confirmed successful by ${payoutGateway === 'mesomb' ? 'MeSomb' : 'Eversend'}.`,
+        message: 'Withdrawal confirmed successful by Eversend.',
         data: { withdrawal: wr, payoutGateway, gatewayStatus: normalizedStatus }
       });
 
@@ -750,7 +694,7 @@ const adminRecheckWithdrawal = async (req, res) => {
         wr.balanceDeducted = false;
       }
       wr.status = 'failed';
-      wr.failureReason = txData?.reason || txData?.message || `${payoutGateway === 'mesomb' ? 'MeSomb' : 'Eversend'} reported this payout as failed.`;
+      wr.failureReason = txData?.reason || txData?.message || 'Eversend reported this payout as failed.';
       await wr.save({ session });
       
       await Transaction.updateOne(
@@ -766,7 +710,7 @@ const adminRecheckWithdrawal = async (req, res) => {
         try {
           await sendNotification(req.app, wr.requestedBy, {
             title: 'Withdrawal Failed',
-            message: `Your withdrawal payout failed on ${payoutGateway === 'mesomb' ? 'MeSomb' : 'Eversend'}. Your balance has been restored. Reference: ${wr._id}.`,
+            message: `Your withdrawal payout failed on Eversend. Your balance has been restored. Reference: ${wr._id}.`,
             type: 'wallet_update',
             metadata: { withdrawal_id: wr._id, link: '/wallet' },
             sendEmail: true,
@@ -787,7 +731,7 @@ const adminRecheckWithdrawal = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        message: `Withdrawal is still ${normalizedStatus || 'PENDING'} on ${payoutGateway === 'mesomb' ? 'MeSomb' : 'Eversend'}. Try again later.`,
+        message: `Withdrawal is still ${normalizedStatus || 'PENDING'} on Eversend. Try again later.`,
         data: { withdrawal: wr, payoutGateway, gatewayStatus: normalizedStatus }
       });
     }

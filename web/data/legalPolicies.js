@@ -64,7 +64,7 @@ export const legalPolicies = {
       {
         heading: '8. Payments, wallet, escrow, and withdrawals',
         body: [
-          'Supported payment methods may include AuraDime wallet, MeSomb mobile money, Eversend where available, pay on delivery where enabled, and other gateways added later.',
+          'Supported payment methods may include AuraDime wallet, Eversend where available, pay on delivery where enabled, and other gateways added later.',
           'Funds may be held in escrow until delivery is confirmed, the configured review period passes without a dispute, or an admin resolves the order. If the product is not marked delivered, funds may remain in escrow.',
           'Approved refunds usually return to the customer AuraDime wallet unless the law, gateway rules, or an admin decision requires another method.',
           'Vendors and logistics partners may request withdrawals to supported mobile wallet or bank destinations. Current withdrawal fees and limits are displayed in the wallet before submission and may change for fraud, compliance, gateway, or operational reasons.',
@@ -152,7 +152,7 @@ export const legalPolicies = {
           'Vendors receive customer and order details required to fulfill purchases.',
           'Customers can see vendor store names, product details, ratings, public reviews, and support information needed for orders.',
           'Logistics partners receive pickup and delivery details, customer phone number, and order information needed to complete delivery.',
-          'Service providers may process data for hosting, database, storage, email, payments, caching, analytics, security, and notifications. These may include AWS, MongoDB, Redis or Upstash, Titan email, MeSomb, Eversend, and similar providers.',
+          'Service providers may process data for hosting, database, storage, email, payments, caching, analytics, security, and notifications. These may include AWS, MongoDB, Redis or Upstash, Titan email, Eversend, and similar providers.',
           'We may disclose data if required by Cameroonian law, a court order, regulator request, or lawful investigation.',
         ],
       },

@@ -97,7 +97,7 @@ export default function WalletPage() {
   
   // Deposit Workflow State
   const [depositStep, setDepositStep] = useState('amount'); // 'amount' | 'phone' | 'processing' | 'result'
-  const [depositGateway, setDepositGateway] = useState('mesomb');
+  const [depositGateway, setDepositGateway] = useState('eversend');
   const [depositPhone, setDepositPhone] = useState(user?.phone || '');
   const [depositNetwork, setDepositNetwork] = useState('CM');
   const [depositService, setDepositService] = useState('');
@@ -136,7 +136,7 @@ export default function WalletPage() {
         // Runs in background — does not block UI rendering.
         const pending = txList.filter(
           tx => tx.status === 'pending'
-            && ['eversend', 'mesomb'].includes(tx.gateway)
+            && tx.gateway === 'eversend'
             && tx.type === 'deposit'
             && !tx.gateway_transaction_id?.startsWith('SBX-') // skip sandbox test transactions
             && (Date.now() - new Date(tx.createdAt).getTime()) < 30 * 60 * 1000
@@ -146,9 +146,7 @@ export default function WalletPage() {
             let anyChanged = false;
             for (const tx of pending) {
               try {
-                const endpoint = tx.gateway === 'mesomb'
-                  ? `/payments/mesomb/verify/${tx.reference}`
-                  : `/payments/eversend/recheck/${tx.reference}`;
+                const endpoint = `/payments/eversend/recheck/${tx.reference}`;
                 const r = await api.get(endpoint);
                 if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') {
                   anyChanged = true;
@@ -231,13 +229,13 @@ export default function WalletPage() {
   const depositApprovalAmount = depositNetAmount + depositCollectionFee;
 
   const startDeposit = async () => {
-    const min = depositGateway === 'eversend' ? 500 : 50;
+    const min = 500;
     if (!amount || Number(amount) < min) return showToast(`Minimum deposit is ${min} XAF.`, 'error');
     setDepositStep('phone');
   };
 
   const handleDepositInit = async () => {
-    const min = depositGateway === 'eversend' ? 500 : 50;
+    const min = 500;
     if (!amount || Number(amount) < min) return showToast(`Minimum deposit is ${min} XAF.`, 'error');
     if (!depositPhone) return showToast('Phone number is required.', 'error');
 
@@ -247,18 +245,12 @@ export default function WalletPage() {
     setSubmitting(true);
 
     try {
-      const payload = depositGateway === 'mesomb'
-        ? {
-            amount: Number(amount),
-            phone: depositPhone,
-            service: depositService || undefined,
-          }
-        : {
-            amount: Number(amount),
-            currency: 'XAF',
-            phone: depositPhone,
-            country: depositNetwork,
-          };
+      const payload = {
+        amount: Number(amount),
+        currency: 'XAF',
+        phone: depositPhone,
+        country: depositNetwork,
+      };
       
       const res = await initiateCollection(depositGateway, payload);
 
@@ -292,9 +284,7 @@ export default function WalletPage() {
               try {
                 const pendingRef = ref;
                 if (pendingRef) {
-                  const endpoint = depositGateway === 'mesomb'
-                    ? `/payments/mesomb/verify/${pendingRef}`
-                    : `/payments/eversend/recheck/${pendingRef}`;
+                  const endpoint = `/payments/eversend/recheck/${pendingRef}`;
                   const r = await api.get(endpoint);
                   if (r.data?.status === 'SUCCESSFUL') {
                     setDepositStatus('success');
@@ -350,9 +340,7 @@ export default function WalletPage() {
     if (!depositRef) return;
     setRecheckingDeposit(true);
     try {
-      const endpoint = depositGateway === 'mesomb'
-        ? `/payments/mesomb/verify/${depositRef}`
-        : `/payments/eversend/recheck/${depositRef}`;
+      const endpoint = `/payments/eversend/recheck/${depositRef}`;
       const res = await api.get(endpoint);
       const { status, data, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
@@ -378,7 +366,7 @@ export default function WalletPage() {
       // Reset ONLY if we're not mid-transaction
       if (!['processing'].includes(depositStep)) {
         setDepositStep('amount');
-        setDepositGateway('mesomb');
+        setDepositGateway('eversend');
         setDepositStatus('pending');
         setDepositReason('');
         setDepositRef(null);
@@ -393,9 +381,11 @@ export default function WalletPage() {
   const handleRecheckTx = async (tx) => {
     setRecheckingTxId(tx._id);
     try {
-      const endpoint = tx.gateway === 'mesomb'
-        ? `/payments/mesomb/verify/${tx.reference}`
-        : `/payments/eversend/recheck/${tx.reference}`;
+      if (tx.gateway !== 'eversend') {
+        showToast('This legacy gateway is no longer supported for recheck.', 'error');
+        return;
+      }
+      const endpoint = `/payments/eversend/recheck/${tx.reference}`;
       const res = await api.get(endpoint);
       const { status, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
@@ -520,7 +510,7 @@ export default function WalletPage() {
                       const isCredit = ['deposit', 'refund', 'payout'].includes(tx.type);
                       return (
                         <div key={tx._id || i} className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
-                          tx.status === 'pending' && ['eversend', 'mesomb'].includes(tx.gateway) && tx.type === 'deposit'
+                          tx.status === 'pending' && tx.gateway === 'eversend' && tx.type === 'deposit'
                             ? 'border-amber-500/30 bg-amber-500/5'
                             : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30'
                         }`}>
@@ -531,7 +521,7 @@ export default function WalletPage() {
                             <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
                             <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
                             {/* Inline recheck for stuck pending eversend deposits */}
-                            {['pending', 'failed'].includes(tx.status) && ['eversend', 'mesomb'].includes(tx.gateway) && tx.type === 'deposit' && (
+                            {['pending', 'failed'].includes(tx.status) && tx.gateway === 'eversend' && tx.type === 'deposit' && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleRecheckTx(tx); }}
                                 disabled={recheckingTxId === tx._id}
@@ -602,7 +592,6 @@ export default function WalletPage() {
                            <label className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-30 ml-1">Deposit gateway</label>
                            <div className="grid grid-cols-2 gap-2">
                               {[
-                                { id: 'mesomb', label: 'MeSomb', sub: 'MTN / Orange', min: 'Min 50' },
                                 { id: 'eversend', label: 'Eversend', sub: 'Multi-country', min: 'Min 500' },
                               ].map(node => (
                                 <button
@@ -623,7 +612,7 @@ export default function WalletPage() {
                               type="number" 
                               value={amount} 
                               onChange={e => setAmount(e.target.value)} 
-                              placeholder={depositGateway === 'eversend' ? 'Min 500' : 'Min 50'}
+                              placeholder="Min 500"
                               className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-xl font-semibold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10 shadow-inner" 
                            />
                            {depositNetAmount > 0 && (

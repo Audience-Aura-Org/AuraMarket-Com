@@ -3,7 +3,7 @@ const MOBILE_MONEY_COLLECTION_FEE_XAF = Math.max(
   Number(process.env.MOBILE_MONEY_COLLECTION_FEE_XAF || 5)
 );
 
-const MOBILE_MONEY_GATEWAYS = new Set(['mesomb', 'eversend']);
+const MOBILE_MONEY_GATEWAYS = new Set(['eversend']);
 
 const isMobileMoneyGateway = (gateway) =>
   MOBILE_MONEY_GATEWAYS.has(String(gateway || '').toLowerCase());

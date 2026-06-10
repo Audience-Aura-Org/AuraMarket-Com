@@ -1190,75 +1190,6 @@ const importEversendTransactions = async (req) => {
   return importedCount;
 };
 
-const reconcileMesombTransactions = async (app) => {
-  const mongoose = require('mongoose');
-  const mesombGateway = require('../services/payment/gateways/mesomb.gateway');
-  const { creditMeSombWalletDepositOnce, settleOrdersInSession } = require('./payment.controller');
-
-  const pending = await Transaction.find({
-    gateway: 'mesomb',
-    status: { $in: ['pending', 'processing'] },
-  })
-    .limit(40)
-    .sort('-createdAt');
-
-  let updated = 0;
-  for (const transaction of pending) {
-    try {
-      const result = await mesombGateway.verify(transaction.reference);
-      if (result.status === 'SUCCESSFUL' && transaction.status !== 'completed') {
-        const user = await User.findById(transaction.user_id);
-        if (!user) continue;
-
-        if (transaction.order_ids?.length > 0 && !transaction.metadata?.orders_settled_at) {
-          const session = await mongoose.startSession();
-          session.startTransaction();
-          try {
-            await settleOrdersInSession(
-              user._id,
-              transaction.order_ids,
-              app,
-              session,
-              true,
-              process.env.WEB_CLIENT_URL || '',
-              'mesomb'
-            );
-            transaction.status = 'completed';
-            transaction.gateway_response = result.gateway_response || transaction.gateway_response;
-            if (!transaction.metadata) transaction.metadata = {};
-            transaction.metadata.orders_settled_at = new Date();
-            await transaction.save({ session });
-            await session.commitTransaction();
-            updated++;
-          } catch (e) {
-            await session.abortTransaction();
-            console.error('[syncGateways] MeSomb settlement error:', e.message);
-          } finally {
-            session.endSession();
-          }
-        } else if (!transaction.order_ids?.length) {
-          await creditMeSombWalletDepositOnce(
-            transaction,
-            user,
-            app,
-            result.gateway_response || transaction.gateway_response
-          );
-          updated++;
-        }
-      } else if (result.status === 'FAILED' && transaction.status !== 'failed') {
-        transaction.status = 'failed';
-        transaction.gateway_response = result.gateway_response || transaction.gateway_response;
-        await transaction.save();
-        updated++;
-      }
-    } catch (err) {
-      console.error('[syncGateways] MeSomb verify error:', transaction.reference, err.message);
-    }
-  }
-
-  return updated;
-};
-
 const reconcileEversendTransactions = async (app) => {
   const mongoose = require('mongoose');
   const eversend = require('../services/eversend.service');
@@ -1378,15 +1309,13 @@ const syncWithEversend = async (req, res, next) => {
 const syncGatewayTransactions = async (req, res, next) => {
   try {
     const eversendImported = await importEversendTransactions(req);
-    const mesombUpdated = await reconcileMesombTransactions(req.app);
     const eversendUpdated = await reconcileEversendTransactions(req.app);
 
     res.status(200).json({
       success: true,
-      message: `Gateways synced — Eversend: ${eversendImported} imported, ${eversendUpdated} updated; MeSomb: ${mesombUpdated} updated.`,
+      message: `Gateways synced — Eversend: ${eversendImported} imported, ${eversendUpdated} updated.`,
       eversendImported,
       eversendUpdated,
-      mesombUpdated,
     });
   } catch (error) {
     const errData = error.response?.data;

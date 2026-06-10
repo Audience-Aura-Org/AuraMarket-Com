@@ -447,14 +447,6 @@ export default function SingleOrderView({ orderId, onBack }) {
       };
     }
 
-    if (method === 'mesomb') {
-      return {
-        label: 'Awaiting mobile money',
-        detail: 'Approve mobile money prompt',
-        classes: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
-      };
-    }
-
     if (method === 'wallet') {
       return {
         label: 'Awaiting wallet payment',

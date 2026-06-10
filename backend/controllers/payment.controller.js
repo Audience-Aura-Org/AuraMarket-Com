@@ -10,14 +10,14 @@ const { sendNotification } = require('../utils/notifier');
 const { getWebUrl } = require('../utils/url');
 const mongoose = require('mongoose');
 const { PAYSTACK_SECRET_KEY } = require('../config/env');
-// ── New unified services ─────────────────────────────────────────────────────
+// -- New unified services -----------------------------------------------------
 const { settleOrders } = require('../services/payment/settle.service');
 const { getAvailableGateways } = require('../services/payment/gateway.registry');
 const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PAYSTACK — kept intact for existing wallet flows
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// PAYSTACK â€” kept intact for existing wallet flows
+// -----------------------------------------------------------------------------
 
 const initializePayment = async (req, res, next) => {
   try {
@@ -85,9 +85,9 @@ const handleWebhook = async (req, res, next) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // HELPERS
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 
 const sanitizePhone = (phone, country = 'CM') => {
   if (!phone) return phone;
@@ -156,7 +156,7 @@ const rejectPendingCheckoutTransactions = async (userId, orderIds = [], reason =
 
   const filter = {
     user_id: userId,
-    gateway: { $in: ['mesomb', 'eversend'] },
+    gateway: 'eversend',
     status: 'pending',
     'metadata.checkout_key': checkoutKey,
   };
@@ -220,27 +220,10 @@ const emitWalletCredit = (app, transaction) => {
   io.to(`user:${userRoom}`).emit('wallet:credited', payload);
 };
 
-const creditMeSombWalletDepositOnce = async (transaction, user, app, gatewayResponse = null) => {
-  if (transaction.metadata?.wallet_credited_at) return false;
-
-  user.wallet_balance = Number(user.wallet_balance || 0) + Number(transaction.amount || 0);
-  await user.save();
-
-  transaction.status = 'completed';
-  transaction.gateway_response = gatewayResponse || transaction.gateway_response;
-  setTransactionMetadata(transaction, {
-    wallet_credited_at: new Date(),
-    wallet_credit_amount: Number(transaction.amount || 0),
-  });
-  await transaction.save();
-  emitWalletCredit(app, transaction);
-  return true;
-};
-
 /**
  * @desc    GET /api/payments/gateways
  *          Return all enabled payment gateways for the frontend checkout UI.
- *          Adding a new gateway requires zero frontend changes — just register it in gateway.registry.js.
+ *          Adding a new gateway requires zero frontend changes â€” just register it in gateway.registry.js.
  * @access  Private
  */
 const listGateways = async (req, res) => {
@@ -256,7 +239,7 @@ const listGateways = async (req, res) => {
 
 /**
  * Internal Helper: Settle orders after a confirmed payment.
- * Now delegates to settle.service — no duplicate logic here.
+ * Now delegates to settle.service â€” no duplicate logic here.
  */
 const settleOrdersInSession = async (userId, orderIds, app, externalSession = null, skipBalanceCheck = false, webUrl = '', paymentGateway = 'wallet') => {
   const session = externalSession || await mongoose.startSession();
@@ -264,7 +247,7 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
   try {
     await settleOrders(userId, orderIds, session, app, skipBalanceCheck, webUrl, paymentGateway);
     if (!externalSession) await session.commitTransaction();
-    console.log(`✅ [payment.controller] Settled ${orderIds.length} order(s) for user ${userId} via ${paymentGateway}`);
+    console.log(`[payment.controller] Settled ${orderIds.length} order(s) for user ${userId} via ${paymentGateway}`);
   } catch (error) {
     if (!externalSession) await session.abortTransaction();
     console.error('[settleOrdersInSession]', error.message);
@@ -274,120 +257,9 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MESOMB — MTN MoMo / Orange Money (Cameroon)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * @route   POST /api/payments/mesomb/initialize
- * @desc    Trigger a MeSomb mobile money collection (sends USSD prompt to payer).
- *          Can be used for checkout (order_ids) or wallet top-up (no order_ids).
- * @access  Private
- * @body    { amount, phone, service?, order_ids? }
- */
-const mesombInitialize = async (req, res) => {
-  try {
-    const { amount, phone, service, order_ids = [] } = req.body;
-    const checkoutOrderIds = normalizeOrderIds(order_ids);
-    const checkoutKey = buildCheckoutKey(checkoutOrderIds);
-    let attemptsUsed = 0;
-    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, checkoutOrderIds);
-    const netPayableAmount = checkoutAmount ?? Math.round(Number(amount || 0));
-    const {
-      netAmount,
-      collectionFee,
-      grossAmount: payableAmount,
-    } = applyMobileMoneyCollectionFee(netPayableAmount, 'mesomb', 'XAF');
-
-    if (!netAmount || netAmount <= 0) {
-      return res.status(400).json({ success: false, message: 'Invalid amount.' });
-    }
-    if (!phone) {
-      return res.status(400).json({ success: false, message: 'Phone number is required.' });
-    }
-
-    if (checkoutKey) {
-      const activeSince = new Date(Date.now() - 20 * 60 * 1000);
-      const activePrompt = await Transaction.findOne({
-        user_id: req.user._id,
-        gateway: 'mesomb',
-        status: 'pending',
-        'metadata.checkout_key': checkoutKey,
-        'metadata.cancelled_at': { $exists: false },
-        createdAt: { $gte: activeSince },
-      }).sort('-createdAt');
-
-      if (activePrompt) {
-        return res.status(200).json({
-          success: true,
-          data: {
-            reference: activePrompt.reference,
-            transaction_id: activePrompt.gateway_transaction_id,
-            status: 'PENDING',
-            active_prompt: true,
-            amount: netAmount,
-            collection_fee: collectionFee,
-            gross_amount: payableAmount,
-            attempts_used: activePrompt.metadata?.attempt_number || 1,
-            instructions: 'A payment prompt is already active. Approve it on your phone or cancel checkout before trying again.',
-          },
-        });
-      }
-
-      const attemptWindow = new Date(Date.now() - 30 * 60 * 1000);
-      attemptsUsed = await Transaction.countDocuments({
-        user_id: req.user._id,
-        gateway: 'mesomb',
-        'metadata.checkout_key': checkoutKey,
-        createdAt: { $gte: attemptWindow },
-      });
-
-      if (attemptsUsed >= 2) {
-        return res.status(429).json({
-          success: false,
-          message: 'You have already requested this mobile money collection twice. Cancel this checkout or wait before trying again.',
-          data: { attempts_used: attemptsUsed, max_attempts: 2 },
-        });
-      }
-    }
-
-    const mesombGateway = require('../services/payment/gateways/mesomb.gateway');
-
-    const result = await mesombGateway.initialize({
-      user: req.user,
-      amount: payableAmount,
-      currency: 'XAF',
-      orderIds: checkoutOrderIds,
-      fields: {
-        phone,
-        service,
-        checkoutKey,
-        attemptNumber: checkoutKey ? attemptsUsed + 1 : undefined,
-        netAmount,
-        collectionFee,
-      },
-      req,
-    });
-
-    return res.status(200).json({
-      success: true,
-      data: {
-        ...result,
-        amount: netAmount,
-        collection_fee: collectionFee,
-        gross_amount: payableAmount,
-      },
-    });
-  } catch (err) {
-    console.error('[mesombInitialize]', err.message);
-    return res.status(400).json({ success: false, message: err.message });
-  }
-};
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// EVERSEND — No OTP. Direct collections only.
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
+// EVERSEND â€” No OTP. Direct collections only.
+// -----------------------------------------------------------------------------
 
 /**
  * @route   GET /api/payments/eversend/wallets
@@ -413,7 +285,7 @@ const eversendGetWallets = async (req, res) => {
 /**
  * @route   POST /api/payments/eversend/initialize
  * @desc    Initiate an Eversend collection (mobile money / NGN).
- *          OTP is DISABLED — no OTP step required or used.
+ *          OTP is DISABLED â€” no OTP step required or used.
  * @access  Private
  * @body    { amount, currency, phone, country, order_ids?, redirect_url? }
  */
@@ -434,10 +306,10 @@ const eversendInitialize = async (req, res) => {
     const transactionRef = `AURA-${Date.now()}-${user._id}`;
     const redirectUrl = customRedirect || `${process.env.WEB_CLIENT_URL}/wallet/verify?gateway=eversend&ref=${transactionRef}`;
 
-    // ── SANDBOX SIMULATION MODE ───────────────────────────────────────────────
+    // -- SANDBOX SIMULATION MODE -----------------------------------------------
     const isSandbox = process.env.EVERSEND_SANDBOX_MODE === 'true';
     if (isSandbox) {
-      console.log('[Eversend] SANDBOX MODE — initializing pending collection');
+      console.log('[Eversend] SANDBOX MODE â€” initializing pending collection');
       const sandboxTxId = `SBX-${Date.now()}`;
       
       await Transaction.create({
@@ -471,7 +343,7 @@ const eversendInitialize = async (req, res) => {
         } 
       });
     }
-    // ─────────────────────────────────────────────────────────────────────────
+    // -------------------------------------------------------------------------
 
     const nameParts = (user.name || '').split(' ');
     const firstName = nameParts[0] || 'Aura';
@@ -533,7 +405,7 @@ const eversendInitialize = async (req, res) => {
 
     let userMessage = 'Eversend payment initialization failed.';
     if (statusCode === 401) {
-      userMessage = 'Eversend authorization failed. Token has been refreshed — please retry.';
+      userMessage = 'Eversend authorization failed. Token has been refreshed â€” please retry.';
     } else if (statusCode === 500) {
       userMessage = 'Eversend service is temporarily unavailable. Please try again in a few minutes.';
     } else if (statusCode === 422) {
@@ -559,7 +431,7 @@ const eversendVerify = async (req, res) => {
 
     if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
 
-    // ── FAST PATH: DB already has the answer (webhook fired) ─────────────
+    // -- FAST PATH: DB already has the answer (webhook fired) -------------
     if (transaction.status === 'completed') {
       return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment confirmed and wallet credited.' });
     }
@@ -567,7 +439,7 @@ const eversendVerify = async (req, res) => {
       return res.status(400).json({ success: false, status: 'FAILED', message: 'Payment was declined.', reason: transaction.gateway_response?.message || 'Declined by gateway.' });
     }
 
-    // ── Sandbox: auto-succeed instantly ──────────────────────────────────
+    // -- Sandbox: auto-succeed instantly ----------------------------------
     if (transaction.metadata?.is_sandbox || transaction.gateway_transaction_id?.startsWith('SBX-')) {
       transaction.status = 'completed';
       await transaction.save();
@@ -575,14 +447,14 @@ const eversendVerify = async (req, res) => {
       return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
     }
 
-    // ── SLOW PATH: Webhook hasn't fired yet — wait 40s before asking Eversend
+    // -- SLOW PATH: Webhook hasn't fired yet â€” wait 40s before asking Eversend
     // Avoids hammering Eversend API every 5s when the webhook is just delayed.
     const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
     if (ageSeconds < 40) {
       return res.status(200).json({ success: true, status: 'PENDING', message: 'Awaiting mobile money confirmation. Please approve the prompt on your phone.' });
     }
 
-    // ── After 40s: actively query Eversend by reference ──────────────────
+    // -- After 40s: actively query Eversend by reference ------------------
     const settleTransaction = async (gatewayData, gatewayTxId) => {
       const sess = await mongoose.startSession();
       sess.startTransaction();
@@ -666,7 +538,7 @@ const eversendRecheck = async (req, res) => {
       return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment has already been confirmed and your wallet was credited.', data: { balance_added: transaction.amount } });
     }
 
-    // No gateway_transaction_id stored — try to find the transaction on Eversend
+    // No gateway_transaction_id stored â€” try to find the transaction on Eversend
     // by the reference WE sent them (transactionRef). This handles the case where
     // Eversend collected the money but the webhook didn't fire (401 bug, now fixed).
     if (!transaction.gateway_transaction_id) {
@@ -681,7 +553,7 @@ const eversendRecheck = async (req, res) => {
         return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.', data: { balance_added: transaction.amount } });
       }
 
-      // Real transaction — ask Eversend by our reference
+      // Real transaction â€” ask Eversend by our reference
       let collectionData;
       try {
         const collRes = await eversend.getCollectionByRef(transaction.reference);
@@ -726,7 +598,7 @@ const eversendRecheck = async (req, res) => {
 
             setImmediate(() => {
               sendNotification(req.app, transaction.user_id, {
-                title: '💰 Wallet Credited',
+                title: '?? Wallet Credited',
                 message: `Your deposit of ${transaction.amount.toLocaleString()} XAF has been confirmed and added to your wallet.`,
                 type: 'wallet_update',
                 metadata: { link: '/wallet' },
@@ -749,7 +621,7 @@ const eversendRecheck = async (req, res) => {
         return res.status(400).json({ success: false, status: 'FAILED', message: 'Payment was declined by the gateway.', reason: collectionData?.message || 'Declined' });
       }
 
-      // PENDING or unknown — don't auto-fail, keep waiting
+      // PENDING or unknown â€” don't auto-fail, keep waiting
       return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still being processed. Please check back in a moment.' });
     }
 
@@ -775,11 +647,11 @@ const eversendRecheck = async (req, res) => {
           return res.status(200).json({ success: true, status: 'PENDING', message: 'Gateway has not recorded this transaction yet. If you approved the USSD prompt, check back in 1-2 minutes.' });
         }
 
-        // Auth errors — check if it's an IP whitelist rejection vs real auth failure
+        // Auth errors â€” check if it's an IP whitelist rejection vs real auth failure
         if (errStatus === 401 || errStatus === 403) {
           const ipBlocked = (apiErr.response?.data?.message || '').toLowerCase().includes('origin');
           if (ipBlocked) {
-            console.error('[Eversend Recheck] IP not whitelisted — must call from production server (13.61.104.192)');
+            console.error('[Eversend Recheck] IP not whitelisted â€” must call from production server (13.61.104.192)');
             return res.status(503).json({ success: false, message: 'Payment gateway is only accessible from the production server. Please check from the live site.' });
           }
           return res.status(500).json({ success: false, message: 'Payment gateway authentication failed. Please contact support.' });
@@ -810,7 +682,7 @@ const eversendRecheck = async (req, res) => {
           // Notify user
           setImmediate(() => {
             sendNotification(req.app, transaction.user_id, {
-              title: '💰 Wallet Credited',
+              title: '?? Wallet Credited',
               message: `Your deposit of ${transaction.amount.toLocaleString()} XAF has been confirmed and added to your wallet.`,
               type: 'wallet_update',
               metadata: { link: '/wallet' },
@@ -854,7 +726,7 @@ const eversendWebhook = async (req, res) => {
     const signature = req.headers['x-eversend-signature'];
     const isValid = eversend.verifyWebhookSignature(req.body, signature);
     if (!isValid) {
-      console.warn('[Eversend Webhook] Invalid signature — rejecting');
+      console.warn('[Eversend Webhook] Invalid signature â€” rejecting');
       return res.status(401).send('Unauthorized');
     }
 
@@ -897,7 +769,7 @@ const eversendWebhook = async (req, res) => {
           await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
         }
 
-        // ── Instant Socket.io push → frontend shows success immediately ──
+        // -- Instant Socket.io push ? frontend shows success immediately --
         const io = req.app.get('io');
         if (io) {
           io.to(transaction.user_id.toString()).emit('wallet:credited', {
@@ -910,14 +782,14 @@ const eversendWebhook = async (req, res) => {
         // In-app notification
         setImmediate(() => {
           sendNotification(req.app, transaction.user_id, {
-            title: '💰 Payment Confirmed',
+            title: '?? Payment Confirmed',
             message: `Your ${isCheckout ? 'order' : 'deposit'} of ${transaction.amount.toLocaleString()} XAF has been confirmed.`,
             type: 'wallet_update',
             metadata: { link: isCheckout ? '/orders' : '/wallet' },
           }).catch(console.error);
         });
 
-        console.log(`✅ Eversend: ${isCheckout ? 'orders settled' : 'wallet credited'} ${transaction.amount} XAF for user ${transaction.user_id}`);
+        console.log(`? Eversend: ${isCheckout ? 'orders settled' : 'wallet credited'} ${transaction.amount} XAF for user ${transaction.user_id}`);
       }
     }
 
@@ -932,7 +804,7 @@ const eversendWebhook = async (req, res) => {
       }
       // If it was a payout, we might want to alert the admin or notify the vendor
       if (type === 'payout.failed') {
-        console.error(`❌ Eversend Payout Failed: ${data?.transactionRef}`, data?.message);
+        console.error(`? Eversend Payout Failed: ${data?.transactionRef}`, data?.message);
         // TODO: Trigger admin alert/email
       }
     }
@@ -944,13 +816,13 @@ const eversendWebhook = async (req, res) => {
         { new: true }
       );
       if (transaction) {
-        console.log(`✅ Eversend Payout Success: ${data?.transactionRef} to user ${transaction.user_id}`);
+        console.log(`? Eversend Payout Success: ${data?.transactionRef} to user ${transaction.user_id}`);
         // Push instant socket notification
         const io = req.app.get('io');
         if (io) io.to(transaction.user_id.toString()).emit('withdrawal:paid', { amount: transaction.amount, reference: transaction.reference });
         setImmediate(() => {
           sendNotification(req.app, transaction.user_id, {
-            title: '✅ Withdrawal Sent',
+            title: '? Withdrawal Sent',
             message: `Your withdrawal of ${transaction.amount.toLocaleString()} XAF has been processed successfully.`,
             type: 'wallet_update',
             metadata: { link: '/wallet' },
@@ -973,7 +845,7 @@ const eversendWebhook = async (req, res) => {
  *          Use this for transactions like AURA-1779123970906-6a0b454d300557850d5da752 where Eversend
  *          received funds (gateway_response = Success) but our webhook was missed or auto-fail ran early.
  * @access  Private (admin only)
- * @body    { force?: boolean }  — if true, skip live gateway check and credit directly
+ * @body    { force?: boolean }  â€” if true, skip live gateway check and credit directly
  */
 const eversendRecover = async (req, res) => {
   try {
@@ -993,14 +865,14 @@ const eversendRecover = async (req, res) => {
     }
 
     if (transaction.status === 'completed') {
-      return res.status(200).json({ success: true, message: 'Transaction already completed — wallet was already credited.', data: { transaction } });
+      return res.status(200).json({ success: true, message: 'Transaction already completed â€” wallet was already credited.', data: { transaction } });
     }
 
     let shouldCredit = false;
     let resolvedStatus = null;
 
     if (force) {
-      // Admin-forced recovery — trust the gateway receipt provided by the user
+      // Admin-forced recovery â€” trust the gateway receipt provided by the user
       shouldCredit = true;
       resolvedStatus = 'force-recovered';
       console.warn(`[eversendRecover] FORCE recovery by admin ${req.user._id} for ref=${reference}`);
@@ -1064,7 +936,7 @@ const eversendRecover = async (req, res) => {
     // Notify the user
     setImmediate(() => {
       sendNotification(req.app, transaction.user_id, {
-        title: '💰 Wallet Credited',
+        title: '?? Wallet Credited',
         message: `Your deposit of ${transaction.amount.toLocaleString()} XAF has been confirmed and added to your wallet. (Ref: ${transaction.reference})`,
         type: 'wallet_update',
         metadata: { link: '/wallet' },
@@ -1073,11 +945,11 @@ const eversendRecover = async (req, res) => {
     });
 
     const updatedUser = await User.findById(transaction.user_id).select('wallet_balance name email');
-    console.log(`✅ [eversendRecover] Successfully recovered ${transaction.amount} XAF for user ${transaction.user_id}. New balance: ${updatedUser?.wallet_balance}`);
+    console.log(`? [eversendRecover] Successfully recovered ${transaction.amount} XAF for user ${transaction.user_id}. New balance: ${updatedUser?.wallet_balance}`);
 
     return res.status(200).json({
       success: true,
-      message: `✅ Transaction recovered. ${transaction.amount.toLocaleString()} XAF credited to user's wallet.`,
+      message: `? Transaction recovered. ${transaction.amount.toLocaleString()} XAF credited to user's wallet.`,
       data: {
         transaction,
         user: { name: updatedUser?.name, email: updatedUser?.email, new_balance: updatedUser?.wallet_balance },
@@ -1165,257 +1037,7 @@ const eversendPayoutBeneficiary = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MESOMB — MTN MoMo / Orange Money (Cameroon)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * @route   POST /api/payments/mesomb/webhook
- * @desc    MeSomb sends a POST when a transaction is confirmed or failed.
- *          Marks our Transaction as completed, then settles any linked orders.
- * @access  PUBLIC (webhook — no auth header, validated by presence of applicationKey in body)
- */
-const mesombWebhook = async (req, res) => {
-  try {
-    const payload = req.body || {};
-    const rawNestedData = payload.data;
-    let nestedData = rawNestedData;
-    if (typeof nestedData === 'string') {
-      try {
-        nestedData = JSON.parse(nestedData);
-      } catch {
-        nestedData = {};
-      }
-    }
-    const extractFromRawData = (field) => {
-      if (typeof rawNestedData !== 'string') return null;
-      const match = rawNestedData.match(new RegExp(`"${field}"\\s*:\\s*"([^"]+)"`));
-      return match?.[1] || null;
-    };
-    const data = {
-      ...payload,
-      ...(nestedData && typeof nestedData === 'object' ? nestedData : {}),
-      raw_payload: payload,
-    };
-    const status = (data?.status || payload?.status || '').toUpperCase();
-    const trxID =
-      data?.trxID ||
-      data?.reference ||
-      data?.transaction?.trxID ||
-      data?.transaction?.external_id ||
-      data?.transaction?.reference ||
-      data?.pk ||
-      extractFromRawData('trxID') ||
-      extractFromRawData('reference') ||
-      extractFromRawData('pk');
-    const mesombPk = data?.pk || extractFromRawData('pk');
-    const mesombReference = data?.reference || extractFromRawData('reference');
-
-    console.log('[MeSomb Webhook]', { status, trxID, data: JSON.stringify(data).slice(0, 200) });
-
-    if (!trxID) {
-      return res.status(200).json({ received: true, note: 'No trxID — ignored' });
-    }
-
-    const transaction = await Transaction.findOne({
-      gateway: 'mesomb',
-      $or: [
-        { reference: trxID },
-        { gateway_transaction_id: trxID },
-        ...(mesombPk && mesombPk !== trxID ? [{ gateway_transaction_id: mesombPk }] : []),
-        ...(mesombReference && mesombReference !== trxID ? [{ reference: mesombReference }] : []),
-      ],
-    });
-    if (!transaction) {
-      return res.status(200).json({ received: true, note: 'Transaction not found — possibly already processed' });
-    }
-
-    if (status === 'SUCCESS' || status === 'SUCCESSFUL') {
-      transaction.gateway_response = data;
-
-      // Credit user wallet (for top-up) or settle orders (for checkout)
-      const user = await User.findById(transaction.user_id);
-      if (!user) return res.status(200).json({ received: true, note: 'User not found' });
-
-      if (transaction.order_ids?.length > 0) {
-        if (transaction.status === 'rejected' || transaction.metadata?.cancelled_at) {
-          const credited = await creditMeSombWalletDepositOnce(transaction, user, req.app, data);
-          if (credited) {
-            setTransactionMetadata(transaction, {
-              cancelled_checkout_paid_at: new Date(),
-              cancelled_checkout_resolution: 'wallet_credit',
-            });
-            await transaction.save();
-            setImmediate(() => {
-              sendNotification(req.app, user._id, {
-                title: 'Payment Credited to Wallet',
-                message: `${transaction.amount.toLocaleString()} XAF was approved after checkout was cancelled, so it has been added to your wallet.`,
-                type: 'wallet_update',
-                metadata: { link: '/wallet' },
-                sendEmail: true,
-              }).catch(console.error);
-            });
-          }
-          return res.status(200).json({ received: true, note: 'Cancelled checkout credited to wallet' });
-        }
-        if (transaction.metadata?.orders_settled_at) {
-          return res.status(200).json({ received: true, note: 'Already settled' });
-        }
-        // Checkout settlement — mark orders as paid
-        const session = await mongoose.startSession();
-        session.startTransaction();
-        try {
-          await settleOrders(user._id, transaction.order_ids, session, req.app, true, process.env.WEB_CLIENT_URL || '', 'mesomb');
-          transaction.status = 'completed';
-          setTransactionMetadata(transaction, { orders_settled_at: new Date() });
-          await transaction.save({ session });
-          await session.commitTransaction();
-        } catch (e) {
-          await session.abortTransaction();
-          console.error('[mesombWebhook] Settlement error:', e.message);
-        } finally {
-          session.endSession();
-        }
-      } else {
-        // Wallet top-up
-        const credited = await creditMeSombWalletDepositOnce(transaction, user, req.app, data);
-        if (credited) {
-          setImmediate(() => {
-            sendNotification(req.app, user._id, {
-              title: 'Wallet Topped Up',
-              message: `${transaction.amount.toLocaleString()} XAF added to your Aura Wallet via Mobile Money.`,
-              type: 'wallet_update',
-              sendEmail: true,
-            }).catch(console.error);
-          });
-        }
-      }
-    } else if (status === 'FAILED' || status === 'REJECTED') {
-      transaction.status = 'failed';
-      transaction.gateway_response = data;
-      await transaction.save();
-
-      const user = await User.findById(transaction.user_id);
-      if (user) {
-        await markCheckoutOrdersFailed(user._id, transaction.order_ids);
-        setImmediate(() => {
-          sendNotification(req.app, user._id, {
-            title: 'Payment Failed',
-            message: 'Your mobile money payment was not approved. Please try again.',
-            type: 'wallet_update',
-            sendEmail: true,
-          }).catch(console.error);
-        });
-      }
-    }
-
-    return res.status(200).json({ received: true });
-  } catch (err) {
-    console.error('[mesombWebhook] Error:', err.message);
-    return res.status(200).json({ received: true, error: err.message });
-  }
-};
-
-/**
- * @route   GET /api/payments/mesomb/verify/:reference
- * @desc    Poll MeSomb transaction status by our reference.
- * @access  Private
- */
-const mesombVerify = async (req, res) => {
-  try {
-    const { reference } = req.params;
-    const mesombGateway = require('../services/payment/gateways/mesomb.gateway');
-    const result = await mesombGateway.verify(reference);
-
-    if (result.status === 'SUCCESSFUL') {
-      const transaction = await Transaction.findOne({ reference, gateway: 'mesomb' });
-      if (transaction) {
-        const user = await User.findById(transaction.user_id);
-        if (user) {
-          if (transaction.order_ids?.length > 0) {
-            if (transaction.status === 'rejected' || transaction.metadata?.cancelled_at) {
-              const credited = await creditMeSombWalletDepositOnce(
-                transaction,
-                user,
-                req.app,
-                result.gateway_response || transaction.gateway_response
-              );
-              if (credited) {
-                setTransactionMetadata(transaction, {
-                  cancelled_checkout_paid_at: new Date(),
-                  cancelled_checkout_resolution: 'wallet_credit',
-                });
-                await transaction.save();
-              }
-            } else if (!transaction.metadata?.orders_settled_at) {
-              // Checkout settlement
-              const session = await mongoose.startSession();
-              session.startTransaction();
-              try {
-                await settleOrders(user._id, transaction.order_ids, session, req.app, true, process.env.WEB_CLIENT_URL || '', 'mesomb');
-                transaction.status = 'completed';
-                transaction.gateway_response = result.gateway_response || transaction.gateway_response;
-                setTransactionMetadata(transaction, { orders_settled_at: new Date() });
-                await transaction.save({ session });
-                await session.commitTransaction();
-              } catch (e) {
-                await session.abortTransaction();
-                console.error('[mesombVerify] Settlement error:', e.message);
-              } finally {
-                session.endSession();
-              }
-            }
-          } else {
-            // Pure wallet top-up (Deposit)
-            const credited = await creditMeSombWalletDepositOnce(
-              transaction,
-              user,
-              req.app,
-              result.gateway_response || transaction.gateway_response
-            );
-
-            // Background notification
-            if (credited) {
-              setImmediate(() => {
-                sendNotification(req.app, user._id, {
-                  title: 'Wallet Topped Up',
-                  message: `${transaction.amount.toLocaleString()} XAF added to your Aura Wallet via Mobile Money.`,
-                  type: 'wallet_update',
-                  sendEmail: true,
-                }).catch(console.error);
-              });
-            }
-          }
-        }
-      }
-    } else if (result.status === 'FAILED') {
-      const transaction = await Transaction.findOne({ reference, gateway: 'mesomb' });
-      if (transaction && transaction.status !== 'failed') {
-        transaction.status = 'failed';
-        transaction.gateway_response = result.gateway_response || transaction.gateway_response;
-        await transaction.save();
-        await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
-        const user = await User.findById(transaction.user_id);
-        if (user) {
-          setImmediate(() => {
-            sendNotification(req.app, user._id, {
-              title: 'Payment Failed',
-              message: 'Your mobile money payment was not approved. Please try again.',
-              type: 'wallet_update',
-              sendEmail: true,
-            }).catch(console.error);
-          });
-        }
-      }
-    }
-
-    return res.status(200).json({ success: true, status: result.status, data: result });
-  } catch (err) {
-    console.error('[mesombVerify]', err.message);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-};
-
+// -----------------------------------------------------------------------------
 module.exports = {
   // Gateway registry endpoint
   listGateways,
@@ -1436,12 +1058,6 @@ module.exports = {
   eversendDeleteBeneficiary,
   eversendGetTransactions,
   eversendPayoutBeneficiary,
-  // MeSomb
-  mesombInitialize,
-  mesombWebhook,
-  mesombVerify,
   // Internal / admin sync
   settleOrdersInSession,
-  creditMeSombWalletDepositOnce,
 };
-

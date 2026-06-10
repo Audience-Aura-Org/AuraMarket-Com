@@ -50,7 +50,7 @@ const OrderSchema = new mongoose.Schema(
     },
     payment_method: {
       type: String,
-      enum: ['wallet', 'escrow', 'direct_card', 'pay_on_delivery', 'eversend', 'mesomb'],
+      enum: ['wallet', 'escrow', 'direct_card', 'pay_on_delivery', 'eversend'],
       required: true,
     },
     payment_status: {

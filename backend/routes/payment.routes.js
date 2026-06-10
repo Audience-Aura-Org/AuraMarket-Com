@@ -20,17 +20,12 @@ const {
   eversendDeleteBeneficiary,
   eversendGetTransactions,
   eversendPayoutBeneficiary,
-  // MeSomb
-  mesombInitialize,
-  mesombWebhook,
-  mesombVerify,
   failCheckoutPayment,
 } = require('../controllers/payment.controller');
 
 // ── Webhooks — PUBLIC (must come BEFORE protect middleware) ──────────────────
 router.post('/webhook', handleWebhook);
 router.post('/eversend/webhook', eversendWebhook);
-router.post('/mesomb/webhook', mesombWebhook);
 
 // ── Protected routes ─────────────────────────────────────────────────────────
 router.use(protect);
@@ -42,10 +37,6 @@ router.post('/checkout/failed', failCheckoutPayment);
 // Paystack
 router.post('/initialize', initializePayment);
 router.get('/verify/:reference', verifyPayment);
-
-// MeSomb
-router.post('/mesomb/initialize', mesombInitialize);
-router.get('/mesomb/verify/:reference', mesombVerify);
 
 // Eversend
 router.get('/eversend/wallets', eversendGetWallets);

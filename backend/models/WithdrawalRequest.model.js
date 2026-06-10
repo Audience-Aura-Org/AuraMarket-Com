@@ -57,7 +57,7 @@ const WithdrawalRequestSchema = new mongoose.Schema(
     // ── Method ──────────────────────────────────
     withdrawalMethod: {
       type: String,
-      enum: ['momo', 'bank', 'eversend', 'mesomb'],
+      enum: ['momo', 'bank', 'eversend'],
       required: true,
     },
     recipientDetails: {
@@ -74,12 +74,10 @@ const WithdrawalRequestSchema = new mongoose.Schema(
     },
 
     // ── Payout Gateway Linkage ───────────────────
-    payoutGateway: { type: String, enum: ['eversend', 'mesomb', 'manual'], default: null },
+    payoutGateway: { type: String, enum: ['eversend', 'manual'], default: null },
     eversendTransactionId: { type: String, default: null },
     eversendQuotationToken: { type: String, default: null, select: false },
     eversendStatus: { type: String, default: null },
-    mesombTransactionId: { type: String, default: null },
-    mesombStatus: { type: String, default: null },
     balanceDeducted: { type: Boolean, default: false },
 
     // ── Admin Review ─────────────────────────────

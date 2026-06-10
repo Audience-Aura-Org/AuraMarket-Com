@@ -28,11 +28,6 @@ const GATEWAY_BRANDS = {
     short: 'EV',
     className: 'bg-violet-600/15 text-violet-700 dark:text-violet-300',
   },
-  mesomb: {
-    label: 'MeSomb',
-    short: 'MS',
-    className: 'bg-sky-600/15 text-sky-700 dark:text-sky-300',
-  },
   momo: {
     label: 'Mobile Money',
     short: 'MM',
@@ -96,7 +91,6 @@ export const METHOD_ICON = {
   momo:     Phone,
   bank:     Building2,
   eversend: Tag,
-  mesomb:   Phone,
 };
 
 export const getMethodIcon = (method) => METHOD_ICON[method] || Wallet;
