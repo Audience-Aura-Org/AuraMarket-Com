@@ -397,6 +397,183 @@ const translations = {
   },
 };
 
+const AUTO_TEXT_TRANSLATIONS_FR = {
+  'Dashboard': 'Tableau de bord',
+  'Marketplace': 'Marche',
+  'Users': 'Utilisateurs',
+  'Vendors': 'Vendeurs',
+  'Products': 'Produits',
+  'Orders': 'Commandes',
+  'Messages': 'Messages',
+  'System Comms': 'Communications systeme',
+  'Vendor KYC': 'KYC vendeur',
+  'Disputes': 'Litiges',
+  'Escrow & Fees': 'Escrow et frais',
+  'Withdrawals': 'Retraits',
+  'Transactions': 'Transactions',
+  'Shipment Node': 'Expedition',
+  'Logistics Earnings': 'Revenus logistiques',
+  'Analytics': 'Analyses',
+  'Categories': 'Categories',
+  'Reviews': 'Avis',
+  'Email Logs': 'Journaux e-mail',
+  'Audit Ledger': 'Journal audit',
+  'CMS / Hero': 'CMS / Hero',
+  'Aura Stories': 'Stories',
+  'Client Ratings': 'Avis clients',
+  'Wallet': 'Wallet',
+  'Wishlist': 'Favoris',
+  'Profile': 'Profil',
+  'Security': 'Securite',
+  'Network': 'Reseau',
+  'Verification': 'Verification',
+  'Alerts': 'Alertes',
+  'Signals': 'Signaux',
+  'Account Configuration': 'Configuration du compte',
+  'Admin Access': 'Acces admin',
+  'Vendor Premium': 'Vendeur premium',
+  'Fulfillment Node': 'Centre logistique',
+  'Aura Member': 'Membre Aura',
+  'Standard Tier': 'Niveau standard',
+  'Pro Vendor': 'Vendeur pro',
+  'Logistics Ops': 'Operations logistiques',
+  'Governance Mode': 'Mode gouvernance',
+  'Store Active': 'Boutique active',
+  'Active': 'Actif',
+  'Pending': 'En attente',
+  'Completed': 'Termine',
+  'Failed': 'Echoue',
+  'Cancelled': 'Annule',
+  'Refunded': 'Rembourse',
+  'Processing': 'En traitement',
+  'Shipped': 'Expedie',
+  'Delivered': 'Livre',
+  'Paid': 'Paye',
+  'Unpaid': 'Non paye',
+  'All': 'Tout',
+  'Search': 'Rechercher',
+  'Refresh': 'Actualiser',
+  'Filter': 'Filtrer',
+  'Filters': 'Filtres',
+  'Export': 'Exporter',
+  'Edit': 'Modifier',
+  'Delete': 'Supprimer',
+  'Save': 'Enregistrer',
+  'Cancel': 'Annuler',
+  'Approve': 'Approuver',
+  'Disapprove': 'Refuser',
+  'Suspend': 'Suspendre',
+  'View': 'Voir',
+  'Details': 'Details',
+  'Status': 'Statut',
+  'Action': 'Action',
+  'Actions': 'Actions',
+  'Name': 'Nom',
+  'Email': 'E-mail',
+  'Phone': 'Telephone',
+  'Role': 'Role',
+  'Customer': 'Client',
+  'Vendor': 'Vendeur',
+  'Logistics': 'Logistique',
+  'Admin': 'Admin',
+  'Amount': 'Montant',
+  'Total': 'Total',
+  'Subtotal': 'Sous-total',
+  'Balance': 'Solde',
+  'Wallet balance': 'Solde wallet',
+  'Revenue': 'Revenu',
+  'Net sales': 'Ventes nettes',
+  'Open orders': 'Commandes ouvertes',
+  'Inventory': 'Inventaire',
+  'Live': 'En direct',
+  'Recent Activity': 'Activite recente',
+  'Recent Orders': 'Commandes recentes',
+  'Sales Growth': 'Croissance ventes',
+  'Monthly revenue trends': 'Tendances mensuelles',
+  'Live analysis': 'Analyse en direct',
+  'No Activity': 'Aucune activite',
+  'No orders yet': 'Aucune commande',
+  'Product': 'Produit',
+  'Order ID': 'ID commande',
+  'Customer': 'Client',
+  'Action': 'Action',
+  'Add Product': 'Ajouter produit',
+  'Launch Story': 'Publier story',
+  'Store Info': 'Info boutique',
+  'Find anything...': 'Rechercher...',
+  'Manifests': 'Manifestes',
+  'Route Pricing': 'Tarifs routes',
+  'Live Tracking': 'Suivi en direct',
+  'Relay Nodes': 'Noeuds relais',
+  'Total Platform Volume': 'Volume total plateforme',
+  'Platform Volume': 'Volume plateforme',
+  'Verification Watch': 'Verification en attente',
+  'Escrow Flow': 'Flux escrow',
+  'Core Stability': 'Stabilite systeme',
+  'Platform Uptime': 'Disponibilite plateforme',
+  'Access Firewall': 'Pare-feu acces',
+  'Authorization Layer': 'Couche autorisation',
+  'Commission Controls': 'Controle commissions',
+  'Admin Commission': 'Commission admin',
+  'Escrow Commission': 'Commission escrow',
+  'Percentage': 'Pourcentage',
+  'Save Fees': 'Enregistrer frais',
+  'Order history': 'Historique commandes',
+  'Transaction data': 'Donnees transaction',
+  'Transaction account': 'Compte transaction',
+  'Money route': 'Route argent',
+  'Linked order': 'Commande liee',
+  'Order total': 'Total commande',
+  'Payment': 'Paiement',
+  'Shipping': 'Livraison',
+  'Tracking': 'Suivi',
+  'Vendor store': 'Boutique vendeur',
+  'Update status': 'Modifier statut',
+  'Reference': 'Reference',
+  'Gateway': 'Passerelle',
+  'Gateway ID': 'ID passerelle',
+  'Type': 'Type',
+  'Created': 'Cree',
+  'Search users...': 'Rechercher utilisateurs...',
+  'Search products...': 'Rechercher produits...',
+  'Search orders...': 'Rechercher commandes...',
+  'Search vendors...': 'Rechercher vendeurs...',
+  'Search transactions...': 'Rechercher transactions...',
+  'Search withdrawals...': 'Rechercher retraits...',
+  'Select all': 'Tout selectionner',
+  'Batch delete': 'Suppression groupee',
+  'Table view': 'Vue tableau',
+  'Grid view': 'Vue grille',
+};
+
+const AUTO_ATTRIBUTE_TRANSLATIONS_FR = {
+  ...AUTO_TEXT_TRANSLATIONS_FR,
+  'Search products and stores': 'Rechercher produits et boutiques',
+  'Search premium products...': 'Rechercher produits premium...',
+  'Search by order ID or product': 'Rechercher par commande ou produit',
+  'Find anything...': 'Rechercher...',
+  'Search users...': 'Rechercher utilisateurs...',
+  'Search products...': 'Rechercher produits...',
+  'Search orders...': 'Rechercher commandes...',
+  'Search vendors...': 'Rechercher vendeurs...',
+  'Search transactions...': 'Rechercher transactions...',
+  'Search withdrawals...': 'Rechercher retraits...',
+  'Messages': 'Messages',
+  'Wallet balance': 'Solde wallet',
+};
+
+const shouldTranslateNodeParent = (parent) => {
+  if (!parent || parent.nodeType !== 1) return false;
+  const tag = parent.tagName?.toLowerCase();
+  return !['script', 'style', 'textarea', 'code', 'pre', 'noscript'].includes(tag);
+};
+
+const preserveOuterSpacing = (text, translated) => {
+  const leading = text.match(/^\s*/)?.[0] || '';
+  const trailing = text.match(/\s*$/)?.[0] || '';
+  return `${leading}${translated}${trailing}`;
+};
+
 const normalizeLanguage = (value) =>
   SUPPORTED_LANGUAGES.some((language) => language.code === value) ? value : 'en';
 
@@ -426,6 +603,113 @@ export function LanguageProvider({ children }) {
     try {
       window.localStorage.setItem(STORAGE_KEY, language);
     } catch {}
+  }, [language]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return undefined;
+
+    const textMap = language === 'fr' ? AUTO_TEXT_TRANSLATIONS_FR : null;
+    const attributeMap = language === 'fr' ? AUTO_ATTRIBUTE_TRANSLATIONS_FR : null;
+    let frame = null;
+
+    const translateTextNode = (node) => {
+      if (!shouldTranslateNodeParent(node.parentElement)) return;
+      const original = node.__auraOriginalText || node.nodeValue;
+      if (!node.__auraOriginalText) node.__auraOriginalText = original;
+
+      if (!textMap) {
+        if (node.nodeValue !== original) node.nodeValue = original;
+        return;
+      }
+
+      const key = String(original || '').trim();
+      const translated = textMap[key];
+      if (translated) node.nodeValue = preserveOuterSpacing(original, translated);
+    };
+
+    const translateAttributes = (element) => {
+      if (!element || element.nodeType !== 1) return;
+
+      ['placeholder', 'title', 'aria-label'].forEach((attribute) => {
+        if (!element.hasAttribute(attribute)) return;
+        const originalAttribute = `data-aura-original-${attribute}`;
+        const original = element.getAttribute(originalAttribute) || element.getAttribute(attribute);
+        if (!element.hasAttribute(originalAttribute)) {
+          element.setAttribute(originalAttribute, original);
+        }
+
+        if (!attributeMap) {
+          if (element.getAttribute(attribute) !== original) element.setAttribute(attribute, original);
+          return;
+        }
+
+        const translated = attributeMap[String(original || '').trim()];
+        if (translated) element.setAttribute(attribute, translated);
+      });
+    };
+
+    const scan = (root = document.body) => {
+      if (!root) return;
+      if (root.nodeType === Node.TEXT_NODE) {
+        translateTextNode(root);
+        return;
+      }
+
+      if (root.nodeType === Node.ELEMENT_NODE) {
+        translateAttributes(root);
+      }
+
+      const walker = document.createTreeWalker(
+        root,
+        NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT,
+        {
+          acceptNode(node) {
+            if (node.nodeType === Node.TEXT_NODE) {
+              return node.nodeValue?.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          },
+        }
+      );
+
+      let current = walker.currentNode;
+      while (current) {
+        if (current.nodeType === Node.TEXT_NODE) {
+          translateTextNode(current);
+        } else if (current.nodeType === Node.ELEMENT_NODE) {
+          translateAttributes(current);
+        }
+        current = walker.nextNode();
+      }
+    };
+
+    const scheduleScan = (root) => {
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        scan(root || document.body);
+        frame = null;
+      });
+    };
+
+    scheduleScan(document.body);
+
+    const observer = new MutationObserver((mutations) => {
+      const root = mutations.find((mutation) => mutation.target)?.target || document.body;
+      scheduleScan(root.nodeType === Node.ELEMENT_NODE ? root : root.parentElement);
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['placeholder', 'title', 'aria-label'],
+    });
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
   }, [language]);
 
   const value = useMemo(() => ({
