@@ -36,6 +36,7 @@ const ADMIN_NAV = [
   { icon: 'security',       label: 'Escrow & Fees',    href: '/admin/escrow' },
   { icon: 'account_balance_wallet',label: 'Withdrawals',    href: '/admin/withdrawals' },
   { icon: 'receipt_long',   label: 'Transactions',    href: '/admin/transactions' },
+  { icon: 'workspace_premium', label: 'Subscriptions', href: '/admin/subscriptions' },
   { icon: 'local_shipping', label: 'Shipment Node',    href: '/admin/logistics' },
   { icon: 'payments',       label: 'Logistics Earnings',href: '/admin/logistics/earnings' },
   { icon: 'monitoring',     label: 'Analytics',        href: '/admin/analytics' },

@@ -3,10 +3,19 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, BadgeCheck, Check, CreditCard, Loader2, LockKeyhole,
-  ShieldCheck, Smartphone, Wallet
+  ArrowLeft,
+  BadgeCheck,
+  Check,
+  CreditCard,
+  Loader2,
+  LockKeyhole,
+  MessageCircle,
+  ShieldCheck,
+  Smartphone,
+  Wallet,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/services/api';
@@ -18,6 +27,26 @@ const ROLE_LABELS = {
   vendor: 'Vendor',
   logistics: 'Logistics',
   admin: 'Admin',
+};
+
+const planKicker = (plan) => {
+  const slug = String(plan?.slug || '').toLowerCase();
+  if (slug.includes('standard')) return 'Growing seller';
+  if (slug.includes('business')) return 'Established business';
+  if (slug.includes('power')) return 'Large operation';
+  return 'Just starting out';
+};
+
+const planDuration = (plan) => {
+  if (plan?.contact_required) return 'Custom price - 6-12 month deal';
+  const days = Number(plan?.duration_days || 0);
+  if (days >= 85 && days <= 95) return 'Pay once - valid for 3 months';
+  if (days >= 55 && days <= 65) return 'Pay once - valid for 2 months';
+  if (days >= 25 && days <= 35) return 'Pay once - valid for 1 month';
+  if (days > 0) return `Pay once - valid for ${days} days`;
+  if (plan?.billing_cycle === 'monthly') return 'Monthly package';
+  if (plan?.billing_cycle === 'yearly') return 'Yearly package';
+  return 'Pay once';
 };
 
 function SubscribeContent() {
@@ -68,6 +97,10 @@ function SubscribeContent() {
 
   const pay = async () => {
     if (!selectedPlan) return;
+    if (selectedPlan.contact_required) {
+      router.push('/contact');
+      return;
+    }
     if (method === 'eversend' && !phone.trim()) {
       toast.error(t('subscription.phoneRequired', 'Phone number is required.'));
       return;
@@ -108,10 +141,11 @@ function SubscribeContent() {
 
   const isAlreadyActive = status?.subscribed && status?.required;
   const roleLabel = ROLE_LABELS[role] || role;
+  const isContactPlan = Boolean(selectedPlan?.contact_required);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] px-4 py-5 pb-28 text-[var(--text-primary)] sm:px-6 lg:px-10">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
+    <div className="min-h-screen bg-[var(--bg-secondary)] px-3 py-5 pb-28 text-[var(--text-primary)] sm:px-6 lg:px-10">
+      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-5">
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
@@ -126,8 +160,8 @@ function SubscribeContent() {
           </div>
         </div>
 
-        <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-          <div className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm sm:p-7">
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-7">
             <div className="mb-6 flex items-start gap-4">
               <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
                 <LockKeyhole className="size-6" />
@@ -162,36 +196,48 @@ function SubscribeContent() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
                 {(status?.plans || []).map((plan) => (
                   <button
                     key={plan._id}
                     type="button"
                     onClick={() => setSelectedPlanId(plan._id)}
-                    className={`w-full rounded-3xl border p-5 text-left transition active:scale-[0.99] ${
+                    className={`relative flex min-h-[360px] w-full flex-col rounded-3xl border p-5 text-left transition active:scale-[0.99] ${
                       selectedPlan?._id === plan._id
                         ? 'border-[var(--accent)] bg-[var(--accent)]/5'
                         : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h2 className="text-lg font-bold">{plan.name}</h2>
-                        <p className="mt-1 text-sm font-medium text-[var(--text-secondary)]">{plan.description}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold">{Number(plan.price || 0).toLocaleString()}</p>
-                        <p className="text-[11px] font-semibold text-[var(--text-secondary)]">{plan.currency}</p>
-                      </div>
+                    {String(plan.slug || '').includes('standard') && (
+                      <span className="absolute right-4 top-4 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold text-white">
+                        {t('subscription.mostPopular', 'Most popular')}
+                      </span>
+                    )}
+                    <div className="min-w-0 pr-20">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--accent)]">{planKicker(plan)}</p>
+                      <h2 className="mt-1 text-xl font-bold">{plan.name}</h2>
+                      <p className="mt-2 text-sm font-medium leading-6 text-[var(--text-secondary)]">{plan.description}</p>
                     </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="mt-5">
+                      {plan.contact_required ? (
+                        <p className="text-2xl font-black">{t('subscription.talkToUs', 'Talk to us')}</p>
+                      ) : (
+                        <p className="text-2xl font-black">{plan.currency} {Number(plan.price || 0).toLocaleString()}</p>
+                      )}
+                      <p className="mt-1 text-[11px] font-semibold text-[var(--text-secondary)]">{planDuration(plan)}</p>
+                    </div>
+                    <div className="mt-5 space-y-2">
                       {(plan.features || []).map((feature) => (
-                        <span key={feature} className="inline-flex items-center gap-1 rounded-full bg-[var(--bg-primary)] px-3 py-1 text-[11px] font-semibold text-[var(--text-secondary)]">
-                          <Check className="size-3 text-emerald-500" />
-                          {feature}
+                        <span key={feature} className="flex items-start gap-2 text-[12px] font-semibold leading-5 text-[var(--text-secondary)]">
+                          <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+                          <span>{feature}</span>
                         </span>
                       ))}
                     </div>
+                    <span className="mt-auto inline-flex items-center gap-1 pt-5 text-xs font-black text-[var(--accent)]">
+                      {plan.contact_required ? t('subscription.contactUs', 'Contact us') : t('subscription.getStarted', 'Get started')}
+                      <span aria-hidden="true">-&gt;</span>
+                    </span>
                   </button>
                 ))}
               </div>
@@ -199,69 +245,90 @@ function SubscribeContent() {
           </div>
 
           {!loading && !isAlreadyActive && selectedPlan && (
-            <aside className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm sm:p-6">
-              <h2 className="text-lg font-bold">{t('subscription.payTitle', 'Payment')}</h2>
+            <aside className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm sm:p-6 xl:sticky xl:top-24 xl:self-start">
+              <h2 className="text-lg font-bold">{t('subscription.payTitle', isContactPlan ? 'Contact' : 'Payment')}</h2>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                {t('subscription.payDetail', 'Choose the method that is easiest for you.')}
+                {isContactPlan
+                  ? t('subscription.contactDetail', 'This package is handled directly by support so the offer can match your operation.')
+                  : t('subscription.payDetail', 'Choose the method that is easiest for you.')}
               </p>
 
-              <div className="mt-5 space-y-3">
-                <button
-                  type="button"
-                  onClick={() => setMethod('wallet')}
-                  className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'wallet' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
-                >
-                  <Wallet className="size-5 text-[var(--accent)]" />
-                  <div>
-                    <p className="text-sm font-bold">{t('subscription.wallet', 'Aura Wallet')}</p>
-                    <p className="text-[11px] text-[var(--text-secondary)]">{Number(user?.wallet_balance || 0).toLocaleString()} XAF</p>
+              {isContactPlan ? (
+                <div className="mt-5 rounded-3xl bg-[var(--bg-secondary)] p-4">
+                  <MessageCircle className="mb-3 size-6 text-[var(--accent)]" />
+                  <p className="text-sm font-bold">{selectedPlan.name}</p>
+                  <p className="mt-1 text-xs font-medium leading-5 text-[var(--text-secondary)]">
+                    {t('subscription.powerSellerHelp', 'Talk to Auradime support for custom pricing, homepage placement, API access, and account management.')}
+                  </p>
+                  <Link
+                    href="/contact"
+                    className="mt-4 flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--accent)] text-sm font-bold text-white"
+                  >
+                    {t('subscription.contactUs', 'Contact us')}
+                  </Link>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-5 space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => setMethod('wallet')}
+                      className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'wallet' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
+                    >
+                      <Wallet className="size-5 text-[var(--accent)]" />
+                      <div>
+                        <p className="text-sm font-bold">{t('subscription.wallet', 'Aura Wallet')}</p>
+                        <p className="text-[11px] text-[var(--text-secondary)]">{Number(user?.wallet_balance || 0).toLocaleString()} XAF</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMethod('eversend')}
+                      className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'eversend' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
+                    >
+                      <Smartphone className="size-5 text-[var(--accent)]" />
+                      <div>
+                        <p className="text-sm font-bold">{t('subscription.mobileMoney', 'Mobile money / card')}</p>
+                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.collectionFee', 'Collection fee is added only for external collection.')}</p>
+                      </div>
+                    </button>
                   </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMethod('eversend')}
-                  className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'eversend' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
-                >
-                  <Smartphone className="size-5 text-[var(--accent)]" />
-                  <div>
-                    <p className="text-sm font-bold">{t('subscription.mobileMoney', 'Mobile money / card')}</p>
-                    <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.collectionFee', 'Collection fee is added only for external collection.')}</p>
-                  </div>
-                </button>
-              </div>
 
-              {method === 'eversend' && (
-                <label className="mt-4 block">
-                  <span className="text-xs font-bold text-[var(--text-secondary)]">{t('subscription.phone', 'Phone number')}</span>
-                  <input
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="651188134"
-                    className="mt-2 h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold outline-none focus:border-[var(--accent)]"
-                  />
-                </label>
+                  {method === 'eversend' && (
+                    <label className="mt-4 block">
+                      <span className="text-xs font-bold text-[var(--text-secondary)]">{t('subscription.phone', 'Phone number')}</span>
+                      <input
+                        value={phone}
+                        onChange={(event) => setPhone(event.target.value)}
+                        placeholder="651188134"
+                        className="mt-2 h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold outline-none focus:border-[var(--accent)]"
+                      />
+                    </label>
+                  )}
+
+                  <div className="mt-6 rounded-3xl bg-[var(--bg-secondary)] p-4">
+                    <div className="flex items-center justify-between gap-3 text-sm">
+                      <span className="font-semibold text-[var(--text-secondary)]">{selectedPlan.name}</span>
+                      <strong>{Number(selectedPlan.price || 0).toLocaleString()} {selectedPlan.currency}</strong>
+                    </div>
+                    <p className="mt-1 text-[11px] font-semibold text-[var(--text-secondary)]">{planDuration(selectedPlan)}</p>
+                    <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-[var(--text-secondary)]">
+                      <ShieldCheck className="size-4 text-emerald-500" />
+                      {t('subscription.secureCheck', 'Access is checked server-side on every gated request.')}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={pay}
+                    disabled={submitting}
+                    className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-5 py-4 text-sm font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition active:scale-[0.98] disabled:opacity-60"
+                  >
+                    {submitting ? <Loader2 className="size-4 animate-spin" /> : <CreditCard className="size-4" />}
+                    {t('subscription.activateButton', 'Activate package')}
+                  </button>
+                </>
               )}
-
-              <div className="mt-6 rounded-3xl bg-[var(--bg-secondary)] p-4">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-semibold text-[var(--text-secondary)]">{selectedPlan.name}</span>
-                  <strong>{Number(selectedPlan.price || 0).toLocaleString()} {selectedPlan.currency}</strong>
-                </div>
-                <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-[var(--text-secondary)]">
-                  <ShieldCheck className="size-4 text-emerald-500" />
-                  {t('subscription.secureCheck', 'Access is checked server-side on every gated request.')}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={pay}
-                disabled={submitting}
-                className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-5 py-4 text-sm font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition active:scale-[0.98] disabled:opacity-60"
-              >
-                {submitting ? <Loader2 className="size-4 animate-spin" /> : <CreditCard className="size-4" />}
-                {t('subscription.activateButton', 'Activate package')}
-              </button>
             </aside>
           )}
         </section>

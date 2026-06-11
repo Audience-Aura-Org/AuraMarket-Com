@@ -19,6 +19,8 @@ const defaultPlan = {
   price: 500,
   currency: 'XAF',
   billing_cycle: 'one_time',
+  duration_days: '',
+  contact_required: false,
   roles: ['vendor'],
   features: '',
   is_active: true,
@@ -97,6 +99,8 @@ export default function AdminSubscriptionsPage() {
       price: plan.price || 0,
       currency: plan.currency || 'XAF',
       billing_cycle: plan.billing_cycle || 'one_time',
+      duration_days: plan.duration_days ?? '',
+      contact_required: Boolean(plan.contact_required),
       roles: plan.roles || ['vendor'],
       features: (plan.features || []).join('\n'),
       is_active: plan.is_active !== false,
@@ -118,6 +122,8 @@ export default function AdminSubscriptionsPage() {
       const payload = {
         ...planForm,
         price: Number(planForm.price || 0),
+        duration_days: planForm.duration_days === '' ? null : Number(planForm.duration_days || 0),
+        contact_required: Boolean(planForm.contact_required),
         features: String(planForm.features || '').split('\n').map((line) => line.trim()).filter(Boolean),
       };
       if (editingPlanId) {
@@ -256,6 +262,23 @@ export default function AdminSubscriptionsPage() {
                     <option value="yearly">{t('subscription.yearly', 'Yearly')}</option>
                   </select>
                 </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <input
+                    className={fieldClass}
+                    type="number"
+                    min="0"
+                    placeholder={t('subscription.durationDays', 'Duration days')}
+                    value={planForm.duration_days}
+                    onChange={(e) => setPlanForm({ ...planForm, duration_days: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPlanForm((current) => ({ ...current, contact_required: !current.contact_required }))}
+                    className={`h-12 rounded-2xl border px-4 text-xs font-bold transition ${planForm.contact_required ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+                  >
+                    {t('subscription.contactOnly', 'Contact-only package')}
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {ROLE_OPTIONS.map((role) => {
                     const checked = planForm.roles.includes(role);
@@ -372,6 +395,10 @@ export default function AdminSubscriptionsPage() {
                       <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${plan.is_active ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-500'}`}>
                         {plan.is_active ? t('common.active', 'Active') : t('common.hidden', 'Hidden')}
                       </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold text-[var(--text-secondary)]">
+                      {Number(plan.duration_days || 0) > 0 && <span>{plan.duration_days} {t('subscription.days', 'days')}</span>}
+                      {plan.contact_required && <span>{t('subscription.contactOnly', 'Contact-only package')}</span>}
                     </div>
                   </div>
                 ))}

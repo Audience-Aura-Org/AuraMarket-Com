@@ -83,6 +83,10 @@ const initializeSubscription = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'No active subscription plan is available for this role.' });
     }
 
+    if (plan.contact_required) {
+      return res.status(400).json({ success: false, message: 'This package requires direct support activation. Please contact Auradime support.' });
+    }
+
     const current = await getSubscriptionStatus(req.user, role);
     if (current.subscribed && current.subscription?.status === 'active') {
       return res.status(200).json({ success: true, message: 'Subscription already active.', data: await serializeStatus(req.user, role) });
@@ -292,6 +296,8 @@ const createPlan = async (req, res, next) => {
       price: Number(req.body.price || 0),
       currency: req.body.currency || 'XAF',
       billing_cycle: req.body.billing_cycle || 'one_time',
+      duration_days: req.body.duration_days === '' || req.body.duration_days === undefined ? null : Number(req.body.duration_days || 0),
+      contact_required: Boolean(req.body.contact_required),
       roles: Array.isArray(req.body.roles) ? req.body.roles : ['vendor'],
       features: Array.isArray(req.body.features) ? req.body.features : [],
       is_active: req.body.is_active !== false,
@@ -305,11 +311,18 @@ const createPlan = async (req, res, next) => {
 
 const updatePlan = async (req, res, next) => {
   try {
-    const allowed = ['name', 'slug', 'description', 'price', 'currency', 'billing_cycle', 'roles', 'features', 'is_active'];
+    const allowed = ['name', 'slug', 'description', 'price', 'currency', 'billing_cycle', 'duration_days', 'contact_required', 'roles', 'features', 'is_active'];
     const patch = {};
     allowed.forEach((key) => {
       if (req.body[key] !== undefined) patch[key] = req.body[key];
     });
+    if (patch.duration_days === '') patch.duration_days = null;
+    if (patch.duration_days !== undefined && patch.duration_days !== null) {
+      patch.duration_days = Number(patch.duration_days || 0);
+    }
+    if (patch.contact_required !== undefined) {
+      patch.contact_required = Boolean(patch.contact_required);
+    }
     const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, patch, { new: true, runValidators: true });
     if (!plan) return res.status(404).json({ success: false, message: 'Plan not found.' });
     res.status(200).json({ success: true, data: { plan } });

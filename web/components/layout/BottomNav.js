@@ -43,17 +43,17 @@ export default function BottomNav() {
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const menu = isCustomer ? [
-    { label: t('nav.shop'), href: "/shop", icon: Compass },
-    { label: t('nav.vendors'), href: "/discovery?tab=vendors", icon: Store },
-    { label: t('nav.stories'), href: "/discovery?tab=status", icon: Activity },
-    { label: t('nav.overtime'), href: "/overtime", icon: House },
-    { label: t('nav.profile'), href: "/profile", icon: User }
+    { label: t('bottomNav.shop', 'Shop'), href: "/shop", icon: Compass },
+    { label: t('bottomNav.vendors', 'Vendors'), href: "/discovery?tab=vendors", icon: Store },
+    { label: t('bottomNav.stories', 'Stories'), href: "/discovery?tab=status", icon: Activity },
+    { label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House },
+    { label: t('bottomNav.profile', 'Profile'), href: "/profile", icon: User }
   ] : [
-    { label: t('nav.dashboard'), href: dashboardHref, icon: LayoutDashboard },
-    { label: t('nav.shop'), href: "/shop", icon: Compass },
-    { label: t('nav.story'), href: "/vendor/stories", icon: Activity },
-    { label: t('nav.overtime'), href: "/overtime", icon: House },
-    { label: t('nav.profile'), href: "/profile", icon: User }
+    { label: t('bottomNav.dashboard', 'Dashboard'), href: dashboardHref, icon: LayoutDashboard },
+    { label: t('bottomNav.shop', 'Shop'), href: "/shop", icon: Compass },
+    { label: t('bottomNav.story', 'Story'), href: "/vendor/stories", icon: Activity },
+    { label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House },
+    { label: t('bottomNav.profile', 'Profile'), href: "/profile", icon: User }
   ];
 
   const isItemActive = (item) => {
@@ -105,7 +105,7 @@ export default function BottomNav() {
                 </div>
 
                 <span
-                  className={`max-w-full truncate px-0.5 text-[11px] font-medium tracking-tight transition-colors ${
+                  className={`max-w-full truncate px-0.5 text-[10px] font-semibold leading-none tracking-tight transition-colors min-[380px]:text-[11px] ${
                     isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)] opacity-90"
                   }`}
                 >
@@ -134,7 +134,7 @@ export default function BottomNav() {
             const itemContent = (
               <>
                   <Icon className={`size-[20px] ${isActive ? 'stroke-2 text-[var(--accent)]' : 'stroke-2 text-white/45'}`} />
-                  <span className={`text-[11px] font-medium tracking-wide mt-1.5 ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{item.label}</span>
+                  <span className={`max-w-[82px] truncate text-[10px] font-semibold tracking-wide mt-1.5 md:text-[11px] ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{item.label}</span>
               </>
             );
 

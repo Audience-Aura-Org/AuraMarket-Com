@@ -37,6 +37,15 @@ const SubscriptionPlanSchema = new mongoose.Schema(
       enum: ['one_time', 'monthly', 'yearly'],
       default: 'one_time',
     },
+    duration_days: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+    contact_required: {
+      type: Boolean,
+      default: false,
+    },
     roles: [{
       type: String,
       enum: ['customer', 'vendor', 'logistics', 'admin'],

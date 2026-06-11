@@ -3,22 +3,85 @@ const SubscriptionPlan = require('../models/SubscriptionPlan.model');
 const UserSubscription = require('../models/UserSubscription.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 
-const DEFAULT_VENDOR_PLAN = {
-  name: 'Vendor Welcome Package',
-  slug: 'vendor-welcome-package',
-  description: 'One-time vendor access package for launching and managing an Auradime store.',
-  price: 500,
-  currency: 'XAF',
-  billing_cycle: 'one_time',
-  roles: ['vendor'],
-  features: [
-    'Vendor dashboard access',
-    'Product publishing tools',
-    'Order and wallet management',
-    'Storefront visibility',
-  ],
-  is_active: true,
-};
+const DEFAULT_VENDOR_PLANS = [
+  {
+    name: 'Welcome',
+    slug: 'vendor-welcome',
+    description: "Perfect if you're testing the waters and want to see how selling works.",
+    price: 5000,
+    currency: 'XAF',
+    billing_cycle: 'one_time',
+    duration_days: 30,
+    roles: ['vendor'],
+    features: [
+      'List up to 20 products in your store',
+      'Add your shop logo',
+      "Get help via email when you're stuck",
+      'No promotions or discounts',
+      'No sales reports',
+    ],
+    is_active: true,
+  },
+  {
+    name: 'Standard',
+    slug: 'vendor-standard',
+    description: 'Best for sellers who are serious and want more customers to find them.',
+    price: 15000,
+    currency: 'XAF',
+    billing_cycle: 'one_time',
+    duration_days: 60,
+    roles: ['vendor'],
+    features: [
+      'List up to 100 products',
+      'Your products get highlighted 3 times/month',
+      'Run flash sales & discount codes',
+      'See basic reports on your sales',
+      'Logo + store banner customization',
+      'Priority email support',
+    ],
+    is_active: true,
+  },
+  {
+    name: 'Business',
+    slug: 'vendor-business',
+    description: 'For shops with lots of products that need full control and visibility.',
+    price: 35000,
+    currency: 'XAF',
+    billing_cycle: 'one_time',
+    duration_days: 90,
+    roles: ['vendor'],
+    features: [
+      'List up to 500 products',
+      '10 featured spots per month',
+      'Detailed reports - who buys, when & what',
+      'Full store design customization',
+      'Upload many products at once (bulk import)',
+      'Live chat + email support',
+    ],
+    is_active: true,
+  },
+  {
+    name: 'Power Seller',
+    slug: 'vendor-power-seller',
+    description: 'For big brands or wholesalers who need a custom deal and full platform access.',
+    price: 0,
+    currency: 'XAF',
+    billing_cycle: 'one_time',
+    duration_days: 365,
+    contact_required: true,
+    roles: ['vendor'],
+    features: [
+      'Unlimited products',
+      'Your banner on the homepage',
+      'Connect your own systems via API',
+      'Your own dedicated account manager',
+      'Lowest commission rate — negotiated',
+    ],
+    is_active: true,
+  },
+];
+
+const DEFAULT_VENDOR_PLAN = DEFAULT_VENDOR_PLANS[0];
 
 const toObjectId = (value) => {
   if (!value) return null;
@@ -26,11 +89,20 @@ const toObjectId = (value) => {
 };
 
 const ensureDefaultSubscriptionPlan = async () => {
-  let plan = await SubscriptionPlan.findOne({ slug: DEFAULT_VENDOR_PLAN.slug });
-  if (!plan) {
-    plan = await SubscriptionPlan.create(DEFAULT_VENDOR_PLAN);
+  const plans = [];
+  for (const defaults of DEFAULT_VENDOR_PLANS) {
+    const plan = await SubscriptionPlan.findOneAndUpdate(
+      { slug: defaults.slug },
+      { $setOnInsert: defaults },
+      { new: true, upsert: true }
+    );
+    plans.push(plan);
   }
-  return plan;
+  await SubscriptionPlan.updateOne(
+    { slug: 'vendor-welcome-package' },
+    { $set: { is_active: false } }
+  );
+  return plans[0];
 };
 
 const getRoleRequirements = async () => {
@@ -241,7 +313,10 @@ const getPlansForRole = async (role) => {
   }).sort({ price: 1, createdAt: 1 });
 };
 
-const calculateExpiry = (billingCycle) => {
+const calculateExpiry = (billingCycle, durationDays = null) => {
+  if (Number(durationDays || 0) > 0) {
+    return addDays(new Date(), Number(durationDays));
+  }
   if (billingCycle === 'monthly') {
     const date = new Date();
     date.setMonth(date.getMonth() + 1);
@@ -285,7 +360,7 @@ const activateSubscription = async ({
 
   const activationDate = startedAt instanceof Date && !Number.isNaN(startedAt.getTime()) ? startedAt : new Date();
   const resolvedExpiry = expiresAt === undefined
-    ? calculateExpiry(plan.billing_cycle)
+    ? calculateExpiry(plan.billing_cycle, plan.duration_days)
     : (expiresAt instanceof Date && !Number.isNaN(expiresAt.getTime()) ? expiresAt : null);
   const payload = {
     user_id: userId,
@@ -313,6 +388,7 @@ const activateSubscription = async ({
 
 module.exports = {
   DEFAULT_VENDOR_PLAN,
+  DEFAULT_VENDOR_PLANS,
   ensureDefaultSubscriptionPlan,
   getRoleRequirements,
   isRoleSubscriptionRequired,
