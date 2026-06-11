@@ -61,12 +61,17 @@ export default function UnifiedAuth() {
 
   useEffect(() => {
     try {
-      const pendingSignup = JSON.parse(sessionStorage.getItem(SIGNUP_STATE_KEY) || 'null');
+      const isSignupResume = window.location.search.includes('signup=1');
+      const pendingSignup = isSignupResume
+        ? JSON.parse(sessionStorage.getItem(SIGNUP_STATE_KEY) || 'null')
+        : null;
       if (pendingSignup?.signupToken && pendingSignup?.email) {
         setEmail(pendingSignup.email);
         setSignupToken(pendingSignup.signupToken);
         setStep('signup');
         return;
+      } else if (!isSignupResume) {
+        sessionStorage.removeItem(SIGNUP_STATE_KEY);
       }
 
       const pendingEmail = sessionStorage.getItem(OTP_PENDING_KEY);
@@ -78,11 +83,12 @@ export default function UnifiedAuth() {
   }, []);
 
   useEffect(() => {
+    if (step !== 'email') return;
     if (hasHydrated && rememberedEmail && !prefilledRef.current) {
       prefilledRef.current = true;
       setEmail(rememberedEmail);
     }
-  }, [hasHydrated, rememberedEmail]);
+  }, [hasHydrated, rememberedEmail, step]);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -123,6 +129,9 @@ export default function UnifiedAuth() {
     setError('');
     const nextEmail = cleanEmail(email);
     if (!nextEmail) return;
+    try {
+      sessionStorage.removeItem(SIGNUP_STATE_KEY);
+    } catch {}
     if (resendIn > 0) {
       setEmail(nextEmail);
       setOtp('');
@@ -357,7 +366,15 @@ export default function UnifiedAuth() {
               onSubmit={verifyCode}
               className="space-y-5"
             >
-              <BackButton onClick={() => setStep('email')} label={t('login.changeEmail')} />
+              <BackButton
+                onClick={() => {
+                  try {
+                    sessionStorage.removeItem(SIGNUP_STATE_KEY);
+                  } catch {}
+                  setStep('email');
+                }}
+                label={t('login.changeEmail')}
+              />
 
               <div className="space-y-1">
                 <h2 className="text-[14px] font-bold text-[var(--text-primary)] tracking-tight">{t('login.checkEmail')}</h2>
@@ -404,7 +421,17 @@ export default function UnifiedAuth() {
               onSubmit={completeSignup}
               className="space-y-5"
             >
-              <BackButton onClick={() => setStep('otp')} label={t('login.enterCode')} />
+              <BackButton
+                onClick={() => {
+                  try {
+                    sessionStorage.removeItem(SIGNUP_STATE_KEY);
+                    sessionStorage.setItem(OTP_PENDING_KEY, email);
+                  } catch {}
+                  setSignupToken('');
+                  setStep('otp');
+                }}
+                label={t('login.enterCode')}
+              />
 
               <div className="space-y-1">
                 <h2 className="text-[14px] font-bold text-[var(--text-primary)] tracking-tight">{t('login.createAccount')}</h2>
