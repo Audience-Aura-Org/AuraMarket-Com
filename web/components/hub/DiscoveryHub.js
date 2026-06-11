@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import dynamic from 'next/dynamic';
+import { useLanguage } from '@/context/LanguageContext';
 
 import ProductCard from '@/components/ProductCard';
 import Pagination from '@/components/common/Pagination';
@@ -368,23 +369,24 @@ DiscoveryContent.displayName = 'DiscoveryContent';
 export default function DiscoveryHub() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('discover');
 
   const isCustomer = !user || user.role === 'customer';
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const TABS = isCustomer ? [
-    { id: 'discover', label: "Shop", icon: Compass },
-    { id: 'vendors', label: "Vendors", icon: Store },
-    { id: 'status', label: "Stories", icon: Activity },
-    { id: 'overtime', label: "Overtime", href: "/overtime", icon: House },
-    { id: 'profile', label: "Profile", icon: User }
+    { id: 'discover', label: t('nav.shop'), href: "/shop", icon: Compass },
+    { id: 'vendors', label: t('nav.vendors'), icon: Store },
+    { id: 'status', label: t('nav.stories'), icon: Activity },
+    { id: 'overtime', label: t('nav.overtime'), href: "/overtime", icon: House },
+    { id: 'profile', label: t('nav.profile'), icon: User }
   ] : [
-    { id: 'dashboard', label: "Dashboard", href: dashboardHref, icon: LayoutDashboard },
-    { id: 'discover', label: "Shop", icon: Compass },
-    { id: 'status', label: "Story", icon: Activity },
-    { id: 'overtime', label: "Overtime", href: "/overtime", icon: House },
-    { id: 'profile', label: "Profile", icon: User }
+    { id: 'dashboard', label: t('nav.dashboard'), href: dashboardHref, icon: LayoutDashboard },
+    { id: 'discover', label: t('nav.shop'), href: "/shop", icon: Compass },
+    { id: 'status', label: t('nav.story'), icon: Activity },
+    { id: 'overtime', label: t('nav.overtime'), href: "/overtime", icon: House },
+    { id: 'profile', label: t('nav.profile'), icon: User }
   ];
 
   useEffect(() => {

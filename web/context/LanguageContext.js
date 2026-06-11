@@ -1140,7 +1140,7 @@ export function LanguageProvider({ children }) {
   const value = useMemo(() => ({
     language,
     languages: SUPPORTED_LANGUAGES,
-    setLanguage: (nextLanguage) => {
+    setLanguage: (nextLanguage, options = {}) => {
       const normalized = normalizeLanguage(nextLanguage);
       setLanguageState(normalized);
       if (typeof document !== 'undefined') {
@@ -1151,6 +1151,11 @@ export function LanguageProvider({ children }) {
         document.cookie = `${STORAGE_KEY}=${normalized}; path=/; max-age=31536000; SameSite=Lax`;
         window.dispatchEvent(new CustomEvent('aura:language-change', { detail: { language: normalized } }));
       } catch {}
+      if (options.reload && normalized !== language && typeof window !== 'undefined') {
+        window.setTimeout(() => {
+          window.location.reload();
+        }, 120);
+      }
     },
     t: (key, fallback, replacements = {}) => {
       const template = translations[language]?.[key] || translations.en[key] || fallback || key;

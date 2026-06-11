@@ -30,7 +30,7 @@ export default function AuthLanguageHeader() {
             <button
               key={item.code}
               type="button"
-              onClick={() => setLanguage(item.code)}
+              onClick={() => setLanguage(item.code, { reload: true })}
               aria-pressed={language === item.code}
               className={`min-w-10 rounded-full px-2.5 py-1.5 transition sm:min-w-[76px] sm:px-3 ${
                 language === item.code
