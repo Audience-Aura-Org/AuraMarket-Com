@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { AlertTriangle, ChevronDown, ChevronUp, Clock3 } from 'lucide-react';
+import { AlertTriangle, Clock3 } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
 import api from '@/services/api';
@@ -93,7 +93,7 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
     };
   }, [disabled, user?._id, user?.role, normalizedPath, isAuthRoute, isImmersiveChat]);
 
-  if (disabled || !notice?.required || isAuthRoute || isImmersiveChat || normalizedPath === '/subscribe') {
+  if (disabled || hidden || !notice?.required || isAuthRoute || isImmersiveChat || normalizedPath === '/subscribe') {
     return null;
   }
 
@@ -112,94 +112,62 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
   const Icon = isGrace ? Clock3 : AlertTriangle;
   const severity = isGrace
     ? {
-        shell: 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-500/35 dark:bg-amber-950 dark:text-amber-50',
-        icon: 'bg-amber-100 text-amber-700 ring-amber-300 dark:bg-amber-900 dark:text-amber-100 dark:ring-amber-500/35',
-        rail: 'bg-amber-500',
-        action: 'bg-amber-500 hover:bg-amber-600',
-        soft: 'bg-amber-200 text-amber-950 dark:bg-amber-800 dark:text-amber-50',
+        shell: 'border-amber-500/15 bg-[var(--bg-primary)]/45 text-[var(--text-primary)]',
+        wash: 'from-amber-500/10',
+        icon: 'bg-amber-500/10 text-amber-500 border-amber-500/20 shadow-amber-500/10',
+        action: 'bg-amber-500 shadow-amber-500/20 hover:opacity-90',
+        soft: 'bg-amber-500/10 text-amber-600',
       }
     : {
-        shell: 'border-rose-300 bg-rose-50 text-rose-950 dark:border-rose-500/35 dark:bg-rose-950 dark:text-rose-50',
-        icon: 'bg-rose-100 text-rose-700 ring-rose-300 dark:bg-rose-900 dark:text-rose-100 dark:ring-rose-500/35',
-        rail: 'bg-rose-500',
-        action: 'bg-rose-500 hover:bg-rose-600',
-        soft: 'bg-rose-200 text-rose-950 dark:bg-rose-800 dark:text-rose-50',
+        shell: 'border-rose-500/15 bg-[var(--bg-primary)]/45 text-[var(--text-primary)]',
+        wash: 'from-rose-500/10',
+        icon: 'bg-rose-500/10 text-rose-500 border-rose-500/20 shadow-rose-500/10',
+        action: 'bg-rose-500 shadow-rose-500/20 hover:opacity-90',
+        soft: 'bg-rose-500/10 text-rose-600',
       };
   const hideNotice = () => {
     if (hideKey) {
       window.localStorage.setItem(hideKey, String(Date.now() + HIDE_MS));
     }
-    setNotice(null);
-    setHidden(false);
+    setHidden(true);
   };
 
   return (
     <div className="w-full border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/65 px-2 py-2 sm:px-3">
-      <div className={`mx-auto flex max-w-[1600px] overflow-hidden rounded-2xl border shadow-sm backdrop-blur-xl ${severity.shell}`}>
-        <div className={`w-1 shrink-0 ${severity.rail}`} />
-        <div className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 sm:gap-3 sm:px-3">
-          <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ring-1 sm:size-9 ${severity.icon}`}>
-            <Icon className="size-4 sm:size-4.5" />
+      <div className={`relative mx-auto flex max-w-[1600px] flex-col items-center justify-between gap-3 overflow-hidden rounded-2xl border p-3 shadow-xl backdrop-blur-2xl sm:flex-row sm:gap-5 sm:p-4 ${severity.shell}`}>
+        <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${severity.wash} to-transparent`} />
+        <div className="relative flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
+          <div className={`flex size-11 shrink-0 items-center justify-center rounded-2xl border shadow-lg sm:size-12 ${severity.icon}`}>
+            <Icon className="size-5 sm:size-5.5" />
           </div>
-        <button
-          type="button"
-          onClick={() => setHidden((value) => !value)}
-          className="min-w-0 flex-1 text-left"
-          aria-expanded={!hidden}
-        >
-          <div className="flex min-w-0 items-center gap-2">
-            <p className="truncate text-[11px] font-black uppercase tracking-wide sm:text-xs">{title}</p>
-            <span className={`hidden rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide sm:inline-flex ${severity.soft}`}>
-              {isGrace ? t('subscription.noticeWarning', 'Action needed') : t('subscription.noticeCritical', 'Restricted')}
-            </span>
+          <div className="min-w-0 space-y-0.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <p className="truncate text-sm font-bold tracking-tight sm:text-base">{title}</p>
+              <span className={`hidden rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wide sm:inline-flex ${severity.soft}`}>
+                {isGrace ? t('subscription.noticeWarning', 'Action needed') : t('subscription.noticeCritical', 'Restricted')}
+              </span>
+            </div>
+            <p className="line-clamp-2 max-w-2xl text-[11px] font-medium leading-relaxed tracking-tight text-[var(--text-secondary)] opacity-70 sm:text-xs">
+              {detail}
+            </p>
           </div>
-          {!hidden && (
-            <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-4 opacity-80 sm:text-xs sm:leading-5">{detail}</p>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => setHidden((value) => !value)}
-          className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-current/15 text-current/70 transition hover:bg-white/20 active:scale-95 sm:hidden"
-          aria-label={hidden ? t('common.show', 'Show') : t('common.hide', 'Hide')}
-        >
-          {hidden ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
-        </button>
-        <div className="hidden shrink-0 items-center gap-2 sm:flex">
-        <button
-          type="button"
-          onClick={() => router.push(`/subscribe?role=${encodeURIComponent(role)}`)}
-          className={`h-9 shrink-0 rounded-xl px-4 text-xs font-black text-white shadow-sm transition active:scale-95 ${severity.action}`}
-        >
-          {t('subscription.subscribeCta', 'Subscribe')}
-        </button>
-        <button
-          type="button"
-          onClick={hideNotice}
-          className="h-9 shrink-0 rounded-xl border border-current/20 px-3 text-xs font-bold transition hover:bg-white/20 active:scale-95"
-        >
-          {t('common.hide', 'Hide')}
-        </button>
         </div>
+        <div className="relative flex w-full shrink-0 items-center gap-2 sm:w-auto">
+          <button
+            type="button"
+            onClick={() => router.push(`/subscribe?role=${encodeURIComponent(role)}`)}
+            className={`flex h-10 flex-1 items-center justify-center rounded-xl px-5 text-xs font-bold tracking-tight text-white shadow-xl transition active:scale-95 sm:flex-none sm:px-7 ${severity.action}`}
+          >
+            {t('subscription.subscribeCta', 'Subscribe')}
+          </button>
+          <button
+            type="button"
+            onClick={hideNotice}
+            className="flex h-10 shrink-0 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 px-4 text-xs font-bold text-[var(--text-primary)] transition hover:bg-[var(--bg-secondary)] active:scale-95"
+          >
+            {t('common.hide', 'Hide')}
+          </button>
         </div>
-        {!hidden && (
-          <div className="flex gap-2 border-t border-current/10 px-2.5 pb-2 sm:hidden">
-            <button
-              type="button"
-              onClick={() => router.push(`/subscribe?role=${encodeURIComponent(role)}`)}
-              className={`h-9 flex-1 rounded-xl px-3 text-xs font-black text-white shadow-sm transition active:scale-95 ${severity.action}`}
-            >
-              {t('subscription.subscribeCta', 'Subscribe')}
-            </button>
-            <button
-              type="button"
-              onClick={hideNotice}
-              className="h-9 rounded-xl border border-current/20 px-3 text-xs font-bold transition active:scale-95"
-            >
-              {t('common.hide', 'Hide')}
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );

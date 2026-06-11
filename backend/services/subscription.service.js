@@ -91,19 +91,25 @@ const toObjectId = (value) => {
 const ensureDefaultSubscriptionPlan = async () => {
   const plans = [];
   for (const defaults of DEFAULT_VENDOR_PLANS) {
-    const patch = defaults.slug === 'vendor-welcome'
-      ? {
-          price: defaults.price,
-          duration_days: defaults.duration_days,
-          roles: defaults.roles,
-          is_active: true,
-        }
-      : {};
-    const plan = await SubscriptionPlan.findOneAndUpdate(
+    let plan = await SubscriptionPlan.findOneAndUpdate(
       { slug: defaults.slug },
-      { $setOnInsert: defaults, ...(Object.keys(patch).length ? { $set: patch } : {}) },
+      { $setOnInsert: defaults },
       { new: true, upsert: true }
     );
+    if (defaults.slug === 'vendor-welcome') {
+      plan = await SubscriptionPlan.findOneAndUpdate(
+        { slug: defaults.slug },
+        {
+          $set: {
+            price: defaults.price,
+            duration_days: defaults.duration_days,
+            roles: defaults.roles,
+            is_active: true,
+          },
+        },
+        { new: true }
+      );
+    }
     plans.push(plan);
   }
   await SubscriptionPlan.findOneAndUpdate(
