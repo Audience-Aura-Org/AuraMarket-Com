@@ -7,6 +7,9 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
 import api from '@/services/api';
 
+const HIDE_MS = 6 * 60 * 60 * 1000;
+const hideKeyFor = (userId, role, state) => `aura_subscription_notice_hidden:${userId || 'guest'}:${role || 'role'}:${state || 'state'}`;
+
 export default function SubscriptionAccessNotice({ disabled = false }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -14,6 +17,7 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
   const user = useAuthStore((state) => state.user);
   const [notice, setNotice] = useState(null);
   const [hidden, setHidden] = useState(false);
+  const [hideKey, setHideKey] = useState(null);
 
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
   const isAuthRoute =
@@ -48,6 +52,7 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
 
     if (!shouldCheck) {
       setNotice(null);
+      setHideKey(null);
       return undefined;
     }
 
@@ -61,10 +66,15 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
         if (cancelled) return;
         const data = res.data?.data;
         if (data?.required && (!data.subscribed || data.grace || data.limited)) {
+          const nextKey = hideKeyFor(user._id, data.role || user.role, data.access_state || (data.grace ? 'grace' : 'limited'));
+          const hiddenUntil = Number(window.localStorage.getItem(nextKey) || 0);
           setNotice(data);
+          setHideKey(nextKey);
+          setHidden(hiddenUntil > Date.now());
         } else {
           setNotice(null);
           setHidden(false);
+          setHideKey(null);
         }
       } catch {
         if (!cancelled) setNotice(null);
@@ -109,6 +119,12 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
         action: 'bg-rose-500 hover:bg-rose-600',
         soft: 'bg-rose-200 text-rose-950 dark:bg-rose-800 dark:text-rose-50',
       };
+  const hideNotice = () => {
+    if (hideKey) {
+      window.localStorage.setItem(hideKey, String(Date.now() + HIDE_MS));
+    }
+    setHidden(true);
+  };
 
   return (
     <div className="w-full border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/65 px-2 py-2 sm:px-3">
@@ -152,7 +168,7 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
         </button>
         <button
           type="button"
-          onClick={() => setHidden(true)}
+          onClick={hideNotice}
           className="h-9 shrink-0 rounded-xl border border-current/20 px-3 text-xs font-bold transition hover:bg-white/20 active:scale-95"
         >
           {t('common.hide', 'Hide')}
@@ -160,13 +176,20 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
         </div>
         </div>
         {!hidden && (
-          <div className="flex border-t border-current/10 px-2.5 pb-2 sm:hidden">
+          <div className="flex gap-2 border-t border-current/10 px-2.5 pb-2 sm:hidden">
             <button
               type="button"
               onClick={() => router.push(`/subscribe?role=${encodeURIComponent(role)}`)}
               className={`h-9 flex-1 rounded-xl px-3 text-xs font-black text-white shadow-sm transition active:scale-95 ${severity.action}`}
             >
               {t('subscription.subscribeCta', 'Subscribe')}
+            </button>
+            <button
+              type="button"
+              onClick={hideNotice}
+              className="h-9 rounded-xl border border-current/20 px-3 text-xs font-bold transition active:scale-95"
+            >
+              {t('common.hide', 'Hide')}
             </button>
           </div>
         )}
