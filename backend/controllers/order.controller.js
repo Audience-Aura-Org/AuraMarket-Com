@@ -36,6 +36,10 @@ const { markEscrowDelivered } = require('./escrow.controller');
 
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
 const isVendorManagedShipping = (method) => method === 'vendor_managed' || method === 'self_managed';
+const normalizePaymentMethod = (method) => {
+  if (method === 'mesomb' || method === 'mobile_money') return 'eversend';
+  return method;
+};
 
 const variantEntries = (variant) =>
   Object.entries(variant || {}).filter(([, value]) => value !== undefined && value !== null && value !== '');
@@ -104,7 +108,8 @@ const createOrder = async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const { vendor_id, products, payment_method, shipping_address, shipping_method } = req.body;
+    const { vendor_id, products, shipping_address, shipping_method } = req.body;
+    const payment_method = normalizePaymentMethod(req.body.payment_method);
 
     if (!products || products.length === 0) {
       return res.status(400).json({ success: false, message: 'No order items provided.' });
@@ -998,13 +1003,14 @@ const createOrdersFromCart = async (req, res, next) => {
     const createdOrderIds = [];
     const { 
       shipping_address, 
-      payment_method, 
+      payment_method: rawPaymentMethod, 
       shipping_method,
       logistics_company_id, 
       delivery_quartier, 
       delivery_description,
       escrow_enabled
     } = req.body;
+    const payment_method = normalizePaymentMethod(rawPaymentMethod);
 
     const normalizedShippingMethod = isVendorManagedShipping(shipping_method) ? 'vendor_managed' : 'logistics_partner';
     const deliveryZone = delivery_quartier || shipping_address?.quartier;

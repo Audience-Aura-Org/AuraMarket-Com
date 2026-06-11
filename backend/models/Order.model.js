@@ -8,6 +8,11 @@
 
 const mongoose = require('mongoose');
 
+const LEGACY_PAYMENT_METHOD_MAP = {
+  mesomb: 'eversend',
+  mobile_money: 'eversend',
+};
+
 const OrderItemSchema = new mongoose.Schema({
   product_id: {
     type: mongoose.Schema.Types.ObjectId,
@@ -121,6 +126,12 @@ OrderSchema.virtual('shipment', {
   localField: '_id',
   foreignField: 'order_id',
   justOne: true
+});
+
+OrderSchema.pre('validate', function normalizeLegacyPaymentMethod() {
+  if (this.payment_method && LEGACY_PAYMENT_METHOD_MAP[this.payment_method]) {
+    this.payment_method = LEGACY_PAYMENT_METHOD_MAP[this.payment_method];
+  }
 });
 
 // Optional: Indexing primarily used queries
