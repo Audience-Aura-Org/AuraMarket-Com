@@ -30,30 +30,39 @@ const ROLE_LABELS = {
   admin: 'Admin',
 };
 
-const planKicker = (plan) => {
+const planKicker = (plan, t) => {
   const slug = String(plan?.slug || '').toLowerCase();
-  if (slug.includes('standard')) return 'Growing seller';
-  if (slug.includes('business')) return 'Established business';
-  if (slug.includes('power')) return 'Large operation';
-  return 'Just starting out';
+  if (slug.includes('standard')) return t('subscription.kicker.standard', 'Growing seller');
+  if (slug.includes('business')) return t('subscription.kicker.business', 'Established business');
+  if (slug.includes('power')) return t('subscription.kicker.power', 'Large operation');
+  return t('subscription.kicker.welcome', 'Just starting out');
 };
 
-const planDuration = (plan) => {
-  if (plan?.contact_required) return 'Custom price - 6-12 month deal';
+const planDuration = (plan, t) => {
+  if (plan?.contact_required) return t('subscription.duration.custom', 'Custom price - 6-12 month deal');
   const days = Number(plan?.duration_days || 0);
-  if (days >= 85 && days <= 95) return 'Pay once - valid for 3 months';
-  if (days >= 55 && days <= 65) return 'Pay once - valid for 2 months';
-  if (days >= 25 && days <= 35) return 'Pay once - valid for 1 month';
-  if (days > 0) return `Pay once - valid for ${days} days`;
-  if (plan?.billing_cycle === 'monthly') return 'Monthly package';
-  if (plan?.billing_cycle === 'yearly') return 'Yearly package';
-  return 'Pay once';
+  if (days >= 85 && days <= 95) return t('subscription.duration.threeMonths', 'Pay once - valid for 3 months');
+  if (days >= 55 && days <= 65) return t('subscription.duration.twoMonths', 'Pay once - valid for 2 months');
+  if (days >= 25 && days <= 35) return t('subscription.duration.oneMonth', 'Pay once - valid for 1 month');
+  if (days > 0) return t('subscription.duration.days', 'Pay once - valid for {days} days', { days });
+  if (plan?.billing_cycle === 'monthly') return t('subscription.monthly', 'Monthly package');
+  if (plan?.billing_cycle === 'yearly') return t('subscription.yearly', 'Yearly package');
+  return t('subscription.oneTime', 'Pay once');
+};
+
+const planTranslationKey = (plan, suffix) => {
+  const slug = String(plan?.slug || '')
+    .toLowerCase()
+    .replace(/^vendor-/, '')
+    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/^\.|\.$/g, '');
+  return `subscription.plan.${slug}.${suffix}`;
 };
 
 function SubscribeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t } = useLanguage();
+  const { t, label } = useLanguage();
   const user = useAuthStore((state) => state.user);
   const refreshWalletBalance = useAuthStore((state) => state.refreshWalletBalance);
   const role = searchParams.get('role') || user?.role || 'vendor';
@@ -141,7 +150,7 @@ function SubscribeContent() {
   };
 
   const isAlreadyActive = status?.subscribed && status?.required;
-  const roleLabel = ROLE_LABELS[role] || role;
+  const roleLabel = label(ROLE_LABELS[role] || role);
   const isContactPlan = Boolean(selectedPlan?.contact_required);
   const sidebarRole = ['admin', 'vendor', 'logistics', 'customer'].includes(user?.role)
     ? user.role
@@ -218,9 +227,9 @@ function SubscribeContent() {
                       </span>
                     )}
                     <div className="min-w-0 pr-20">
-                      <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--accent)]">{planKicker(plan)}</p>
-                      <h2 className="mt-1 text-xl font-bold">{plan.name}</h2>
-                      <p className="mt-2 text-sm font-medium leading-6 text-[var(--text-secondary)]">{plan.description}</p>
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--accent)]">{planKicker(plan, t)}</p>
+                      <h2 className="mt-1 text-xl font-bold">{t(planTranslationKey(plan, 'name'), plan.name)}</h2>
+                      <p className="mt-2 text-sm font-medium leading-6 text-[var(--text-secondary)]">{t(planTranslationKey(plan, 'description'), plan.description)}</p>
                     </div>
                     <div className="mt-5">
                       {plan.contact_required ? (
@@ -228,13 +237,13 @@ function SubscribeContent() {
                       ) : (
                         <p className="text-2xl font-black">{plan.currency} {Number(plan.price || 0).toLocaleString()}</p>
                       )}
-                      <p className="mt-1 text-[11px] font-semibold text-[var(--text-secondary)]">{planDuration(plan)}</p>
+                      <p className="mt-1 text-[11px] font-semibold text-[var(--text-secondary)]">{planDuration(plan, t)}</p>
                     </div>
                     <div className="mt-5 space-y-2">
-                      {(plan.features || []).map((feature) => (
+                      {(plan.features || []).map((feature, featureIndex) => (
                         <span key={feature} className="flex items-start gap-2 text-[12px] font-semibold leading-5 text-[var(--text-secondary)]">
                           <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
-                          <span>{feature}</span>
+                          <span>{t(planTranslationKey(plan, `feature${featureIndex + 1}`), feature)}</span>
                         </span>
                       ))}
                     </div>
@@ -260,7 +269,7 @@ function SubscribeContent() {
               {isContactPlan ? (
                 <div className="mt-5 rounded-3xl bg-[var(--bg-secondary)] p-4">
                   <MessageCircle className="mb-3 size-6 text-[var(--accent)]" />
-                  <p className="text-sm font-bold">{selectedPlan.name}</p>
+                  <p className="text-sm font-bold">{t(planTranslationKey(selectedPlan, 'name'), selectedPlan.name)}</p>
                   <p className="mt-1 text-xs font-medium leading-5 text-[var(--text-secondary)]">
                     {t('subscription.powerSellerHelp', 'Talk to Auradime support for custom pricing, homepage placement, API access, and account management.')}
                   </p>
@@ -312,10 +321,10 @@ function SubscribeContent() {
 
                   <div className="mt-6 rounded-3xl bg-[var(--bg-secondary)] p-4">
                     <div className="flex items-center justify-between gap-3 text-sm">
-                      <span className="font-semibold text-[var(--text-secondary)]">{selectedPlan.name}</span>
+                      <span className="font-semibold text-[var(--text-secondary)]">{t(planTranslationKey(selectedPlan, 'name'), selectedPlan.name)}</span>
                       <strong>{Number(selectedPlan.price || 0).toLocaleString()} {selectedPlan.currency}</strong>
                     </div>
-                    <p className="mt-1 text-[11px] font-semibold text-[var(--text-secondary)]">{planDuration(selectedPlan)}</p>
+                    <p className="mt-1 text-[11px] font-semibold text-[var(--text-secondary)]">{planDuration(selectedPlan, t)}</p>
                     <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-[var(--text-secondary)]">
                       <ShieldCheck className="size-4 text-emerald-500" />
                       {t('subscription.secureCheck', 'Access is checked server-side on every gated request.')}

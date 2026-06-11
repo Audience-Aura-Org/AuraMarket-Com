@@ -38,6 +38,7 @@ const LOGISTICS_STEPS = [
 ];
 
 const VEHICLE_TYPES = ['motorcycle', 'car', 'van', 'truck'];
+const SUBSCRIPTION_AFTER_ONBOARDING_KEY = 'aura_show_subscription_after_onboarding';
 
 const COLOR_MAP = {
   blue: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30', glow: 'shadow-blue-500/20' },
@@ -266,6 +267,17 @@ export default function OnboardingFlow() {
   const finish = async () => {
     dismissKeyboard();
     setLoading(true);
+    const consumeSubscriptionIntent = (role) => {
+      try {
+        const raw = sessionStorage.getItem(SUBSCRIPTION_AFTER_ONBOARDING_KEY);
+        const intent = raw ? JSON.parse(raw) : null;
+        if (intent?.role === role) {
+          sessionStorage.removeItem(SUBSCRIPTION_AFTER_ONBOARDING_KEY);
+          return true;
+        }
+      } catch {}
+      return false;
+    };
     try {
       if (isVendor) {
         const res = await api.post('/vendors/onboard', {
@@ -277,6 +289,10 @@ export default function OnboardingFlow() {
         });
         if (res.data.success) {
           if (res.data.data?.user) updateUser(res.data.data.user);
+          if (consumeSubscriptionIntent('vendor')) {
+            router.push('/subscribe?role=vendor');
+            return;
+          }
           router.push('/vendor/dashboard');
         }
       } else if (isLogistics) {
@@ -290,6 +306,10 @@ export default function OnboardingFlow() {
         if (res.data.success) {
           const me = await api.get('/auth/me').catch(() => null);
           if (me?.data?.data?.user) updateUser(me.data.data.user);
+          if (consumeSubscriptionIntent('logistics')) {
+            router.push('/subscribe?role=logistics');
+            return;
+          }
           router.push('/logistics/dashboard');
         }
       } else {

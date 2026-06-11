@@ -26,6 +26,7 @@ const inputClass = 'w-full bg-[var(--bg-primary)] border border-[var(--glass-bor
 const LOGIN_ACTION_TIMEOUT_MS = 60000;
 const OTP_PENDING_KEY = 'aura_pending_otp_email';
 const SIGNUP_STATE_KEY = 'aura_pending_signup_state';
+const SUBSCRIPTION_AFTER_ONBOARDING_KEY = 'aura_show_subscription_after_onboarding';
 
 const withLoginTimeout = (promise, message) => {
   let timer;
@@ -55,6 +56,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
     phone: '',
     role: 'customer',
   });
+  const [subscriptionIntent, setSubscriptionIntent] = useState(true);
 
   useEffect(() => {
     resetLoading?.();
@@ -238,6 +240,14 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
       try {
         sessionStorage.removeItem(OTP_PENDING_KEY);
         sessionStorage.removeItem(SIGNUP_STATE_KEY);
+        if (['vendor', 'logistics'].includes(profile.role) && subscriptionIntent) {
+          sessionStorage.setItem(SUBSCRIPTION_AFTER_ONBOARDING_KEY, JSON.stringify({
+            role: profile.role,
+            savedAt: Date.now(),
+          }));
+        } else {
+          sessionStorage.removeItem(SUBSCRIPTION_AFTER_ONBOARDING_KEY);
+        }
       } catch {}
       let verifiedUser = result.user;
       if (!verifiedUser) {
@@ -306,7 +316,16 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
     return () => window.clearTimeout(timer);
   }, [step, transitioningToSignup]);
 
-  const updateProfile = (patch) => setProfile((current) => ({ ...current, ...patch }));
+  const updateProfile = (patch) => setProfile((current) => {
+    const next = { ...current, ...patch };
+    if (patch.role && ['vendor', 'logistics'].includes(patch.role)) {
+      setSubscriptionIntent(true);
+    }
+    if (patch.role === 'customer') {
+      setSubscriptionIntent(false);
+    }
+    return next;
+  });
 
   const subscriptionHint =
     profile.role === 'vendor'
@@ -314,6 +333,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
       : profile.role === 'logistics'
         ? t('login.logisticsSubscriptionHint')
         : t('login.customerSubscriptionHint');
+  const showSignupSubscriptionChoice = ['vendor', 'logistics'].includes(profile.role);
 
   return (
     <div className="w-full max-w-[420px] mx-auto transition-all duration-700">
@@ -529,6 +549,32 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
                 <p className="text-[11px] font-semibold leading-relaxed text-[var(--text-secondary)] opacity-70">
                   {subscriptionHint}
                 </p>
+                {showSignupSubscriptionChoice && (
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setSubscriptionIntent(true)}
+                      className={`rounded-2xl border px-3 py-2 text-[11px] font-bold transition-all ${
+                        subscriptionIntent
+                          ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                          : 'border-[var(--glass-border)] text-[var(--text-secondary)]'
+                      }`}
+                    >
+                      {t('login.subscriptionNow')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSubscriptionIntent(false)}
+                      className={`rounded-2xl border px-3 py-2 text-[11px] font-bold transition-all ${
+                        !subscriptionIntent
+                          ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                          : 'border-[var(--glass-border)] text-[var(--text-secondary)]'
+                      }`}
+                    >
+                      {t('login.subscriptionLater')}
+                    </button>
+                  </div>
+                )}
                 <p className="mt-2 text-[11px] font-semibold leading-relaxed text-[var(--text-secondary)] opacity-70">
                   {t('login.onboardingHint')}
                 </p>

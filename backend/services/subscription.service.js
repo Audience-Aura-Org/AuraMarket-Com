@@ -8,7 +8,7 @@ const DEFAULT_VENDOR_PLANS = [
     name: 'Welcome',
     slug: 'vendor-welcome',
     description: "Perfect if you're testing the waters and want to see how selling works.",
-    price: 5000,
+    price: 500,
     currency: 'XAF',
     billing_cycle: 'one_time',
     duration_days: 30,
@@ -91,16 +91,34 @@ const toObjectId = (value) => {
 const ensureDefaultSubscriptionPlan = async () => {
   const plans = [];
   for (const defaults of DEFAULT_VENDOR_PLANS) {
+    const patch = defaults.slug === 'vendor-welcome'
+      ? {
+          price: defaults.price,
+          duration_days: defaults.duration_days,
+          roles: defaults.roles,
+          is_active: true,
+        }
+      : {};
     const plan = await SubscriptionPlan.findOneAndUpdate(
       { slug: defaults.slug },
-      { $setOnInsert: defaults },
+      { $setOnInsert: defaults, ...(Object.keys(patch).length ? { $set: patch } : {}) },
       { new: true, upsert: true }
     );
     plans.push(plan);
   }
-  await SubscriptionPlan.updateOne(
+  await SubscriptionPlan.findOneAndUpdate(
     { slug: 'vendor-welcome-package' },
-    { $set: { is_active: false } }
+    {
+      $set: {
+        price: 500,
+        currency: 'XAF',
+        billing_cycle: 'one_time',
+        duration_days: 30,
+        roles: ['vendor'],
+        is_active: true,
+      },
+    },
+    { new: true }
   );
   return plans[0];
 };
