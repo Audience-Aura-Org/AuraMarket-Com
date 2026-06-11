@@ -60,6 +60,16 @@ export default function Providers({ children }) {
     return () => window.removeEventListener('aura:session-invalidated', handleInvalidSession);
   }, [logout, router]);
 
+  useEffect(() => {
+    const handleSubscriptionRequired = (event) => {
+      const redirect = event.detail?.redirect || '/subscribe';
+      router.replace(redirect);
+    };
+
+    window.addEventListener('aura:subscription-required', handleSubscriptionRequired);
+    return () => window.removeEventListener('aura:subscription-required', handleSubscriptionRequired);
+  }, [router]);
+
   const isAuthRoute =
     normalizedPath === '/' ||
     normalizedPath.startsWith('/auth') ||

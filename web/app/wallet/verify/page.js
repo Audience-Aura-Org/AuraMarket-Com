@@ -26,6 +26,9 @@ function VerifyContent() {
   const ref = searchParams.get('ref');
   const gateway = searchParams.get('gateway');
   const type = searchParams.get('type'); // 'checkout' | 'deposit'
+  const role = searchParams.get('role') || 'vendor';
+  const isSubscription = type === 'subscription';
+  const subscriptionReturnPath = role === 'logistics' ? '/logistics/dashboard' : role === 'customer' ? '/profile' : '/vendor/dashboard';
 
   const [state, setState] = useState('loading');
   const [message, setMessage] = useState('Initiating payment verification...');
@@ -57,7 +60,7 @@ function VerifyContent() {
           },
           onSuccess: ({ data, message: msg }) => {
             setState('successful');
-            setMessage(msg || 'Payment confirmed! Your transaction is complete.');
+            setMessage(msg || (isSubscription ? 'Subscription activated! Your workspace is ready.' : 'Payment confirmed! Your transaction is complete.'));
             setBalanceAdded(data?.balance_added || 0);
             refreshWalletBalance?.();
             if (type === 'checkout') cartStore.clearCart();
@@ -105,7 +108,7 @@ function VerifyContent() {
     setRecheckLoading(false);
     if (result.status === 'SUCCESSFUL') {
       setState('successful');
-      setMessage(result.message || 'Payment confirmed!');
+      setMessage(result.message || (isSubscription ? 'Subscription activated!' : 'Payment confirmed!'));
       setBalanceAdded(result.data?.balance_added || 0);
       refreshWalletBalance?.();
       if (type === 'checkout') cartStore.clearCart();
@@ -171,9 +174,9 @@ function VerifyContent() {
       
       {/* Back nav */}
       <div className="absolute top-6 left-6">
-        <Link href={type === 'checkout' ? '/orders' : '/wallet'} className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+        <Link href={type === 'checkout' ? '/orders' : isSubscription ? subscriptionReturnPath : '/wallet'} className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
           <ArrowLeft className="size-4" />
-          {type === 'checkout' ? 'View Orders' : 'Back to Wallet'}
+          {type === 'checkout' ? 'View Orders' : isSubscription ? 'Go to Dashboard' : 'Back to Wallet'}
         </Link>
       </div>
 
@@ -208,7 +211,16 @@ function VerifyContent() {
             </div>
 
             {/* Success â€” balance info */}
-            {state === 'successful' && balanceAdded > 0 && (
+            {state === 'successful' && isSubscription && (
+              <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
+                <Wallet className="size-5 text-emerald-500 shrink-0" />
+                <p className="text-[12px]  font-semibold text-emerald-500 tracking-tight">
+                  Subscription active. Your dashboard access is unlocked.
+                </p>
+              </div>
+            )}
+
+            {state === 'successful' && !isSubscription && balanceAdded > 0 && (
               <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3">
                 <Wallet className="size-5 text-emerald-500 shrink-0" />
                 <p className="text-[12px]  font-semibold text-emerald-500 tracking-tight">
@@ -229,10 +241,10 @@ function VerifyContent() {
               {state === 'successful' && (
                 <>
                   <button
-                    onClick={() => router.push(type === 'checkout' ? '/orders' : '/wallet')}
+                    onClick={() => router.push(type === 'checkout' ? '/orders' : isSubscription ? subscriptionReturnPath : '/wallet')}
                     className="w-full h-12 rounded-2xl bg-emerald-500 text-white  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-emerald-500/20"
                   >
-                    {type === 'checkout' ? 'View My Orders' : 'Back to Wallet'}
+                    {type === 'checkout' ? 'View My Orders' : isSubscription ? 'Open Dashboard' : 'Back to Wallet'}
                     <ChevronRight className="size-4" />
                   </button>
                   <button
@@ -278,7 +290,7 @@ function VerifyContent() {
                     Recheck Payment
                   </button>
                   <button
-                    onClick={() => router.push(type === 'checkout' ? '/cart' : '/wallet')}
+                    onClick={() => router.push(type === 'checkout' ? '/cart' : isSubscription ? '/subscribe' : '/wallet')}
                     className="w-full h-12 rounded-2xl border border-red-500/20 text-red-400  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:bg-red-500/5 transition-all"
                   >
                     <X className="size-4" />

@@ -35,6 +35,7 @@ const trackingRoutes = require('./tracking.routes');
 const pushRoutes = require('./push.routes');
 const statusRoutes = require('./status.routes');
 const withdrawalRoutes = require('./withdrawal.routes');
+const subscriptionRoutes = require('./subscription.routes');
 
 // Mount routes
 router.use('/auth', strictLimiter, authRoutes);
@@ -70,6 +71,7 @@ router.use('/push', pushRoutes);
 router.use('/statuses', statusRoutes);
 router.use('/status', statusRoutes);
 router.use('/withdrawals', withdrawalRoutes);
+router.use('/subscriptions', subscriptionRoutes);
 
 if (process.env.ENABLE_DEBUG_ROUTES === 'true') {
   router.use('/debug', debugRoutes);

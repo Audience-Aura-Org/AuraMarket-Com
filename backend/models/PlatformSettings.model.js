@@ -45,6 +45,12 @@ const PlatformSettingsSchema = new mongoose.Schema(
     platform_wallet_balance: {
       type: Number,
       default: 0
+    },
+    subscription_required_roles: {
+      customer: { type: Boolean, default: false },
+      vendor: { type: Boolean, default: true },
+      logistics: { type: Boolean, default: false },
+      admin: { type: Boolean, default: false }
     }
   },
   {

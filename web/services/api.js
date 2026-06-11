@@ -315,6 +315,11 @@ api.interceptors.response.use(
         if (isInvalidStoredSession(status, message)) {
           await notifyInvalidStoredSession(message);
         }
+        if (status === 402 && error.response.data?.code === 'SUBSCRIPTION_REQUIRED' && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('aura:subscription-required', {
+            detail: error.response.data,
+          }));
+        }
         
         // Silence 401s for guests (it's expected on some routes like /cart)
         const normalizedUrl = normalizeCacheUrl(config.url || '');

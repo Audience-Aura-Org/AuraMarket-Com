@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, protectOptional } = require('../middleware/auth.middleware');
+const { requireActiveSubscription } = require('../middleware/subscription.middleware');
 const {
   createStatus,
   getActiveStatuses,
@@ -16,6 +17,7 @@ router.get('/story/:id', protectOptional, getStatusById);
 router.post('/:id/view', protectOptional, viewStatus);
 
 router.use(protect); // Protect all write/private status routes
+router.use(requireActiveSubscription());
 
 router.route('/')
   .post(createStatus);

@@ -35,6 +35,7 @@ const {
 } = require('../controllers/product.controller');
 
 const { protect, restrictTo, loadVendor } = require('../middleware/auth.middleware');
+const { requireActiveSubscription } = require('../middleware/subscription.middleware');
 
 // ── Public Routes ─────────────────────────────
 router.get('/', getProducts);
@@ -47,9 +48,9 @@ router.post('/:id/view', protect, trackProductView);
 router.post('/:id/watch', protect, watchProduct);
 
 // ── Vendor Routes ─────────────────────────────
-router.post('/', protect, restrictTo('vendor'), loadVendor, upload.array('images', 5), createProduct);
-router.patch('/:id', protect, restrictTo('vendor'), loadVendor, upload.array('images', 5), updateProduct);
-router.delete('/:id', protect, restrictTo('vendor'), loadVendor, deleteProduct);
+router.post('/', protect, restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, upload.array('images', 5), createProduct);
+router.patch('/:id', protect, restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, upload.array('images', 5), updateProduct);
+router.delete('/:id', protect, restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, deleteProduct);
 
 // ── Admin Routes ──────────────────────────────
 router.patch('/:id/feature', protect, restrictTo('admin'), toggleFeaturedStatus);

@@ -2,238 +2,384 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
-import { 
-  CreditCard, TrendingUp, TrendingDown, Clock, Users, Activity,
-  MoreVertical, Plus, Filter, ChevronLeft, ChevronRight,
-  RefreshCw, Search
+import { useEffect, useMemo, useState } from 'react';
+import {
+  BadgeCheck, CreditCard, Edit3, Loader2, RefreshCw, Save,
+  ShieldCheck, ToggleLeft, ToggleRight, Users
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '@/services/api';
-import Pagination from '@/components/common/Pagination';
-import StatCard from '@/components/layout/StatCard';
+import { useLanguage } from '@/context/LanguageContext';
 
-const mockSubs = [
-  { vendor: 'Nova Boutique', id: '#VND-8821', plan: 'Premium', renewal: 'Oct 24, 2027', billing: 'Yearly Billing', payment: 'paid', createdAt: '2023-10-24' },
-  { vendor: 'Luxe Interior', id: '#VND-4102', plan: 'Pro', renewal: 'Nov 02, 2027', billing: 'Monthly Billing', payment: 'pending', createdAt: '2023-11-02' },
-  { vendor: 'Base Apparel', id: '#VND-1055', plan: 'Basic', renewal: 'Oct 20, 2027', billing: 'Monthly Billing', payment: 'overdue', createdAt: '2023-10-20' },
-  { vendor: 'Glow Cosmetics', id: '#VND-9922', plan: 'Premium', renewal: 'Dec 15, 2027', billing: 'Yearly Billing', payment: 'paid', createdAt: '2023-12-15' },
-  { vendor: 'Zenith Tech', id: '#VND-3341', plan: 'Pro', renewal: 'Oct 30, 2027', billing: 'Monthly Billing', payment: 'paid', createdAt: '2023-10-30' },
-];
+const ROLE_OPTIONS = ['customer', 'vendor', 'logistics'];
 
-const PLAN_BADGE = {
-  Premium: 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20',
-  Pro: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  Basic: 'bg-slate-500/10 text-[var(--text-secondary)] border-slate-500/20',
+const defaultPlan = {
+  name: '',
+  description: '',
+  price: 500,
+  currency: 'XAF',
+  billing_cycle: 'one_time',
+  roles: ['vendor'],
+  features: '',
+  is_active: true,
 };
 
-const PAYMENT_DOT = {
-  paid: 'bg-emerald-500',
-  pending: 'bg-amber-500',
-  overdue: 'bg-red-500',
-};
+const fieldClass = 'h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)]';
 
 export default function AdminSubscriptionsPage() {
-  const [subs, setSubs] = useState([]);
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [saving, setSaving] = useState(false);
+  const [overview, setOverview] = useState({ plans: [], subscriptions: [], requirements: {}, stats: {} });
+  const [planForm, setPlanForm] = useState(defaultPlan);
+  const [editingPlanId, setEditingPlanId] = useState(null);
+  const [manualActivation, setManualActivation] = useState({ user_id: '', plan_id: '', role: 'vendor' });
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/subscriptions/admin/overview', { skipClientCache: true });
+      setOverview(res.data.data || {});
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.adminLoadFailed', 'Could not load subscriptions.'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get('/subscriptions');
-        if (res.data.success) setSubs(res.data.data.subscriptions || []);
-        else setSubs(mockSubs);
-      } catch {
-        setSubs(mockSubs);
-      } finally { setLoading(false); }
-    };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const totalPages = Math.ceil(subs.length / itemsPerPage);
-  const currentSubs = subs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const stats = overview.stats || {};
+  const activePlans = useMemo(() => (overview.plans || []).filter((plan) => plan.is_active), [overview.plans]);
+
+  const toggleRequirement = async (role) => {
+    const next = {
+      ...(overview.requirements || {}),
+      [role]: !overview.requirements?.[role],
+      admin: false,
+    };
+    setOverview((current) => ({ ...current, requirements: next }));
+    try {
+      await api.patch('/subscriptions/admin/requirements', { requirements: next });
+      toast.success(t('subscription.requirementsSaved', 'Subscription requirements saved.'));
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
+      load();
+    }
+  };
+
+  const editPlan = (plan) => {
+    setEditingPlanId(plan._id);
+    setPlanForm({
+      name: plan.name || '',
+      description: plan.description || '',
+      price: plan.price || 0,
+      currency: plan.currency || 'XAF',
+      billing_cycle: plan.billing_cycle || 'one_time',
+      roles: plan.roles || ['vendor'],
+      features: (plan.features || []).join('\n'),
+      is_active: plan.is_active !== false,
+    });
+  };
+
+  const resetForm = () => {
+    setEditingPlanId(null);
+    setPlanForm(defaultPlan);
+  };
+
+  const savePlan = async () => {
+    if (!planForm.name.trim()) {
+      toast.error(t('subscription.planNameRequired', 'Plan name is required.'));
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        ...planForm,
+        price: Number(planForm.price || 0),
+        features: String(planForm.features || '').split('\n').map((line) => line.trim()).filter(Boolean),
+      };
+      if (editingPlanId) {
+        await api.patch(`/subscriptions/admin/plans/${editingPlanId}`, payload);
+      } else {
+        await api.post('/subscriptions/admin/plans', payload);
+      }
+      toast.success(t('subscription.planSaved', 'Plan saved.'));
+      resetForm();
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSubscription = async (id, action) => {
+    try {
+      await api.patch(`/subscriptions/admin/subscriptions/${id}`, { action });
+      toast.success(t('subscription.subscriptionUpdated', 'Subscription updated.'));
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
+    }
+  };
+
+  const activateManual = async () => {
+    if (!manualActivation.user_id || !manualActivation.plan_id) {
+      toast.error(t('subscription.manualRequired', 'User ID and plan are required.'));
+      return;
+    }
+    try {
+      await api.post('/subscriptions/admin/subscriptions/activate', manualActivation);
+      toast.success(t('subscription.subscriptionUpdated', 'Subscription updated.'));
+      setManualActivation({ user_id: '', plan_id: '', role: 'vendor' });
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
+    }
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500">
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[var(--accent)]/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
-
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
-        <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
-          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
-            <div className="flex items-center gap-4">
-              <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
-                 <CreditCard className="w-5 h-5 md:w-6 md:h-6" />
-              </div>
-              <div>
-                <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Recurrent <span className="text-[var(--accent)]">Revenue</span></h2>
-                <div className="flex items-center gap-2 mt-0.5">
-                   <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                   <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">System Live</p>
-                </div>
-              </div>
+    <div className="min-h-screen bg-[var(--bg-secondary)] p-4 pb-28 text-[var(--text-primary)] sm:p-6 lg:p-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
+        <header className="flex flex-col gap-4 rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+              <CreditCard className="size-6" />
             </div>
-            <button className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
-               <RefreshCw className="w-4 h-4" />
-            </button>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">{t('subscription.adminTitle', 'Subscription Control')}</h1>
+              <p className="text-sm font-medium text-[var(--text-secondary)]">
+                {t('subscription.adminSubtitle', 'Manage role gates, packages, subscribers, and subscription revenue.')}
+              </p>
+            </div>
           </div>
-
-          <div className="flex items-center gap-3 w-full md:w-auto">
-             <div className="relative group flex-1 md:flex-none md:w-80">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20" />
-                <input 
-                  type="text" 
-                  placeholder="Search vendors, plans..." 
-                  className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 !text-base placeholder:!text-base font-semibold outline-none focus:border-[var(--accent)] transition-all"
-                />
-             </div>
-             <button className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
-                <RefreshCw className="w-4 h-4" />
-             </button>
-          </div>
+          <button
+            type="button"
+            onClick={load}
+            className="flex h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] px-4 text-sm font-bold text-[var(--text-secondary)] transition active:scale-95"
+          >
+            <RefreshCw className="size-4" />
+            {t('common.refresh', 'Refresh')}
+          </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto w-full">
-          <div className="p-10 space-y-8 w-full">
-            <div>
-              <h2 className="text-3xl  font-bold text-[var(--text-primary)] tracking-tight">Subscription Management</h2>
-              <p className="text-[var(--text-secondary)] mt-1  font-bold">Real-time overview of your vendor ecosystem and recurring revenue.</p>
-            </div>
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat icon={Users} label={t('subscription.activeSubscribers', 'Active subscribers')} value={stats.active || 0} />
+          <Stat icon={CreditCard} label={t('subscription.revenue', 'Subscription revenue')} value={`${Number(stats.revenue || 0).toLocaleString()} XAF`} />
+          <Stat icon={ShieldCheck} label={t('subscription.pending', 'Pending payments')} value={stats.pending || 0} />
+          <Stat icon={BadgeCheck} label={t('subscription.activePlans', 'Active plans')} value={activePlans.length} />
+        </section>
 
-            {/* Stats matrix */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              <StatCard label="Active" value="1,284" sub="vs. 1,141 last month" pct="+12.5%" icon={Users} color="fuchsia" />
-              <StatCard label="MRR" value="$45,200" sub="vs. $41,750 last month" pct="+8.2%" icon={CreditCard} color="blue" />
-              <StatCard label="Churn Risk" value="48" sub="Next 7 days" pct="Due" icon={Clock} color="amber" />
-              <StatCard label="Health" value="Stable" sub="Billing nodes" pct="Live" icon={Activity} color="emerald" />
-            </div>
-
-            {/* Table */}
-            <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-3xl overflow-hidden glass-panel shadow-sm">
-              <div className="p-6 border-b border-[var(--glass-border)] flex flex-wrap items-center justify-between gap-4 bg-[var(--bg-primary)]/50">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl  font-bold text-[var(--text-primary)]">Vendor Subscription Overview</h2>
-                  <span className="bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold tracking-tight px-2.5 py-0.5 rounded-full border border-[var(--accent)]/20 ">Live Data</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)]/50 rounded-xl border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all ">
-                    <Filter className="w-4 h-4" /> Filter
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all text-white ">
-                    Add Subscription
-                  </button>
-                </div>
+        <section className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
+          <aside className="space-y-5">
+            <div className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm">
+              <h2 className="text-lg font-bold">{t('subscription.roleRequirements', 'Role requirements')}</h2>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                {t('subscription.roleRequirementsDetail', 'Admin is never gated. Toggle only roles that should pay before using role tools.')}
+              </p>
+              <div className="mt-5 space-y-3">
+                {ROLE_OPTIONS.map((role) => {
+                  const enabled = Boolean(overview.requirements?.[role]);
+                  return (
+                    <button
+                      key={role}
+                      type="button"
+                      onClick={() => toggleRequirement(role)}
+                      className="flex w-full items-center justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4 text-left"
+                    >
+                      <span className="capitalize font-bold">{role}</span>
+                      {enabled ? <ToggleRight className="size-7 text-[var(--accent)]" /> : <ToggleLeft className="size-7 text-[var(--text-secondary)]" />}
+                    </button>
+                  );
+                })}
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-                {loading ? [...Array(6)].map((_, i) => (
-                  <div key={i} className="h-48 bg-white/5 rounded-3xl animate-pulse border border-[var(--glass-border)]" />
-                )) : currentSubs.map((s, i) => (
-                  <div key={i} className="group glass-panel rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-6 flex flex-col space-y-4 hover:border-[var(--accent)]/30 transition-all shadow-sm hover:shadow-xl">
-                    <div className="flex items-start justify-between">
-                       <div className="flex items-center gap-3">
-                          <div className="size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center font-bold text-[var(--accent)] text-lg shrink-0">
-                             {s.vendor[0]}
-                          </div>
-                          <div className="min-w-0">
-                             <p className="text-sm font-bold text-[var(--text-primary)] truncate">{s.vendor}</p>
-                             <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 uppercase tracking-tight">{s.id}</p>
-                          </div>
-                       </div>
-                       <button className="size-8 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--accent)]/10 transition-all border border-transparent hover:border-[var(--glass-border)]">
-                          <MoreVertical className="size-4" />
-                       </button>
+            <div className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-lg font-bold">{editingPlanId ? t('subscription.editPlan', 'Edit plan') : t('subscription.newPlan', 'New plan')}</h2>
+                {editingPlanId && (
+                  <button onClick={resetForm} className="text-xs font-bold text-[var(--accent)]">{t('common.cancel', 'Cancel')}</button>
+                )}
+              </div>
+              <div className="space-y-3">
+                <input className={fieldClass} placeholder={t('subscription.planName', 'Plan name')} value={planForm.name} onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })} />
+                <textarea className={`${fieldClass} min-h-20 py-3`} placeholder={t('subscription.descriptionField', 'Description')} value={planForm.description} onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })} />
+                <div className="grid grid-cols-2 gap-3">
+                  <input className={fieldClass} type="number" placeholder="500" value={planForm.price} onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })} />
+                  <select className={fieldClass} value={planForm.billing_cycle} onChange={(e) => setPlanForm({ ...planForm, billing_cycle: e.target.value })}>
+                    <option value="one_time">{t('subscription.oneTime', 'One-time')}</option>
+                    <option value="monthly">{t('subscription.monthly', 'Monthly')}</option>
+                    <option value="yearly">{t('subscription.yearly', 'Yearly')}</option>
+                  </select>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {ROLE_OPTIONS.map((role) => {
+                    const checked = planForm.roles.includes(role);
+                    return (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => setPlanForm((current) => ({
+                          ...current,
+                          roles: checked ? current.roles.filter((item) => item !== role) : [...current.roles, role],
+                        }))}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-bold capitalize ${checked ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+                      >
+                        {role}
+                      </button>
+                    );
+                  })}
+                </div>
+                <textarea className={`${fieldClass} min-h-24 py-3`} placeholder={t('subscription.featuresHelp', 'One feature per line')} value={planForm.features} onChange={(e) => setPlanForm({ ...planForm, features: e.target.value })} />
+                <button
+                  type="button"
+                  onClick={savePlan}
+                  disabled={saving}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-sm font-bold text-white disabled:opacity-60"
+                >
+                  {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                  {t('subscription.savePlan', 'Save plan')}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm">
+              <h2 className="text-lg font-bold">{t('subscription.manualActivation', 'Manual activation')}</h2>
+              <p className="mt-1 text-sm text-[var(--text-secondary)]">{t('subscription.manualActivationDetail', 'Activate a package for a user by ID when support confirms payment or grants access.')}</p>
+              <div className="mt-4 space-y-3">
+                <input
+                  className={fieldClass}
+                  placeholder={t('subscription.userId', 'User ID')}
+                  value={manualActivation.user_id}
+                  onChange={(e) => setManualActivation({ ...manualActivation, user_id: e.target.value })}
+                />
+                <select
+                  className={fieldClass}
+                  value={manualActivation.plan_id}
+                  onChange={(e) => setManualActivation({ ...manualActivation, plan_id: e.target.value })}
+                >
+                  <option value="">{t('subscription.choosePlan', 'Choose plan')}</option>
+                  {(overview.plans || []).map((plan) => (
+                    <option key={plan._id} value={plan._id}>{plan.name}</option>
+                  ))}
+                </select>
+                <select
+                  className={fieldClass}
+                  value={manualActivation.role}
+                  onChange={(e) => setManualActivation({ ...manualActivation, role: e.target.value })}
+                >
+                  {ROLE_OPTIONS.map((role) => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={activateManual}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[var(--accent)] bg-[var(--accent)]/10 text-sm font-bold text-[var(--accent)]"
+                >
+                  <BadgeCheck className="size-4" />
+                  {t('subscription.activateUser', 'Activate user')}
+                </button>
+              </div>
+            </div>
+          </aside>
+
+          <main className="space-y-5">
+            <div className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm">
+              <h2 className="text-lg font-bold">{t('subscription.plans', 'Plans')}</h2>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {(overview.plans || []).map((plan) => (
+                  <div key={plan._id} className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate font-bold">{plan.name}</h3>
+                        <p className="mt-1 line-clamp-2 text-xs text-[var(--text-secondary)]">{plan.description}</p>
+                      </div>
+                      <button onClick={() => editPlan(plan)} className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-[var(--glass-border)]">
+                        <Edit3 className="size-4" />
+                      </button>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                       <div className="p-3 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
-                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-1 opacity-30">Plan Tier</p>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-tight border ${PLAN_BADGE[s.plan]}`}>
-                             {s.plan}
-                          </span>
-                       </div>
-                       <div className="p-3 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
-                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-1 opacity-30">Status</p>
-                          <div className="flex items-center gap-1.5">
-                             <span className={`w-1.5 h-1.5 rounded-full ${PAYMENT_DOT[s.payment]} shadow-sm`} />
-                             <span className="text-[10px] font-bold text-[var(--text-primary)] uppercase">{s.payment}</span>
-                          </div>
-                       </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-[var(--glass-border)]/50 flex items-center justify-between">
-                       <div>
-                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] opacity-30">Renewal Cycle</p>
-                          <p className="text-xs font-bold text-[var(--text-primary)]">{s.renewal}</p>
-                       </div>
-                       <div className="text-right">
-                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] opacity-30">Billing</p>
-                          <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">{s.billing}</p>
-                       </div>
+                    <div className="mt-4 flex items-center justify-between text-sm">
+                      <strong>{Number(plan.price || 0).toLocaleString()} {plan.currency}</strong>
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${plan.is_active ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-500'}`}>
+                        {plan.is_active ? t('common.active', 'Active') : t('common.hidden', 'Hidden')}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
-
-              <div className="p-6 border-t border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
-                <Pagination 
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                />
-              </div>
             </div>
 
-            {/* Plan Distribution + Churn */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">
-              <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-3xl p-8 glass-panel">
-                <h3 className="text-lg  font-bold tracking-tight text-[var(--text-primary)] mb-6 ">Plan Tier Distribution</h3>
-                <div className="space-y-5">
-                  <TierBar label="Premium" pct="42%" color="fuchsia" />
-                  <TierBar label="Pro" pct="35%" color="blue" />
-                  <TierBar label="Basic" pct="23%" color="slate" />
-                </div>
+            <div className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
+              <div className="border-b border-[var(--glass-border)] p-5">
+                <h2 className="text-lg font-bold">{t('subscription.subscribers', 'Subscribers')}</h2>
+                <p className="text-sm text-[var(--text-secondary)]">{t('subscription.subscribersDetail', 'Recent subscription history and payment status.')}</p>
               </div>
-              <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-3xl p-8 flex items-center gap-6 glass-panel">
-                <div className="flex-1">
-                   <h3 className="text-lg  font-bold tracking-tight text-[var(--text-primary)] mb-2 ">Churn Prediction</h3>
-                   <p className="text-sm text-[var(--text-secondary)] mb-6  font-bold">Based on payment delays and account activity in the last 30 days.</p>
-                   <div className="flex items-end gap-2">
-                      <span className="text-4xl  font-bold text-[var(--text-primary)] tracking-tighter">2.4%</span>
-                      <span className="text-emerald-600 text-[11px] lg:text-[12px]  font-semibold mb-2 flex items-center gap-1 tracking-tight">
-                         <TrendingDown className="w-3 h-3" /> 0.8%
-                      </span>
-                   </div>
-                   <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] tracking-[0.2em]  font-semibold mt-1  opacity-60">Stable Outlook</p>
+              {loading ? (
+                <div className="flex h-56 items-center justify-center">
+                  <Loader2 className="size-7 animate-spin text-[var(--accent)]" />
                 </div>
-                <div className="w-24 h-24 rounded-full border-4 border-[var(--accent)]/10 flex items-center justify-center relative flex-shrink-0">
-                  <div className="absolute inset-0 rounded-full border-4 border-[var(--accent)] border-t-transparent border-r-transparent -rotate-45 shadow-[0_0_15px_rgba(242,13,242,0.1)]" />
-                  <TrendingUp className="w-8 h-8 text-[var(--accent)] relative z-10" />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[760px] text-left text-sm">
+                    <thead className="text-xs uppercase text-[var(--text-secondary)]">
+                      <tr>
+                        <th className="px-5 py-4">{t('common.user', 'User')}</th>
+                        <th className="px-5 py-4">{t('subscription.plan', 'Plan')}</th>
+                        <th className="px-5 py-4">{t('common.role', 'Role')}</th>
+                        <th className="px-5 py-4">{t('common.status', 'Status')}</th>
+                        <th className="px-5 py-4">{t('common.amount', 'Amount')}</th>
+                        <th className="px-5 py-4">{t('common.actions', 'Actions')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(overview.subscriptions || []).map((sub) => (
+                        <tr key={sub._id} className="border-t border-[var(--glass-border)]">
+                          <td className="px-5 py-4">
+                            <p className="font-bold">{sub.user_id?.name || t('common.unknown', 'Unknown')}</p>
+                            <p className="text-xs text-[var(--text-secondary)]">{sub.user_id?.email || '-'}</p>
+                          </td>
+                          <td className="px-5 py-4">{sub.plan_id?.name || '-'}</td>
+                          <td className="px-5 py-4 capitalize">{sub.role}</td>
+                          <td className="px-5 py-4">
+                            <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-xs font-bold capitalize">{sub.status}</span>
+                          </td>
+                          <td className="px-5 py-4 font-bold">{Number(sub.amount_paid || 0).toLocaleString()} {sub.currency}</td>
+                          <td className="px-5 py-4">
+                            <div className="flex gap-2">
+                              <button onClick={() => updateSubscription(sub._id, 'activate')} className="rounded-xl border border-[var(--glass-border)] px-3 py-2 text-xs font-bold">{t('common.activate', 'Activate')}</button>
+                              <button onClick={() => updateSubscription(sub._id, 'cancel')} className="rounded-xl border border-[var(--glass-border)] px-3 py-2 text-xs font-bold">{t('common.cancel', 'Cancel')}</button>
+                              <button onClick={() => updateSubscription(sub._id, 'refund')} className="rounded-xl border border-red-500/20 px-3 py-2 text-xs font-bold text-red-500">{t('common.refund', 'Refund')}</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {(overview.subscriptions || []).length === 0 && (
+                    <div className="p-10 text-center text-sm text-[var(--text-secondary)]">{t('subscription.noSubscribers', 'No subscribers yet.')}</div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
-          </div>
-        </div>
-      </main>
+          </main>
+        </section>
+      </div>
     </div>
   );
 }
 
-
-
-function TierBar({ label, pct, color }) {
-  const bar = { fuchsia: 'bg-[var(--accent)]', blue: 'bg-blue-600', slate: 'bg-slate-500' };
-  const txt = { fuchsia: 'text-[var(--accent)]', blue: 'text-blue-600', slate: 'text-[var(--text-secondary)]' };
+function Stat({ icon: Icon, label, value }) {
   return (
-    <div>
-      <div className="flex justify-between text-[11px] lg:text-[12px]  font-semibold tracking-tight mb-2 ">
-        <span className="text-[var(--text-secondary)]">{label}</span>
-        <span className={txt[color]}>{pct}</span>
-      </div>
-      <div className="h-2 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden border border-[var(--glass-border)]">
-        <div className={`h-full ${bar[color]} rounded-full shadow-[0_0_10px_rgba(0,0,0,0.1)]`} style={{ width: pct }} />
-      </div>
+    <div className="rounded-[24px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm">
+      <Icon className="mb-4 size-5 text-[var(--accent)]" />
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">{label}</p>
+      <p className="mt-1 text-2xl font-bold tracking-tight">{value}</p>
     </div>
   );
 }

@@ -14,6 +14,7 @@ const { PAYSTACK_SECRET_KEY } = require('../config/env');
 const { settleOrders } = require('../services/payment/settle.service');
 const { getAvailableGateways } = require('../services/payment/gateway.registry');
 const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
+const { activateSubscription } = require('../services/subscription.service');
 
 // -----------------------------------------------------------------------------
 // PAYSTACK â€” kept intact for existing wallet flows
@@ -218,6 +219,41 @@ const emitWalletCredit = (app, transaction) => {
   const userRoom = transaction.user_id.toString();
   io.to(userRoom).emit('wallet:credited', payload);
   io.to(`user:${userRoom}`).emit('wallet:credited', payload);
+};
+
+const isSubscriptionTransaction = (transaction) =>
+  transaction?.type === 'subscription' || transaction?.metadata?.purpose === 'subscription';
+
+const settleSubscriptionTransaction = async (transaction, session = null, app = null) => {
+  const planId = transaction.metadata?.plan_id;
+  const role = transaction.metadata?.role;
+  if (!planId || !role) {
+    throw new Error('Subscription transaction is missing plan or role metadata.');
+  }
+
+  const subscription = await activateSubscription({
+    userId: transaction.user_id,
+    planId,
+    role,
+    transaction,
+    source: transaction.gateway || 'manual',
+    session,
+    note: 'Activated after confirmed subscription payment.',
+  });
+
+  const io = app?.get?.('io');
+  if (io) {
+    const payload = {
+      role,
+      plan_id: planId,
+      reference: transaction.reference,
+      subscription_id: subscription._id,
+    };
+    io.to(transaction.user_id.toString()).emit('subscription:activated', payload);
+    io.to(`user:${transaction.user_id}`).emit('subscription:activated', payload);
+  }
+
+  return subscription;
 };
 
 /**
@@ -443,6 +479,10 @@ const eversendVerify = async (req, res) => {
     if (transaction.metadata?.is_sandbox || transaction.gateway_transaction_id?.startsWith('SBX-')) {
       transaction.status = 'completed';
       await transaction.save();
+      if (isSubscriptionTransaction(transaction)) {
+        await settleSubscriptionTransaction(transaction, null, req.app);
+        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Subscription activated.' });
+      }
       await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
       return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
     }
@@ -463,7 +503,9 @@ const eversendVerify = async (req, res) => {
         transaction.gateway_response = gatewayData;
         if (gatewayTxId && !transaction.gateway_transaction_id) transaction.gateway_transaction_id = gatewayTxId;
         await transaction.save({ session: sess });
-        if (transaction.order_ids?.length > 0) {
+        if (isSubscriptionTransaction(transaction)) {
+          await settleSubscriptionTransaction(transaction, sess, req.app);
+        } else if (transaction.order_ids?.length > 0) {
           await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, sess, true, getWebUrl(req), 'eversend');
         } else {
           await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session: sess });
@@ -496,7 +538,12 @@ const eversendVerify = async (req, res) => {
     const s = (status || '').toUpperCase();
     if (s === 'SUCCESSFUL' || s === 'COMPLETED') {
       await settleTransaction(data, txId);
-      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment verified and wallet credited.', data: { balance_added: transaction.amount } });
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESSFUL',
+        message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment verified and wallet credited.',
+        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+      });
     }
     if (s === 'FAILED') {
       transaction.status = 'failed';
@@ -548,9 +595,18 @@ const eversendRecheck = async (req, res) => {
         if (transaction.status !== 'completed') {
           transaction.status = 'completed';
           await transaction.save();
-          await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
+          if (isSubscriptionTransaction(transaction)) {
+            await settleSubscriptionTransaction(transaction, null, req.app);
+          } else {
+            await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
+          }
         }
-        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.', data: { balance_added: transaction.amount } });
+        return res.status(200).json({
+          success: true,
+          status: 'SUCCESSFUL',
+          message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Sandbox payment confirmed.',
+          data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+        });
       }
 
       // Real transaction â€” ask Eversend by our reference
@@ -589,7 +645,9 @@ const eversendRecheck = async (req, res) => {
             await transaction.save({ session });
 
             const isCheckout = transaction.order_ids?.length > 0;
-            if (isCheckout) {
+            if (isSubscriptionTransaction(transaction)) {
+              await settleSubscriptionTransaction(transaction, session, req.app);
+            } else if (isCheckout) {
               await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, getWebUrl(req), 'eversend');
             } else {
               await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
@@ -611,7 +669,12 @@ const eversendRecheck = async (req, res) => {
             session.endSession();
           }
         }
-        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment confirmed! Your wallet has been credited.', data: { balance_added: transaction.amount } });
+        return res.status(200).json({
+          success: true,
+          status: 'SUCCESSFUL',
+          message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed! Your wallet has been credited.',
+          data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+        });
       }
 
       if (colStatus === 'FAILED' || colStatus === 'failed') {
@@ -671,7 +734,9 @@ const eversendRecheck = async (req, res) => {
           await transaction.save({ session });
 
           const isCheckout = transaction.order_ids?.length > 0;
-          if (isCheckout) {
+          if (isSubscriptionTransaction(transaction)) {
+            await settleSubscriptionTransaction(transaction, session, req.app);
+          } else if (isCheckout) {
             await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, getWebUrl(req), 'eversend');
           } else {
             await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
@@ -696,7 +761,12 @@ const eversendRecheck = async (req, res) => {
           session.endSession();
         }
       }
-      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment confirmed! Your wallet has been credited.', data: { balance_added: transaction.amount } });
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESSFUL',
+        message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed! Your wallet has been credited.',
+        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+      });
     }
 
     if (txStatus === 'FAILED') {
@@ -754,7 +824,18 @@ const eversendWebhook = async (req, res) => {
         await transaction.save();
 
         const isCheckout = transaction.order_ids?.length > 0;
-        if (isCheckout) {
+        const isSubscription = isSubscriptionTransaction(transaction);
+        if (isSubscription) {
+          const session = await mongoose.startSession();
+          session.startTransaction();
+          try {
+            await settleSubscriptionTransaction(transaction, session, req.app);
+            await session.commitTransaction();
+          } catch (err) {
+            await session.abortTransaction();
+            console.error('Webhook Subscription Settlement Error:', err.message);
+          } finally { session.endSession(); }
+        } else if (isCheckout) {
           const session = await mongoose.startSession();
           session.startTransaction();
           try {
@@ -775,7 +856,7 @@ const eversendWebhook = async (req, res) => {
           io.to(transaction.user_id.toString()).emit('wallet:credited', {
             amount: transaction.amount,
             reference: transaction.reference,
-            type: isCheckout ? 'checkout' : 'deposit',
+            type: isSubscription ? 'subscription' : (isCheckout ? 'checkout' : 'deposit'),
           });
         }
 
@@ -783,13 +864,13 @@ const eversendWebhook = async (req, res) => {
         setImmediate(() => {
           sendNotification(req.app, transaction.user_id, {
             title: '?? Payment Confirmed',
-            message: `Your ${isCheckout ? 'order' : 'deposit'} of ${transaction.amount.toLocaleString()} XAF has been confirmed.`,
+            message: `Your ${isSubscription ? 'subscription' : (isCheckout ? 'order' : 'deposit')} of ${transaction.amount.toLocaleString()} XAF has been confirmed.`,
             type: 'wallet_update',
-            metadata: { link: isCheckout ? '/orders' : '/wallet' },
+            metadata: { link: isSubscription ? '/subscribe' : (isCheckout ? '/orders' : '/wallet') },
           }).catch(console.error);
         });
 
-        console.log(`? Eversend: ${isCheckout ? 'orders settled' : 'wallet credited'} ${transaction.amount} XAF for user ${transaction.user_id}`);
+        console.log(`? Eversend: ${isSubscription ? 'subscription activated' : (isCheckout ? 'orders settled' : 'wallet credited')} ${transaction.amount} XAF for user ${transaction.user_id}`);
       }
     }
 
@@ -905,7 +986,7 @@ const eversendRecover = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Recovery conditions not met.' });
     }
 
-    // Credit the wallet
+    // Recover the appropriate financial action
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
@@ -919,7 +1000,9 @@ const eversendRecover = async (req, res) => {
       await transaction.save({ session });
 
       const isCheckout = transaction.order_ids?.length > 0;
-      if (isCheckout) {
+      if (isSubscriptionTransaction(transaction)) {
+        await settleSubscriptionTransaction(transaction, session, req.app);
+      } else if (isCheckout) {
         await settleOrders(transaction.user_id, transaction.order_ids, session, req.app, true, getWebUrl(req), 'eversend');
       } else {
         await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
