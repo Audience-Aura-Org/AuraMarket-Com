@@ -36,17 +36,25 @@ const ensureDefaultSubscriptionPlan = async () => {
 const getRoleRequirements = async () => {
   const settings = await PlatformSettings.getSettings();
   return {
-    customer: Boolean(settings.subscription_required_roles?.customer),
-    vendor: settings.subscription_required_roles?.vendor !== false,
-    logistics: Boolean(settings.subscription_required_roles?.logistics),
-    admin: false,
+    required: {
+      customer: Boolean(settings.subscription_required_roles?.customer),
+      vendor: settings.subscription_required_roles?.vendor !== false,
+      logistics: Boolean(settings.subscription_required_roles?.logistics),
+      admin: false,
+    },
+    grace_days: {
+      customer: Number(settings.subscription_grace_days?.customer || 0),
+      vendor: Number(settings.subscription_grace_days?.vendor ?? 7),
+      logistics: Number(settings.subscription_grace_days?.logistics ?? 3),
+      admin: 0,
+    },
   };
 };
 
 const isRoleSubscriptionRequired = async (role) => {
   if (!role || role === 'admin') return false;
   const requirements = await getRoleRequirements();
-  return Boolean(requirements[role]);
+  return Boolean(requirements.required?.[role]);
 };
 
 const getActiveSubscription = async (userId, role, session = null) => {
@@ -65,26 +73,163 @@ const getActiveSubscription = async (userId, role, session = null) => {
   return query.sort('-createdAt');
 };
 
+const getLatestSubscriptionRecord = async (userId, role, session = null) => {
+  const query = UserSubscription.findOne({ user_id: userId, role }).populate('plan_id');
+  if (session) query.session(session);
+  return query.sort('-createdAt');
+};
+
+const getDefaultPlanForRole = async (role) => {
+  await ensureDefaultSubscriptionPlan();
+  return SubscriptionPlan.findOne({ is_active: true, roles: role }).sort({ price: 1, createdAt: 1 });
+};
+
+const addDays = (date, days) => {
+  const next = new Date(date);
+  next.setDate(next.getDate() + Number(days || 0));
+  return next;
+};
+
+const ensureGraceOrLimitedRecord = async ({ user, role, graceDays, plan }) => {
+  const now = new Date();
+  const latest = await getLatestSubscriptionRecord(user._id, role);
+
+  if (latest?.status === 'grace') {
+    if (latest.grace_expires_at && latest.grace_expires_at > now) {
+      return latest;
+    }
+    latest.status = 'limited';
+    latest.limited_since = latest.limited_since || now;
+    latest.restriction_reason = 'Subscription grace period ended.';
+    latest.history.push({
+      action: 'limited',
+      note: 'Grace period ended. Account moved to limited subscription access.',
+      at: now,
+    });
+    await latest.save();
+    return latest;
+  }
+
+  if (latest?.status === 'limited') {
+    return latest;
+  }
+
+  if (Number(graceDays || 0) > 0 && plan) {
+    return UserSubscription.create({
+      user_id: user._id,
+      plan_id: plan._id,
+      role,
+      status: 'grace',
+      billing_cycle: plan.billing_cycle,
+      amount_paid: 0,
+      currency: plan.currency,
+      started_at: now,
+      grace_started_at: now,
+      grace_expires_at: addDays(now, graceDays),
+      source: 'manual',
+      restriction_reason: 'Subscription required for this role.',
+      history: [{
+        action: 'grace_started',
+        note: `${graceDays} day subscription grace period started automatically.`,
+        at: now,
+      }],
+    });
+  }
+
+  if (plan) {
+    return UserSubscription.create({
+      user_id: user._id,
+      plan_id: plan._id,
+      role,
+      status: 'limited',
+      billing_cycle: plan.billing_cycle,
+      amount_paid: 0,
+      currency: plan.currency,
+      started_at: now,
+      limited_since: now,
+      source: 'manual',
+      restriction_reason: 'Subscription required for this role.',
+      history: [{
+        action: 'limited',
+        note: 'Account placed in limited subscription access.',
+        at: now,
+      }],
+    });
+  }
+
+  return latest;
+};
+
 const getSubscriptionStatus = async (user, role = null) => {
   const activeRole = role || user?.role;
   if (!user || activeRole === 'admin') {
     return {
       required: false,
       active: true,
+      subscribed: true,
+      access_allowed: true,
+      access_state: 'not_required',
+      limited: false,
+      grace: false,
+      grace_days: 0,
       role: activeRole || 'guest',
       subscription: null,
     };
   }
 
-  await ensureDefaultSubscriptionPlan();
-  const required = await isRoleSubscriptionRequired(activeRole);
+  const requirements = await getRoleRequirements();
+  const required = Boolean(requirements.required?.[activeRole]);
+  const graceDays = Number(requirements.grace_days?.[activeRole] || 0);
   const subscription = await getActiveSubscription(user._id, activeRole);
+  const plan = await getDefaultPlanForRole(activeRole);
+
+  if (!required) {
+    return {
+      required,
+      active: true,
+      subscribed: Boolean(subscription),
+      access_allowed: true,
+      access_state: subscription ? 'active' : 'not_required',
+      limited: false,
+      grace: false,
+      grace_days: graceDays,
+      role: activeRole,
+      subscription,
+    };
+  }
+
+  if (subscription) {
+    return {
+      required,
+      active: true,
+      subscribed: true,
+      access_allowed: true,
+      access_state: 'active',
+      limited: false,
+      grace: false,
+      grace_days: graceDays,
+      role: activeRole,
+      subscription,
+    };
+  }
+
+  const accessRecord = await ensureGraceOrLimitedRecord({ user, role: activeRole, graceDays, plan });
+  const isGrace = accessRecord?.status === 'grace' && accessRecord.grace_expires_at && accessRecord.grace_expires_at > new Date();
+  const isLimited = !isGrace;
 
   return {
     required,
-    active: !required || Boolean(subscription),
+    active: isGrace,
+    subscribed: false,
+    access_allowed: isGrace,
+    access_state: isGrace ? 'grace' : 'limited',
+    limited: isLimited,
+    grace: isGrace,
+    grace_days: graceDays,
+    grace_expires_at: accessRecord?.grace_expires_at || null,
+    limited_since: isLimited ? (accessRecord?.limited_since || new Date()) : null,
     role: activeRole,
-    subscription,
+    subscription: accessRecord,
   };
 };
 
@@ -119,6 +264,8 @@ const activateSubscription = async ({
   activatedBy = null,
   session = null,
   note = 'Subscription activated.',
+  startedAt = null,
+  expiresAt = undefined,
 }) => {
   const planObjectId = toObjectId(planId);
   const plan = planObjectId
@@ -136,7 +283,10 @@ const activateSubscription = async ({
   const existing = await getActiveSubscription(userId, role, session);
   if (existing) return existing;
 
-  const startedAt = new Date();
+  const activationDate = startedAt instanceof Date && !Number.isNaN(startedAt.getTime()) ? startedAt : new Date();
+  const resolvedExpiry = expiresAt === undefined
+    ? calculateExpiry(plan.billing_cycle)
+    : (expiresAt instanceof Date && !Number.isNaN(expiresAt.getTime()) ? expiresAt : null);
   const payload = {
     user_id: userId,
     plan_id: plan._id,
@@ -145,13 +295,13 @@ const activateSubscription = async ({
     billing_cycle: plan.billing_cycle,
     amount_paid: transaction?.amount || plan.price,
     currency: transaction?.currency || plan.currency,
-    started_at: startedAt,
-    expires_at: calculateExpiry(plan.billing_cycle),
+    started_at: activationDate,
+    expires_at: resolvedExpiry,
     payment_transaction_id: transaction?._id || null,
     payment_reference: transaction?.reference || null,
     source,
     activated_by: activatedBy || null,
-    history: [{ action: 'activated', note, by: activatedBy || null, at: startedAt }],
+    history: [{ action: 'activated', note, by: activatedBy || null, at: activationDate }],
   };
 
   const created = session

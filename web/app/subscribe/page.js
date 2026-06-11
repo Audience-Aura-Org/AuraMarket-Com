@@ -47,7 +47,7 @@ function SubscribeContent() {
       const next = res.data.data;
       setStatus(next);
       setSelectedPlanId((current) => current || next?.plans?.[0]?._id || null);
-      if (next?.active && next?.required) {
+      if (next?.subscribed && next?.required) {
         toast.success(t('subscription.activeToast', 'Subscription active.'));
       }
     } catch (error) {
@@ -106,7 +106,7 @@ function SubscribeContent() {
     }
   };
 
-  const isAlreadyActive = status?.active && status?.required;
+  const isAlreadyActive = status?.subscribed && status?.required;
   const roleLabel = ROLE_LABELS[role] || role;
 
   return (

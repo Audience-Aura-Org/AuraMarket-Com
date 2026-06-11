@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { LanguageProvider } from '@/context/LanguageContext';
+import { useLanguage } from '@/context/LanguageContext';
 import SocketProvider from '@/components/SocketProvider';
 import OnboardingWatcher from '@/components/layout/OnboardingWatcher';
 import TopNav from '@/components/layout/TopNav';
@@ -11,6 +12,7 @@ import { ChatProvider } from '@/context/ChatContext';
 import dynamic from 'next/dynamic';
 import SplashScreen from '@/components/layout/SplashScreen';
 import { useAuthStore } from '@/hooks/useAuth';
+import api from '@/services/api';
 
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
@@ -60,16 +62,6 @@ export default function Providers({ children }) {
     return () => window.removeEventListener('aura:session-invalidated', handleInvalidSession);
   }, [logout, router]);
 
-  useEffect(() => {
-    const handleSubscriptionRequired = (event) => {
-      const redirect = event.detail?.redirect || '/subscribe';
-      router.replace(redirect);
-    };
-
-    window.addEventListener('aura:subscription-required', handleSubscriptionRequired);
-    return () => window.removeEventListener('aura:subscription-required', handleSubscriptionRequired);
-  }, [router]);
-
   const isAuthRoute =
     normalizedPath === '/' ||
     normalizedPath.startsWith('/auth') ||
@@ -115,6 +107,11 @@ export default function Providers({ children }) {
 
           {/* Onboarding gate — lightweight, needed on every route */}
           <OnboardingWatcher />
+          <SubscriptionAccessNotice
+            normalizedPath={normalizedPath}
+            isAuthRoute={isAuthRoute}
+            isImmersiveChat={isImmersiveChat}
+          />
 
           {/* Dashboard routes render their own sidebar-aware mobile header. */}
           {!isImmersiveChat && !isDashboardRoute && !isAuthRoute && <TopNav />}
@@ -138,5 +135,92 @@ export default function Providers({ children }) {
       </ChatProvider>
       </LanguageProvider>
     </ThemeProvider>
+  );
+}
+
+function SubscriptionAccessNotice({ normalizedPath, isAuthRoute, isImmersiveChat }) {
+  const router = useRouter();
+  const { t } = useLanguage();
+  const user = useAuthStore((state) => state.user);
+  const [notice, setNotice] = useState(null);
+
+  useEffect(() => {
+    const handleSubscriptionRequired = (event) => {
+      setNotice(event.detail?.data || event.detail || null);
+    };
+
+    window.addEventListener('aura:subscription-required', handleSubscriptionRequired);
+    return () => window.removeEventListener('aura:subscription-required', handleSubscriptionRequired);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const shouldCheck =
+      user?._id &&
+      user?.role &&
+      user.role !== 'admin' &&
+      !isAuthRoute &&
+      !isImmersiveChat &&
+      normalizedPath !== '/subscribe';
+
+    if (!shouldCheck) {
+      setNotice(null);
+      return undefined;
+    }
+
+    const loadStatus = async () => {
+      try {
+        const res = await api.get('/subscriptions/me', {
+          params: { role: user.role },
+          skipClientCache: true,
+          silent: true,
+        });
+        if (cancelled) return;
+        const data = res.data?.data;
+        if (data?.required && (!data.subscribed || data.grace || data.limited)) {
+          setNotice(data);
+        } else {
+          setNotice(null);
+        }
+      } catch {
+        if (!cancelled) setNotice(null);
+      }
+    };
+
+    loadStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?._id, user?.role, normalizedPath, isAuthRoute, isImmersiveChat]);
+
+  if (!notice?.required || isAuthRoute || isImmersiveChat || normalizedPath === '/subscribe') {
+    return null;
+  }
+
+  const role = notice.role || user?.role || 'vendor';
+  const isGrace = notice.access_state === 'grace' || notice.grace;
+  const title = isGrace
+    ? t('subscription.graceTitle', 'Subscription grace active')
+    : t('subscription.limitedTitle', 'Limited access mode');
+  const detail = isGrace
+    ? t('subscription.graceDetail', 'You can keep using your workspace during this grace period. Activate a package before it ends to keep full access.')
+    : t('subscription.limitedDetail', 'You can still view your dashboard, but subscription-gated actions are paused until you activate a package.');
+
+  return (
+    <div className="fixed inset-x-3 bottom-[88px] z-[900] mx-auto max-w-3xl rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/95 p-3 shadow-2xl backdrop-blur md:bottom-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-[var(--text-primary)]">{title}</p>
+          <p className="mt-0.5 text-xs font-medium leading-5 text-[var(--text-secondary)]">{detail}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push(`/subscribe?role=${encodeURIComponent(role)}`)}
+          className="h-10 shrink-0 rounded-2xl bg-[var(--accent)] px-4 text-xs font-bold text-white transition active:scale-95"
+        >
+          {t('subscription.subscribeCta', 'Subscribe')}
+        </button>
+      </div>
+    </div>
   );
 }

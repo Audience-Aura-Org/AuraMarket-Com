@@ -51,6 +51,12 @@ const PlatformSettingsSchema = new mongoose.Schema(
       vendor: { type: Boolean, default: true },
       logistics: { type: Boolean, default: false },
       admin: { type: Boolean, default: false }
+    },
+    subscription_grace_days: {
+      customer: { type: Number, default: 0, min: 0, max: 365 },
+      vendor: { type: Number, default: 7, min: 0, max: 365 },
+      logistics: { type: Number, default: 3, min: 0, max: 365 },
+      admin: { type: Number, default: 0, min: 0, max: 365 }
     }
   },
   {

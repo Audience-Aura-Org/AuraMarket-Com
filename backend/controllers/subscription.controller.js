@@ -42,7 +42,8 @@ const serializeStatus = async (user, role = null) => {
   return {
     ...status,
     plans,
-    requirements,
+    requirements: requirements.required,
+    grace_days: requirements.grace_days,
   };
 };
 
@@ -83,7 +84,7 @@ const initializeSubscription = async (req, res, next) => {
     }
 
     const current = await getSubscriptionStatus(req.user, role);
-    if (current.active && current.subscription) {
+    if (current.subscribed && current.subscription?.status === 'active') {
       return res.status(200).json({ success: true, message: 'Subscription already active.', data: await serializeStatus(req.user, role) });
     }
 
@@ -257,16 +258,21 @@ const getAdminOverview = async (req, res, next) => {
 
     const activeCount = subscriptions.filter((sub) => sub.status === 'active').length;
     const pendingCount = subscriptions.filter((sub) => sub.status === 'pending').length;
+    const graceCount = subscriptions.filter((sub) => sub.status === 'grace').length;
+    const limitedCount = subscriptions.filter((sub) => sub.status === 'limited').length;
 
     res.status(200).json({
       success: true,
       data: {
         plans,
         subscriptions,
-        requirements,
+        requirements: requirements.required,
+        grace_days: requirements.grace_days,
         stats: {
           active: activeCount,
           pending: pendingCount,
+          grace: graceCount,
+          limited: limitedCount,
           revenue: revenueAgg[0]?.total || 0,
           completed_payments: revenueAgg[0]?.count || 0,
         },
@@ -316,14 +322,28 @@ const updateRoleRequirements = async (req, res, next) => {
   try {
     const settings = await PlatformSettings.getSettings();
     const incoming = req.body.requirements || req.body;
+    const incomingGraceDays = req.body.grace_days || {};
     settings.subscription_required_roles = {
       customer: Boolean(incoming.customer),
       vendor: incoming.vendor !== false,
       logistics: Boolean(incoming.logistics),
       admin: false,
     };
+    settings.subscription_grace_days = {
+      customer: Math.max(0, Number(incomingGraceDays.customer ?? settings.subscription_grace_days?.customer ?? 0)),
+      vendor: Math.max(0, Number(incomingGraceDays.vendor ?? settings.subscription_grace_days?.vendor ?? 7)),
+      logistics: Math.max(0, Number(incomingGraceDays.logistics ?? settings.subscription_grace_days?.logistics ?? 3)),
+      admin: 0,
+    };
     await settings.save();
-    res.status(200).json({ success: true, data: { requirements: await getRoleRequirements() } });
+    const requirements = await getRoleRequirements();
+    res.status(200).json({
+      success: true,
+      data: {
+        requirements: requirements.required,
+        grace_days: requirements.grace_days,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -331,7 +351,7 @@ const updateRoleRequirements = async (req, res, next) => {
 
 const activateUserSubscription = async (req, res, next) => {
   try {
-    const { user_id, plan_id, role, note } = req.body;
+    const { user_id, plan_id, role, note, started_at, expires_at } = req.body;
     const user = await User.findById(user_id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
     const subscription = await activateSubscription({
@@ -341,6 +361,8 @@ const activateUserSubscription = async (req, res, next) => {
       source: 'admin',
       activatedBy: req.user._id,
       note: note || 'Activated manually by admin.',
+      startedAt: started_at ? new Date(started_at) : null,
+      expiresAt: expires_at ? new Date(expires_at) : undefined,
     });
     res.status(200).json({ success: true, data: { subscription } });
   } catch (error) {
@@ -363,6 +385,8 @@ const updateUserSubscription = async (req, res, next) => {
     if (action === 'activate') {
       subscription.status = 'active';
       subscription.started_at = subscription.started_at || new Date();
+      subscription.limited_since = null;
+      subscription.restriction_reason = null;
     }
 
     subscription.history.push({

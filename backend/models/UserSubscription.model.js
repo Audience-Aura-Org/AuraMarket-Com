@@ -22,7 +22,7 @@ const UserSubscriptionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'active', 'cancelled', 'refunded', 'expired'],
+      enum: ['pending', 'grace', 'limited', 'active', 'cancelled', 'refunded', 'expired'],
       default: 'pending',
       index: true,
     },
@@ -48,6 +48,24 @@ const UserSubscriptionSchema = new mongoose.Schema(
     expires_at: {
       type: Date,
       default: null,
+    },
+    grace_started_at: {
+      type: Date,
+      default: null,
+    },
+    grace_expires_at: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    limited_since: {
+      type: Date,
+      default: null,
+    },
+    restriction_reason: {
+      type: String,
+      default: null,
+      trim: true,
     },
     payment_transaction_id: {
       type: mongoose.Schema.Types.ObjectId,

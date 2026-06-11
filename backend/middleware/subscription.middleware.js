@@ -18,6 +18,7 @@ const requireActiveSubscription = (role = null) => async (req, res, next) => {
       message: 'A subscription is required before this feature can be used.',
       redirect: `/subscribe?role=${encodeURIComponent(activeRole)}`,
       data: {
+        ...status,
         role: activeRole,
         required: true,
         plans,

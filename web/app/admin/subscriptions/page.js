@@ -33,7 +33,7 @@ export default function AdminSubscriptionsPage() {
   const [overview, setOverview] = useState({ plans: [], subscriptions: [], requirements: {}, stats: {} });
   const [planForm, setPlanForm] = useState(defaultPlan);
   const [editingPlanId, setEditingPlanId] = useState(null);
-  const [manualActivation, setManualActivation] = useState({ user_id: '', plan_id: '', role: 'vendor' });
+  const [manualActivation, setManualActivation] = useState({ user_id: '', plan_id: '', role: 'vendor', started_at: '', expires_at: '' });
 
   const load = async () => {
     setLoading(true);
@@ -55,20 +55,38 @@ export default function AdminSubscriptionsPage() {
   const stats = overview.stats || {};
   const activePlans = useMemo(() => (overview.plans || []).filter((plan) => plan.is_active), [overview.plans]);
 
+  const saveRequirementSettings = async (requirements, graceDays = overview.grace_days || {}) => {
+    setOverview((current) => ({ ...current, requirements, grace_days: graceDays }));
+    try {
+      const res = await api.patch('/subscriptions/admin/requirements', { requirements, grace_days: graceDays });
+      setOverview((current) => ({
+        ...current,
+        requirements: res.data?.data?.requirements || requirements,
+        grace_days: res.data?.data?.grace_days || graceDays,
+      }));
+      toast.success(t('subscription.requirementsSaved', 'Subscription requirements saved.'));
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
+      load();
+    }
+  };
+
   const toggleRequirement = async (role) => {
     const next = {
       ...(overview.requirements || {}),
       [role]: !overview.requirements?.[role],
       admin: false,
     };
-    setOverview((current) => ({ ...current, requirements: next }));
-    try {
-      await api.patch('/subscriptions/admin/requirements', { requirements: next });
-      toast.success(t('subscription.requirementsSaved', 'Subscription requirements saved.'));
-    } catch (error) {
-      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
-      load();
-    }
+    await saveRequirementSettings(next);
+  };
+
+  const updateGraceDays = async (role, value) => {
+    const graceDays = {
+      ...(overview.grace_days || {}),
+      [role]: Math.max(0, Number(value || 0)),
+      admin: 0,
+    };
+    await saveRequirementSettings(overview.requirements || {}, graceDays);
   };
 
   const editPlan = (plan) => {
@@ -135,7 +153,7 @@ export default function AdminSubscriptionsPage() {
     try {
       await api.post('/subscriptions/admin/subscriptions/activate', manualActivation);
       toast.success(t('subscription.subscriptionUpdated', 'Subscription updated.'));
-      setManualActivation({ user_id: '', plan_id: '', role: 'vendor' });
+      setManualActivation({ user_id: '', plan_id: '', role: 'vendor', started_at: '', expires_at: '' });
       load();
     } catch (error) {
       toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
@@ -170,8 +188,8 @@ export default function AdminSubscriptionsPage() {
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat icon={Users} label={t('subscription.activeSubscribers', 'Active subscribers')} value={stats.active || 0} />
           <Stat icon={CreditCard} label={t('subscription.revenue', 'Subscription revenue')} value={`${Number(stats.revenue || 0).toLocaleString()} XAF`} />
-          <Stat icon={ShieldCheck} label={t('subscription.pending', 'Pending payments')} value={stats.pending || 0} />
-          <Stat icon={BadgeCheck} label={t('subscription.activePlans', 'Active plans')} value={activePlans.length} />
+          <Stat icon={ShieldCheck} label={t('subscription.graceUsers', 'Grace users')} value={stats.grace || 0} />
+          <Stat icon={BadgeCheck} label={t('subscription.limitedUsers', 'Limited users')} value={stats.limited || 0} />
         </section>
 
         <section className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
@@ -185,15 +203,36 @@ export default function AdminSubscriptionsPage() {
                 {ROLE_OPTIONS.map((role) => {
                   const enabled = Boolean(overview.requirements?.[role]);
                   return (
-                    <button
+                    <div
                       key={role}
-                      type="button"
-                      onClick={() => toggleRequirement(role)}
-                      className="flex w-full items-center justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4 text-left"
+                      className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4"
                     >
-                      <span className="capitalize font-bold">{role}</span>
-                      {enabled ? <ToggleRight className="size-7 text-[var(--accent)]" /> : <ToggleLeft className="size-7 text-[var(--text-secondary)]" />}
-                    </button>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="capitalize font-bold">{role}</span>
+                        <button type="button" onClick={() => toggleRequirement(role)} className="shrink-0">
+                          {enabled ? <ToggleRight className="size-7 text-[var(--accent)]" /> : <ToggleLeft className="size-7 text-[var(--text-secondary)]" />}
+                        </button>
+                      </div>
+                      <label className="mt-3 block">
+                        <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">
+                          {t('subscription.graceDays', 'Grace days')}
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={overview.grace_days?.[role] ?? 0}
+                          onChange={(event) => setOverview((current) => ({
+                            ...current,
+                            grace_days: {
+                              ...(current.grace_days || {}),
+                              [role]: event.target.value,
+                            },
+                          }))}
+                          onBlur={(event) => updateGraceDays(role, event.target.value)}
+                          className="mt-1 h-10 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 !text-base font-bold outline-none focus:border-[var(--accent)]"
+                        />
+                      </label>
+                    </div>
                   );
                 })}
               </div>
@@ -277,6 +316,30 @@ export default function AdminSubscriptionsPage() {
                     <option key={role} value={role}>{role}</option>
                   ))}
                 </select>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label>
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">
+                      {t('subscription.startDate', 'Start date')}
+                    </span>
+                    <input
+                      className={fieldClass}
+                      type="date"
+                      value={manualActivation.started_at}
+                      onChange={(e) => setManualActivation({ ...manualActivation, started_at: e.target.value })}
+                    />
+                  </label>
+                  <label>
+                    <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">
+                      {t('subscription.expiryDate', 'Expiry date')}
+                    </span>
+                    <input
+                      className={fieldClass}
+                      type="date"
+                      value={manualActivation.expires_at}
+                      onChange={(e) => setManualActivation({ ...manualActivation, expires_at: e.target.value })}
+                    />
+                  </label>
+                </div>
                 <button
                   type="button"
                   onClick={activateManual}

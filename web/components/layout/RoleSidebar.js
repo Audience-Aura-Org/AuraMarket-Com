@@ -6,6 +6,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { useTheme } from "@/context/ThemeContext";
 import { useNotifications } from '@/hooks/useNotifications';
 import { useChat } from '@/context/ChatContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 const VENDOR_NAV = [
   { icon: 'home',                     label: 'Marketplace',      href: '/discovery?tab=discover' },
@@ -106,6 +107,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const config = ROLE_CONFIG[role] || ROLE_CONFIG.customer;
 
   const { unreadCount, unreadMessages } = useNotifications();
@@ -137,7 +139,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             </div>
             <div className="flex flex-col min-w-0">
                <h1 className="text-[12px]  font-semibold tracking-tighter text-[var(--text-primary)] leading-none">Aura<span className="text-[var(--accent)]">Dime</span></h1>
-               <p className="text-[10px] lg:text-[12px] font-medium tracking-tight opacity-80 mt-1" style={{ color: config.accent }}>{config.label}</p>
+               <p className="text-[10px] lg:text-[12px] font-medium tracking-tight opacity-80 mt-1" style={{ color: config.accent }}>{t(`roleSidebar.${role}.label`, config.label)}</p>
             </div>
           </div>
           <button onClick={onClose} className="lg:hidden p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors shrink-0">
@@ -153,7 +155,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             className="flex-1 flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[var(--accent)]/5 transition-all group"
           >
             <span className="material-symbols-outlined text-xl text-[var(--text-secondary)] group-hover:text-[var(--accent)] transition-colors">notifications</span>
-            <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">Signals</span>
+            <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">{t('nav.signals', 'Signals')}</span>
             {unreadCount > 0 && (
               <span
                 className="ml-auto min-w-[20px] h-5 px-1.5 text-white text-[11px] lg:text-[12px]  font-semibold rounded-full flex items-center justify-center animate-pulse"
@@ -200,7 +202,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
               <div key={item.href + item.label}>
                 {item.label === 'Security' && (
                   <div className="pt-6 pb-2 px-4">
-                    <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">Account Configuration</p>
+                    <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">{t('nav.accountConfiguration', 'Account Configuration')}</p>
                   </div>
                 )}
                 <Comp
@@ -238,7 +240,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                     {item.icon}
                   </span>
                   <span className={`text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-colors truncate flex-1 ${active ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
-                    {item.label}
+                    {t(`nav.${item.label.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '.')}`, item.label)}
                   </span>
                   {badge > 0 && (
                     <span
