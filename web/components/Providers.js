@@ -204,6 +204,10 @@ function SubscriptionAccessNotice({ normalizedPath, isAuthRoute, isImmersiveChat
   const role = notice.role || user?.role || 'vendor';
   const isGrace = notice.access_state === 'grace' || notice.grace;
   const isVendor = role === 'vendor';
+  const hasRoleSidebar =
+    normalizedPath.startsWith('/vendor') ||
+    normalizedPath.startsWith('/logistics') ||
+    normalizedPath.startsWith('/admin');
   const title = isGrace
     ? t('subscription.graceTitle', 'Subscription grace active')
     : t('subscription.limitedTitle', 'Limited access mode');
@@ -219,7 +223,7 @@ function SubscriptionAccessNotice({ normalizedPath, isAuthRoute, isImmersiveChat
   const actionClass = isGrace ? 'bg-amber-500' : 'bg-rose-500';
 
   return (
-    <div className={`w-full border-b px-3 py-2 ${severityClass}`}>
+    <div className={`w-full border-b px-3 py-2 ${hasRoleSidebar ? 'lg:ml-[240px] lg:w-[calc(100%-240px)]' : ''} ${severityClass}`}>
       <div className="mx-auto flex max-w-[1600px] items-center gap-2 sm:gap-3">
         <span className={`size-2 shrink-0 rounded-full ${isGrace ? 'bg-amber-500' : 'bg-rose-500'}`} />
         <button
