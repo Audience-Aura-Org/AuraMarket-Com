@@ -13,6 +13,7 @@ import {
   Store,
   Truck,
   User,
+  WalletCards,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -48,6 +49,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
   const [resendIn, setResendIn] = useState(0);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [transitioningToSignup, setTransitioningToSignup] = useState(false);
   const [profile, setProfile] = useState({
     name: '',
     phone: '',
@@ -71,6 +73,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
       if (pendingSignup?.signupToken && pendingSignup?.email) {
         setEmail(pendingSignup.email);
         setSignupToken(pendingSignup.signupToken);
+        setTransitioningToSignup(false);
         setStep('signup');
         return;
       } else if (!isSignupResume) {
@@ -133,6 +136,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
     event?.preventDefault();
     if (submitting) return;
     setError('');
+    setTransitioningToSignup(false);
     const nextEmail = cleanEmail(email);
     if (!nextEmail) return;
     try {
@@ -208,6 +212,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
           return;
         }
         const verifiedEmail = result.email || email;
+        setTransitioningToSignup(true);
         try {
           sessionStorage.setItem(SIGNUP_STATE_KEY, JSON.stringify({
             email: verifiedEmail,
@@ -218,6 +223,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
         } catch {}
         setEmail(verifiedEmail);
         setSignupToken(result.signupToken);
+        setOtp('');
         setStep('signup');
         router.replace('/signup');
         window.setTimeout(() => {
@@ -294,7 +300,20 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
     }
   };
 
+  useEffect(() => {
+    if (!transitioningToSignup || step !== 'signup') return;
+    const timer = window.setTimeout(() => setTransitioningToSignup(false), 350);
+    return () => window.clearTimeout(timer);
+  }, [step, transitioningToSignup]);
+
   const updateProfile = (patch) => setProfile((current) => ({ ...current, ...patch }));
+
+  const subscriptionHint =
+    profile.role === 'vendor'
+      ? t('login.vendorSubscriptionHint')
+      : profile.role === 'logistics'
+        ? t('login.logisticsSubscriptionHint')
+        : t('login.customerSubscriptionHint');
 
   return (
     <div className="w-full max-w-[420px] mx-auto transition-all duration-700">
@@ -310,7 +329,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
           ))}
         </div>
 
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode={transitioningToSignup ? 'sync' : 'wait'}>
           {step === 'email' && (
             <motion.form
               key="email"
@@ -501,7 +520,16 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
               </div>
 
               <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-3 text-center">
+                <div className="mb-2 inline-flex size-8 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                  <WalletCards className="size-4" />
+                </div>
+                <p className="mb-1 text-[11px] font-bold text-[var(--text-primary)]">
+                  {t('login.subscriptionTitle')}
+                </p>
                 <p className="text-[11px] font-semibold leading-relaxed text-[var(--text-secondary)] opacity-70">
+                  {subscriptionHint}
+                </p>
+                <p className="mt-2 text-[11px] font-semibold leading-relaxed text-[var(--text-secondary)] opacity-70">
                   {t('login.onboardingHint')}
                 </p>
               </div>

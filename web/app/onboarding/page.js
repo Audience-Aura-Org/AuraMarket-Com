@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useLanguage } from '@/context/LanguageContext';
 
 const STEPS = [
   { id: 'categories', title: 'Your Interests', subtitle: 'Pick 2+ categories', icon: Heart, color: 'rose' },
@@ -49,6 +50,7 @@ const COLOR_MAP = {
 export default function OnboardingFlow() {
   const router = useRouter();
   const { user, updateUser } = useAuthStore();
+  const { t } = useLanguage();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
 
@@ -81,6 +83,19 @@ export default function OnboardingFlow() {
   const STEPS_ACTIVE = isLogistics ? LOGISTICS_STEPS : isVendor ? VENDOR_STEPS : STEPS;
   const currentStepMeta = STEPS_ACTIVE[step];
   const colors = COLOR_MAP[currentStepMeta?.color || 'accent'];
+  const subscriptionGuide = isVendor
+    ? {
+        title: t('onboarding.vendorSubscriptionTitle'),
+        detail: t('onboarding.vendorSubscriptionDetail'),
+        cta: t('subscription.viewPackages'),
+      }
+    : isLogistics
+      ? {
+          title: t('onboarding.logisticsSubscriptionTitle'),
+          detail: t('onboarding.logisticsSubscriptionDetail'),
+          cta: t('subscription.viewPackages'),
+        }
+      : null;
 
   // Pre-fill from existing user data
   useEffect(() => {
@@ -328,7 +343,7 @@ export default function OnboardingFlow() {
 
       {/* Header / Step Progress */}
       <header className="shrink-0 sticky top-0 z-20 px-4 py-4 md:px-6 md:py-6">
-        <div className="max-w-2xl mx-auto flex items-center justify-between bg-[var(--bg-primary)]/40 backdrop-blur-2xl border border-[var(--glass-border)] rounded-[2rem] px-5 py-2.5 shadow-2xl">
+        <div className="max-w-4xl mx-auto flex items-center justify-between bg-[var(--bg-primary)]/40 backdrop-blur-2xl border border-[var(--glass-border)] rounded-[2rem] px-5 py-2.5 shadow-2xl">
           {/* Back / Logo */}
           <div className="flex items-center gap-4">
             {step > 0 ? (
@@ -374,7 +389,7 @@ export default function OnboardingFlow() {
 
       {/* Step Title */}
       <div className="shrink-0 pt-6 pb-5 px-4 md:pt-10 md:pb-8 md:px-6">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="flex items-center gap-4 md:gap-6">
             <div className={`size-12 md:size-16 rounded-xl md:rounded-2xl ${colors.bg} border ${colors.border} flex items-center justify-center shadow-lg ${colors.glow}`}>
               {currentStepMeta && <currentStepMeta.icon className={`size-6 md:size-7 ${colors.text}`} />}
@@ -387,7 +402,33 @@ export default function OnboardingFlow() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-4 space-y-6 md:px-6 md:py-5 md:space-y-8 pb-32">
+      {subscriptionGuide && !isLastStep && (
+        <div className="mx-auto w-full max-w-6xl px-4 pb-2 md:px-6 md:pb-4">
+          <div className="flex flex-col gap-3 rounded-3xl border border-[var(--accent)]/20 bg-[var(--bg-primary)]/80 p-4 shadow-sm backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between md:p-5">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                <Star className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-[var(--text-primary)]">{subscriptionGuide.title}</p>
+                <p className="mt-1 max-w-3xl text-[12px] font-medium leading-relaxed text-[var(--text-secondary)]">
+                  {subscriptionGuide.detail}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push(`/subscribe?role=${user?.role || 'vendor'}`)}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-4 py-2.5 text-[12px] font-bold text-[var(--accent)] transition-all hover:bg-[var(--accent)] hover:text-white"
+            >
+              {subscriptionGuide.cta}
+              <ArrowRight className="size-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-6xl mx-auto px-4 py-4 space-y-6 md:px-6 md:py-5 md:space-y-8 pb-32">
           {/* ── Step: Categories (Customers: Step 0, Vendors: Step 1) ── */}
           {((!isVendor && !isLogistics && step === 0) || (isVendor && step === 1)) && (
             <div className="space-y-4">
@@ -410,21 +451,21 @@ export default function OnboardingFlow() {
               </div>
 
               {/* High-Density Rectangular Category Blocks */}
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3.5 md:gap-4">
                 {categoriesToShow.map(cat => {
                   const sel = selectedCategories.includes(cat._id);
                   return (
                     <button
                       key={cat._id}
                       onClick={() => setSelectedCategories(p => sel ? p.filter(id => id !== cat._id) : [...p, cat._id])}
-                      className={`relative flex items-center gap-3 p-3.5 rounded-[1.5rem] border transition-all duration-300 group ${sel ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)]' : 'bg-[var(--bg-primary)]/40 backdrop-blur-md border-white/5 hover:border-[var(--accent)]/20 hover:bg-[var(--bg-primary)]/60'}`}
+                      className={`group relative flex min-h-[92px] items-center gap-3.5 rounded-[1.5rem] border p-4 text-left transition-all duration-300 md:min-h-[104px] md:p-5 ${sel ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)]' : 'bg-[var(--bg-primary)]/40 backdrop-blur-md border-white/5 hover:border-[var(--accent)]/20 hover:bg-[var(--bg-primary)]/60'}`}
                     >
-                      <div className={`size-10 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 ${sel ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'bg-white/5 border-white/10 text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 group-hover:border-[var(--accent)]/30'}`}>
-                        <LayoutGrid className="size-5" />
+                      <div className={`size-11 rounded-2xl flex items-center justify-center shrink-0 border transition-all duration-300 md:size-12 ${sel ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'bg-white/5 border-white/10 text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 group-hover:border-[var(--accent)]/30'}`}>
+                        <LayoutGrid className="size-5 md:size-5" />
                       </div>
-                      <div className="flex flex-col text-left min-w-0">
-                        <span className={`text-[13px] font-bold tracking-tight transition-colors ${sel ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{cat.name}</span>
-                        <span className="text-[10px] font-medium opacity-40 truncate">Explore {cat.name}</span>
+                      <div className="flex min-w-0 flex-1 flex-col gap-1 text-left">
+                        <span className={`line-clamp-2 text-[13px] font-bold leading-snug tracking-tight transition-colors md:text-sm ${sel ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{cat.name}</span>
+                        <span className="truncate text-[10px] font-medium opacity-40 md:text-[11px]">Explore {cat.name}</span>
                       </div>
                       {sel && (
                         <div className="ml-auto size-5 rounded-full bg-[var(--accent)] flex items-center justify-center shadow-lg animate-in zoom-in-50 duration-300">
