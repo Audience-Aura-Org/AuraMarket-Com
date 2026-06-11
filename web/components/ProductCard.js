@@ -216,27 +216,32 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               </div>
             </div>
 
-            <div className="flex items-center gap-3 mt-auto">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 mt-auto">
               <button 
                 onClick={handleBuyNow} 
                 disabled={!product.has_variants && product.stock <= 0}
-                className="h-9 px-6 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="min-w-0 h-9 px-3 sm:px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] sm:text-[11px] lg:text-[12px] font-semibold tracking-tight rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                {(!product.has_variants && product.stock <= 0) ? t('common.outOfStock') : t('common.buyNow')}
+                <span className="truncate">{(!product.has_variants && product.stock <= 0) ? t('common.outOfStock') : t('common.buyNow')}</span>
               </button>
-              <div className="flex items-center gap-2">
-                <button onClick={handleChat} className="h-9 px-6 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[12px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all">
-                  <MessageSquare className="size-4" />
-                  <span>{t('common.chat')}</span>
-                </button>
-                <button 
-                  onClick={handleAddToCart} 
-                  disabled={addingToCart || (!product.has_variants && product.stock <= 0)} 
-                  className="size-9 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <Plus className={`size-4.5 ${addingToCart ? 'animate-spin' : ''}`} />
-                </button>
-              </div>
+              <button
+                onClick={handleChat}
+                title={t('common.chat')}
+                aria-label={t('common.chat')}
+                className="h-9 min-w-9 px-2.5 sm:px-3 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-1.5 text-[11px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all"
+              >
+                <MessageSquare className="size-4 shrink-0" />
+                <span className="hidden max-w-[74px] truncate sm:inline">{t('common.chat')}</span>
+              </button>
+              <button 
+                onClick={handleAddToCart} 
+                disabled={addingToCart || (!product.has_variants && product.stock <= 0)}
+                title={t('product.addToCart', 'Add to cart')}
+                aria-label={t('product.addToCart', 'Add to cart')}
+                className="size-9 shrink-0 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <Plus className={`size-4.5 ${addingToCart ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
         </div>
@@ -310,21 +315,28 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1 md:gap-1.5 mt-auto">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1.5 md:gap-2 mt-auto">
             <button 
               onClick={handleBuyNow} 
               disabled={!inStock}
-              className="flex-1 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tight rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="min-w-0 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] px-2 text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              {inStock ? t('common.buyNow') : t('common.outOfStock')}
+              <span className="block truncate">{inStock ? t('common.buyNow') : t('common.outOfStock')}</span>
             </button>
-            <button onClick={handleChat} className="h-8 md:h-9 px-4 md:px-6 rounded-xl md:rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[12px] md:text-[13px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all shrink-0">
-              <MessageSquare className="size-4 md:size-4.5" />
-              <span>{t('common.chat')}</span>
+            <button
+              onClick={handleChat}
+              title={t('common.chat')}
+              aria-label={t('common.chat')}
+              className="h-8 md:h-9 min-w-8 md:min-w-9 px-2 md:px-2.5 rounded-xl md:rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-1.5 text-[11px] md:text-[12px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all shrink-0"
+            >
+              <MessageSquare className="size-4 md:size-4.5 shrink-0" />
+              <span className="hidden max-w-[64px] truncate lg:inline">{t('common.chat')}</span>
             </button>
             <button 
               onClick={handleAddToCart} 
-              disabled={addingToCart || !inStock} 
+              disabled={addingToCart || !inStock}
+              title={t('product.addToCart', 'Add to cart')}
+              aria-label={t('product.addToCart', 'Add to cart')}
               className="size-8 md:size-9 rounded-lg md:rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <Plus className={`size-4 md:size-5 ${addingToCart ? 'animate-spin' : ''}`} />

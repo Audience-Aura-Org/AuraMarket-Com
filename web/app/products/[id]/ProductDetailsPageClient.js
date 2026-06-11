@@ -489,16 +489,16 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
                       disabled={buyingNow || !inStock}
                       className="w-full h-14 bg-[var(--text-primary)] border-2 border-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] text-sm  font-bold tracking-tight rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {buyingNow && <Loader2 className="size-4 animate-spin" />}
-                      {t('common.buyNow')}
+                      {buyingNow && <Loader2 className="size-4 shrink-0 animate-spin" />}
+                      <span className="min-w-0 truncate">{t('common.buyNow')}</span>
                     </button>
                     <button
                       onClick={handleAddToCart}
                       disabled={addingToCart || !inStock}
                       className="w-full h-14 bg-[var(--bg-primary)] border-2 border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] text-sm  font-bold tracking-tight rounded-full transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {addingToCart && <Loader2 className="size-4 animate-spin" />}
-                      {t('product.addToCart', 'Add to cart')}
+                      {addingToCart && <Loader2 className="size-4 shrink-0 animate-spin" />}
+                      <span className="min-w-0 truncate">{t('product.addToCart', 'Add to cart')}</span>
                     </button>
                   </>
                 )}
@@ -564,7 +564,8 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
                   </Link>
                   <button onClick={handleChat}
                     className="h-10 flex items-center justify-center gap-2 bg-[var(--bg-primary)] border-2 border-[var(--text-primary)] rounded-full text-xs  font-bold text-[var(--text-primary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all">
-                    <MessageCircle className="size-3.5" /> Chat
+                    <MessageCircle className="size-3.5 shrink-0" />
+                    <span className="min-w-0 truncate">{t('common.chat')}</span>
                   </button>
                 </div>
               </div>
@@ -658,16 +659,16 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
                 disabled={addingToCart || !inStock}
                 className="flex-1 h-14 bg-[var(--bg-primary)] border-2 border-[var(--text-primary)] text-[var(--text-primary)] hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight rounded-full transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
-                {addingToCart && <Loader2 className="size-4 animate-spin" />}
-                {t('product.addToCart')}
+                {addingToCart && <Loader2 className="size-4 shrink-0 animate-spin" />}
+                <span className="min-w-0 truncate">{t('product.addToCart')}</span>
               </button>
               <button
                 onClick={handleBuyNow}
                 disabled={buyingNow || !inStock}
                 className="flex-1 h-14 bg-[var(--text-primary)] border-2 border-[var(--text-primary)] text-[var(--bg-primary)] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight rounded-full transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
-                {buyingNow && <Loader2 className="size-4 animate-spin" />}
-                {t('common.buyNow')}
+                {buyingNow && <Loader2 className="size-4 shrink-0 animate-spin" />}
+                <span className="min-w-0 truncate">{t('common.buyNow')}</span>
               </button>
             </div>
           )}
