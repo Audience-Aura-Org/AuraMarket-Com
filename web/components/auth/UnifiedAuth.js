@@ -24,6 +24,7 @@ const cleanEmail = (value) => value.trim().toLowerCase();
 const inputClass = 'w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3.5 pl-11 pr-4 text-[12px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/30 transition-all placeholder:text-[var(--text-secondary)]/30';
 const LOGIN_ACTION_TIMEOUT_MS = 60000;
 const OTP_PENDING_KEY = 'aura_pending_otp_email';
+const SIGNUP_STATE_KEY = 'aura_pending_signup_state';
 
 const withLoginTimeout = (promise, message) => {
   let timer;
@@ -60,6 +61,14 @@ export default function UnifiedAuth() {
 
   useEffect(() => {
     try {
+      const pendingSignup = JSON.parse(sessionStorage.getItem(SIGNUP_STATE_KEY) || 'null');
+      if (pendingSignup?.signupToken && pendingSignup?.email) {
+        setEmail(pendingSignup.email);
+        setSignupToken(pendingSignup.signupToken);
+        setStep('signup');
+        return;
+      }
+
       const pendingEmail = sessionStorage.getItem(OTP_PENDING_KEY);
       if (pendingEmail) {
         setEmail(pendingEmail);
@@ -183,14 +192,29 @@ export default function UnifiedAuth() {
           setError(t('login.verifyTimeout'));
           return;
         }
-        if (result.email) setEmail(result.email);
+        const verifiedEmail = result.email || email;
+        try {
+          sessionStorage.setItem(SIGNUP_STATE_KEY, JSON.stringify({
+            email: verifiedEmail,
+            signupToken: result.signupToken,
+            savedAt: Date.now(),
+          }));
+          sessionStorage.removeItem(OTP_PENDING_KEY);
+        } catch {}
+        setEmail(verifiedEmail);
         setSignupToken(result.signupToken);
         setStep('signup');
+        window.setTimeout(() => {
+          if (window.location.pathname.replace(/\/+$/, '') === '/login' && !window.location.search.includes('signup=1')) {
+            window.location.replace('/login?signup=1');
+          }
+        }, 150);
         return;
       }
 
       try {
         sessionStorage.removeItem(OTP_PENDING_KEY);
+        sessionStorage.removeItem(SIGNUP_STATE_KEY);
       } catch {}
       let verifiedUser = result.user;
       if (!verifiedUser) {
@@ -235,6 +259,7 @@ export default function UnifiedAuth() {
 
       try {
         sessionStorage.removeItem(OTP_PENDING_KEY);
+        sessionStorage.removeItem(SIGNUP_STATE_KEY);
       } catch {}
       let verifiedUser = result.user;
       if (!verifiedUser) {

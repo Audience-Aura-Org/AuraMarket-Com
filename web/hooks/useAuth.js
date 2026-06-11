@@ -114,7 +114,7 @@ export const useAuthStore = create(
 
           if (signupRequired) {
             const verifiedEmail = res.data?.data?.email || res.data?.email || email;
-            set({ loading: false, error: null, rememberedEmail: email });
+            set({ loading: false, error: null, rememberedEmail: verifiedEmail });
             return {
               success: true,
               signupRequired: true,
