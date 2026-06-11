@@ -175,12 +175,19 @@ const verifyOtp = async (req, res, next) => {
 
     if (!user) {
       if (!isSupportAdminEmail(verifiedEmail) && (!name || String(name).trim().length < 2)) {
+        const signupToken = createSignupToken(verifiedEmail);
         return res.status(200).json({
           success: true,
           signup_required: true,
-          signupToken: createSignupToken(verifiedEmail),
+          signupRequired: true,
+          signupToken,
           message: 'Email verified. Complete your profile to enter Auradime.',
-          data: { email: verifiedEmail },
+          data: {
+            email: verifiedEmail,
+            signup_required: true,
+            signupRequired: true,
+            signupToken,
+          },
         });
       }
 

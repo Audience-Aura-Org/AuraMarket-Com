@@ -179,6 +179,11 @@ export default function UnifiedAuth() {
       }
 
       if (result.signupRequired) {
+        if (!result.signupToken) {
+          setError(t('login.verifyTimeout'));
+          return;
+        }
+        if (result.email) setEmail(result.email);
         setSignupToken(result.signupToken);
         setStep('signup');
         return;

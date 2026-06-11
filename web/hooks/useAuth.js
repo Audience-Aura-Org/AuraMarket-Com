@@ -105,13 +105,21 @@ export const useAuthStore = create(
             __skipRetry: true,
           });
 
-          if (res.data.signup_required) {
+          const signupRequired =
+            Boolean(res.data?.signup_required) ||
+            Boolean(res.data?.signupRequired) ||
+            Boolean(res.data?.data?.signup_required) ||
+            Boolean(res.data?.data?.signupRequired) ||
+            Boolean((res.data?.signupToken || res.data?.data?.signupToken) && !res.data?.data?.user && !res.data?.user);
+
+          if (signupRequired) {
+            const verifiedEmail = res.data?.data?.email || res.data?.email || email;
             set({ loading: false, error: null, rememberedEmail: email });
             return {
               success: true,
               signupRequired: true,
-              signupToken: res.data.signupToken,
-              email: res.data.data?.email || email,
+              signupToken: res.data?.signupToken || res.data?.data?.signupToken,
+              email: verifiedEmail,
             };
           }
 
