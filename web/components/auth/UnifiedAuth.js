@@ -36,7 +36,7 @@ const withLoginTimeout = (promise, message) => {
 
 export default function UnifiedAuth() {
   const router = useRouter();
-  const { sendOtp, verifyOtp, rememberedEmail, hasHydrated, resetLoading } = useAuthStore();
+  const { sendOtp, verifyOtp, fetchMe, rememberedEmail, hasHydrated, isAuthenticated, user, resetLoading } = useAuthStore();
   const { t, label } = useLanguage();
   const prefilledRef = useRef(false);
 
@@ -81,14 +81,32 @@ export default function UnifiedAuth() {
     return () => clearTimeout(timer);
   }, [resendIn]);
 
-  const redirectAfterAuth = (user) => {
-    const role = user?.role?.toLowerCase();
-    if (user?.onboarded === false && role !== 'admin') router.push('/onboarding');
-    else if (role === 'vendor') router.push('/vendor/dashboard');
-    else if (role === 'admin') router.push('/admin/dashboard');
-    else if (role === 'logistics') router.push('/logistics/dashboard');
-    else router.push('/discovery');
+  const getAuthDestination = (nextUser) => {
+    const role = nextUser?.role?.toLowerCase();
+    if (nextUser?.onboarded === false && role !== 'admin') return '/onboarding';
+    if (role === 'vendor') return '/vendor/dashboard';
+    if (role === 'admin') return '/admin/dashboard';
+    if (role === 'logistics') return '/logistics/dashboard';
+    return '/discovery';
   };
+
+  const redirectAfterAuth = (nextUser) => {
+    const destination = getAuthDestination(nextUser);
+    router.replace(destination);
+
+    window.setTimeout(() => {
+      const path = window.location.pathname.replace(/\/+$/, '') || '/';
+      if (path === '/login' || path === '/' || path === '/register') {
+        window.location.assign(destination);
+      }
+    }, 700);
+  };
+
+  useEffect(() => {
+    if (!hasHydrated || !isAuthenticated || !user) return;
+    redirectAfterAuth(user);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated, isAuthenticated, user?._id]);
 
   const requestOtp = async (event) => {
     event?.preventDefault();
@@ -169,7 +187,16 @@ export default function UnifiedAuth() {
       try {
         sessionStorage.removeItem(OTP_PENDING_KEY);
       } catch {}
-      redirectAfterAuth(result.user);
+      let verifiedUser = result.user;
+      if (!verifiedUser) {
+        const me = await fetchMe?.({ force: true });
+        verifiedUser = me?.user;
+      }
+      if (!verifiedUser) {
+        setError(t('login.verifyTimeout'));
+        return;
+      }
+      redirectAfterAuth(verifiedUser);
     } finally {
       setSubmitting(false);
       resetLoading?.();
@@ -187,6 +214,7 @@ export default function UnifiedAuth() {
     try {
       const result = await withLoginTimeout(
         verifyOtp({
+          email,
           signupToken,
           name: profile.name,
           phone: profile.phone ? profile.phone.replace(/[\s-]/g, '') : '',
@@ -203,7 +231,16 @@ export default function UnifiedAuth() {
       try {
         sessionStorage.removeItem(OTP_PENDING_KEY);
       } catch {}
-      redirectAfterAuth(result.user);
+      let verifiedUser = result.user;
+      if (!verifiedUser) {
+        const me = await fetchMe?.({ force: true });
+        verifiedUser = me?.user;
+      }
+      if (!verifiedUser) {
+        setError(t('login.setupTimeout'));
+        return;
+      }
+      redirectAfterAuth(verifiedUser);
     } finally {
       setSubmitting(false);
       resetLoading?.();

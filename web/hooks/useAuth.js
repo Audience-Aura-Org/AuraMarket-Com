@@ -115,8 +115,11 @@ export const useAuthStore = create(
             };
           }
 
-          const { token, data } = res.data;
-          const { user } = data;
+          const token = res.data?.token || res.data?.data?.token || null;
+          const user = res.data?.data?.user || res.data?.user || null;
+          if (!user) {
+            throw new Error('No user returned after verification.');
+          }
           const previousUserId = get().user?._id?.toString?.();
           if (previousUserId && previousUserId !== user?._id?.toString?.()) {
             socketService.disconnect();
