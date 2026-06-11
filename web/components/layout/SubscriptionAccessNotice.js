@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { AlertTriangle, ChevronDown, ChevronUp, Clock3 } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
 import api from '@/services/api';
@@ -92,40 +93,83 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
         : t('subscription.graceDetail', 'You can keep using your workspace during this grace period. Activate a package before it ends to keep full access.'))
     : t('subscription.limitedDetail', 'You can still view your dashboard, but subscription-gated actions are paused until you activate a package.');
 
-  const severityClass = isGrace
-    ? 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-    : 'border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300';
-  const actionClass = isGrace ? 'bg-amber-500' : 'bg-rose-500';
+  const Icon = isGrace ? Clock3 : AlertTriangle;
+  const severity = isGrace
+    ? {
+        shell: 'border-amber-500/20 bg-[linear-gradient(90deg,rgba(245,158,11,0.12),rgba(255,255,255,0.72),rgba(245,158,11,0.06))] text-amber-800 dark:bg-[linear-gradient(90deg,rgba(245,158,11,0.16),rgba(15,23,42,0.86),rgba(245,158,11,0.08))] dark:text-amber-200',
+        icon: 'bg-amber-500/15 text-amber-600 ring-amber-500/20 dark:text-amber-300',
+        rail: 'bg-amber-500',
+        action: 'bg-amber-500 hover:bg-amber-600',
+        soft: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+      }
+    : {
+        shell: 'border-rose-500/20 bg-[linear-gradient(90deg,rgba(244,63,94,0.12),rgba(255,255,255,0.72),rgba(244,63,94,0.06))] text-rose-800 dark:bg-[linear-gradient(90deg,rgba(244,63,94,0.16),rgba(15,23,42,0.86),rgba(244,63,94,0.08))] dark:text-rose-200',
+        icon: 'bg-rose-500/15 text-rose-600 ring-rose-500/20 dark:text-rose-300',
+        rail: 'bg-rose-500',
+        action: 'bg-rose-500 hover:bg-rose-600',
+        soft: 'bg-rose-500/10 text-rose-700 dark:text-rose-200',
+      };
 
   return (
-    <div className={`w-full border-b px-3 py-2 ${severityClass}`}>
-      <div className="mx-auto flex max-w-[1600px] items-center gap-2 sm:gap-3">
-        <span className={`size-2 shrink-0 rounded-full ${isGrace ? 'bg-amber-500' : 'bg-rose-500'}`} />
+    <div className="w-full border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/65 px-2 py-2 sm:px-3">
+      <div className={`mx-auto flex max-w-[1600px] overflow-hidden rounded-2xl border shadow-sm backdrop-blur-xl ${severity.shell}`}>
+        <div className={`w-1 shrink-0 ${severity.rail}`} />
+        <div className="flex min-w-0 flex-1 items-center gap-2 px-2.5 py-2 sm:gap-3 sm:px-3">
+          <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl ring-1 sm:size-9 ${severity.icon}`}>
+            <Icon className="size-4 sm:size-4.5" />
+          </div>
         <button
           type="button"
           onClick={() => setHidden((value) => !value)}
           className="min-w-0 flex-1 text-left"
           aria-expanded={!hidden}
         >
-          <p className="truncate text-[11px] font-black uppercase tracking-wide sm:text-xs">{title}</p>
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="truncate text-[11px] font-black uppercase tracking-wide sm:text-xs">{title}</p>
+            <span className={`hidden rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide sm:inline-flex ${severity.soft}`}>
+              {isGrace ? t('subscription.noticeWarning', 'Action needed') : t('subscription.noticeCritical', 'Restricted')}
+            </span>
+          </div>
           {!hidden && (
-            <p className="mt-0.5 line-clamp-2 text-[11px] font-medium leading-4 opacity-90 sm:text-xs sm:leading-5">{detail}</p>
+            <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-4 opacity-85 sm:text-xs sm:leading-5">{detail}</p>
           )}
         </button>
         <button
           type="button"
+          onClick={() => setHidden((value) => !value)}
+          className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-current/15 text-current/70 transition hover:bg-white/20 active:scale-95 sm:hidden"
+          aria-label={hidden ? t('common.show', 'Show') : t('common.hide', 'Hide')}
+        >
+          {hidden ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
+        </button>
+        <div className="hidden shrink-0 items-center gap-2 sm:flex">
+        <button
+          type="button"
           onClick={() => router.push(`/subscribe?role=${encodeURIComponent(role)}`)}
-          className={`h-8 shrink-0 rounded-xl px-3 text-[10px] font-bold text-white transition active:scale-95 sm:h-9 sm:px-4 sm:text-xs ${actionClass}`}
+          className={`h-9 shrink-0 rounded-xl px-4 text-xs font-black text-white shadow-sm transition active:scale-95 ${severity.action}`}
         >
           {t('subscription.subscribeCta', 'Subscribe')}
         </button>
         <button
           type="button"
           onClick={() => setHidden(true)}
-          className="h-8 shrink-0 rounded-xl border border-current/20 px-2 text-[10px] font-bold transition active:scale-95 sm:px-3 sm:text-xs"
+          className="h-9 shrink-0 rounded-xl border border-current/20 px-3 text-xs font-bold transition hover:bg-white/20 active:scale-95"
         >
           {t('common.hide', 'Hide')}
         </button>
+        </div>
+        </div>
+        {!hidden && (
+          <div className="flex border-t border-current/10 px-2.5 pb-2 sm:hidden">
+            <button
+              type="button"
+              onClick={() => router.push(`/subscribe?role=${encodeURIComponent(role)}`)}
+              className={`h-9 flex-1 rounded-xl px-3 text-xs font-black text-white shadow-sm transition active:scale-95 ${severity.action}`}
+            >
+              {t('subscription.subscribeCta', 'Subscribe')}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
