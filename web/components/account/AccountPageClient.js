@@ -120,6 +120,7 @@ export default function AccountPageClient() {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleteStatus, setDeleteStatus] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const deleteConfirmationWord = language === 'fr' ? 'SUPPRIMER' : 'DELETE';
 
   const [followedVendors, setFollowedVendors] = useState([]);
   const [networkLoading, setNetworkLoading] = useState(false);
@@ -595,6 +596,7 @@ export default function AccountPageClient() {
                         setDeleteConfirm={setDeleteConfirm}
                         deleteStatus={deleteStatus}
                         deleteLoading={deleteLoading}
+                        confirmationWord={deleteConfirmationWord}
                         onDelete={handleDeleteAccount}
                       />
                     </div>
@@ -1043,7 +1045,9 @@ export default function AccountPageClient() {
   );
 }
 
-function DeleteAccountPanel({ deleteConfirm, setDeleteConfirm, deleteStatus, deleteLoading, onDelete }) {
+function DeleteAccountPanel({ deleteConfirm, setDeleteConfirm, deleteStatus, deleteLoading, confirmationWord, onDelete }) {
+  const isConfirmed = deleteConfirm.trim().toUpperCase() === confirmationWord;
+
   return (
     <div className="w-full p-5 md:p-6 bg-rose-500/5 border border-rose-500/20 rounded-[2rem] transition-all space-y-5">
       <div className="flex items-center gap-4">
@@ -1060,8 +1064,8 @@ function DeleteAccountPanel({ deleteConfirm, setDeleteConfirm, deleteStatus, del
 
       <input
         value={deleteConfirm}
-        onChange={(e) => setDeleteConfirm(e.target.value)}
-        placeholder="Type DELETE to confirm"
+        onChange={(e) => setDeleteConfirm(e.target.value.toUpperCase())}
+        placeholder={`Type ${confirmationWord} to confirm`}
         className="w-full bg-[var(--bg-primary)]/70 border border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-rose-500/30"
       />
 
@@ -1073,7 +1077,7 @@ function DeleteAccountPanel({ deleteConfirm, setDeleteConfirm, deleteStatus, del
 
       <button
         onClick={onDelete}
-        disabled={deleteLoading || deleteConfirm !== 'DELETE'}
+        disabled={deleteLoading || !isConfirmed}
         className="w-full py-3 md:py-4 rounded-full font-bold text-xs tracking-tight bg-rose-600 text-white hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20"
       >
         {deleteLoading ? (

@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
 import { ArrowLeft, Mail, MapPin, ShieldCheck } from 'lucide-react';
 import { legalContact, legalPolicyLinks } from '@/data/legalPolicies';
+import { useLanguage } from '@/context/LanguageContext';
 
 function SectionBlock({ section, index }) {
   return (
@@ -56,6 +59,8 @@ function SectionBlock({ section, index }) {
 }
 
 export default function LegalPolicyPage({ policy }) {
+  const { t } = useLanguage();
+
   return (
     <main className="min-h-screen bg-[var(--bg-secondary)] px-4 py-8 font-poppins text-[var(--text-primary)] sm:px-6 lg:px-10">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -65,18 +70,18 @@ export default function LegalPolicyPage({ policy }) {
             className="inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-2 text-sm font-semibold text-[var(--text-secondary)] shadow-sm transition hover:text-[var(--text-primary)]"
           >
             <ArrowLeft className="size-4" />
-            Back to login
+            {t('legal.backToLogin', 'Back to login')}
           </Link>
 
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-700">
             <ShieldCheck className="size-4" />
-            Cameroon marketplace policy
+            {t('legal.cameroonPolicy', 'Cameroon marketplace policy')}
           </div>
         </div>
 
         <header className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-6 shadow-sm sm:p-8 lg:p-10">
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.22em] text-[var(--accent)]">
-            Legal Center
+            {t('legal.center', 'Legal Center')}
           </p>
           <h1 className="max-w-4xl text-3xl font-black leading-tight tracking-tight text-[var(--text-primary)] sm:text-4xl lg:text-5xl">
             {policy.title}
@@ -87,10 +92,10 @@ export default function LegalPolicyPage({ policy }) {
 
           <div className="mt-6 flex flex-wrap gap-3 text-xs font-semibold text-[var(--text-secondary)]">
             <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1.5">
-              Last updated: {policy.updated}
+              {t('legal.lastUpdated', 'Last updated')}: {policy.updated}
             </span>
             <span className="rounded-full bg-[var(--bg-secondary)] px-3 py-1.5">
-              Jurisdiction: {policy.jurisdiction}
+              {t('legal.jurisdiction', 'Jurisdiction')}: {policy.jurisdiction}
             </span>
           </div>
         </header>
@@ -103,7 +108,7 @@ export default function LegalPolicyPage({ policy }) {
 
             <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm sm:p-6">
               <h2 className="text-lg font-bold text-[var(--text-primary)]">
-                Contact
+                {t('legal.contact', 'Contact')}
               </h2>
               <div className="mt-4 grid gap-3 text-sm text-[var(--text-secondary)] sm:grid-cols-2">
                 <a
@@ -119,16 +124,17 @@ export default function LegalPolicyPage({ policy }) {
                 </div>
               </div>
               <p className="mt-4 text-xs leading-6 text-[var(--text-secondary)]">
-                This page is operational policy information for AuraDime and is not a
-                substitute for legal advice. A qualified Cameroon lawyer should review
-                the final published policies for regulatory completeness.
+                {t(
+                  'legal.disclaimer',
+                  'This page is operational policy information for AuraDime and is not a substitute for legal advice. A qualified Cameroon lawyer should review the final published policies for regulatory completeness.'
+                )}
               </p>
             </section>
           </div>
 
           <aside className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm lg:sticky lg:top-6">
             <p className="px-2 pb-3 text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
-              More policies
+              {t('legal.morePolicies', 'More policies')}
             </p>
             <nav className="flex flex-col gap-1">
               {legalPolicyLinks.map((link) => (
@@ -137,7 +143,7 @@ export default function LegalPolicyPage({ policy }) {
                   href={link.href}
                   className="rounded-xl px-3 py-2 text-sm font-semibold text-[var(--text-secondary)] transition hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
                 >
-                  {link.name}
+                  {t(`legal.link.${link.key}`, link.name)}
                 </Link>
               ))}
             </nav>

@@ -209,10 +209,10 @@ const verifyOtp = async (req, res, next) => {
 const deleteAccount = async (req, res, next) => {
   try {
     const { confirmText } = req.body;
-    if (confirmText !== 'DELETE') {
+    if (!['DELETE', 'SUPPRIMER'].includes(String(confirmText || '').trim().toUpperCase())) {
       return res.status(400).json({
         success: false,
-        message: 'Type DELETE to permanently delete your account.',
+        message: 'Type DELETE or SUPPRIMER to permanently delete your account.',
       });
     }
 
