@@ -211,7 +211,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               <div className="flex items-center gap-4">
                 <p className="text-[14px] md:text-[18px]  font-bold text-[var(--text-primary)]">{price?.toLocaleString()} XAF</p>
                 <div className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-70">
-                   <span className="flex items-center gap-1"><ShoppingCart className="size-3.5 text-emerald-500" /> {product.purchase_count || 0} sold</span>
+                   <span className="flex items-center gap-1"><ShoppingCart className="size-3.5 text-emerald-500" /> {t('product.soldCount', '{count} sold', { count: product.purchase_count || 0 })}</span>
                 </div>
               </div>
             </div>

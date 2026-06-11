@@ -11,8 +11,10 @@ import { vendorService } from '@/services/vendor';
 import Pagination from '@/components/common/Pagination';
 import StorePageClient from './[id]/StorePageClient';
 import { useSearchParams } from 'next/navigation';
+import { useLanguage } from '@/context/LanguageContext';
 
 function StoresDirectoryContent() {
+  const { t } = useLanguage();
   const searchParams = useSearchParams();
   const storeId = searchParams?.get('id');
   const [stores, setStores] = useState([]);
@@ -75,7 +77,7 @@ function StoresDirectoryContent() {
                 type="text" 
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search stores..." 
+                placeholder={t('store.searchPlaceholder', 'Search stores...')}
                 className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-12 pr-4 !text-base placeholder:!text-base font-medium text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 focus:outline-none focus:border-[var(--accent)]/50 transition-all shadow-sm"
               />
             </div>
@@ -99,9 +101,9 @@ function StoresDirectoryContent() {
                <Store className="size-8 text-[var(--accent)]/60" />
              </div>
              <div>
-               <h2 className="text-2xl  font-bold text-[var(--text-primary)]/70">{loading ? 'Stores syncing' : 'No stores found'}</h2>
+               <h2 className="text-2xl  font-bold text-[var(--text-primary)]/70">{loading ? t('store.syncing', 'Stores syncing') : t('store.noneFound', 'No stores found')}</h2>
                <p className="text-[var(--text-secondary)] font-medium mt-2 text-sm">
-                 {loading ? 'Stores appear here as soon as the latest directory arrives.' : 'Try adjusting your search criteria.'}
+                 {loading ? t('store.syncingDetail', 'Stores appear here as soon as the latest directory arrives.') : t('store.searchEmptyDetail', 'Try adjusting your search criteria.')}
                </p>
              </div>
           </motion.div>
@@ -161,16 +163,16 @@ function StoresDirectoryContent() {
                         {Number(s.rating || 0) > 0 && <span>{Number(s.rating).toFixed(1)}</span>}
                       </div>
 
-                      <p className="text-[var(--text-secondary)] text-xs font-medium line-clamp-2 leading-relaxed h-8 flex-1">
-                        {s.description || 'Verified merchant providing quality products.'}
+                      <p translate={s.description ? 'no' : undefined} className="text-[var(--text-secondary)] text-xs font-medium line-clamp-2 leading-relaxed h-8 flex-1">
+                        {s.description || t('store.verifiedMerchantFallback', 'Verified merchant providing quality products.')}
                       </p>
                     </div>
 
                     <div className="mt-auto pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
                       <div className="flex flex-col items-start">
-                         <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]/50 tracking-tight">Status</span>
+                         <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]/50 tracking-tight">{t('common.status', 'Status')}</span>
                          <span className="text-[11px] lg:text-[12px]  font-semibold text-emerald-500 flex items-center gap-1.5">
-                            <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Active
+                            <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></div> {t('common.active', 'Active')}
                          </span>
                       </div>
                       

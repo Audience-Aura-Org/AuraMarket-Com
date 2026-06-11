@@ -268,12 +268,12 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             style={{ background: `${config.accent}08` }}
           >
             <p className="text-sm  font-bold text-[var(--text-primary)] flex items-center justify-between">
-              {config.plan}
+              {t(`roleSidebar.${role}.plan`, config.plan)}
               <span
                 className="text-[10px] lg:text-[12px] text-white px-2 py-0.5 rounded-full"
                 style={{ background: config.accent }}
               >
-                Active
+                {t('common.active', 'Active')}
               </span>
             </p>
           </div>

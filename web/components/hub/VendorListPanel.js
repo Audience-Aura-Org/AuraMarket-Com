@@ -11,6 +11,7 @@ import {
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useChat } from '@/context/ChatContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 import Pagination from '@/components/common/Pagination';
 
@@ -29,6 +30,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
   const { user } = useAuthStore();
   const router = useRouter();
   const { openChat } = useChat();
+  const { t } = useLanguage();
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -97,7 +99,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search vendors..."
+            placeholder={t('vendor.searchPlaceholder', 'Search vendors...')}
             className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-10 pr-10 !text-base placeholder:!text-base font-medium focus:ring-1 focus:ring-[var(--accent)] outline-none placeholder:text-[var(--text-secondary)]/50 transition-all"
           />
           {search && (
@@ -127,15 +129,15 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
             <div className="size-16 rounded-full bg-[var(--accent)]/5 flex items-center justify-center mb-4">
                <MessageCircle className="w-8 h-8 text-[var(--accent)] opacity-20" />
             </div>
-            <p className=" font-bold text-[var(--text-primary)]  tracking-tighter text-base">Your Circle is Empty</p>
+            <p className=" font-bold text-[var(--text-primary)]  tracking-tighter text-base">{t('vendor.circleEmpty', 'Your Circle is Empty')}</p>
             <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-50 mt-2 max-w-[220px] mx-auto font-medium">
-              Only vendors you follow appear here for quick chat access. Explore the Global Market to find your vibe.
+              {t('vendor.circleEmptyDetail', 'Only vendors you follow appear here for quick chat access. Explore the marketplace to find stores you like.')}
             </p>
             <button 
               onClick={() => router.push('/shop')}
               className="mt-6 px-6 py-2 bg-[var(--accent)] text-white text-[11px] lg:text-[12px]  font-semibold tracking-tight rounded-full shadow-lg"
             >
-              Explore Shop
+              {t('vendor.exploreShop', 'Explore Shop')}
             </button>
           </div>
         ) : (
@@ -152,6 +154,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
                   onOpenStatus={() => onOpenStatus(vendorId)}
                   onOpenChat={(vData) => openChat(userId, null, vData)}
                   onClick={() => router.push(getStoreHref(vendorId))}
+                  t={t}
                 />
               );
             })}
@@ -174,30 +177,30 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
   );
 }
 
-function formatLastSeen(lastSeenVal) {
-  if (!lastSeenVal) return 'recently';
+function formatLastSeen(lastSeenVal, t) {
+  if (!lastSeenVal) return t('time.recently', 'recently');
   const date = new Date(lastSeenVal);
-  if (isNaN(date.getTime())) return 'recently';
+  if (isNaN(date.getTime())) return t('time.recently', 'recently');
   
   const now = new Date();
   const diffMs = now - date;
   
-  if (diffMs < 0) return 'just now';
+  if (diffMs < 0) return t('time.justNow', 'just now');
   
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return 'yesterday';
-  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffMins < 1) return t('time.justNow', 'just now');
+  if (diffMins < 60) return t('time.minutesAgoShort', '{count}m ago', { count: diffMins });
+  if (diffHours < 24) return t('time.hoursAgoShort', '{count}h ago', { count: diffHours });
+  if (diffDays === 1) return t('time.yesterday', 'yesterday');
+  if (diffDays < 7) return t('time.daysAgoShort', '{count}d ago', { count: diffDays });
   
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus }) {
+function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus, t }) {
   const { onlineUsersMap } = useChat();
   const userInfo = vendor.user_id || vendor.vendor_id?.user_id || {};
   const storeInfo = vendor.store || vendor;
@@ -207,8 +210,8 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
   const userId = getVendorUserId(vendor);
   const liveOnline = userId ? onlineUsersMap[userId] : undefined;
   const isOnline = typeof liveOnline === 'boolean' ? liveOnline : (userInfo?.is_online ?? false);
-  const lastSeen = formatLastSeen(userInfo?.last_seen);
-  const snippet = vendor.latest_product?.name || getVendorDescription(vendor) || "Browse our latest catalog";
+  const lastSeen = formatLastSeen(userInfo?.last_seen, t);
+  const snippet = vendor.latest_product?.name || getVendorDescription(vendor) || t('vendor.browseCatalog', 'Browse our latest catalog');
 
   return (
     <motion.div
@@ -251,7 +254,7 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
             {storeName}
           </h3>
           <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight whitespace-nowrap">
-            {isOnline ? 'Online' : lastSeen}
+            {isOnline ? t('presence.online', 'Online') : lastSeen}
           </span>
         </div>
         
@@ -263,11 +266,11 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
           {isOnline ? (
             <span className="flex items-center gap-1 text-[11px] lg:text-[12px]  font-semibold text-emerald-500  tracking-tighter">
               <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-              Available
+              {t('presence.available', 'Available')}
             </span>
           ) : (
             <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  tracking-tighter">
-              Replies fast
+              {t('vendor.repliesFast', 'Replies fast')}
             </span>
           )}
         </div>

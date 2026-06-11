@@ -15,12 +15,14 @@ const StatusCreator = dynamic(() => import('@/components/status/StatusCreator'),
 
 import { useAuthStore } from '@/hooks/useAuth';
 import VendorFollowButton from '@/components/VendorFollowButton';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function StorePage({ storeId: explicitStoreId = null }) {
   const params = useParams();
   const router = useRouter();
   const id = explicitStoreId || params?.id;
   const { openChat } = useChat();
+  const { t } = useLanguage();
   const productsAnchor = useRef(null);
   const { user, followedVendorIds, addFollowedVendor, removeFollowedVendor, isAuthenticated, fetchFollowedVendors } = useAuthStore();
   
@@ -124,9 +126,9 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
         <div className="size-24 bg-[var(--accent)]/10 text-[var(--accent)] rounded-[32px] flex items-center justify-center mb-6 border border-[var(--accent)]/20 shadow-xl">
           <span className="material-symbols-outlined text-4xl">store_off</span>
         </div>
-        <h1 className="text-3xl  font-bold text-[var(--text-primary)] mb-2  tracking-tighter">Store not found</h1>
-        <p className="text-[var(--text-secondary)] max-w-md font-medium">The store you are looking for might have moved or no longer exists in our registry.</p>
-        <button onClick={() => window.history.back()} className="mt-8 px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-xl  font-bold text-sm hover:opacity-90 transition-all">Go Back</button>
+        <h1 className="text-3xl  font-bold text-[var(--text-primary)] mb-2  tracking-tighter">{t('store.notFound', 'Store not found')}</h1>
+        <p className="text-[var(--text-secondary)] max-w-md font-medium">{t('store.notFoundDetail', 'The store you are looking for might have moved or no longer exists in our registry.')}</p>
+        <button onClick={() => window.history.back()} className="mt-8 px-8 py-3 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-xl  font-bold text-sm hover:opacity-90 transition-all">{t('common.goBack', 'Go Back')}</button>
       </div>
     );
   }
@@ -182,12 +184,12 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
                     <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)]">
                       {vendor?.follower_count ? (vendor.follower_count >= 1000 ? (vendor.follower_count / 1000).toFixed(1) + 'k' : vendor.follower_count) : '0'}
                     </span>
-                    <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  opacity-40">Network</span>
+                    <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  opacity-40">{t('store.network', 'Network')}</span>
                   </div>
 
                   <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
                     <ShieldCheck className="size-3.5 text-emerald-600" />
-                    <span className="text-[11px] lg:text-[12px]  font-semibold text-emerald-600 tracking-tight">Verified Vendor</span>
+                    <span className="text-[11px] lg:text-[12px]  font-semibold text-emerald-600 tracking-tight">{t('store.verifiedVendor', 'Verified Vendor')}</span>
                   </div>
                 </div>
               </div>
@@ -203,7 +205,7 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
                     onClick={() => setShowStatusCreator(true)}
                     className="h-10 md:h-11 px-6 rounded-xl bg-[var(--accent)] text-white  font-semibold text-[10px] lg:text-[12px] tracking-tight  hover:brightness-110 transition-all shadow-lg shadow-[var(--accent)]/20 flex-1 md:flex-none flex items-center justify-center gap-2"
                    >
-                     <Activity className="size-3.5" /> Add Story
+                     <Activity className="size-3.5" /> {t('story.addStory', 'Add Story')}
                    </button>
                 )}
                 <button 
@@ -213,7 +215,7 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
                   })}
                   className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)]  font-semibold text-[10px] lg:text-[12px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
                 >
-                  Contact
+                  {t('common.contact', 'Contact')}
                 </button>
               </div>
             </div>
@@ -226,7 +228,7 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
               onClose={() => setShowStatusCreator(false)} 
               onStatusCreated={() => {
                 setShowStatusCreator(false);
-                toast.success('Story synchronized with node.');
+                toast.success(t('story.synced', 'Story synchronized.'));
               }} 
             />
           )}
@@ -236,9 +238,9 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
           <div ref={productsAnchor} className="mt-12 md:mt-16 mb-8 md:mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4 overflow-x-auto pb-4 w-full md:w-auto no-scrollbar">
                {[
-                 { id: 'Signal Intake', label: 'Signal Intake', icon: <Activity className="size-3.5" /> },
-                 { id: 'Latest Drops', label: 'Latest Drops', icon: <Package className="size-3.5" /> },
-                 { id: 'Catalogs', label: 'Catalogs', icon: <LayoutGrid className="size-3.5" /> }
+                 { id: 'Signal Intake', label: t('store.tabs.signal', 'Signal Intake'), icon: <Activity className="size-3.5" /> },
+                 { id: 'Latest Drops', label: t('store.tabs.latest', 'Latest Drops'), icon: <Package className="size-3.5" /> },
+                 { id: 'Catalogs', label: t('store.tabs.catalogs', 'Catalogs'), icon: <LayoutGrid className="size-3.5" /> }
                ].map((tab) => (
                  <motion.button 
                   key={tab.id}
@@ -282,7 +284,7 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
                     onClick={() => handlePageChange(page - 1)}
                     className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold tracking-tight  disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                    >
-                     Previous
+                     {t('common.previous', 'Previous')}
                    </button>
                    <div className="flex items-center gap-2">
                       {Array.from({ length: Math.max(totalPages, page + (products.length === 20 ? 1 : 0)) }, (_, i) => i + 1).map((p) => {
@@ -304,7 +306,7 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
                     onClick={() => handlePageChange(page + 1)}
                     className="px-6 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold tracking-tight  disabled:opacity-30 hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm"
                    >
-                     Next
+                     {t('common.next', 'Next')}
                    </button>
                 </div>
               )}
@@ -312,8 +314,8 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
           ) : (
             <div className="bg-[var(--bg-primary)]/40 rounded-[3rem] md:rounded-[4rem] p-12 md:p-24 text-center border border-[var(--glass-border)] mb-32 glass-panel">
               <Package className="size-12 md:size-16 mx-auto mb-6 opacity-10" />
-              <h3 className="text-2xl md:text-3xl  font-bold text-[var(--text-primary)] mb-2  tracking-tighter">Inventory Dry</h3>
-              <p className="text-[var(--text-secondary)] text-sm md:text-base max-w-md mx-auto font-medium opacity-60">This vendor node is currently preparing new assets for deployment.</p>
+              <h3 className="text-2xl md:text-3xl  font-bold text-[var(--text-primary)] mb-2  tracking-tighter">{t('store.inventoryEmpty', 'Inventory empty')}</h3>
+              <p className="text-[var(--text-secondary)] text-sm md:text-base max-w-md mx-auto font-medium opacity-60">{t('store.inventoryEmptyDetail', 'This vendor is currently preparing new products.')}</p>
             </div>
           )}
         </div>
