@@ -34,6 +34,62 @@ const COLORS = {
 
 const templates = require('./emailTemplates');
 
+const NOTIFICATION_TRANSLATIONS = {
+  fr: {
+    'Funds Released': 'Fonds liberes',
+    'Order Completed': 'Commande terminee',
+    'Order Paid & Confirmed': 'Commande payee et confirmee',
+    'Order Payment Confirmed': 'Paiement de commande confirme',
+    'New Shipment Assigned': 'Nouvelle expedition assignee',
+    'Withdrawal Request Submitted': 'Demande de retrait envoyee',
+    'Payout Failed': 'Paiement echoue',
+    'Withdrawal Successful': 'Retrait reussi',
+    'Withdrawal Approved — Processing': 'Retrait approuve — traitement en cours',
+    'Withdrawal Request Rejected': 'Demande de retrait rejetee',
+    'Withdrawal Failed': 'Retrait echoue',
+    'Your order has been delivered': 'Votre commande a ete livree',
+    'Shipment Successfully Closed': 'Expedition cloturee',
+    'Order Completed — Payment Released': 'Commande terminee — paiement libere',
+    'Escrow Auto-Released': 'Sequestre libere automatiquement',
+    'Order Finalized': 'Commande finalisee',
+    'Package Delivered': 'Colis livre',
+    'Vendor Confirmed Delivery': 'Livraison confirmee par le vendeur',
+    'New Escrow Dispute': 'Nouveau litige de sequestre',
+    'Dispute Raised': 'Litige ouvert',
+    'Low Stock Alert': 'Alerte stock faible',
+    'New Order Received': 'Nouvelle commande recue',
+    'New Order Received (POD)': 'Nouvelle commande recue (paiement a la livraison)',
+    'New Shipment Assigned (POD)': 'Nouvelle expedition assignee (paiement a la livraison)',
+    'New Shipment Assigned (Bulk POD)': 'Nouvelles expeditions assignees (paiement a la livraison)',
+    'Order Cancelled & Refunded': 'Commande annulee et remboursee',
+    'Order Cancelled': 'Commande annulee',
+    'Product Inventory Update': 'Mise a jour du stock produit',
+    'Restock Alert!': 'Retour en stock !',
+    'New Arrival Alert!': 'Nouvelle arrivee !',
+    'Product Published': 'Produit publie',
+    'Identity Verified': 'Identite verifiee',
+    'KYC Rejected': 'KYC rejete',
+    'Shipment Assignment Updated': 'Assignation d’expedition mise a jour',
+    'Shipment Coordination Update': 'Mise a jour coordination expedition',
+    'Verification Required': 'Verification requise',
+    'Wallet Credited': 'Wallet credite',
+    'New Product Question': 'Nouvelle question produit',
+    'Question Answered': 'Question repondue',
+    'New Status Reaction ❤️': 'Nouvelle reaction au statut ❤️',
+    'All notifications marked as read': 'Toutes les notifications sont marquees comme lues',
+  },
+};
+
+const translateNotificationText = (text, language = 'en') => {
+  if (!text || language !== 'fr') return text;
+  const direct = NOTIFICATION_TRANSLATIONS.fr[text];
+  if (direct) return direct;
+  return String(text)
+    .replace(/^Shipment Update:/, 'Mise a jour expedition :')
+    .replace(/^Order Updated:/, 'Commande mise a jour :')
+    .replace(/^Withdrawal /, 'Retrait ');
+};
+
 /**
  * Signal Template: Standard Order/Status Email (Updated with app colors)
  * This now uses the shared premium templates to ensure consistency.
@@ -95,9 +151,14 @@ const sendNotification = async (app, recipientId, data) => {
       senderAvatar = null,   // chat: sender's avatar for richer OS notification
     } = data;
 
+    const recipientProfile = await User.findById(recipientId).select('preferred_language').lean().catch(() => null);
+    const recipientLanguage = recipientProfile?.preferred_language === 'fr' ? 'fr' : 'en';
+    const localizedTitle = translateNotificationText(title, recipientLanguage);
+    const localizedMessage = translateNotificationText(message, recipientLanguage);
+
     // 1. Create DB Record (Synchronous to ensure ID exists)
     const notification = await Notification.create({
-      recipient: recipientId, title, message, type, metadata
+      recipient: recipientId, title: localizedTitle, message: localizedMessage, type, metadata
     });
 
     const io = app.get('io');
@@ -127,8 +188,8 @@ const sendNotification = async (app, recipientId, data) => {
           const senderId = metadata?.sender_id || metadata?.senderId;
 
           const payload = JSON.stringify({
-            title,
-            body: message,
+            title: localizedTitle,
+            body: localizedMessage,
             icon: iconUrl,
             image: (type === 'message' && senderAvatar) ? senderAvatar : undefined,
             tag: (type === 'message' && senderId) ? `msg-${senderId}` : `alert-${recipientId}-${Date.now()}`,
@@ -171,7 +232,7 @@ const sendNotification = async (app, recipientId, data) => {
       enqueueJob('email', async () => {
         try {
           const EmailLog = require('../models/EmailLog.model');
-          const user = await User.findById(recipientId).select('email name role');
+          const user = await User.findById(recipientId).select('email name role preferred_language');
           let targetEmail = overrideEmail || user?.email;
 
           if (role === 'logistics' && !overrideEmail) {
@@ -183,9 +244,9 @@ const sendNotification = async (app, recipientId, data) => {
           if (targetEmail) {
             const success = await dispatchEmail({
               to: targetEmail,
-              subject: title,
-              text: message,
-              html: emailTemplate?.html || buildOrderEmailHtml(title, message, orderDetails, role, emailLink, qrCode, webUrl),
+              subject: localizedTitle,
+              text: localizedMessage,
+              html: emailTemplate?.html || buildOrderEmailHtml(localizedTitle, localizedMessage, orderDetails, role, emailLink, qrCode, webUrl),
               role: role || 'user'
             });
 
@@ -193,8 +254,8 @@ const sendNotification = async (app, recipientId, data) => {
               await EmailLog.create({
                 recipient_email: targetEmail,
                 recipient_user_id: recipientId,
-                subject: title || 'Auradime Signal',
-                message_preview: message ? message.substring(0, 100) : '',
+                subject: localizedTitle || 'Auradime Signal',
+                message_preview: localizedMessage ? localizedMessage.substring(0, 100) : '',
                 role: role || 'user',
                 status: 'sent'
               });
@@ -204,7 +265,7 @@ const sendNotification = async (app, recipientId, data) => {
         } catch (err) {
           console.error('❌ Email Signal Dispatch Error:', err.message);
         }
-      }, { recipientId: recipientId.toString(), type, title });
+      }, { recipientId: recipientId.toString(), type, title: localizedTitle });
     }
 
     return notification;

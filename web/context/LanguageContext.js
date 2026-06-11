@@ -248,7 +248,17 @@ const SYSTEM_TRANSLATIONS = {
 const readStoredLanguage = () => {
   if (typeof window === 'undefined') return 'en';
   try {
-    return normalizeLanguage(window.localStorage.getItem(STORAGE_KEY) || 'en');
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (stored) return normalizeLanguage(stored);
+
+    const cookieMatch = document.cookie
+      ?.split('; ')
+      .find((row) => row.startsWith(`${STORAGE_KEY}=`))
+      ?.split('=')[1];
+    if (cookieMatch) return normalizeLanguage(decodeURIComponent(cookieMatch));
+
+    const browserLanguage = navigator.languages?.[0] || navigator.language || '';
+    return browserLanguage.toLowerCase().startsWith('fr') ? 'fr' : 'en';
   } catch {
     return 'en';
   }
@@ -397,7 +407,138 @@ const translations = {
   },
 };
 
+const LEGAL_TEXT_TRANSLATIONS_FR = {
+  'Back to login': 'Retour a la connexion',
+  'Cameroon marketplace policy': 'Politique marketplace Cameroun',
+  'Legal Center': 'Centre legal',
+  'Last updated:': 'Derniere mise a jour :',
+  'Jurisdiction:': 'Juridiction :',
+  'Contact': 'Contact',
+  'More policies': 'Autres politiques',
+  'Terms': 'Conditions',
+  'Privacy': 'Confidentialite',
+  'Cookies': 'Cookies',
+  'Refunds': 'Remboursements',
+  'Prohibited Items': 'Articles interdits',
+  'Account Deletion': 'Suppression du compte',
+  'AuraDime Marketplace Terms of Service': 'Conditions d’utilisation du marketplace AuraDime',
+  'The rules for using AuraDime as a customer, vendor, or logistics partner.': 'Les regles d’utilisation d’AuraDime pour les clients, vendeurs et partenaires logistiques.',
+  'AuraDime Privacy Policy': 'Politique de confidentialite AuraDime',
+  'How AuraDime collects, uses, shares, protects, and retains user data.': 'Comment AuraDime collecte, utilise, partage, protege et conserve les donnees des utilisateurs.',
+  'AuraDime Cookie Policy': 'Politique de cookies AuraDime',
+  'How AuraDime uses cookies, local storage, and app storage for login, cart, security, and preferences.': 'Comment AuraDime utilise les cookies, le stockage local et le stockage de l’application pour la connexion, le panier, la securite et les preferences.',
+  'AuraDime Refund and Cancellation Policy': 'Politique de remboursement et d’annulation AuraDime',
+  'How paid orders, unpaid orders, escrow releases, failed payments, and refunds are handled.': 'Comment sont geres les commandes payees, non payees, les liberations de sequestre, les paiements echoues et les remboursements.',
+  'AuraDime Vendor Policy': 'Politique vendeur AuraDime',
+  'Rules for stores, listings, pricing, fulfillment, KYC, payouts, and vendor conduct.': 'Regles concernant les boutiques, annonces, prix, execution, KYC, paiements et conduite des vendeurs.',
+  'AuraDime Logistics Partner Policy': 'Politique partenaire logistique AuraDime',
+  'Rules for delivery partners, service zones, shipment updates, proof of delivery, and payouts.': 'Regles pour les partenaires de livraison, zones de service, mises a jour d’expedition, preuves de livraison et paiements.',
+  'AuraDime Prohibited Items Policy': 'Politique des articles interdits AuraDime',
+  'Products and services that cannot be listed, bought, or promoted on AuraDime.': 'Produits et services qui ne peuvent pas etre listes, achetes ou promus sur AuraDime.',
+  'AuraDime Dispute and Escrow Policy': 'Politique de litiges et de sequestre AuraDime',
+  'How AuraDime reviews order disputes, delivery issues, evidence, refunds, and escrow releases.': 'Comment AuraDime examine les litiges de commande, problemes de livraison, preuves, remboursements et liberations de sequestre.',
+  'AuraDime Account Deletion Policy': 'Politique de suppression de compte AuraDime',
+  'What happens when a user permanently deletes an AuraDime account.': 'Ce qui se passe lorsqu’un utilisateur supprime definitivement son compte AuraDime.',
+  '1. Introduction': '1. Introduction',
+  '2. Eligibility': '2. Eligibilite',
+  '3. AuraDime role as a marketplace': '3. Role d’AuraDime comme marketplace',
+  '4. User accounts and sessions': '4. Comptes utilisateurs et sessions',
+  '5. Customer terms': '5. Conditions clients',
+  '6. Vendor terms': '6. Conditions vendeurs',
+  '7. Logistics partner terms': '7. Conditions partenaires logistiques',
+  '8. Payments, wallet, escrow, and withdrawals': '8. Paiements, wallet, sequestre et retraits',
+  '9. Prohibited conduct': '9. Conduite interdite',
+  '10. Disputes and admin decisions': '10. Litiges et decisions admin',
+  '11. Suspension and termination': '11. Suspension et resiliation',
+  '12. Liability': '12. Responsabilite',
+  '13. Governing law': '13. Droit applicable',
+  '14. Changes': '14. Modifications',
+  '1. Data we collect': '1. Donnees collectees',
+  '2. How we use data': '2. Utilisation des donnees',
+  '3. Data sharing': '3. Partage des donnees',
+  '4. Storage and security': '4. Stockage et securite',
+  '5. Retention': '5. Conservation',
+  '6. Your rights': '6. Vos droits',
+  '7. Children': '7. Enfants',
+  '8. International transfers': '8. Transferts internationaux',
+  '1. What cookies are': '1. Que sont les cookies',
+  '2. Storage we use': '2. Stockage utilise',
+  '3. Your choices': '3. Vos choix',
+  '1. Paid order cancellation': '1. Annulation d’une commande payee',
+  '2. Unpaid and failed orders': '2. Commandes non payees et echouees',
+  '3. Refund eligibility': '3. Conditions de remboursement',
+  '4. Non-refundable situations': '4. Situations non remboursables',
+  '5. Processing': '5. Traitement',
+  '1. Vendor verification': '1. Verification vendeur',
+  '2. Listings and pricing': '2. Annonces et prix',
+  '3. Fulfillment': '3. Execution',
+  '4. Wallet and payouts': '4. Wallet et paiements',
+  '5. Store standards': '5. Standards boutique',
+  '1. Verification and service zones': '1. Verification et zones de service',
+  '2. Shipment handling': '2. Gestion des expeditions',
+  '3. Failed delivery': '3. Livraison echouee',
+  '4. Payouts and conduct': '4. Paiements et conduite',
+  '1. Prohibited products': '1. Produits interdits',
+  '2. Restricted products': '2. Produits restreints',
+  '3. Enforcement': '3. Application',
+  '1. When disputes can be raised': '1. Quand ouvrir un litige',
+  '2. Escrow': '2. Sequestre',
+  '3. Evidence': '3. Preuves',
+  '4. Admin outcomes': '4. Decisions admin',
+  '5. Appeals': '5. Appels',
+  '1. Permanent deletion': '1. Suppression definitive',
+  '2. What is deleted or disabled': '2. Ce qui est supprime ou desactive',
+  '3. What may be retained': '3. Ce qui peut etre conserve',
+  '4. Wallet and pending orders': '4. Wallet et commandes en attente',
+  '5. Reviews and public content': '5. Avis et contenu public',
+  'Identity': 'Identite',
+  'Address': 'Adresse',
+  'Communications': 'Communications',
+  'Technical': 'Technique',
+  'Usage': 'Utilisation',
+  'Strictly necessary': 'Strictement necessaire',
+  'Functional': 'Fonctionnel',
+  'Analytics and performance': 'Analyses et performance',
+  'Offline app data': 'Donnees hors ligne',
+  'Push notifications': 'Notifications push',
+  'This page is operational policy information for AuraDime and is not a substitute for legal advice. A qualified Cameroon lawyer should review the final published policies for regulatory completeness.': 'Cette page fournit des informations de politique operationnelle pour AuraDime et ne remplace pas un avis juridique. Un avocat qualifie au Cameroun doit relire les politiques finales publiees pour verifier leur conformite.',
+};
+
+const NOTIFICATION_TEXT_TRANSLATIONS_FR = {
+  'Order placed': 'Commande passee',
+  'Order updated': 'Commande mise a jour',
+  'Order Confirmed': 'Commande confirmee',
+  'Order Payment Confirmed': 'Paiement de commande confirme',
+  'Order Paid & Confirmed': 'Commande payee et confirmee',
+  'New Order Received': 'Nouvelle commande recue',
+  'New Shipment Assigned': 'Nouvelle expedition assignee',
+  'Payment failed': 'Paiement echoue',
+  'Payment Confirmed': 'Paiement confirme',
+  'Wallet Credited': 'Wallet credite',
+  'Withdrawal Request Submitted': 'Demande de retrait envoyee',
+  'Withdrawal Successful': 'Retrait reussi',
+  'Withdrawal Failed': 'Retrait echoue',
+  'Withdrawal Request Rejected': 'Demande de retrait rejetee',
+  'Payout Failed': 'Paiement echoue',
+  'Funds Released': 'Fonds liberes',
+  'Order Completed': 'Commande terminee',
+  'Order Cancelled': 'Commande annulee',
+  'Order Cancelled & Refunded': 'Commande annulee et remboursee',
+  'Shipment Update': 'Mise a jour expedition',
+  'Your order has been delivered': 'Votre commande a ete livree',
+  'Package Delivered': 'Colis livre',
+  'Dispute Raised': 'Litige ouvert',
+  'Verification Required': 'Verification requise',
+  'Identity Verified': 'Identite verifiee',
+  'KYC Rejected': 'KYC rejete',
+  'New Product Question': 'Nouvelle question produit',
+  'Question Answered': 'Question repondue',
+  'New Status Reaction ❤️': 'Nouvelle reaction au statut ❤️',
+};
+
 const AUTO_TEXT_TRANSLATIONS_FR = {
+  ...LEGAL_TEXT_TRANSLATIONS_FR,
+  ...NOTIFICATION_TEXT_TRANSLATIONS_FR,
   'Dashboard': 'Tableau de bord',
   'Marketplace': 'Marche',
   'Users': 'Utilisateurs',
@@ -602,6 +743,7 @@ export function LanguageProvider({ children }) {
     document.documentElement.lang = language;
     try {
       window.localStorage.setItem(STORAGE_KEY, language);
+      document.cookie = `${STORAGE_KEY}=${language}; path=/; max-age=31536000; SameSite=Lax`;
     } catch {}
   }, [language]);
 
@@ -723,6 +865,7 @@ export function LanguageProvider({ children }) {
       }
       try {
         window.localStorage.setItem(STORAGE_KEY, normalized);
+        document.cookie = `${STORAGE_KEY}=${normalized}; path=/; max-age=31536000; SameSite=Lax`;
         window.dispatchEvent(new CustomEvent('aura:language-change', { detail: { language: normalized } }));
       } catch {}
     },

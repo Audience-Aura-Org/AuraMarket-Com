@@ -27,6 +27,10 @@ export const metadata = {
   manifest: '/manifest.json',
   alternates: {
     canonical: '/',
+    languages: {
+      'en-US': '/',
+      'fr-CM': '/',
+    },
   },
   openGraph: {
     title: 'Auradime | Shop Premium Products from Trusted Sellers',
@@ -37,6 +41,7 @@ export const metadata = {
       { url: '/icon-512.png?v=8', width: 512, height: 512, alt: 'Auradime logo' },
     ],
     locale: 'en_US',
+    alternateLocale: ['fr_CM'],
     type: 'website',
   },
   twitter: {
