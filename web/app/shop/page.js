@@ -475,14 +475,23 @@ function ShopContent() {
 
           {/* Product Grid - Consistently tight layout - ZOOMED STYLE */}
           <div className="px-4 md:px-8 lg:px-12 py-6">
-            {products.length === 0 ? (
+            {products.length === 0 && loading ? (
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-6">
+                {Array.from({ length: 12 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="aspect-[3/4] rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/50"
+                  />
+                ))}
+              </div>
+            ) : products.length === 0 ? (
               <div className="py-20 md:py-40 text-center">
                 <div className="size-20 md:size-24 bg-[var(--accent)]/5 rounded-full flex items-center justify-center mx-auto mb-8 text-[var(--text-secondary)]/50">
                   <Search className="size-8 md:size-10" />
                 </div>
-                <h2 className="text-2xl md:text-3xl  font-bold text-[var(--text-primary)] mb-2">{loading ? t('common.shopSyncing') : t('common.noProductsFound')}</h2>
+                <h2 className="text-2xl md:text-3xl  font-bold text-[var(--text-primary)] mb-2">{t('common.noProductsFound')}</h2>
                 <p className="text-[var(--text-secondary)] font-medium text-sm md:text-base px-6">
-                  {loading ? t('common.productsArrive') : t('common.noMatches')}
+                  {t('common.noMatches')}
                 </p>
                 <button
                   onClick={() => {
