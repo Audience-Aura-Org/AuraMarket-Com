@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { clearStoredAuthToken, getStoredAuthToken } from './authStorage';
 
 const stripApiPath = (url = '') => url.replace(/\/api(\/v1)?\/?$/, '').replace(/\/$/, '');
+const PRODUCTION_API_URL = 'https://api.auradime.com/api/v1';
 
 const getConfiguredApiURL = () => {
   const configured = process.env.NEXT_PUBLIC_API_URL;
@@ -42,11 +43,11 @@ const getBaseURL = () => {
     // Why? If the EC2 backend is HTTP and the Vercel frontend is HTTPS, the browser will block direct 
     // API calls due to "Mixed Content" security policies, resulting in silent "Network Errors".
     // The Next.js Bridge runs server-side and is immune to Mixed Content and CORS restrictions.
-    return '/api/v1';
+    return PRODUCTION_API_URL;
   }
   
   // Server-side default
-  return getConfiguredApiURL() || 'http://localhost:5000/api/v1';
+  return getConfiguredApiURL() || PRODUCTION_API_URL;
 };
 
 const api = axios.create({
