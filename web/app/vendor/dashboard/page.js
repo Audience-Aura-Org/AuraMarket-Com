@@ -193,7 +193,6 @@ export default function VendorDashboard() {
   const subscriptionSubscribed = subscriptionStatus?.subscribed;
   const subscriptionGrace = subscriptionStatus?.grace || subscriptionStatus?.access_state === 'grace';
   const subscriptionLimited = subscriptionStatus?.limited || subscriptionStatus?.access_state === 'limited';
-  const subscriptionNeedsAction = subscriptionRequired && (!subscriptionSubscribed || subscriptionGrace || subscriptionLimited);
   const subscriptionLabel = !subscriptionRequired
     ? t('subscription.storeActive', 'Store active')
     : subscriptionSubscribed
@@ -339,33 +338,6 @@ export default function VendorDashboard() {
                    </Link>
                  )}
               </div>
-            </div>
-          )}
-
-          {subscriptionNeedsAction && (
-            <div className="rounded-[1.5rem] border border-[var(--accent)]/20 bg-[var(--bg-primary)]/80 p-4 shadow-sm backdrop-blur-xl md:flex md:items-center md:justify-between md:gap-6">
-              <div className="flex min-w-0 items-start gap-3">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                  <CreditCard className="size-5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-[var(--text-primary)]">
-                    {subscriptionGrace ? t('subscription.graceTitle', 'Subscription grace active') : t('subscription.limitedTitle', 'Limited access mode')}
-                  </p>
-                  <p className="mt-1 text-[11px] font-medium leading-5 text-[var(--text-secondary)] md:text-xs">
-                    {subscriptionGrace
-                      ? t('subscription.vendorGraceInline', 'Your vendor tools are available during grace. Activate a package to keep selling without interruption.')
-                      : t('subscription.vendorLimitedInline', 'You can view your dashboard, but selling actions need an active package.')}
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/subscribe?role=vendor"
-                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 text-xs font-bold text-white transition active:scale-95 md:mt-0 md:w-auto"
-              >
-                {t('subscription.viewPackages', 'View packages')}
-                <ArrowRight className="size-4" />
-              </Link>
             </div>
           )}
 
