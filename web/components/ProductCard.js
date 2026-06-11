@@ -264,9 +264,9 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               </div>
                <span
                  className="block min-w-0 truncate text-[10px] sm:text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)] leading-none"
-                 title={vendor_id?.store_name || 'Verified node'}
+                 title={vendor_id?.store_name || t('common.verifiedNode')}
                >
-                 {vendor_id?.store_name || 'Verified node'}
+                 {vendor_id?.store_name || t('common.verifiedNode')}
                </span>
               {vendor_id?.verified && <Check className="size-2.5 text-blue-500 shrink-0" />}
            </Link>
@@ -291,7 +291,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             <Heart className={`size-3.5 ${wishlisted ? 'fill-current' : ''}`} />
           </button>
           <Link href={storeHref} onClick={e => e.stopPropagation()} className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[90%] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-xl py-2 flex items-center justify-center gap-2 text-white text-[11px] lg:text-[12px]  font-semibold tracking-tight transform translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20">
-            <Compass className="size-3" /> Store
+            <Compass className="size-3" /> {t('common.store')}
           </Link>
         </div>
 

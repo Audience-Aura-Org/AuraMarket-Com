@@ -72,6 +72,7 @@ const writeTopStatusCache = (data) => {
 
 // ── DISCOVER TAB (Synced with Shop + Followed Only) ──────────────────
 const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) => {
+  const { t, label } = useLanguage();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [categoryTree, setCategoryTree] = useState([]);
@@ -211,7 +212,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
               href="/stores"
               className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] hover:border-[var(--accent)]/50 hover:text-[var(--accent)] transition-all  font-semibold text-[11px] lg:text-[12px] shadow-sm active:scale-95"
             >
-              <Store className="size-4" /> Explore Stores
+              <Store className="size-4" /> {t('shop.exploreStores', 'Explore Stores')}
             </Link>
           </div>
         </div>
@@ -222,14 +223,14 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
                <>
                  {breadcrumb.length > 0 ? (
                    <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] font-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
-                     <Home className="size-3.5" /> Market
+                     <Home className="size-3.5" /> {t('common.market')}
                    </button>
                  ) : (
                     <button 
                       onClick={() => handleBreadcrumbClick(-1)}
                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                     >
-                      All
+                      {t('common.all')}
                     </button>
                  )}
 
@@ -240,7 +241,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
                         onClick={() => handleBreadcrumbClick(idx)} 
                         className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                       >
-                        {crumb.name}
+                        {label(crumb.name)}
                       </button>
                    </div>
                  ))}
@@ -256,7 +257,7 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
                        }}
                        className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                     >
-                      {cat.name}
+                      {label(cat.name)}
                     </button>
                  ))}
                </>
@@ -269,11 +270,11 @@ const DiscoveryContent = memo(({ user, statuses, onSelectStatus, onAddStatus }) 
       <div className="px-3 md:px-6 lg:px-12 py-1.5 md:py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-2 md:gap-3 bg-[var(--bg-secondary)]">
         <div className="flex items-center gap-1.5 md:gap-3">
           <h3 className="text-xs md:text-xl  font-bold text-[var(--text-primary)] tracking-tight">
-            {activeCategoryName === 'All' ? 'Global Discovery' : activeCategoryName}
+            {activeCategoryName === 'All' ? t('shop.globalDiscovery', 'Global Discovery') : label(activeCategoryName)}
           </h3>
           <div className="h-3 md:h-4 w-px bg-[var(--glass-border)]" />
           <p className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] tracking-tight opacity-60">
-            {products.length} Results
+            {products.length} {t('common.results')}
           </p>
         </div>
 
