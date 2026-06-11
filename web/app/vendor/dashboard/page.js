@@ -5,6 +5,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
 import api from '@/services/api';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/context/LanguageContext';
 import {
   ArrowRight,
   BarChart3,
@@ -34,6 +35,7 @@ const isOpenOrder = (order) => !['delivered', 'completed', 'cancelled', 'refunde
 
 export default function VendorDashboard() {
   const router = useRouter();
+  const { t } = useLanguage();
   const { user, updateUser } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState([]);
@@ -42,6 +44,7 @@ export default function VendorDashboard() {
   const [pendingEscrow, setPendingEscrow] = useState(0);
   const [analyticsStats, setAnalyticsStats] = useState(null);
   const [analyticsHistory, setAnalyticsHistory] = useState([]);
+  const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -81,12 +84,13 @@ export default function VendorDashboard() {
           }
         };
 
-        const [productsRes, ordersRes, walletRes, vendorProfileRes, analyticsRes] = await Promise.all([
+        const [productsRes, ordersRes, walletRes, vendorProfileRes, analyticsRes, subscriptionRes] = await Promise.all([
           safeGet('/vendor/products'),
           safeGet('/vendor/orders'),
           safeGet('/wallet'),
           safeGet('/vendor/me'),
           safeGet('/vendor/analytics'),
+          api.get('/subscriptions/me', { params: { role: 'vendor' }, skipClientCache: true, silent: true }).catch(() => null),
         ]);
 
         if (isMounted) {
@@ -95,6 +99,7 @@ export default function VendorDashboard() {
           const walletData = getResponseData(walletRes);
           const vendorProfileData = getResponseData(vendorProfileRes);
           const analyticsData = getResponseData(analyticsRes);
+          const subscriptionData = subscriptionRes?.data?.data || null;
 
           if (productsRes.data.success) {
             setProducts(productsData.products || analyticsData.top_products || []);
@@ -113,6 +118,7 @@ export default function VendorDashboard() {
             setAnalyticsStats(analyticsData.stats || null);
             setAnalyticsHistory(analyticsData.sales_history || []);
           }
+          setSubscriptionStatus(subscriptionData);
           setLoading(false);
         }
       } catch (err) {
@@ -137,12 +143,13 @@ export default function VendorDashboard() {
   const handleRefresh = async () => {
     setLoading(true);
     try {
-      const [productsRes, ordersRes, walletRes, vendorProfileRes, analyticsRes] = await Promise.all([
+      const [productsRes, ordersRes, walletRes, vendorProfileRes, analyticsRes, subscriptionRes] = await Promise.all([
         api.get('/vendor/products'),
         api.get('/vendor/orders'),
         api.get('/wallet'),
         api.get('/vendor/me'),
         api.get('/vendor/analytics'),
+        api.get('/subscriptions/me', { params: { role: 'vendor' }, skipClientCache: true, silent: true }).catch(() => null),
       ]);
 
       const productsData = getResponseData(productsRes);
@@ -150,6 +157,7 @@ export default function VendorDashboard() {
       const walletData = getResponseData(walletRes);
       const vendorProfileData = getResponseData(vendorProfileRes);
       const analyticsData = getResponseData(analyticsRes);
+      const subscriptionData = subscriptionRes?.data?.data || null;
 
       if (productsRes.data.success) setProducts(productsData.products || analyticsData.top_products || []);
       if (ordersRes.data.success) setOrders(ordersData.orders || analyticsData.recent_orders || []);
@@ -162,6 +170,7 @@ export default function VendorDashboard() {
         setAnalyticsStats(analyticsData.stats || null);
         setAnalyticsHistory(analyticsData.sales_history || []);
       }
+      setSubscriptionStatus(subscriptionData);
       
       setLoading(false);
     } catch (err) {
@@ -180,6 +189,23 @@ export default function VendorDashboard() {
   const processingOrders = analyticsStats?.processing_orders ?? orders.filter(o => o.order_status === 'processing').length;
   const openOrderCount = analyticsStats?.open_orders ?? openOrders.length;
   const fulfilledOrderCount = analyticsStats?.total_sales ?? completedOrders.length;
+  const subscriptionRequired = subscriptionStatus?.required;
+  const subscriptionSubscribed = subscriptionStatus?.subscribed;
+  const subscriptionGrace = subscriptionStatus?.grace || subscriptionStatus?.access_state === 'grace';
+  const subscriptionLimited = subscriptionStatus?.limited || subscriptionStatus?.access_state === 'limited';
+  const subscriptionNeedsAction = subscriptionRequired && (!subscriptionSubscribed || subscriptionGrace || subscriptionLimited);
+  const subscriptionLabel = !subscriptionRequired
+    ? t('subscription.storeActive', 'Store active')
+    : subscriptionSubscribed
+      ? t('subscription.packageActive', 'Package active')
+      : subscriptionGrace
+        ? t('subscription.graceShort', 'Grace active')
+        : t('subscription.packageNeeded', 'Package needed');
+  const subscriptionDotClass = !subscriptionRequired || subscriptionSubscribed
+    ? 'bg-emerald-500'
+    : subscriptionGrace
+      ? 'bg-amber-500'
+      : 'bg-rose-500';
 
   if (!mounted) return null;
 
@@ -221,8 +247,13 @@ export default function VendorDashboard() {
               <div>
                 <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
                 <div className="flex items-center gap-2 mt-0.5">
-                   <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                   <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Store Active</p>
+                   <div className={`size-1.5 rounded-full ${subscriptionDotClass} animate-pulse`} />
+                   <Link
+                     href="/subscribe?role=vendor"
+                     className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-70 uppercase transition-colors hover:text-[var(--accent)] hover:opacity-100"
+                   >
+                     {subscriptionLabel}
+                   </Link>
                 </div>
               </div>
             </div>
@@ -308,6 +339,33 @@ export default function VendorDashboard() {
                    </Link>
                  )}
               </div>
+            </div>
+          )}
+
+          {subscriptionNeedsAction && (
+            <div className="rounded-[1.5rem] border border-[var(--accent)]/20 bg-[var(--bg-primary)]/80 p-4 shadow-sm backdrop-blur-xl md:flex md:items-center md:justify-between md:gap-6">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                  <CreditCard className="size-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[var(--text-primary)]">
+                    {subscriptionGrace ? t('subscription.graceTitle', 'Subscription grace active') : t('subscription.limitedTitle', 'Limited access mode')}
+                  </p>
+                  <p className="mt-1 text-[11px] font-medium leading-5 text-[var(--text-secondary)] md:text-xs">
+                    {subscriptionGrace
+                      ? t('subscription.vendorGraceInline', 'Your vendor tools are available during grace. Activate a package to keep selling without interruption.')
+                      : t('subscription.vendorLimitedInline', 'You can view your dashboard, but selling actions need an active package.')}
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/subscribe?role=vendor"
+                className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 text-xs font-bold text-white transition active:scale-95 md:mt-0 md:w-auto"
+              >
+                {t('subscription.viewPackages', 'View packages')}
+                <ArrowRight className="size-4" />
+              </Link>
             </div>
           )}
 

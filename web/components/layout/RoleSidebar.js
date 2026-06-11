@@ -11,6 +11,7 @@ import { useLanguage } from '@/context/LanguageContext';
 const VENDOR_NAV = [
   { icon: 'home',                     label: 'Marketplace',      href: '/discovery?tab=discover' },
   { icon: 'dashboard',                label: 'Dashboard',        href: '/vendor/dashboard' },
+  { icon: 'workspace_premium',        label: 'Subscription',     href: '/subscribe?role=vendor' },
   { icon: 'inventory_2',              label: 'Products',         href: '/vendor/products' },
   { icon: 'auto_awesome',             label: 'Aura Stories',     href: '/vendor/stories' },
   { icon: 'shopping_cart',            label: 'Orders',           href: '/vendor/orders',    badge: 'orders' },
@@ -51,6 +52,7 @@ const CUSTOMER_NAV = [
   { icon: 'favorite',                 label: 'Wishlist',         href: '/wishlist' },
   { icon: 'chat',                     label: 'Messages',         href: '/chat',             badge: 'messages' },
   { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },
+  { icon: 'workspace_premium',        label: 'Subscription',     href: '/subscribe?role=customer' },
   { icon: 'person',                   label: 'Profile',          href: '/profile?tab=general' },
 ];
 
@@ -64,6 +66,7 @@ const ACCOUNT_NAV = [
 const LOGISTICS_NAV = [
   { icon: 'home',                label: 'Marketplace',  href: '/discovery?tab=discover' },
   { icon: 'dashboard_customize', label: 'Dashboard',    href: '/logistics/dashboard' },
+  { icon: 'workspace_premium',   label: 'Subscription', href: '/subscribe?role=logistics' },
   { icon: 'list_alt',            label: 'Manifests',    href: '/logistics/manifests', badge: 'orders' },
   { icon: 'payments',            label: 'Route Pricing',href: '/logistics/pricing' },
   { icon: 'location_on',         label: 'Live Tracking',href: '/logistics/tracking' },
@@ -170,7 +173,8 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto no-scrollbar">
           {/* Main Navigation */}
           {[...config.nav, ...ACCOUNT_NAV].map(item => {
-            const isActive = pathname === item.href || (item.href.startsWith('/profile') && pathname === '/profile' && new URLSearchParams(window.location.search).get('tab') === (new URL(item.href, 'http://x').searchParams.get('tab')));
+            const itemPath = item.href.split('?')[0];
+            const isActive = pathname === itemPath || (item.href.startsWith('/profile') && pathname === '/profile' && new URLSearchParams(window.location.search).get('tab') === (new URL(item.href, 'http://x').searchParams.get('tab')));
             
             // Re-evaluating isActive more simply for the profile tabs
             const currentTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
@@ -178,8 +182,8 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             const isTabActive = item.href.startsWith('/profile') && pathname === '/profile' && currentTab === itemTab;
             const isRegularActive =
               !item.href.startsWith('/profile') &&
-              (pathname === item.href ||
-                pathname?.startsWith(item.href + '/') ||
+              (pathname === itemPath ||
+                pathname?.startsWith(itemPath + '/') ||
                 (item.href === '/chat' && pathname === '/messages'));
             
             const isMessages = item.label === 'Messages';
