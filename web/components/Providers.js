@@ -108,17 +108,16 @@ export default function Providers({ children }) {
 
           {/* Onboarding gate — lightweight, needed on every route */}
           <OnboardingWatcher />
-          <SubscriptionAccessNotice
-            normalizedPath={normalizedPath}
-            isAuthRoute={isAuthRoute}
-            isImmersiveChat={isImmersiveChat}
-          />
-
           {/* Dashboard routes render their own sidebar-aware mobile header. */}
           {!isImmersiveChat && !isDashboardRoute && !isAuthRoute && <TopNav />}
 
           <div className="flex w-full items-stretch flex-1 relative">
             <main className="flex-1 flex flex-col min-w-0">
+              <SubscriptionAccessNotice
+                normalizedPath={normalizedPath}
+                isAuthRoute={isAuthRoute}
+                isImmersiveChat={isImmersiveChat}
+              />
               <div className="flex-1 flex flex-col">
                 {children}
               </div>
@@ -213,32 +212,37 @@ function SubscriptionAccessNotice({ normalizedPath, isAuthRoute, isImmersiveChat
         : t('subscription.graceDetail', 'You can keep using your workspace during this grace period. Activate a package before it ends to keep full access.'))
     : t('subscription.limitedDetail', 'You can still view your dashboard, but subscription-gated actions are paused until you activate a package.');
 
+  const severityClass = isGrace
+    ? 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+    : 'border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300';
+  const actionClass = isGrace ? 'bg-amber-500' : 'bg-rose-500';
+
   return (
-    <div className="fixed inset-x-2 top-2 z-[900] mx-auto max-w-5xl rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/95 p-2 shadow-xl backdrop-blur">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <span className={`size-2 shrink-0 rounded-full ${isGrace ? 'bg-amber-500' : 'bg-rose-500'} shadow-[0_0_0_4px_color-mix(in_srgb,currentColor_10%,transparent)]`} />
+    <div className={`w-full border-b px-3 py-2 ${severityClass}`}>
+      <div className="mx-auto flex max-w-[1600px] items-center gap-2 sm:gap-3">
+        <span className={`size-2 shrink-0 rounded-full ${isGrace ? 'bg-amber-500' : 'bg-rose-500'}`} />
         <button
           type="button"
           onClick={() => setHidden((value) => !value)}
           className="min-w-0 flex-1 text-left"
           aria-expanded={!hidden}
         >
-          <p className="truncate text-[11px] font-black uppercase tracking-wide text-[var(--text-primary)] sm:text-xs">{title}</p>
+          <p className="truncate text-[11px] font-black uppercase tracking-wide sm:text-xs">{title}</p>
           {!hidden && (
-            <p className="mt-0.5 line-clamp-2 text-[11px] font-medium leading-4 text-[var(--text-secondary)] sm:text-xs sm:leading-5">{detail}</p>
+            <p className="mt-0.5 line-clamp-2 text-[11px] font-medium leading-4 opacity-90 sm:text-xs sm:leading-5">{detail}</p>
           )}
         </button>
         <button
           type="button"
           onClick={() => router.push(`/subscribe?role=${encodeURIComponent(role)}`)}
-          className="h-8 shrink-0 rounded-xl bg-[var(--accent)] px-3 text-[10px] font-bold text-white transition active:scale-95 sm:h-9 sm:px-4 sm:text-xs"
+          className={`h-8 shrink-0 rounded-xl px-3 text-[10px] font-bold text-white transition active:scale-95 sm:h-9 sm:px-4 sm:text-xs ${actionClass}`}
         >
           {t('subscription.subscribeCta', 'Subscribe')}
         </button>
         <button
           type="button"
           onClick={() => setHidden(true)}
-          className="h-8 shrink-0 rounded-xl border border-[var(--glass-border)] px-2 text-[10px] font-bold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] active:scale-95 sm:px-3 sm:text-xs"
+          className="h-8 shrink-0 rounded-xl border border-current/20 px-2 text-[10px] font-bold transition active:scale-95 sm:px-3 sm:text-xs"
         >
           {t('common.hide', 'Hide')}
         </button>
