@@ -18,6 +18,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import WithdrawModal from '@/components/wallet/WithdrawModal';
 import socketService from '@/services/socket';
+import { useLanguage } from '@/context/LanguageContext';
 
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 5;
 
@@ -81,6 +82,7 @@ function ElapsedTimer() {
 
 export default function WalletPage() {
   const { user, setWalletBalance } = useAuthStore();
+  const { t } = useLanguage();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [balance, setBalance] = useState(0);
@@ -427,13 +429,13 @@ export default function WalletPage() {
               </div>
               <div>
                 <h1 className="text-lg  font-bold tracking-tight">My Wallet</h1>
-                <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Available Balance</p>
+                  <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{t('wallet.availableBalance', 'Available Balance')}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
                   <ShieldCheck className="size-3 text-emerald-500" />
-                  <span className="text-[10px] lg:text-[12px]  font-semibold text-emerald-500 tracking-tight">Secure Account</span>
+                  <span className="text-[10px] lg:text-[12px]  font-semibold text-emerald-500 tracking-tight">{t('wallet.secureAccount', 'Secure Account')}</span>
                </div>
                <button onClick={fetchWallet} className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
                   <RotateCcw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
@@ -446,19 +448,19 @@ export default function WalletPage() {
           
           {/* Micro Stat Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <CompactStat title="Available" value={fmt(balance)} sub="Available to spend" icon={Wallet} color="emerald" />
-            <CompactStat title="In escrow" value={fmt(pendingBalance)} sub="Held in escrow" icon={Lock} color="amber" />
-            <CompactStat title="Successful" value={transactions.filter(t => t.status === 'completed').length} sub={`${fmt(transactions.filter(t=>t.status==='completed').reduce((s,t)=>s+t.amount,0))} XAF`} icon={CheckCircle2} color="emerald" />
-            <CompactStat title="Failed" value={transactions.filter(t => t.status === 'failed').length} sub="Payments declined" icon={XCircle} color="fuchsia" />
+            <CompactStat title={t('wallet.available', 'Available')} value={fmt(balance)} sub={t('wallet.availableToSpend', 'Available to spend')} icon={Wallet} color="emerald" />
+            <CompactStat title={t('wallet.inEscrow', 'In escrow')} value={fmt(pendingBalance)} sub={t('wallet.heldInEscrow', 'Held in escrow')} icon={Lock} color="amber" />
+            <CompactStat title={t('wallet.successful', 'Successful')} value={transactions.filter(t => t.status === 'completed').length} sub={`${fmt(transactions.filter(t=>t.status==='completed').reduce((s,t)=>s+t.amount,0))} XAF`} icon={CheckCircle2} color="emerald" />
+            <CompactStat title={t('wallet.failed', 'Failed')} value={transactions.filter(t => t.status === 'failed').length} sub={t('wallet.paymentsDeclined', 'Payments declined')} icon={XCircle} color="fuchsia" />
           </div>
 
           {/* Action Hub */}
           <div className="grid grid-cols-2 gap-4">
              <button onClick={() => handleAction('deposit')} className="h-14 rounded-2xl bg-emerald-500 text-white  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all">
-                <ArrowDownLeft className="size-5" /> Deposit Money
+                 <ArrowDownLeft className="size-5" /> {t('wallet.depositMoney', 'Deposit Money')}
              </button>
              <button onClick={() => setModal('withdraw')} className="h-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)]  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 hover:bg-[var(--bg-secondary)]/80 active:scale-95 transition-all">
-                <ArrowUpRight className="size-5" /> Withdraw Money
+                 <ArrowUpRight className="size-5" /> {t('wallet.withdrawMoney', 'Withdraw Money')}
              </button>
           </div>
 
@@ -466,21 +468,21 @@ export default function WalletPage() {
           <section className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-sm">
              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
-                  <h3 className="text-sm  font-bold tracking-tight text-[var(--text-primary)]">Transaction History</h3>
-                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 mt-1 tracking-tight">Real-time transaction history</p>
+                  <h3 className="text-sm  font-bold tracking-tight text-[var(--text-primary)]">{t('wallet.transactionHistory', 'Transaction History')}</h3>
+                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 mt-1 tracking-tight">{t('wallet.realTimeHistory', 'Real-time transaction history')}</p>
                 </div>
                  <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl p-0.5 overflow-x-auto no-scrollbar">
-                   {['all', 'in', 'out', 'withdrawals'].map(t => (
-                     <button key={t} onClick={() => { setActiveTab(t); setCurrentPage(1); }} className={`px-4 py-1.5 rounded-lg text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-all capitalize whitespace-nowrap ${activeTab === t ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] opacity-40'}`}>
-                       {t}
-                     </button>
-                   ))}
+                   {['all', 'in', 'out', 'withdrawals'].map(tab => (
+                      <button key={tab} onClick={() => { setActiveTab(tab); setCurrentPage(1); }} className={`px-4 py-1.5 rounded-lg text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-all capitalize whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                        {t(`wallet.tab.${tab}`, tab)}
+                      </button>
+                    ))}
                  </div>
              </div>
 
               <div className="space-y-2 min-h-[400px]">
                  {loading ? <LoadingSpinner /> : currentItems.length === 0 ? (
-                   <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-20 text-sm">No {activeTab} records found</div>
+                    <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-20 text-sm">{t('wallet.noRecords', 'No {type} records found', { type: t(`wallet.tab.${activeTab}`, activeTab) })}</div>
                  ) : activeTab === 'withdrawals' ? (
                     currentItems.map((wr, i) => (
                       <div key={wr._id || i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group">
@@ -494,7 +496,7 @@ export default function WalletPage() {
                            <AlertCircle className="size-4" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate capitalize">{wr.withdrawalMethod} withdrawal</p>
+                           <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate capitalize">{wr.withdrawalMethod} {t('wallet.withdrawal', 'withdrawal')}</p>
                           <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight capitalize">{new Date(wr.createdAt).toLocaleDateString()} • {wr.status}</p>
                         </div>
                         <div className="text-right">
@@ -528,8 +530,8 @@ export default function WalletPage() {
                                 className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
                               >
                                 {recheckingTxId === tx._id
-                                  ? <><Loader2 className="size-3 animate-spin" /> Checking...</>
-                                  : <><RotateCcw className="size-3" /> Recheck payment</>
+                                   ? <><Loader2 className="size-3 animate-spin" /> {t('wallet.checking', 'Checking...')}</>
+                                   : <><RotateCcw className="size-3" /> {t('wallet.recheckPayment', 'Recheck payment')}</>
                                 }
                               </button>
                             )}

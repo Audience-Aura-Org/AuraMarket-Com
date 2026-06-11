@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function Hero({ data, config }) {
   const router = useRouter();
+  const { t, label } = useLanguage();
   const [current, setCurrent] = useState(0);
   const [isChanging, setIsChanging] = useState(false);
 
@@ -60,11 +62,11 @@ export default function Hero({ data, config }) {
               <div className={`w-full sm:max-w-2xl transition-all duration-700 delay-300 ${i === current ? 'translate-x-0 opacity-100 block' : '-translate-x-12 opacity-0 hidden'}`}>
                 <div className="liquid-glass p-6 sm:p-8 md:p-12 rounded-[1.5rem] sm:rounded-[2.5rem] space-y-4 md:space-y-6">
                   <h1 className="text-2xl sm:text-4xl md:text-6xl  font-bold text-white leading-[1.1] tracking-tight drop-shadow-2xl">
-                    {banner.headline}
+                    {label(banner.headline)}
                   </h1>
                   
                   <p className="text-xs md:text-lg text-white/80 font-medium leading-relaxed max-w-lg line-clamp-3 sm:line-clamp-none">
-                    {banner.subtext}
+                    {label(banner.subtext)}
                   </p>
                   
                   <div className="pt-2 md:pt-4">
@@ -72,7 +74,7 @@ export default function Hero({ data, config }) {
                       onClick={() => router.push(banner.link_to || '/overtime')}
                       className="group bg-white text-black px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl  font-bold text-xs sm:text-sm shadow-2xl hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-3 tracking-tight active:scale-95"
                     >
-                      <span className="whitespace-nowrap">{banner.cta_text || 'Explore Collection'}</span>
+                      <span className="whitespace-nowrap">{banner.cta_text ? label(banner.cta_text) : t('overtime.exploreCollection', 'Explore Collection')}</span>
                       <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-2 transition-transform" />
                     </button>
                   </div>

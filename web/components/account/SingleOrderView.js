@@ -313,6 +313,49 @@ export default function SingleOrderView({ orderId, onBack }) {
             new Date(a?.createdAt || a?.created_at || 0)
         )[0]
       : null;
+  const shipmentLogs = shipment?.shipment_logs || [];
+  const orderActivity = [
+    {
+      status: 'placed',
+      timestamp: order.createdAt,
+      note: 'Order placed.',
+    },
+    order.payment_status === 'paid' && {
+      status: 'paid',
+      timestamp: order.paid_at || order.payment_confirmed_at || order.updatedAt || order.createdAt,
+      note: 'Payment confirmed.',
+    },
+    ['processing', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded', 'refund_pending'].includes(order.order_status) && {
+      status: order.order_status,
+      timestamp: order.delivered_at || order.shipped_at || order.updatedAt || order.createdAt,
+      note:
+        order.order_status === 'shipped'
+          ? 'Vendor marked this order as shipped.'
+          : order.order_status === 'delivered'
+            ? 'Order marked as delivered.'
+            : order.order_status === 'completed'
+              ? 'Order completed.'
+              : order.order_status === 'cancelled'
+                ? 'Order cancelled.'
+                : order.order_status === 'refunded'
+                  ? 'Order refunded.'
+                  : order.order_status === 'refund_pending'
+                    ? 'Refund is pending.'
+                    : 'Order moved into processing.',
+    },
+  ].filter(Boolean);
+  const activityEntries = [
+    ...shipmentLogs.map((log) => ({
+      status: log.status,
+      timestamp: log.timestamp || log.createdAt || shipment?.updatedAt || shipment?.createdAt,
+      note: log.note,
+      _id: log._id,
+      source: 'shipment',
+    })),
+    ...orderActivity.map((log, idx) => ({ ...log, _id: `order-${idx}`, source: 'order' })),
+  ]
+    .filter((log) => log.timestamp)
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   const shipmentStatusNorm = (shipment?.status || '').toLowerCase();
   const status = getStatusConfig(order.order_status, shipment?.status);
   const isVendor = user?.role === 'vendor' || user?._id === order?.vendor_id?._id || user?._id === order?.vendor_id;
@@ -738,19 +781,19 @@ export default function SingleOrderView({ orderId, onBack }) {
               <div className="flex items-center justify-between border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 px-4 py-3 sm:px-5">
                 <p className="text-[12px] font-semibold text-[var(--text-primary)]">Sales History</p>
                 <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
-                  {shipment?.shipment_logs?.length || 0} updates
+                  {activityEntries.length} updates
                 </span>
               </div>
               <div className="p-4 sm:p-5 md:p-6">
-              {shipment && shipment.shipment_logs?.length > 0 ? (
+              {activityEntries.length > 0 ? (
                 <ul className="space-y-2">
-                  {shipment.shipment_logs.slice().reverse().map((log, lIdx) => (
+                  {activityEntries.slice().reverse().map((log, lIdx) => (
                     <li key={log._id || lIdx} className="relative rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3.5 sm:p-4">
                       <div className="absolute left-0 top-0 h-full w-1 rounded-l-xl bg-[var(--accent)]/40" />
                       <div className="min-w-0 space-y-1.5 pl-2">
                         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                           <h4 className="text-[12px] font-semibold capitalize text-[var(--text-primary)]">
-                            {log.status.replace('_', ' ')}
+                            {String(log.status || 'update').replace('_', ' ')}
                           </h4>
                           <time className="font-mono text-[10px] text-[var(--text-secondary)] opacity-75 sm:whitespace-nowrap">
                             {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ·{' '}

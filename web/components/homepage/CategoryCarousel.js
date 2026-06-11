@@ -1,8 +1,10 @@
 "use client";
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function CategoryCarousel({ title, data }) {
+  const { t, label } = useLanguage();
   if (!data?.length) return null;
 
   const categoryHref = (cat) => {
@@ -19,14 +21,14 @@ export default function CategoryCarousel({ title, data }) {
       <div className="mb-3 flex items-end justify-between gap-3 px-3 sm:px-4 md:mb-4 md:px-1">
         <div className="min-w-0">
           <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-xl md:text-2xl">
-            {title || "Shop by Category"}
+            {title ? label(title) : t('overtime.shopByCategory', 'Shop by Category')}
           </h2>
         </div>
         <Link
           href="/shop"
           className="group inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 font-[var(--font-poppins)] text-[11px] font-semibold text-[var(--accent)] transition hover:border-[var(--accent)]/45 hover:bg-[var(--accent)] hover:text-white active:scale-[0.98] sm:h-10 sm:px-4 sm:text-[12px]"
         >
-          <span>Browse</span>
+          <span>{t('overtime.browse', 'Browse')}</span>
           <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5 sm:size-4" />
         </Link>
       </div>
@@ -46,12 +48,12 @@ export default function CategoryCarousel({ title, data }) {
               />
               <div className="absolute inset-x-0 bottom-0 p-3 md:p-4 bg-gradient-to-t from-black/60 to-transparent">
                 <span className="block truncate px-1 text-center font-[var(--font-poppins)] text-[11px] font-semibold tracking-normal text-white md:px-2 md:text-[12px]">
-                  {cat.category_name}
+                  {label(cat.category_name)}
                 </span>
               </div>
             </div>
             <p className="mt-2 truncate px-1 text-center font-[var(--font-poppins)] text-[11px] font-semibold tracking-normal text-[var(--text-primary)] opacity-80 transition-opacity group-hover:opacity-100 md:px-2 md:text-[12px]">
-              {cat.category_name}
+              {label(cat.category_name)}
             </p>
           </Link>
         ))}

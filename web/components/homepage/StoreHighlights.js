@@ -4,9 +4,11 @@ import { BadgeCheck, Users, ArrowUpRight, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import VendorFollowButton from '@/components/VendorFollowButton';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function StoreHighlights({ title, data }) {
   const { followedVendorIds, fetchFollowedVendors, isAuthenticated } = useAuthStore();
+  const { t, label } = useLanguage();
 
   useEffect(() => {
     if (isAuthenticated) fetchFollowedVendors();
@@ -26,14 +28,14 @@ export default function StoreHighlights({ title, data }) {
       <div className="mb-3 flex items-end justify-between gap-3 px-3 sm:px-4 md:mb-4 md:px-1">
         <div className="min-w-0 space-y-1 text-left">
           <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-xl md:text-2xl">
-            {title || "Top Rated Vendors"}
+            {title ? label(title) : t('overtime.topRatedVendors', 'Top Rated Vendors')}
           </h2>
         </div>
         <Link
           href="/discovery?tab=vendors"
           className="group inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 font-[var(--font-poppins)] text-[11px] font-semibold text-[var(--accent)] transition hover:border-[var(--accent)]/45 hover:bg-[var(--accent)] hover:text-white active:scale-[0.98] sm:h-10 sm:px-4 sm:text-[12px]"
         >
-           <span>Vendors</span>
+           <span>{t('nav.vendors', 'Vendors')}</span>
            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5 sm:size-4" />
         </Link>
       </div>
@@ -92,7 +94,7 @@ export default function StoreHighlights({ title, data }) {
                   </div>
 
                   <p className="line-clamp-2 min-h-[2.5rem] font-[var(--font-poppins)] text-[12px] font-medium leading-relaxed text-[var(--text-secondary)] sm:text-[13px]">
-                    {vendor.description || "Discover premium products from this elite curator."}
+                    {vendor.description || t('overtime.vendorFallback', 'Discover premium products from this trusted seller.')}
                   </p>
 
                   <div className="pt-2 flex items-center gap-3">
