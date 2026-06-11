@@ -66,6 +66,7 @@ export default function Providers({ children }) {
     normalizedPath === '/' ||
     normalizedPath.startsWith('/auth') ||
     normalizedPath === '/login' ||
+    normalizedPath === '/signup' ||
     normalizedPath === '/register' ||
     normalizedPath === '/onboarding';
 

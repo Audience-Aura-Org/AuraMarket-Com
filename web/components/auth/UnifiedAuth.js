@@ -35,7 +35,7 @@ const withLoginTimeout = (promise, message) => {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 };
 
-export default function UnifiedAuth() {
+export default function UnifiedAuth({ signupOnly = false } = {}) {
   const router = useRouter();
   const { sendOtp, verifyOtp, fetchMe, rememberedEmail, hasHydrated, isAuthenticated, user, resetLoading } = useAuthStore();
   const { t, label } = useLanguage();
@@ -61,7 +61,10 @@ export default function UnifiedAuth() {
 
   useEffect(() => {
     try {
-      const isSignupResume = window.location.search.includes('signup=1');
+      const isSignupResume =
+        signupOnly ||
+        window.location.pathname.replace(/\/+$/, '') === '/signup' ||
+        window.location.search.includes('signup=1');
       const pendingSignup = isSignupResume
         ? JSON.parse(sessionStorage.getItem(SIGNUP_STATE_KEY) || 'null')
         : null;
@@ -72,6 +75,9 @@ export default function UnifiedAuth() {
         return;
       } else if (!isSignupResume) {
         sessionStorage.removeItem(SIGNUP_STATE_KEY);
+      } else if (signupOnly) {
+        setStep('email');
+        setError(t('login.existingCodeNotice'));
       }
 
       const pendingEmail = sessionStorage.getItem(OTP_PENDING_KEY);
@@ -80,7 +86,7 @@ export default function UnifiedAuth() {
         setStep('otp');
       }
     } catch {}
-  }, []);
+  }, [signupOnly, t]);
 
   useEffect(() => {
     if (step !== 'email') return;
@@ -213,9 +219,11 @@ export default function UnifiedAuth() {
         setEmail(verifiedEmail);
         setSignupToken(result.signupToken);
         setStep('signup');
+        router.replace('/signup');
         window.setTimeout(() => {
-          if (window.location.pathname.replace(/\/+$/, '') === '/login' && !window.location.search.includes('signup=1')) {
-            window.location.replace('/login?signup=1');
+          const path = window.location.pathname.replace(/\/+$/, '') || '/';
+          if (path !== '/signup') {
+            window.location.replace('/signup');
           }
         }, 150);
         return;
@@ -425,12 +433,16 @@ export default function UnifiedAuth() {
                 onClick={() => {
                   try {
                     sessionStorage.removeItem(SIGNUP_STATE_KEY);
-                    sessionStorage.setItem(OTP_PENDING_KEY, email);
+                    sessionStorage.removeItem(OTP_PENDING_KEY);
                   } catch {}
                   setSignupToken('');
-                  setStep('otp');
+                  if (signupOnly) {
+                    router.replace('/login');
+                  } else {
+                    setStep('email');
+                  }
                 }}
-                label={t('login.enterCode')}
+                label={t('login.changeEmail')}
               />
 
               <div className="space-y-1">

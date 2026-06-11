@@ -11,7 +11,7 @@ export default function OnboardingWatcher() {
   const { user, isAuthenticated, hasHydrated, authChecked, loading, fetchMe, fetchFollowedVendors, followedVendorIds } = useAuthStore();
 
   useEffect(() => {
-    const skipAuthProbePrefixes = ['/login', '/register', '/auth', '/onboarding'];
+    const skipAuthProbePrefixes = ['/login', '/signup', '/register', '/auth', '/onboarding'];
     const shouldSkipAuthProbe = pathname === '/' || skipAuthProbePrefixes.some((prefix) => pathname?.startsWith(prefix));
     if (!hasHydrated || authChecked || loading || user || shouldSkipAuthProbe) return;
     fetchMe();
@@ -38,7 +38,7 @@ export default function OnboardingWatcher() {
     const role = user?.role?.toLowerCase();
     
     // 0. Skip for onboarding/auth pages to prevent redirect loops
-    const SKIP_PREFIXES = ['/onboarding', '/login', '/register', '/auth'];
+    const SKIP_PREFIXES = ['/onboarding', '/login', '/signup', '/register', '/auth'];
     if (SKIP_PREFIXES.some(p => pathname.startsWith(p))) return;
 
     const protectedPrefixes = [
