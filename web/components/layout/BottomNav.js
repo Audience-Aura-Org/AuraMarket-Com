@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
-  Compass, ShoppingBag, User, House, Store, Activity, LayoutDashboard
+  Compass, User, House, Store, Activity, LayoutDashboard
 } from "lucide-react";
 import { useAuthStore } from '@/hooks/useAuth';
 import { useChat } from '@/context/ChatContext';
@@ -25,6 +25,13 @@ export default function BottomNav() {
   const isChatPage = pathname?.startsWith('/chat') || pathname?.startsWith('/messages') || pathname?.startsWith('/admin/messages');
   const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register') || pathname?.startsWith('/onboarding');
   const isDiscoveryPage = pathname?.startsWith('/discovery');
+  const isShopSurface =
+    pathname === '/shop' ||
+    pathname?.startsWith('/shop/') ||
+    pathname?.startsWith('/products') ||
+    pathname?.startsWith('/stores') ||
+    pathname?.startsWith('/cart') ||
+    pathname?.startsWith('/checkout');
   
   if (!mounted) return null;
 
@@ -49,6 +56,21 @@ export default function BottomNav() {
     { label: t('nav.profile'), href: "/profile", icon: User }
   ];
 
+  const isItemActive = (item) => {
+    const [itemPath, itemQuery = ''] = item.href.split('?');
+    const itemTab = new URLSearchParams(itemQuery).get('tab');
+
+    if (item.href === '/') return pathname === '/';
+    if (item.href === '/discovery?tab=discover' && isShopSurface) return true;
+
+    if (itemTab) {
+      const currentTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
+      return pathname === itemPath && currentTab === itemTab;
+    }
+
+    return pathname?.startsWith(itemPath);
+  };
+
   return (
     <>
       <div
@@ -60,19 +82,7 @@ export default function BottomNav() {
         <div className="relative flex h-[68px] w-full items-center justify-around px-1 pt-0.5">
           {menu.map((item) => {
             const Icon = item.icon;
-            // Strict exact match for root '/' to avoid highlighting Vendor everywhere
-            const itemPath = item.href.split('?')[0];
-            const itemTab = new URLSearchParams(item.href.split('?')[1]).get('tab');
-            
-            let isActive = false;
-            if (item.href === '/') {
-              isActive = pathname === '/';
-            } else if (itemTab) {
-              const currentTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
-              isActive = pathname === itemPath && currentTab === itemTab;
-            } else {
-              isActive = pathname?.startsWith(itemPath);
-            }
+            const isActive = isItemActive(item);
 
             return (
               <Link
@@ -119,18 +129,7 @@ export default function BottomNav() {
         <div className="flex items-center h-[54px] bg-black/50 backdrop-blur-2xl border border-white/10 rounded-[22px] shadow-[0_12px_40px_rgba(0,0,0,0.22)] px-1.5 overflow-hidden">
           {menu.map((item, idx) => {
             const Icon = item.icon;
-            const itemPath = item.href.split('?')[0];
-            const itemTab = new URLSearchParams(item.href.split('?')[1]).get('tab');
-            
-            let isActive = false;
-            if (item.href === '/') {
-              isActive = pathname === '/';
-            } else if (itemTab) {
-              const currentTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
-              isActive = pathname === itemPath && currentTab === itemTab;
-            } else {
-              isActive = pathname?.startsWith(itemPath);
-            }
+            const isActive = isItemActive(item);
 
             const itemContent = (
               <>
