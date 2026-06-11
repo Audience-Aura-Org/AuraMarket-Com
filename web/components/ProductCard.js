@@ -17,6 +17,7 @@ import cartStore from '@/services/cartStore';
 import { toast } from 'react-hot-toast';
 import BlurUpImage from '@/components/common/BlurUpImage';
 import VariantSelectorModal from '@/components/common/VariantSelectorModal';
+import { useLanguage } from '@/context/LanguageContext';
 
 /**
  * ProductCard - Elite Nexus Version
@@ -24,6 +25,7 @@ import VariantSelectorModal from '@/components/common/VariantSelectorModal';
  */
 export default function ProductCard({ product, layout = 'grid', onOpenChat = null, onClick = null }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const { id, _id, name, price, images, rating, vendor_id, category } = product;
   const productId = _id || id;
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;
@@ -49,7 +51,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
-    if (!user) { toast.error('Please login to activate cart'); return; }
+    if (!user) { toast.error(t('common.loginCart')); return; }
     
     // If product has variants, show selector instead of adding directly
     if (product.has_variants) {
@@ -63,7 +65,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
     api.post('/cart', { product_id: productId, quantity: 1 })
       .then((res) => {
         if (res.data?.success) cartStore.setCart(res.data.data.cart);
-        toast.success(`${name} added to cart`, {
+        toast.success(t('common.addedToCart', undefined, { name }), {
           icon: '🛒',
           style: {
             borderRadius: '16px',
@@ -79,7 +81,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
   const handleBuyNow = (e) => {
     e.stopPropagation();
-    if (!user) { toast.error('Please login to proceed'); return; }
+    if (!user) { toast.error(t('common.loginProceed')); return; }
 
     // If product has variants, show selector
     if (product.has_variants) {
@@ -113,7 +115,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
           variant: variantOrProduct.combination 
         });
         if (res.data?.success) cartStore.setCart(res.data.data.cart);
-        toast.success(`${name} added to cart`, {
+        toast.success(t('common.addedToCart', undefined, { name }), {
           icon: '🛒',
           style: {
             borderRadius: '16px',
@@ -131,14 +133,14 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
   const handleWishlist = async (e) => {
     e.stopPropagation();
-    if (!user) { toast.error('Please login to wishlist'); return; }
+    if (!user) { toast.error(t('common.loginWishlist')); return; }
     setWishlistLoading(true);
     try {
       await api.post(`/wishlist/toggle/${productId}`);
       setWishlisted(!wishlisted);
       if (!wishlisted) trackWishlist(product);
     } catch { 
-      toast.error('Failed to update wishlist');
+      toast.error(t('common.wishlistFailed'));
     } finally { 
       setWishlistLoading(false); 
     }
@@ -148,9 +150,9 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
 
   const handleChat = (e) => {
     e.stopPropagation();
-    if (!user) { toast.error('Please login to chat'); return; }
+    if (!user) { toast.error(t('common.loginChat')); return; }
     if (vendorUserId) {
-      const vName = vendor_id?.store_name || 'Verified Store';
+      const vName = vendor_id?.store_name || t('common.verifiedStore');
       const vLogo = vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo;
       openChat(vendorUserId, product, { 
         store_name: vName, 
@@ -190,14 +192,14 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                     </div>
                     <span
                       className="block min-w-0 truncate text-[11px] lg:text-[12px] font-semibold text-[var(--accent)] tracking-normal"
-                      title={vendor_id?.store_name || 'Verified vendor'}
+                      title={vendor_id?.store_name || t('common.verifiedVendor')}
                     >
-                      {vendor_id?.store_name || 'Verified vendor'}
+                      {vendor_id?.store_name || t('common.verifiedVendor')}
                     </span>
                   </Link>
                   {user?._id !== vendorUserId && (
                     <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`shrink-0 whitespace-nowrap text-[11px] lg:text-[12px] font-semibold tracking-tight ${isFollowing ? 'text-emerald-500' : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}>
-                      {isFollowing ? 'Following' : '+ Follow'}
+                      {isFollowing ? t('common.following') : `+ ${t('common.follow')}`}
                     </button>
                   )}
                </div>
@@ -219,12 +221,12 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                 disabled={!product.has_variants && product.stock <= 0}
                 className="h-9 px-6 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                {(!product.has_variants && product.stock <= 0) ? 'Out of stock' : 'Buy now'}
+                {(!product.has_variants && product.stock <= 0) ? t('common.outOfStock') : t('common.buyNow')}
               </button>
               <div className="flex items-center gap-2">
                 <button onClick={handleChat} className="h-9 px-6 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[12px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all">
                   <MessageSquare className="size-4" />
-                  <span>Chat</span>
+                  <span>{t('common.chat')}</span>
                 </button>
                 <button 
                   onClick={handleAddToCart} 
@@ -271,7 +273,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
            
            {user?._id !== vendorUserId && (
               <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }} disabled={followLoading} className={`shrink-0 max-w-[72px] overflow-hidden text-ellipsis whitespace-nowrap px-2 md:px-3 py-1 md:py-1.5 rounded-full text-[10px] md:text-[11px] font-semibold tracking-tight transition-all active:scale-95 shadow-sm border ${isFollowing ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-[var(--accent)] text-white border-[var(--accent)] hover:brightness-110'}`}>
-                 {isFollowing ? 'Following' : '+ Follow'}
+                 {isFollowing ? t('common.following') : `+ ${t('common.follow')}`}
               </button>
            )}
         </div>
@@ -282,7 +284,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
           </Link>
           {!inStock && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-              <span className="px-4 py-2 bg-red-500 text-white text-[11px] lg:text-[12px]  font-semibold tracking-tight rounded-full shadow-xl">Out of stock</span>
+              <span className="px-4 py-2 bg-red-500 text-white text-[11px] lg:text-[12px]  font-semibold tracking-tight rounded-full shadow-xl">{t('common.outOfStock')}</span>
             </div>
           )}
           <button onClick={handleWishlist} disabled={wishlistLoading} className={`absolute top-2.5 right-2.5 size-7 rounded-full flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl z-20 ${wishlisted ? 'bg-red-500 text-white border-red-500' : 'bg-black/60 text-white border-white/10 hover:bg-red-500'}`}>
@@ -312,11 +314,11 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               disabled={!inStock}
               className="flex-1 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tight rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              {inStock ? 'Buy now' : 'Sold out'}
+              {inStock ? t('common.buyNow') : t('common.outOfStock')}
             </button>
             <button onClick={handleChat} className="h-8 md:h-9 px-4 md:px-6 rounded-xl md:rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-2 text-[12px] md:text-[13px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all shrink-0">
               <MessageSquare className="size-4 md:size-4.5" />
-              <span>Chat</span>
+              <span>{t('common.chat')}</span>
             </button>
             <button 
               onClick={handleAddToCart} 

@@ -37,7 +37,7 @@ const withLoginTimeout = (promise, message) => {
 export default function UnifiedAuth() {
   const router = useRouter();
   const { sendOtp, verifyOtp, rememberedEmail, hasHydrated, resetLoading } = useAuthStore();
-  const { t } = useLanguage();
+  const { t, label } = useLanguage();
   const prefilledRef = useRef(false);
 
   const [step, setStep] = useState('email');
@@ -388,7 +388,7 @@ export default function UnifiedAuth() {
                       }`}
                     >
                       <Icon className="w-4 h-4" />
-                      <span className="text-[11px] font-semibold tracking-tighter capitalize">{role}</span>
+                      <span className="text-[11px] font-semibold tracking-tighter capitalize">{t(`role.${role}`, label(role))}</span>
                     </button>
                   ))}
                 </div>

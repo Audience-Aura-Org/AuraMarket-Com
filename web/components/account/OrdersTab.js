@@ -7,6 +7,7 @@ import {
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
 import { formatVariantLabel } from '@/utils/variants';
+import { useLanguage } from '@/context/LanguageContext';
 
 const ORDER_STATUS_STYLES = {
   amber: {
@@ -28,14 +29,14 @@ const ORDER_STATUS_STYLES = {
 };
 
 const STATUS_FILTERS = [
-  { id: 'all', label: 'All' },
-  { id: 'placed', label: 'Placed' },
-  { id: 'processing', label: 'Processing' },
-  { id: 'shipped', label: 'Shipped' },
-  { id: 'completed', label: 'Completed' },
-  { id: 'failed', label: 'Failed' },
-  { id: 'cancelled', label: 'Cancelled' },
-  { id: 'refunded', label: 'Refunded' },
+  { id: 'all', labelKey: 'status.all' },
+  { id: 'placed', labelKey: 'status.placed' },
+  { id: 'processing', labelKey: 'status.processing' },
+  { id: 'shipped', labelKey: 'status.shipped' },
+  { id: 'completed', labelKey: 'status.completed' },
+  { id: 'failed', labelKey: 'status.failed' },
+  { id: 'cancelled', labelKey: 'status.cancelled' },
+  { id: 'refunded', labelKey: 'status.refunded' },
 ];
 
 function getStatusColor(status) {
@@ -64,15 +65,15 @@ function matchesStatusFilter(order, filter) {
   return order.order_status === filter;
 }
 
-function getDisplayStatus(order) {
+function getDisplayStatus(order, t) {
   if (order.payment_status === 'refunded' || order.order_status === 'refunded') {
-    return 'Refunded to wallet';
+    return t('status.refundedToWallet');
   }
   if (order.order_status === 'refund_pending') {
-    return 'Refund pending';
+    return t('status.refundPending');
   }
   if (order.order_status === 'cancelled') {
-    return 'Cancelled';
+    return t('status.cancelled');
   }
   if (
     order.shipment &&
@@ -80,42 +81,42 @@ function getDisplayStatus(order) {
   ) {
     return order.shipment.status.replace('_', ' ');
   }
-  return order.order_status || 'pending';
+  return t(`status.${order.order_status || 'pending'}`, order.order_status || t('status.pending'));
 }
 
-function getPaymentMeta(order) {
+function getPaymentMeta(order, t) {
   if (order.payment_status === 'refunded' || order.order_status === 'refunded') {
     return {
-      label: 'Wallet credited',
+      label: t('status.walletCredited'),
       classes: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     };
   }
   if (order.order_status === 'refund_pending') {
     return {
-      label: 'Refund pending',
+      label: t('status.refundPending'),
       classes: 'border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400',
     };
   }
   if (order.payment_method === 'pay_on_delivery') {
     return {
-      label: 'Pay on delivery',
+      label: t('status.payOnDelivery'),
       classes: 'border-sky-500/20 bg-sky-500/10 text-sky-600 dark:text-sky-400',
     };
   }
   if (order.payment_status === 'paid') {
     return {
-      label: 'Paid',
+      label: t('status.paid'),
       classes: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     };
   }
   if (order.payment_status === 'failed') {
     return {
-      label: 'Failed',
+      label: t('status.failed'),
       classes: 'border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400',
     };
   }
   return {
-    label: 'Pending',
+    label: t('status.pending'),
     classes: 'border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400',
   };
 }
@@ -130,6 +131,7 @@ function MetricItem({ label, value }) {
 }
 
 export default function OrdersTab({ user, onViewOrder }) {
+  const { t } = useLanguage();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [orderView, setOrderView] = useState(user?.role === 'vendor' ? 'purchases' : 'purchases');
@@ -197,11 +199,11 @@ export default function OrdersTab({ user, onViewOrder }) {
     <div className="space-y-4 font-[Poppins]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">Orders</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-[var(--text-primary)]">{t('orders.title')}</h2>
           <p className="text-[11px] text-[var(--text-secondary)]">
             {user?.role === 'vendor'
-              ? 'Track purchases you made and sales from your store.'
-              : 'View and track your order history.'}
+              ? t('orders.vendorHelp')
+              : t('orders.customerHelp')}
           </p>
         </div>
         <button
@@ -210,7 +212,7 @@ export default function OrdersTab({ user, onViewOrder }) {
           className="inline-flex h-9 items-center justify-center gap-2 self-start rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3 text-[11px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--accent)] sm:self-auto"
         >
           <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          {t('orders.refresh')}
         </button>
       </div>
 
@@ -225,7 +227,7 @@ export default function OrdersTab({ user, onViewOrder }) {
                 : 'text-[var(--text-secondary)]'
             }`}
           >
-            My purchases
+            {t('orders.myPurchases')}
           </button>
           <button
             type="button"
@@ -236,16 +238,16 @@ export default function OrdersTab({ user, onViewOrder }) {
                 : 'text-[var(--text-secondary)]'
             }`}
           >
-            My sales
+            {t('orders.mySales')}
           </button>
         </div>
       )}
 
       <div className="flex w-full items-center divide-x divide-[var(--glass-border)] overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
-        <MetricItem label="Total" value={orders.length} />
-        <MetricItem label="Active" value={activeCount} />
-        <MetricItem label="Completed" value={completedCount} />
-        <MetricItem label="Issues" value={issueCount} />
+        <MetricItem label={t('orders.total')} value={orders.length} />
+        <MetricItem label={t('orders.active')} value={activeCount} />
+        <MetricItem label={t('orders.completed')} value={completedCount} />
+        <MetricItem label={t('orders.issues')} value={issueCount} />
       </div>
 
       <section className="overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
@@ -256,7 +258,7 @@ export default function OrdersTab({ user, onViewOrder }) {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by order ID or product"
+              placeholder={t('search.ordersPlaceholder')}
               className="h-10 w-full rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 pl-9 pr-3 text-[12px] outline-none transition focus:border-[var(--accent)]/45"
             />
           </div>
@@ -272,28 +274,28 @@ export default function OrdersTab({ user, onViewOrder }) {
                     : 'border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
                 }`}
               >
-                {f.label}
+                {t(f.labelKey)}
               </button>
             ))}
           </div>
         </div>
 
         <div className="flex items-center justify-between border-b border-[var(--glass-border)] px-3 py-2 sm:px-4">
-          <p className="text-[12px] font-semibold text-[var(--text-primary)]">Order history</p>
+          <p className="text-[12px] font-semibold text-[var(--text-primary)]">{t('orders.history')}</p>
           <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
-            {filteredOrders.length} shown
+            {t('orders.shown', undefined, { count: filteredOrders.length })}
           </span>
         </div>
 
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16">
             <div className="size-9 animate-spin rounded-full border-2 border-[var(--accent)]/20 border-t-[var(--accent)]" />
-            <p className="text-[11px] text-[var(--text-secondary)]">Loading orders…</p>
+            <p className="text-[11px] text-[var(--text-secondary)]">{t('orders.loading')}</p>
           </div>
         ) : pageOrders.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <ShoppingBag className="mx-auto mb-3 size-8 text-[var(--text-secondary)]/40" />
-            <p className="text-sm font-medium text-[var(--text-secondary)]">No orders found.</p>
+            <p className="text-sm font-medium text-[var(--text-secondary)]">{t('orders.none')}</p>
           </div>
         ) : (
           <div className="space-y-2 p-3 sm:space-y-2.5 sm:p-4">
@@ -313,7 +315,7 @@ export default function OrdersTab({ user, onViewOrder }) {
               const variantLabel = formatVariantLabel(firstItem?.variant);
               const sColor = getStatusColor(order.order_status);
               const statusStyle = ORDER_STATUS_STYLES[sColor] || ORDER_STATUS_STYLES.amber;
-              const paymentMeta = getPaymentMeta(order);
+              const paymentMeta = getPaymentMeta(order, t);
 
               return (
                 <button
@@ -340,7 +342,7 @@ export default function OrdersTab({ user, onViewOrder }) {
                           <span
                             className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize ${statusStyle.badge}`}
                           >
-                            {getDisplayStatus(order)}
+                            {getDisplayStatus(order, t)}
                           </span>
                           <span
                             className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${paymentMeta.classes}`}
@@ -378,8 +380,8 @@ export default function OrdersTab({ user, onViewOrder }) {
                           <span className="text-[10px] font-medium text-[var(--text-secondary)]">XAF</span>
                         </p>
                         <p className="text-[10px] text-[var(--text-secondary)]">
-                          {(order.products?.length || order.items?.length || 1)} item
-                          {(order.products?.length || order.items?.length || 1) > 1 ? 's' : ''}
+                          {(order.products?.length || order.items?.length || 1)}{' '}
+                          {(order.products?.length || order.items?.length || 1) > 1 ? t('orders.items') : t('orders.item')}
                         </p>
                       </div>
                       <div className="ml-3 flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition group-hover:text-[var(--accent)]">

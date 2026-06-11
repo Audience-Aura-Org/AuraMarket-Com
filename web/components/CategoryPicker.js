@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 import api from '@/services/api';
+import { useLanguage } from '@/context/LanguageContext';
 
 /**
  * CategoryPicker
@@ -13,6 +14,7 @@ import api from '@/services/api';
  *   className: string (optional, applied to container)
  */
 export default function CategoryPicker({ value, onChange, className = '' }) {
+  const { t, label } = useLanguage();
   const [tree, setTree] = useState([]);
   const [breadcrumb, setBreadcrumb] = useState([]); // selected path
   const [loadingTree, setLoadingTree] = useState(true);
@@ -51,7 +53,7 @@ export default function CategoryPicker({ value, onChange, className = '' }) {
   if (loadingTree) {
     return (
       <div className={`bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-4 text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-50 ${className}`}>
-        Loading categories...
+        {t('common.loadingCategories')}
       </div>
     );
   }
@@ -65,7 +67,7 @@ export default function CategoryPicker({ value, onChange, className = '' }) {
           onClick={() => { setBreadcrumb([]); onChange(''); }}
           className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"
         >
-          All
+          {t('common.all')}
         </button>
         {breadcrumb.map((crumb, idx) => (
           <span key={crumb._id} className="flex items-center gap-1">
@@ -79,7 +81,7 @@ export default function CategoryPicker({ value, onChange, className = '' }) {
                   : 'text-[var(--text-secondary)] hover:text-[var(--accent)]'
               }`}
             >
-              {crumb.name}
+              {label(crumb.name)}
             </button>
           </span>
         ))}
@@ -92,7 +94,7 @@ export default function CategoryPicker({ value, onChange, className = '' }) {
           onClick={handleBack}
           className="flex items-center gap-1 px-4 py-2 text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors border-b border-[var(--glass-border)] w-full"
         >
-          <ChevronLeft className="size-3" /> Back
+          <ChevronLeft className="size-3" /> {t('common.back')}
         </button>
       )}
 
@@ -114,7 +116,7 @@ export default function CategoryPicker({ value, onChange, className = '' }) {
                   : 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]/50 hover:text-[var(--text-primary)]'
               }`}
             >
-              <span>{cat.name}</span>
+              <span>{label(cat.name)}</span>
               {cat.children && cat.children.length > 0 && (
                 <ChevronRight className="size-3 opacity-40 group-hover:opacity-100 flex-shrink-0" />
               )}

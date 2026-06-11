@@ -16,6 +16,7 @@ import { useChat } from '@/context/ChatContext';
 import api from '@/services/api';
 import { trackSearch } from '@/services/tracking';
 import VendorFollowButton from '@/components/VendorFollowButton';
+import { useLanguage } from '@/context/LanguageContext';
 
 const PRICE_RANGES = [
   { id: 'under-5000', name: 'Under 5,000 XAF', min: 0, max: 5000 },
@@ -26,6 +27,7 @@ const PRICE_RANGES = [
 
 
 function ShopContent() {
+  const { t, label } = useLanguage();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
 
@@ -229,10 +231,10 @@ function ShopContent() {
   }, []);
 
   const SORT_OPTIONS = [
-    { value: '-createdAt', label: 'Newest Arrivals' },
-    { value: 'price', label: 'Price: Low to High' },
-    { value: '-price', label: 'Price: High to Low' },
-    { value: '-rating', label: 'Highest Rated' }
+    { value: '-createdAt', label: t('sort.newest') },
+    { value: 'price', label: t('sort.priceLowHigh') },
+    { value: '-price', label: t('sort.priceHighLow') },
+    { value: '-rating', label: t('sort.highestRated') }
   ];
 
   return (
@@ -247,7 +249,7 @@ function ShopContent() {
             <div className="relative max-w-2xl mx-auto">
               <input
                 type="text"
-                placeholder="Search premium products..."
+                placeholder={t('search.productsPlaceholder')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
@@ -268,14 +270,14 @@ function ShopContent() {
                 <>
                  {breadcrumb.length > 0 ? (
                    <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] font-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
-                     <Home className="size-3.5" /> Market
+                     <Home className="size-3.5" /> {t('common.market')}
                    </button>
                  ) : (
                     <button 
                       onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                     >
-                      All
+                      {t('common.all')}
                     </button>
                  )}
 
@@ -286,7 +288,7 @@ function ShopContent() {
                         onClick={() => handleBreadcrumbClick(idx)} 
                         className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                       >
-                        {crumb.name}
+                        {label(crumb.name)}
                       </button>
                    </div>
                  ))}
@@ -302,7 +304,7 @@ function ShopContent() {
                        }}
                        className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                     >
-                      {cat.name}
+                      {label(cat.name)}
                     </button>
                  ))}
                 </>
@@ -366,12 +368,12 @@ function ShopContent() {
                         <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)]">
                           {activeVendor.vendor_id?.follower_count ? (activeVendor.vendor_id.follower_count >= 1000 ? (activeVendor.vendor_id.follower_count / 1000).toFixed(1) + 'k' : activeVendor.vendor_id.follower_count) : '0'}
                         </span>
-                        <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  opacity-40">Network</span>
+                        <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  opacity-40">{t('common.network')}</span>
                       </div>
 
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
                         <ShieldCheck className="size-3.5 text-emerald-600" />
-                        <span className="text-[11px] lg:text-[12px]  font-semibold text-emerald-600 tracking-tight">Verified Vendor</span>
+                        <span className="text-[11px] lg:text-[12px]  font-semibold text-emerald-600 tracking-tight">{t('common.verifiedVendor')}</span>
                       </div>
                     </div>
                   </div>
@@ -385,7 +387,7 @@ function ShopContent() {
                       })}
                       className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)]  font-semibold text-[10px] lg:text-[12px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
                     >
-                      Contact
+                      {t('common.contact')}
                     </button>
                   </div>
                 </div>
@@ -402,11 +404,11 @@ function ShopContent() {
             
             <div className="flex items-center gap-1.5 md:gap-3">
               <h3 className="text-xs md:text-xl  font-bold text-[var(--text-primary)] tracking-tight">
-                {activeCategoryName === 'All' ? 'Global Market' : activeCategoryName}
+                {activeCategoryName === 'All' ? t('common.globalMarket') : label(activeCategoryName)}
               </h3>
               <div className="h-3 md:h-4 w-px bg-[var(--glass-border)]" />
               <p className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] tracking-tight opacity-60">
-                {products.length} Results
+                {products.length} {t('common.results')}
               </p>
             </div>
 
@@ -418,18 +420,18 @@ function ShopContent() {
                   onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
                   className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-sm"
                 >
-                  Price
+                  {t('common.price')}
                   <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
                 </button>
                 
                 {isPriceOpen && (
                   <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                      <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
-                       Any Price {!activePrice && <Check className="size-3.5" />}
+                       {t('common.anyPrice')} {!activePrice && <Check className="size-3.5" />}
                      </button>
                      {PRICE_RANGES.map(range => (
                        <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
-                         {range.name} {activePrice === range.id && <Check className="size-3.5" />}
+                         {t(`price.${range.id.replace(/-/g, '').replace('under5000', 'under5000').replace('500010000', '5000to10000').replace('1000050000', '10000to50000').replace('over50000', 'over50000')}`, range.name)} {activePrice === range.id && <Check className="size-3.5" />}
                        </button>
                      ))}
                   </div>
@@ -442,7 +444,7 @@ function ShopContent() {
                   onClick={() => { setIsSortOpen(!isSortOpen); setIsPriceOpen(false); }}
                   className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-sm"
                 >
-                  Sort
+                  {t('common.sort')}
                   <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
                 </button>
                 
@@ -478,9 +480,9 @@ function ShopContent() {
                 <div className="size-20 md:size-24 bg-[var(--accent)]/5 rounded-full flex items-center justify-center mx-auto mb-8 text-[var(--text-secondary)]/50">
                   <Search className="size-8 md:size-10" />
                 </div>
-                <h2 className="text-2xl md:text-3xl  font-bold text-[var(--text-primary)] mb-2">{loading ? 'Shop syncing' : 'No Products Found'}</h2>
+                <h2 className="text-2xl md:text-3xl  font-bold text-[var(--text-primary)] mb-2">{loading ? t('common.shopSyncing') : t('common.noProductsFound')}</h2>
                 <p className="text-[var(--text-secondary)] font-medium text-sm md:text-base px-6">
-                  {loading ? 'Products appear here as soon as the latest shop feed arrives.' : 'No matches found for your current search or filters.'}
+                  {loading ? t('common.productsArrive') : t('common.noMatches')}
                 </p>
                 <button
                   onClick={() => {
@@ -492,7 +494,7 @@ function ShopContent() {
                   }}
                   className="mt-10 px-8 py-3 bg-[var(--accent)] text-white  font-semibold text-[10px] lg:text-[12px] tracking-[0.2em] rounded-full shadow-lg shadow-[var(--accent)]/20 "
                 >
-                  Reset Filters
+                  {t('common.resetFilters')}
                 </button>
               </div>
             ) : (
