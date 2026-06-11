@@ -96,18 +96,18 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
   const Icon = isGrace ? Clock3 : AlertTriangle;
   const severity = isGrace
     ? {
-        shell: 'border-amber-500/20 bg-[linear-gradient(90deg,rgba(245,158,11,0.12),rgba(255,255,255,0.72),rgba(245,158,11,0.06))] text-amber-800 dark:bg-[linear-gradient(90deg,rgba(245,158,11,0.16),rgba(15,23,42,0.86),rgba(245,158,11,0.08))] dark:text-amber-200',
-        icon: 'bg-amber-500/15 text-amber-600 ring-amber-500/20 dark:text-amber-300',
+        shell: 'border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-500/35 dark:bg-amber-950 dark:text-amber-50',
+        icon: 'bg-amber-100 text-amber-700 ring-amber-300 dark:bg-amber-900 dark:text-amber-100 dark:ring-amber-500/35',
         rail: 'bg-amber-500',
         action: 'bg-amber-500 hover:bg-amber-600',
-        soft: 'bg-amber-500/10 text-amber-700 dark:text-amber-200',
+        soft: 'bg-amber-200 text-amber-950 dark:bg-amber-800 dark:text-amber-50',
       }
     : {
-        shell: 'border-rose-500/20 bg-[linear-gradient(90deg,rgba(244,63,94,0.12),rgba(255,255,255,0.72),rgba(244,63,94,0.06))] text-rose-800 dark:bg-[linear-gradient(90deg,rgba(244,63,94,0.16),rgba(15,23,42,0.86),rgba(244,63,94,0.08))] dark:text-rose-200',
-        icon: 'bg-rose-500/15 text-rose-600 ring-rose-500/20 dark:text-rose-300',
+        shell: 'border-rose-300 bg-rose-50 text-rose-950 dark:border-rose-500/35 dark:bg-rose-950 dark:text-rose-50',
+        icon: 'bg-rose-100 text-rose-700 ring-rose-300 dark:bg-rose-900 dark:text-rose-100 dark:ring-rose-500/35',
         rail: 'bg-rose-500',
         action: 'bg-rose-500 hover:bg-rose-600',
-        soft: 'bg-rose-500/10 text-rose-700 dark:text-rose-200',
+        soft: 'bg-rose-200 text-rose-950 dark:bg-rose-800 dark:text-rose-50',
       };
 
   return (
@@ -131,7 +131,7 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
             </span>
           </div>
           {!hidden && (
-            <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-4 opacity-85 sm:text-xs sm:leading-5">{detail}</p>
+            <p className="mt-0.5 line-clamp-2 text-[11px] font-semibold leading-4 opacity-80 sm:text-xs sm:leading-5">{detail}</p>
           )}
         </button>
         <button
