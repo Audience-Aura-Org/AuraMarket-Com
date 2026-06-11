@@ -36,7 +36,8 @@ export default function Providers({ children }) {
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
   const isDashboardRoute = normalizedPath.startsWith('/admin') ||
                           normalizedPath.startsWith('/vendor') ||
-                          normalizedPath.startsWith('/logistics');
+                          normalizedPath.startsWith('/logistics') ||
+                          normalizedPath === '/subscribe';
   const [showSplash, setShowSplash] = useState(!isDashboardRoute);
 
   useEffect(() => {

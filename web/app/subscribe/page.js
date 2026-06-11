@@ -21,6 +21,7 @@ import toast from 'react-hot-toast';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 
 const ROLE_LABELS = {
   customer: 'Customer',
@@ -142,8 +143,11 @@ function SubscribeContent() {
   const isAlreadyActive = status?.subscribed && status?.required;
   const roleLabel = ROLE_LABELS[role] || role;
   const isContactPlan = Boolean(selectedPlan?.contact_required);
+  const sidebarRole = ['admin', 'vendor', 'logistics', 'customer'].includes(user?.role)
+    ? user.role
+    : role;
 
-  return (
+  const content = (
     <div className="min-h-screen w-full bg-[var(--bg-secondary)] px-2 py-5 pb-28 text-[var(--text-primary)] sm:px-4 lg:px-6">
       <div className="flex w-full flex-col gap-5">
         <div className="flex items-center justify-between gap-3">
@@ -334,6 +338,14 @@ function SubscribeContent() {
         </section>
       </div>
     </div>
+  );
+
+  if (!user) return content;
+
+  return (
+    <DashboardLayout role={sidebarRole} hideFooter>
+      {content}
+    </DashboardLayout>
   );
 }
 
