@@ -1,15 +1,80 @@
 'use client';
 
-import { useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useMemo, useRef } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
+import { useAuthStore } from '@/hooks/useAuth';
 
-const ROOT_PATHS = new Set(['/', '/login', '/overtime', '/shop']);
+const ROUTE_STACK_KEY = 'aura_route_stack';
+const MAX_STACK_SIZE = 40;
 
 export default function NativeBackButtonHandler() {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const routeStackRef = useRef([]);
+  const searchString = searchParams?.toString() || '';
+
+  const currentRoute = useMemo(() => {
+    return `${pathname || '/'}${searchString ? `?${searchString}` : ''}`;
+  }, [pathname, searchString]);
+
+  const fallbackRoute = useMemo(() => {
+    if (!isAuthenticated) return '/login';
+    if (user?.role === 'admin') return '/admin/dashboard';
+    if (user?.role === 'vendor') return '/vendor/dashboard';
+    if (user?.role === 'logistics') return '/logistics/dashboard';
+    return '/discovery?tab=discover';
+  }, [isAuthenticated, user?.role]);
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(window.sessionStorage.getItem(ROUTE_STACK_KEY) || '[]');
+      routeStackRef.current = Array.isArray(stored) ? stored : [];
+    } catch {
+      routeStackRef.current = [];
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!currentRoute) return;
+
+    const stack = routeStackRef.current;
+    if (stack[stack.length - 1] !== currentRoute) {
+      stack.push(currentRoute);
+      routeStackRef.current = stack.slice(-MAX_STACK_SIZE);
+      try {
+        window.sessionStorage.setItem(ROUTE_STACK_KEY, JSON.stringify(routeStackRef.current));
+      } catch {}
+    }
+  }, [currentRoute]);
+
+  const goToPreviousInAppRoute = () => {
+    const stack = [...routeStackRef.current];
+
+    while (stack.length && stack[stack.length - 1] === currentRoute) {
+      stack.pop();
+    }
+
+    const previousRoute = stack[stack.length - 1];
+    routeStackRef.current = stack.slice(-MAX_STACK_SIZE);
+
+    try {
+      window.sessionStorage.setItem(ROUTE_STACK_KEY, JSON.stringify(routeStackRef.current));
+    } catch {}
+
+    if (previousRoute && previousRoute !== currentRoute) {
+      router.replace(previousRoute);
+      return;
+    }
+
+    if (currentRoute !== fallbackRoute) {
+      router.replace(fallbackRoute);
+    }
+  };
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return undefined;
@@ -18,20 +83,8 @@ export default function NativeBackButtonHandler() {
     let cancelled = false;
 
     const attach = async () => {
-      listener = await App.addListener('backButton', ({ canGoBack }) => {
-        const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
-
-        if (window.history.length > 1 || canGoBack) {
-          router.back();
-          return;
-        }
-
-        if (!ROOT_PATHS.has(normalizedPath)) {
-          router.replace('/overtime');
-          return;
-        }
-
-        App.exitApp();
+      listener = await App.addListener('backButton', () => {
+        goToPreviousInAppRoute();
       });
 
       if (cancelled && listener) {
@@ -45,7 +98,7 @@ export default function NativeBackButtonHandler() {
       cancelled = true;
       if (listener) listener.remove();
     };
-  }, [pathname, router]);
+  }, [currentRoute, fallbackRoute, router]);
 
   return null;
 }
