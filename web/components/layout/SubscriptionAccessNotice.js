@@ -29,15 +29,31 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
     normalizedPath === '/onboarding';
   const isImmersiveChat = normalizedPath === '/chat' || normalizedPath === '/messages';
 
+  const applyNotice = (data) => {
+    if (!data?.required || data.subscribed || (!data.grace && !data.limited)) {
+      setNotice(null);
+      setHidden(false);
+      setHideKey(null);
+      return;
+    }
+    const role = data.role || user?.role;
+    const state = data.access_state || (data.grace ? 'grace' : 'limited');
+    const nextKey = hideKeyFor(user?._id, role, state);
+    const hiddenUntil = Number(window.localStorage.getItem(nextKey) || 0);
+    setNotice(data);
+    setHideKey(nextKey);
+    setHidden(hiddenUntil > Date.now());
+  };
+
   useEffect(() => {
     const handleSubscriptionRequired = (event) => {
-      setNotice(event.detail?.data || event.detail || null);
-      setHidden(false);
+      applyNotice(event.detail?.data || event.detail || null);
     };
 
     window.addEventListener('aura:subscription-required', handleSubscriptionRequired);
     return () => window.removeEventListener('aura:subscription-required', handleSubscriptionRequired);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?._id, user?.role]);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,17 +81,7 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
         });
         if (cancelled) return;
         const data = res.data?.data;
-        if (data?.required && (!data.subscribed || data.grace || data.limited)) {
-          const nextKey = hideKeyFor(user._id, data.role || user.role, data.access_state || (data.grace ? 'grace' : 'limited'));
-          const hiddenUntil = Number(window.localStorage.getItem(nextKey) || 0);
-          setNotice(data);
-          setHideKey(nextKey);
-          setHidden(hiddenUntil > Date.now());
-        } else {
-          setNotice(null);
-          setHidden(false);
-          setHideKey(null);
-        }
+        applyNotice(data);
       } catch {
         if (!cancelled) setNotice(null);
       }
