@@ -141,6 +141,18 @@ export default function AdminSubscriptionsPage() {
     }
   };
 
+  const togglePlanStatus = async (plan) => {
+    try {
+      await api.patch(`/subscriptions/admin/plans/${plan._id}`, {
+        is_active: !plan.is_active,
+      });
+      toast.success(t('subscription.planSaved', 'Plan saved.'));
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
+    }
+  };
+
   const updateSubscription = async (id, action) => {
     try {
       await api.patch(`/subscriptions/admin/subscriptions/${id}`, { action });
@@ -392,9 +404,14 @@ export default function AdminSubscriptionsPage() {
                     </div>
                     <div className="mt-4 flex items-center justify-between text-sm">
                       <strong>{Number(plan.price || 0).toLocaleString()} {plan.currency}</strong>
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${plan.is_active ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-500'}`}>
+                      <button
+                        type="button"
+                        onClick={() => togglePlanStatus(plan)}
+                        className={`rounded-full px-2 py-1 text-[10px] font-bold transition active:scale-95 ${plan.is_active ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-500'}`}
+                        title={plan.is_active ? t('subscription.hidePlan', 'Hide package') : t('subscription.activatePlan', 'Activate package')}
+                      >
                         {plan.is_active ? t('common.active', 'Active') : t('common.hidden', 'Hidden')}
-                      </span>
+                      </button>
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold text-[var(--text-secondary)]">
                       {Number(plan.duration_days || 0) > 0 && <span>{plan.duration_days} {t('subscription.days', 'days')}</span>}

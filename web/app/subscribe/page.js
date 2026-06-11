@@ -144,8 +144,8 @@ function SubscribeContent() {
   const isContactPlan = Boolean(selectedPlan?.contact_required);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] px-3 py-5 pb-28 text-[var(--text-primary)] sm:px-6 lg:px-10">
-      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-5">
+    <div className="min-h-screen w-full bg-[var(--bg-secondary)] px-2 py-5 pb-28 text-[var(--text-primary)] sm:px-4 lg:px-6">
+      <div className="flex w-full flex-col gap-5">
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
@@ -160,8 +160,8 @@ function SubscribeContent() {
           </div>
         </div>
 
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-7">
+        <section className="grid w-full gap-5 2xl:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="rounded-[24px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3 shadow-sm sm:p-5 lg:p-7">
             <div className="mb-6 flex items-start gap-4">
               <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
                 <LockKeyhole className="size-6" />
@@ -196,7 +196,7 @@ function SubscribeContent() {
                 </button>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {(status?.plans || []).map((plan) => (
                   <button
                     key={plan._id}
@@ -245,7 +245,7 @@ function SubscribeContent() {
           </div>
 
           {!loading && !isAlreadyActive && selectedPlan && (
-            <aside className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm sm:p-6 xl:sticky xl:top-24 xl:self-start">
+            <aside className="rounded-[24px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm sm:p-6 2xl:sticky 2xl:top-24 2xl:self-start">
               <h2 className="text-lg font-bold">{t('subscription.payTitle', isContactPlan ? 'Contact' : 'Payment')}</h2>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">
                 {isContactPlan
