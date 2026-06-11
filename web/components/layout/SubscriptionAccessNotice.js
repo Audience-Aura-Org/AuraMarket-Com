@@ -123,7 +123,8 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
     if (hideKey) {
       window.localStorage.setItem(hideKey, String(Date.now() + HIDE_MS));
     }
-    setHidden(true);
+    setNotice(null);
+    setHidden(false);
   };
 
   return (
