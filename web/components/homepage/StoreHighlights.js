@@ -78,7 +78,7 @@ export default function StoreHighlights({ title, data }) {
                 <div className="mt-4 space-y-4">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0">
-                      <h3 className="truncate font-[var(--font-poppins)] text-base font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-lg">
+                      <h3 translate="no" className="truncate font-[var(--font-poppins)] text-base font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-lg">
                         {vendor.store_name}
                       </h3>
                       <div className="flex items-center gap-2 mt-1 opacity-60">
@@ -93,7 +93,7 @@ export default function StoreHighlights({ title, data }) {
                     </Link>
                   </div>
 
-                  <p className="line-clamp-2 min-h-[2.5rem] font-[var(--font-poppins)] text-[12px] font-medium leading-relaxed text-[var(--text-secondary)] sm:text-[13px]">
+                  <p translate={vendor.description ? 'no' : undefined} className="line-clamp-2 min-h-[2.5rem] font-[var(--font-poppins)] text-[12px] font-medium leading-relaxed text-[var(--text-secondary)] sm:text-[13px]">
                     {vendor.description || t('overtime.vendorFallback', 'Discover premium products from this trusted seller.')}
                   </p>
 

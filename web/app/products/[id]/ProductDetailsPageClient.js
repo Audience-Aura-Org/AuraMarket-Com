@@ -318,7 +318,7 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
             </div>
 
             {/* Product name */}
-            <h1 className="text-2xl md:text-[2.5rem]  font-bold tracking-tighter text-[var(--text-primary)] leading-[1.08]">
+            <h1 translate="no" className="text-2xl md:text-[2.5rem]  font-bold tracking-tighter text-[var(--text-primary)] leading-[1.08]">
               {product.name}
             </h1>
 
@@ -418,7 +418,7 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
           {/* Short Description */}
           <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-8 space-y-4">
             <h2 className="text-xs md:text-sm  font-bold tracking-tight text-[var(--text-primary)]">{t('product.description')}</h2>
-            <p className="text-sm md:text-[15px] text-[var(--text-secondary)] leading-[1.8]">{product.description}</p>
+            <p translate="no" className="text-sm md:text-[15px] text-[var(--text-secondary)] leading-[1.8]">{product.description}</p>
           </div>
 
           {/* Reviews */}
@@ -548,7 +548,7 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-base  font-bold truncate tracking-tight">{vendor.store_name}</p>
+                      <p translate="no" className="text-base  font-bold truncate tracking-tight">{vendor.store_name}</p>
                       {vendor.verified && <CheckCircle2 className="size-4 text-[var(--accent)] shrink-0" />}
                     </div>
                     <div className="flex items-center gap-1 mt-1">
@@ -586,10 +586,10 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
           <div className="p-10 grid md:grid-cols-2 gap-16">
             {/* Left: Short + Long description */}
             <div className="space-y-6">
-              <p className="text-[15px] text-[var(--text-secondary)] leading-[1.8]">{product.description}</p>
+              <p translate="no" className="text-[15px] text-[var(--text-secondary)] leading-[1.8]">{product.description}</p>
               {product.long_description && (
                 <div className="pt-8 space-y-4">
-                  <p className="text-[15px] text-[var(--text-secondary)] leading-[1.8] whitespace-pre-wrap">{product.long_description}</p>
+                  <p translate="no" className="text-[15px] text-[var(--text-secondary)] leading-[1.8] whitespace-pre-wrap">{product.long_description}</p>
                 </div>
               )}
             </div>

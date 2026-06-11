@@ -5,7 +5,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English' },
-  { code: 'fr', label: 'French', nativeLabel: 'Français' },
+  { code: 'fr', label: 'French', nativeLabel: 'Francais' },
 ];
 
 const STORAGE_KEY = 'aura_language';
@@ -1138,6 +1138,105 @@ const AUTO_TEXT_TRANSLATIONS_FR = {
   'Batch delete': 'Suppression groupee',
   'Table view': 'Vue tableau',
   'Grid view': 'Vue grille',
+  'Stash': 'Panier',
+  'Your Stack': 'Votre panier',
+  'Estimated Total': 'Total estime',
+  'Cart Preview': 'Apercu panier',
+  'Inventory Empty': 'Panier vide',
+  'View Cart': 'Voir le panier',
+  'Checkout': 'Paiement',
+  'Wait time': 'Temps d attente',
+  'Security Matrix': 'Securite du compte',
+  'Change Passphrase': 'Changer le code',
+  'Legacy password controls are disabled.': 'Les mots de passe sont desactives.',
+  'Passwordless Session': 'Session sans mot de passe',
+  'Close Account': 'Fermer le compte',
+  'Storefront Architecture': 'Configuration boutique',
+  'Store Pickup Address Configuration': 'Adresse de retrait boutique',
+  'Identity Validation': 'Verification identite',
+  'Verified Identity': 'Identite verifiee',
+  'Your identity matrix has been fully synchronized and validated.': 'Votre identite a ete verifiee et validee.',
+  'Validation in Progress': 'Verification en cours',
+  'Our node controllers are reviewing your credentials.': 'Notre equipe examine vos documents.',
+  'Credential Type': 'Type de document',
+  'National Identification': 'Carte nationale d identite',
+  'Global Passport': 'Passeport',
+  'Driver Authorization': 'Permis de conduire',
+  'Biometric Scans': 'Documents d identite',
+  'Primary Face (Front)': 'Face avant',
+  'Secondary Face (Back)': 'Face arriere',
+  'Initialize Scan': 'Televerser',
+  'Followed Vendors': 'Vendeurs suivis',
+  'No Followed Vendors': 'Aucun vendeur suivi',
+  'Store Audience': 'Audience boutique',
+  'No Followers Yet': 'Aucun abonne',
+  'Signal Parameters': 'Parametres',
+  'Saved Items': 'Articles sauvegardes',
+  'Your wishlist is empty': 'Votre liste de favoris est vide',
+  'Order not found': 'Commande introuvable',
+  'Shipment activity': 'Activite expedition',
+  'Sales History': 'Historique de commande',
+  'No extra note for this update.': 'Aucune note pour cette mise a jour.',
+  'No carrier updates yet': 'Aucune mise a jour du transporteur',
+  'No carrier assigned yet': 'Aucun transporteur assigne',
+  'Open dispute': 'Ouvrir un litige',
+  'Describe the issue so our team can review.': 'Decrivez le probleme afin que notre equipe puisse examiner.',
+  'Reason': 'Motif',
+  'Asset not manifested': 'Article non recu',
+  'Registry mismatch': 'Article non conforme',
+  'Structural defects': 'Article defectueux',
+  'Protocol violation': 'Autre probleme',
+  'Comment': 'Commentaire',
+  'Leave a review': 'Laisser un avis',
+  'Request Submitted': 'Demande envoyee',
+  'Withdraw Funds': 'Retirer des fonds',
+  'AMOUNT (XAF)': 'MONTANT (XAF)',
+  'SELECT METHOD': 'CHOISIR LA METHODE',
+  'RECIPIENT DETAILS': 'DETAILS DU BENEFICIAIRE',
+  'COUNTRY': 'PAYS',
+  'REVIEW & CONFIRM': 'VERIFIER ET CONFIRMER',
+  'Your earnings': 'Vos revenus',
+  'Your Earnings': 'Vos revenus',
+  'Pickup': 'Retrait',
+  'Drop-off': 'Livraison',
+  'Pickup Location': 'Lieu de retrait',
+  'Delivery Destination': 'Destination',
+  'Recipient': 'Destinataire',
+  'Delivery Notes': 'Notes de livraison',
+  'Qty': 'Qte',
+  'New Shipment Status': 'Nouveau statut d expedition',
+  'Pending Approval': 'Approbation en attente',
+  'Assigned Courier': 'Coursier assigne',
+  'Picked Up': 'Recupere',
+  'In Transit': 'En route',
+  'Out For Delivery': 'En livraison',
+  'Delivered Successfully': 'Livre avec succes',
+  'Delivery Failed': 'Livraison echouee',
+  'Operational Note': 'Note operationnelle',
+  'Select failure reason': 'Choisir le motif d echec',
+  'Update Shipment': 'Mettre a jour l expedition',
+  'New Message': 'Nouveau message',
+  'Added to Stack': 'Ajoute au panier',
+  'Chats': 'Discussions',
+  'Story reply': 'Reponse a la story',
+  'Video': 'Video',
+  'Product': 'Produit',
+  'Frequency History': 'Historique',
+  'No Order Records': 'Aucune commande',
+  'Saved items': 'Articles sauvegardes',
+  'No saved items yet': 'Aucun article sauvegarde',
+  'Aura Assistant': 'Assistant Aura',
+  'Online': 'En ligne',
+  'Sort:': 'Trier :',
+  'Followed vendors': 'Vendeurs suivis',
+  'Select': 'Selectionner',
+  'Vendor': 'Vendeur',
+  'Price': 'Prix',
+  'Rating': 'Note',
+  'Featured': 'En vedette',
+  'Draft': 'Brouillon',
+  'Approved / Active': 'Approuve / actif',
+  'Disapproved / Archived': 'Refuse / archive',
 };
 
 const AUTO_ATTRIBUTE_TRANSLATIONS_FR = {
@@ -1159,7 +1258,15 @@ const AUTO_ATTRIBUTE_TRANSLATIONS_FR = {
 const shouldTranslateNodeParent = (parent) => {
   if (!parent || parent.nodeType !== 1) return false;
   const tag = parent.tagName?.toLowerCase();
-  return !['script', 'style', 'textarea', 'code', 'pre', 'noscript'].includes(tag);
+  if (['script', 'style', 'textarea', 'code', 'pre', 'noscript'].includes(tag)) return false;
+  return !parent.closest('[translate="no"], .notranslate, [data-no-translate], [data-aura-no-translate]');
+};
+
+const shouldTranslateElement = (element) => {
+  if (!element || element.nodeType !== 1) return false;
+  const tag = element.tagName?.toLowerCase();
+  if (['script', 'style', 'textarea', 'code', 'pre', 'noscript'].includes(tag)) return false;
+  return !element.closest('[translate="no"], .notranslate, [data-no-translate], [data-aura-no-translate]');
 };
 
 const preserveOuterSpacing = (text, translated) => {
@@ -1224,6 +1331,7 @@ export function LanguageProvider({ children }) {
 
     const translateAttributes = (element) => {
       if (!element || element.nodeType !== 1) return;
+      if (!shouldTranslateElement(element)) return;
 
       ['placeholder', 'title', 'aria-label'].forEach((attribute) => {
         if (!element.hasAttribute(attribute)) return;
