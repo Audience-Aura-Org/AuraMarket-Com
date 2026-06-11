@@ -144,10 +144,12 @@ function SubscriptionAccessNotice({ normalizedPath, isAuthRoute, isImmersiveChat
   const { t } = useLanguage();
   const user = useAuthStore((state) => state.user);
   const [notice, setNotice] = useState(null);
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
     const handleSubscriptionRequired = (event) => {
       setNotice(event.detail?.data || event.detail || null);
+      setHidden(false);
     };
 
     window.addEventListener('aura:subscription-required', handleSubscriptionRequired);
@@ -182,6 +184,7 @@ function SubscriptionAccessNotice({ normalizedPath, isAuthRoute, isImmersiveChat
           setNotice(data);
         } else {
           setNotice(null);
+          setHidden(false);
         }
       } catch {
         if (!cancelled) setNotice(null);
@@ -200,26 +203,44 @@ function SubscriptionAccessNotice({ normalizedPath, isAuthRoute, isImmersiveChat
 
   const role = notice.role || user?.role || 'vendor';
   const isGrace = notice.access_state === 'grace' || notice.grace;
+  const isVendor = role === 'vendor';
   const title = isGrace
     ? t('subscription.graceTitle', 'Subscription grace active')
     : t('subscription.limitedTitle', 'Limited access mode');
   const detail = isGrace
-    ? t('subscription.graceDetail', 'You can keep using your workspace during this grace period. Activate a package before it ends to keep full access.')
+    ? (isVendor
+        ? t('subscription.vendorGraceInline', 'Your vendor tools are available during grace. Activate a package to keep selling without interruption.')
+        : t('subscription.graceDetail', 'You can keep using your workspace during this grace period. Activate a package before it ends to keep full access.'))
     : t('subscription.limitedDetail', 'You can still view your dashboard, but subscription-gated actions are paused until you activate a package.');
 
   return (
-    <div className="fixed inset-x-3 bottom-[88px] z-[900] mx-auto max-w-3xl rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/95 p-3 shadow-2xl backdrop-blur md:bottom-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-sm font-bold text-[var(--text-primary)]">{title}</p>
-          <p className="mt-0.5 text-xs font-medium leading-5 text-[var(--text-secondary)]">{detail}</p>
-        </div>
+    <div className="fixed inset-x-2 top-2 z-[900] mx-auto max-w-5xl rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/95 p-2 shadow-xl backdrop-blur">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <span className={`size-2 shrink-0 rounded-full ${isGrace ? 'bg-amber-500' : 'bg-rose-500'} shadow-[0_0_0_4px_color-mix(in_srgb,currentColor_10%,transparent)]`} />
+        <button
+          type="button"
+          onClick={() => setHidden((value) => !value)}
+          className="min-w-0 flex-1 text-left"
+          aria-expanded={!hidden}
+        >
+          <p className="truncate text-[11px] font-black uppercase tracking-wide text-[var(--text-primary)] sm:text-xs">{title}</p>
+          {!hidden && (
+            <p className="mt-0.5 line-clamp-2 text-[11px] font-medium leading-4 text-[var(--text-secondary)] sm:text-xs sm:leading-5">{detail}</p>
+          )}
+        </button>
         <button
           type="button"
           onClick={() => router.push(`/subscribe?role=${encodeURIComponent(role)}`)}
-          className="h-10 shrink-0 rounded-2xl bg-[var(--accent)] px-4 text-xs font-bold text-white transition active:scale-95"
+          className="h-8 shrink-0 rounded-xl bg-[var(--accent)] px-3 text-[10px] font-bold text-white transition active:scale-95 sm:h-9 sm:px-4 sm:text-xs"
         >
           {t('subscription.subscribeCta', 'Subscribe')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setHidden(true)}
+          className="h-8 shrink-0 rounded-xl border border-[var(--glass-border)] px-2 text-[10px] font-bold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] active:scale-95 sm:px-3 sm:text-xs"
+        >
+          {t('common.hide', 'Hide')}
         </button>
       </div>
     </div>
