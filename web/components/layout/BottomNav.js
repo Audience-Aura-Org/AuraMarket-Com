@@ -43,14 +43,14 @@ export default function BottomNav() {
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const menu = isCustomer ? [
-    { label: t('nav.shop'), href: "/discovery?tab=discover", icon: Compass },
+    { label: t('nav.shop'), href: "/shop", icon: Compass },
     { label: t('nav.vendors'), href: "/discovery?tab=vendors", icon: Store },
     { label: t('nav.stories'), href: "/discovery?tab=status", icon: Activity },
     { label: t('nav.overtime'), href: "/overtime", icon: House },
     { label: t('nav.profile'), href: "/profile", icon: User }
   ] : [
     { label: t('nav.dashboard'), href: dashboardHref, icon: LayoutDashboard },
-    { label: t('nav.shop'), href: "/discovery?tab=discover", icon: Compass },
+    { label: t('nav.shop'), href: "/shop", icon: Compass },
     { label: t('nav.story'), href: "/vendor/stories", icon: Activity },
     { label: t('nav.overtime'), href: "/overtime", icon: House },
     { label: t('nav.profile'), href: "/profile", icon: User }
@@ -61,7 +61,7 @@ export default function BottomNav() {
     const itemTab = new URLSearchParams(itemQuery).get('tab');
 
     if (item.href === '/') return pathname === '/';
-    if (item.href === '/discovery?tab=discover' && isShopSurface) return true;
+    if (item.href === '/shop' && isShopSurface) return true;
 
     if (itemTab) {
       const currentTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
