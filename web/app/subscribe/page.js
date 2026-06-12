@@ -79,6 +79,10 @@ function SubscribeContent() {
     [status, selectedPlanId]
   );
 
+  const activeSubscription = status?.subscription || null;
+  const activePlan = activeSubscription?.plan_id || null;
+  const activePlanId = String(activePlan?._id || activeSubscription?.plan_id || '');
+
   const loadStatus = async () => {
     setLoading(true);
     try {
@@ -194,40 +198,69 @@ function SubscribeContent() {
               <div className="flex min-h-[280px] items-center justify-center">
                 <Loader2 className="size-7 animate-spin text-[var(--accent)]" />
               </div>
-            ) : isAlreadyActive ? (
-              <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/10 p-6">
-                <BadgeCheck className="mb-4 size-10 text-emerald-500" />
-                <h2 className="text-xl font-bold">{t('subscription.alreadyActive', 'Your subscription is active')}</h2>
-                <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                  {t('subscription.alreadyActiveDetail', 'You can continue to your dashboard and use your role features.')}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => router.replace(role === 'vendor' ? '/vendor/dashboard' : role === 'logistics' ? '/logistics/dashboard' : '/profile')}
-                  className="mt-5 rounded-2xl bg-[var(--text-primary)] px-5 py-3 text-sm font-bold text-[var(--bg-primary)]"
-                >
-                  {t('subscription.continueDashboard', 'Continue')}
-                </button>
-              </div>
             ) : (
+              <>
+              {isAlreadyActive && (
+              <div className="mb-5 rounded-3xl border border-emerald-500/20 bg-emerald-500/10 p-5">
+                <BadgeCheck className="mb-4 size-10 text-emerald-500" />
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold">{t('subscription.alreadyActive', 'Your subscription is active')}</h2>
+                    <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                      {t('subscription.activePlanDetail', 'Current package: {plan}', {
+                        plan: activePlan ? t(planTranslationKey(activePlan, 'name'), activePlan.name) : t('subscription.plan', 'Plan'),
+                      })}
+                    </p>
+                    {activeSubscription?.expires_at && (
+                      <p className="mt-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                        {t('subscription.expiresOn', 'Expires on {date}', {
+                          date: new Date(activeSubscription.expires_at).toLocaleDateString(),
+                        })}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.replace(role === 'vendor' ? '/vendor/dashboard' : role === 'logistics' ? '/logistics/dashboard' : '/profile')}
+                    className="rounded-2xl bg-[var(--text-primary)] px-5 py-3 text-sm font-bold text-[var(--bg-primary)]"
+                  >
+                    {t('subscription.continueDashboard', 'Continue')}
+                  </button>
+                </div>
+                <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                  {t('subscription.updateRoomDetail', 'You can keep your current package or choose another one below to update your access.')}
+                </p>
+              </div>
+              )}
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 {(status?.plans || []).map((plan) => (
+                  (() => {
+                    const isCurrentPlan = activePlanId && String(plan._id) === activePlanId;
+                    const isSelectedPlan = selectedPlan?._id === plan._id;
+                    return (
                   <button
                     key={plan._id}
                     type="button"
                     onClick={() => setSelectedPlanId(plan._id)}
                     className={`relative flex min-h-[360px] w-full flex-col rounded-3xl border p-5 text-left transition active:scale-[0.99] ${
-                      selectedPlan?._id === plan._id
+                      isSelectedPlan
                         ? 'border-[var(--accent)] bg-[var(--accent)]/5'
+                        : isCurrentPlan
+                          ? 'border-emerald-500/35 bg-emerald-500/5'
                         : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'
                     }`}
                   >
+                    {isCurrentPlan && (
+                      <span className="absolute left-4 top-4 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
+                        {t('subscription.currentPlan', 'Current plan')}
+                      </span>
+                    )}
                     {String(plan.slug || '').includes('standard') && (
-                      <span className="absolute right-4 top-4 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold text-white">
+                      <span className={`absolute right-4 top-4 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold text-white ${isCurrentPlan ? 'top-12' : ''}`}>
                         {t('subscription.mostPopular', 'Most popular')}
                       </span>
                     )}
-                    <div className="min-w-0 pr-20">
+                    <div className={`min-w-0 pr-20 ${isCurrentPlan ? 'pt-8' : ''}`}>
                       <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--accent)]">{planKicker(plan, t)}</p>
                       <h2 className="mt-1 text-xl font-bold">{t(planTranslationKey(plan, 'name'), plan.name)}</h2>
                       <p className="mt-2 text-sm font-medium leading-6 text-[var(--text-secondary)]">{t(planTranslationKey(plan, 'description'), plan.description)}</p>
@@ -249,20 +282,33 @@ function SubscribeContent() {
                       ))}
                     </div>
                     <span className="mt-auto inline-flex items-center gap-1 pt-5 text-xs font-black text-[var(--accent)]">
-                      {plan.contact_required ? t('subscription.contactUs', 'Contact us') : t('subscription.getStarted', 'Get started')}
+                      {isCurrentPlan
+                        ? t('subscription.keepCurrent', 'Current package')
+                        : isAlreadyActive
+                          ? t('subscription.updatePackage', 'Update package')
+                          : plan.contact_required
+                            ? t('subscription.contactUs', 'Contact us')
+                            : t('subscription.getStarted', 'Get started')}
                       <span aria-hidden="true">-&gt;</span>
                     </span>
                   </button>
+                    );
+                  })()
                 ))}
               </div>
+              </>
             )}
           </div>
 
-          {!loading && !isAlreadyActive && selectedPlan && (
+          {!loading && selectedPlan && (
             <aside className="rounded-[24px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm sm:p-6 2xl:sticky 2xl:top-24 2xl:self-start">
-              <h2 className="text-lg font-bold">{t('subscription.payTitle', isContactPlan ? 'Contact' : 'Payment')}</h2>
+              <h2 className="text-lg font-bold">
+                {isAlreadyActive ? t('subscription.updateTitle', 'Update package') : t('subscription.payTitle', isContactPlan ? 'Contact' : 'Payment')}
+              </h2>
               <p className="mt-1 text-sm text-[var(--text-secondary)]">
-                {isContactPlan
+                {isAlreadyActive
+                  ? t('subscription.updateDetail', 'Choose another package to extend or upgrade your subscription.')
+                  : isContactPlan
                   ? t('subscription.contactDetail', 'This package is handled directly by support so the offer can match your operation.')
                   : t('subscription.payDetail', 'Choose the method that is easiest for you.')}
               </p>
@@ -346,11 +392,15 @@ function SubscribeContent() {
                   <button
                     type="button"
                     onClick={pay}
-                    disabled={submitting}
+                    disabled={submitting || (activePlanId && String(selectedPlan._id) === activePlanId)}
                     className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-5 py-4 text-sm font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition active:scale-[0.98] disabled:opacity-60"
                   >
                     {submitting ? <Loader2 className="size-4 animate-spin" /> : <CreditCard className="size-4" />}
-                    {t('subscription.activateButton', 'Activate package')}
+                    {activePlanId && String(selectedPlan._id) === activePlanId
+                      ? t('subscription.alreadyCurrent', 'Already active')
+                      : isAlreadyActive
+                        ? t('subscription.updatePackage', 'Update package')
+                        : t('subscription.activateButton', 'Activate package')}
                   </button>
                 </>
               )}
