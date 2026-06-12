@@ -24,6 +24,8 @@ import {
 
 const getResponseData = (res) => res?.data?.data || {};
 
+const fulfilledValue = (result) => result?.status === 'fulfilled' ? result.value : null;
+
 const getOrderProductName = (order) => {
   const item = order?.products?.[0];
   return item?.name || item?.product_name || item?.product_id?.name || 'Product';
@@ -84,39 +86,45 @@ export default function VendorDashboard() {
           }
         };
 
-        const [productsRes, ordersRes, walletRes, vendorProfileRes, analyticsRes, subscriptionRes] = await Promise.all([
+        const [productsResult, ordersResult, walletResult, analyticsResult, subscriptionResult] = await Promise.allSettled([
           safeGet('/vendor/products'),
           safeGet('/vendor/orders'),
           safeGet('/wallet'),
-          safeGet('/vendor/me'),
           safeGet('/vendor/analytics'),
           api.get('/subscriptions/me', { params: { role: 'vendor' }, skipClientCache: true, silent: true }).catch(() => null),
         ]);
 
         if (isMounted) {
+          const productsRes = fulfilledValue(productsResult);
+          const ordersRes = fulfilledValue(ordersResult);
+          const walletRes = fulfilledValue(walletResult);
+          const analyticsRes = fulfilledValue(analyticsResult);
+          const subscriptionRes = fulfilledValue(subscriptionResult);
           const productsData = getResponseData(productsRes);
           const ordersData = getResponseData(ordersRes);
           const walletData = getResponseData(walletRes);
-          const vendorProfileData = getResponseData(vendorProfileRes);
           const analyticsData = getResponseData(analyticsRes);
           const subscriptionData = subscriptionRes?.data?.data || null;
 
-          if (productsRes.data.success) {
+          if (productsRes?.data?.success) {
             setProducts(productsData.products || analyticsData.top_products || []);
           }
-          if (ordersRes.data.success) {
+          if (ordersRes?.data?.success) {
             setOrders(ordersData.orders || analyticsData.recent_orders || []);
           }
-          if (walletRes.data.success) {
+          if (walletRes?.data?.success) {
             setWalletBalance(walletData.balance ?? analyticsData.stats?.wallet_balance ?? 0);
             setPendingEscrow(walletData.pending_escrow ?? analyticsData.stats?.pending_escrow ?? 0);
           }
-          if (vendorProfileRes.data.success) {
-            setPendingEscrow(vendorProfileData.escrow_balance ?? analyticsData.stats?.pending_escrow ?? 0);
-          }
-          if (analyticsRes.data.success) {
+          if (analyticsRes?.data?.success) {
             setAnalyticsStats(analyticsData.stats || null);
             setAnalyticsHistory(analyticsData.sales_history || []);
+            if (!productsRes?.data?.success) setProducts(analyticsData.top_products || []);
+            if (!ordersRes?.data?.success) setOrders(analyticsData.recent_orders || []);
+            if (!walletRes?.data?.success) {
+              setWalletBalance(analyticsData.stats?.wallet_balance ?? 0);
+              setPendingEscrow(analyticsData.stats?.pending_escrow ?? 0);
+            }
           }
           setSubscriptionStatus(subscriptionData);
           setLoading(false);
@@ -143,32 +151,40 @@ export default function VendorDashboard() {
   const handleRefresh = async () => {
     setLoading(true);
     try {
-      const [productsRes, ordersRes, walletRes, vendorProfileRes, analyticsRes, subscriptionRes] = await Promise.all([
+      const [productsResult, ordersResult, walletResult, analyticsResult, subscriptionResult] = await Promise.allSettled([
         api.get('/vendor/products'),
         api.get('/vendor/orders'),
         api.get('/wallet'),
-        api.get('/vendor/me'),
         api.get('/vendor/analytics'),
         api.get('/subscriptions/me', { params: { role: 'vendor' }, skipClientCache: true, silent: true }).catch(() => null),
       ]);
 
+      const productsRes = fulfilledValue(productsResult);
+      const ordersRes = fulfilledValue(ordersResult);
+      const walletRes = fulfilledValue(walletResult);
+      const analyticsRes = fulfilledValue(analyticsResult);
+      const subscriptionRes = fulfilledValue(subscriptionResult);
       const productsData = getResponseData(productsRes);
       const ordersData = getResponseData(ordersRes);
       const walletData = getResponseData(walletRes);
-      const vendorProfileData = getResponseData(vendorProfileRes);
       const analyticsData = getResponseData(analyticsRes);
       const subscriptionData = subscriptionRes?.data?.data || null;
 
-      if (productsRes.data.success) setProducts(productsData.products || analyticsData.top_products || []);
-      if (ordersRes.data.success) setOrders(ordersData.orders || analyticsData.recent_orders || []);
-      if (walletRes.data.success) {
+      if (productsRes?.data?.success) setProducts(productsData.products || analyticsData.top_products || []);
+      if (ordersRes?.data?.success) setOrders(ordersData.orders || analyticsData.recent_orders || []);
+      if (walletRes?.data?.success) {
         setWalletBalance(walletData.balance ?? analyticsData.stats?.wallet_balance ?? 0);
         setPendingEscrow(walletData.pending_escrow ?? analyticsData.stats?.pending_escrow ?? 0);
       }
-      if (vendorProfileRes.data.success) setPendingEscrow(vendorProfileData.escrow_balance ?? analyticsData.stats?.pending_escrow ?? 0);
-      if (analyticsRes.data.success) {
+      if (analyticsRes?.data?.success) {
         setAnalyticsStats(analyticsData.stats || null);
         setAnalyticsHistory(analyticsData.sales_history || []);
+        if (!productsRes?.data?.success) setProducts(analyticsData.top_products || []);
+        if (!ordersRes?.data?.success) setOrders(analyticsData.recent_orders || []);
+        if (!walletRes?.data?.success) {
+          setWalletBalance(analyticsData.stats?.wallet_balance ?? 0);
+          setPendingEscrow(analyticsData.stats?.pending_escrow ?? 0);
+        }
       }
       setSubscriptionStatus(subscriptionData);
       

@@ -146,6 +146,10 @@ export default function VendorWalletPage() {
   const totalOut = transactions
     .filter(t => t.type === 'withdrawal' && t.status === 'completed')
     .reduce((s, t) => s + t.amount, 0);
+  const completedWithdrawn = withdrawalRequests
+    .filter((wr) => ['completed', 'paid', 'successful'].includes(String(wr.status || '').toLowerCase()))
+    .reduce((sum, wr) => sum + Number(wr.amount || 0), 0);
+  const withdrawnTotal = completedWithdrawn || totalOut;
 
   return (
     <>
@@ -189,7 +193,7 @@ export default function VendorWalletPage() {
           <StatCard label="Available" value={`${fmt(balance)}`} icon="account_balance_wallet" color="emerald" sub="XAF Ready" />
           <StatCard label="In Escrow" value={`${fmt(escrow)}`} icon="lock_clock" color="amber" sub="Pending Delivery" />
           <StatCard label="Total Earned" value={`${fmt(totalEarned)}`} icon="trending_up" color="fuchsia" sub="Total earned" />
-          <StatCard label="Withdrawn" value={`${fmt(totalOut)}`} icon="arrow_outward" color="blue" sub="Total" />
+          <StatCard label="Withdrawn" value={`${fmt(withdrawnTotal)}`} icon="arrow_outward" color="blue" sub="Successful payouts" />
         </div>
 
         {/* Actions */}

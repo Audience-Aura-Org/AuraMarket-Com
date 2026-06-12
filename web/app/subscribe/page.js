@@ -348,8 +348,8 @@ function SubscribeContent() {
                     >
                       <Smartphone className="size-5 text-[var(--accent)]" />
                       <div>
-                        <p className="text-sm font-bold">PayUnit</p>
-                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.payunitHelp', 'Primary MTN Mobile Money and Orange Money collection.')}</p>
+                        <p className="text-sm font-bold">{t('subscription.payunitTitle', 'PayUnit - primary Cameroon')}</p>
+                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.payunitHelp', 'Primary Cameroon collection for MTN Mobile Money and Orange Money.')}</p>
                       </div>
                     </button>
                     <button
@@ -359,8 +359,8 @@ function SubscribeContent() {
                     >
                       <Smartphone className="size-5 text-[var(--accent)]" />
                       <div>
-                        <p className="text-sm font-bold">{t('subscription.mobileMoney', 'Mobile money / card')}</p>
-                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.collectionFee', 'Collection fee is added only for external collection.')}</p>
+                        <p className="text-sm font-bold">{t('subscription.eversendTitle', 'Eversend - multi-country')}</p>
+                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.eversendHelp', 'Multi-country mobile money and card collection where available.')}</p>
                       </div>
                     </button>
                   </div>
