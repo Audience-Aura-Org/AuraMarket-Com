@@ -61,6 +61,7 @@ const subscribe = async (req, res, next) => {
       { user_id: req.user._id, 'subscription.endpoint': endpoint },
       { 
         user_id: req.user._id, 
+        channel: 'web',
         subscription, 
         device_type: device_type || 'mobile' 
       },
@@ -69,6 +70,75 @@ const subscribe = async (req, res, next) => {
 
     console.log(`[PWA] Push subscription ${existing ? 'refreshed' : 'saved'} for ${req.user._id} (${device_type || 'mobile'}) endpoint=${endpoint.slice(-24)}`);
     res.status(200).json({ success: true, message: 'Subscription stabilized.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @route   POST /api/push/native-token
+ * @desc    Save a user's native Android FCM token
+ * @access  Private
+ */
+const saveNativeToken = async (req, res, next) => {
+  try {
+    const { token, platform = 'android', device_type = 'android' } = req.body;
+    const cleanToken = String(token || '').trim();
+
+    if (!cleanToken || platform !== 'android') {
+      return res.status(400).json({ success: false, message: 'Invalid Android push token.' });
+    }
+
+    // A native token belongs to one active account. When the same phone signs
+    // into another account, old ownership is removed so old accounts stop
+    // sending notifications to this device.
+    await PushSubscription.deleteMany({
+      fcm_token: cleanToken,
+      user_id: { $ne: req.user._id },
+    });
+
+    await PushSubscription.findOneAndUpdate(
+      { user_id: req.user._id, fcm_token: cleanToken },
+      {
+        user_id: req.user._id,
+        channel: 'android',
+        fcm_token: cleanToken,
+        device_type,
+        subscription: {
+          endpoint: `fcm:${cleanToken}`,
+          keys: {
+            p256dh: 'native-fcm',
+            auth: 'native-fcm',
+          },
+        },
+      },
+      { upsert: true, returnDocument: 'after', runValidators: true }
+    );
+
+    console.log(`[FCM] Android push token saved for ${req.user._id} token=${cleanToken.slice(-16)}`);
+    res.status(200).json({ success: true, message: 'Android push token saved.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @route   DELETE /api/push/native-token
+ * @desc    Remove a user's native Android FCM token
+ * @access  Private
+ */
+const removeNativeToken = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    const cleanToken = String(token || '').trim();
+    if (!cleanToken) return res.status(200).json({ success: true, unchanged: true });
+
+    await PushSubscription.deleteOne({
+      user_id: req.user._id,
+      fcm_token: cleanToken,
+    });
+
+    res.status(200).json({ success: true, message: 'Android push token removed.' });
   } catch (error) {
     next(error);
   }
@@ -111,6 +181,8 @@ const purgeAll = async (req, res, next) => {
 module.exports = {
   getVapidPublicKey,
   subscribe,
+  saveNativeToken,
+  removeNativeToken,
   unsubscribe,
   purgeAll
 };

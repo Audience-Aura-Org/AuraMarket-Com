@@ -4,6 +4,7 @@ import api from '../services/api';
 import socketService from '../services/socket';
 import { clearStoredAuthToken, setStoredAuthToken } from '../services/authStorage';
 import { unsubscribeCurrentPushEndpoint } from '../lib/pwa-helper';
+import { unregisterNativeAndroidPushToken } from '../lib/native-push';
 
 let fetchMeInFlight = null;
 let lastFetchMeFailureAt = 0;
@@ -12,6 +13,7 @@ const FETCH_ME_FAILURE_COOLDOWN_MS = 30000;
 const clearClientOnlyState = async () => {
   if (typeof window === 'undefined') return;
   await unsubscribeCurrentPushEndpoint({ removeBrowserSubscription: false }).catch(() => {});
+  await unregisterNativeAndroidPushToken().catch(() => {});
   await clearStoredAuthToken();
   localStorage.removeItem('aura-auth-storage');
   sessionStorage.removeItem('onboarding_skipped');

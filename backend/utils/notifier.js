@@ -6,6 +6,7 @@ const {
 } = require('../config/env');
 const { sendEmail: dispatchEmail } = require('./emailService');
 const { enqueueJob } = require('../services/jobQueue.service');
+const { sendAndroidPush } = require('../services/fcm.service');
 
 // ── VAPID Keys Calibration ──────────────────────────────────────────────────
 // These keys must match the ones in pwa-helper.js on the frontend
@@ -189,8 +190,12 @@ const sendNotification = async (app, recipientId, data) => {
       try {
         const PushSubscription = require('../models/PushSubscription.model');
         const subs = await PushSubscription.find({ user_id: recipientId });
+        const webSubs = subs.filter((sub) => sub.channel !== 'android' && sub.subscription?.endpoint && !String(sub.subscription.endpoint).startsWith('fcm:'));
+        const androidTokens = subs
+          .filter((sub) => sub.channel === 'android' && sub.fcm_token)
+          .map((sub) => sub.fcm_token);
 
-        if (subs.length > 0) {
+        if (webSubs.length > 0 || androidTokens.length > 0) {
           const notificationUrl = metadata?.link || '/discovery';
 
           // Use sender avatar for chat notifications, app logo for everything else
@@ -219,7 +224,7 @@ const sendNotification = async (app, recipientId, data) => {
             type
           });
 
-          const results = await Promise.allSettled(subs.map(sub => 
+          const results = await Promise.allSettled(webSubs.map(sub => 
             webPush.sendNotification(sub.subscription, payload, WEB_PUSH_OPTIONS)
               .catch(async (e) => {
                 if (e.statusCode === 410 || e.statusCode === 404 || e.statusCode === 401) {
@@ -231,7 +236,28 @@ const sendNotification = async (app, recipientId, data) => {
           ));
           const delivered = results.filter(result => result.status === 'fulfilled').length;
           const failed = results.length - delivered;
-          console.log(`📱 PWA Push Signal Broadcasted to ${delivered}/${subs.length} connections for ${recipientId}${failed ? ` (${failed} failed)` : ''}`);
+          console.log(`📱 PWA Push Signal Broadcasted to ${delivered}/${webSubs.length} connections for ${recipientId}${failed ? ` (${failed} failed)` : ''}`);
+
+          if (androidTokens.length > 0) {
+            const androidResult = await sendAndroidPush(androidTokens, {
+              title: localizedTitle,
+              body: localizedMessage,
+              image: (type === 'message' && senderAvatar) ? senderAvatar : undefined,
+              url: notificationUrl,
+              type,
+              notification_id: notification._id.toString(),
+              sender_id: senderId,
+              senderId,
+            });
+
+            if (androidResult.invalidTokens?.length) {
+              await PushSubscription.deleteMany({
+                fcm_token: { $in: androidResult.invalidTokens },
+              }).catch(() => {});
+            }
+
+            console.log(`📲 Android Push delivered to ${androidResult.sent}/${androidTokens.length} tokens for ${recipientId}${androidResult.failed ? ` (${androidResult.failed} failed)` : ''}`);
+          }
         } else {
           console.log(`[PWA] No saved push subscriptions for ${recipientId}; notification stored only (${type}).`);
         }

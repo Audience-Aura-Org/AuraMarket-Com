@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 import { useAuthStore } from '@/hooks/useAuth';
+import { registerNativeAndroidPush } from '@/lib/native-push';
 
 /**
  * PWAInit — Secure Background Channel Lifecycle
@@ -33,9 +34,10 @@ export default function PWAInit() {
     syncInFlightRef.current = true;
     try {
       console.log('[PWAInit] Syncing push registration...');
+      const nativeResult = await registerNativeAndroidPush();
       const result = await subscribeToPush({ promptIfNeeded });
 
-      if (result?.success) {
+      if (nativeResult?.success || result?.success) {
         subscribedRef.current = true;
         authErrorRef.current = false;
         lastSyncRef.current = { userId: user?._id, at: Date.now() };
