@@ -92,7 +92,7 @@ export default function AdminWithdrawalsPage() {
   const [search, setSearch] = useState('');
   const [processing, setProc] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [approveGateway, setApproveGateway] = useState('eversend');
+  const [approveGateway, setApproveGateway] = useState('payunit');
   const [currentPage, setCurrentPage] = useState(1);
   const [brokenRequesterImages, setBrokenRequesterImages] = useState({});
   const itemsPerPage = 10;
@@ -135,7 +135,7 @@ export default function AdminWithdrawalsPage() {
 
   useEffect(() => {
     if (!selected) return;
-    setApproveGateway('eversend');
+    setApproveGateway('payunit');
   }, [selected]);
 
   const handleApprove = async (id) => {
@@ -179,6 +179,22 @@ export default function AdminWithdrawalsPage() {
       setSelected((prev) => (prev ? { ...prev, ...res.data.data?.withdrawal } : null));
     } catch (e) {
       toast.error(e?.response?.data?.message || 'Recheck failed.');
+    } finally {
+      setProc(null);
+    }
+  };
+
+  const handleCompleteManual = async (id) => {
+    setProc('complete');
+    try {
+      const res = await api.post(`/withdrawals/admin/${id}/complete`, {
+        note: 'PayUnit cashout confirmed from admin dashboard.',
+      });
+      toast.success(res.data.message || 'Withdrawal marked completed.');
+      load();
+      setSelected((prev) => (prev ? { ...prev, ...res.data.data?.withdrawal } : null));
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Could not complete withdrawal.');
     } finally {
       setProc(null);
     }
@@ -540,6 +556,7 @@ export default function AdminWithdrawalsPage() {
                     <p className="text-[10px] font-medium text-[var(--text-secondary)]">Payout gateway</p>
                     <div className="grid grid-cols-2 gap-2">
                       {[
+                        { id: 'payunit', label: 'PayUnit' },
                         { id: 'eversend', label: 'Eversend' },
                       ].map((g) => (
                         <button
@@ -582,19 +599,36 @@ export default function AdminWithdrawalsPage() {
                   </>
                 )}
                 {(selected.status === 'approved' || selected.status === 'processing_error') && (
-                  <button
-                    type="button"
-                    onClick={() => handleRecheck(selected._id)}
-                    disabled={!!processing}
-                    className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-[12px] font-semibold text-white disabled:opacity-50"
-                  >
-                    {processing === 'recheck' ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <RotateCcw className="size-4" />
+                  <div className="space-y-2">
+                    {selected.payoutGateway === 'payunit' && selected.status === 'approved' && (
+                      <button
+                        type="button"
+                        onClick={() => handleCompleteManual(selected._id)}
+                        disabled={!!processing}
+                        className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 text-[12px] font-semibold text-white disabled:opacity-50"
+                      >
+                        {processing === 'complete' ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="size-4" />
+                        )}
+                        Mark PayUnit cashout complete
+                      </button>
                     )}
-                    Sync status
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRecheck(selected._id)}
+                      disabled={!!processing}
+                      className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 text-[12px] font-semibold text-white disabled:opacity-50"
+                    >
+                      {processing === 'recheck' ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <RotateCcw className="size-4" />
+                      )}
+                      Sync status
+                    </button>
+                  </div>
                 )}
               </div>
             </motion.div>

@@ -70,7 +70,7 @@ function SubscribeContent() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState(null);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
-  const [method, setMethod] = useState('wallet');
+  const [method, setMethod] = useState('payunit');
   const [phone, setPhone] = useState(user?.phone || '');
   const [submitting, setSubmitting] = useState(false);
 
@@ -111,7 +111,7 @@ function SubscribeContent() {
       router.push('/contact');
       return;
     }
-    if (method === 'eversend' && !phone.trim()) {
+    if (['payunit', 'eversend'].includes(method) && !phone.trim()) {
       toast.error(t('subscription.phoneRequired', 'Phone number is required.'));
       return;
     }
@@ -125,7 +125,8 @@ function SubscribeContent() {
         currency: selectedPlan.currency || 'XAF',
         phone,
         country: 'CM',
-        redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=subscription&role=${encodeURIComponent(role)}`,
+        provider: method === 'payunit' ? 'CM_MTNMOMO' : undefined,
+        redirect_url: `${window.location.origin}/wallet/verify?gateway=${method}&type=subscription&role=${encodeURIComponent(role)}`,
       });
 
       if (method === 'wallet') {
@@ -138,7 +139,7 @@ function SubscribeContent() {
 
       const ref = res.data?.data?.reference;
       if (ref) {
-        router.push(`/wallet/verify?gateway=eversend&type=subscription&ref=${encodeURIComponent(ref)}`);
+        router.push(`/wallet/verify?gateway=${method}&type=subscription&ref=${encodeURIComponent(ref)}`);
       } else {
         toast.success(t('subscription.requestSent', 'Payment request sent.'));
       }
@@ -296,6 +297,17 @@ function SubscribeContent() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => setMethod('payunit')}
+                      className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'payunit' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
+                    >
+                      <Smartphone className="size-5 text-[var(--accent)]" />
+                      <div>
+                        <p className="text-sm font-bold">PayUnit</p>
+                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.payunitHelp', 'Primary MTN Mobile Money and Orange Money collection.')}</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setMethod('eversend')}
                       className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'eversend' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
                     >
@@ -307,7 +319,7 @@ function SubscribeContent() {
                     </button>
                   </div>
 
-                  {method === 'eversend' && (
+                  {['payunit', 'eversend'].includes(method) && (
                     <label className="mt-4 block">
                       <span className="text-xs font-bold text-[var(--text-secondary)]">{t('subscription.phone', 'Phone number')}</span>
                       <input

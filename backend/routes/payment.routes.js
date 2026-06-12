@@ -21,11 +21,16 @@ const {
   eversendGetTransactions,
   eversendPayoutBeneficiary,
   failCheckoutPayment,
+  payunitInitialize,
+  payunitVerify,
+  payunitRecheck,
+  payunitWebhook,
 } = require('../controllers/payment.controller');
 
 // ── Webhooks — PUBLIC (must come BEFORE protect middleware) ──────────────────
 router.post('/webhook', handleWebhook);
 router.post('/eversend/webhook', eversendWebhook);
+router.post('/payunit/webhook', payunitWebhook);
 
 // ── Protected routes ─────────────────────────────────────────────────────────
 router.use(protect);
@@ -37,6 +42,11 @@ router.post('/checkout/failed', failCheckoutPayment);
 // Paystack
 router.post('/initialize', initializePayment);
 router.get('/verify/:reference', verifyPayment);
+
+// Eversend
+router.post('/payunit/initialize', payunitInitialize);
+router.get('/payunit/verify/:reference', payunitVerify);
+router.get('/payunit/recheck/:reference', payunitRecheck);
 
 // Eversend
 router.get('/eversend/wallets', eversendGetWallets);

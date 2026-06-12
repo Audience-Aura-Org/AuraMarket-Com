@@ -99,10 +99,10 @@ export default function WalletPage() {
   
   // Deposit Workflow State
   const [depositStep, setDepositStep] = useState('amount'); // 'amount' | 'phone' | 'processing' | 'result'
-  const [depositGateway, setDepositGateway] = useState('eversend');
+  const [depositGateway, setDepositGateway] = useState('payunit');
   const [depositPhone, setDepositPhone] = useState(user?.phone || '');
   const [depositNetwork, setDepositNetwork] = useState('CM');
-  const [depositService, setDepositService] = useState('');
+  const [depositService, setDepositService] = useState('CM_MTNMOMO');
   const [depositRef, setDepositRef] = useState(null);
   const [depositStatus, setDepositStatus] = useState('pending');
   const [depositMessage, setDepositMessage] = useState('');
@@ -138,7 +138,7 @@ export default function WalletPage() {
         // Runs in background — does not block UI rendering.
         const pending = txList.filter(
           tx => tx.status === 'pending'
-            && tx.gateway === 'eversend'
+            && ['eversend', 'payunit'].includes(tx.gateway)
             && tx.type === 'deposit'
             && !tx.gateway_transaction_id?.startsWith('SBX-') // skip sandbox test transactions
             && (Date.now() - new Date(tx.createdAt).getTime()) < 30 * 60 * 1000
@@ -148,7 +148,7 @@ export default function WalletPage() {
             let anyChanged = false;
             for (const tx of pending) {
               try {
-                const endpoint = `/payments/eversend/recheck/${tx.reference}`;
+                const endpoint = `/payments/${tx.gateway}/recheck/${tx.reference}`;
                 const r = await api.get(endpoint);
                 if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') {
                   anyChanged = true;
@@ -252,6 +252,7 @@ export default function WalletPage() {
         currency: 'XAF',
         phone: depositPhone,
         country: depositNetwork,
+        provider: depositGateway === 'payunit' ? depositService : undefined,
       };
       
       const res = await initiateCollection(depositGateway, payload);
@@ -286,7 +287,7 @@ export default function WalletPage() {
               try {
                 const pendingRef = ref;
                 if (pendingRef) {
-                  const endpoint = `/payments/eversend/recheck/${pendingRef}`;
+                const endpoint = `/payments/${depositGateway}/recheck/${pendingRef}`;
                   const r = await api.get(endpoint);
                   if (r.data?.status === 'SUCCESSFUL') {
                     setDepositStatus('success');
@@ -342,7 +343,7 @@ export default function WalletPage() {
     if (!depositRef) return;
     setRecheckingDeposit(true);
     try {
-      const endpoint = `/payments/eversend/recheck/${depositRef}`;
+      const endpoint = `/payments/${depositGateway}/recheck/${depositRef}`;
       const res = await api.get(endpoint);
       const { status, data, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
@@ -368,7 +369,7 @@ export default function WalletPage() {
       // Reset ONLY if we're not mid-transaction
       if (!['processing'].includes(depositStep)) {
         setDepositStep('amount');
-        setDepositGateway('eversend');
+        setDepositGateway('payunit');
         setDepositStatus('pending');
         setDepositReason('');
         setDepositRef(null);
@@ -383,11 +384,11 @@ export default function WalletPage() {
   const handleRecheckTx = async (tx) => {
     setRecheckingTxId(tx._id);
     try {
-      if (tx.gateway !== 'eversend') {
-        showToast('This legacy gateway is no longer supported for recheck.', 'error');
+      if (!['eversend', 'payunit'].includes(tx.gateway)) {
+        showToast('This gateway is not supported for recheck.', 'error');
         return;
       }
-      const endpoint = `/payments/eversend/recheck/${tx.reference}`;
+      const endpoint = `/payments/${tx.gateway}/recheck/${tx.reference}`;
       const res = await api.get(endpoint);
       const { status, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
@@ -512,7 +513,7 @@ export default function WalletPage() {
                       const isCredit = ['deposit', 'refund', 'payout'].includes(tx.type);
                       return (
                         <div key={tx._id || i} className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
-                          tx.status === 'pending' && tx.gateway === 'eversend' && tx.type === 'deposit'
+                          tx.status === 'pending' && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit'
                             ? 'border-amber-500/30 bg-amber-500/5'
                             : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30'
                         }`}>
@@ -523,7 +524,7 @@ export default function WalletPage() {
                             <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
                             <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
                             {/* Inline recheck for stuck pending eversend deposits */}
-                            {['pending', 'failed'].includes(tx.status) && tx.gateway === 'eversend' && tx.type === 'deposit' && (
+                            {['pending', 'failed'].includes(tx.status) && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit' && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleRecheckTx(tx); }}
                                 disabled={recheckingTxId === tx._id}
@@ -594,6 +595,7 @@ export default function WalletPage() {
                            <label className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-30 ml-1">Deposit gateway</label>
                            <div className="grid grid-cols-2 gap-2">
                               {[
+                                { id: 'payunit', label: 'PayUnit', sub: 'MTN / Orange', min: 'Primary' },
                                 { id: 'eversend', label: 'Eversend', sub: 'Multi-country', min: 'Min 500' },
                               ].map(node => (
                                 <button
@@ -665,9 +667,8 @@ export default function WalletPage() {
                              <label className="text-[10px] lg:text-[12px]  font-semibold tracking-tight opacity-30 ml-1">Network</label>
                              <div className="grid grid-cols-3 gap-2">
                                 {[
-                                   { id: '', label: 'Auto' },
-                                   { id: 'MTN', label: 'MTN' },
-                                   { id: 'ORANGE', label: 'Orange' },
+                                   { id: 'CM_MTNMOMO', label: 'MTN' },
+                                   { id: 'CM_ORANGE', label: 'Orange' },
                                 ].map(node => (
                                   <button 
                                     key={node.id || 'auto'} 

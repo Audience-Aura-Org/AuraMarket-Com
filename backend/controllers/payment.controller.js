@@ -6,6 +6,7 @@ const Order = require('../models/Order.model');
 const Cart = require('../models/Cart.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const eversend = require('../services/eversend.service');
+const payunit = require('../services/payunit.service');
 const { sendNotification } = require('../utils/notifier');
 const { getWebUrl } = require('../utils/url');
 const mongoose = require('mongoose');
@@ -157,7 +158,7 @@ const rejectPendingCheckoutTransactions = async (userId, orderIds = [], reason =
 
   const filter = {
     user_id: userId,
-    gateway: 'eversend',
+    gateway: { $in: ['eversend', 'payunit'] },
     status: 'pending',
     'metadata.checkout_key': checkoutKey,
   };
@@ -290,6 +291,188 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
     throw error;
   } finally {
     if (!externalSession) session.endSession();
+  }
+};
+
+const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, paymentGateway) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    transaction.status = 'completed';
+    transaction.gateway_response = gatewayData;
+    await transaction.save({ session });
+
+    if (isSubscriptionTransaction(transaction)) {
+      await settleSubscriptionTransaction(transaction, session, app);
+    } else if (transaction.order_ids?.length > 0) {
+      await settleOrdersInSession(transaction.user_id, transaction.order_ids, app, session, true, webUrl, paymentGateway);
+    } else {
+      await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
+    }
+
+    await session.commitTransaction();
+    if (!isSubscriptionTransaction(transaction) && !(transaction.order_ids?.length > 0)) {
+      emitWalletCredit(app, transaction);
+    }
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
+  }
+};
+
+const payunitInitialize = async (req, res) => {
+  try {
+    let { amount, currency = 'XAF', phone, country = 'CM', provider = 'CM_MTNMOMO', order_ids, redirect_url: customRedirect } = req.body || {};
+    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
+    const netAmount = checkoutAmount ?? Number(amount || 0);
+    const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'payunit', currency);
+
+    if (!feeBreakdown.netAmount || feeBreakdown.netAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid amount.' });
+    }
+    if (String(currency).toUpperCase() !== 'XAF') {
+      return res.status(400).json({ success: false, message: 'PayUnit currently supports XAF collections only.' });
+    }
+
+    const transactionRef = payunit.cleanTransactionId(`AURAPU${Date.now()}${String(req.user._id).slice(-6)}`);
+    const webUrl = getWebUrl(req) || process.env.WEB_CLIENT_URL;
+    const returnUrl = customRedirect || `${webUrl}/wallet/verify?gateway=payunit&ref=${transactionRef}`;
+    const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get('host')}`}/api/v1/payments/payunit/webhook`;
+
+    const init = await payunit.initializePayment({
+      amount: feeBreakdown.grossAmount,
+      currency,
+      transactionId: transactionRef,
+      returnUrl,
+      notifyUrl,
+      country,
+    });
+
+    let direct = null;
+    if (phone) {
+      direct = await payunit.makeMobilePayment({
+        amount: feeBreakdown.grossAmount,
+        currency,
+        transactionId: transactionRef,
+        returnUrl,
+        notifyUrl,
+        phone,
+        provider,
+      });
+    }
+
+    const gatewayData = direct?.data || init?.data || {};
+    await Transaction.create({
+      user_id: req.user._id,
+      type: 'deposit',
+      amount: feeBreakdown.netAmount,
+      currency,
+      reference: transactionRef,
+      gateway_transaction_id: gatewayData.transaction_id || transactionRef,
+      status: 'pending',
+      gateway: 'payunit',
+      order_ids: order_ids || [],
+      description: order_ids?.length > 0
+        ? `Checkout payment for ${order_ids.length} order(s) via PayUnit (${currency})`
+        : `Wallet deposit via PayUnit (${currency})`,
+      gateway_response: { initialize: init?.raw, makepayment: direct?.raw || null },
+      metadata: {
+        net_amount: feeBreakdown.netAmount,
+        collection_fee: feeBreakdown.collectionFee,
+        gross_amount: feeBreakdown.grossAmount,
+        provider,
+        phone: phone ? payunit.normalizePhone(phone, country) : null,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: phone ? 'PayUnit collection request sent.' : 'PayUnit payment initialized.',
+      data: {
+        checkout_url: gatewayData.transaction_url || init?.data?.transaction_url || returnUrl,
+        reference: transactionRef,
+        transaction_id: gatewayData.transaction_id || transactionRef,
+        amount: feeBreakdown.netAmount,
+        collection_fee: feeBreakdown.collectionFee,
+        gross_amount: feeBreakdown.grossAmount,
+      },
+    });
+  } catch (error) {
+    console.error('[PayUnit Initialize]', error.response?.data || error.message);
+    return res.status(error.response?.status || 500).json({
+      success: false,
+      message: error.response?.data?.message || error.message || 'PayUnit payment initialization failed.',
+      detail: error.response?.data,
+    });
+  }
+};
+
+const payunitVerify = async (req, res) => {
+  try {
+    const { reference } = req.params;
+    const transaction = await Transaction.findOne({ reference, gateway: 'payunit' });
+    if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+    if (transaction.status === 'completed') {
+      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed.' });
+    }
+    if (transaction.status === 'failed') {
+      return res.status(400).json({ success: false, status: 'FAILED', message: 'Payment failed.', reason: transaction.gateway_response?.message });
+    }
+
+    const result = await payunit.getPaymentStatus(transaction.reference);
+    const data = result?.data || {};
+    const status = payunit.normalizeStatus(data);
+
+    if (status === 'SUCCESSFUL') {
+      await settleGatewayTransaction(transaction, result.raw || data, req.app, getWebUrl(req), 'payunit');
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESSFUL',
+        message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed.',
+        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+      });
+    }
+
+    if (status === 'FAILED') {
+      transaction.status = 'failed';
+      transaction.gateway_response = result.raw || data;
+      await transaction.save();
+      if (transaction.order_ids?.length) await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
+      return res.status(400).json({ success: false, status: 'FAILED', message: data?.message || 'PayUnit payment failed.', reason: data?.message });
+    }
+
+    return res.status(200).json({ success: true, status: 'PENDING', message: 'Awaiting PayUnit confirmation.' });
+  } catch (error) {
+    console.error('[PayUnit Verify]', error.response?.data || error.message);
+    return res.status(200).json({ success: true, status: 'PENDING', message: 'PayUnit verification is temporarily unavailable.' });
+  }
+};
+
+const payunitWebhook = async (req, res) => {
+  try {
+    const event = req.body || {};
+    const data = event.data || event;
+    const reference = data.transaction_id || data.purchaseRef || data.id;
+    if (!reference) return res.status(200).send('OK');
+
+    const transaction = await Transaction.findOne({ reference, gateway: 'payunit' });
+    if (!transaction) return res.status(200).send('OK');
+
+    const status = payunit.normalizeStatus(data);
+    if (status === 'SUCCESSFUL' && transaction.status !== 'completed') {
+      await settleGatewayTransaction(transaction, event, req.app, getWebUrl(req), 'payunit');
+    } else if (status === 'FAILED' && transaction.status !== 'failed') {
+      transaction.status = 'failed';
+      transaction.gateway_response = event;
+      await transaction.save();
+      if (transaction.order_ids?.length) await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
+    }
+    return res.status(200).send('OK');
+  } catch (error) {
+    console.error('[PayUnit Webhook]', error);
+    return res.status(500).send('Internal Server Error');
   }
 };
 
@@ -1125,6 +1308,10 @@ module.exports = {
   // Gateway registry endpoint
   listGateways,
   failCheckoutPayment,
+  payunitInitialize,
+  payunitVerify,
+  payunitRecheck: payunitVerify,
+  payunitWebhook,
   // Paystack
   initializePayment,
   verifyPayment,

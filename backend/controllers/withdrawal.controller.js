@@ -21,7 +21,8 @@ const crypto = require('crypto');
 
 const generateTxRef = () => `AURA-WD-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 const VALID_WITHDRAWAL_METHODS = ['momo', 'bank'];
-const VALID_PAYOUT_GATEWAYS = ['eversend'];
+const VALID_PAYOUT_GATEWAYS = ['payunit', 'eversend'];
+const PAYUNIT_CASHOUT_MIN_XAF = 5000;
 
 const getWithdrawalDestination = (wr) => {
   const d = wr.recipientDetails || {};
@@ -400,11 +401,70 @@ const adminApproveWithdrawal = async (req, res) => {
       });
     }
 
-    const payoutGateway = requestedGateway || wr.payoutGateway || 'eversend';
+    const payoutGateway = requestedGateway || wr.payoutGateway || 'payunit';
     if (!VALID_PAYOUT_GATEWAYS.includes(payoutGateway)) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ success: false, message: 'Eversend is the only supported payout gateway.' });
+      return res.status(400).json({ success: false, message: 'Choose PayUnit or Eversend as the payout gateway.' });
+    }
+
+    if (payoutGateway === 'payunit') {
+      if (String(wr.currency || 'XAF').toUpperCase() === 'XAF' && Number(wr.amount || 0) < PAYUNIT_CASHOUT_MIN_XAF) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: `PayUnit cashout requires at least ${PAYUNIT_CASHOUT_MIN_XAF.toLocaleString()} XAF. Approve this request with Eversend or process it manually outside PayUnit.`,
+        });
+      }
+
+      const manualRef = `PAYUNIT-CASHOUT-${wr._id}`;
+      wr.status = 'approved';
+      wr.payoutGateway = 'payunit';
+      wr.eversendTransactionId = manualRef;
+      wr.eversendStatus = 'MANUAL_CASHOUT_REQUIRED';
+      wr.reviewedBy = req.user._id;
+      wr.reviewedAt = new Date();
+      wr.failureReason = null;
+      await wr.save({ session });
+
+      await Transaction.updateOne(
+        { "metadata.withdrawal_request_id": wr._id },
+        {
+          status: 'pending',
+          gateway: 'payunit',
+          gateway_transaction_id: manualRef,
+          gateway_response: {
+            mode: 'manual_cashout_required',
+            minimum_xaf: PAYUNIT_CASHOUT_MIN_XAF,
+            destination: getWithdrawalDestination(wr),
+            instructions: 'Create and confirm the cashout from the PayUnit dashboard, then mark this withdrawal completed after PayUnit confirms settlement.',
+          },
+          description: `Withdrawal approved for PayUnit cashout to ${getWithdrawalDestination(wr)}`,
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      setImmediate(async () => {
+        try {
+          await sendNotification(req.app, wr.requestedBy, {
+            title: 'Withdrawal Approved',
+            message: `Your withdrawal of ${wr.amount.toLocaleString()} ${wr.currency} has been approved and is awaiting PayUnit cashout confirmation.`,
+            type: 'wallet_update',
+            metadata: { withdrawal_id: wr._id, link: '/wallet' },
+            sendEmail: true,
+          });
+        } catch (e) { console.error(e.message); }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Withdrawal approved for PayUnit. Complete the cashout in the PayUnit dashboard.',
+        data: { withdrawal: wr, payoutGateway, payoutTransactionId: manualRef, manual: true },
+      });
     }
 
     let payoutResult = null;
@@ -636,6 +696,16 @@ const adminRecheckWithdrawal = async (req, res) => {
 
     const gatewayTxId = wr.eversendTransactionId;
 
+    if (payoutGateway === 'payunit') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(200).json({
+        success: true,
+        message: 'PayUnit withdrawals are cashout-dashboard controlled. Confirm the cashout in PayUnit, then update the withdrawal from the admin payout queue.',
+        data: { withdrawal: wr, payoutGateway, gatewayStatus: wr.eversendStatus || 'MANUAL_CASHOUT_REQUIRED' },
+      });
+    }
+
     if (!gatewayTxId) {
       await session.abortTransaction();
       session.endSession();
@@ -743,6 +813,79 @@ const adminRecheckWithdrawal = async (req, res) => {
   }
 };
 
+const adminCompleteManualWithdrawal = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const wr = await WithdrawalRequest.findById(req.params.id).session(session);
+    if (!wr) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ success: false, message: 'Withdrawal request not found.' });
+    }
+
+    if (wr.payoutGateway !== 'payunit') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: 'Manual completion is only available for PayUnit cashout withdrawals.' });
+    }
+
+    if (wr.status !== 'approved') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: `Cannot complete a withdrawal with status: ${wr.status}.` });
+    }
+
+    wr.status = 'completed';
+    wr.eversendStatus = 'SUCCESSFUL';
+    wr.reviewedBy = req.user._id;
+    wr.reviewedAt = new Date();
+    await wr.save({ session });
+
+    await Transaction.updateOne(
+      { "metadata.withdrawal_request_id": wr._id },
+      {
+        status: 'completed',
+        gateway: 'payunit',
+        gateway_response: {
+          mode: 'manual_cashout_confirmed',
+          confirmed_by: req.user._id,
+          confirmed_at: new Date(),
+          note: req.body?.note || null,
+        },
+      },
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    setImmediate(async () => {
+      try {
+        await sendNotification(req.app, wr.requestedBy, {
+          title: 'Withdrawal Successful',
+          message: `Your withdrawal of ${wr.amount.toLocaleString()} ${wr.currency} has been completed.`,
+          type: 'wallet_update',
+          metadata: { withdrawal_id: wr._id, link: '/wallet' },
+          sendEmail: true,
+        });
+      } catch (e) { console.error(e.message); }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'PayUnit withdrawal marked completed.',
+      data: { withdrawal: wr, payoutGateway: 'payunit', gatewayStatus: 'SUCCESSFUL' },
+    });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('[adminCompleteManualWithdrawal]', err);
+    return res.status(500).json({ success: false, message: 'Server error during manual completion.' });
+  }
+};
+
 module.exports = {
   submitWithdrawal,
   getMyWithdrawals,
@@ -750,4 +893,5 @@ module.exports = {
   adminApproveWithdrawal,
   adminRejectWithdrawal,
   adminRecheckWithdrawal,
+  adminCompleteManualWithdrawal,
 };

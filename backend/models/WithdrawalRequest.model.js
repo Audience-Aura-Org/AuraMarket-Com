@@ -74,7 +74,7 @@ const WithdrawalRequestSchema = new mongoose.Schema(
     },
 
     // ── Payout Gateway Linkage ───────────────────
-    payoutGateway: { type: String, enum: ['eversend', 'manual'], default: null },
+    payoutGateway: { type: String, enum: ['eversend', 'payunit', 'manual'], default: null },
     eversendTransactionId: { type: String, default: null },
     eversendQuotationToken: { type: String, default: null, select: false },
     eversendStatus: { type: String, default: null },

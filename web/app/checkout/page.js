@@ -46,7 +46,7 @@ const mergeCheckoutItems = (items = []) => {
 
 const VENDOR_MANAGED_LOGISTICS_ID = 'vendor_managed';
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 5;
-const isMobileMoneyPayment = (method) => method === 'eversend';
+const isMobileMoneyPayment = (method) => ['payunit', 'eversend'].includes(method);
 
 function CheckoutContent() {
   const router = useRouter();
@@ -65,10 +65,11 @@ function CheckoutContent() {
     phone: '',
     address: '',
     city: '',
-    paymentMethod: 'wallet',
+    paymentMethod: 'payunit',
     escrowEnabled: true,
     logistics_company_id: VENDOR_MANAGED_LOGISTICS_ID,
     quartier: '',
+    payunit: { phone: '', provider: 'CM_MTNMOMO', country: 'CM', currency: 'XAF' },
     eversend: { phone: '', country: 'CM', currency: 'XAF' },
   });
     
@@ -396,7 +397,8 @@ function CheckoutContent() {
 
     const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
     const isEversend = formData.paymentMethod === 'eversend';
-    const isExternal = isEversend;
+    const isPayUnit = formData.paymentMethod === 'payunit';
+    const isExternal = isEversend || isPayUnit;
     const computedCollectionFee = isExternal ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
     const totalAmount = computedOrderTotal + computedCollectionFee;
 
@@ -450,6 +452,7 @@ function CheckoutContent() {
             },
             escrow_enabled: !isPayOnDelivery && formData.escrowEnabled,
             payment_method: isPayOnDelivery ? 'pay_on_delivery'
+              : isPayUnit ? 'payunit'
               : isEversend ? 'eversend'
               : (formData.escrowEnabled ? 'escrow' : 'wallet'),
             shipping_method: isVendorManagedDelivery ? 'vendor_managed' : 'logistics_partner',
@@ -491,24 +494,28 @@ function CheckoutContent() {
         if (!isPayOnDelivery) {
           useAuthStore.getState().refreshWalletBalance?.();
         }
-      } else if (isEversend) {
+      } else if (isExternal) {
+        const gateway = isPayUnit ? 'payunit' : 'eversend';
+        const gatewayLabel = isPayUnit ? 'PayUnit' : 'Eversend';
+        const gatewayFields = isPayUnit ? formData.payunit : formData.eversend;
         setEversendCheckout({
           active: true,
           reference: null,
-          message: 'Sending request to Eversend...',
+          message: `Sending request to ${gatewayLabel}...`,
         });
 
-        const evRes = await initiateCollection('eversend', {
+        const evRes = await initiateCollection(gateway, {
            amount: totalAmount,
-           currency: formData.eversend.currency,
-           phone: formData.eversend.phone || formData.phone,
-           country: formData.eversend.country,
+           currency: gatewayFields.currency || 'XAF',
+           phone: gatewayFields.phone || formData.phone,
+           country: gatewayFields.country || 'CM',
+           provider: gatewayFields.provider,
            order_ids: finalOrderIds,
-           redirect_url: `${window.location.origin}/wallet/verify?gateway=eversend&type=checkout`,
+           redirect_url: `${window.location.origin}/wallet/verify?gateway=${gateway}&type=checkout`,
         });
 
         if (!evRes.success) {
-          await markCreatedOrdersFailed('Eversend collection failed before payment completed.', finalOrderIds);
+          await markCreatedOrdersFailed(`${gatewayLabel} collection failed before payment completed.`, finalOrderIds);
           setBlockReason(walletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
           setError(evRes.message || 'Payment collection failed. Please try a different payment method.');
           setEversendCheckout({ active: false, reference: null, message: '' });
@@ -529,7 +536,7 @@ function CheckoutContent() {
           setLoading(false);
 
           pollTransactionStatus(
-            'eversend',
+            gateway,
             ref,
             {
               onPending: (data) => setEversendCheckout((current) => ({
@@ -543,14 +550,14 @@ function CheckoutContent() {
                 setStep(3);
               },
               onFailed: (data) => {
-                markCreatedOrdersFailed('Eversend collection was declined before payment completed.', finalOrderIds);
+                markCreatedOrdersFailed(`${gatewayLabel} collection was declined before payment completed.`, finalOrderIds);
                 setEversendCheckout({ active: false, reference: null, message: '' });
                 setBlockReason(walletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
                 setError(data.reason || 'Payment was declined by the gateway.');
               },
               onTimeout: () => {
                 setEversendCheckout({ active: false, reference: null, message: '' });
-                router.push(`/wallet/verify?gateway=eversend&type=checkout&ref=${ref}`);
+                router.push(`/wallet/verify?gateway=${gateway}&type=checkout&ref=${ref}`);
               },
             },
             3000,
@@ -615,6 +622,13 @@ function CheckoutContent() {
 
   const paymentOptions = [
     {
+      id: 'payunit',
+      label: 'PayUnit',
+      badge: 'Primary',
+      description: 'MTN Mobile Money and Orange Money via PayUnit.',
+      icon: Smartphone,
+    },
+    {
       id: 'wallet',
       label: 'Aura Wallet',
       badge: `${walletBalance.toLocaleString()} XAF`,
@@ -642,6 +656,13 @@ function CheckoutContent() {
   const selectPaymentMethod = (method) => {
     setPaymentOpen(false);
     setFormData((current) => {
+      if (method === 'payunit') {
+        return {
+          ...current,
+          paymentMethod: 'payunit',
+          payunit: { ...current.payunit, phone: current.payunit.phone || current.phone },
+        };
+      }
       if (method === 'eversend') {
         return {
           ...current,
@@ -1045,26 +1066,45 @@ function CheckoutContent() {
                               </div>
                            )}
 
-                           {formData.paymentMethod === 'eversend' && (
+                           {['payunit', 'eversend'].includes(formData.paymentMethod) && (
                               <div className="mt-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4 animate-in fade-in slide-in-from-top-4 duration-500">
                                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                        <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Collection Number</label>
-                                       <input 
+                                       <input
                                           type="text"
                                           placeholder="+237..."
-                                          value={formData.eversend.phone}
-                                          onChange={e => setFormData({...formData, eversend: {...formData.eversend, phone: e.target.value}})}
+                                          value={formData.paymentMethod === 'payunit' ? formData.payunit.phone : formData.eversend.phone}
+                                          onChange={e => {
+                                            if (formData.paymentMethod === 'payunit') {
+                                              setFormData({...formData, payunit: {...formData.payunit, phone: e.target.value}});
+                                            } else {
+                                              setFormData({...formData, eversend: {...formData.eversend, phone: e.target.value}});
+                                            }
+                                          }}
                                           className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                                        />
                                     </div>
                                     <div className="space-y-2">
-                                       <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Currency</label>
-                                       <div className="flex h-12 w-full cursor-not-allowed select-none items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[11px] font-semibold lg:text-[12px]">
-                                          <span className="text-[var(--text-primary)]">XAF</span>
-                                          <span className="text-[var(--text-secondary)] opacity-50">— Central African Franc</span>
-                                          <span className="ml-auto text-[10px] lg:text-[12px]  font-semibold tracking-widest bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg">LOCKED</span>
-                                       </div>
+                                       <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">
+                                          {formData.paymentMethod === 'payunit' ? 'Network' : 'Currency'}
+                                       </label>
+                                       {formData.paymentMethod === 'payunit' ? (
+                                          <select
+                                            value={formData.payunit.provider}
+                                            onChange={(e) => setFormData({...formData, payunit: {...formData.payunit, provider: e.target.value}})}
+                                            className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
+                                          >
+                                            <option value="CM_MTNMOMO">MTN Mobile Money</option>
+                                            <option value="CM_ORANGE">Orange Money</option>
+                                          </select>
+                                       ) : (
+                                          <div className="flex h-12 w-full cursor-not-allowed select-none items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[11px] font-semibold lg:text-[12px]">
+                                             <span className="text-[var(--text-primary)]">XAF</span>
+                                             <span className="text-[var(--text-secondary)] opacity-50">Central African Franc</span>
+                                             <span className="ml-auto text-[10px] lg:text-[12px]  font-semibold tracking-widest bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg">LOCKED</span>
+                                          </div>
+                                       )}
                                     </div>
                                  </div>
                               </div>

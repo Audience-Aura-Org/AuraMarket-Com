@@ -45,7 +45,7 @@ function VerifyContent() {
       return;
     }
 
-    if (gateway === 'eversend') {
+    if (['eversend', 'payunit'].includes(gateway)) {
       setState('pending');
       setMessage('Payment request sent to your phone. Please approve the prompt to continue.');
 
@@ -81,10 +81,10 @@ function VerifyContent() {
 
       stopPollingRef.current = stopFn;
 
-    } else if (gateway && gateway !== 'eversend') {
+    } else if (gateway && !['eversend', 'payunit'].includes(gateway)) {
       setState('failed');
       setMessage('This payment gateway has been removed from Auradime.');
-      setReason('Please return and use Aura Wallet or Eversend.');
+      setReason('Please return and use Aura Wallet or PayUnit.');
 
     } else {
       // Paystack or other â€” legacy redirect verify

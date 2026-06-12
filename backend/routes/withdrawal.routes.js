@@ -24,6 +24,7 @@ const {
   adminApproveWithdrawal,
   adminRejectWithdrawal,
   adminRecheckWithdrawal,
+  adminCompleteManualWithdrawal,
 } = require('../controllers/withdrawal.controller');
 
 // ── All authenticated users ───────────────────
@@ -36,5 +37,6 @@ router.get('/admin', restrictTo('admin'), adminGetAllWithdrawals);
 router.post('/admin/:id/approve', restrictTo('admin'), adminApproveWithdrawal);
 router.post('/admin/:id/reject',  restrictTo('admin'), adminRejectWithdrawal);
 router.post('/admin/:id/recheck', restrictTo('admin'), adminRecheckWithdrawal);
+router.post('/admin/:id/complete', restrictTo('admin'), adminCompleteManualWithdrawal);
 
 module.exports = router;

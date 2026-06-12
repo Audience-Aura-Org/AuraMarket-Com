@@ -23,6 +23,11 @@ export const formatAdminDate = (iso) => {
 };
 
 const GATEWAY_BRANDS = {
+  payunit: {
+    label: 'PayUnit',
+    short: 'PU',
+    className: 'bg-emerald-600/15 text-emerald-700 dark:text-emerald-300',
+  },
   eversend: {
     label: 'Eversend',
     short: 'EV',
@@ -90,6 +95,7 @@ export const TYPE_CONFIG = {
 export const METHOD_ICON = {
   momo:     Phone,
   bank:     Building2,
+  payunit:  Phone,
   eversend: Tag,
 };
 

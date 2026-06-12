@@ -50,5 +50,11 @@ module.exports = {
   EVERSEND_CLIENT_SECRET: process.env.EVERSEND_CLIENT_SECRET,
   EVERSEND_WEBHOOK_SECRET: process.env.EVERSEND_WEBHOOK_SECRET,
   EVERSEND_BASE_URL: process.env.EVERSEND_BASE_URL || 'https://api.eversend.co/v1',
+  PAYUNIT_API_USERNAME: process.env.PAYUNIT_API_USERNAME,
+  PAYUNIT_API_PASSWORD: process.env.PAYUNIT_API_PASSWORD,
+  PAYUNIT_LIVE_KEY: process.env.PAYUNIT_LIVE_KEY,
+  PAYUNIT_SANDBOX_KEY: process.env.PAYUNIT_SANDBOX_KEY,
+  PAYUNIT_MODE: process.env.PAYUNIT_MODE || 'live',
+  PAYUNIT_BASE_URL: process.env.PAYUNIT_BASE_URL || 'https://gateway.payunit.net',
 };
 

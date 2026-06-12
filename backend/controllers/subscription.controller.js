@@ -6,6 +6,7 @@ const SubscriptionPlan = require('../models/SubscriptionPlan.model');
 const UserSubscription = require('../models/UserSubscription.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const eversend = require('../services/eversend.service');
+const payunit = require('../services/payunit.service');
 const {
   ensureDefaultSubscriptionPlan,
   getRoleRequirements,
@@ -146,18 +147,23 @@ const initializeSubscription = async (req, res, next) => {
       });
     }
 
-    if (payment_method !== 'eversend') {
-      return res.status(400).json({ success: false, message: 'Choose wallet or Eversend to pay for this subscription.' });
+    const externalGateways = ['eversend', 'payunit'];
+    if (!externalGateways.includes(payment_method)) {
+      return res.status(400).json({ success: false, message: 'Choose wallet, PayUnit, or Eversend to pay for this subscription.' });
     }
 
-    const normalizedPhone = sanitizePhone(phone || req.user.phone, country);
+    const normalizedPhone = payment_method === 'payunit'
+      ? payunit.normalizePhone(phone || req.user.phone, country)
+      : sanitizePhone(phone || req.user.phone, country);
     if (!normalizedPhone) {
       return res.status(400).json({ success: false, message: 'Phone number is required for mobile money subscription payment.' });
     }
 
-    const feeBreakdown = applyMobileMoneyCollectionFee(plan.price, 'eversend', currency);
-    const transactionRef = generateSubscriptionRef(req.user._id);
-    const callbackUrl = redirect_url || `${process.env.WEB_CLIENT_URL}/wallet/verify?gateway=eversend&type=subscription&ref=${transactionRef}`;
+    const feeBreakdown = applyMobileMoneyCollectionFee(plan.price, payment_method, currency);
+    const transactionRef = payment_method === 'payunit'
+      ? payunit.cleanTransactionId(generateSubscriptionRef(req.user._id))
+      : generateSubscriptionRef(req.user._id);
+    const callbackUrl = redirect_url || `${process.env.WEB_CLIENT_URL}/wallet/verify?gateway=${payment_method}&type=subscription&ref=${transactionRef}`;
     const [firstName, ...rest] = String(req.user.name || 'Aura User').split(' ');
     const lastName = rest.join(' ') || 'User';
 
@@ -168,8 +174,8 @@ const initializeSubscription = async (req, res, next) => {
       currency: plan.currency,
       reference: transactionRef,
       status: 'pending',
-      gateway: 'eversend',
-      description: `${plan.name} subscription via Eversend`,
+      gateway: payment_method,
+      description: `${plan.name} subscription via ${payment_method === 'payunit' ? 'PayUnit' : 'Eversend'}`,
       metadata: {
         purpose: 'subscription',
         plan_id: plan._id,
@@ -181,7 +187,7 @@ const initializeSubscription = async (req, res, next) => {
       },
     });
 
-    if (process.env.EVERSEND_SANDBOX_MODE === 'true') {
+    if (payment_method === 'eversend' && process.env.EVERSEND_SANDBOX_MODE === 'true') {
       transaction.gateway_transaction_id = `SBX-SUB-${Date.now()}`;
       transaction.metadata = { ...(transaction.metadata || {}), is_sandbox: true };
       transaction.markModified('metadata');
@@ -190,6 +196,44 @@ const initializeSubscription = async (req, res, next) => {
         success: true,
         data: {
           checkout_url: callbackUrl,
+          reference: transaction.reference,
+          transaction_id: transaction.gateway_transaction_id,
+          amount: feeBreakdown.netAmount,
+          collection_fee: feeBreakdown.collectionFee,
+          gross_amount: feeBreakdown.grossAmount,
+        },
+      });
+    }
+
+    if (payment_method === 'payunit') {
+      const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || ''}/api/v1/payments/payunit/webhook`;
+      const init = await payunit.initializePayment({
+        amount: feeBreakdown.grossAmount,
+        currency,
+        transactionId: transactionRef,
+        returnUrl: callbackUrl,
+        notifyUrl,
+        country,
+      });
+      const direct = await payunit.makeMobilePayment({
+        amount: feeBreakdown.grossAmount,
+        currency,
+        transactionId: transactionRef,
+        returnUrl: callbackUrl,
+        notifyUrl,
+        phone: normalizedPhone,
+        provider: req.body?.provider || 'CM_MTNMOMO',
+      });
+      const responseData = direct?.data || direct || init?.data || init;
+      transaction.gateway_transaction_id = responseData?.transaction_id || responseData?.provider_transaction_id || transactionRef;
+      transaction.gateway_response = { initialize: init, makepayment: direct };
+      await transaction.save();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Subscription payment request sent.',
+        data: {
+          checkout_url: responseData?.transaction_url || init?.data?.transaction_url || callbackUrl,
           reference: transaction.reference,
           transaction_id: transaction.gateway_transaction_id,
           amount: feeBreakdown.netAmount,
