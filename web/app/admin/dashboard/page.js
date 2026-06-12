@@ -15,6 +15,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import { motion } from 'framer-motion';
 import StatCard from '@/components/layout/StatCard';
+import { useLanguage } from '@/context/LanguageContext';
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
@@ -42,6 +43,7 @@ const LOG_RAIL_STYLES = {
 };
 
 export default function AdminDashboard() {
+  const { t } = useLanguage();
   const { user } = useAuthStore();
   const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState(null);
@@ -74,14 +76,14 @@ export default function AdminDashboard() {
                <LayoutDashboard className="size-5" />
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight">Platform Command</h1>
-              <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Global Administrative Hub</p>
+              <h1 className="text-lg font-bold tracking-tight">{t('admin.platformCommand', 'Platform Command')}</h1>
+              <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{t('admin.globalHub', 'Global Administrative Hub')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-emerald-500 uppercase">Systems Nominal</span>
+                <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-emerald-500 uppercase">{t('admin.systemsNominal', 'Systems Nominal')}</span>
              </div>
              <button onClick={fetchStats} className="p-2 md:p-2.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-90">
                 <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
@@ -94,28 +96,28 @@ export default function AdminDashboard() {
         
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Actives" value={fmt(stats?.users)} sub="Registered Accounts" icon={Users} color="blue" href="/admin/users" />
-          <StatCard label="Merchant Queue" value={fmt(stats?.pending_vendors)} sub="Awaiting KYC" icon={Store} color="amber" href="/admin/vendors" />
-          <StatCard label="Asset Pipeline" value={fmt(stats?.pending_products)} sub="Pending Approval" icon={Package} color="primary" href="/admin/products" />
-          <StatCard label="Global Volume" value={`${fmt(stats?.revenue)} XAF`} sub="Gross Platform Revenue" icon={TrendingUp} color="emerald" href="/admin/analytics" />
+          <StatCard label={t('admin.actives', 'Actives')} value={fmt(stats?.users)} sub={t('admin.registeredAccounts', 'Registered Accounts')} icon={Users} color="blue" href="/admin/users" />
+          <StatCard label={t('admin.merchantQueue', 'Merchant Queue')} value={fmt(stats?.pending_vendors)} sub={t('admin.awaitingKyc', 'Awaiting KYC')} icon={Store} color="amber" href="/admin/vendors" />
+          <StatCard label={t('admin.assetPipeline', 'Asset Pipeline')} value={fmt(stats?.pending_products)} sub={t('admin.pendingApproval', 'Pending Approval')} icon={Package} color="primary" href="/admin/products" />
+          <StatCard label={t('admin.globalVolume', 'Global Volume')} value={`${fmt(stats?.revenue)} XAF`} sub={t('admin.grossRevenue', 'Gross Platform Revenue')} icon={TrendingUp} color="emerald" href="/admin/analytics" />
         </div>
 
         <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm md:p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-bold tracking-tight">Admin Earnings</h2>
-              <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">Platform income split by source.</p>
+              <h2 className="text-sm font-bold tracking-tight">{t('admin.adminEarnings', 'Admin Earnings')}</h2>
+              <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">{t('admin.incomeSplit', 'Platform income split by source.')}</p>
             </div>
             <Link href="/admin/transactions" className="rounded-full border border-[var(--glass-border)] px-3 py-1.5 text-[10px] font-bold text-[var(--accent)]">
-              View Ledger
+              {t('admin.viewLedger', 'View Ledger')}
             </Link>
           </div>
           <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
             {[
-              { title: 'Commission', value: earnings.commission, desc: 'Product sale fee', icon: TrendingUp, color: 'emerald' },
-              { title: 'Escrow Fees', value: earnings.escrow, desc: 'Escrow protection fee', icon: ShieldCheck, color: 'blue' },
-              { title: 'Collection Fees', value: earnings.collection, desc: 'Mobile money charges', icon: Activity, color: 'amber' },
-              { title: 'Subscriptions', value: earnings.subscription, desc: 'Future recurring income', icon: Zap, color: 'indigo' },
+              { title: t('admin.commission', 'Commission'), value: earnings.commission, desc: t('admin.productSaleFee', 'Product sale fee'), icon: TrendingUp, color: 'emerald' },
+              { title: t('admin.escrowFees', 'Escrow Fees'), value: earnings.escrow, desc: t('admin.escrowProtectionFee', 'Escrow protection fee'), icon: ShieldCheck, color: 'blue' },
+              { title: t('admin.collectionFees', 'Collection Fees'), value: earnings.collection, desc: t('admin.mobileMoneyCharges', 'Mobile money charges'), icon: Activity, color: 'amber' },
+              { title: t('admin.subscriptions', 'Subscriptions'), value: earnings.subscription, desc: t('admin.futureRecurringIncome', 'Future recurring income'), icon: Zap, color: 'indigo' },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-3">
                 <div className="mb-3 flex items-center justify-between gap-2">
@@ -138,18 +140,18 @@ export default function AdminDashboard() {
           <section className="lg:col-span-2 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl md:rounded-[2.5rem] p-5 md:p-8 shadow-sm">
              <div className="flex items-center justify-between mb-6 md:mb-8">
                 <div>
-                  <h3 className="text-[10px] md:text-[12px] font-semibold tracking-[0.2em] opacity-40 uppercase">Operational Entities</h3>
-                  <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-30 mt-1">High-Density Management Matrix</p>
+                  <h3 className="text-[10px] md:text-[12px] font-semibold tracking-[0.2em] opacity-40 uppercase">{t('admin.operationalEntities', 'Operational Entities')}</h3>
+                  <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-30 mt-1">{t('admin.managementMatrix', 'High-Density Management Matrix')}</p>
                 </div>
                 <Zap className="size-4 opacity-20 hidden sm:block" />
              </div>
 
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { title: 'User Directory', desc: 'Auth & Profile Control', count: stats?.users || 0, icon: Users, color: 'blue', href: '/admin/users' },
-                  { title: 'Merchant Registry', desc: 'KYC & Store Oversight', count: stats?.vendors || 0, icon: Store, color: 'amber', href: '/admin/vendors' },
-                  { title: 'Product Ledger', desc: 'Catalog Moderation', count: stats?.products || 0, icon: Package, color: 'accent', href: '/admin/products' },
-                  { title: 'Escrow Vault', desc: 'Platform Liquidity', count: `${fmt(stats?.escrow_vault)}`, icon: ShieldCheck, color: 'emerald', href: '/admin/escrow' },
+                  { title: t('admin.userDirectory', 'User Directory'), desc: t('admin.authProfileControl', 'Auth & Profile Control'), count: stats?.users || 0, icon: Users, color: 'blue', href: '/admin/users' },
+                  { title: t('admin.merchantRegistry', 'Merchant Registry'), desc: t('admin.kycStoreOversight', 'KYC & Store Oversight'), count: stats?.vendors || 0, icon: Store, color: 'amber', href: '/admin/vendors' },
+                  { title: t('admin.productLedger', 'Product Ledger'), desc: t('admin.catalogModeration', 'Catalog Moderation'), count: stats?.products || 0, icon: Package, color: 'accent', href: '/admin/products' },
+                  { title: t('admin.escrowVault', 'Escrow Vault'), desc: t('admin.platformLiquidity', 'Platform Liquidity'), count: `${fmt(stats?.escrow_vault)}`, icon: ShieldCheck, color: 'emerald', href: '/admin/escrow' },
                 ].map((item, i) => (
                   <Link key={i} href={item.href} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group active:scale-[0.98]">
                     <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all ${COLOR_STYLES[item.color] || COLOR_STYLES.accent}`}>

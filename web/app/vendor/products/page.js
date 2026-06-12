@@ -9,8 +9,10 @@ import { Zap, Package, AlertCircle, Eye, Search, Trash2, RefreshCw, ChevronRight
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import Pagination from '@/components/common/Pagination';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function VendorProductsPage() {
+  const { t } = useLanguage();
   const authTokenFromStore = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
@@ -35,14 +37,14 @@ export default function VendorProductsPage() {
         setLoading(false);
         return;
       }
-      setError(res?.data?.message || 'Failed to load products');
+      setError(res?.data?.message || t('products.loadFailed', 'Failed to load products'));
     } catch (err) {
       const status = err?.response?.status;
       if (status === 404) {
         if (updateUser) updateUser({ onboarded: false });
         router.push('/onboarding');
       } else {
-        setError(err?.response?.data?.message || err.message || 'Fetch error');
+        setError(err?.response?.data?.message || err.message || t('products.fetchError', 'Fetch error'));
       }
     } finally {
       setLoading(false);
@@ -72,14 +74,14 @@ export default function VendorProductsPage() {
   const viewUnits = products.reduce((acc, p) => acc + Number(p.view_count || 0), 0);
 
   const handleDeleteProduct = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) return;
+    if (!window.confirm(t('products.deleteConfirm', 'Are you sure you want to delete this product? This action cannot be undone.'))) return;
     try {
       const res = await api.delete(`/products/${id}`);
       if (res.data.success) {
         setProducts(products.filter(p => p._id !== id));
       }
     } catch (err) {
-      setError('Deletion failed: ' + (err.response?.data?.message || err.message));
+      setError(`${t('products.deletionFailed', 'Deletion failed:')} ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -97,8 +99,8 @@ export default function VendorProductsPage() {
                   <Package className="size-4.5" />
                 </div>
                 <div className="min-w-0">
-                  <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">Products</h1>
-                  <p className="truncate text-[11px] text-[var(--text-secondary)]">{user.store_name || 'Vendor store'}</p>
+                  <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">{t('products.title', 'Products')}</h1>
+                  <p className="truncate text-[11px] text-[var(--text-secondary)]">{user.store_name || t('products.vendorStore', 'Vendor store')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -113,7 +115,7 @@ export default function VendorProductsPage() {
                   href="/vendor/products/add"
                   className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--accent)] px-3 text-[11px] font-semibold text-white shadow-md shadow-[var(--accent)]/20 active:scale-95"
                 >
-                  Add product
+                  {t('products.addProduct', 'Add product')}
                 </Link>
               </div>
             </div>
@@ -123,7 +125,7 @@ export default function VendorProductsPage() {
                 <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[var(--text-secondary)]" />
                 <input
                   type="text"
-                  placeholder="Search products or category"
+                  placeholder={t('products.searchPlaceholder', 'Search products or category')}
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
@@ -138,14 +140,14 @@ export default function VendorProductsPage() {
                   className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
                 >
                   <LayoutGrid className="size-3.5" />
-                  Grid
+                  {t('products.grid', 'Grid')}
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
                   className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition ${viewMode === 'list' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
                 >
                   <List className="size-3.5" />
-                  List
+                  {t('products.list', 'List')}
                 </button>
               </div>
             </div>
@@ -162,17 +164,17 @@ export default function VendorProductsPage() {
         )}
 
         <div className="flex w-full items-center divide-x divide-[var(--glass-border)] overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
-          <MetricItem label="Active" value={activeCount} />
-          <MetricItem label="Low" value={lowStockCount} />
-          <MetricItem label="Sold" value={soldUnits} />
-          <MetricItem label="Views" value={viewUnits} />
+          <MetricItem label={t('products.active', 'Active')} value={activeCount} />
+          <MetricItem label={t('products.low', 'Low')} value={lowStockCount} />
+          <MetricItem label={t('products.sold', 'Sold')} value={soldUnits} />
+          <MetricItem label={t('products.views', 'Views')} value={viewUnits} />
         </div>
 
         <section className="overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
           <div className="flex items-center justify-between border-b border-[var(--glass-border)] px-3 py-2.5 sm:px-4">
-            <p className="text-[12px] font-semibold">Product catalog</p>
+            <p className="text-[12px] font-semibold">{t('products.productCatalog', 'Product catalog')}</p>
             <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
-              {filteredProducts.length} items
+              {filteredProducts.length} {t('products.items', 'items')}
             </span>
           </div>
 
@@ -186,20 +188,20 @@ export default function VendorProductsPage() {
             viewMode === 'grid' ? (
               <div className="grid grid-cols-2 gap-2.5 p-3 sm:grid-cols-3 sm:gap-3 sm:p-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                 {currentProducts.map((product) => (
-                  <ManagementCard key={product._id} product={product} onDelete={handleDeleteProduct} />
+                  <ManagementCard key={product._id} product={product} onDelete={handleDeleteProduct} t={t} />
                 ))}
               </div>
             ) : (
               <div className="space-y-2 p-3 sm:p-4">
                 {currentProducts.map((product) => (
-                  <ListRow key={product._id} product={product} onDelete={handleDeleteProduct} />
+                  <ListRow key={product._id} product={product} onDelete={handleDeleteProduct} t={t} />
                 ))}
               </div>
             )
           ) : (
             <div className="py-16 text-center">
               <Package className="mx-auto mb-3 size-8 text-[var(--text-secondary)]/40" />
-              <p className="text-sm font-medium text-[var(--text-secondary)]">No products found.</p>
+              <p className="text-sm font-medium text-[var(--text-secondary)]">{t('products.noProductsFound', 'No products found.')}</p>
             </div>
           )}
 
@@ -221,14 +223,14 @@ function MetricItem({ label, value }) {
   );
 }
 
-function ManagementCard({ product, onDelete }) {
+function ManagementCard({ product, onDelete, t }) {
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock <= 5 && product.stock > 0;
   const status = isOutOfStock 
-    ? { label: 'Sold Out', color: 'text-red-500', bg: 'bg-red-500/10' }
+    ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
     : isLowStock 
-       ? { label: 'Low Stock', color: 'text-amber-500', bg: 'bg-amber-500/10' }
-       : { label: 'Active', color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
+       ? { label: t('products.lowStock', 'Low Stock'), color: 'text-amber-500', bg: 'bg-amber-500/10' }
+       : { label: t('products.active', 'Active'), color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
 
   return (
     <div className="group relative overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
@@ -251,7 +253,7 @@ function ManagementCard({ product, onDelete }) {
       <div className="space-y-2 p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="truncate text-[10px] font-medium text-[var(--text-secondary)]">{product.category || 'General'}</p>
+            <p className="truncate text-[10px] font-medium text-[var(--text-secondary)]">{product.category || t('products.general', 'General')}</p>
             <Link href={`/vendor/products/edit/${product._id}`} className="mt-0.5 block truncate text-[12px] font-semibold">
               {product.name}
             </Link>
@@ -276,7 +278,7 @@ function ManagementCard({ product, onDelete }) {
         <div className="flex items-center justify-between border-t border-[var(--glass-border)] pt-2">
           <p className="text-[12px] font-semibold">{product.price?.toLocaleString()} XAF</p>
           <p className={`text-[11px] font-semibold ${isOutOfStock ? 'text-red-500' : isLowStock ? 'text-amber-500' : 'text-emerald-500'}`}>
-            Stock: {product.stock}
+            {t('products.stock', 'Stock:')} {product.stock}
           </p>
         </div>
         <div className="flex items-center gap-3 text-[10px] font-medium text-[var(--text-secondary)]">
@@ -288,14 +290,14 @@ function ManagementCard({ product, onDelete }) {
   );
 }
 
-function ListRow({ product, onDelete }) {
+function ListRow({ product, onDelete, t }) {
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock <= 5 && product.stock > 0;
   const status = isOutOfStock 
-    ? { label: 'Sold Out', color: 'text-red-500', bg: 'bg-red-500/10' }
+    ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
     : isLowStock 
-       ? { label: 'Low Stock', color: 'text-amber-500', bg: 'bg-amber-500/10' }
-       : { label: 'Active', color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
+       ? { label: t('products.lowStock', 'Low Stock'), color: 'text-amber-500', bg: 'bg-amber-500/10' }
+       : { label: t('products.active', 'Active'), color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2.5">
@@ -311,7 +313,7 @@ function ListRow({ product, onDelete }) {
       <div className="min-w-0 flex-1">
         <p className="truncate text-[12px] font-semibold">{product.name}</p>
         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-secondary)]">
-          <span>{product.category || 'General'}</span>
+          <span>{product.category || t('products.general', 'General')}</span>
           <span className={status.color}>{status.label}</span>
           <span>{product.price?.toLocaleString()} XAF</span>
         </div>
@@ -327,7 +329,7 @@ function ListRow({ product, onDelete }) {
           aria-label="Edit product"
         >
           <Pencil className="size-3.5" />
-          Edit
+          {t('products.edit', 'Edit')}
         </Link>
         <button
           onClick={() => onDelete(product._id)}

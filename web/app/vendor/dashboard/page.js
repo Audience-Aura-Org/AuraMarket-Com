@@ -244,7 +244,7 @@ export default function VendorDashboard() {
                  <img src="/icon-192.png" alt="Auradime" className="size-7 md:size-8 object-contain" />
               </div>
               <div>
-                <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor <span className="text-[var(--accent)]">Dashboard</span></h2>
+                <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">{t('dashboard.vendorTitle', 'Vendor Dashboard')}</h2>
                 <div className="flex items-center gap-2 mt-0.5">
                    <div className={`size-1.5 rounded-full ${subscriptionDotClass} animate-pulse`} />
                    <Link
@@ -359,7 +359,9 @@ export default function VendorDashboard() {
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: '70%' }} />
               </div>
-              <p className="text-[10px] font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">{fulfilledOrderCount} orders fulfilled</p>
+              <p className="text-[10px] font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">
+                {fulfilledOrderCount} {t('dashboard.ordersFulfilled', 'orders fulfilled')}
+              </p>
             </div>
 
             {/* Open Orders */}
@@ -390,7 +392,7 @@ export default function VendorDashboard() {
                 </div>
                 {products.filter(p => Number(p.stock || 0) <= 5).length > 0 && (
                   <span className="text-[10px] font-medium tracking-wide text-rose-500/90">
-                    {products.filter(p => Number(p.stock || 0) <= 5).length} low stock
+                    {products.filter(p => Number(p.stock || 0) <= 5).length} {t('dashboard.lowStock', 'low stock')}
                   </span>
                 )}
               </div>
@@ -401,7 +403,9 @@ export default function VendorDashboard() {
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: totalProducts ? `${Math.min((inStockProducts / totalProducts) * 100, 100)}%` : '0%' }} />
               </div>
-              <p className="text-[10px] font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">{inStockProducts} in stock · {outOfStockProducts} out</p>
+              <p className="text-[10px] font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">
+                {inStockProducts} {t('dashboard.inStock', 'in stock')} · {outOfStockProducts} {t('dashboard.outOfStockShort', 'out')}
+              </p>
             </div>
 
             {/* Wallet Balance */}
@@ -416,13 +420,13 @@ export default function VendorDashboard() {
                 </Link>
               </div>
               <div>
-                <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Wallet balance</p>
+                <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">{t('dashboard.walletBalance', 'Wallet balance')}</p>
                 <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{walletBalance.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-[var(--accent)] rounded-full" style={{ width: '60%' }} />
               </div>
-              <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{pendingEscrow.toLocaleString()} XAF in escrow</p>
+              <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{pendingEscrow.toLocaleString()} {t('dashboard.xafInEscrow', 'XAF in escrow')}</p>
             </div>
           </div>
           
@@ -434,8 +438,8 @@ export default function VendorDashboard() {
                 <Sparkles className="size-6" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">Aura Stories Manager</h3>
-                <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)] font-semibold opacity-60 tracking-tight mt-0.5">Share updates &amp; engage with your followers</p>
+                <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">{t('dashboard.storiesManager', 'Aura Stories Manager')}</h3>
+                <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)] font-semibold opacity-60 tracking-tight mt-0.5">{t('dashboard.storiesManagerSub', 'Share updates & engage with your followers')}</p>
               </div>
             </div>
             {/* Buttons — full-width centered on mobile, auto on desktop */}
@@ -457,11 +461,11 @@ export default function VendorDashboard() {
             <div className="lg:col-span-2 glass-panel rounded-[2rem] p-6 border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-sm  font-bold text-[var(--text-primary)] tracking-tighter ">Sales Growth</h3>
-                  <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold opacity-50 tracking-tight">Monthly revenue trends</p>
+                  <h3 className="text-sm  font-bold text-[var(--text-primary)] tracking-tighter ">{t('dashboard.salesGrowth', 'Sales Growth')}</h3>
+                  <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold opacity-50 tracking-tight">{t('dashboard.monthlyRevenueTrends', 'Monthly revenue trends')}</p>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 text-[10px] font-medium text-[var(--text-secondary)] opacity-80">
-                  <span className="size-1.5 shrink-0 rounded-full bg-[var(--accent)] opacity-80" /> Live analysis
+                  <span className="size-1.5 shrink-0 rounded-full bg-[var(--accent)] opacity-80" /> {t('dashboard.liveAnalysis', 'Live analysis')}
                 </div>
               </div>
               <div className="relative h-48 w-full flex items-end gap-3 pt-8">
@@ -491,7 +495,7 @@ export default function VendorDashboard() {
             {/* Recent Orders */}
             <div className="glass-panel rounded-[2rem] p-6 flex flex-col border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-sm  font-bold text-[var(--text-primary)]  tracking-tighter">Recent Activity</h3>
+                <h3 className="text-sm  font-bold text-[var(--text-primary)]  tracking-tighter">{t('dashboard.recentActivity', 'Recent Activity')}</h3>
                 <Link href="/vendor/orders" className="text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold tracking-tight hover:underline">View All</Link>
               </div>
             <div className="space-y-5 flex-1">
@@ -516,7 +520,7 @@ export default function VendorDashboard() {
                 {orders.length === 0 && (
                   <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-secondary)] opacity-30 py-10 text-center">
                     <Inbox className="mb-2 size-10" />
-                    <p className="text-[11px] font-bold tracking-[0.2em] uppercase">No Activity</p>
+                    <p className="text-[11px] font-bold tracking-[0.2em] uppercase">{t('dashboard.noActivity', 'No Activity')}</p>
                   </div>
                 )}
               </div>
