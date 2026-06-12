@@ -64,7 +64,7 @@ const DEFAULT_VENDOR_PLANS = [
     name: 'Power Seller',
     slug: 'vendor-power-seller',
     description: 'For big brands or wholesalers who need a custom deal and full platform access.',
-    price: 0,
+    price: 100000,
     currency: 'XAF',
     billing_cycle: 'one_time',
     duration_days: 365,
@@ -82,6 +82,7 @@ const DEFAULT_VENDOR_PLANS = [
 ];
 
 const DEFAULT_VENDOR_PLAN = DEFAULT_VENDOR_PLANS[0];
+const LEGACY_VENDOR_PLAN_SLUGS = ['vendor-welcome-package'];
 
 const toObjectId = (value) => {
   if (!value) return null;
@@ -91,41 +92,36 @@ const toObjectId = (value) => {
 const ensureDefaultSubscriptionPlan = async () => {
   const plans = [];
   for (const defaults of DEFAULT_VENDOR_PLANS) {
-    let plan = await SubscriptionPlan.findOneAndUpdate(
+    const plan = await SubscriptionPlan.findOneAndUpdate(
       { slug: defaults.slug },
       { $setOnInsert: defaults },
       { new: true, upsert: true }
     );
-    if (defaults.slug === 'vendor-welcome') {
-      plan = await SubscriptionPlan.findOneAndUpdate(
-        { slug: defaults.slug },
-        {
-          $set: {
-            price: defaults.price,
-            duration_days: defaults.duration_days,
-            roles: defaults.roles,
-            is_active: true,
-          },
-        },
-        { new: true }
-      );
-    }
     plans.push(plan);
   }
-  await SubscriptionPlan.findOneAndUpdate(
-    { slug: 'vendor-welcome-package' },
+
+  await SubscriptionPlan.updateMany(
+    { slug: { $in: LEGACY_VENDOR_PLAN_SLUGS } },
     {
       $set: {
-        price: 500,
-        currency: 'XAF',
-        billing_cycle: 'one_time',
-        duration_days: 30,
-        roles: ['vendor'],
-        is_active: true,
+        is_active: false,
+        description: 'Legacy package kept for historical subscription records. Use vendor-welcome instead.',
       },
-    },
-    { new: true }
+    }
   );
+
+  for (const defaults of DEFAULT_VENDOR_PLANS) {
+    if (Number(defaults.price || 0) > 0) {
+      await SubscriptionPlan.updateMany(
+        {
+          slug: defaults.slug,
+          $or: [{ price: { $exists: false } }, { price: { $lte: 0 } }],
+        },
+        { $set: { price: defaults.price } }
+      );
+    }
+  }
+
   return plans[0];
 };
 
