@@ -230,7 +230,7 @@ export default function AccountPageClient() {
 
   const handleLanguageChange = async (nextLanguage) => {
     const shouldReload = nextLanguage !== language;
-    setLanguage(nextLanguage, { reload: false });
+    setLanguage(nextLanguage, { reload: shouldReload });
     updateUser({ preferred_language: nextLanguage });
     setBrandingStatus(t('settings.languageSaved'));
 
@@ -244,9 +244,6 @@ export default function AccountPageClient() {
       setBrandingStatus(t('settings.languageFailed'));
     } finally {
       setTimeout(() => setBrandingStatus(''), 2500);
-      if (shouldReload && typeof window !== 'undefined') {
-        setTimeout(() => window.location.reload(), 180);
-      }
     }
   };
 

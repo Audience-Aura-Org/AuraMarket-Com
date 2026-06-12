@@ -9,8 +9,10 @@ import {
   Check, ChevronDown, Package, ExternalLink, Store
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function SectionForm({ section, onClose, onSuccess }) {
+  const { t } = useLanguage();
   const isEdit = !!section;
   const [formData, setFormData] = useState({
     type: 'hero',
@@ -263,13 +265,13 @@ export default function SectionForm({ section, onClose, onSuccess }) {
             </button>
             <div className="mx-auto mt-10 w-full max-w-4xl space-y-4">
               <div className="space-y-1">
-                <h3 className="text-xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-2xl">Product Lookup</h3>
-                <p className="text-xs font-medium text-[var(--text-secondary)]">Search products and copy their unique IDs.</p>
+                <h3 className="text-xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-2xl">{t('products.productLookup', 'Product Lookup')}</h3>
+                <p className="text-xs font-medium text-[var(--text-secondary)]">{t('products.lookupHelp', 'Search products and copy their unique IDs.')}</p>
               </div>
               <div className="flex gap-2">
                 <input 
                   autoFocus
-                  placeholder="Search by name, brand, or category..."
+                  placeholder={t('products.searchByNameBrandCategory', 'Search by name, brand, or category...')}
                   className="h-12 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 !text-base font-semibold outline-none placeholder:!text-base focus:border-[var(--accent)]"
                   value={productSearchQuery}
                   onChange={(e) => setProductSearchQuery(e.target.value)}
@@ -301,17 +303,19 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                     <button 
                       onClick={() => {
                         navigator.clipboard.writeText(product._id);
-                        toast.success('Product ID copied');
+                        toast.success(t('products.idCopied', 'Product ID copied'));
                         setShowProductLookup(false);
                       }}
                       className="flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-2 text-[11px] font-semibold tracking-tight text-[var(--text-primary)] transition-all hover:bg-[var(--accent)] hover:text-white lg:text-[12px]"
                     >
-                      <Package className="w-3.5 h-3.5" /> Select ID
+                      <Package className="w-3.5 h-3.5" /> {t('products.selectId', 'Select ID')}
                     </button>
                   </div>
                 ))}
                 {!isSearchingProducts && productSearchResults.length === 0 && productSearchQuery && (
-                  <div className="text-center py-10 opacity-40">No products found for "{productSearchQuery}"</div>
+                  <div className="text-center py-10 opacity-40">
+                    {t('products.noProductsFoundFor', 'No products found for "{query}"', { query: productSearchQuery })}
+                  </div>
                 )}
                 {isSearchingProducts && (
                   <div className="flex justify-center py-10">
@@ -339,7 +343,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
               onClick={() => setShowProductLookup(true)}
               className="hidden items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 py-2 text-[11px] font-semibold text-[var(--accent)] transition-all hover:bg-[var(--accent)]/20 sm:flex"
             >
-              <Package className="size-4" /> Product Lookup
+              <Package className="size-4" /> {t('products.productLookup', 'Product Lookup')}
             </button>
             <button onClick={onClose} className="flex size-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] transition-colors hover:text-[var(--accent)]">
               <X className="size-5" />
