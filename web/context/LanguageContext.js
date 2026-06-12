@@ -9,6 +9,7 @@ export const SUPPORTED_LANGUAGES = [
 ];
 
 const STORAGE_KEY = 'aura_language';
+const PENDING_SYNC_KEY = 'aura_language_pending_sync';
 
 const labelSlug = (value = '') =>
   String(value)
@@ -2575,6 +2576,24 @@ export function LanguageProvider({ children }) {
   }, [language]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const pendingLanguage = window.localStorage.getItem(PENDING_SYNC_KEY);
+    const shouldForceSync = pendingLanguage && normalizeLanguage(pendingLanguage) === language;
+    if (!shouldForceSync) return undefined;
+
+    const timers = [80, 250, 500, 900, 1500].map((delay) =>
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('aura:language-change', { detail: { language, forced: true } }));
+        if (delay === 1500) {
+          window.localStorage.removeItem(PENDING_SYNC_KEY);
+        }
+      }, delay)
+    );
+
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [language]);
+
+  useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return undefined;
 
     const textMap = language === 'fr' ? AUTO_TEXT_TRANSLATIONS_FR : null;
@@ -2676,9 +2695,13 @@ export function LanguageProvider({ children }) {
       attributeFilter: ['placeholder', 'title', 'aria-label'],
     });
 
+    const handleLanguageChange = () => scheduleScan(document.body);
+    window.addEventListener('aura:language-change', handleLanguageChange);
+
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
       observer.disconnect();
+      window.removeEventListener('aura:language-change', handleLanguageChange);
     };
   }, [language]);
 
@@ -2694,12 +2717,15 @@ export function LanguageProvider({ children }) {
       try {
         window.localStorage.setItem(STORAGE_KEY, normalized);
         document.cookie = `${STORAGE_KEY}=${normalized}; path=/; max-age=31536000; SameSite=Lax`;
+        if (options.reload && normalized !== language) {
+          window.localStorage.setItem(PENDING_SYNC_KEY, normalized);
+        }
         window.dispatchEvent(new CustomEvent('aura:language-change', { detail: { language: normalized } }));
       } catch {}
       if (options.reload && normalized !== language && typeof window !== 'undefined') {
         window.setTimeout(() => {
-          window.location.reload();
-        }, 120);
+          window.location.href = window.location.href;
+        }, 220);
       }
     },
     t: (key, fallback, replacements = {}) => {
