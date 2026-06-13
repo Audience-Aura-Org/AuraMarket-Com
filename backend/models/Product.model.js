@@ -32,6 +32,21 @@ const ProductSchema = new mongoose.Schema(
       required: [true, 'Product price is required'],
       min: [0, 'Price cannot be negative'],
     },
+    sale_price: {
+      type: Number,
+      default: null,
+      min: [0, 'Sale price cannot be negative'],
+      validate: {
+        validator(value) {
+          return value == null || Number(value) < Number(this.price || 0);
+        },
+        message: 'Sale price must be lower than the regular price',
+      },
+    },
+    on_sale: {
+      type: Boolean,
+      default: false,
+    },
     images: [
       {
         url: { type: String, required: true },

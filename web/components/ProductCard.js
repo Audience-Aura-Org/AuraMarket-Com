@@ -27,17 +27,23 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
   const router = useRouter();
   const { t } = useLanguage();
   const { id, _id, name, price, images, rating, vendor_id, category, on_sale, original_price, sale_price } = product;
-  const isOnSale = on_sale || (original_price && original_price > price) || (sale_price && sale_price < price);
-  const displayOriginalPrice = original_price || sale_price || null;
   const numericPrice = Number(price || 0);
   const numericOriginalPrice = Number(original_price || 0);
   const numericSalePrice = Number(sale_price || 0);
-  const discountBasePrice = numericOriginalPrice > numericPrice
-    ? numericOriginalPrice
-    : (numericSalePrice > 0 && numericSalePrice < numericPrice ? numericPrice : 0);
-  const discountCurrentPrice = numericOriginalPrice > numericPrice
+  const salePriceIsValid = numericSalePrice > 0 && numericSalePrice < numericPrice;
+  const displayPrice = salePriceIsValid ? numericSalePrice : numericPrice;
+  const displayOriginalPrice = salePriceIsValid ? numericPrice : (numericOriginalPrice > numericPrice ? numericOriginalPrice : null);
+  const isOnSale = salePriceIsValid || (numericOriginalPrice > numericPrice);
+  const discountBasePrice = salePriceIsValid
     ? numericPrice
-    : (numericSalePrice > 0 && numericSalePrice < numericPrice ? numericSalePrice : numericPrice);
+    : numericOriginalPrice > numericPrice
+    ? numericOriginalPrice
+    : 0;
+  const discountCurrentPrice = salePriceIsValid
+    ? numericSalePrice
+    : numericOriginalPrice > numericPrice
+    ? numericPrice
+    : numericPrice;
   const discountPercent = discountBasePrice > discountCurrentPrice
     ? Math.round(((discountBasePrice - discountCurrentPrice) / discountBasePrice) * 100)
     : 0;
@@ -223,7 +229,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                 <h3 translate="no" className="line-clamp-2 text-xs md:text-sm font-bold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors" title={name}>{name}</h3>
               </Link>
               <div className="flex items-center gap-4">
-                <p className="text-[14px] md:text-[18px]  font-bold text-[var(--text-primary)]">{price?.toLocaleString()} XAF</p>
+                <p className="text-[14px] md:text-[18px]  font-bold text-[var(--text-primary)]">{displayPrice?.toLocaleString()} XAF</p>
                 <div className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-70">
                    <span className="flex items-center gap-1"><ShoppingCart className="size-3.5 text-emerald-500" /> {t('product.soldCount', '{count} sold', { count: product.purchase_count || 0 })}</span>
                 </div>
@@ -243,14 +249,6 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                 <ShoppingCart className={`size-4 shrink-0 ${addingToCart ? 'animate-bounce' : ''}`} />
                 <span className="hidden sm:block text-[10px] font-bold">Cart</span>
               </button>
-              {/* Buy Now — SECONDARY */}
-              <button
-                onClick={handleBuyNow}
-                disabled={!product.has_variants && product.stock <= 0}
-                className="h-9 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[10px] sm:text-[11px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
-              >
-                <span className="truncate">{(!product.has_variants && product.stock <= 0) ? t('common.outOfStock') : t('common.buyNow')}</span>
-              </button>
               {/* Chat — ICON */}
               <button
                 onClick={handleChat}
@@ -259,6 +257,14 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                 className="h-9 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all"
               >
                 <MessageSquare className="size-4 shrink-0" />
+              </button>
+              {/* Buy Now — SECONDARY */}
+              <button
+                onClick={handleBuyNow}
+                disabled={!product.has_variants && product.stock <= 0}
+                className="h-9 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[10px] sm:text-[11px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
+              >
+                <span className="truncate">{(!product.has_variants && product.stock <= 0) ? t('common.outOfStock') : t('common.buyNow')}</span>
               </button>
             </div>
           </div>
@@ -335,7 +341,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
             </Link>
             <div className="flex items-center justify-between gap-1">
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[12px] sm:text-[13px] md:text-[15px] font-bold text-[var(--accent)] truncate">{price?.toLocaleString()} XAF</span>
+                <span className="text-[12px] sm:text-[13px] md:text-[15px] font-bold text-[var(--accent)] truncate">{displayPrice?.toLocaleString()} XAF</span>
                 {isOnSale && displayOriginalPrice && (
                   <span className="text-[9px] sm:text-[10px] font-semibold text-[var(--text-secondary)] line-through opacity-50 truncate">{displayOriginalPrice?.toLocaleString()}</span>
                 )}
@@ -359,14 +365,6 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               <ShoppingCart className={`size-3 md:size-3.5 shrink-0 ${addingToCart ? 'animate-bounce' : ''}`} />
               <span className="truncate hidden sm:block">Cart</span>
             </button>
-            {/* Buy Now — SECONDARY */}
-            <button
-              onClick={handleBuyNow}
-              disabled={!inStock}
-              className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[9px] md:text-[10px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-1"
-            >
-              <span className="truncate">{inStock ? t('common.buyNow') : t('common.outOfStock')}</span>
-            </button>
             {/* Chat — ICON */}
             <button
               onClick={handleChat}
@@ -375,6 +373,14 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all"
             >
               <MessageSquare className="size-3.5 md:size-4 shrink-0" />
+            </button>
+            {/* Buy Now — SECONDARY */}
+            <button
+              onClick={handleBuyNow}
+              disabled={!inStock}
+              className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[9px] md:text-[10px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-1"
+            >
+              <span className="truncate">{inStock ? t('common.buyNow') : t('common.outOfStock')}</span>
             </button>
           </div>
         </div>

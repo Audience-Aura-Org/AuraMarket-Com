@@ -14,6 +14,32 @@ const { sendNotification } = require('../utils/notifier');
 const cache = require('../utils/cache');
 const { normalizeUserMedia, normalizeMediaUrl } = require('../utils/media');
 
+const normalizeSalePricing = (data = {}, existingProduct = null) => {
+  const nextPrice = data.price !== undefined ? Number(data.price) : Number(existingProduct?.price || 0);
+  const rawSalePrice = data.sale_price;
+
+  if (rawSalePrice === '' || rawSalePrice === null || rawSalePrice === undefined) {
+    data.sale_price = null;
+    data.on_sale = false;
+    return;
+  }
+
+  const salePrice = Number(rawSalePrice);
+  if (!Number.isFinite(salePrice) || salePrice <= 0) {
+    const error = new Error('Sale price must be a valid positive amount.');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!Number.isFinite(nextPrice) || nextPrice <= 0 || salePrice >= nextPrice) {
+    const error = new Error('Sale price must be lower than the regular price.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  data.sale_price = salePrice;
+  data.on_sale = true;
+};
+
 const resolveCategoryNames = async ({ categoryId, categoryName, includeDescendants = true }) => {
   const hasCategoryId = categoryId && /^[a-f\d]{24}$/i.test(String(categoryId));
   const hasCategoryName = categoryName && typeof categoryName === 'string';
@@ -85,6 +111,7 @@ const createProduct = async (req, res, next) => {
     }
     if (req.body.has_variants === 'true') productData.has_variants = true;
     if (req.body.has_variants === 'false') productData.has_variants = false;
+    normalizeSalePricing(productData);
 
     const product = await Product.create(productData);
 
@@ -289,6 +316,7 @@ const updateProduct = async (req, res, next) => {
     }
     if (req.body.has_variants === 'true') updateData.has_variants = true;
     if (req.body.has_variants === 'false') updateData.has_variants = false;
+    normalizeSalePricing(updateData, product);
 
     delete updateData.featured;
     delete updateData.existing_images;

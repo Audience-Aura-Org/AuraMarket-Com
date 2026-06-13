@@ -8,6 +8,7 @@ import {
 import { useRouter, useParams } from 'next/navigation';
 import api from '@/services/api';
 import CategoryPicker from '@/components/CategoryPicker';
+import { toast } from 'react-hot-toast';
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -38,6 +39,7 @@ export default function EditProductPage() {
               name: p.name || '',
               description: p.description || '',
               price: p.price || '',
+              sale_price: p.sale_price || '',
               stock: p.stock || 0,
               category: p.category || '',
               featured: !!p.featured,
@@ -160,6 +162,8 @@ export default function EditProductPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.price || Number(form.price) <= 0) return toast.error('Please enter a valid price.');
+    if (form.sale_price && Number(form.sale_price) >= Number(form.price)) return toast.error('Sale price must be lower than the regular price.');
     setLoading(true);
     try {
       const formData = new FormData();
@@ -516,6 +520,18 @@ export default function EditProductPage() {
                       placeholder="0"
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all  font-bold"
                     />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-tight mb-2 block">Sale Price (XAF)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.sale_price}
+                      onChange={e => setForm({...form, sale_price: e.target.value})}
+                      placeholder="Optional discount price"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
+                    />
+                    <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Optional. Must be lower than the regular price.</p>
                   </div>
                   <div>
                     <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Stock Quantity *</label>
