@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Zap, Package, AlertCircle, Eye, Search, Trash2, RefreshCw, ChevronRight, LayoutGrid, List, Pencil } from 'lucide-react';
+import { Zap, Package, AlertCircle, Eye, Search, Trash2, RefreshCw, ChevronRight, LayoutGrid, List, Pencil, Tag } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import Pagination from '@/components/common/Pagination';
@@ -72,6 +72,7 @@ export default function VendorProductsPage() {
   const lowStockCount = products.filter((p) => p.stock <= 5 && p.stock > 0).length;
   const soldUnits = products.reduce((acc, p) => acc + Number(p.purchase_count || 0), 0);
   const viewUnits = products.reduce((acc, p) => acc + Number(p.view_count || 0), 0);
+  const onSaleCount = products.filter((p) => p.sale_price != null && p.sale_price > 0 && p.sale_price < p.price).length;
 
   const handleDeleteProduct = async (id) => {
     if (!window.confirm(t('products.deleteConfirm', 'Are you sure you want to delete this product? This action cannot be undone.'))) return;
@@ -168,6 +169,7 @@ export default function VendorProductsPage() {
           <MetricItem label={t('products.low', 'Low')} value={lowStockCount} />
           <MetricItem label={t('products.sold', 'Sold')} value={soldUnits} />
           <MetricItem label={t('products.views', 'Views')} value={viewUnits} />
+          <MetricItem label={t('products.onSale', 'On Sale')} value={onSaleCount} accent />
         </div>
 
         <section className="overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
@@ -214,11 +216,11 @@ export default function VendorProductsPage() {
   );
 }
 
-function MetricItem({ label, value }) {
+function MetricItem({ label, value, accent }) {
   return (
     <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 px-2 py-2.5">
       <span className="text-[10px] font-medium text-[var(--text-secondary)]">{label}</span>
-      <span className="text-[12px] font-semibold">{value}</span>
+      <span className={`text-[12px] font-semibold ${accent ? 'text-[var(--accent)]' : ''}`}>{value}</span>
     </div>
   );
 }
@@ -226,6 +228,8 @@ function MetricItem({ label, value }) {
 function ManagementCard({ product, onDelete, t }) {
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock <= 5 && product.stock > 0;
+  const hasSale = product.sale_price != null && Number(product.sale_price) > 0 && Number(product.sale_price) < Number(product.price);
+  const discountPct = hasSale ? Math.round(100 - (Number(product.sale_price) / Number(product.price)) * 100) : 0;
   const status = isOutOfStock 
     ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
     : isLowStock 
@@ -248,6 +252,12 @@ function ManagementCard({ product, onDelete, t }) {
             {status.label}
           </span>
         </div>
+        {hasSale && (
+          <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-1 rounded-full bg-[var(--accent)] px-2 py-1 text-[10px] font-bold text-white shadow-sm">
+            <Tag className="size-2.5" />
+            -{discountPct}%
+          </div>
+        )}
       </div>
       </Link>
       <div className="space-y-2 p-3">
@@ -276,7 +286,16 @@ function ManagementCard({ product, onDelete, t }) {
           </div>
         </div>
         <div className="flex items-center justify-between border-t border-[var(--glass-border)] pt-2">
-          <p className="text-[12px] font-semibold">{product.price?.toLocaleString()} XAF</p>
+          <div className="flex flex-col">
+            {hasSale ? (
+              <>
+                <span className="text-[12px] font-bold text-[var(--accent)]">{Number(product.sale_price).toLocaleString()} XAF</span>
+                <span className="text-[10px] font-medium text-[var(--text-secondary)] line-through">{product.price?.toLocaleString()} XAF</span>
+              </>
+            ) : (
+              <span className="text-[12px] font-semibold">{product.price?.toLocaleString()} XAF</span>
+            )}
+          </div>
           <p className={`text-[11px] font-semibold ${isOutOfStock ? 'text-red-500' : isLowStock ? 'text-amber-500' : 'text-emerald-500'}`}>
             {t('products.stock', 'Stock:')} {product.stock}
           </p>
@@ -293,6 +312,8 @@ function ManagementCard({ product, onDelete, t }) {
 function ListRow({ product, onDelete, t }) {
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock <= 5 && product.stock > 0;
+  const hasSale = product.sale_price != null && Number(product.sale_price) > 0 && Number(product.sale_price) < Number(product.price);
+  const discountPct = hasSale ? Math.round(100 - (Number(product.sale_price) / Number(product.price)) * 100) : 0;
   const status = isOutOfStock 
     ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
     : isLowStock 
@@ -301,12 +322,17 @@ function ListRow({ product, onDelete, t }) {
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2.5">
-      <div className="size-14 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-secondary)]">
+      <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-secondary)]">
         {product.images?.[0]?.url ? (
           <img src={product.images[0].url} alt={product.name} className="size-full object-cover" />
         ) : (
           <div className="flex size-full items-center justify-center text-[var(--accent)]/20">
             <Package className="size-5" />
+          </div>
+        )}
+        {hasSale && (
+          <div className="absolute bottom-0 left-0 right-0 bg-[var(--accent)] py-0.5 text-center text-[8px] font-bold text-white">
+            -{discountPct}%
           </div>
         )}
       </div>
@@ -315,7 +341,14 @@ function ListRow({ product, onDelete, t }) {
         <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-secondary)]">
           <span>{product.category || t('products.general', 'General')}</span>
           <span className={status.color}>{status.label}</span>
-          <span>{product.price?.toLocaleString()} XAF</span>
+          {hasSale ? (
+            <span className="flex items-center gap-1">
+              <span className="font-semibold text-[var(--accent)]">{Number(product.sale_price).toLocaleString()} XAF</span>
+              <span className="line-through">{product.price?.toLocaleString()} XAF</span>
+            </span>
+          ) : (
+            <span>{product.price?.toLocaleString()} XAF</span>
+          )}
         </div>
         <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
           <span className="inline-flex items-center gap-1"><Eye className="size-3" />{product.view_count || 0}</span>

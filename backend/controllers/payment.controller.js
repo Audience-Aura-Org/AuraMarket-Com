@@ -336,30 +336,44 @@ const payunitInitialize = async (req, res) => {
       return res.status(400).json({ success: false, message: 'PayUnit currently supports XAF collections only.' });
     }
 
-    const transactionRef = payunit.cleanTransactionId(`AURAPU${Date.now()}${String(req.user._id).slice(-6)}`);
     const webUrl = getWebUrl(req) || process.env.WEB_CLIENT_URL;
-    const returnUrl = customRedirect || `${webUrl}/wallet/verify?gateway=payunit&ref=${transactionRef}`;
     const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get('host')}`}/api/v1/payments/payunit/webhook`;
 
-    const init = await payunit.initializePayment({
-      amount: feeBreakdown.grossAmount,
-      currency,
-      transactionId: transactionRef,
-      returnUrl,
-      notifyUrl,
-      country,
-    });
+    // -----------------------------------------------------------------------
+    // Two distinct flows:
+    //   1. Direct mobile-push (phone provided): skip /initialize entirely.
+    //      PayUnit's /initialize registers the transaction_id for a redirect-
+    //      checkout session. Reusing that same ID in /makepayment causes
+    //      "Payer not found" because the session type conflicts.
+    //   2. Redirect checkout (no phone): use /initialize only.
+    // -----------------------------------------------------------------------
+    const transactionRef = payunit.cleanTransactionId(`AURAPU${Date.now()}${String(req.user._id).slice(-6)}`);
+    const returnUrl = customRedirect || `${webUrl}/wallet/verify?gateway=payunit&ref=${transactionRef}`;
 
+    let init = null;
     let direct = null;
+
     if (phone) {
+      // Direct push — call /makepayment directly, no prior /initialize
+      const normalizedPhone = payunit.normalizePhone(phone, country);
       direct = await payunit.makeMobilePayment({
         amount: feeBreakdown.grossAmount,
         currency,
         transactionId: transactionRef,
         returnUrl,
         notifyUrl,
-        phone,
+        phone: normalizedPhone,
         provider,
+      });
+    } else {
+      // Redirect checkout — initialize only
+      init = await payunit.initializePayment({
+        amount: feeBreakdown.grossAmount,
+        currency,
+        transactionId: transactionRef,
+        returnUrl,
+        notifyUrl,
+        country,
       });
     }
 
@@ -377,7 +391,7 @@ const payunitInitialize = async (req, res) => {
       description: order_ids?.length > 0
         ? `Checkout payment for ${order_ids.length} order(s) via PayUnit (${currency})`
         : `Wallet deposit via PayUnit (${currency})`,
-      gateway_response: { initialize: init?.raw, makepayment: direct?.raw || null },
+      gateway_response: { initialize: init?.raw || null, makepayment: direct?.raw || null },
       metadata: {
         net_amount: feeBreakdown.netAmount,
         collection_fee: feeBreakdown.collectionFee,
@@ -389,7 +403,7 @@ const payunitInitialize = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: phone ? 'PayUnit collection request sent.' : 'PayUnit payment initialized.',
+      message: phone ? 'PayUnit collection request sent to your phone.' : 'PayUnit payment initialized.',
       data: {
         checkout_url: gatewayData.transaction_url || init?.data?.transaction_url || returnUrl,
         reference: transactionRef,
