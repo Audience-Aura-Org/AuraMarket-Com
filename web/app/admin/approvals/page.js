@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { 
   Check, X, Eye, ShieldCheck, Loader2, 
   Package, Building2, User, FileText, AlertCircle, 
-  RefreshCw, Database, Zap, Activity, Clock, ExternalLink
+  RefreshCw, Database, Clock, Download
 } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
@@ -79,6 +79,23 @@ export default function AdminApprovals() {
     } finally {
       setActioning(null);
     }
+  };
+
+  const openDocument = (url) => {
+    if (!url) return toast.error('No submitted document available');
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const downloadDocument = (url, filename) => {
+    if (!url) return toast.error('No submitted document available');
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || 'kyc-document';
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   };
 
   const currentData = activeTab === 'Verifications' ? vendors : products;
@@ -196,7 +213,10 @@ export default function AdminApprovals() {
                                 <td className="px-6 py-6">
                                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] capitalize">{v.user_id?.email}</p>
                                    <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 mt-1 capitalize flex items-center gap-1.5">
-                                      <FileText className="w-3 h-3" /> {v.id_type?.replace(/_/g, ' ') || 'IDENTITY_VERIF'}
+                                      <FileText className="w-3 h-3" /> {v.document_type?.replace(/_/g, ' ') || 'IDENTITY_VERIF'}
+                                   </p>
+                                   <p className="text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-30 mt-1 font-mono">
+                                      {v.document_number || 'NO_DOCUMENT_NUMBER'}
                                    </p>
                                 </td>
                                 <td className="px-6 py-6">
@@ -206,9 +226,29 @@ export default function AdminApprovals() {
                                 </td>
                                 <td className="px-10 py-6 text-right">
                                    <div className="flex items-center justify-end gap-2">
-                                      <button className="size-9 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] transition-all flex items-center justify-center shadow-sm">
+                                      <button
+                                         onClick={() => openDocument(v.document_front_url)}
+                                         className="size-9 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] transition-all flex items-center justify-center shadow-sm"
+                                         title="View submitted document"
+                                      >
                                          <Eye className="w-4 h-4" />
                                       </button>
+                                      <button
+                                         onClick={() => downloadDocument(v.document_front_url, `${v.user_id?.name || 'user'}-kyc-front`)}
+                                         className="size-9 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] transition-all flex items-center justify-center shadow-sm"
+                                         title="Download submitted document"
+                                      >
+                                         <Download className="w-4 h-4" />
+                                      </button>
+                                      {v.document_back_url && (
+                                         <button
+                                            onClick={() => downloadDocument(v.document_back_url, `${v.user_id?.name || 'user'}-kyc-back`)}
+                                            className="size-9 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] transition-all flex items-center justify-center shadow-sm"
+                                            title="Download back document"
+                                         >
+                                            <Download className="w-4 h-4" />
+                                         </button>
+                                      )}
                                       <button 
                                          onClick={() => handleReviewKYC(v._id, 'rejected')}
                                          disabled={actioning === v._id}

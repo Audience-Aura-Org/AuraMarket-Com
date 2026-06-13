@@ -39,6 +39,14 @@ const normalizePickupAddress = (pickup = {}, fallback = {}) => ({
     '',
 });
 
+const normalizeKycPayload = (kyc = {}) => ({
+  full_name: kyc.full_name || '',
+  id_type: kyc.id_type || kyc.document_type || 'national_id',
+  id_number: kyc.id_number || kyc.document_number || '',
+  file_url_front: kyc.file_url_front || kyc.document_front_url || '',
+  file_url_back: kyc.file_url_back || kyc.document_back_url || '',
+});
+
 export default function AccountPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -116,6 +124,10 @@ export default function AccountPageClient() {
   const [kycStatus, setKycStatus] = useState(null);
   const [kycLoading, setKycLoading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
+  const effectiveKycStatus = kycStatus || user?.kyc?.status || user?.verification_status;
+  const isKycApproved = effectiveKycStatus === 'approved' || effectiveKycStatus === 'verified';
+  const isKycRejected = effectiveKycStatus === 'rejected' || effectiveKycStatus === 'denied';
+  const isKycPending = effectiveKycStatus === 'pending';
 
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleteStatus, setDeleteStatus] = useState('');
@@ -190,7 +202,9 @@ export default function AccountPageClient() {
     });
     if (user.kyc) {
       setKycStatus(user.kyc.status);
-      setKycData(d => ({ ...d, ...user.kyc }));
+      setKycData(d => ({ ...d, ...normalizeKycPayload(user.kyc) }));
+    } else if (user.verification_status) {
+      setKycStatus(user.verification_status);
     }
 
     // Only fetch vendor profile when the Vendor document is guaranteed to exist
@@ -352,8 +366,11 @@ export default function AccountPageClient() {
     try {
       const res = await api.post('/users/kyc', kycData);
       if (res.data?.success) {
-        updateUser(res.data.data.user);
-        setKycStatus(res.data.data.user.kyc.status);
+        const nextKyc = res.data.data.kyc;
+        const nextUser = { ...res.data.data.user, kyc: nextKyc };
+        updateUser(nextUser);
+        setKycStatus(nextKyc?.status || nextUser.verification_status || 'pending');
+        if (nextKyc) setKycData((current) => ({ ...current, ...normalizeKycPayload(nextKyc) }));
         setBrandingStatus('KYC submitted successfully.');
       } else {
         setBrandingStatus('Submission failed.');
@@ -724,17 +741,78 @@ export default function AccountPageClient() {
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10">
-                      {kycStatus === 'approved' ? (
+                      {isKycApproved ? (
                         <div className="flex flex-col items-center justify-center text-center p-12 bg-emerald-500/5 border border-emerald-500/20 rounded-[2rem]">
                           <div className="size-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 border border-emerald-500/20">
                             <ShieldCheck className="size-10 text-emerald-500" />
                           </div>
-                          <h4 className="text-xl  font-bold tracking-tight text-emerald-500 mb-2">Verified Identity</h4>
-                          <p className="text-sm text-emerald-500/60 font-medium max-w-xs">Your identity matrix has been fully synchronized and validated.</p>
+                          <h4 className="text-xl font-bold tracking-tight text-emerald-500 mb-2">Verification successful</h4>
+                          <p className="text-sm text-emerald-500/70 font-medium max-w-xs">Your identity has been verified successfully. The verified icon can now display on your account and store surfaces.</p>
+                        </div>
+                      ) : isKycRejected ? (
+                        <div className="space-y-8">
+                          <div className="flex items-center gap-5 p-6 bg-rose-500/5 border border-rose-500/20 rounded-[2rem]">
+                            <div className="size-12 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0 border border-rose-500/20">
+                              <ShieldAlert className="size-6 text-rose-500" />
+                            </div>
+                            <div>
+                              <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-rose-500">Verification denied</p>
+                              <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 mt-1">Your submitted document was denied. Update the details below and submit again for review.</p>
+                            </div>
+                          </div>
+
+                          <FormField
+                            label="Legal Full Name"
+                            value={kycData.full_name}
+                            onChange={(v) => setKycData({...kycData, full_name: v})}
+                            icon={User}
+                            placeholder="Your full name"
+                          />
+
+                          <div>
+                            <label className="block text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)] mb-2 px-1">Credential Type</label>
+                            <select
+                              value={kycData.id_type}
+                              onChange={(e) => setKycData({...kycData, id_type: e.target.value})}
+                              className="w-full bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] rounded-[1.5rem] px-5 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all text-[var(--text-primary)]"
+                            >
+                              <option value="national_id">National Identification</option>
+                              <option value="passport">Passport</option>
+                              <option value="drivers_license">Driver License</option>
+                              <option value="utility_bill">Utility Bill</option>
+                            </select>
+                          </div>
+
+                          <FormField
+                            label="Document Number"
+                            value={kycData.id_number}
+                            onChange={(v) => setKycData({...kycData, id_number: v})}
+                            icon={Database}
+                            placeholder="ID number"
+                          />
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <KycUploadCard title="Front Document" image={kycData.file_url_front} field="kyc_front" uploading={brandingUploading === 'kyc_front'} onUpload={handleBrandingFileUpload} />
+                            <KycUploadCard title="Back Document" image={kycData.file_url_back} field="kyc_back" uploading={brandingUploading === 'kyc_back'} onUpload={handleBrandingFileUpload} />
+                          </div>
+
+                          <button
+                            onClick={handleKYCSubmit}
+                            disabled={kycLoading}
+                            className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                          >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+                            <div className="relative z-10 flex items-center gap-3">
+                              {kycLoading && <RefreshCw className="size-4 animate-spin" />}
+                              <span className="text-[11px] lg:text-[12px] md:text-xs font-semibold tracking-tight transition-colors">
+                                {kycLoading ? 'Submitting credentials...' : 'Resubmit verification'}
+                              </span>
+                            </div>
+                          </button>
                         </div>
                       ) : (
                         <div className="space-y-8">
-                          {kycStatus === 'pending' && (
+                          {isKycPending && (
                             <div className="flex items-center gap-5 p-6 bg-amber-500/5 border border-amber-500/20 rounded-[2rem]">
                               <div className="size-12 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20">
                                 <Clock className="size-6 text-amber-500 animate-pulse" />
@@ -818,7 +896,7 @@ export default function AccountPageClient() {
 
                           <button
                             onClick={handleKYCSubmit}
-                            disabled={kycLoading || kycStatus === 'pending'}
+                            disabled={kycLoading || isKycPending}
                             className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
                           >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
@@ -1120,6 +1198,22 @@ function BrandingUploadCard({ title, description, image, field, uploading, onUpl
         </div>
       </label>
     </div>
+  );
+}
+
+function KycUploadCard({ title, image, field, uploading, onUpload }) {
+  return (
+    <label className="group relative aspect-video rounded-[2rem] border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 overflow-hidden cursor-pointer flex items-center justify-center hover:border-[var(--accent)]/50 transition-all shadow-inner">
+      {image ? (
+        <img src={image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
+      ) : (
+        <div className="text-center p-6">
+          {uploading ? <RefreshCw className="size-8 mx-auto mb-3 text-[var(--accent)] animate-spin" /> : <Camera className="size-8 mx-auto mb-3 text-[var(--accent)] opacity-40" />}
+          <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)]">{uploading ? 'Uploading...' : title}</p>
+        </div>
+      )}
+      <input type="file" accept="image/*" className="hidden" onChange={(e) => onUpload(field, e.target.files?.[0])} />
+    </label>
   );
 }
 

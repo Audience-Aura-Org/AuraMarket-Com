@@ -9,6 +9,7 @@
 
 const jwt = require('jsonwebtoken');
 const User = require('../models/User.model');
+const KYC = require('../models/KYC.model');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/env');
 const { normalizeUserMedia } = require('../utils/media');
 const AuthOtp = require('../models/AuthOtp.model');
@@ -458,6 +459,9 @@ const getMe = async (req, res, next) => {
     let user = await User.findById(req.user._id);
     if (user) user = await ensureSupportAdmin(user);
     const userObj = user ? (typeof user.toObject === 'function' ? user.toObject() : user) : null;
+    if (userObj) {
+      userObj.kyc = await KYC.findOne({ user_id: userObj._id }).sort('-updatedAt').lean();
+    }
     normalizeUserMedia(userObj);
 
     res.status(200).json({ success: true, data: { user: userObj } });

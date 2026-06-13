@@ -80,23 +80,23 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
   }
 
   // 2. Verification / KYC pending
-  const kycStatus = user?.kyc?.status;
+  const kycStatus = user?.kyc?.status || user?.verification_status;
   const verificationPending = kycStatus === 'pending' || kycStatus === 'submitted' || kycStatus === 'under_review';
   if (verificationPending && !isAuthRoute && !isImmersiveChat) {
     notices.push({
       id: 'verification',
       Icon: ShieldCheck,
-      title: t('verification.pendingTitle', 'Verification request received'),
-      badge: t('verification.pendingBadge', 'Under review'),
-      detail: t('verification.pendingDetail', 'Your identity documents are being reviewed by our team. You\'ll be notified once the process is complete.'),
-      ctaLabel: t('verification.viewStatus', 'View status'),
+      title: t('verification.pendingTitle', 'Verification pending'),
+      badge: t('subscription.noticeWarning', 'Action needed'),
+      detail: t('verification.pendingDetail', 'Your vendor tools are available during grace. Activate a package to keep selling without interruption.'),
+      ctaLabel: t('verification.viewStatus', 'Open verification'),
       ctaAction: () => router.push('/profile?tab=kyc'),
       colors: {
-        shell: 'border-blue-500/20 bg-blue-500/5',
-        wash: 'from-blue-500/10',
-        icon: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-        cta: 'bg-blue-500 shadow-blue-500/20',
-        badge: 'bg-blue-500/15 text-blue-400',
+        shell: 'border-amber-500/20 bg-amber-500/5',
+        wash: 'from-amber-500/10',
+        icon: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+        cta: 'bg-amber-500 shadow-amber-500/20',
+        badge: 'bg-amber-500/15 text-amber-500',
       },
     });
   }

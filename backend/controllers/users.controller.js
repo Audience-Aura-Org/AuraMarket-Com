@@ -6,6 +6,9 @@ const Follow = require('../models/Follow.model');
 const getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id).populate('liked_categories').lean();
+    if (user) {
+      user.kyc = await KYC.findOne({ user_id: req.user._id }).sort('-updatedAt').lean();
+    }
     res.status(200).json({ success: true, data: { user } });
   } catch (error) {
     next(error);

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
   ShoppingCart, Star, Plus, ShieldCheck, 
-  MessageSquare, Zap, Eye, Heart, 
+  MessageSquare, Eye, Heart, 
   UserPlus, UserCheck, Compass, Check
 } from 'lucide-react';
 import { trackAction, trackWishlist } from '@/services/tracking';
@@ -29,6 +29,18 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
   const { id, _id, name, price, images, rating, vendor_id, category, on_sale, original_price, sale_price } = product;
   const isOnSale = on_sale || (original_price && original_price > price) || (sale_price && sale_price < price);
   const displayOriginalPrice = original_price || sale_price || null;
+  const numericPrice = Number(price || 0);
+  const numericOriginalPrice = Number(original_price || 0);
+  const numericSalePrice = Number(sale_price || 0);
+  const discountBasePrice = numericOriginalPrice > numericPrice
+    ? numericOriginalPrice
+    : (numericSalePrice > 0 && numericSalePrice < numericPrice ? numericPrice : 0);
+  const discountCurrentPrice = numericOriginalPrice > numericPrice
+    ? numericPrice
+    : (numericSalePrice > 0 && numericSalePrice < numericPrice ? numericSalePrice : numericPrice);
+  const discountPercent = discountBasePrice > discountCurrentPrice
+    ? Math.round(((discountBasePrice - discountCurrentPrice) / discountBasePrice) * 100)
+    : 0;
   const productId = _id || id;
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;
   const vendorId = vendor_id?._id || vendor_id;
@@ -298,8 +310,9 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
           {/* Sale badge */}
           {isOnSale && (
             <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1 rounded-full bg-rose-500 px-2.5 py-1 shadow-lg">
-              <Zap className="size-2.5 text-white" />
-              <span className="text-[9px] font-black uppercase tracking-wide text-white">Sale</span>
+              <span className="text-[9px] font-black uppercase tracking-wide text-white">
+                {discountPercent > 0 ? `-${discountPercent}%` : '%'}
+              </span>
             </div>
           )}
           {!inStock && (
