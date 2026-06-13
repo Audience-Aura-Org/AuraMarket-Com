@@ -81,10 +81,10 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
 
   // 2. Verification / KYC pending
   const kycStatus = user?.kyc?.status || user?.verification_status;
-  const verificationPending = kycStatus === 'pending' || kycStatus === 'submitted' || kycStatus === 'under_review';
+  const verificationPending = ['held', 'pending', 'submitted', 'under_review'].includes(kycStatus);
   if (verificationPending && !isAuthRoute && !isImmersiveChat) {
     notices.push({
-      id: 'verification',
+      id: `verification-${kycStatus}`,
       Icon: ShieldCheck,
       title: t('verification.pendingTitle', 'Verification pending'),
       badge: t('subscription.noticeWarning', 'Action needed'),
@@ -120,6 +120,10 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
     if (visibleNotices.length <= 1) return;
     const timer = setInterval(() => setActiveIndex((i) => (i + 1) % visibleNotices.length), 6000);
     return () => clearInterval(timer);
+  }, [visibleNotices.length]);
+
+  useEffect(() => {
+    setActiveIndex((current) => (visibleNotices.length > 0 ? current % visibleNotices.length : 0));
   }, [visibleNotices.length]);
 
   if (disabled || visibleNotices.length === 0 || isAuthRoute || isImmersiveChat || isSubscribePage) return null;
