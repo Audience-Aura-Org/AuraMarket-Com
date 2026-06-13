@@ -451,8 +451,20 @@ export default function WalletPage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <CompactStat title={t('wallet.available', 'Available')} value={fmt(balance)} sub={t('wallet.availableToSpend', 'Available to spend')} icon={Wallet} color="emerald" />
             <CompactStat title={t('wallet.inEscrow', 'In escrow')} value={fmt(pendingBalance)} sub={t('wallet.heldInEscrow', 'Held in escrow')} icon={Lock} color="amber" />
-            <CompactStat title={t('wallet.successful', 'Successful')} value={transactions.filter(t => t.status === 'completed').length} sub={`${fmt(transactions.filter(t=>t.status==='completed').reduce((s,t)=>s+t.amount,0))} XAF`} icon={CheckCircle2} color="emerald" />
-            <CompactStat title={t('wallet.failed', 'Failed')} value={transactions.filter(t => t.status === 'failed').length} sub={t('wallet.paymentsDeclined', 'Payments declined')} icon={XCircle} color="fuchsia" />
+            <CompactStat
+              title={t('wallet.successful', 'Successful')}
+              value={transactions.filter(tx => tx.status === 'completed').length}
+              sub={`${fmt(transactions.filter(tx => tx.status === 'completed').reduce((s, tx) => s + Number(tx.amount || 0), 0))} XAF`}
+              icon={CheckCircle2}
+              color="emerald"
+            />
+            <CompactStat
+              title={t('wallet.failed', 'Failed')}
+              value={transactions.filter(tx => tx.status === 'failed' || tx.status === 'rejected').length}
+              sub={t('wallet.paymentsDeclined', 'Payments declined')}
+              icon={XCircle}
+              color="fuchsia"
+            />
           </div>
 
           {/* Action Hub */}

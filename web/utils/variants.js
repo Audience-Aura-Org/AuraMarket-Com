@@ -14,10 +14,28 @@ export function applyVariantPricing(product = {}, selected = null) {
   const productImage = product.images?.[0]?.url || product.images?.[0] || null;
   const regularPrice = Number(product.price || 0);
   const salePrice = Number(product.sale_price || 0);
-  const productPrice = salePrice > 0 && salePrice < regularPrice ? salePrice : regularPrice;
+  const hasSalePrice = salePrice > 0 && salePrice < regularPrice;
+  // Use sale_price as the product base when available
+  const productPrice = hasSalePrice ? salePrice : regularPrice;
+
+  let effectivePrice;
+  if (selectedVariant?.price != null) {
+    const variantPrice = Number(selectedVariant.price);
+    // If the variant price is the SAME as the regular product price, it's just a label variant
+    // (color, size, etc.) with no price change — apply the product sale_price if set
+    if (variantPrice === regularPrice && hasSalePrice) {
+      effectivePrice = salePrice;
+    } else {
+      // Variant has a genuinely different price — use it as-is
+      effectivePrice = variantPrice;
+    }
+  } else {
+    // No explicit variant price — use product base (with sale_price if applicable)
+    effectivePrice = productPrice;
+  }
 
   return {
-    price: selectedVariant?.price ?? productPrice ?? 0,
+    price: effectivePrice,
     image: selectedVariant?.image || productImage,
     variant: selected || null,
     selectedVariant,
