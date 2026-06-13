@@ -78,6 +78,7 @@ try {
     env: {
       ...process.env,
       CAPACITOR_BUILD: 'true',
+      NODE_OPTIONS: '--max-old-space-size=4096',
     },
     stdio: 'inherit',
     shell: true,

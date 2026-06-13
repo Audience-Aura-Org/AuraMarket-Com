@@ -26,9 +26,11 @@ const nextConfig = {
   },
   compress: true,
   poweredByHeader: false,
-  turbopack: {
-    root: __dirname,
-  },
+  ...(!isCapacitorBuild ? {
+    turbopack: {
+      root: __dirname,
+    },
+  } : {}),
   ...(!isCapacitorBuild
     ? {
         // Aggressive static asset caching. Not emitted by static export builds.

@@ -569,144 +569,178 @@ export default function OnboardingFlow() {
 
           {/* ── Step: Location (Customers: Step 1, Vendors: Step 2) ── */}
           {((!isVendor && !isLogistics && step === 1) || (isVendor && step === 2)) && (
-            <div className="mx-auto grid w-full max-w-4xl gap-4 grid-cols-1 md:grid-cols-2">
+            <div className="mx-auto w-full max-w-2xl space-y-4">
+
+              {/* Customer-only: phone field */}
               {!isVendor && (
-                <div className="group relative">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                  <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Primary Contact</label>
-                    <div className="relative flex items-center">
-                      <Phone className="absolute left-3 size-4.5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-                      <input
-                        type="tel"
-                        placeholder="+237 6XX XXX XXX"
-                        value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        className="w-full bg-transparent pl-10 pr-3 py-2 text-sm font-semibold outline-none placeholder:text-[var(--text-secondary)]/30"
-                      />
-                    </div>
+                <div className="group relative overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-xl p-5">
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent)]/0 via-[var(--accent)]/50 to-[var(--accent)]/0 rounded-t-3xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
+                  <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all duration-200 mb-1.5 block">
+                    Primary Contact Number
+                  </label>
+                  <div className="relative flex items-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 group-focus-within:border-[var(--accent)]/50 transition-all duration-300">
+                    <Phone className="absolute left-4 size-4.5 text-[var(--text-secondary)] opacity-30 group-focus-within:text-[var(--accent)] group-focus-within:opacity-80 transition-all duration-200" />
+                    <input
+                      type="tel"
+                      placeholder="+237 6XX XXX XXX"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      className="w-full bg-transparent pl-11 pr-4 py-3.5 text-[15px] font-bold outline-none placeholder:text-[var(--text-secondary)]/25 text-[var(--text-primary)]"
+                    />
                   </div>
                 </div>
               )}
 
-              <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                  <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Base City</label>
-                  {zonesLoading ? (
-                    <div className="flex items-center gap-3 py-1">
-                      <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
-                      <span className="text-xs font-bold opacity-40">Loading...</span>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-[12px] font-semibold text-[var(--text-secondary)]">
-                        <MapPin className="size-4 opacity-45" />
-                        <span className={location.city ? 'text-[var(--text-primary)]' : 'opacity-50'}>
-                          {location.city || 'Select city...'}
-                        </span>
+              {/* City Picker Card */}
+              <div className="relative overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-2xl p-5 sm:p-6">
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500/50 via-[var(--accent)]/70 to-indigo-500/50 rounded-t-3xl" />
+
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="size-9 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-[var(--accent)]/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                    <MapPin className="size-4 text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.15em]">
+                      {isVendor ? 'Store Pickup City' : 'Your City'}
+                    </p>
+                    {location.city ? (
+                      <p className="text-[13px] font-black text-[var(--text-primary)] mt-0.5 leading-none">{location.city}</p>
+                    ) : (
+                      <p className="text-[12px] text-[var(--text-secondary)] opacity-45 font-medium mt-0.5">Choose your city below</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* City chips */}
+                {zonesLoading ? (
+                  <div className="flex items-center gap-3 py-3">
+                    <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
+                    <span className="text-xs font-bold opacity-40">Loading cities...</span>
+                  </div>
+                ) : cities.length === 0 ? (
+                  <p className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-[11px] font-semibold text-amber-500">
+                    No cities available yet. Try again in a moment.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto pr-1">
+                    {cities.map((z) => {
+                      const active = location.city === z.name;
+                      return (
+                        <button
+                          key={z._id || z.id || z.name}
+                          type="button"
+                          onClick={() => setLocation(p => ({ ...p, city: z.name, quartier: '' }))}
+                          className={`px-3.5 py-2 rounded-2xl border text-[12px] font-bold transition-all duration-200 ${
+                            active
+                              ? 'border-emerald-500/60 bg-gradient-to-r from-emerald-500/20 to-[var(--accent)]/20 text-emerald-300 shadow-lg shadow-emerald-500/10'
+                              : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 text-[var(--text-secondary)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/70'
+                          }`}
+                        >
+                          {active && <span className="mr-1.5 text-emerald-400">✓</span>}
+                          {z.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Zone Picker — appears after city is selected */}
+              <AnimatePresence mode="wait">
+                {location.city && (
+                  <motion.div
+                    key="zone-card"
+                    initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    className="relative overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-xl p-5 sm:p-6"
+                  >
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500/50 via-[var(--accent)]/60 to-purple-500/40 rounded-t-3xl" />
+
+                    {/* Header */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="size-9 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
+                        <Globe className="size-4 text-indigo-400" />
                       </div>
-                      <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
-                        {cities.map((z) => {
-                          const active = location.city === z.name;
+                      <div>
+                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.15em]">Neighbourhood / Zone</p>
+                        {location.quartier ? (
+                          <p className="text-[13px] font-black text-[var(--text-primary)] mt-0.5 leading-none">{location.quartier}</p>
+                        ) : (
+                          <p className="text-[12px] text-[var(--text-secondary)] opacity-45 font-medium mt-0.5">Pick your area in {location.city}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Zone chips */}
+                    {zonesLoading ? (
+                      <div className="flex items-center gap-3 py-2">
+                        <Loader2 className="size-4 animate-spin text-indigo-400" />
+                        <span className="text-xs font-bold opacity-40">Loading zones...</span>
+                      </div>
+                    ) : quartiers.length === 0 ? (
+                      <p className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-[11px] font-semibold text-amber-500">
+                        No zones found for {location.city}. Try another city.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto pr-1">
+                        {quartiers.map((z) => {
+                          const active = location.quartier === z.name;
                           return (
                             <button
                               key={z._id || z.id || z.name}
                               type="button"
-                              onClick={() => setLocation(p => ({ ...p, city: z.name, quartier: '' }))}
-                              className={`min-h-10 rounded-xl border px-3 py-2 text-left text-[12px] font-bold leading-tight transition-all duration-200 ${
+                              disabled={zonesLoading}
+                              onClick={() => setLocation(p => ({ ...p, quartier: z.name }))}
+                              className={`px-3.5 py-2 rounded-2xl border text-[12px] font-bold transition-all duration-200 disabled:opacity-40 ${
                                 active
-                                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                                  : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/80 text-[var(--text-primary)] hover:border-[var(--accent)]/30'
+                                  ? 'border-indigo-500/60 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300 shadow-lg shadow-indigo-500/10'
+                                  : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 text-[var(--text-secondary)] hover:border-indigo-400/30 hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/70'
                               }`}
                             >
-                              <span className="line-clamp-2">{z.name}</span>
+                              {active && <span className="mr-1.5 text-indigo-400">✓</span>}
+                              {z.name}
                             </button>
                           );
                         })}
                       </div>
-                      {cities.length === 0 && (
-                        <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-600">
-                          No cities available yet. Try again in a moment.
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <AnimatePresence mode="wait">
-                {location.city && (
-                  <motion.div
-                    key="zone"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="group relative"
-                  >
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                    <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Neighbourhood / Zone</label>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-[12px] font-semibold text-[var(--text-secondary)]">
-                          <Globe className="size-4 opacity-45" />
-                          <span className={location.quartier ? 'text-[var(--text-primary)]' : 'opacity-50'}>
-                            {location.quartier || 'Select zone...'}
-                          </span>
-                        </div>
-                        <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
-                          {quartiers.map((z) => {
-                            const active = location.quartier === z.name;
-                            return (
-                              <button
-                                key={z._id || z.id || z.name}
-                                type="button"
-                                disabled={zonesLoading}
-                                onClick={() => setLocation(p => ({ ...p, quartier: z.name }))}
-                                className={`min-h-10 rounded-xl border px-3 py-2 text-left text-[12px] font-bold leading-tight transition-all disabled:opacity-40 duration-200 ${
-                                  active
-                                    ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                                    : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/80 text-[var(--text-primary)] hover:border-[var(--accent)]/30'
-                                }`}
-                              >
-                                <span className="line-clamp-2">{z.name}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {quartiers.length === 0 && (
-                          <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-600">
-                            No zones found for {location.city}. Choose another city or try again.
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
 
+              {/* Address Notes — appears after city */}
               <AnimatePresence mode="wait">
                 {location.city && (
                   <motion.div
-                    key="address"
-                    initial={{ opacity: 0, y: 10 }}
+                    key="address-card"
+                    initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    className="group relative md:col-span-2"
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.25, delay: 0.05, ease: 'easeOut' }}
+                    className="relative group overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-xl p-5 sm:p-6 transition-all duration-300 focus-within:border-[var(--accent)]/30"
                   >
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                    <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">
-                        {isVendor ? 'Store Pickup Address Details / Notes' : 'Address Details / Notes'}
-                      </label>
-                      <textarea
-                        placeholder={isVendor ? "e.g. Opposite Total Station, gate #4..." : "e.g. Door #5, blue building..."}
-                        value={location.address_description}
-                        onChange={e => setLocation(p => ({ ...p, address_description: e.target.value }))}
-                        rows={3}
-                        className="w-full bg-transparent py-1 text-sm font-semibold outline-none resize-none placeholder:text-[var(--text-secondary)]/20"
-                      />
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent)]/0 via-[var(--accent)]/40 to-[var(--accent)]/0 rounded-t-3xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="size-7 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center shrink-0">
+                        <MapPin className="size-3.5 text-[var(--accent)] opacity-70" />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all duration-200 block">
+                          {isVendor ? 'Pickup Address Notes' : 'Address Notes'}
+                        </label>
+                        <p className="text-[11px] text-[var(--text-secondary)] opacity-35 font-medium">Landmarks, floor, gate — anything helpful</p>
+                      </div>
                     </div>
+                    <textarea
+                      placeholder={isVendor ? "e.g. Opposite Total Station, 2nd floor, gate #4..." : "e.g. Door #5, blue building near the market..."}
+                      value={location.address_description}
+                      onChange={e => setLocation(p => ({ ...p, address_description: e.target.value }))}
+                      rows={3}
+                      className="w-full bg-transparent text-sm font-medium outline-none resize-none placeholder:text-[var(--text-secondary)]/20 text-[var(--text-primary)] leading-relaxed min-h-[72px]"
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -779,57 +813,93 @@ export default function OnboardingFlow() {
 
           {/* ── Step: Vendor Profile (Vendors Step 0) ── */}
           {isVendor && step === 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto w-full">
-              <div className="space-y-5">
-                <div className="group relative">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                  <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Store Name</label>
-                    <div className="relative flex items-center">
-                      <Store className="absolute left-3 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-                      <input
-                        type="text"
-                        placeholder="e.g. Aura Fashion"
-                        value={vendorProfile.store_name}
-                        onChange={e => setVendorProfile(p => ({ ...p, store_name: e.target.value }))}
-                        className="w-full bg-transparent pl-11 pr-3 py-1.5 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/30"
-                      />
+            <div className="mx-auto w-full max-w-2xl space-y-4">
+
+              {/* Brand Identity Hero Card */}
+              <div className="relative overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-2xl p-5 sm:p-6">
+                {/* Decorative gradient bar */}
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500/60 via-[var(--accent)]/80 to-indigo-500/60 rounded-t-3xl" />
+
+                <div className="flex items-start gap-4">
+                  {/* Store Avatar */}
+                  <div className="relative shrink-0">
+                    <div className="size-[56px] sm:size-[64px] rounded-2xl bg-gradient-to-br from-amber-500/20 to-[var(--accent)]/20 border border-amber-500/30 flex items-center justify-center shadow-lg">
+                      {vendorProfile.store_name ? (
+                        <span className="text-xl sm:text-2xl font-black text-amber-400 uppercase leading-none">
+                          {vendorProfile.store_name[0]}
+                        </span>
+                      ) : (
+                        <Store className="size-6 sm:size-7 text-amber-400/60" />
+                      )}
                     </div>
+                    <div className="absolute -bottom-1 -right-1 size-4 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)] shadow-sm" />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-amber-400 uppercase tracking-[0.15em] mb-0.5">Your Brand Identity</p>
+                    <p className="text-[12px] text-[var(--text-secondary)] opacity-60 font-medium leading-relaxed">
+                      Set up your store so customers can recognize and trust you.
+                    </p>
                   </div>
                 </div>
 
-                <div className="group relative">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                  <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Support Contact</label>
-                    <div className="relative flex items-center">
-                      <Phone className="absolute left-3 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-                      <input
-                        type="tel"
-                        placeholder="+237 6XX XXX XXX"
-                        value={phone}
-                        onChange={e => setPhone(e.target.value)}
-                        className="w-full bg-transparent pl-11 pr-3 py-1.5 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/30"
-                      />
-                    </div>
+                {/* Store Name Field */}
+                <div className="mt-5 group">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60 group-focus-within:text-amber-400 group-focus-within:opacity-100 transition-all duration-200 mb-1.5 block">
+                    Store Name
+                  </label>
+                  <div className="relative flex items-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 group-focus-within:border-amber-500/50 group-focus-within:bg-[var(--bg-primary)]/80 transition-all duration-300 shadow-inner">
+                    <Store className="absolute left-4 size-4.5 text-[var(--text-secondary)] opacity-30 group-focus-within:text-amber-400 group-focus-within:opacity-80 transition-all duration-200 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Aura Fashion House"
+                      value={vendorProfile.store_name}
+                      onChange={e => setVendorProfile(p => ({ ...p, store_name: e.target.value }))}
+                      className="w-full bg-transparent pl-11 pr-4 py-3.5 text-[15px] font-bold outline-none placeholder:text-[var(--text-secondary)]/25 text-[var(--text-primary)]"
+                    />
+                  </div>
+                </div>
+
+                {/* Phone Field */}
+                <div className="mt-3 group">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all duration-200 mb-1.5 block">
+                    Customer Support Number
+                  </label>
+                  <div className="relative flex items-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 group-focus-within:border-[var(--accent)]/50 group-focus-within:bg-[var(--bg-primary)]/80 transition-all duration-300 shadow-inner">
+                    <Phone className="absolute left-4 size-4.5 text-[var(--text-secondary)] opacity-30 group-focus-within:text-[var(--accent)] group-focus-within:opacity-80 transition-all duration-200 shrink-0" />
+                    <input
+                      type="tel"
+                      placeholder="+237 6XX XXX XXX"
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      className="w-full bg-transparent pl-11 pr-4 py-3.5 text-[15px] font-bold outline-none placeholder:text-[var(--text-secondary)]/25 text-[var(--text-primary)]"
+                    />
                   </div>
                 </div>
               </div>
 
-              <div className="flex">
-                <div className="group relative w-full flex">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                  <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40 w-full flex flex-col justify-between">
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Brand Description</label>
-                    <textarea
-                      placeholder="Tell buyers what makes your store unique..."
-                      value={vendorProfile.description}
-                      onChange={e => setVendorProfile(p => ({ ...p, description: e.target.value }))}
-                      rows={4}
-                      className="w-full flex-1 bg-transparent py-1 text-sm font-semibold outline-none resize-none placeholder:text-[var(--text-secondary)]/20 min-h-[120px]"
-                    />
+              {/* Brand Story Card */}
+              <div className="relative group overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-xl p-5 sm:p-6 transition-all duration-300 focus-within:border-[var(--accent)]/30">
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent)]/0 via-[var(--accent)]/40 to-[var(--accent)]/0 rounded-t-3xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
+
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all duration-200 block">
+                      Brand Story
+                    </label>
+                    <p className="text-[11px] text-[var(--text-secondary)] opacity-40 mt-0.5 font-medium">What makes your store stand out?</p>
+                  </div>
+                  <div className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 group-focus-within:opacity-60 transition-opacity">
+                    {vendorProfile.description?.length || 0}/300
                   </div>
                 </div>
+                <textarea
+                  placeholder="Tell buyers what makes your store unique — your specialty, quality promise, or story behind the brand..."
+                  value={vendorProfile.description}
+                  onChange={e => setVendorProfile(p => ({ ...p, description: e.target.value.slice(0, 300) }))}
+                  rows={4}
+                  className="w-full bg-transparent text-sm font-medium outline-none resize-none placeholder:text-[var(--text-secondary)]/20 text-[var(--text-primary)] leading-relaxed min-h-[100px]"
+                />
               </div>
             </div>
           )}

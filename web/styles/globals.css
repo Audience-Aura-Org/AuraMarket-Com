@@ -9,12 +9,14 @@
   --color-bg-primary: var(--bg-primary);
   --color-text-primary: var(--text-primary);
   --color-card-bg: var(--card-bg);
-  --font-display: var(--font-poppins);
-  --font-sans: var(--font-poppins);
-  --font-quicksand: var(--font-poppins);
+  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-quicksand: "Poppins", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
+  --font-poppins: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-order: "Plus Jakarta Sans", "Poppins", ui-sans-serif, system-ui, sans-serif;
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --nav-bg: rgba(10, 5, 15, 0.95);
