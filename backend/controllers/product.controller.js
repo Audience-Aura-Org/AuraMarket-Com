@@ -337,25 +337,21 @@ const updateProduct = async (req, res, next) => {
     const oldStock = product.stock;
     const newStock = updateData.stock !== undefined ? Number(updateData.stock) : oldStock;
 
-    product = await Product.findByIdAndUpdate(req.params.id, { $set: updateData }, { returnDocument: 'after', runValidators: true });
+    product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true }
+    );
 
     // ── Invalidate server-side cache ───────────────────────────────────
-    // The GET /products/:id and GET /products list routes cache with the
-    // pattern `products_<query>`. Wipe all matching keys so the next
-    // fetch returns fresh data with the updated sale_price / fields.
+    // Wipe all `products_*` keys so the next fetch returns the updated
+    // sale_price, on_sale flag, and any other changed fields.
     try {
-      // Delete the per-product cache key used by getProductById (if any)
-      const specificKey = `products_${JSON.stringify({ id: req.params.id })}`;
-      await cache.delete(specificKey);
-
-      // Sweep all in-memory keys that belong to the products namespace
       for (const key of cache.keys()) {
-        if (key.startsWith('products_')) {
-          await cache.delete(key);
-        }
+        if (key.startsWith('products_')) await cache.delete(key);
       }
     } catch (_cacheErr) {
-      // Non-fatal — stale data will expire on its own
+      // Non-fatal — stale entries expire on their own TTL
     }
 
     const vendor = req.vendor;
