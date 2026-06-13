@@ -342,34 +342,35 @@ const payunitInitialize = async (req, res) => {
     const returnUrl = customRedirect || `${webUrl}/wallet/verify?gateway=payunit&ref=${transactionRef}`;
 
     // -----------------------------------------------------------------------
-    // Per PayUnit docs: /makepayment is a STANDALONE call for direct mobile
-    // push — it does NOT require a prior /initialize.
-    // /initialize is only for redirect-checkout (no phone) flows.
-    // phone_number must be the local 9-digit number (e.g. 651188134).
+    // Correct PayUnit two-step flow:
+    //   1. POST /initialize — registers the transaction in PayUnit's system
+    //      (required — skipping this causes 404 "Transaction does not exist")
+    //   2. POST /makepayment — triggers direct mobile push
+    //      transaction_id = OUR transactionRef (not PayUnit's returned ID)
+    //      phone_number   = local 9-digit format, e.g. 651188134 (not +237...)
     // -----------------------------------------------------------------------
-    let init = null;
-    let direct = null;
 
+    // Step 1: Always initialize first
+    const init = await payunit.initializePayment({
+      amount: feeBreakdown.grossAmount,
+      currency,
+      transactionId: transactionRef,
+      returnUrl,
+      notifyUrl,
+      country,
+    });
+
+    // Step 2: If phone provided, trigger direct mobile push with the SAME transactionRef
+    let direct = null;
     if (phone) {
-      // Direct mobile push — standalone /makepayment, no /initialize
       direct = await payunit.makeMobilePayment({
         amount: feeBreakdown.grossAmount,
         currency,
-        transactionId: transactionRef,
+        transactionId: transactionRef,  // our own ID — same as sent to /initialize
         returnUrl,
         notifyUrl,
-        phone,   // service.normalizePhone() converts to local 9-digit format
+        phone,  // normalizePhone() in service converts to local 9-digit (e.g. 651188134)
         provider,
-      });
-    } else {
-      // Redirect checkout — /initialize only
-      init = await payunit.initializePayment({
-        amount: feeBreakdown.grossAmount,
-        currency,
-        transactionId: transactionRef,
-        returnUrl,
-        notifyUrl,
-        country,
       });
     }
 

@@ -338,12 +338,17 @@ function CheckoutContent() {
           if (res.data.success) {
             const p = res.data.data.product;
             const priced = applyVariantPricing(p, variant);
+            const regularPrice = Number(p.price || 0);
+            const salePrice = Number(p.sale_price || 0);
+            const hasSale = !variant && salePrice > 0 && salePrice < regularPrice;
             setCartItems([{
               product_id: p._id,
               vendor_id: p.vendor_id?._id || p.vendor_id,
               vendor_name: p.vendor_id?.store_name || 'Aura Merchant Node',
               name: p.name,
               price: priced.price,
+              sale_price: hasSale ? salePrice : null,
+              regular_price: regularPrice,
               quantity: quantity,
               image: priced.image,
               variant: priced.variant
@@ -357,6 +362,9 @@ function CheckoutContent() {
           if (res.data.success && res.data.data.cart?.items) {
              const items = res.data.data.cart.items.map(i => {
                const priced = applyVariantPricing(i.product, i.variant);
+               const regularPrice = Number(i.product?.price || 0);
+               const salePrice = Number(i.product?.sale_price || 0);
+               const hasSale = !i.variant && salePrice > 0 && salePrice < regularPrice;
                 return {
                 id: i._id,
                 cart_item_id: i._id,
@@ -365,6 +373,8 @@ function CheckoutContent() {
                 vendor_name: i.product?.vendor_id?.store_name || i.product?.vendor_id?.user_id?.name || 'Aura Merchant Node',
                 name: i.product?.name,
                 price: priced.price,
+                sale_price: hasSale ? salePrice : null,
+                regular_price: regularPrice,
                 quantity: i.quantity,
                 image: priced.image,
                 variant: i.variant || null
