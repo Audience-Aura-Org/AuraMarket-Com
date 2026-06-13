@@ -34,15 +34,18 @@ const {
   getHubFeed
 } = require('../controllers/product.controller');
 
-const { protect, restrictTo, loadVendor } = require('../middleware/auth.middleware');
+const { protect, restrictTo, loadVendor, protectOptional, loadVendorOptional } = require('../middleware/auth.middleware');
 const { requireActiveSubscription } = require('../middleware/subscription.middleware');
 
 // ── Public Routes ─────────────────────────────
 router.get('/', getProducts);
-router.get('/hub', protect, getHubFeed); // Added hub feed route
+router.get('/hub', protect, getHubFeed);
 router.get('/recommendations', protect, getRecommendedProducts);
 router.get('/history', protect, getRecentlyViewed);
-router.get('/:id', getProductById);
+
+// protectOptional + loadVendorOptional: allows an owning vendor to see their
+// own pending/archived product from the edit form without blocking public buyers.
+router.get('/:id', protectOptional, loadVendorOptional, getProductById);
 router.get('/:id/related', getRelatedProducts);
 router.post('/:id/view', protect, trackProductView);
 router.post('/:id/watch', protect, watchProduct);

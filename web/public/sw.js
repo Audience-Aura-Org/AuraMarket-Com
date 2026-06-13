@@ -1,6 +1,8 @@
 /**
- * Auradime — PWA Service Worker v7
+ * Auradime — PWA Service Worker v8
  * Robust background push handling with redundant notification suppression.
+ * Fix: RSC / prefetch requests are never intercepted (prevents 404 on dynamic routes).
+ * Fix: Asset fallback never returns null to respondWith() (prevents Response TypeError).
  */
 
 const CACHE_NAME = 'aura-cache-v10';
@@ -69,28 +71,54 @@ function normalizeNotificationUrl(rawUrl) {
 // ── Fetch: Network-first for nav, cache-first for assets ────────────────────
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+
+  // ── Never intercept non-GET, API calls, Next internals, or socket traffic ──
   if (
+    event.request.method !== 'GET' ||
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/_next/') ||
-    url.pathname.startsWith('/socket.io') ||
-    event.request.method !== 'GET'
+    url.pathname.startsWith('/socket.io')
   ) {
     return;
   }
 
+  // ── Never intercept Next.js RSC / prefetch / router-state requests ──────────
+  // These carry special headers/params that must reach the Next server unchanged.
+  // Intercepting them corrupts navigation to dynamic routes (e.g. /vendor/products/edit/[id]).
+  if (
+    url.searchParams.has('_rsc') ||
+    event.request.headers.get('RSC') === '1' ||
+    event.request.headers.get('Next-Router-Prefetch') === '1' ||
+    event.request.headers.get('Next-Router-State-Tree')
+  ) {
+    return;
+  }
+
+  // ── Navigation: network-first, fall back to cached shell ────────────────────
   if (
     event.request.mode === 'navigate' ||
     event.request.headers.get('accept')?.includes('text/html')
   ) {
     event.respondWith(
-      fetch(event.request, { cache: 'no-store' }).catch(() => caches.match('/'))
+      fetch(event.request, { cache: 'no-store' }).catch(() =>
+        caches.match('/').then((cached) =>
+          cached || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } })
+        )
+      )
     );
     return;
   }
 
+  // ── Static assets: cache-first, network fallback, never null ────────────────
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).catch(() => null);
+      if (cached) return cached;
+      return fetch(event.request).catch(() =>
+        new Response('Asset unavailable offline', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain' },
+        })
+      );
     })
   );
 });

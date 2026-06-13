@@ -31,7 +31,10 @@ export default function EditProductPage() {
 
   useEffect(() => {
     if (id) {
-      api.get(`/products/${id}`)
+      // skipClientCache: always fetch fresh data from the server.
+      // Without this the 45-second api.js localStorage cache can serve
+      // stale sale_price / field values after a recent save.
+      api.get(`/products/${id}`, { skipClientCache: true })
         .then(res => {
           if (res.data.success) {
             const p = res.data.data.product;
@@ -39,7 +42,7 @@ export default function EditProductPage() {
               name: p.name || '',
               description: p.description || '',
               price: p.price || '',
-              sale_price: p.sale_price || '',
+              sale_price: p.sale_price ?? '',
               stock: p.stock || 0,
               category: p.category || '',
               featured: !!p.featured,
@@ -188,9 +191,11 @@ export default function EditProductPage() {
       }
       
       await api.patch(`/products/${id}`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      toast.success('Product updated successfully.');
       router.push('/vendor/products');
     } catch (err) {
       console.error('Product update error:', err);
+      toast.error(err?.response?.data?.message || 'Failed to update product. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -44,7 +44,13 @@ const cache = {
 
   clear: () => {
     memoryCache.clear();
-  }
+  },
+
+  /**
+   * Return all currently-stored keys (expired entries are included).
+   * Useful for targeted prefix-based invalidation.
+   */
+  keys: () => Array.from(memoryCache.keys()),
 };
 
 module.exports = cache;

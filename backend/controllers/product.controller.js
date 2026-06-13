@@ -256,7 +256,18 @@ const getProductById = async (req, res, next) => {
       ]
     });
 
-    if (!product || product.status !== 'active') {
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found.' });
+    }
+
+    // Allow the owning vendor to fetch their own product regardless of status
+    // (needed so the edit form can load pending/archived products).
+    const isOwningVendor =
+      req.vendor &&
+      product.vendor_id &&
+      product.vendor_id._id.toString() === req.vendor._id.toString();
+
+    if (product.status !== 'active' && !isOwningVendor) {
       return res.status(404).json({ success: false, message: 'Product not found.' });
     }
 
@@ -327,6 +338,25 @@ const updateProduct = async (req, res, next) => {
     const newStock = updateData.stock !== undefined ? Number(updateData.stock) : oldStock;
 
     product = await Product.findByIdAndUpdate(req.params.id, { $set: updateData }, { returnDocument: 'after', runValidators: true });
+
+    // ── Invalidate server-side cache ───────────────────────────────────
+    // The GET /products/:id and GET /products list routes cache with the
+    // pattern `products_<query>`. Wipe all matching keys so the next
+    // fetch returns fresh data with the updated sale_price / fields.
+    try {
+      // Delete the per-product cache key used by getProductById (if any)
+      const specificKey = `products_${JSON.stringify({ id: req.params.id })}`;
+      await cache.delete(specificKey);
+
+      // Sweep all in-memory keys that belong to the products namespace
+      for (const key of cache.keys()) {
+        if (key.startsWith('products_')) {
+          await cache.delete(key);
+        }
+      }
+    } catch (_cacheErr) {
+      // Non-fatal — stale data will expire on its own
+    }
 
     const vendor = req.vendor;
     const { notifyFollowers } = require('../utils/notifier');

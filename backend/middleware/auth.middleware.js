@@ -173,4 +173,23 @@ const loadVendor = async (req, res, next) => {
   }
 };
 
-module.exports = { protect, restrictTo, protectOptional, loadVendor };
+// ─────────────────────────────────────────────
+// loadVendorOptional — Attach Vendor profile silently (never blocks)
+// Used on public routes that need to distinguish an owning vendor
+// (e.g. GET /products/:id allowing a vendor to see their own pending product).
+// ─────────────────────────────────────────────
+const loadVendorOptional = async (req, res, next) => {
+  try {
+    if (req.user && req.user.role === 'vendor') {
+      const Vendor = require('../models/Vendor.model');
+      const vendor = await Vendor.findOne({ user_id: req.user._id });
+      if (vendor) req.vendor = vendor;
+    }
+    next();
+  } catch {
+    // Non-fatal — proceed as a public request
+    next();
+  }
+};
+
+module.exports = { protect, restrictTo, protectOptional, loadVendor, loadVendorOptional };
