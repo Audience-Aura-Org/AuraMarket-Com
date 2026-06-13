@@ -1238,7 +1238,14 @@ function CheckoutContent() {
                               </p>
                             )}
                             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-semibold text-[var(--text-secondary)]">
-                              <span>{Number(item.price || 0).toLocaleString()} XAF</span>
+                              {item.sale_price ? (
+                                <>
+                                  <span className="text-[var(--accent)]">{Number(item.sale_price).toLocaleString()} XAF</span>
+                                  <span className="line-through opacity-40">{Number(item.regular_price || item.price).toLocaleString()}</span>
+                                </>
+                              ) : (
+                                <span>{Number(item.price || 0).toLocaleString()} XAF</span>
+                              )}
                               <span className="opacity-35">x</span>
                               <span>{item.quantity || 1}</span>
                             </div>

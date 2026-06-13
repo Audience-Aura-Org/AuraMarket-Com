@@ -30,17 +30,25 @@ let _sidebarOpen = true;    // Default open on desktop per user preference
 
 function parseItems(raw) {
   if (!Array.isArray(raw)) return [];
-  return raw.map(i => ({
-    id: i._id || (i.product?._id || i.product),
-    productId: i.product?._id || i.product,
-    name: i.product?.name || 'Product',
-    price: i.product?.price || 0,
-    quantity: i.quantity || 1,
-    image: i.product?.images?.[0]?.url || i.product?.images?.[0] || '',
-    vendor_name: i.product?.vendor_id?.store_name || 'Vendor',
-    vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id || null,
-    raw: i,
-  }));
+  return raw.map(i => {
+    const regularPrice = Number(i.product?.price || 0);
+    const salePrice = Number(i.product?.sale_price || 0);
+    // Use sale_price when it's valid (> 0 and strictly less than regular price)
+    const effectivePrice = salePrice > 0 && salePrice < regularPrice ? salePrice : regularPrice;
+    return {
+      id: i._id || (i.product?._id || i.product),
+      productId: i.product?._id || i.product,
+      name: i.product?.name || 'Product',
+      price: effectivePrice,
+      sale_price: salePrice > 0 && salePrice < regularPrice ? salePrice : null,
+      regular_price: regularPrice,
+      quantity: i.quantity || 1,
+      image: i.product?.images?.[0]?.url || i.product?.images?.[0] || '',
+      vendor_name: i.product?.vendor_id?.store_name || 'Vendor',
+      vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id || null,
+      raw: i,
+    };
+  });
 }
 
 function notify() {
@@ -224,6 +232,8 @@ export const cartStore = {
       productId: product._id || product.id,
       name: product.name,
       price: displayPrice,
+      sale_price: salePrice > 0 && salePrice < regularPrice ? salePrice : null,
+      regular_price: regularPrice,
       quantity,
       image: product.images?.[0]?.url || product.images?.[0] || '',
       vendor_name: product.vendor_id?.store_name || 'Vendor',

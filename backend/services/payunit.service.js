@@ -43,15 +43,23 @@ const client = () => {
 const normalizePhone = (phone, country = 'CM') => {
   if (!phone) return '';
   let value = String(phone).replace(/[^\d+]/g, '');
-  if (value.startsWith('00')) value = `+${value.slice(2)}`;
-  if (!value.startsWith('+')) {
-    const prefixes = { CM: '237' };
-    const prefix = prefixes[country] || '237';
-    if (value.startsWith('0')) value = value.slice(1);
-    if (!value.startsWith(prefix)) value = `${prefix}${value}`;
-    value = `+${value}`;
-  }
-  return value;
+  if (value.startsWith('00')) value = value.slice(2);
+  else if (value.startsWith('+')) value = value.slice(1);
+  // Strip country prefix to get local number (e.g. 237651188134 → 651188134)
+  const prefixes = { CM: '237' };
+  const prefix = prefixes[country] || '237';
+  if (value.startsWith(prefix)) value = value.slice(prefix.length);
+  // Strip leading 0 (e.g. 0651188134 → 651188134)
+  if (value.startsWith('0')) value = value.slice(1);
+  return value; // Returns local digits only: e.g. 651188134
+};
+
+// Returns full international format with + for display/metadata only
+const normalizePhoneIntl = (phone, country = 'CM') => {
+  const local = normalizePhone(phone, country);
+  if (!local) return '';
+  const prefixes = { CM: '237' };
+  return `+${prefixes[country] || '237'}${local}`;
 };
 
 const cleanTransactionId = (value) =>
@@ -97,7 +105,8 @@ const makeMobilePayment = async ({
     transaction_id: cleanTransactionId(transactionId),
     return_url: returnUrl,
     notify_url: notifyUrl,
-    phone_number: normalizePhone(phone).replace(/^\+/, ''),
+    // PayUnit requires local 9-digit number only (e.g. 651188134), NOT +237651188134
+    phone_number: normalizePhone(phone),
     currency,
     paymentType: 'button',
   };
@@ -124,6 +133,7 @@ module.exports = {
   getPaymentStatus,
   normalizeStatus,
   normalizePhone,
+  normalizePhoneIntl,
   cleanTransactionId,
   getMode,
 };

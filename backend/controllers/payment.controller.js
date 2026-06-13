@@ -341,34 +341,35 @@ const payunitInitialize = async (req, res) => {
     const transactionRef = payunit.cleanTransactionId(`AURAPU${Date.now()}${String(req.user._id).slice(-6)}`);
     const returnUrl = customRedirect || `${webUrl}/wallet/verify?gateway=payunit&ref=${transactionRef}`;
 
-    // Step 1: Always initialize — this registers the transaction in PayUnit's
-    // system and returns PayUnit's own confirmed transaction_id.
-    const init = await payunit.initializePayment({
-      amount: feeBreakdown.grossAmount,
-      currency,
-      transactionId: transactionRef,
-      returnUrl,
-      notifyUrl,
-      country,
-    });
-
-    // PayUnit returns its confirmed transaction_id in the init response.
-    // /makepayment MUST use this PayUnit-assigned ID, not our custom ref —
-    // that was the root cause of "Payer not found" and "Transaction does not exist".
-    const payunitTxId = init?.data?.transaction_id || transactionRef;
-
-    // Step 2 (optional): If phone provided, trigger direct mobile push.
+    // -----------------------------------------------------------------------
+    // Per PayUnit docs: /makepayment is a STANDALONE call for direct mobile
+    // push — it does NOT require a prior /initialize.
+    // /initialize is only for redirect-checkout (no phone) flows.
+    // phone_number must be the local 9-digit number (e.g. 651188134).
+    // -----------------------------------------------------------------------
+    let init = null;
     let direct = null;
+
     if (phone) {
-      const normalizedPhone = payunit.normalizePhone(phone, country);
+      // Direct mobile push — standalone /makepayment, no /initialize
       direct = await payunit.makeMobilePayment({
         amount: feeBreakdown.grossAmount,
         currency,
-        transactionId: payunitTxId,   // ← PayUnit's ID, not our ref
+        transactionId: transactionRef,
         returnUrl,
         notifyUrl,
-        phone: normalizedPhone,
+        phone,   // service.normalizePhone() converts to local 9-digit format
         provider,
+      });
+    } else {
+      // Redirect checkout — /initialize only
+      init = await payunit.initializePayment({
+        amount: feeBreakdown.grossAmount,
+        currency,
+        transactionId: transactionRef,
+        returnUrl,
+        notifyUrl,
+        country,
       });
     }
 
@@ -392,7 +393,7 @@ const payunitInitialize = async (req, res) => {
         collection_fee: feeBreakdown.collectionFee,
         gross_amount: feeBreakdown.grossAmount,
         provider,
-        phone: phone ? payunit.normalizePhone(phone, country) : null,
+        phone: phone ? payunit.normalizePhoneIntl(phone, country) : null,
       },
     });
 
