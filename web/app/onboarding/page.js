@@ -57,6 +57,10 @@ export default function OnboardingFlow() {
 
   // UI state
   const [search, setSearch] = useState('');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState('');
+  const [zoneSearch, setZoneSearch] = useState('');
   const [fetching, setFetching] = useState(true);
   const [syncing, setSyncing] = useState(null);
 
@@ -351,6 +355,11 @@ export default function OnboardingFlow() {
   const categoriesToShow = filteredCategories.slice(0, visibleCategoriesCount);
   const hasMoreCategories = filteredCategories.length > visibleCategoriesCount;
 
+  // Dropdown-search filtered list (separate from the grid filter)
+  const categoryDropdownResults = categorySearch.trim()
+    ? categories.filter(c => c.name?.toLowerCase().includes(categorySearch.toLowerCase())).slice(0, 8)
+    : [];
+
   const getZoneName = (zone) => String(zone?.name || zone?.label || zone?.title || '').trim();
   const getZoneParentName = (zone) => String(
     zone?.parent_id?.name ||
@@ -505,45 +514,109 @@ export default function OnboardingFlow() {
       <div className="mx-auto w-full max-w-6xl space-y-5 px-3 py-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-5 md:space-y-7 md:px-6 md:py-5">
           {/* ── Step: Categories (Customers: Step 0, Vendors: Step 1) ── */}
           {((!isVendor && !isLogistics && step === 0) || (isVendor && step === 1)) && (
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40" />
-                <input
-                  type="text"
-                  placeholder="Filter categories..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 text-sm outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
-                />
+            <div className="space-y-4 max-w-6xl mx-auto w-full">
+
+              {/* Search + Dropdown */}
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search categories..."
+                    value={categorySearch}
+                    onChange={e => { setCategorySearch(e.target.value); setCategoryDropdownOpen(true); setSearch(e.target.value); }}
+                    onFocus={() => setCategoryDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setCategoryDropdownOpen(false), 150)}
+                    className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner placeholder:text-[var(--text-secondary)]/30"
+                  />
+                  {/* Dropdown results */}
+                  <AnimatePresence>
+                    {categoryDropdownOpen && categoryDropdownResults.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-2xl shadow-2xl overflow-hidden"
+                      >
+                        {categoryDropdownResults.map(cat => {
+                          const sel = selectedCategories.includes(cat._id);
+                          return (
+                            <button
+                              key={cat._id}
+                              type="button"
+                              onMouseDown={e => e.preventDefault()}
+                              onClick={() => {
+                                setSelectedCategories(p => sel ? p.filter(id => id !== cat._id) : [...p, cat._id]);
+                                setCategorySearch('');
+                                setSearch('');
+                                setCategoryDropdownOpen(false);
+                              }}
+                              className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold transition-all ${
+                                sel
+                                  ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                                  : 'hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]'
+                              }`}
+                            >
+                              <div className={`size-6 rounded-lg flex items-center justify-center shrink-0 ${
+                                sel ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                              }`}>
+                                {sel ? <Check className="size-3.5" /> : <LayoutGrid className="size-3.5" />}
+                              </div>
+                              {cat.name}
+                              {sel && <span className="ml-auto text-[10px] font-bold text-[var(--accent)] opacity-60">Selected</span>}
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Selected count badge */}
+                <div className="shrink-0 flex items-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-3.5 py-3 text-[12px] font-bold text-rose-400">
+                  <Heart className="size-3.5" />
+                  {selectedCategories.length}/2+
+                </div>
               </div>
 
+              {/* Progress bar */}
               <div className="flex items-center gap-3 px-1">
                 <div className="flex-1 h-1.5 bg-[var(--bg-primary)] rounded-full overflow-hidden">
                   <div className="h-full bg-rose-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, (selectedCategories.length / 2) * 100)}%` }} />
                 </div>
-                <span className="text-[11px] lg:text-[12px]  font-semibold text-rose-400 shrink-0">{selectedCategories.length}/2 min</span>
+                <span className="text-[11px] font-semibold text-rose-400 shrink-0">{selectedCategories.length} selected</span>
               </div>
 
-              {/* High-Density Rectangular Category Blocks */}
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-3.5 md:gap-4">
+              {/* High-Density Rectangular Category Blocks — wider on desktop */}
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-3 md:gap-3.5">
                 {categoriesToShow.map(cat => {
                   const sel = selectedCategories.includes(cat._id);
                   return (
                     <button
                       key={cat._id}
                       onClick={() => setSelectedCategories(p => sel ? p.filter(id => id !== cat._id) : [...p, cat._id])}
-                      className={`group relative flex min-h-[72px] sm:min-h-[82px] md:min-h-[100px] items-center gap-2.5 sm:gap-3 md:gap-3.5 rounded-xl sm:rounded-2xl md:rounded-[1.5rem] p-2.5 sm:p-3.5 md:p-5 text-left transition-all duration-300 ${sel ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)]' : 'bg-[var(--bg-primary)]/70 backdrop-blur-md border-[var(--glass-border)] hover:border-[var(--accent)]/20 hover:bg-[var(--bg-primary)]/90'}`}
+                      className={`group relative flex min-h-[72px] sm:min-h-[82px] md:min-h-[96px] items-center gap-2.5 sm:gap-3 rounded-xl sm:rounded-2xl p-2.5 sm:p-3.5 md:p-4 text-left transition-all duration-300 border ${
+                        sel
+                          ? 'bg-[var(--accent)]/10 border-[var(--accent)]/40 shadow-lg shadow-[var(--accent)]/10'
+                          : 'bg-[var(--bg-primary)]/70 backdrop-blur-md border-[var(--glass-border)] hover:border-[var(--accent)]/20 hover:bg-[var(--bg-primary)]/90'
+                      }`}
                     >
-                      <div className={`size-8 sm:size-11 md:size-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 border transition-all duration-300 ${sel ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'bg-white/5 border-white/10 text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 group-hover:border-[var(--accent)]/30'}`}>
-                        <LayoutGrid className="size-4 sm:size-5" />
+                      <div className={`size-8 sm:size-9 md:size-10 rounded-xl flex items-center justify-center shrink-0 border transition-all duration-300 ${
+                        sel
+                          ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
+                          : 'bg-white/5 border-white/10 text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 group-hover:border-[var(--accent)]/30'
+                      }`}>
+                        <LayoutGrid className="size-3.5 sm:size-4" />
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col gap-0.5 text-left">
-                        <span className={`line-clamp-2 text-xs sm:text-[13px] md:text-sm font-bold leading-snug tracking-tight transition-colors ${sel ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{cat.name}</span>
-                        <span className="hidden xs:block truncate text-[9px] sm:text-[10px] md:text-[11px] font-medium opacity-40">Explore {cat.name}</span>
+                        <span className={`line-clamp-2 text-[11px] sm:text-xs md:text-[13px] font-bold leading-snug tracking-tight transition-colors ${
+                          sel ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'
+                        }`}>{cat.name}</span>
                       </div>
                       {sel && (
-                        <div className="ml-auto size-4 sm:size-5 rounded-full bg-[var(--accent)] flex items-center justify-center shadow-lg animate-in zoom-in-50 duration-300 shrink-0">
-                           <div className="size-1 sm:size-1.5 rounded-full bg-white" />
+                        <div className="absolute top-2 right-2 size-4 rounded-full bg-[var(--accent)] flex items-center justify-center shadow-lg shrink-0">
+                          <Check className="size-2.5 text-white" />
                         </div>
                       )}
                     </button>
@@ -556,14 +629,16 @@ export default function OnboardingFlow() {
                 <div className="pt-4 flex justify-center">
                   <button
                     onClick={() => setVisibleCategoriesCount(p => p + 20)}
-                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition-all shadow-sm"
+                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] font-semibold tracking-tight text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition-all shadow-sm"
                   >
-                    See more <ChevronRight className="size-3 text-[var(--accent)]" />
+                    Show more <ChevronRight className="size-3 text-[var(--accent)]" />
                   </button>
                 </div>
               )}
-              
-              {filteredCategories.length === 0 && <p className="text-center text-sm opacity-40 py-12">No categories found in current matrix...</p>}
+
+              {filteredCategories.length === 0 && (
+                <p className="text-center text-sm opacity-40 py-12">No categories match your search...</p>
+              )}
             </div>
           )}
 
@@ -623,25 +698,43 @@ export default function OnboardingFlow() {
                     No cities available yet. Try again in a moment.
                   </p>
                 ) : (
-                  <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto pr-1">
-                    {cities.map((z) => {
-                      const active = location.city === z.name;
-                      return (
-                        <button
-                          key={z._id || z.id || z.name}
-                          type="button"
-                          onClick={() => setLocation(p => ({ ...p, city: z.name, quartier: '' }))}
-                          className={`px-3.5 py-2 rounded-2xl border text-[12px] font-bold transition-all duration-200 ${
-                            active
-                              ? 'border-emerald-500/60 bg-gradient-to-r from-emerald-500/20 to-[var(--accent)]/20 text-emerald-300 shadow-lg shadow-emerald-500/10'
-                              : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 text-[var(--text-secondary)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/70'
-                          }`}
-                        >
-                          {active && <span className="mr-1.5 text-emerald-400">✓</span>}
-                          {z.name}
-                        </button>
-                      );
-                    })}
+                  <div className="space-y-3">
+                    {/* City search */}
+                    <div className="relative">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Search cities..."
+                        value={citySearch}
+                        onChange={e => setCitySearch(e.target.value)}
+                        className="w-full bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl pl-9 pr-3 py-2.5 text-[12px] font-semibold outline-none focus:border-emerald-500/40 transition-all placeholder:text-[var(--text-secondary)]/25"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+                      {cities
+                        .filter(z => !citySearch || z.name.toLowerCase().includes(citySearch.toLowerCase()))
+                        .map((z) => {
+                          const active = location.city === z.name;
+                          return (
+                            <button
+                              key={z._id || z.id || z.name}
+                              type="button"
+                              onClick={() => { setLocation(p => ({ ...p, city: z.name, quartier: '' })); setCitySearch(''); }}
+                              className={`px-3.5 py-2 rounded-2xl border text-[12px] font-bold transition-all duration-200 ${
+                                active
+                                  ? 'border-emerald-500/60 bg-gradient-to-r from-emerald-500/20 to-[var(--accent)]/20 text-emerald-300 shadow-lg shadow-emerald-500/10'
+                                  : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 text-[var(--text-secondary)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/70'
+                              }`}
+                            >
+                              {active && <span className="mr-1.5 text-emerald-400">✓</span>}
+                              {z.name}
+                            </button>
+                          );
+                        })}
+                    </div>
+                    {citySearch && cities.filter(z => z.name.toLowerCase().includes(citySearch.toLowerCase())).length === 0 && (
+                      <p className="text-[11px] text-[var(--text-secondary)] opacity-40 font-medium">No cities match "{citySearch}"</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -685,26 +778,44 @@ export default function OnboardingFlow() {
                         No zones found for {location.city}. Try another city.
                       </p>
                     ) : (
-                      <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto pr-1">
-                        {quartiers.map((z) => {
-                          const active = location.quartier === z.name;
-                          return (
-                            <button
-                              key={z._id || z.id || z.name}
-                              type="button"
-                              disabled={zonesLoading}
-                              onClick={() => setLocation(p => ({ ...p, quartier: z.name }))}
-                              className={`px-3.5 py-2 rounded-2xl border text-[12px] font-bold transition-all duration-200 disabled:opacity-40 ${
-                                active
-                                  ? 'border-indigo-500/60 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300 shadow-lg shadow-indigo-500/10'
-                                  : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 text-[var(--text-secondary)] hover:border-indigo-400/30 hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/70'
-                              }`}
-                            >
-                              {active && <span className="mr-1.5 text-indigo-400">✓</span>}
-                              {z.name}
-                            </button>
-                          );
-                        })}
+                      <div className="space-y-3">
+                        {/* Zone search */}
+                        <div className="relative">
+                          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
+                          <input
+                            type="text"
+                            placeholder="Search zones..."
+                            value={zoneSearch}
+                            onChange={e => setZoneSearch(e.target.value)}
+                            className="w-full bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl pl-9 pr-3 py-2.5 text-[12px] font-semibold outline-none focus:border-indigo-500/40 transition-all placeholder:text-[var(--text-secondary)]/25"
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+                          {quartiers
+                            .filter(z => !zoneSearch || z.name.toLowerCase().includes(zoneSearch.toLowerCase()))
+                            .map((z) => {
+                              const active = location.quartier === z.name;
+                              return (
+                                <button
+                                  key={z._id || z.id || z.name}
+                                  type="button"
+                                  disabled={zonesLoading}
+                                  onClick={() => { setLocation(p => ({ ...p, quartier: z.name })); setZoneSearch(''); }}
+                                  className={`px-3.5 py-2 rounded-2xl border text-[12px] font-bold transition-all duration-200 disabled:opacity-40 ${
+                                    active
+                                      ? 'border-indigo-500/60 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300 shadow-lg shadow-indigo-500/10'
+                                      : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 text-[var(--text-secondary)] hover:border-indigo-400/30 hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/70'
+                                  }`}
+                                >
+                                  {active && <span className="mr-1.5 text-indigo-400">✓</span>}
+                                  {z.name}
+                                </button>
+                              );
+                            })}
+                        </div>
+                        {zoneSearch && quartiers.filter(z => z.name.toLowerCase().includes(zoneSearch.toLowerCase())).length === 0 && (
+                          <p className="text-[11px] text-[var(--text-secondary)] opacity-40 font-medium">No zones match "{zoneSearch}"</p>
+                        )}
                       </div>
                     )}
                   </motion.div>
@@ -1087,19 +1198,21 @@ export default function OnboardingFlow() {
           )}
         </div>
 
-      {/* High-Density Navigation Footer  */}
+      {/* Navigation Footer */}
       {!isLastStep && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] px-6 pt-6 sm:px-8 sm:pt-8 sm:pb-[calc(2rem+env(safe-area-inset-bottom,0px))] pointer-events-none">
-          <div className="max-w-md mx-auto flex items-center gap-4 pointer-events-auto">
-            {/* Primary Action Button */}
-            <button
-              onClick={goNext}
-              className="w-full py-3.5 rounded-xl font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 transition-all shadow-xl shadow-[var(--accent)]/15 border border-white/10 hover:opacity-90 active:scale-95"
-              style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)', color: 'white' }}
-            >
-              {step === STEPS_ACTIVE.length - 2 ? 'Final Review' : 'Continue'}
-              <ArrowRight className="size-3.5" />
-            </button>
+        <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
+          {/* Frosted glass panel — separates button from content */}
+          <div className="pointer-events-auto bg-[var(--bg-primary)]/80 backdrop-blur-2xl border-t border-[var(--glass-border)] shadow-[0_-8px_32px_rgba(0,0,0,0.18)] px-4 pt-3.5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-4 sm:pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+            <div className="max-w-md mx-auto">
+              <button
+                onClick={goNext}
+                className="w-full py-3.5 rounded-2xl font-bold text-[13px] tracking-tight flex items-center justify-center gap-2.5 transition-all shadow-xl shadow-[var(--accent)]/20 border border-white/10 hover:opacity-90 active:scale-[0.98]"
+                style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)', color: 'white' }}
+              >
+                {step === STEPS_ACTIVE.length - 2 ? 'Final Review' : 'Continue'}
+                <ArrowRight className="size-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}
