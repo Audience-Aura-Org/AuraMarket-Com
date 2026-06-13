@@ -36,12 +36,11 @@ const ProductSchema = new mongoose.Schema(
       type: Number,
       default: null,
       min: [0, 'Sale price cannot be negative'],
-      validate: {
-        validator(value) {
-          return value == null || Number(value) < Number(this.price || 0);
-        },
-        message: 'Sale price must be lower than the regular price',
-      },
+      // NOTE: The cross-field check (sale_price < price) is enforced in
+      // normalizeSalePricing() before every create/update. We intentionally
+      // omit a schema-level validator here because Mongoose's `this` context
+      // inside findByIdAndUpdate validators is the Query, not the document,
+      // so `this.price` is always undefined → 0, causing false 400 errors.
     },
     on_sale: {
       type: Boolean,
