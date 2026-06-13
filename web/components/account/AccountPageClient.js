@@ -818,8 +818,8 @@ export default function AccountPageClient() {
                                 <Clock className="size-6 text-amber-500 animate-pulse" />
                               </div>
                               <div>
-                                <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-amber-500">Validation in Progress</p>
-                                <p className="text-sm text-amber-500/60 font-medium">Our node controllers are reviewing your credentials.</p>
+                                <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-amber-500">Verification pending</p>
+                                <p className="text-sm text-amber-500/60 font-medium">Your documents are under review. We will update this page once a decision is made.</p>
                               </div>
                             </div>
                           )}

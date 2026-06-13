@@ -75,7 +75,7 @@ const getHomepageLayout = async (req, res, next) => {
   try {
     let layout = await Homepage.findOne({ version: 'v1' }).populate({
       path: 'featured_products.product_id',
-      select: 'name price images rating vendor_id',
+      select: 'name price sale_price on_sale images rating vendor_id',
       populate: { path: 'vendor_id', select: 'store_name' },
     });
 
@@ -263,7 +263,9 @@ const getPlatformAnalytics = async (req, res, next) => {
 
 const getPendingKYC = async (req, res, next) => {
   try {
-    const submissions = await KYC.find({ status: 'pending' })
+    const { status } = req.query;
+    const query = status && status !== 'all' ? { status } : {};
+    const submissions = await KYC.find(query)
       .populate('user_id', 'name email avatar role verification_status')
       .populate('vendor_id', 'store_name')
       .sort('-createdAt');
@@ -502,6 +504,7 @@ const updateProductAdmin = async (req, res, next) => {
       'name',
       'description',
       'price',
+      'sale_price',
       'stock',
       'category',
       'status',
@@ -513,6 +516,21 @@ const updateProductAdmin = async (req, res, next) => {
     allowedUpdates.forEach((field) => {
       if (req.body[field] !== undefined) updateData[field] = req.body[field];
     });
+
+    if (updateData.sale_price === '' || updateData.sale_price === null) {
+      updateData.sale_price = null;
+      updateData.on_sale = false;
+    } else if (updateData.sale_price !== undefined) {
+      const nextPrice = updateData.price !== undefined ? Number(updateData.price) : undefined;
+      const salePrice = Number(updateData.sale_price);
+      const product = await Product.findById(req.params.id).select('price');
+      const regularPrice = nextPrice || Number(product?.price || 0);
+      if (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= regularPrice) {
+        return res.status(400).json({ success: false, message: 'Sale price must be lower than the regular price.' });
+      }
+      updateData.sale_price = salePrice;
+      updateData.on_sale = true;
+    }
 
     if (updateData.status) {
       const allowedStatuses = ['active', 'pending', 'archived', 'suspended', 'draft'];

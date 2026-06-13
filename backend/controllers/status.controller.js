@@ -80,7 +80,7 @@ exports.getActiveStatuses = async (req, res) => {
       })
       .populate({
         path: 'linked_product',
-        select: 'name price images'
+        select: 'name price sale_price on_sale images'
       })
       .lean();
 
@@ -116,7 +116,7 @@ exports.getStatusById = async (req, res) => {
       })
       .populate({
         path: 'linked_product',
-        select: 'name price images',
+        select: 'name price sale_price on_sale images',
       })
       .lean();
 
@@ -226,7 +226,7 @@ exports.getMyStatuses = async (req, res) => {
       .sort({ createdAt: -1 })
       .populate({
         path: 'linked_product',
-        select: 'name price images'
+        select: 'name price sale_price on_sale images'
       });
 
     res.status(200).json({ success: true, data: statuses });

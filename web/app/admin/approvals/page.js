@@ -22,6 +22,7 @@ export default function AdminApprovals() {
   const [loading, setLoading] = useState(true);
   const [actioning, setActioning] = useState(null);
   const [selectedKyc, setSelectedKyc] = useState(null);
+  const [kycStatusFilter, setKycStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -29,13 +30,13 @@ export default function AdminApprovals() {
     setMounted(true);
     fetchData();
     setCurrentPage(1);
-  }, [activeTab]);
+  }, [activeTab, kycStatusFilter]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       if (activeTab === 'Verifications') {
-        const res = await api.get('/admin/kyc/pending');
+        const res = await api.get('/admin/kyc/pending', { params: { status: kycStatusFilter } });
         if (res.data?.success) setVendors(res.data.data.submissions || []);
       } else {
         const res = await api.get('/admin/products/pending');
@@ -58,8 +59,9 @@ export default function AdminApprovals() {
       });
       if (res.data.success) {
         toast.success(`Vendor ${status} successfully`);
-        setVendors(prev => prev.filter(v => v._id !== kycId));
-        setSelectedKyc((current) => current?._id === kycId ? null : current);
+        const updatedKyc = res.data.data?.kyc;
+        setVendors(prev => prev.map(v => v._id === kycId ? { ...v, ...(updatedKyc || {}), status } : v));
+        setSelectedKyc((current) => current?._id === kycId ? { ...current, ...(updatedKyc || {}), status } : current);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Verification shift failed');
@@ -132,6 +134,20 @@ export default function AdminApprovals() {
               ))}
            </div>
 
+           {activeTab === 'Verifications' && (
+             <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
+                {['all', 'pending', 'approved', 'rejected'].map(status => (
+                  <button
+                    key={status}
+                    onClick={() => setKycStatusFilter(status)}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-semibold tracking-tight transition-all capitalize ${kycStatusFilter === status ? 'bg-amber-500 text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  >
+                    {status}
+                  </button>
+                ))}
+             </div>
+           )}
+
            <button onClick={fetchData} className="size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm active:scale-95">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
            </button>
@@ -142,7 +158,7 @@ export default function AdminApprovals() {
          {/* Live Stats */}
          <div className="grid grid-cols-4 gap-6">
             {[
-               { label: 'Pending Verifications', value: vendors.length, icon: Building2, color: 'var(--accent)', sub: 'KYC_QUEUE' },
+               { label: kycStatusFilter === 'all' ? 'Verification Records' : `${kycStatusFilter} Verifications`, value: vendors.length, icon: Building2, color: 'var(--accent)', sub: 'KYC_QUEUE' },
                { label: 'Pending Assets', value: products.length, icon: Package, color: '#6366f1', sub: 'PRODUCT_GATE' },
                { label: 'Wait Latency', value: '4.2h', icon: Clock, color: '#10b981', sub: 'SYNC_SPEED' },
                { label: 'Risk Profile', value: 'Minimal', icon: AlertCircle, color: '#fbbf24', sub: 'SAFETY_INDEX' }
@@ -218,8 +234,14 @@ export default function AdminApprovals() {
                                    </p>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] lg:text-[12px]  font-semibold tracking-widest border border-amber-500/20 capitalize">
-                                      Pending Sync
+                                   <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-widest border capitalize ${
+                                      v.status === 'approved'
+                                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                        : v.status === 'rejected'
+                                          ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                                          : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                   }`}>
+                                      {v.status === 'approved' ? 'Approved' : v.status === 'rejected' ? 'Rejected' : 'Pending Sync'}
                                    </span>
                                 </td>
                                 <td className="px-10 py-6 text-right">
@@ -249,14 +271,14 @@ export default function AdminApprovals() {
                                       )}
                                       <button 
                                          onClick={() => handleReviewKYC(v._id, 'rejected')}
-                                         disabled={actioning === v._id}
+                                         disabled={actioning === v._id || v.status === 'rejected'}
                                          className="size-9 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                                       >
                                          <X className="w-5 h-5" />
                                       </button>
                                       <button 
                                          onClick={() => handleReviewKYC(v._id, 'approved')}
-                                         disabled={actioning === v._id}
+                                         disabled={actioning === v._id || v.status === 'approved'}
                                          className="size-9 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20"
                                       >
                                          {actioning === v._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-5 h-5" />}
@@ -386,7 +408,7 @@ export default function AdminApprovals() {
                         className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 text-[11px] font-bold text-rose-500 transition-all hover:bg-rose-500 hover:text-white disabled:opacity-50"
                       >
                         <X className="size-4" />
-                        Reject
+                        {selectedKyc.status === 'rejected' ? 'Rejected' : 'Reject'}
                       </button>
                       <button
                         onClick={() => handleReviewKYC(selectedKyc._id, 'approved')}
@@ -394,7 +416,7 @@ export default function AdminApprovals() {
                         className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 text-[11px] font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-all hover:brightness-110 disabled:opacity-50"
                       >
                         {actioning === selectedKyc._id ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-                        Approve
+                        {selectedKyc.status === 'approved' ? 'Approved' : 'Approve'}
                       </button>
                     </div>
                   </div>

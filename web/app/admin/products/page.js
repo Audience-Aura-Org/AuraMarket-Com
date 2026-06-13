@@ -90,6 +90,7 @@ export default function AdminProductsPage() {
       name: product.name || '',
       description: product.description || '',
       price: product.price ?? '',
+      sale_price: product.sale_price ?? '',
       stock: product.stock ?? '',
       category: product.category || '',
       status: product.status || 'active',
@@ -101,6 +102,10 @@ export default function AdminProductsPage() {
 
   const handleSaveEdit = async () => {
     if (!editingProduct?._id) return;
+    if (editForm.sale_price && Number(editForm.sale_price) >= Number(editForm.price)) {
+      toast.error('Sale price must be lower than the regular price.');
+      return;
+    }
     setSavingEdit(true);
     try {
       const res = await api.patch(`/admin/products/${editingProduct._id}`, editForm);
@@ -186,16 +191,16 @@ export default function AdminProductsPage() {
           ) : (
             <div className="space-y-12">
               <div className="glass-panel overflow-x-auto rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/45 shadow-2xl">
-                <table className="w-full min-w-[980px] text-left">
+                <table className="w-full min-w-[1160px] table-fixed text-left">
                   <thead className="bg-[var(--bg-secondary)]/60">
                     <tr className="border-b border-[var(--glass-border)] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/60">
-                      <th className="px-5 py-4">Select</th>
-                      <th className="px-5 py-4">Product</th>
-                      <th className="px-5 py-4">Vendor</th>
-                      <th className="px-5 py-4 text-right">Price</th>
-                      <th className="px-5 py-4 text-center">Rating</th>
-                      <th className="px-5 py-4 text-center">Status</th>
-                      <th className="px-5 py-4 text-right">Actions</th>
+                      <th className="w-20 whitespace-nowrap px-5 py-4">Select</th>
+                      <th className="w-[320px] whitespace-nowrap px-5 py-4">Product</th>
+                      <th className="w-[220px] whitespace-nowrap px-5 py-4">Vendor</th>
+                      <th className="w-[150px] whitespace-nowrap px-5 py-4 text-right">Price</th>
+                      <th className="w-24 whitespace-nowrap px-5 py-4 text-center">Rating</th>
+                      <th className="w-32 whitespace-nowrap px-5 py-4 text-center">Status</th>
+                      <th className="w-[240px] whitespace-nowrap px-5 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--glass-border)]">
@@ -236,7 +241,12 @@ export default function AdminProductsPage() {
                               {p.vendor_id?.store_name || 'Unknown vendor'}
                             </div>
                           </td>
-                          <td className="px-5 py-4 text-right text-sm font-bold">{p.price?.toLocaleString()} <span className="text-[10px] text-[var(--text-secondary)]/45">XAF</span></td>
+                          <td className="px-5 py-4 text-right text-sm font-bold">
+                            <div>{(p.sale_price || p.price)?.toLocaleString()} <span className="text-[10px] text-[var(--text-secondary)]/45">XAF</span></div>
+                            {p.sale_price && Number(p.sale_price) < Number(p.price) && (
+                              <div className="text-[10px] font-semibold text-[var(--text-secondary)]/45 line-through">{p.price?.toLocaleString()} XAF</div>
+                            )}
+                          </td>
                           <td className="px-5 py-4">
                             <div className="flex items-center justify-center gap-1 text-xs font-semibold">
                               <Star className="size-3 text-amber-500 fill-amber-500" />
@@ -325,6 +335,7 @@ export default function AdminProductsPage() {
                   <AdminInput label="Product name" value={editForm.name} onChange={(v) => setEditForm(f => ({ ...f, name: v }))} />
                   <AdminInput label="Category" value={editForm.category} onChange={(v) => setEditForm(f => ({ ...f, category: v }))} />
                   <AdminInput label="Price" type="number" value={editForm.price} onChange={(v) => setEditForm(f => ({ ...f, price: v }))} />
+                  <AdminInput label="Sale price" type="number" value={editForm.sale_price} onChange={(v) => setEditForm(f => ({ ...f, sale_price: v }))} />
                   <AdminInput label="Stock" type="number" value={editForm.stock} onChange={(v) => setEditForm(f => ({ ...f, stock: v }))} />
                   <label className="space-y-2">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/55">Status</span>

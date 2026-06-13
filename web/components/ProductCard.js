@@ -229,7 +229,12 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
                 <h3 translate="no" className="line-clamp-2 text-xs md:text-sm font-bold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors" title={name}>{name}</h3>
               </Link>
               <div className="flex items-center gap-4">
-                <p className="text-[14px] md:text-[18px]  font-bold text-[var(--text-primary)]">{displayPrice?.toLocaleString()} XAF</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-[14px] md:text-[18px] font-bold text-[var(--text-primary)]">{displayPrice?.toLocaleString()} XAF</p>
+                  {isOnSale && displayOriginalPrice && (
+                    <span className="text-[10px] font-semibold text-[var(--text-secondary)] line-through opacity-50">{displayOriginalPrice?.toLocaleString()}</span>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-70">
                    <span className="flex items-center gap-1"><ShoppingCart className="size-3.5 text-emerald-500" /> {t('product.soldCount', '{count} sold', { count: product.purchase_count || 0 })}</span>
                 </div>
