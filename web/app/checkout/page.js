@@ -398,15 +398,19 @@ function CheckoutContent() {
   }, [orderId, productId, quantity, router]);
 
   const handlePlaceOrder = async () => {
-    if ((order?.products || cartItems).length === 0) {
+    const currentCartItems = [...cartItems];
+    const currentOrder = order;
+    if ((currentOrder?.products || currentCartItems).length === 0) {
       toast.error('Your checkout has no items.');
       router.push('/cart');
       return;
     }
 
     // Compute amounts from the authoritative sources, not stale state
-    const computedSubtotal = order?.subtotal || cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
-    const computedDelivery = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
+    const computedSubtotal = currentOrder?.subtotal
+      ? Number(currentOrder.subtotal)
+      : currentCartItems.reduce((acc, it) => acc + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+    const computedDelivery = currentOrder?.shipping_fee !== undefined ? Number(currentOrder.shipping_fee) : compatibleFee;
     const computedOrderTotal = computedSubtotal + computedDelivery;
 
     const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
@@ -560,10 +564,10 @@ function CheckoutContent() {
               onSuccess: () => {
                 toast.success('Payment confirmed! Your order is being processed.');
                 setCheckoutTotals({
-                  subtotal,
-                  finalDeliveryFee,
-                  totalAmount,
-                  items: [...matrixItems]
+                  subtotal: computedSubtotal,
+                  finalDeliveryFee: computedDelivery,
+                  totalAmount: computedOrderTotal + computedCollectionFee,
+                  items: order?.products?.length ? [...(order.products)] : [...currentCartItems]
                 });
                 cartStore.clearCart();
                 setEversendCheckout({ active: false, reference: null, message: '' });
@@ -601,10 +605,10 @@ function CheckoutContent() {
       }
 
       setCheckoutTotals({
-        subtotal,
-        finalDeliveryFee,
-        totalAmount,
-        items: [...matrixItems]
+        subtotal: computedSubtotal,
+        finalDeliveryFee: computedDelivery,
+        totalAmount: computedOrderTotal + computedCollectionFee,
+        items: order?.products?.length ? [...(order.products)] : [...currentCartItems]
       });
       cartStore.clearCart();
       toast.success('Order successfully executed!');
@@ -936,7 +940,7 @@ function CheckoutContent() {
                                <SearchableZoneDropdown 
                                   open={zoneOpen}
                                   selected={formData.quartier}
-                                  onSelect={(val) => setFormData({...formData, quartier: val})}
+                                  onSelect={(val) => setFormData(prev => ({...prev, quartier: val}))}
                                   onClose={() => setZoneOpen(false)}
                                   zones={zones}
                                />
