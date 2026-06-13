@@ -408,12 +408,13 @@ export default function OnboardingFlow() {
   // ── Main UI ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] relative">
-      {/* Ambient glow */}
-      <div className={`fixed top-0 right-0 w-[600px] h-[600px] rounded-full blur-[120px] -z-10 pointer-events-none opacity-30 transition-all duration-700 ${colors.bg}`} />
+      {/* Ambient glows */}
+      <div className={`fixed top-0 right-0 w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full blur-[100px] sm:blur-[120px] -z-10 pointer-events-none opacity-25 sm:opacity-35 transition-all duration-700 ${colors.bg}`} />
+      <div className={`fixed bottom-0 left-0 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] rounded-full blur-[80px] sm:blur-[100px] -z-10 pointer-events-none opacity-15 sm:opacity-25 transition-all duration-700 ${colors.bg}`} />
 
       {/* Header / Step Progress */}
-      <header className="shrink-0 sticky top-0 z-20 px-4 py-4 md:px-6 md:py-6">
-        <div className="max-w-4xl mx-auto flex items-center justify-between bg-[var(--bg-primary)]/40 backdrop-blur-2xl border border-[var(--glass-border)] rounded-[2rem] px-5 py-2.5 shadow-2xl">
+      <header className="sticky top-0 z-20 shrink-0 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3 px-3 sm:px-4 md:px-6 md:py-5">
+        <div className="relative mx-auto flex w-full max-w-6xl items-center justify-between gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 px-3 py-2.5 shadow-lg backdrop-blur-2xl sm:rounded-[1.5rem] sm:px-5">
           {/* Back / Logo */}
           <div className="flex items-center gap-4">
             {step > 0 ? (
@@ -425,32 +426,35 @@ export default function OnboardingFlow() {
                 <img src="/icon-512.png" className="w-full h-auto" alt="" />
               </div>
             )}
-            <div className="flex flex-col">
-              <span className="text-sm  font-bold text-[var(--text-primary)]">Onboarding</span>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-sm font-bold text-[var(--text-primary)]">Onboarding</span>
+              <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">
+                {step + 1}/{STEPS_ACTIVE.length}
+              </span>
             </div>
           </div>
 
           {/* Step Pills (Integrated) */}
-          <div className="hidden sm:flex items-center gap-2 px-4 border-x border-[var(--glass-border)]">
+          <div className="absolute inset-x-4 bottom-0 flex translate-y-1/2 items-center gap-1.5 sm:static sm:translate-y-0 sm:px-4 md:flex md:border-x md:border-[var(--glass-border)]">
             {STEPS_ACTIVE.map((s, i) => {
               const done = i < step;
               const active = i === step;
               return (
-                <div key={i} className={`h-1.5 rounded-full transition-all duration-700 ${active ? 'w-10 bg-[var(--accent)] shadow-[0_0_15px_var(--accent)]' : done ? 'w-3 bg-emerald-500/60' : 'w-3 bg-[var(--glass-border)]'}`} />
+                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-700 sm:flex-none ${active ? 'sm:w-10 bg-[var(--accent)] shadow-[0_0_15px_var(--accent)]' : done ? 'sm:w-3 bg-emerald-500/60' : 'sm:w-3 bg-[var(--glass-border)]'}`} />
               );
             })}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {!isLastStep && !isVendor && !isLogistics && (
               <button 
                 onClick={skip} 
-                className="px-3 py-1.5 rounded-lg text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] text-[var(--accent)] hover:opacity-70 transition-all flex items-center gap-1.5"
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold tracking-[0.12em] text-[var(--accent)] transition-all hover:opacity-70 sm:text-[11px]"
               >
                 Skip <SkipForward className="size-3 opacity-60" />
               </button>
             )}
-            <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] lg:text-[12px]  font-semibold text-emerald-400 tracking-tight">
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1.5 text-[10px] font-semibold tracking-tight text-emerald-500 sm:px-3 sm:text-[11px]">
               Verified
             </div>
           </div>
@@ -458,15 +462,15 @@ export default function OnboardingFlow() {
       </header>
 
       {/* Step Title */}
-      <div className="shrink-0 pt-6 pb-5 px-4 md:pt-10 md:pb-8 md:px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-4 md:gap-6">
+      <div className="shrink-0 px-4 pb-4 pt-5 sm:px-5 md:px-6 md:pb-6 md:pt-8">
+        <div className="mx-auto w-full max-w-6xl">
+          <div className="flex items-center gap-3 md:gap-5">
             <div className={`size-12 md:size-16 rounded-xl md:rounded-2xl ${colors.bg} border ${colors.border} flex items-center justify-center shadow-lg ${colors.glow}`}>
               {currentStepMeta && <currentStepMeta.icon className={`size-6 md:size-7 ${colors.text}`} />}
             </div>
-            <div className="space-y-1.5 md:space-y-2">
-              <h1 className="text-xl md:text-3xl font-bold tracking-tight leading-tight">{currentStepMeta?.title}</h1>
-              <p className={`text-[11px] md:text-sm font-semibold ${colors.text} opacity-80 leading-relaxed`}>{currentStepMeta?.subtitle}</p>
+            <div className="min-w-0 space-y-0.5 md:space-y-1">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight tracking-tight">{currentStepMeta?.title}</h1>
+              <p className={`text-[11px] font-semibold leading-relaxed opacity-80 md:text-sm ${colors.text}`}>{currentStepMeta?.subtitle}</p>
             </div>
           </div>
         </div>
@@ -498,7 +502,7 @@ export default function OnboardingFlow() {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 py-4 space-y-6 md:px-6 md:py-5 md:space-y-8 pb-32">
+      <div className="mx-auto w-full max-w-6xl space-y-5 px-3 py-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-5 md:space-y-7 md:px-6 md:py-5">
           {/* ── Step: Categories (Customers: Step 0, Vendors: Step 1) ── */}
           {((!isVendor && !isLogistics && step === 0) || (isVendor && step === 1)) && (
             <div className="space-y-4">
@@ -521,25 +525,25 @@ export default function OnboardingFlow() {
               </div>
 
               {/* High-Density Rectangular Category Blocks */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3.5 md:gap-4">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-3.5 md:gap-4">
                 {categoriesToShow.map(cat => {
                   const sel = selectedCategories.includes(cat._id);
                   return (
                     <button
                       key={cat._id}
                       onClick={() => setSelectedCategories(p => sel ? p.filter(id => id !== cat._id) : [...p, cat._id])}
-                      className={`group relative flex min-h-[92px] items-center gap-3.5 rounded-[1.5rem] border p-4 text-left transition-all duration-300 md:min-h-[104px] md:p-5 ${sel ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)]' : 'bg-[var(--bg-primary)]/40 backdrop-blur-md border-white/5 hover:border-[var(--accent)]/20 hover:bg-[var(--bg-primary)]/60'}`}
+                      className={`group relative flex min-h-[72px] sm:min-h-[82px] md:min-h-[100px] items-center gap-2.5 sm:gap-3 md:gap-3.5 rounded-xl sm:rounded-2xl md:rounded-[1.5rem] p-2.5 sm:p-3.5 md:p-5 text-left transition-all duration-300 ${sel ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 shadow-[0_0_20px_rgba(var(--accent-rgb),0.1)]' : 'bg-[var(--bg-primary)]/70 backdrop-blur-md border-[var(--glass-border)] hover:border-[var(--accent)]/20 hover:bg-[var(--bg-primary)]/90'}`}
                     >
-                      <div className={`size-11 rounded-2xl flex items-center justify-center shrink-0 border transition-all duration-300 md:size-12 ${sel ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'bg-white/5 border-white/10 text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 group-hover:border-[var(--accent)]/30'}`}>
-                        <LayoutGrid className="size-5 md:size-5" />
+                      <div className={`size-8 sm:size-11 md:size-12 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 border transition-all duration-300 ${sel ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'bg-white/5 border-white/10 text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 group-hover:border-[var(--accent)]/30'}`}>
+                        <LayoutGrid className="size-4 sm:size-5" />
                       </div>
-                      <div className="flex min-w-0 flex-1 flex-col gap-1 text-left">
-                        <span className={`line-clamp-2 text-[13px] font-bold leading-snug tracking-tight transition-colors md:text-sm ${sel ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{cat.name}</span>
-                        <span className="truncate text-[10px] font-medium opacity-40 md:text-[11px]">Explore {cat.name}</span>
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5 text-left">
+                        <span className={`line-clamp-2 text-xs sm:text-[13px] md:text-sm font-bold leading-snug tracking-tight transition-colors ${sel ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{cat.name}</span>
+                        <span className="hidden xs:block truncate text-[9px] sm:text-[10px] md:text-[11px] font-medium opacity-40">Explore {cat.name}</span>
                       </div>
                       {sel && (
-                        <div className="ml-auto size-5 rounded-full bg-[var(--accent)] flex items-center justify-center shadow-lg animate-in zoom-in-50 duration-300">
-                           <div className="size-1.5 rounded-full bg-white" />
+                        <div className="ml-auto size-4 sm:size-5 rounded-full bg-[var(--accent)] flex items-center justify-center shadow-lg animate-in zoom-in-50 duration-300 shrink-0">
+                           <div className="size-1 sm:size-1.5 rounded-full bg-white" />
                         </div>
                       )}
                     </button>
@@ -565,20 +569,20 @@ export default function OnboardingFlow() {
 
           {/* ── Step: Location (Customers: Step 1, Vendors: Step 2) ── */}
           {((!isVendor && !isLogistics && step === 1) || (isVendor && step === 2)) && (
-            <div className="space-y-4 max-w-md mx-auto w-full">
+            <div className="mx-auto grid w-full max-w-4xl gap-4 grid-cols-1 md:grid-cols-2">
               {!isVendor && (
                 <div className="group relative">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
                   <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest mb-2 block">Primary Contact</label>
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Primary Contact</label>
                     <div className="relative flex items-center">
-                      <Phone className="absolute left-0 size-4 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                      <Phone className="absolute left-3 size-4.5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
                       <input
                         type="tel"
                         placeholder="+237 6XX XXX XXX"
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
-                        className="w-full bg-transparent pl-8 pr-2 py-1.5 text-sm font-semibold outline-none placeholder:text-[var(--text-secondary)]/20"
+                        className="w-full bg-transparent pl-10 pr-3 py-2 text-sm font-semibold outline-none placeholder:text-[var(--text-secondary)]/30"
                       />
                     </div>
                   </div>
@@ -588,7 +592,7 @@ export default function OnboardingFlow() {
               <div className="group relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
                 <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 block opacity-60">Base City</label>
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Base City</label>
                   {zonesLoading ? (
                     <div className="flex items-center gap-3 py-1">
                       <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
@@ -610,10 +614,10 @@ export default function OnboardingFlow() {
                               key={z._id || z.id || z.name}
                               type="button"
                               onClick={() => setLocation(p => ({ ...p, city: z.name, quartier: '' }))}
-                              className={`min-h-10 rounded-xl border px-3 py-2 text-left text-[12px] font-bold leading-tight transition-all ${
+                              className={`min-h-10 rounded-xl border px-3 py-2 text-left text-[12px] font-bold leading-tight transition-all duration-200 ${
                                 active
                                   ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                                  : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 text-[var(--text-primary)] hover:border-[var(--accent)]/30'
+                                  : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/80 text-[var(--text-primary)] hover:border-[var(--accent)]/30'
                               }`}
                             >
                               <span className="line-clamp-2">{z.name}</span>
@@ -631,16 +635,18 @@ export default function OnboardingFlow() {
                 </div>
               </div>
 
-              {location.city && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="space-y-4"
-                >
-                  <div className="group relative">
+              <AnimatePresence mode="wait">
+                {location.city && (
+                  <motion.div
+                    key="zone"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="group relative"
+                  >
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
                     <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 block opacity-60">Neighbourhood / Zone</label>
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Neighbourhood / Zone</label>
                       <div className="space-y-3">
                         <div className="flex items-center gap-2 text-[12px] font-semibold text-[var(--text-secondary)]">
                           <Globe className="size-4 opacity-45" />
@@ -657,10 +663,10 @@ export default function OnboardingFlow() {
                                 type="button"
                                 disabled={zonesLoading}
                                 onClick={() => setLocation(p => ({ ...p, quartier: z.name }))}
-                                className={`min-h-10 rounded-xl border px-3 py-2 text-left text-[12px] font-bold leading-tight transition-all disabled:opacity-40 ${
+                                className={`min-h-10 rounded-xl border px-3 py-2 text-left text-[12px] font-bold leading-tight transition-all disabled:opacity-40 duration-200 ${
                                   active
                                     ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                                    : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 text-[var(--text-primary)] hover:border-[var(--accent)]/30'
+                                    : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/80 text-[var(--text-primary)] hover:border-[var(--accent)]/30'
                                 }`}
                               >
                                 <span className="line-clamp-2">{z.name}</span>
@@ -675,12 +681,22 @@ export default function OnboardingFlow() {
                         )}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                  <div className="group relative">
+              <AnimatePresence mode="wait">
+                {location.city && (
+                  <motion.div
+                    key="address"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="group relative md:col-span-2"
+                  >
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
                     <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                      <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 block opacity-60">
+                      <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">
                         {isVendor ? 'Store Pickup Address Details / Notes' : 'Address Details / Notes'}
                       </label>
                       <textarea
@@ -691,9 +707,9 @@ export default function OnboardingFlow() {
                         className="w-full bg-transparent py-1 text-sm font-semibold outline-none resize-none placeholder:text-[var(--text-secondary)]/20"
                       />
                     </div>
-                  </div>
-                </motion.div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
@@ -725,7 +741,7 @@ export default function OnboardingFlow() {
                  </span>
                </div>
 
-                <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                   {filteredVendors.slice(0, 20).map(v => {
                     const isFollowing = followedVendors.includes(v._id);
                     const isSyncing = syncing === v._id;
@@ -763,52 +779,56 @@ export default function OnboardingFlow() {
 
           {/* ── Step: Vendor Profile (Vendors Step 0) ── */}
           {isVendor && step === 0 && (
-            <div className="space-y-5 max-w-md mx-auto">
-              <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                  <label className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest mb-3 block">Store Name</label>
-                  <div className="relative flex items-center">
-                    <Store className="absolute left-0 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Aura Fashion"
-                      value={vendorProfile.store_name}
-                      onChange={e => setVendorProfile(p => ({ ...p, store_name: e.target.value }))}
-                      className="w-full bg-transparent pl-10 pr-2 py-1 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/20"
-                    />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto w-full">
+              <div className="space-y-5">
+                <div className="group relative">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                  <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Store Name</label>
+                    <div className="relative flex items-center">
+                      <Store className="absolute left-3 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                      <input
+                        type="text"
+                        placeholder="e.g. Aura Fashion"
+                        value={vendorProfile.store_name}
+                        onChange={e => setVendorProfile(p => ({ ...p, store_name: e.target.value }))}
+                        className="w-full bg-transparent pl-11 pr-3 py-1.5 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/30"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="group relative">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                  <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Support Contact</label>
+                    <div className="relative flex items-center">
+                      <Phone className="absolute left-3 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                      <input
+                        type="tel"
+                        placeholder="+237 6XX XXX XXX"
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                        className="w-full bg-transparent pl-11 pr-3 py-1.5 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/30"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3 block opacity-60">Support Contact</label>
-                  <div className="relative flex items-center">
-                    <Phone className="absolute left-0 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-                    <input
-                      type="tel"
-                      placeholder="+237 6XX XXX XXX"
-                      value={phone}
-                      onChange={e => setPhone(e.target.value)}
-                      className="w-full bg-transparent pl-10 pr-2 py-1 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/20"
+              <div className="flex">
+                <div className="group relative w-full flex">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                  <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40 w-full flex flex-col justify-between">
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Brand Description</label>
+                    <textarea
+                      placeholder="Tell buyers what makes your store unique..."
+                      value={vendorProfile.description}
+                      onChange={e => setVendorProfile(p => ({ ...p, description: e.target.value }))}
+                      rows={4}
+                      className="w-full flex-1 bg-transparent py-1 text-sm font-semibold outline-none resize-none placeholder:text-[var(--text-secondary)]/20 min-h-[120px]"
                     />
                   </div>
-                </div>
-              </div>
-
-              <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3 block opacity-60">Brand Description</label>
-                  <textarea
-                    placeholder="Tell buyers what makes your store unique..."
-                    value={vendorProfile.description}
-                    onChange={e => setVendorProfile(p => ({ ...p, description: e.target.value }))}
-                    rows={4}
-                    className="w-full bg-transparent py-1 text-sm font-semibold outline-none resize-none placeholder:text-[var(--text-secondary)]/20"
-                  />
                 </div>
               </div>
             </div>
@@ -817,37 +837,39 @@ export default function OnboardingFlow() {
 
           {/* ── Step 3: Classy / All Set ── */}
           {isLogistics && step === 0 && (
-            <div className="space-y-5 max-w-md mx-auto">
-              <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                  <label className="text-[10px] font-bold text-[var(--accent)] uppercase tracking-widest mb-3 block">Company Name</label>
-                  <div className="relative flex items-center">
-                    <Truck className="absolute left-0 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Auradime Express"
-                      value={logisticsProfile.company_name}
-                      onChange={e => setLogisticsProfile(p => ({ ...p, company_name: e.target.value }))}
-                      className="w-full bg-transparent pl-10 pr-2 py-1 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/20"
-                    />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl mx-auto w-full">
+              <div className="space-y-5">
+                <div className="group relative">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                  <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Company Name</label>
+                    <div className="relative flex items-center">
+                      <Truck className="absolute left-3 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                      <input
+                        type="text"
+                        placeholder="e.g. Auradime Express"
+                        value={logisticsProfile.company_name}
+                        onChange={e => setLogisticsProfile(p => ({ ...p, company_name: e.target.value }))}
+                        className="w-full bg-transparent pl-11 pr-3 py-1.5 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/30"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
-                <div className="relative p-5 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-3 block opacity-60">Dispatch Phone</label>
-                  <div className="relative flex items-center">
-                    <Phone className="absolute left-0 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-                    <input
-                      type="tel"
-                      placeholder="+237 6XX XXX XXX"
-                      value={phone}
-                      onChange={e => setPhone(e.target.value)}
-                      className="w-full bg-transparent pl-10 pr-2 py-1 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/20"
-                    />
+                <div className="group relative">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
+                  <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
+                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Dispatch Phone</label>
+                    <div className="relative flex items-center">
+                      <Phone className="absolute left-3 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
+                      <input
+                        type="tel"
+                        placeholder="+237 6XX XXX XXX"
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                        className="w-full bg-transparent pl-11 pr-3 py-1.5 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/30"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -892,7 +914,7 @@ export default function OnboardingFlow() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
                 {(search ? cities.filter(z => z.name?.toLowerCase().includes(search.toLowerCase())) : cities).map(region => {
                   const selected = logisticsProfile.service_regions.includes(region.name);
                   return (
@@ -997,7 +1019,7 @@ export default function OnboardingFlow() {
 
       {/* High-Density Navigation Footer  */}
       {!isLastStep && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 p-6 sm:p-8 pointer-events-none">
+        <div className="fixed bottom-0 left-0 right-0 z-40 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] px-6 pt-6 sm:px-8 sm:pt-8 sm:pb-[calc(2rem+env(safe-area-inset-bottom,0px))] pointer-events-none">
           <div className="max-w-md mx-auto flex items-center gap-4 pointer-events-auto">
             {/* Primary Action Button */}
             <button
