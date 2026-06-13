@@ -15,6 +15,7 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
   const router = useRouter();
   const { t } = useLanguage();
   const user = useAuthStore((state) => state.user);
+  const updateUser = useAuthStore((state) => state.updateUser);
 
   const [subNotice, setSubNotice] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -50,6 +51,18 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
     return () => { cancelled = true; };
   }, [disabled, user?._id, user?.role, normalizedPath, isAuthRoute, isImmersiveChat, isSubscribePage]);
 
+  useEffect(() => {
+    if (disabled || !user?._id || user.role === 'admin' || isAuthRoute || isImmersiveChat) return;
+    let cancelled = false;
+    api.get('/auth/me', { skipClientCache: true, silent: true, __skipRetry: true })
+      .then((res) => {
+        const freshUser = res.data?.data?.user;
+        if (!cancelled && freshUser?._id) updateUser(freshUser);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [disabled, user?._id, user?.role, normalizedPath, isAuthRoute, isImmersiveChat, updateUser]);
+
   /* ── Build notice list ──────────────────────────────────────── */
   const notices = [];
 
@@ -80,7 +93,11 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
   }
 
   // 2. Verification / KYC pending
-  const kycStatus = user?.kyc?.status || user?.verification_status;
+  const accountVerificationStatus = user?.verification_status;
+  const documentKycStatus = user?.kyc?.status;
+  const kycStatus = ['held', 'pending', 'verified', 'rejected'].includes(accountVerificationStatus)
+    ? accountVerificationStatus
+    : documentKycStatus;
   const verificationPending = ['held', 'pending', 'submitted', 'under_review'].includes(kycStatus);
   if (verificationPending && !isAuthRoute && !isImmersiveChat) {
     notices.push({
