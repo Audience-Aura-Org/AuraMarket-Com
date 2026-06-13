@@ -26,7 +26,9 @@ import { useLanguage } from '@/context/LanguageContext';
 export default function ProductCard({ product, layout = 'grid', onOpenChat = null, onClick = null }) {
   const router = useRouter();
   const { t } = useLanguage();
-  const { id, _id, name, price, images, rating, vendor_id, category } = product;
+  const { id, _id, name, price, images, rating, vendor_id, category, on_sale, original_price, sale_price } = product;
+  const isOnSale = on_sale || (original_price && original_price > price) || (sale_price && sale_price < price);
+  const displayOriginalPrice = original_price || sale_price || null;
   const productId = _id || id;
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;
   const vendorId = vendor_id?._id || vendor_id;
@@ -216,31 +218,35 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
               </div>
             </div>
 
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 mt-auto">
-              <button 
-                onClick={handleBuyNow} 
+            {/* 3 equal-size action buttons — Add to Cart primary */}
+            <div className="grid grid-cols-3 items-center gap-2 mt-auto">
+              {/* Add to Cart — PRIMARY */}
+              <button
+                onClick={handleAddToCart}
+                disabled={addingToCart || (!product.has_variants && product.stock <= 0)}
+                title={t('product.addToCart', 'Add to cart')}
+                aria-label={t('product.addToCart', 'Add to cart')}
+                className="h-9 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-1.5 text-[11px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <ShoppingCart className={`size-4 shrink-0 ${addingToCart ? 'animate-bounce' : ''}`} />
+                <span className="hidden sm:block text-[10px] font-bold">Cart</span>
+              </button>
+              {/* Buy Now — SECONDARY */}
+              <button
+                onClick={handleBuyNow}
                 disabled={!product.has_variants && product.stock <= 0}
-                className="min-w-0 h-9 px-3 sm:px-4 bg-[var(--text-primary)] text-[var(--bg-primary)] text-[10px] sm:text-[11px] lg:text-[12px] font-semibold tracking-tight rounded-2xl flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-md active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                className="h-9 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[10px] sm:text-[11px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
               >
                 <span className="truncate">{(!product.has_variants && product.stock <= 0) ? t('common.outOfStock') : t('common.buyNow')}</span>
               </button>
+              {/* Chat — ICON */}
               <button
                 onClick={handleChat}
                 title={t('common.chat')}
                 aria-label={t('common.chat')}
-                className="h-9 min-w-9 px-2.5 sm:px-3 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-1.5 text-[11px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all"
+                className="h-9 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all"
               >
                 <MessageSquare className="size-4 shrink-0" />
-                <span className="hidden max-w-[74px] truncate sm:inline">{t('common.chat')}</span>
-              </button>
-              <button 
-                onClick={handleAddToCart} 
-                disabled={addingToCart || (!product.has_variants && product.stock <= 0)}
-                title={t('product.addToCart', 'Add to cart')}
-                aria-label={t('product.addToCart', 'Add to cart')}
-                className="size-9 shrink-0 rounded-2xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <Plus className={`size-4.5 ${addingToCart ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
@@ -289,15 +295,22 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
           <Link href={productHref} className="block h-full w-full" onClick={e => e.stopPropagation()}>
             <BlurUpImage src={mainImage} alt={name} className="w-full h-full" imgClassName="transition-transform duration-1000 group-hover:scale-110" />
           </Link>
+          {/* Sale badge */}
+          {isOnSale && (
+            <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1 rounded-full bg-rose-500 px-2.5 py-1 shadow-lg">
+              <Zap className="size-2.5 text-white" />
+              <span className="text-[9px] font-black uppercase tracking-wide text-white">Sale</span>
+            </div>
+          )}
           {!inStock && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-              <span className="px-4 py-2 bg-red-500 text-white text-[11px] lg:text-[12px]  font-semibold tracking-tight rounded-full shadow-xl">{t('common.outOfStock')}</span>
+              <span className="px-4 py-2 bg-red-500 text-white text-[11px] font-semibold tracking-tight rounded-full shadow-xl">{t('common.outOfStock')}</span>
             </div>
           )}
           <button onClick={handleWishlist} disabled={wishlistLoading} className={`absolute top-2.5 right-2.5 size-7 rounded-full flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl z-20 ${wishlisted ? 'bg-red-500 text-white border-red-500' : 'bg-black/60 text-white border-white/10 hover:bg-red-500'}`}>
             <Heart className={`size-3.5 ${wishlisted ? 'fill-current' : ''}`} />
           </button>
-          <Link href={storeHref} onClick={e => e.stopPropagation()} className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[90%] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-xl py-2 flex items-center justify-center gap-2 text-white text-[11px] lg:text-[12px]  font-semibold tracking-tight transform translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20">
+          <Link href={storeHref} onClick={e => e.stopPropagation()} className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[90%] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-xl py-2 flex items-center justify-center gap-2 text-white text-[11px] font-semibold tracking-tight transform translate-y-3 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 z-20">
             <Compass className="size-3" /> {t('common.store')}
           </Link>
         </div>
@@ -305,41 +318,50 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
         <div className="p-2 sm:p-2.5 md:p-3.5 flex flex-col flex-1 gap-2 md:gap-3">
           <div className="space-y-0.5 md:space-y-1">
             <Link href={productHref} className="block">
-              <h3 translate="no" className="line-clamp-2 text-[11px] sm:text-[12px] md:text-[14px] lg:text-[12px] font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight" title={name}>{name}</h3>
+              <h3 translate="no" className="line-clamp-2 text-[11px] sm:text-[12px] md:text-[13px] font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight" title={name}>{name}</h3>
             </Link>
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] sm:text-[14px] md:text-[16px]  font-semibold text-[var(--accent)]">{price?.toLocaleString()} XAF</span>
-              <div className="flex items-center gap-1 opacity-70">
-                 <Star className="size-2.5 fill-[var(--accent)] text-[var(--accent)]" />
-                 {displayRating && <span className="text-[10px] lg:text-[12px] sm:text-[11px] lg:text-[12px] md:text-[12px] font-semibold text-[var(--text-secondary)]">{displayRating}</span>}
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[12px] sm:text-[13px] md:text-[15px] font-bold text-[var(--accent)] truncate">{price?.toLocaleString()} XAF</span>
+                {isOnSale && displayOriginalPrice && (
+                  <span className="text-[9px] sm:text-[10px] font-semibold text-[var(--text-secondary)] line-through opacity-50 truncate">{displayOriginalPrice?.toLocaleString()}</span>
+                )}
+              </div>
+              <div className="flex items-center gap-1 opacity-70 shrink-0">
+                <Star className="size-2.5 fill-[var(--accent)] text-[var(--accent)]" />
+                {displayRating && <span className="text-[10px] font-semibold text-[var(--text-secondary)]">{displayRating}</span>}
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1.5 md:gap-2 mt-auto">
-            <button 
-              onClick={handleBuyNow} 
-              disabled={!inStock}
-              className="min-w-0 h-8 md:h-9 bg-[var(--text-primary)] text-[var(--bg-primary)] px-2 text-[10px] md:text-[11px] lg:text-[12px] font-semibold tracking-tight rounded-lg md:rounded-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+          {/* 3 equal-size action buttons — Add to Cart is primary */}
+          <div className="grid grid-cols-3 items-center gap-1 md:gap-1.5 mt-auto">
+            {/* Add to Cart — PRIMARY */}
+            <button
+              onClick={handleAddToCart}
+              disabled={addingToCart || !inStock}
+              title={t('product.addToCart', 'Add to cart')}
+              aria-label={t('product.addToCart', 'Add to cart')}
+              className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--accent)] text-white flex items-center justify-center gap-1 text-[9px] md:text-[10px] font-bold shadow-lg shadow-[var(--accent)]/25 hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-1"
             >
-              <span className="block truncate">{inStock ? t('common.buyNow') : t('common.outOfStock')}</span>
+              <ShoppingCart className={`size-3 md:size-3.5 shrink-0 ${addingToCart ? 'animate-bounce' : ''}`} />
+              <span className="truncate hidden sm:block">Cart</span>
             </button>
+            {/* Buy Now — SECONDARY */}
+            <button
+              onClick={handleBuyNow}
+              disabled={!inStock}
+              className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[9px] md:text-[10px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-1"
+            >
+              <span className="truncate">{inStock ? t('common.buyNow') : t('common.outOfStock')}</span>
+            </button>
+            {/* Chat — ICON */}
             <button
               onClick={handleChat}
               title={t('common.chat')}
               aria-label={t('common.chat')}
-              className="h-8 md:h-9 min-w-8 md:min-w-9 px-2 md:px-2.5 rounded-xl md:rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-1.5 text-[11px] md:text-[12px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all shrink-0"
+              className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all"
             >
-              <MessageSquare className="size-4 md:size-4.5 shrink-0" />
-              <span className="hidden max-w-[64px] truncate lg:inline">{t('common.chat')}</span>
-            </button>
-            <button 
-              onClick={handleAddToCart} 
-              disabled={addingToCart || !inStock}
-              title={t('product.addToCart', 'Add to cart')}
-              aria-label={t('product.addToCart', 'Add to cart')}
-              className="size-8 md:size-9 rounded-lg md:rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              <Plus className={`size-4 md:size-5 ${addingToCart ? 'animate-spin' : ''}`} />
+              <MessageSquare className="size-3.5 md:size-4 shrink-0" />
             </button>
           </div>
         </div>
