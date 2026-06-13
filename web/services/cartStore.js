@@ -216,11 +216,14 @@ export const cartStore = {
    * This provides the 'Liquid' feel before the server responds.
    */
   addItem(product, quantity = 1) {
+    const regularPrice = Number(product.price || 0);
+    const salePrice = Number(product.sale_price || 0);
+    const displayPrice = salePrice > 0 && salePrice < regularPrice ? salePrice : regularPrice;
     const newItem = {
       id: product._id || product.id,
       productId: product._id || product.id,
       name: product.name,
-      price: product.price,
+      price: displayPrice,
       quantity,
       image: product.images?.[0]?.url || product.images?.[0] || '',
       vendor_name: product.vendor_id?.store_name || 'Vendor',

@@ -12,9 +12,12 @@ export function findSelectedVariant(product = {}, selected = null) {
 export function applyVariantPricing(product = {}, selected = null) {
   const selectedVariant = findSelectedVariant(product, selected);
   const productImage = product.images?.[0]?.url || product.images?.[0] || null;
+  const regularPrice = Number(product.price || 0);
+  const salePrice = Number(product.sale_price || 0);
+  const productPrice = salePrice > 0 && salePrice < regularPrice ? salePrice : regularPrice;
 
   return {
-    price: selectedVariant?.price ?? product.price ?? 0,
+    price: selectedVariant?.price ?? productPrice ?? 0,
     image: selectedVariant?.image || productImage,
     variant: selected || null,
     selectedVariant,

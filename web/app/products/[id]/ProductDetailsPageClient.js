@@ -117,7 +117,7 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
     setAddingToCart(true);
     const itemToTrack = currentVariant 
       ? { ...product, price: currentVariant.price, variant: currentVariant.combination }
-      : product;
+      : { ...product, price: displayPrice };
     trackCart(itemToTrack);
     cartStore.addItem(itemToTrack, quantity);
     if (typeof window !== 'undefined') {
@@ -187,14 +187,18 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
   const images = product?.images?.length ? product.images : [{ url: '/placeholder.png' }];
   const vendor = product?.vendor_id;
   
-  const displayPrice = currentVariant ? currentVariant.price : product?.price;
+  const regularPrice = Number(product?.price || 0);
+  const salePrice = Number(product?.sale_price || 0);
+  const hasSalePrice = !currentVariant && salePrice > 0 && salePrice < regularPrice;
+  const displayPrice = currentVariant ? currentVariant.price : (hasSalePrice ? salePrice : product?.price);
+  const originalPrice = hasSalePrice ? regularPrice : Number(product?.oldPrice || 0);
   const displayStock = currentVariant ? currentVariant.stock : product?.stock;
   const inStock = Boolean(displayStock > 0);
   
   const rating = Number(product?.rating || 0);
   const displayRating = Number.isFinite(rating) && rating > 0 ? rating.toFixed(1) : t('product.new');
-  const discount = product?.oldPrice
-    ? Math.round(100 - (displayPrice / product.oldPrice) * 100)
+  const discount = originalPrice > displayPrice
+    ? Math.round(100 - (displayPrice / originalPrice) * 100)
     : null;
 
   // Detect if the logged-in user is the vendor who listed this product
@@ -332,6 +336,11 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
                     {displayPrice?.toLocaleString()}
                   </span>
                   <span className="text-xs  font-bold text-[var(--accent)] leading-none pb-0.5">XAF</span>
+                  {originalPrice > displayPrice && (
+                    <span className="text-sm font-semibold text-[var(--text-secondary)] line-through opacity-45">
+                      {originalPrice.toLocaleString()}
+                    </span>
+                  )}
                 </div>
               </div>
 

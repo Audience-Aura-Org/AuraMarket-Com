@@ -69,7 +69,10 @@ export default function VariantSelectorModal({
 
   if (!product || !mounted) return null;
 
-  const displayPrice = currentVariant?.price ?? product.price;
+  const regularPrice = Number(product.price || 0);
+  const salePrice = Number(product.sale_price || 0);
+  const productPrice = salePrice > 0 && salePrice < regularPrice ? salePrice : regularPrice;
+  const displayPrice = currentVariant?.price ?? productPrice;
   const inStock      = currentVariant ? currentVariant.stock > 0 : product.stock > 0;
   const images       = product.images || [];
   const mainImage    = currentVariant?.image

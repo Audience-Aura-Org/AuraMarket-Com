@@ -81,7 +81,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
     }
 
     setAddingToCart(true);
-    cartStore.addItem(product, 1);
+    cartStore.addItem({ ...product, price: displayPrice }, 1);
     api.post('/cart', { product_id: productId, quantity: 1 })
       .then((res) => {
         if (res.data?.success) cartStore.setCart(res.data.data.cart);
@@ -127,7 +127,7 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
       router.push(`/checkout?productId=${productId}&quantity=1&variant=${encodeURIComponent(JSON.stringify(variantOrProduct.combination))}`);
     } else {
       setAddingToCart(true);
-      cartStore.addItem(enriched, 1);
+      cartStore.addItem({ ...enriched, price: variantOrProduct.price || displayPrice }, 1);
       try {
         const res = await api.post('/cart', { 
           product_id: productId, 

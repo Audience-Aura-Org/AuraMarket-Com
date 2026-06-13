@@ -57,7 +57,9 @@ const findSelectedVariant = (product, selectedVariant) => {
 
 const resolveOrderLine = (product, item) => {
   const quantity = Number(item.quantity || 1);
-  let itemPrice = product.price;
+  const regularPrice = Number(product.price || 0);
+  const salePrice = Number(product.sale_price || 0);
+  let itemPrice = salePrice > 0 && salePrice < regularPrice ? salePrice : regularPrice;
   let itemImage = product.images?.[0]?.url || null;
 
   if (product.has_variants) {
