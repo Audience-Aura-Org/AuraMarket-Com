@@ -107,6 +107,7 @@ function CheckoutContent() {
     reference: null,
     message: '',
   });
+  const [checkoutTotals, setCheckoutTotals] = useState(null);
 
   const isVendorManagedDelivery = formData.logistics_company_id === VENDOR_MANAGED_LOGISTICS_ID;
   const defaultLogisticsOption = {
@@ -558,6 +559,12 @@ function CheckoutContent() {
               })),
               onSuccess: () => {
                 toast.success('Payment confirmed! Your order is being processed.');
+                setCheckoutTotals({
+                  subtotal,
+                  finalDeliveryFee,
+                  totalAmount,
+                  items: [...matrixItems]
+                });
                 cartStore.clearCart();
                 setEversendCheckout({ active: false, reference: null, message: '' });
                 setStep(3);
@@ -593,6 +600,12 @@ function CheckoutContent() {
         toast.success(formData.paymentMethod === 'wallet' && formData.escrowEnabled ? 'Funds secured in Escrow Protocol.' : 'Direct payment completed successfully.');
       }
 
+      setCheckoutTotals({
+        subtotal,
+        finalDeliveryFee,
+        totalAmount,
+        items: [...matrixItems]
+      });
       cartStore.clearCart();
       toast.success('Order successfully executed!');
       setStep(3);
@@ -608,16 +621,16 @@ function CheckoutContent() {
 
   };
 
-  const matrixItems = order?.products || cartItems;
+  const matrixItems = (step === 3 && checkoutTotals) ? checkoutTotals.items : (order?.products || cartItems);
   // Compute subtotal: order.subtotal is authoritative when > 0;
   // if 0 or missing, compute from order.products or cartItems
   const orderProductsSubtotal = (order?.products || []).reduce((acc, it) => acc + (Number(it.price || it.product_id?.price || 0) * Number(it.quantity || 1)), 0);
-  const cartSubtotal = cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
-  const subtotal = ((order?.subtotal > 0 ? order.subtotal : null) ?? (order ? orderProductsSubtotal : cartSubtotal)) || cartSubtotal;
-  const finalDeliveryFee = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
+  const cartSubtotal = cartItems.reduce((acc, it) => acc + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
+  const subtotal = (step === 3 && checkoutTotals) ? checkoutTotals.subtotal : (((order?.subtotal > 0 ? order.subtotal : null) ?? (order ? orderProductsSubtotal : cartSubtotal)) || cartSubtotal);
+  const finalDeliveryFee = (step === 3 && checkoutTotals) ? checkoutTotals.finalDeliveryFee : (order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee);
   const orderTotalAmount = subtotal + finalDeliveryFee;
   const collectionFee = isMobileMoneyPayment(formData.paymentMethod) ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
-  const totalAmount = orderTotalAmount + collectionFee;
+  const totalAmount = (step === 3 && checkoutTotals) ? checkoutTotals.totalAmount : (orderTotalAmount + collectionFee);
   const checkoutBlocked = !formData.quartier || (!isVendorManagedDelivery && !formData.logistics_company_id);
 
   // Breakdown vendors and their fees
@@ -913,7 +926,7 @@ function CheckoutContent() {
                                >
                                   <div className="flex items-center gap-4">
                                      <MapPin className="size-5 text-[var(--accent)] opacity-40" />
-                                     <span className={`text-sm  font-bold ${formData.quartier ? '' : 'opacity-30'}`}>
+                                     <span className={`text-sm font-bold text-[var(--text-primary)] ${formData.quartier ? '' : 'opacity-30'}`}>
                                         {formData.quartier || 'Search and select your zone...'}
                                      </span>
                                   </div>
@@ -1217,6 +1230,38 @@ function CheckoutContent() {
                    </div>
                 </section>
               )}
+              {step === 3 && (
+                <section className="animate-in fade-in zoom-in-95 duration-1000">
+                  <div className="max-w-2xl mx-auto text-center space-y-10 py-12">
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-20 animate-pulse"></div>
+                      <div className="size-32 rounded-[48px] bg-black text-white flex items-center justify-center shadow-2xl relative">
+                        <CheckCircle2 className="size-16 animate-bounce" />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h2 className="text-5xl font-bold tracking-tighter mb-4 text-[var(--text-primary)]">Order <span className="text-[var(--accent)]">Successful</span></h2>
+                      <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been placed and is being prepared for delivery.</p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <Link 
+                        href="/orders"
+                        className="w-full h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-semibold text-[10px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] transition-all"
+                      >
+                         <Package className="size-4" /> Go to My Orders
+                      </Link>
+                      <Link 
+                        href="/discovery"
+                        className="w-full h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-semibold text-[10px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
+                      >
+                         Continue Exploring <ArrowRight className="size-4" />
+                      </Link>
+                    </div>
+                  </div>
+                </section>
+              )}
             </div>
           </div>
 
@@ -1291,13 +1336,13 @@ function CheckoutContent() {
                       <span className="font-mono text-[12px] text-[var(--text-primary)]">{subtotal.toLocaleString()} XAF</span>
                    </div>
                    
-                   {compatibleFee > 0 && selectedLogistics && (
+                   {finalDeliveryFee > 0 && selectedLogistics && (
                       <div className="space-y-3 pt-3 border-t border-[var(--glass-border)]/20 animate-in fade-in duration-500">
                          <div className="flex items-center justify-between mb-2">
                            <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)] tracking-tight flex items-center gap-2">
                              <Truck className="size-3" /> Delivery Fees
                            </p>
-                           <p className="text-[11px] lg:text-[12px] font-mono  font-semibold text-[var(--accent)]">{compatibleFee.toLocaleString()} XAF</p>
+                           <p className="text-[11px] lg:text-[12px] font-mono  font-semibold text-[var(--accent)]">{finalDeliveryFee.toLocaleString()} XAF</p>
                          </div>
                          <div className="space-y-2">
                            {vendorList.map((v, i) => (
@@ -1344,43 +1389,8 @@ function CheckoutContent() {
                        </>
                      )}
                    </button>
-                 </div>
-               )}
-
-               {step === 3 && (
-                <section className="animate-in fade-in zoom-in-95 duration-1000">
-                  <div className="max-w-2xl mx-auto text-center space-y-10 py-12">
-                    <div className="relative inline-block">
-                      <div className="absolute inset-0 bg-[var(--accent)] blur-[80px] opacity-20 animate-pulse"></div>
-                      <div className="size-32 rounded-[48px] bg-black text-white flex items-center justify-center shadow-2xl relative">
-                        <CheckCircle2 className="size-16 animate-bounce" />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h2 className="text-5xl  font-bold tracking-tighter  mb-4">Order <span className="text-[var(--accent)]">Successful</span></h2>
-                      <p className="text-sm font-medium text-[var(--text-secondary)]">Your order has been placed and is being prepared for delivery.</p>
-                    </div>
-
-
-
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                      <Link 
-                        href="/orders"
-                        className="w-full h-16 rounded-3xl bg-[var(--text-primary)] text-[var(--bg-primary)]  font-semibold text-[10px] lg:text-[12px] tracking-tight  flex items-center justify-center gap-3 shadow-xl hover:scale-[1.02] transition-all"
-                      >
-                         <Package className="size-4" /> Go to My Orders
-                      </Link>
-                      <Link 
-                        href="/discovery"
-                        className="w-full h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)]  font-semibold text-[10px] lg:text-[12px] tracking-tight  flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
-                      >
-                         Continue Exploring <ArrowRight className="size-4" />
-                      </Link>
-                    </div>
                   </div>
-                </section>
-               )}
+                )}
             </div>
           </div>
         </div>
@@ -1419,6 +1429,7 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
          ) : (
             filtered.map(z => (
                <button
+                  type="button"
                   key={z._id || z.name}
                   onClick={() => { onSelect(z.name); onClose(); }}
                   className={`w-full p-4 flex items-center gap-4 hover:bg-[var(--accent)]/5 transition-all text-left ${selected === z.name ? 'bg-[var(--accent)]/10' : ''}`}
@@ -1471,6 +1482,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
          ) : (
             filtered.map(f => (
                <button
+                  type="button"
                   key={f._id}
                   onClick={() => { onSelect(f._id); onClose(); }}
                   className={`w-full p-4 flex items-center gap-4 hover:bg-[var(--accent)]/5 transition-all text-left ${selectedId === f._id ? 'bg-[var(--accent)]/10' : ''}`}
