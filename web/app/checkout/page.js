@@ -56,7 +56,7 @@ function CheckoutContent() {
   const quantity = parseInt(searchParams.get('quantity') || '1');
   const variantStr = searchParams.get('variant');
   const variant = variantStr ? JSON.parse(decodeURIComponent(variantStr)) : null;
-  const { user, setWalletBalance: setSharedWalletBalance } = useAuthStore();
+  const { user, setWalletBalance: setSharedWalletBalance, walletBalance: storeWalletBalance, refreshWalletBalance } = useAuthStore();
   
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -89,7 +89,8 @@ function CheckoutContent() {
   const [order, setOrder] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [savedAddresses, setSavedAddresses] = useState([]);
-  const [walletBalance, setWalletBalance] = useState(0);
+  // Seed from auth store (populated at login) so balance shows immediately, not after async fetch
+  const [walletBalance, setWalletBalance] = useState(() => Number(storeWalletBalance) || 0);
   const [createdOrderIds, setCreatedOrderIds] = useState(null);
   const [logisticsFirms, setLogisticsFirms] = useState([]);
   const [logisticsLoading, setLogisticsLoading] = useState(false);
@@ -268,12 +269,22 @@ function CheckoutContent() {
          address: f.address || user.onboarding_location?.address_description || ''
        }));
 
+       // Fetch fresh balance from /wallet (authoritative source) + profile from /users/me
+       if (refreshWalletBalance) {
+         refreshWalletBalance().then(result => {
+           if (result?.balance != null) {
+             setWalletBalance(Number(result.balance));
+           }
+         }).catch(() => {});
+       }
+
        api.get('/users/me').then(res => {
          if (res.data.success) {
             const u = res.data.data.user;
-            const nextBalance = u.wallet_balance || 0;
-            setWalletBalance(nextBalance);
-            setSharedWalletBalance(nextBalance);
+            // Only update balance from /users/me if refreshWalletBalance hasn't set it yet
+            const freshBalance = Number(u.wallet_balance ?? 0);
+            setWalletBalance(prev => prev > 0 ? prev : freshBalance);
+            setSharedWalletBalance(freshBalance);
             
             // Re-sync if profile returned more data
             setFormData(f => ({ 
@@ -339,15 +350,15 @@ function CheckoutContent() {
             const p = res.data.data.product;
             const priced = applyVariantPricing(p, variant);
             const regularPrice = Number(p.price || 0);
-            const salePrice = Number(p.sale_price || 0);
-            const hasSale = !variant && salePrice > 0 && salePrice < regularPrice;
+            // hasSale: effective price is lower than regular — works for both variant and non-variant
+            const hasSale = priced.price > 0 && priced.price < regularPrice;
             setCartItems([{
               product_id: p._id,
               vendor_id: p.vendor_id?._id || p.vendor_id,
               vendor_name: p.vendor_id?.store_name || 'Aura Merchant Node',
               name: p.name,
               price: priced.price,
-              sale_price: hasSale ? salePrice : null,
+              sale_price: hasSale ? priced.price : null,
               regular_price: regularPrice,
               quantity: quantity,
               image: priced.image,
@@ -363,8 +374,8 @@ function CheckoutContent() {
              const items = res.data.data.cart.items.map(i => {
                const priced = applyVariantPricing(i.product, i.variant);
                const regularPrice = Number(i.product?.price || 0);
-               const salePrice = Number(i.product?.sale_price || 0);
-               const hasSale = !i.variant && salePrice > 0 && salePrice < regularPrice;
+               // hasSale: effective price is lower than regular — works for variant & non-variant
+               const hasSale = priced.price > 0 && priced.price < regularPrice;
                 return {
                 id: i._id,
                 cart_item_id: i._id,
@@ -373,7 +384,7 @@ function CheckoutContent() {
                 vendor_name: i.product?.vendor_id?.store_name || i.product?.vendor_id?.user_id?.name || 'Aura Merchant Node',
                 name: i.product?.name,
                 price: priced.price,
-                sale_price: hasSale ? salePrice : null,
+                sale_price: hasSale ? priced.price : null,
                 regular_price: regularPrice,
                 quantity: i.quantity,
                 image: priced.image,
