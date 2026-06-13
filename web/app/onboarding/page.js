@@ -158,7 +158,7 @@ export default function OnboardingFlow() {
         setCategories(categoryList);
         setFollowedVendors(follows);
 
-        if (isVendor) {
+        if (isVendor && user.onboarded) {
           try {
             const vpRes = await api.get('/vendors/me');
             if (vpRes.data.success && vpRes.data.data.vendor) {
@@ -342,11 +342,6 @@ export default function OnboardingFlow() {
     setMounted(true);
   }, []);
 
-  // ── Loading screen ──────────────────────────────────────────────────────────
-  if (fetching || !mounted) {
-    return <LoadingSpinner fullScreen />;
-  }
-
   const filteredVendors = vendors
     .filter(v => !search || v.store_name?.toLowerCase().includes(search.toLowerCase()));
 
@@ -404,6 +399,11 @@ export default function OnboardingFlow() {
   }, [zones, location.city]);
 
   const isLastStep = step === STEPS_ACTIVE.length - 1;
+
+  // ── Loading screen ──────────────────────────────────────────────────────────
+  if (fetching || !mounted) {
+    return <LoadingSpinner fullScreen />;
+  }
 
   // ── Main UI ────────────────────────────────────────────────────────────────
   return (
