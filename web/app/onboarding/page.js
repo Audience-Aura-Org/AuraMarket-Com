@@ -511,7 +511,7 @@ export default function OnboardingFlow() {
         </div>
       )}
 
-      <div className="mx-auto w-full max-w-6xl space-y-5 px-3 py-3 pb-[calc(7rem+env(safe-area-inset-bottom,0px))] sm:px-5 md:space-y-7 md:px-6 md:py-5">
+      <div className="mx-auto w-full max-w-6xl space-y-5 px-3 py-3 pb-[calc(9rem+env(safe-area-inset-bottom,0px))] sm:px-5 md:space-y-7 md:px-6 md:py-5">
           {/* ── Step: Categories (Customers: Step 0, Vendors: Step 1) ── */}
           {((!isVendor && !isLogistics && step === 0) || (isVendor && step === 1)) && (
             <div className="space-y-4 max-w-6xl mx-auto w-full">
@@ -529,43 +529,49 @@ export default function OnboardingFlow() {
                     onBlur={() => setTimeout(() => setCategoryDropdownOpen(false), 150)}
                     className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner placeholder:text-[var(--text-secondary)]/30"
                   />
-                  {/* Dropdown results */}
+                  {/* Dropdown results — one per line full width */}
                   <AnimatePresence>
                     {categoryDropdownOpen && categoryDropdownResults.length > 0 && (
                       <motion.div
-                        initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-2xl shadow-2xl overflow-hidden"
+                        className="absolute top-full left-0 right-0 mt-2 z-50 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] backdrop-blur-2xl shadow-2xl overflow-hidden"
                       >
-                        {categoryDropdownResults.map(cat => {
+                        {categoryDropdownResults.map((cat, idx) => {
                           const sel = selectedCategories.includes(cat._id);
                           return (
-                            <button
-                              key={cat._id}
-                              type="button"
-                              onMouseDown={e => e.preventDefault()}
-                              onClick={() => {
-                                setSelectedCategories(p => sel ? p.filter(id => id !== cat._id) : [...p, cat._id]);
-                                setCategorySearch('');
-                                setSearch('');
-                                setCategoryDropdownOpen(false);
-                              }}
-                              className={`w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold transition-all ${
-                                sel
-                                  ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
-                                  : 'hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]'
-                              }`}
-                            >
-                              <div className={`size-6 rounded-lg flex items-center justify-center shrink-0 ${
-                                sel ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                              }`}>
-                                {sel ? <Check className="size-3.5" /> : <LayoutGrid className="size-3.5" />}
-                              </div>
-                              {cat.name}
-                              {sel && <span className="ml-auto text-[10px] font-bold text-[var(--accent)] opacity-60">Selected</span>}
-                            </button>
+                            <div key={cat._id}>
+                              {idx > 0 && <div className="h-px bg-[var(--glass-border)] mx-4" />}
+                              <button
+                                type="button"
+                                onMouseDown={e => e.preventDefault()}
+                                onClick={() => {
+                                  setSelectedCategories(p => sel ? p.filter(id => id !== cat._id) : [...p, cat._id]);
+                                  setCategorySearch('');
+                                  setSearch('');
+                                  setCategoryDropdownOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-3 px-4 py-3.5 text-left text-[13px] font-semibold transition-colors ${
+                                  sel
+                                    ? 'bg-[var(--accent)]/8 text-[var(--accent)]'
+                                    : 'hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]'
+                                }`}
+                              >
+                                <div className={`size-7 rounded-xl flex items-center justify-center shrink-0 border ${
+                                  sel
+                                    ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
+                                    : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]'
+                                }`}>
+                                  {sel ? <Check className="size-3.5" /> : <LayoutGrid className="size-3.5" />}
+                                </div>
+                                <span className="flex-1">{cat.name}</span>
+                                {sel && (
+                                  <span className="text-[10px] font-bold text-[var(--accent)] opacity-70 shrink-0">✓ Selected</span>
+                                )}
+                              </button>
+                            </div>
                           );
                         })}
                       </motion.div>
@@ -588,8 +594,8 @@ export default function OnboardingFlow() {
                 <span className="text-[11px] font-semibold text-rose-400 shrink-0">{selectedCategories.length} selected</span>
               </div>
 
-              {/* High-Density Rectangular Category Blocks — wider on desktop */}
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-3 md:gap-3.5">
+              {/* Category grid — 3 columns on all screen sizes */}
+              <div className="grid grid-cols-3 gap-2.5 sm:gap-3 md:gap-4">
                 {categoriesToShow.map(cat => {
                   const sel = selectedCategories.includes(cat._id);
                   return (
