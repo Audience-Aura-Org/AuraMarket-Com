@@ -358,7 +358,7 @@ const getStore = async (req, res, next) => {
       store = await Store.findOneAndUpdate(
         { vendor_id: vendorId },
         { $setOnInsert: { vendor_id: vendorId, categories: [] } },
-        { new: true, upsert: true, runValidators: true }
+        { returnDocument: 'after', upsert: true, runValidators: true }
       ).populate({
         path: 'vendor_id',
         select: 'store_name description rating verified user_id follower_count',

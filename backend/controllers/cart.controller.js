@@ -204,7 +204,7 @@ const removeFromCart = async (req, res, next) => {
           } 
         } 
       },
-      { new: true }
+      { returnDocument: 'after' }
     ).populate({ path: 'items.product', populate: { path: 'vendor_id', select: 'store_name' } });
 
     console.log(`[Cart API] Atomic pull finished. New items count: ${cart?.items?.length || 0}`);
@@ -220,7 +220,7 @@ const clearCart = async (req, res, next) => {
     const cart = await Cart.findOneAndUpdate(
       { user_id: req.user._id },
       { $set: { items: [] } },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     ).populate({ path: 'items.product', populate: { path: 'vendor_id', select: 'store_name' } });
 
     res.status(200).json({ success: true, data: { cart } });

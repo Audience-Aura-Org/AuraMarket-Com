@@ -367,7 +367,7 @@ const updatePlan = async (req, res, next) => {
     if (patch.contact_required !== undefined) {
       patch.contact_required = Boolean(patch.contact_required);
     }
-    const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, patch, { new: true, runValidators: true });
+    const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, patch, { returnDocument: 'after', runValidators: true });
     if (!plan) return res.status(404).json({ success: false, message: 'Plan not found.' });
     res.status(200).json({ success: true, data: { plan } });
   } catch (error) {

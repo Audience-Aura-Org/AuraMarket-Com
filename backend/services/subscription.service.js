@@ -95,7 +95,7 @@ const ensureDefaultSubscriptionPlan = async () => {
     const plan = await SubscriptionPlan.findOneAndUpdate(
       { slug: defaults.slug },
       { $setOnInsert: defaults },
-      { new: true, upsert: true }
+      { returnDocument: 'after', upsert: true }
     );
     plans.push(plan);
   }

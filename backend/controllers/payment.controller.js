@@ -1061,7 +1061,7 @@ const eversendWebhook = async (req, res) => {
       const transaction = await Transaction.findOneAndUpdate(
         { reference: data?.transactionRef, gateway: 'eversend' },
         { status: 'failed', gateway_response: data },
-        { new: true }
+        { returnDocument: 'after' }
       );
       if (transaction?.order_ids?.length) {
         await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
@@ -1077,7 +1077,7 @@ const eversendWebhook = async (req, res) => {
       const transaction = await Transaction.findOneAndUpdate(
         { reference: data?.transactionRef, gateway: 'eversend' },
         { status: 'completed', gateway_response: data },
-        { new: true }
+        { returnDocument: 'after' }
       );
       if (transaction) {
         console.log(`? Eversend Payout Success: ${data?.transactionRef} to user ${transaction.user_id}`);

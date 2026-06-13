@@ -192,7 +192,7 @@ exports.viewStatus = async (req, res) => {
     }
 
     // Respond immediately — don't block on socket/vendor lookup
-    const updatedStatus = await Status.findByIdAndUpdate(req.params.id, update, { new: true });
+    const updatedStatus = await Status.findByIdAndUpdate(req.params.id, update, { returnDocument: 'after' });
     res.status(200).json({ success: true });
 
     // 🔥 Fire-and-forget: emit real-time update to vendor after responding
