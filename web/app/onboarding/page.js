@@ -511,7 +511,7 @@ export default function OnboardingFlow() {
         </div>
       )}
 
-      <div className="mx-auto w-full max-w-6xl space-y-5 px-3 py-3 pb-[calc(9rem+env(safe-area-inset-bottom,0px))] sm:px-5 md:space-y-7 md:px-6 md:py-5">
+      <div className="mx-auto w-full max-w-6xl space-y-5 px-3 py-3 pb-[calc(9rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(10rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(11rem+env(safe-area-inset-bottom,0px))] sm:px-5 md:space-y-7 md:px-6 md:py-5">
           {/* ── Step: Categories (Customers: Step 0, Vendors: Step 1) ── */}
           {((!isVendor && !isLogistics && step === 0) || (isVendor && step === 1)) && (
             <div className="space-y-4 max-w-6xl mx-auto w-full">
@@ -716,7 +716,8 @@ export default function OnboardingFlow() {
                         className="w-full bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl pl-9 pr-3 py-2.5 text-[12px] font-semibold outline-none focus:border-emerald-500/40 transition-all placeholder:text-[var(--text-secondary)]/25"
                       />
                     </div>
-                    <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+                    {/* City list — one per line */}
+                    <div className="flex flex-col max-h-52 overflow-y-auto rounded-2xl border border-[var(--glass-border)] divide-y divide-[var(--glass-border)]">
                       {cities
                         .filter(z => !citySearch || z.name.toLowerCase().includes(citySearch.toLowerCase()))
                         .map((z) => {
@@ -726,14 +727,20 @@ export default function OnboardingFlow() {
                               key={z._id || z.id || z.name}
                               type="button"
                               onClick={() => { setLocation(p => ({ ...p, city: z.name, quartier: '' })); setCitySearch(''); }}
-                              className={`px-3.5 py-2 rounded-2xl border text-[12px] font-bold transition-all duration-200 ${
+                              className={`w-full flex items-center gap-3 px-4 py-3 text-left text-[13px] font-semibold transition-colors ${
                                 active
-                                  ? 'border-emerald-500/60 bg-gradient-to-r from-emerald-500/20 to-[var(--accent)]/20 text-emerald-300 shadow-lg shadow-emerald-500/10'
-                                  : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 text-[var(--text-secondary)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/70'
+                                  ? 'bg-emerald-500/10 text-emerald-300'
+                                  : 'bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]'
                               }`}
                             >
-                              {active && <span className="mr-1.5 text-emerald-400">✓</span>}
-                              {z.name}
+                              <div className={`size-5 rounded-full border flex items-center justify-center shrink-0 ${
+                                active
+                                  ? 'bg-emerald-500 border-emerald-500'
+                                  : 'border-[var(--glass-border)]'
+                              }`}>
+                                {active && <Check className="size-3 text-white" />}
+                              </div>
+                              <span className="flex-1">{z.name}</span>
                             </button>
                           );
                         })}
@@ -796,7 +803,8 @@ export default function OnboardingFlow() {
                             className="w-full bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl pl-9 pr-3 py-2.5 text-[12px] font-semibold outline-none focus:border-indigo-500/40 transition-all placeholder:text-[var(--text-secondary)]/25"
                           />
                         </div>
-                        <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-1">
+                        {/* Zone list — one per line */}
+                        <div className="flex flex-col max-h-52 overflow-y-auto rounded-2xl border border-[var(--glass-border)] divide-y divide-[var(--glass-border)]">
                           {quartiers
                             .filter(z => !zoneSearch || z.name.toLowerCase().includes(zoneSearch.toLowerCase()))
                             .map((z) => {
@@ -807,14 +815,20 @@ export default function OnboardingFlow() {
                                   type="button"
                                   disabled={zonesLoading}
                                   onClick={() => { setLocation(p => ({ ...p, quartier: z.name })); setZoneSearch(''); }}
-                                  className={`px-3.5 py-2 rounded-2xl border text-[12px] font-bold transition-all duration-200 disabled:opacity-40 ${
+                                  className={`w-full flex items-center gap-3 px-4 py-3 text-left text-[13px] font-semibold transition-colors disabled:opacity-40 ${
                                     active
-                                      ? 'border-indigo-500/60 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 text-indigo-300 shadow-lg shadow-indigo-500/10'
-                                      : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 text-[var(--text-secondary)] hover:border-indigo-400/30 hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/70'
+                                      ? 'bg-indigo-500/10 text-indigo-300'
+                                      : 'bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]'
                                   }`}
                                 >
-                                  {active && <span className="mr-1.5 text-indigo-400">✓</span>}
-                                  {z.name}
+                                  <div className={`size-5 rounded-full border flex items-center justify-center shrink-0 ${
+                                    active
+                                      ? 'bg-indigo-500 border-indigo-500'
+                                      : 'border-[var(--glass-border)]'
+                                  }`}>
+                                    {active && <Check className="size-3 text-white" />}
+                                  </div>
+                                  <span className="flex-1">{z.name}</span>
                                 </button>
                               );
                             })}
