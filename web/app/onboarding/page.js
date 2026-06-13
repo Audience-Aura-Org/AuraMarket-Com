@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Users, Heart, MapPin, CheckCircle2, 
   ArrowRight, ArrowLeft, Loader2, Store, 
@@ -350,8 +350,52 @@ export default function OnboardingFlow() {
   const categoriesToShow = filteredCategories.slice(0, visibleCategoriesCount);
   const hasMoreCategories = filteredCategories.length > visibleCategoriesCount;
 
-  const cities = zones.filter(z => z.type === 'region');
-  const quartiers = zones.filter(z => z.type === 'quartier' && z.parent_id?.name === location.city);
+  const getZoneName = (zone) => String(zone?.name || zone?.label || zone?.title || '').trim();
+  const getZoneParentName = (zone) => String(
+    zone?.parent_id?.name ||
+    zone?.parent?.name ||
+    zone?.parent_name ||
+    zone?.region_name ||
+    zone?.region ||
+    zone?.city ||
+    ''
+  ).trim();
+
+  const cities = useMemo(() => {
+    const cityMap = new Map();
+    zones.forEach((zone) => {
+      const type = String(zone?.type || '').toLowerCase();
+      const name = getZoneName(zone);
+      if ((type === 'region' || type === 'city') && name) {
+        cityMap.set(name, { ...zone, name });
+      }
+    });
+
+    if (cityMap.size === 0) {
+      zones.forEach((zone) => {
+        const parentName = getZoneParentName(zone);
+        if (parentName) cityMap.set(parentName, { _id: parentName, name: parentName, type: 'region' });
+      });
+    }
+
+    return Array.from(cityMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [zones]);
+
+  const quartiers = useMemo(() => {
+    if (!location.city) return [];
+
+    return zones
+      .filter((zone) => {
+        const type = String(zone?.type || '').toLowerCase();
+        const name = getZoneName(zone);
+        if (!name || (type && !['quartier', 'zone', 'neighbourhood', 'neighborhood'].includes(type))) return false;
+
+        const parentName = getZoneParentName(zone);
+        return parentName === location.city || zone?.city === location.city || zone?.region === location.city;
+      })
+      .map((zone) => ({ ...zone, name: getZoneName(zone) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [zones, location.city]);
 
   const isLastStep = step === STEPS_ACTIVE.length - 1;
 
@@ -545,17 +589,37 @@ export default function OnboardingFlow() {
                       <span className="text-xs font-bold opacity-40">Loading...</span>
                     </div>
                   ) : (
-                    <div className="relative flex items-center">
-                      <MapPin className="absolute left-0 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-                      <select
-                        value={location.city}
-                        onChange={e => setLocation(p => ({ ...p, city: e.target.value, quartier: '' }))}
-                        className="w-full bg-transparent pl-8 pr-10 py-1.5 text-sm font-semibold outline-none appearance-none cursor-pointer"
-                      >
-                        <option value="" className="bg-[var(--bg-primary)]">Select city...</option>
-                        {cities.map(z => <option key={z._id} value={z.name} className="bg-[var(--bg-primary)]">{z.name}</option>)}
-                      </select>
-                      <ChevronRight className="absolute right-0 size-3.5 opacity-20 rotate-90" />
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-[12px] font-semibold text-[var(--text-secondary)]">
+                        <MapPin className="size-4 opacity-45" />
+                        <span className={location.city ? 'text-[var(--text-primary)]' : 'opacity-50'}>
+                          {location.city || 'Select city...'}
+                        </span>
+                      </div>
+                      <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
+                        {cities.map((z) => {
+                          const active = location.city === z.name;
+                          return (
+                            <button
+                              key={z._id || z.id || z.name}
+                              type="button"
+                              onClick={() => setLocation(p => ({ ...p, city: z.name, quartier: '' }))}
+                              className={`min-h-10 rounded-xl border px-3 py-2 text-left text-[12px] font-bold leading-tight transition-all ${
+                                active
+                                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
+                                  : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 text-[var(--text-primary)] hover:border-[var(--accent)]/30'
+                              }`}
+                            >
+                              <span className="line-clamp-2">{z.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {cities.length === 0 && (
+                        <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-600">
+                          No cities available yet. Try again in a moment.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -571,18 +635,38 @@ export default function OnboardingFlow() {
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
                     <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
                       <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-2 block opacity-60">Neighbourhood / Zone</label>
-                      <div className="relative flex items-center">
-                        <Globe className="absolute left-0 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
-                        <select
-                          value={location.quartier}
-                          disabled={zonesLoading}
-                          onChange={e => setLocation(p => ({ ...p, quartier: e.target.value }))}
-                          className="w-full bg-transparent pl-8 pr-10 py-1.5 text-sm font-semibold outline-none appearance-none cursor-pointer disabled:opacity-30"
-                        >
-                          <option value="" className="bg-[var(--bg-primary)]">Select zone...</option>
-                          {quartiers.map(z => <option key={z._id} value={z.name} className="bg-[var(--bg-primary)]">{z.name}</option>)}
-                        </select>
-                        <ChevronRight className="absolute right-0 size-3.5 opacity-20 rotate-90" />
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-[12px] font-semibold text-[var(--text-secondary)]">
+                          <Globe className="size-4 opacity-45" />
+                          <span className={location.quartier ? 'text-[var(--text-primary)]' : 'opacity-50'}>
+                            {location.quartier || 'Select zone...'}
+                          </span>
+                        </div>
+                        <div className="grid max-h-48 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
+                          {quartiers.map((z) => {
+                            const active = location.quartier === z.name;
+                            return (
+                              <button
+                                key={z._id || z.id || z.name}
+                                type="button"
+                                disabled={zonesLoading}
+                                onClick={() => setLocation(p => ({ ...p, quartier: z.name }))}
+                                className={`min-h-10 rounded-xl border px-3 py-2 text-left text-[12px] font-bold leading-tight transition-all disabled:opacity-40 ${
+                                  active
+                                    ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
+                                    : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 text-[var(--text-primary)] hover:border-[var(--accent)]/30'
+                                }`}
+                              >
+                                <span className="line-clamp-2">{z.name}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {quartiers.length === 0 && (
+                          <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-600">
+                            No zones found for {location.city}. Choose another city or try again.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
