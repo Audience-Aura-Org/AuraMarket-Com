@@ -26,26 +26,14 @@ import { useLanguage } from '@/context/LanguageContext';
 export default function ProductCard({ product, layout = 'grid', onOpenChat = null, onClick = null }) {
   const router = useRouter();
   const { t } = useLanguage();
-  const { id, _id, name, price, images, rating, vendor_id, category, on_sale, original_price, sale_price } = product;
+  const { id, _id, name, price, compare_at_price, images, rating, vendor_id, category } = product;
   const numericPrice = Number(price || 0);
-  const numericOriginalPrice = Number(original_price || 0);
-  const numericSalePrice = Number(sale_price || 0);
-  const salePriceIsValid = numericSalePrice > 0 && numericSalePrice < numericPrice;
-  const displayPrice = salePriceIsValid ? numericSalePrice : numericPrice;
-  const displayOriginalPrice = salePriceIsValid ? numericPrice : (numericOriginalPrice > numericPrice ? numericOriginalPrice : null);
-  const isOnSale = salePriceIsValid || (numericOriginalPrice > numericPrice);
-  const discountBasePrice = salePriceIsValid
-    ? numericPrice
-    : numericOriginalPrice > numericPrice
-    ? numericOriginalPrice
-    : 0;
-  const discountCurrentPrice = salePriceIsValid
-    ? numericSalePrice
-    : numericOriginalPrice > numericPrice
-    ? numericPrice
-    : numericPrice;
-  const discountPercent = discountBasePrice > discountCurrentPrice
-    ? Math.round(((discountBasePrice - discountCurrentPrice) / discountBasePrice) * 100)
+  const numericOriginalPrice = compare_at_price !== undefined && compare_at_price !== null ? Number(compare_at_price) : 0;
+  const isOnSale = numericOriginalPrice > numericPrice;
+  const displayPrice = numericPrice;
+  const displayOriginalPrice = isOnSale ? numericOriginalPrice : null;
+  const discountPercent = isOnSale
+    ? Math.round(((numericOriginalPrice - numericPrice) / numericOriginalPrice) * 100)
     : 0;
   const productId = _id || id;
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;

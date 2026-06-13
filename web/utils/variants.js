@@ -12,30 +12,21 @@ export function findSelectedVariant(product = {}, selected = null) {
 export function applyVariantPricing(product = {}, selected = null) {
   const selectedVariant = findSelectedVariant(product, selected);
   const productImage = product.images?.[0]?.url || product.images?.[0] || null;
-  const regularPrice = Number(product.price || 0);
-  const salePrice = Number(product.sale_price || 0);
-  const hasSalePrice = salePrice > 0 && salePrice < regularPrice;
-  // Use sale_price as the product base when available
-  const productPrice = hasSalePrice ? salePrice : regularPrice;
 
-  let effectivePrice;
-  if (selectedVariant?.price != null) {
-    const variantPrice = Number(selectedVariant.price);
-    // If the variant price is the SAME as the regular product price, it's just a label variant
-    // (color, size, etc.) with no price change — apply the product sale_price if set
-    if (variantPrice === regularPrice && hasSalePrice) {
-      effectivePrice = salePrice;
-    } else {
-      // Variant has a genuinely different price — use it as-is
-      effectivePrice = variantPrice;
-    }
+  let price;
+  let compare_at_price;
+
+  if (selectedVariant) {
+    price = selectedVariant.price !== undefined && selectedVariant.price !== null ? Number(selectedVariant.price) : Number(product.price || 0);
+    compare_at_price = selectedVariant.compare_at_price !== undefined && selectedVariant.compare_at_price !== null ? Number(selectedVariant.compare_at_price) : null;
   } else {
-    // No explicit variant price — use product base (with sale_price if applicable)
-    effectivePrice = productPrice;
+    price = Number(product.price || 0);
+    compare_at_price = product.compare_at_price !== undefined && product.compare_at_price !== null ? Number(product.compare_at_price) : null;
   }
 
   return {
-    price: effectivePrice,
+    price,
+    compare_at_price,
     image: selectedVariant?.image || productImage,
     variant: selected || null,
     selectedVariant,

@@ -349,17 +349,13 @@ function CheckoutContent() {
           if (res.data.success) {
             const p = res.data.data.product;
             const priced = applyVariantPricing(p, variant);
-            const regularPrice = Number(p.price || 0);
-            // hasSale: effective price is lower than regular — works for both variant and non-variant
-            const hasSale = priced.price > 0 && priced.price < regularPrice;
             setCartItems([{
               product_id: p._id,
               vendor_id: p.vendor_id?._id || p.vendor_id,
               vendor_name: p.vendor_id?.store_name || 'Aura Merchant Node',
               name: p.name,
               price: priced.price,
-              sale_price: hasSale ? priced.price : null,
-              regular_price: regularPrice,
+              compare_at_price: priced.compare_at_price,
               quantity: quantity,
               image: priced.image,
               variant: priced.variant
@@ -373,9 +369,6 @@ function CheckoutContent() {
           if (res.data.success && res.data.data.cart?.items) {
              const items = res.data.data.cart.items.map(i => {
                const priced = applyVariantPricing(i.product, i.variant);
-               const regularPrice = Number(i.product?.price || 0);
-               // hasSale: effective price is lower than regular — works for variant & non-variant
-               const hasSale = priced.price > 0 && priced.price < regularPrice;
                 return {
                 id: i._id,
                 cart_item_id: i._id,
@@ -384,8 +377,7 @@ function CheckoutContent() {
                 vendor_name: i.product?.vendor_id?.store_name || i.product?.vendor_id?.user_id?.name || 'Aura Merchant Node',
                 name: i.product?.name,
                 price: priced.price,
-                sale_price: hasSale ? priced.price : null,
-                regular_price: regularPrice,
+                compare_at_price: priced.compare_at_price,
                 quantity: i.quantity,
                 image: priced.image,
                 variant: i.variant || null
@@ -1252,6 +1244,7 @@ function CheckoutContent() {
                     const itemName = item.name || item.product?.name || item.product_id?.name || 'Product';
                     const itemImage = item.image || item.product?.images?.[0]?.url || item.product?.images?.[0] || item.product_id?.images?.[0]?.url || item.product_id?.images?.[0] || '/placeholder.png';
                     const canRemove = !orderId;
+                    const hasSale = item.compare_at_price && Number(item.compare_at_price) > Number(item.price);
                     return (
                       <div key={itemKey} className="group flex items-start gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/55 p-2.5">
                          <img src={itemImage} className="size-12 rounded-2xl object-cover border border-[var(--glass-border)]" alt="" />
@@ -1263,11 +1256,14 @@ function CheckoutContent() {
                               </p>
                             )}
                             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-semibold text-[var(--text-secondary)]">
-                               <span className={item.sale_price ? 'text-[var(--accent)] font-bold' : ''}>
-                                 {Number(item.sale_price || item.price || 0).toLocaleString()} XAF
+                               <span className={hasSale ? 'text-[var(--accent)] font-bold' : ''}>
+                                 {Number(item.price || 0).toLocaleString()} XAF
                                </span>
-                               {item.sale_price && (
-                                 <span className="rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-bold text-rose-500">SALE</span>
+                               {hasSale && (
+                                 <>
+                                   <span className="line-through opacity-55">{Number(item.compare_at_price).toLocaleString()} XAF</span>
+                                   <span className="rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-bold text-rose-500">SALE</span>
+                                 </>
                                )}
                                <span className="opacity-35">x</span>
                                <span>{item.quantity || 1}</span>

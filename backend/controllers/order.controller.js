@@ -57,9 +57,7 @@ const findSelectedVariant = (product, selectedVariant) => {
 
 const resolveOrderLine = (product, item) => {
   const quantity = Number(item.quantity || 1);
-  const regularPrice = Number(product.price || 0);
-  const salePrice = Number(product.sale_price || 0);
-  let itemPrice = salePrice > 0 && salePrice < regularPrice ? salePrice : regularPrice;
+  let itemPrice = Number(product.price || 0);
   let itemImage = product.images?.[0]?.url || null;
 
   if (product.has_variants) {
@@ -70,14 +68,7 @@ const resolveOrderLine = (product, item) => {
     if (variantMatch.stock < quantity) {
       throw new Error(`Insufficient stock for ${product.name} (${variantLabel(item.variant)}). Available: ${variantMatch.stock}`);
     }
-    const variantPrice = Number(variantMatch.price ?? regularPrice);
-    // If the variant price matches the regular product price, it's a label variant (color/size).
-    // In that case, keep the already-computed itemPrice (which includes sale_price logic).
-    // Only override when the variant has a genuinely different price from the regular price.
-    if (variantPrice !== regularPrice) {
-      itemPrice = variantPrice;
-    }
-    // else: itemPrice stays as salePrice (or regularPrice if no sale) — set above at line 62
+    itemPrice = Number(variantMatch.price || 0);
     if (variantMatch.image) itemImage = variantMatch.image;
   } else if (product.stock < quantity) {
     throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);

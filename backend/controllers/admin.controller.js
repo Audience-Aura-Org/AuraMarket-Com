@@ -75,7 +75,7 @@ const getHomepageLayout = async (req, res, next) => {
   try {
     let layout = await Homepage.findOne({ version: 'v1' }).populate({
       path: 'featured_products.product_id',
-      select: 'name price sale_price on_sale images rating vendor_id',
+      select: 'name price compare_at_price images rating vendor_id',
       populate: { path: 'vendor_id', select: 'store_name' },
     });
 
@@ -464,6 +464,106 @@ const getPendingVendors = async (req, res, next) => {
   try {
     const submissions = await KYC.find({ status: 'pending' }).populate('user_id', 'name email avatar').populate('vendor_id', 'store_name description rating');
     res.status(200).json({ success: true, count: submissions.length, data: { submissions } });
+    next(error);
+  }
+};
+
+const getAllOrders = async (req, res, next) => {
+  try {
+    const { status, search, page = 1, limit = 30 } = req.query;
+    const query = { 
+      $or: [
+        { payment_status: { $in: ['paid', 'failed'] } },
+        { payment_method: 'pay_on_delivery' }
+      ]
+    }; 
+    if (status && status !== 'all') {
+      if (status === 'failed') query.payment_status = 'failed';
+      else query.order_status = status;
+    }
+    const orders = await Order.find(query).populate('customer_id', 'name email phone avatar').populate('logistics_company_id', 'company_name contact_phone').populate({ path: 'vendor_id', select: 'store_name user_id', populate: { path: 'user_id', select: 'name email phone avatar' } }).populate('products.product_id', 'name price images').sort('-createdAt').skip((page - 1) * limit).limit(Number(limit));
+    const total = await Order.countDocuments(query);
+    res.status(200).json({ success: true, count: orders.length, total, data: { orders } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateOrderAdmin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { order_status, payment_status, shipping_method, logistics_company_id } = req.body;
+    const order = await Order.findById(id);
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+    if (order_status) order.order_status = order_status;
+    if (payment_status) order.payment_status = payment_status;
+    if (shipping_method) order.shipping_method = shipping_method;
+    if (typeof logistics_company_id !== 'undefined') order.logistics_company_id = logistics_company_id || null;
+    await order.save();
+
+    if (order_status) {
+      await syncShipmentsToOrderStatus(order, order_status, {
+        updatedBy: req.user._id,
+        note: `Admin updated order status to ${order_status}.`,
+      });
+      notifyOrderStatusChange(req.app, order, order_status, {
+        message: `An admin updated Order #${order._id.toString().slice(-6).toUpperCase()} to ${order_status.replace(/_/g, ' ')}.`,
+      });
+    }
+
+    if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
+      let shipment = await Shipment.findOne({ order_id: order._id });
+      if (!shipment) {
+        const quartier = order.shipping_address?.quartier;
+        if (quartier) {
+          const created = await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id);
+          shipment = created?.[0];
+        }
+      } else {
+        shipment.logistics_id = order.logistics_company_id;
+        await shipment.save();
+      }
+      const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
+      if (logisticsFirm) {
+        await sendNotification(req.app, logisticsFirm.user_id, {
+          title: 'Shipment Assignment Updated',
+          message: `Admin updated routing for order #${order._id.toString().slice(-6).toUpperCase()}.`,
+          type: 'system_alert',
+          metadata: { order_id: order._id, shipment_id: shipment?._id || null }
+        });
+      }
+    }
+
+    // Notify Customer about overall status shift
+    if (order_status) {
+      const customer = await User.findById(order.customer_id);
+      const emailTemplate = templates.shipmentStatusChanged({
+        shipment: { tracking_code: order._id.toString().slice(-6).toUpperCase() },
+        order,
+        recipient: customer,
+        status: order_status
+      });
+      await sendNotification(req.app, order.customer_id, {
+        title: `Order Updated: ${order_status.toUpperCase()}`,
+        message: `An administrator has shifted the status of your Order #${order._id.toString().slice(-6).toUpperCase()} to: ${order_status}.`,
+        type: 'order_status',
+        metadata: { order_id: order._id, link: '/orders' },
+        sendEmail: true,
+        emailLink: `${process.env.WEB_CLIENT_URL}/orders`,
+        emailTemplate
+      });
+    }
+
+    res.status(200).json({ success: true, message: 'Order updated.', data: { order } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getPendingVendors = async (req, res, next) => {
+  try {
+    const submissions = await KYC.find({ status: 'pending' }).populate('user_id', 'name email avatar').populate('vendor_id', 'store_name description rating');
+    res.status(200).json({ success: true, count: submissions.length, data: { submissions } });
   } catch (error) {
     next(error);
   }
@@ -504,7 +604,7 @@ const updateProductAdmin = async (req, res, next) => {
       'name',
       'description',
       'price',
-      'sale_price',
+      'compare_at_price',
       'stock',
       'category',
       'status',
@@ -517,27 +617,20 @@ const updateProductAdmin = async (req, res, next) => {
       if (req.body[field] !== undefined) updateData[field] = req.body[field];
     });
 
-    if (updateData.sale_price === '' || updateData.sale_price === null) {
-      updateData.sale_price = null;
-      updateData.on_sale = false;
-    } else if (updateData.sale_price !== undefined) {
+    if (updateData.compare_at_price === '' || updateData.compare_at_price === null) {
+      updateData.compare_at_price = null;
+    } else if (updateData.compare_at_price !== undefined) {
       const nextPrice = updateData.price !== undefined ? Number(updateData.price) : undefined;
-      const salePrice = Number(updateData.sale_price);
+      const compareAt = Number(updateData.compare_at_price);
       const product = await Product.findById(req.params.id).select('price');
-      const regularPrice = nextPrice || Number(product?.price || 0);
-      if (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= regularPrice) {
-        return res.status(400).json({ success: false, message: 'Sale price must be lower than the regular price.' });
+      const sellingPrice = nextPrice !== undefined ? nextPrice : Number(product?.price || 0);
+      if (!Number.isFinite(compareAt) || compareAt <= 0 || compareAt <= sellingPrice) {
+        return res.status(400).json({ success: false, message: 'Compare-at price must be greater than the selling price.' });
       }
-      updateData.sale_price = salePrice;
-      updateData.on_sale = true;
+      updateData.compare_at_price = compareAt;
     }
-
-    if (updateData.status) {
-      const allowedStatuses = ['active', 'pending', 'archived', 'suspended', 'draft'];
-      if (!allowedStatuses.includes(updateData.status)) {
-        return res.status(400).json({ success: false, message: 'Invalid product status.' });
-      }
-    }
+    updateData.sale_price = null;
+    updateData.on_sale = false;
     if (updateData.price !== undefined) {
       updateData.price = Number(updateData.price);
       if (!Number.isFinite(updateData.price) || updateData.price < 0) {
