@@ -2582,15 +2582,20 @@ const LanguageContext = createContext({
 
 export function LanguageProvider({ children }) {
   const userLanguage = useAuthStore((state) => state.user?.preferred_language);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const [language, setLanguageState] = useState(readStoredLanguage);
 
   useEffect(() => {
+    // Wait for Zustand to finish rehydrating from localStorage before applying
+    // the user's preferred language. Without this guard, the synchronous hydration
+    // update can fire while a child component is mid-render, causing React #310.
+    if (!hasHydrated) return;
     if (typeof window === 'undefined') return;
     const stored = window.localStorage.getItem(STORAGE_KEY);
     if (!stored && userLanguage) {
       setLanguageState(normalizeLanguage(userLanguage));
     }
-  }, [userLanguage]);
+  }, [userLanguage, hasHydrated]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;

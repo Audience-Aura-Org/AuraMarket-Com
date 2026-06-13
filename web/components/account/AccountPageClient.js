@@ -156,6 +156,11 @@ export default function AccountPageClient() {
   };
 
   const fetchAudience = async () => {
+    // Only vendors with a completed profile have a Vendor document — skip for un-onboarded users
+    if (user?.role !== 'vendor' || !user?.onboarded) {
+      setAudienceLoading(false);
+      return;
+    }
     setAudienceLoading(true);
     try {
       const vRes = await api.get('/vendors/me');
@@ -188,7 +193,8 @@ export default function AccountPageClient() {
       setKycData(d => ({ ...d, ...user.kyc }));
     }
 
-    if (user.role === 'vendor') {
+    // Only fetch vendor profile when the Vendor document is guaranteed to exist
+    if (user.role === 'vendor' && user.onboarded) {
       api.get('/vendors/me').then(res => {
         if (res.data.success) {
           const v = res.data.data.vendor;
