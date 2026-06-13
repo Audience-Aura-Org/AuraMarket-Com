@@ -1263,17 +1263,15 @@ function CheckoutContent() {
                               </p>
                             )}
                             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-semibold text-[var(--text-secondary)]">
-                              {item.sale_price ? (
-                                <>
-                                  <span className="text-[var(--accent)]">{Number(item.sale_price).toLocaleString()} XAF</span>
-                                  <span className="line-through opacity-40">{Number(item.regular_price || item.price).toLocaleString()}</span>
-                                </>
-                              ) : (
-                                <span>{Number(item.price || 0).toLocaleString()} XAF</span>
-                              )}
-                              <span className="opacity-35">x</span>
-                              <span>{item.quantity || 1}</span>
-                            </div>
+                               <span className={item.sale_price ? 'text-[var(--accent)] font-bold' : ''}>
+                                 {Number(item.sale_price || item.price || 0).toLocaleString()} XAF
+                               </span>
+                               {item.sale_price && (
+                                 <span className="rounded-full bg-rose-500/10 px-1.5 py-0.5 text-[9px] font-bold text-rose-500">SALE</span>
+                               )}
+                               <span className="opacity-35">x</span>
+                               <span>{item.quantity || 1}</span>
+                             </div>
                          </div>
                          {canRemove && (
                            <button

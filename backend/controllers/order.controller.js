@@ -70,7 +70,14 @@ const resolveOrderLine = (product, item) => {
     if (variantMatch.stock < quantity) {
       throw new Error(`Insufficient stock for ${product.name} (${variantLabel(item.variant)}). Available: ${variantMatch.stock}`);
     }
-    itemPrice = variantMatch.price;
+    const variantPrice = Number(variantMatch.price ?? regularPrice);
+    // If the variant price matches the regular product price, it's a label variant (color/size).
+    // In that case, keep the already-computed itemPrice (which includes sale_price logic).
+    // Only override when the variant has a genuinely different price from the regular price.
+    if (variantPrice !== regularPrice) {
+      itemPrice = variantPrice;
+    }
+    // else: itemPrice stays as salePrice (or regularPrice if no sale) — set above at line 62
     if (variantMatch.image) itemImage = variantMatch.image;
   } else if (product.stock < quantity) {
     throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
