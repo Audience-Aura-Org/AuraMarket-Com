@@ -621,7 +621,7 @@ function CheckoutContent() {
   // if 0 or missing, compute from order.products or cartItems
   const orderProductsSubtotal = (order?.products || []).reduce((acc, it) => acc + (Number(it.price || it.product_id?.price || 0) * Number(it.quantity || 1)), 0);
   const cartSubtotal = cartItems.reduce((acc, it) => acc + (it.price * it.quantity), 0);
-  const subtotal = (order?.subtotal > 0 ? order.subtotal : null) ?? (order ? orderProductsSubtotal : cartSubtotal) || cartSubtotal;
+  const subtotal = ((order?.subtotal > 0 ? order.subtotal : null) ?? (order ? orderProductsSubtotal : cartSubtotal)) || cartSubtotal;
   const finalDeliveryFee = order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee;
   const orderTotalAmount = subtotal + finalDeliveryFee;
   const collectionFee = isMobileMoneyPayment(formData.paymentMethod) ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
