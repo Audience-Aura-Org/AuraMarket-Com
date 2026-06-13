@@ -325,7 +325,13 @@ export default function OnboardingFlow() {
         }
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Something went wrong.');
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        err.message ||
+        'Onboarding could not be completed. Please try again.';
+      console.error('[Onboarding] Finish failed:', message, err.response?.data || err);
+      toast.error(message);
     } finally {
       setLoading(false);
     }

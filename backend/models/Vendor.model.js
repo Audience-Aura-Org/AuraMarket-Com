@@ -39,8 +39,8 @@ const VendorSchema = new mongoose.Schema(
     },
     subscription_plan: {
       type: String,
-      enum: ['free', 'premium', 'elite'],
-      default: 'free',
+      trim: true,
+      default: null,
     },
     total_sales: {
       type: Number,
