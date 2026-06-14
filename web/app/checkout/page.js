@@ -112,6 +112,10 @@ function CheckoutContent() {
   const [checkoutTotals, setCheckoutTotals] = useState(null);
   const deliveryQuartierTouchedRef = useRef(false);
   const profileHydratedRef = useRef(false);
+  const zonePickerRef = useRef(null);
+
+  const openZonePicker = () => setZoneOpen(true);
+  const closeZonePicker = () => setZoneOpen(false);
 
   const selectQuartier = (val) => {
     const normalized = getZoneName(typeof val === 'string' ? { name: val } : val);
@@ -123,6 +127,26 @@ function CheckoutContent() {
       sessionStorage.setItem(CHECKOUT_QUARTIER_KEY, normalized);
     } catch {}
   };
+
+  useEffect(() => {
+    if (!zoneOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (zonePickerRef.current && !zonePickerRef.current.contains(event.target)) {
+        setZoneOpen(false);
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setZoneOpen(false);
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [zoneOpen]);
 
   useEffect(() => {
     if (deliveryQuartierTouchedRef.current || deliveryQuartier) return;
@@ -985,49 +1009,51 @@ function CheckoutContent() {
                           <div className="md:col-span-2 space-y-3 md:space-y-4">
                             <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Delivery Quartier (Zone)</label>
 
-                            {deliveryQuartier ? (
-                              <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-4 py-3">
-                                <div className="flex min-w-0 items-center gap-3">
-                                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)]/15 text-[var(--accent)]">
-                                    <CheckCircle2 className="size-4" />
+                            <div className="relative" ref={zonePickerRef}>
+                              <button
+                                type="button"
+                                onClick={() => (zoneOpen ? closeZonePicker() : openZonePicker())}
+                                aria-expanded={zoneOpen}
+                                aria-haspopup="listbox"
+                                className={`flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left outline-none transition-all ${
+                                  zoneOpen
+                                    ? 'border-[var(--accent)] bg-[var(--accent)]/5'
+                                    : deliveryQuartier
+                                      ? 'border-[var(--accent)]/25 bg-[var(--accent)]/8 hover:border-[var(--accent)]/40'
+                                      : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30'
+                                }`}
+                              >
+                                <div className="flex min-w-0 flex-1 items-center gap-3">
+                                  <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${
+                                    deliveryQuartier ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'bg-[var(--bg-primary)] text-[var(--accent)] opacity-40'
+                                  }`}>
+                                    {deliveryQuartier ? <CheckCircle2 className="size-5" /> : <MapPin className="size-5" />}
                                   </div>
                                   <div className="min-w-0">
-                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] opacity-60">Selected zone</p>
-                                    <p className="truncate text-sm font-bold text-[var(--text-primary)]">{deliveryQuartier}</p>
+                                    {deliveryQuartier ? (
+                                      <>
+                                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] opacity-60">Selected zone</p>
+                                        <p className="truncate text-sm font-bold text-[var(--text-primary)]">{deliveryQuartier}</p>
+                                        <p className="mt-0.5 text-[10px] font-medium text-[var(--accent)]">Tap to switch zone</p>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <p className="text-sm font-bold text-[var(--text-primary)] opacity-70">Search and select your zone</p>
+                                        <p className="mt-0.5 text-[10px] font-medium text-[var(--text-secondary)] opacity-50">Choose your delivery quartier</p>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setZoneOpen((open) => !open)}
-                                  className="shrink-0 rounded-lg border border-[var(--glass-border)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)] transition hover:border-[var(--accent)]/40"
-                                >
-                                  Change
-                                </button>
-                              </div>
-                            ) : null}
+                                <ChevronDown className={`size-5 shrink-0 text-[var(--accent)] opacity-60 transition-transform ${zoneOpen ? 'rotate-180' : ''}`} />
+                              </button>
 
-                            <div className="relative">
-                               <button 
-                                  type="button"
-                                  onClick={() => setZoneOpen(!zoneOpen)}
-                                  className={`flex w-full items-center justify-between rounded-xl border bg-[var(--bg-secondary)] px-4 py-3 text-left outline-none transition-all ${zoneOpen ? 'border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}
-                               >
-                                  <div className="flex min-w-0 flex-1 items-center gap-4">
-                                     <MapPin className="size-5 shrink-0 text-[var(--accent)] opacity-40" />
-                                     <span className="min-w-0 flex-1 text-sm font-bold text-[var(--text-primary)] opacity-40">
-                                        {deliveryQuartier ? 'Tap to change zone' : 'Search and select your zone...'}
-                                     </span>
-                                  </div>
-                                  <ChevronDown className={`size-4 shrink-0 opacity-40 transition-transform ${zoneOpen ? 'rotate-180' : ''}`} />
-                               </button>
-
-                               <SearchableZoneDropdown 
-                                  open={zoneOpen}
-                                  selected={deliveryQuartier}
-                                  onSelect={selectQuartier}
-                                  onClose={() => setZoneOpen(false)}
-                                  zones={zones}
-                               />
+                              <SearchableZoneDropdown
+                                open={zoneOpen}
+                                selected={deliveryQuartier}
+                                onSelect={selectQuartier}
+                                onClose={closeZonePicker}
+                                zones={zones}
+                              />
                             </div>
                           </div>
 
@@ -1497,9 +1523,15 @@ function CheckoutContent() {
 
 function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
   const [query, setQuery] = useState('');
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
-    if (!open) setQuery('');
+    if (!open) {
+      setQuery('');
+      return;
+    }
+    const timer = window.setTimeout(() => searchInputRef.current?.focus(), 0);
+    return () => window.clearTimeout(timer);
   }, [open]);
   
   if (!open) return null;
@@ -1517,12 +1549,22 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
   };
 
   return (
-    <div className="absolute left-0 top-full z-[110] mt-2 w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+    <div
+      role="listbox"
+      aria-label="Delivery zones"
+      className="absolute left-0 top-full z-[110] mt-2 w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200"
+    >
       <div className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-2.5">
+         {selected ? (
+           <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] opacity-60">
+             Switch from <span className="text-[var(--accent)]">{selected}</span>
+           </p>
+         ) : null}
          <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-3 opacity-20 group-focus-within:text-[var(--accent)] transition-all" />
-            <input 
-               placeholder="Search Quartier..."
+            <input
+               ref={searchInputRef}
+               placeholder={selected ? 'Search another zone...' : 'Search Quartier...'}
                value={query}
                onChange={e => setQuery(e.target.value)}
                className="w-full bg-transparent pl-10 pr-4 py-2 text-[16px] font-semibold tracking-tight outline-none placeholder:text-[16px]"
@@ -1541,16 +1583,25 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
               return (
                <button
                   type="button"
+                  role="option"
+                  aria-selected={isSelected}
                   key={z._id || zoneName}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleSelect(z)}
-                  className={`w-full p-4 flex items-center gap-4 hover:bg-[var(--accent)]/5 transition-all text-left ${isSelected ? 'bg-[var(--accent)]/10' : ''}`}
+                  className={`w-full p-4 flex items-center gap-4 transition-all text-left ${
+                    isSelected
+                      ? 'bg-[var(--accent)]/10 hover:bg-[var(--accent)]/15'
+                      : 'hover:bg-[var(--accent)]/5'
+                  }`}
                >
                   <MapPin className="size-4 opacity-20 text-[var(--accent)]" />
                   <div className="min-w-0 flex-1">
                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate">{zoneName}</p>
+                     {isSelected ? (
+                       <p className="mt-0.5 text-[10px] font-medium text-[var(--accent)]">Current zone</p>
+                     ) : null}
                   </div>
-                  {isSelected && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                  {isSelected ? <CheckCircle2 className="size-4 text-[var(--accent)]" /> : null}
                </button>
               );
             })
