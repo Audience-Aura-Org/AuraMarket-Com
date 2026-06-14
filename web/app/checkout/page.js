@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ShieldCheck, MapPin, CreditCard, ArrowRight, 
@@ -108,6 +108,18 @@ function CheckoutContent() {
     message: '',
   });
   const [checkoutTotals, setCheckoutTotals] = useState(null);
+  const quartierUserSelectedRef = useRef(false);
+
+  const resolveQuartier = (current, fallback = '') => {
+    if (quartierUserSelectedRef.current) return current;
+    return current || fallback || '';
+  };
+
+  const selectQuartier = (val) => {
+    quartierUserSelectedRef.current = true;
+    setFormData((prev) => ({ ...prev, quartier: val }));
+    setZoneOpen(false);
+  };
 
   const isVendorManagedDelivery = formData.logistics_company_id === VENDOR_MANAGED_LOGISTICS_ID;
   const defaultLogisticsOption = {
@@ -205,10 +217,11 @@ function CheckoutContent() {
     api.get('/logistics/zones')
       .then(res => {
         if (res.data.success) {
-          setZones(res.data.data.zones.filter(z => z.type === 'quartier') || []);
+          const quartiers = res.data.data.zones.filter(z => z.type === 'quartier') || [];
+          setZones(quartiers);
         }
       })
-      .catch(() => {});
+      .catch(err => console.error("Error fetching zones:", err));
   }, []);
 
   // Fetch logistics firms. Empty zone shows verified partners; selected zone narrows to compatible firms.
@@ -256,78 +269,66 @@ function CheckoutContent() {
       }
   }, [formData.logistics_company_id, formData.quartier, logisticsFirms, order, cartItems, zones, isVendorManagedDelivery]);
 
-  // 1. Fetch Auth User Metadata & Auto-fill Profile
+  // Hydrate profile + saved address once per user (quartier only auto-fills until user picks a zone)
   useEffect(() => {
-    if (user?._id) {
-       // Initial fill from current user object in state
-       setFormData(f => ({
-         ...f,
-         name: f.name || user.name || '',
-         email: f.email || user.email || '',
-         phone: f.phone || user.phone || '',
-         city: f.city || user.onboarding_location?.city || '',
-         quartier: f.quartier || user.onboarding_location?.quartier || '',
-         address: f.address || user.onboarding_location?.address_description || ''
-       }));
+    if (!user?._id) return;
 
-       // Fetch fresh balance from /wallet (authoritative source) + profile from /users/me
-       if (refreshWalletBalance) {
-         refreshWalletBalance().then(result => {
-           if (result?.balance != null) {
-             setWalletBalance(Number(result.balance));
-           }
-         }).catch(() => {});
-       }
+    setFormData((f) => ({
+      ...f,
+      name: f.name || user.name || '',
+      email: f.email || user.email || '',
+      phone: f.phone || user.phone || '',
+      city: f.city || user.onboarding_location?.city || '',
+      quartier: resolveQuartier(f.quartier, user.onboarding_location?.quartier),
+      address: f.address || user.onboarding_location?.address_description || '',
+    }));
 
-       api.get('/users/me').then(res => {
-         if (res.data.success) {
-            const u = res.data.data.user;
-            // Only update balance from /users/me if refreshWalletBalance hasn't set it yet
-            const freshBalance = Number(u.wallet_balance ?? 0);
-            setWalletBalance(prev => prev > 0 ? prev : freshBalance);
-            setSharedWalletBalance(freshBalance);
-            
-            // Re-sync if profile returned more data
-            setFormData(f => ({ 
-              ...f, 
-              name: f.name || u.name || '',
-              email: f.email || u.email || '',
-              phone: f.phone || u.phone || '',
-              city: f.city || u.onboarding_location?.city || '',
-              quartier: f.quartier || u.onboarding_location?.quartier || '',
-              address: f.address || u.onboarding_location?.address_description || ''
-            }));
-         }
-       }).catch(() => {});
-    }
-  }, [user?._id]);
-
-  // 2. Fetch Saved Addresses (Override with default if exists)
-  useEffect(() => {
-    if (user?._id) {
-      api.get('/addresses')
-        .then(res => {
-          if (res.data.success) {
-            const addrs = res.data.data.addresses || [];
-            setSavedAddresses(addrs);
-            
-            // If the user has a default address, prioritize it
-            const def = addrs.find(a => a.is_default) || addrs[0];
-            if (def) {
-              setFormData(f => ({ 
-                ...f, 
-                name: f.name || def.name || user.name || '', 
-                phone: f.phone || def.phone || user.phone || '', 
-                address: f.address || def.address_line || user.onboarding_location?.address_description || '', 
-                city: f.city || def.city || user.onboarding_location?.city || '',
-                email: f.email || user.email || '',
-                quartier: f.quartier || def.quartier || user.onboarding_location?.quartier || ''
-              }));
-            }
+    if (refreshWalletBalance) {
+      refreshWalletBalance()
+        .then((result) => {
+          if (result?.balance != null) {
+            setWalletBalance(Number(result.balance));
           }
         })
         .catch(() => {});
     }
+
+    Promise.all([
+      api.get('/users/me').catch(() => null),
+      api.get('/addresses').catch(() => null),
+    ]).then(([profileRes, addressRes]) => {
+      const u = profileRes?.data?.success ? profileRes.data.data.user : null;
+      const addrs = addressRes?.data?.success ? addressRes.data.data.addresses || [] : [];
+      const def = addrs.find((a) => a.is_default) || addrs[0];
+
+      if (u) {
+        const freshBalance = Number(u.wallet_balance ?? 0);
+        setWalletBalance((prev) => (prev > 0 ? prev : freshBalance));
+        setSharedWalletBalance(freshBalance);
+      }
+
+      if (addrs.length) {
+        setSavedAddresses(addrs);
+      }
+
+      setFormData((f) => ({
+        ...f,
+        name: f.name || def?.name || u?.name || user.name || '',
+        email: f.email || u?.email || user.email || '',
+        phone: f.phone || def?.phone || u?.phone || user.phone || '',
+        city: f.city || def?.city || u?.onboarding_location?.city || user.onboarding_location?.city || '',
+        address:
+          f.address
+          || def?.address_line
+          || u?.onboarding_location?.address_description
+          || user.onboarding_location?.address_description
+          || '',
+        quartier: resolveQuartier(
+          f.quartier,
+          def?.quartier || u?.onboarding_location?.quartier || user.onboarding_location?.quartier
+        ),
+      }));
+    });
   }, [user?._id]);
 
   // 3. Load Order Matrix or Cart Items
@@ -417,11 +418,11 @@ function CheckoutContent() {
     const isEversend = formData.paymentMethod === 'eversend';
     const isPayUnit = formData.paymentMethod === 'payunit';
     const isExternal = isEversend || isPayUnit;
+    const isWalletPayment = formData.paymentMethod === 'wallet';
     const computedCollectionFee = isExternal ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
     const totalAmount = computedOrderTotal + computedCollectionFee;
 
-    // Pre-check wallet balance before attempting wallet payment
-    if (!isPayOnDelivery && !isExternal && walletBalance < computedOrderTotal) {
+    if (isWalletPayment && walletBalance < computedOrderTotal) {
       setBlockReason('insufficient_wallet');
       setError(`Your wallet balance (${walletBalance.toLocaleString()} XAF) is insufficient for this order (${computedOrderTotal.toLocaleString()} XAF).`);
       return;
@@ -611,10 +612,8 @@ function CheckoutContent() {
         items: order?.products?.length ? [...(order.products)] : [...currentCartItems]
       });
       cartStore.clearCart();
-      toast.success('Order successfully executed!');
       setStep(3);
     } catch (err) {
-      console.log('[Checkout Error Interceptor]', err.response?.status, err.response?.data);
       const msg = err?.response?.data?.message || err?.message || 'Checkout failed. Please try again.';
       setError(msg);
       setEversendCheckout({ active: false, reference: null, message: '' });
@@ -646,7 +645,7 @@ function CheckoutContent() {
         acc[vId] = { 
            id: vId, 
            name: item.vendor_name || order?.vendor_id?.store_name || order?.vendor_id?.user_id?.name || 'Merchant Enterprise',
-           fee: orderId ? order.shipping_fee : feePerVendor 
+           fee: feePerVendor,
         };
      }
      return acc;
@@ -930,7 +929,7 @@ function CheckoutContent() {
                                >
                                   <div className="flex items-center gap-4">
                                      <MapPin className="size-5 text-[var(--accent)] opacity-40" />
-                                     <span className={`text-sm font-bold text-[var(--text-primary)] ${formData.quartier ? '' : 'opacity-30'}`}>
+                                     <span className={`text-sm font-bold text-[var(--text-primary)] ${formData.quartier ? '' : 'opacity-40'}`}>
                                         {formData.quartier || 'Search and select your zone...'}
                                      </span>
                                   </div>
@@ -940,11 +939,10 @@ function CheckoutContent() {
                                <SearchableZoneDropdown 
                                   open={zoneOpen}
                                   selected={formData.quartier}
-                                  onSelect={(val) => setFormData(prev => ({...prev, quartier: val}))}
+                                  onSelect={selectQuartier}
                                   onClose={() => setZoneOpen(false)}
                                   zones={zones}
                                />
-
                             </div>
                           </div>
 
@@ -1176,7 +1174,11 @@ function CheckoutContent() {
                             <p className="text-xl  font-bold text-[var(--text-primary)]">{formData.name}</p>
                             <p className="text-xs text-[var(--text-secondary)]  font-bold mb-2">{formData.email}</p>
                             <p className="text-sm  font-bold text-[var(--text-secondary)] flex items-start gap-2">
-                               <MapPin className="size-4 shrink-0 mt-0.5 text-[var(--accent)]" /> {formData.address}
+                               <MapPin className="size-4 shrink-0 mt-0.5 text-[var(--accent)]" />
+                               <span>
+                                 {formData.quartier && <span className="block text-[var(--text-primary)]">{formData.quartier}</span>}
+                                 {formData.address || 'No street details provided'}
+                               </span>
                             </p>
                          </div>
                          <div className="flex flex-col justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-4">
@@ -1333,18 +1335,18 @@ function CheckoutContent() {
                <div className="space-y-4 py-5 border-t border-[var(--glass-border)]">
                    <div className="flex justify-between items-center text-[11px] font-semibold text-[var(--text-secondary)] lg:text-[12px]">
                       <span className="opacity-55">Cart Subtotal</span>
-                      <span className="font-mono text-[12px] text-[var(--text-primary)]">{(order?.subtotal ?? subtotal).toLocaleString()} XAF</span>
+                      <span className="font-mono text-[12px] text-[var(--text-primary)]">{subtotal.toLocaleString()} XAF</span>
                    </div>
                    
-                   {((order?.shipping_fee > 0) || (finalDeliveryFee > 0 && selectedLogistics)) && (
+                   {(finalDeliveryFee > 0 || (!isVendorManagedDelivery && formData.quartier && vendorList.length > 0)) && (
                       <div className="space-y-3 pt-3 border-t border-[var(--glass-border)]/20 animate-in fade-in duration-500">
                          <div className="flex items-center justify-between mb-2">
                            <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)] tracking-tight flex items-center gap-2">
                              <Truck className="size-3" /> Delivery Fees
                            </p>
-                           <p className="text-[11px] lg:text-[12px] font-mono  font-semibold text-[var(--accent)]">{(order?.shipping_fee ?? finalDeliveryFee).toLocaleString()} XAF</p>
+                           <p className="text-[11px] lg:text-[12px] font-mono  font-semibold text-[var(--accent)]">{finalDeliveryFee.toLocaleString()} XAF</p>
                          </div>
-                         {!order && vendorList.map((v, i) => (
+                         {!orderId && vendorList.map((v, i) => (
                              <div key={i} className="flex justify-between items-center opacity-70">
                                <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)]">
                                  From {v.name}
@@ -1355,13 +1357,13 @@ function CheckoutContent() {
                       </div>
                    )}
 
-                   {(order?.collection_fee > 0 || collectionFee > 0) && (
+                   {collectionFee > 0 && (
                       <div className="space-y-2 pt-3 border-t border-[var(--glass-border)]/20">
                          <div className="flex items-center justify-between">
                            <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] opacity-55 tracking-tight flex items-center gap-2">
                              Collection Fee
                            </p>
-                           <p className="text-[11px] lg:text-[12px] font-mono  font-semibold text-[var(--text-secondary)]">{(order?.collection_fee ?? collectionFee).toLocaleString()} XAF</p>
+                           <p className="text-[11px] lg:text-[12px] font-mono  font-semibold text-[var(--text-secondary)]">{collectionFee.toLocaleString()} XAF</p>
                          </div>
                       </div>
                    )}
@@ -1369,7 +1371,7 @@ function CheckoutContent() {
                    <div className="flex justify-between items-end pt-4 border-t border-[var(--glass-border)]/50">
                       <div>
                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)] lg:text-[11px]">Final Total</p>
-                         <p className="font-mono text-2xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums sm:text-3xl">{(order?.total_amount ?? totalAmount).toLocaleString()}</p>
+                         <p className="font-mono text-2xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums sm:text-3xl">{totalAmount.toLocaleString()}</p>
                       </div>
                       <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  pb-2">XAF</p>
                    </div>
@@ -1440,7 +1442,7 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
                <button
                   type="button"
                   key={z._id || z.name}
-                  onClick={() => { onSelect(z.name); onClose(); }}
+                  onClick={() => onSelect(z.name)}
                   className={`w-full p-4 flex items-center gap-4 hover:bg-[var(--accent)]/5 transition-all text-left ${selected === z.name ? 'bg-[var(--accent)]/10' : ''}`}
                >
                   <MapPin className="size-4 opacity-20 text-[var(--accent)]" />
