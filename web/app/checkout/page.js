@@ -48,6 +48,8 @@ const VENDOR_MANAGED_LOGISTICS_ID = 'vendor_managed';
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 5;
 const isMobileMoneyPayment = (method) => ['payunit', 'eversend'].includes(method);
 const normalizeZoneName = (value) => String(value || '').trim();
+const getZoneName = (zone) => normalizeZoneName(zone?.name || zone?.label || zone?.title || zone);
+const CHECKOUT_QUARTIER_KEY = 'checkout_delivery_quartier';
 
 function CheckoutContent() {
   const router = useRouter();
@@ -112,12 +114,25 @@ function CheckoutContent() {
   const profileHydratedRef = useRef(false);
 
   const selectQuartier = (val) => {
-    const normalized = String(val || '').trim();
+    const normalized = getZoneName(typeof val === 'string' ? { name: val } : val);
     if (!normalized) return;
     deliveryQuartierTouchedRef.current = true;
     setDeliveryQuartier(normalized);
     setZoneOpen(false);
+    try {
+      sessionStorage.setItem(CHECKOUT_QUARTIER_KEY, normalized);
+    } catch {}
   };
+
+  useEffect(() => {
+    if (deliveryQuartierTouchedRef.current || deliveryQuartier) return;
+    try {
+      const saved = sessionStorage.getItem(CHECKOUT_QUARTIER_KEY);
+      if (saved) {
+        setDeliveryQuartier(normalizeZoneName(saved));
+      }
+    } catch {}
+  }, [deliveryQuartier]);
 
   const sumLineItems = (items = []) =>
     items.reduce(
@@ -150,7 +165,7 @@ function CheckoutContent() {
   const getFirmZonePrice = (firm, quartier) => {
     const zoneName = normalizeZoneName(quartier);
     if (!firm || !zoneName) return 0;
-    const selectedZone = zones.find((z) => normalizeZoneName(z.name).toLowerCase() === zoneName.toLowerCase());
+    const selectedZone = zones.find((z) => getZoneName(z).toLowerCase() === zoneName.toLowerCase());
     const district = normalizeZoneName(selectedZone?.parent_id?.name);
     const match = firm.quartier_prices?.find((p) => {
       const pricedZone = normalizeZoneName(p.quartier).toLowerCase();
@@ -251,7 +266,10 @@ function CheckoutContent() {
               formData.logistics_company_id !== VENDOR_MANAGED_LOGISTICS_ID &&
               !firms.find(f => f._id === formData.logistics_company_id)
            ) {
-              setFormData(prev => ({ ...prev, logistics_company_id: null }));
+              setFormData(prev => ({
+                ...prev,
+                logistics_company_id: VENDOR_MANAGED_LOGISTICS_ID,
+              }));
            }
         }
       })
@@ -966,6 +984,28 @@ function CheckoutContent() {
 
                           <div className="md:col-span-2 space-y-3 md:space-y-4">
                             <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Delivery Quartier (Zone)</label>
+
+                            {deliveryQuartier ? (
+                              <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-4 py-3">
+                                <div className="flex min-w-0 items-center gap-3">
+                                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)]/15 text-[var(--accent)]">
+                                    <CheckCircle2 className="size-4" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] opacity-60">Selected zone</p>
+                                    <p className="truncate text-sm font-bold text-[var(--text-primary)]">{deliveryQuartier}</p>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setZoneOpen((open) => !open)}
+                                  className="shrink-0 rounded-lg border border-[var(--glass-border)] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wide text-[var(--accent)] transition hover:border-[var(--accent)]/40"
+                                >
+                                  Change
+                                </button>
+                              </div>
+                            ) : null}
+
                             <div className="relative">
                                <button 
                                   type="button"
@@ -974,11 +1014,11 @@ function CheckoutContent() {
                                >
                                   <div className="flex min-w-0 flex-1 items-center gap-4">
                                      <MapPin className="size-5 shrink-0 text-[var(--accent)] opacity-40" />
-                                     <span className={`truncate text-sm font-bold text-[var(--text-primary)] ${deliveryQuartier ? '' : 'opacity-40'}`}>
-                                        {deliveryQuartier || 'Search and select your zone...'}
+                                     <span className="min-w-0 flex-1 text-sm font-bold text-[var(--text-primary)] opacity-40">
+                                        {deliveryQuartier ? 'Tap to change zone' : 'Search and select your zone...'}
                                      </span>
                                   </div>
-                                  <ChevronDown className={`size-4 opacity-40 transition-transform ${zoneOpen ? 'rotate-180' : ''}`} />
+                                  <ChevronDown className={`size-4 shrink-0 opacity-40 transition-transform ${zoneOpen ? 'rotate-180' : ''}`} />
                                </button>
 
                                <SearchableZoneDropdown 
@@ -1457,12 +1497,24 @@ function CheckoutContent() {
 
 function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
   const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    if (!open) setQuery('');
+  }, [open]);
   
   if (!open) return null;
 
-  const filtered = (zones || []).filter(z => 
-    z.name?.toLowerCase().includes(query.toLowerCase())
+  const filtered = (zones || []).filter((z) => 
+    getZoneName(z).toLowerCase().includes(query.toLowerCase())
   );
+
+  const handleSelect = (zone) => {
+    const zoneName = getZoneName(zone);
+    if (!zoneName) return;
+    onSelect(zoneName);
+    setQuery('');
+    onClose?.();
+  };
 
   return (
     <div className="absolute left-0 top-full z-[110] mt-2 w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
@@ -1483,20 +1535,25 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
                <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">No zones found</p>
             </div>
          ) : (
-            filtered.map(z => (
+            filtered.map((z) => {
+              const zoneName = getZoneName(z);
+              const isSelected = normalizeZoneName(selected).toLowerCase() === zoneName.toLowerCase();
+              return (
                <button
                   type="button"
-                  key={z._id || z.name}
-                  onClick={() => onSelect(normalizeZoneName(z.name))}
-                  className={`w-full p-4 flex items-center gap-4 hover:bg-[var(--accent)]/5 transition-all text-left ${normalizeZoneName(selected).toLowerCase() === normalizeZoneName(z.name).toLowerCase() ? 'bg-[var(--accent)]/10' : ''}`}
+                  key={z._id || zoneName}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSelect(z)}
+                  className={`w-full p-4 flex items-center gap-4 hover:bg-[var(--accent)]/5 transition-all text-left ${isSelected ? 'bg-[var(--accent)]/10' : ''}`}
                >
                   <MapPin className="size-4 opacity-20 text-[var(--accent)]" />
                   <div className="min-w-0 flex-1">
-                     <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate">{z.name}</p>
+                     <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate">{zoneName}</p>
                   </div>
-                  {normalizeZoneName(selected).toLowerCase() === normalizeZoneName(z.name).toLowerCase() && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                  {isSelected && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                </button>
-            ))
+              );
+            })
          )}
       </div>
     </div>
