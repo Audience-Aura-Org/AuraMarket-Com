@@ -137,13 +137,21 @@ async function uploadViaApi(file, folder, fieldName = 'image') {
   formData.append(fieldName, file);
   if (fieldName !== 'image') formData.append('image', file);
 
-  const res = await api.post('/upload/single', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 600000,
-    maxBodyLength: Infinity,
-    maxContentLength: Infinity,
-  });
-  return res.data;
+  try {
+    const res = await api.post('/upload/single', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 600000,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      __skipRetry: true,
+    });
+    return res.data;
+  } catch (err) {
+    if (!err.response) {
+      throw new Error('Upload server is unreachable. Check your connection and try again.');
+    }
+    throw err;
+  }
 }
 
 export const uploadService = {
@@ -155,11 +163,16 @@ export const uploadService = {
     const uploadFile = isVideo(file) ? file : await optimizeImageForUpload(file, folder);
     assertUploadLimit(uploadFile, folder);
 
-    if (isVideo(uploadFile) && folder === 'statuses') {
-      if (onProgress) onProgress(10);
-      const result = await uploadViaApi(uploadFile, folder, 'video');
-      if (onProgress) onProgress(100);
-      return result;
+    if (folder === 'statuses') {
+      try {
+        return await uploadViaPresign(uploadFile, folder, onProgress);
+      } catch (presignErr) {
+        console.warn('[Upload] Direct story upload failed, falling back to API upload:', presignErr.message || presignErr);
+        if (onProgress) onProgress(10);
+        const result = await uploadViaApi(uploadFile, folder, isVideo(uploadFile) ? 'video' : 'image');
+        if (onProgress) onProgress(100);
+        return result;
+      }
     }
 
     if (isVideo(uploadFile)) {
