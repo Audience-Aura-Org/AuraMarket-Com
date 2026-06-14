@@ -484,7 +484,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 {previewUrl ? (
                   <>
                     {type === 'video'
-                      ? <video src={previewUrl} className={`absolute inset-0 size-full ${cropMode === 'fit' ? 'object-contain bg-black' : 'object-cover'}`} autoPlay muted loop />
+                      ? <video src={previewUrl} className="absolute inset-0 size-full object-cover" autoPlay muted loop />
                       : <img src={previewUrl} className="absolute inset-0 size-full object-cover" alt="" />
                     }
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
