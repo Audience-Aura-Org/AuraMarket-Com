@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ShieldCheck, MapPin, CreditCard, ArrowRight, 
@@ -47,6 +47,7 @@ const mergeCheckoutItems = (items = []) => {
 const VENDOR_MANAGED_LOGISTICS_ID = 'vendor_managed';
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 5;
 const isMobileMoneyPayment = (method) => ['payunit', 'eversend'].includes(method);
+const normalizeZoneName = (value) => String(value || '').trim();
 
 function CheckoutContent() {
   const router = useRouter();
@@ -68,7 +69,6 @@ function CheckoutContent() {
     paymentMethod: 'payunit',
     escrowEnabled: true,
     logistics_company_id: VENDOR_MANAGED_LOGISTICS_ID,
-    quartier: '',
     payunit: { phone: '', provider: 'CM_MTNMOMO', country: 'CM', currency: 'XAF' },
     eversend: { phone: '', country: 'CM', currency: 'XAF' },
   });
@@ -98,7 +98,7 @@ function CheckoutContent() {
   const [logisticsOpen, setLogisticsOpen] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [zones, setZones] = useState([]);
-  const [compatibleFee, setCompatibleFee] = useState(0);
+  const [deliveryQuartier, setDeliveryQuartier] = useState('');
   const [zoneOpen, setZoneOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [removingItemKey, setRemovingItemKey] = useState(null);
@@ -108,18 +108,22 @@ function CheckoutContent() {
     message: '',
   });
   const [checkoutTotals, setCheckoutTotals] = useState(null);
-  const quartierUserSelectedRef = useRef(false);
-
-  const resolveQuartier = (current, fallback = '') => {
-    if (quartierUserSelectedRef.current) return current;
-    return current || fallback || '';
-  };
+  const deliveryQuartierTouchedRef = useRef(false);
+  const profileHydratedRef = useRef(false);
 
   const selectQuartier = (val) => {
-    quartierUserSelectedRef.current = true;
-    setFormData((prev) => ({ ...prev, quartier: val }));
+    const normalized = String(val || '').trim();
+    if (!normalized) return;
+    deliveryQuartierTouchedRef.current = true;
+    setDeliveryQuartier(normalized);
     setZoneOpen(false);
   };
+
+  const sumLineItems = (items = []) =>
+    items.reduce(
+      (acc, it) => acc + (Number(it.price || it.product_id?.price || 0) * Number(it.quantity || 1)),
+      0
+    );
 
   const isVendorManagedDelivery = formData.logistics_company_id === VENDOR_MANAGED_LOGISTICS_ID;
   const defaultLogisticsOption = {
@@ -144,12 +148,13 @@ function CheckoutContent() {
   };
 
   const getFirmZonePrice = (firm, quartier) => {
-    if (!firm || !quartier) return 0;
-    const selectedZone = zones.find(z => z.name?.toLowerCase() === quartier.toLowerCase());
-    const district = selectedZone?.parent_id?.name;
-    const match = firm.quartier_prices?.find(p => {
-      const pricedZone = p.quartier?.toLowerCase();
-      return pricedZone === quartier.toLowerCase() || (district && pricedZone === district.toLowerCase());
+    const zoneName = normalizeZoneName(quartier);
+    if (!firm || !zoneName) return 0;
+    const selectedZone = zones.find((z) => normalizeZoneName(z.name).toLowerCase() === zoneName.toLowerCase());
+    const district = normalizeZoneName(selectedZone?.parent_id?.name);
+    const match = firm.quartier_prices?.find((p) => {
+      const pricedZone = normalizeZoneName(p.quartier).toLowerCase();
+      return pricedZone === zoneName.toLowerCase() || (district && pricedZone === district.toLowerCase());
     });
     return Number(match?.price || 0);
   };
@@ -234,7 +239,7 @@ function CheckoutContent() {
 
     setLogisticsLoading(true);
     const params = new URLSearchParams({ vendor_ids: vendorIds.join(',') });
-    if (formData.quartier) params.set('quartier', formData.quartier);
+    if (deliveryQuartier) params.set('quartier', deliveryQuartier);
     api.get(`/logistics/compatible-firms?${params.toString()}`)
       .then(res => {
         if (res.data.success) {
@@ -252,26 +257,12 @@ function CheckoutContent() {
       })
       .catch(err => toast.error("Logistics node lookup failed"))
       .finally(() => setLogisticsLoading(false));
-  }, [formData.quartier, order, cartItems]);
+  }, [deliveryQuartier, order, cartItems]);
 
+  // Hydrate profile + saved address once per user (never overwrite a manually chosen zone)
   useEffect(() => {
-      if (isVendorManagedDelivery) {
-          setCompatibleFee(0);
-      } else if (formData.logistics_company_id && formData.quartier && logisticsFirms.length > 0) {
-          const firm = logisticsFirms.find(f => f._id === formData.logistics_company_id);
-          if (firm) {
-              const qPrice = getFirmZonePrice(firm, formData.quartier);
-              const vendorIds = getCheckoutVendorIds();
-              setCompatibleFee(qPrice * vendorIds.length);
-          }
-      } else {
-          setCompatibleFee(0);
-      }
-  }, [formData.logistics_company_id, formData.quartier, logisticsFirms, order, cartItems, zones, isVendorManagedDelivery]);
-
-  // Hydrate profile + saved address once per user (quartier only auto-fills until user picks a zone)
-  useEffect(() => {
-    if (!user?._id) return;
+    if (!user?._id || profileHydratedRef.current) return;
+    profileHydratedRef.current = true;
 
     setFormData((f) => ({
       ...f,
@@ -279,9 +270,15 @@ function CheckoutContent() {
       email: f.email || user.email || '',
       phone: f.phone || user.phone || '',
       city: f.city || user.onboarding_location?.city || '',
-      quartier: resolveQuartier(f.quartier, user.onboarding_location?.quartier),
       address: f.address || user.onboarding_location?.address_description || '',
     }));
+
+    if (!deliveryQuartierTouchedRef.current) {
+      const initialQuartier = normalizeZoneName(user.onboarding_location?.quartier);
+      if (initialQuartier) {
+        setDeliveryQuartier(initialQuartier);
+      }
+    }
 
     if (refreshWalletBalance) {
       refreshWalletBalance()
@@ -323,11 +320,16 @@ function CheckoutContent() {
           || u?.onboarding_location?.address_description
           || user.onboarding_location?.address_description
           || '',
-        quartier: resolveQuartier(
-          f.quartier,
-          def?.quartier || u?.onboarding_location?.quartier || user.onboarding_location?.quartier
-        ),
       }));
+
+      if (!deliveryQuartierTouchedRef.current) {
+        const fallbackQuartier = normalizeZoneName(
+          def?.quartier || u?.onboarding_location?.quartier || user.onboarding_location?.quartier
+        );
+        if (fallbackQuartier) {
+          setDeliveryQuartier((current) => current || fallbackQuartier);
+        }
+      }
     });
   }, [user?._id]);
 
@@ -337,7 +339,13 @@ function CheckoutContent() {
       api.get(`/orders/${orderId}`)
         .then(res => { 
           if (res.data.success) {
-            setOrder(res.data.data.order); 
+            const loadedOrder = res.data.data.order;
+            setOrder(loadedOrder);
+            const orderQuartier = normalizeZoneName(loadedOrder?.shipping_address?.quartier);
+            if (orderQuartier) {
+              deliveryQuartierTouchedRef.current = true;
+              setDeliveryQuartier(orderQuartier);
+            }
           }
         })
         .catch(err => {
@@ -408,10 +416,17 @@ function CheckoutContent() {
     }
 
     // Compute amounts from the authoritative sources, not stale state
-    const computedSubtotal = currentOrder?.subtotal
+    const lineItems = currentOrder?.products || currentCartItems;
+    const computedSubtotal = currentOrder?.subtotal > 0
       ? Number(currentOrder.subtotal)
-      : currentCartItems.reduce((acc, it) => acc + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-    const computedDelivery = currentOrder?.shipping_fee !== undefined ? Number(currentOrder.shipping_fee) : compatibleFee;
+      : sumLineItems(lineItems);
+    const placeOrderVendorIds = getCheckoutVendorIds();
+    const placeOrderPerVendorFee = !isVendorManagedDelivery && formData.logistics_company_id && deliveryQuartier && selectedLogistics
+      ? getFirmZonePrice(selectedLogistics, deliveryQuartier)
+      : 0;
+    const computedDelivery = orderId && currentOrder?.shipping_fee != null
+      ? Number(currentOrder.shipping_fee)
+      : placeOrderPerVendorFee * placeOrderVendorIds.length;
     const computedOrderTotal = computedSubtotal + computedDelivery;
 
     const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
@@ -432,7 +447,7 @@ function CheckoutContent() {
       toast.error('Minimum amount for Eversend is 500 XAF');
       return;
     }
-    if (!formData.quartier) {
+    if (!deliveryQuartier) {
       toast.error('Please select your delivery zone.');
       return;
     }
@@ -465,7 +480,7 @@ function CheckoutContent() {
             shipping_address: {
                street: formData.address,
                city: formData.city,
-               quartier: formData.quartier,
+               quartier: deliveryQuartier,
                email: formData.email,
                phone: formData.phone
             },
@@ -476,7 +491,7 @@ function CheckoutContent() {
               : (formData.escrowEnabled ? 'escrow' : 'wallet'),
             shipping_method: isVendorManagedDelivery ? 'vendor_managed' : 'logistics_partner',
             logistics_company_id: isVendorManagedDelivery ? null : formData.logistics_company_id,
-            delivery_quartier: formData.quartier
+            delivery_quartier: deliveryQuartier
          };
 
          // If direct checkout, pass the items manually to bypass cart DB
@@ -625,20 +640,50 @@ function CheckoutContent() {
   };
 
   const matrixItems = (step === 3 && checkoutTotals) ? checkoutTotals.items : (order?.products || cartItems);
-  // Compute subtotal: order.subtotal is authoritative when > 0;
-  // if 0 or missing, compute from order.products or cartItems
-  const orderProductsSubtotal = (order?.products || []).reduce((acc, it) => acc + (Number(it.price || it.product_id?.price || 0) * Number(it.quantity || 1)), 0);
-  const cartSubtotal = cartItems.reduce((acc, it) => acc + (Number(it.price || 0) * Number(it.quantity || 1)), 0);
-  const subtotal = (step === 3 && checkoutTotals) ? checkoutTotals.subtotal : (((order?.subtotal > 0 ? order.subtotal : null) ?? (order ? orderProductsSubtotal : cartSubtotal)) || cartSubtotal);
-  const finalDeliveryFee = (step === 3 && checkoutTotals) ? checkoutTotals.finalDeliveryFee : (order?.shipping_fee !== undefined ? order.shipping_fee : compatibleFee);
-  const orderTotalAmount = subtotal + finalDeliveryFee;
-  const collectionFee = isMobileMoneyPayment(formData.paymentMethod) ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
-  const totalAmount = (step === 3 && checkoutTotals) ? checkoutTotals.totalAmount : (orderTotalAmount + collectionFee);
-  const checkoutBlocked = !formData.quartier || (!isVendorManagedDelivery && !formData.logistics_company_id);
+  const vendorIdsForSummary = getCheckoutVendorIds();
+  const feePerVendor = selectedLogistics && !isVendorManagedDelivery && deliveryQuartier
+    ? getFirmZonePrice(selectedLogistics, deliveryQuartier)
+    : 0;
 
-  // Breakdown vendors and their fees
-  const feePerVendor = selectedLogistics && !isVendorManagedDelivery && formData.quartier ? getFirmZonePrice(selectedLogistics, formData.quartier) : 0;
-  
+  const summary = useMemo(() => {
+    const lineItems = order?.products || cartItems;
+    const lineSubtotal = sumLineItems(lineItems);
+    const subtotal = (step === 3 && checkoutTotals)
+      ? checkoutTotals.subtotal
+      : ((order?.subtotal > 0 ? Number(order.subtotal) : null) ?? lineSubtotal);
+
+    let deliveryFee = 0;
+    if (step === 3 && checkoutTotals) {
+      deliveryFee = checkoutTotals.finalDeliveryFee;
+    } else if (orderId && order?.shipping_fee != null) {
+      deliveryFee = Number(order.shipping_fee);
+    } else if (!isVendorManagedDelivery && formData.logistics_company_id && deliveryQuartier) {
+      deliveryFee = feePerVendor * vendorIdsForSummary.length;
+    }
+
+    const collectionFee = isMobileMoneyPayment(formData.paymentMethod) ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
+    const totalAmount = (step === 3 && checkoutTotals)
+      ? checkoutTotals.totalAmount
+      : subtotal + deliveryFee + collectionFee;
+
+    return { subtotal, deliveryFee, collectionFee, totalAmount };
+  }, [
+    step,
+    checkoutTotals,
+    order,
+    cartItems,
+    orderId,
+    isVendorManagedDelivery,
+    formData.logistics_company_id,
+    formData.paymentMethod,
+    deliveryQuartier,
+    feePerVendor,
+    vendorIdsForSummary.length,
+  ]);
+
+  const { subtotal, deliveryFee: finalDeliveryFee, collectionFee, totalAmount } = summary;
+  const checkoutBlocked = !deliveryQuartier || (!isVendorManagedDelivery && !formData.logistics_company_id);
+
   const vendorTracking = matrixItems.reduce((acc, item) => {
      const vId = item.vendor_id?._id || item.vendor_id || item.product?.vendor_id;
      if (!acc[vId]) {
@@ -927,10 +972,10 @@ function CheckoutContent() {
                                   onClick={() => setZoneOpen(!zoneOpen)}
                                   className={`flex w-full items-center justify-between rounded-xl border bg-[var(--bg-secondary)] px-4 py-3 text-left outline-none transition-all ${zoneOpen ? 'border-[var(--accent)]' : 'border-[var(--glass-border)]'}`}
                                >
-                                  <div className="flex items-center gap-4">
-                                     <MapPin className="size-5 text-[var(--accent)] opacity-40" />
-                                     <span className={`text-sm font-bold text-[var(--text-primary)] ${formData.quartier ? '' : 'opacity-40'}`}>
-                                        {formData.quartier || 'Search and select your zone...'}
+                                  <div className="flex min-w-0 flex-1 items-center gap-4">
+                                     <MapPin className="size-5 shrink-0 text-[var(--accent)] opacity-40" />
+                                     <span className={`truncate text-sm font-bold text-[var(--text-primary)] ${deliveryQuartier ? '' : 'opacity-40'}`}>
+                                        {deliveryQuartier || 'Search and select your zone...'}
                                      </span>
                                   </div>
                                   <ChevronDown className={`size-4 opacity-40 transition-transform ${zoneOpen ? 'rotate-180' : ''}`} />
@@ -938,7 +983,7 @@ function CheckoutContent() {
 
                                <SearchableZoneDropdown 
                                   open={zoneOpen}
-                                  selected={formData.quartier}
+                                  selected={deliveryQuartier}
                                   onSelect={selectQuartier}
                                   onClose={() => setZoneOpen(false)}
                                   zones={zones}
@@ -990,12 +1035,12 @@ function CheckoutContent() {
                                           <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] opacity-60 truncate">
                                              {selectedLogistics.isDefaultVendorManaged
                                                 ? 'No logistics agency fee'
-                                                : formData.quartier ? `Serves ${formData.quartier}` : 'Verified partner'}
+                                                : deliveryQuartier ? `Serves ${deliveryQuartier}` : 'Verified partner'}
                                           </p>
                                         </>
                                       ) : (
                                         <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-30">
-                                          {formData.quartier ? 'Select delivery option' : 'Select zone or preview partners'}
+                                          {deliveryQuartier ? 'Select delivery option' : 'Select zone or preview partners'}
                                         </span>
                                       )}
                                    </div>
@@ -1176,7 +1221,7 @@ function CheckoutContent() {
                             <p className="text-sm  font-bold text-[var(--text-secondary)] flex items-start gap-2">
                                <MapPin className="size-4 shrink-0 mt-0.5 text-[var(--accent)]" />
                                <span>
-                                 {formData.quartier && <span className="block text-[var(--text-primary)]">{formData.quartier}</span>}
+                                 {deliveryQuartier && <span className="block text-[var(--text-primary)]">{deliveryQuartier}</span>}
                                  {formData.address || 'No street details provided'}
                                </span>
                             </p>
@@ -1338,7 +1383,7 @@ function CheckoutContent() {
                       <span className="font-mono text-[12px] text-[var(--text-primary)]">{subtotal.toLocaleString()} XAF</span>
                    </div>
                    
-                   {(finalDeliveryFee > 0 || (!isVendorManagedDelivery && formData.quartier && vendorList.length > 0)) && (
+                   {(finalDeliveryFee > 0 || (!isVendorManagedDelivery && deliveryQuartier && vendorList.length > 0)) && (
                       <div className="space-y-3 pt-3 border-t border-[var(--glass-border)]/20 animate-in fade-in duration-500">
                          <div className="flex items-center justify-between mb-2">
                            <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)] tracking-tight flex items-center gap-2">
@@ -1442,14 +1487,14 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
                <button
                   type="button"
                   key={z._id || z.name}
-                  onClick={() => onSelect(z.name)}
-                  className={`w-full p-4 flex items-center gap-4 hover:bg-[var(--accent)]/5 transition-all text-left ${selected === z.name ? 'bg-[var(--accent)]/10' : ''}`}
+                  onClick={() => onSelect(normalizeZoneName(z.name))}
+                  className={`w-full p-4 flex items-center gap-4 hover:bg-[var(--accent)]/5 transition-all text-left ${normalizeZoneName(selected).toLowerCase() === normalizeZoneName(z.name).toLowerCase() ? 'bg-[var(--accent)]/10' : ''}`}
                >
                   <MapPin className="size-4 opacity-20 text-[var(--accent)]" />
                   <div className="min-w-0 flex-1">
                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate">{z.name}</p>
                   </div>
-                  {selected === z.name && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
+                  {normalizeZoneName(selected).toLowerCase() === normalizeZoneName(z.name).toLowerCase() && <CheckCircle2 className="size-4 text-[var(--accent)]" />}
                </button>
             ))
          )}
