@@ -6,8 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Image as ImageIcon, Video, Type, 
   ShoppingBag, Trash2, Send, Loader2,
-  AlertCircle, Clock, Search, Tag, RotateCcw,
-  Plus, ChevronDown, Edit2, Palette, Volume2, VolumeX
+  AlertCircle, Clock, Search, RotateCcw,
+  Plus, Palette
 } from 'lucide-react';
 import { uploadService } from '@/services/upload';
 import api from '@/services/api';
@@ -257,7 +257,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [videoMeta, setVideoMeta]       = useState(null);
   const [trimStart, setTrimStart]       = useState(0);
   const [trimEnd, setTrimEnd]           = useState(STATUS_VIDEO_MAX_SECONDS);
-  const [editingVideo, setEditingVideo] = useState(false);
+  const [, setEditingVideo] = useState(false);
   const [gradientIndex, setGradientIndex] = useState(0);
 
   const fileInputRef = useRef(null);
@@ -431,17 +431,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
   if (!mounted) return null;
 
-  // Render Type Selector
   const typeSelector = (
-    <div className="relative flex bg-[var(--bg-secondary)] p-1 rounded-2xl border border-[var(--glass-border)] w-full">
-      {/* Background sliding indicator */}
-      <div
-        className="absolute top-1 bottom-1 rounded-xl bg-[var(--bg-primary)] shadow-md transition-all duration-300 ease-out"
-        style={{
-          left: type === 'image' ? '4px' : type === 'video' ? 'calc(33.333% + 2px)' : 'calc(66.666% + 2px)',
-          width: 'calc(33.333% - 6px)',
-        }}
-      />
+    <div className="grid grid-cols-3 gap-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 p-1">
       {[
         { id: 'image', label: 'Image', icon: ImageIcon },
         { id: 'video', label: 'Video', icon: Video },
@@ -460,8 +451,10 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               }
               setError(null);
             }}
-            className={`relative z-10 flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors duration-200 flex items-center justify-center gap-1.5 ${
-              type === t.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+            className={`flex h-11 items-center justify-center gap-2 rounded-xl text-xs font-black transition-all ${
+              type === t.id
+                ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-sm ring-1 ring-[var(--accent)]/20'
+                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]/55 hover:text-[var(--text-primary)]'
             }`}
           >
             <Icon className="size-3.5" />
@@ -472,9 +465,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     </div>
   );
 
-  // Render Preview Frame
   const previewFrame = (
-    <div className="relative aspect-[9/16] w-full max-w-[280px] mx-auto rounded-[2.5rem] overflow-hidden bg-black border border-white/10 group shadow-2xl flex flex-col justify-between">
+    <div className="relative mx-auto aspect-[9/16] w-full max-w-[300px] overflow-hidden rounded-[2rem] border border-white/10 bg-[#09090b] shadow-2xl shadow-black/30">
       {previewUrl ? (
         <>
           {type === 'video' ? (
@@ -482,37 +474,40 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           ) : (
             <img src={previewUrl} className="absolute inset-0 size-full object-cover" alt="story preview" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-black/35" />
           
-          {/* Top action button */}
-          <div className="absolute top-4 right-4 z-20 flex gap-2">
+          <div className="absolute left-4 top-4 z-20 rounded-full bg-black/55 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/80 backdrop-blur-md">
+            {type}
+          </div>
+
+          <div className="absolute right-4 top-4 z-20 flex gap-2">
             {!isReshare || file ? (
               <button
                 type="button"
                 onClick={() => { setFile(null); setPreviewUrl(''); }}
-                className="size-9 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center hover:bg-red-500 transition-all border border-white/10 shadow-lg"
+                className="flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white shadow-lg backdrop-blur-md transition-all hover:bg-red-500"
+                aria-label="Remove media"
               >
                 <Trash2 className="size-4" />
               </button>
             ) : (
-              <label className="size-9 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center hover:bg-[var(--accent)] transition-all border border-white/10 shadow-lg cursor-pointer">
+              <label className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/55 text-white shadow-lg backdrop-blur-md transition-all hover:bg-[var(--accent)]">
                 <input type="file" className="hidden" accept={type === 'image' ? 'image/*' : 'video/*'} onChange={handleFileChange} />
                 <ImageIcon className="size-4" />
               </label>
             )}
           </div>
 
-          {/* Floaty Caption overlay (WhatsApp style) */}
-          <div className="absolute bottom-4 inset-x-4 z-20">
-            <div className="relative flex items-center bg-black/60 backdrop-blur-md rounded-2xl border border-white/10 px-4 py-2">
+          <div className="absolute inset-x-4 bottom-4 z-20">
+            <div className="relative flex items-center rounded-2xl border border-white/15 bg-black/60 px-4 py-2.5 backdrop-blur-md">
               <input
                 type="text"
                 value={caption}
                 onChange={e => setCaption(e.target.value.slice(0, 150))}
                 placeholder="Add context to your story..."
-                className="flex-1 bg-transparent text-xs text-white placeholder:text-white/40 outline-none border-none pr-8 py-1"
+                className="flex-1 border-none bg-transparent py-1 pr-10 text-xs font-semibold text-white outline-none placeholder:text-white/45"
               />
-              <span className="absolute right-3 text-[10px] text-white/30 font-mono font-bold">
+              <span className="absolute right-3 text-[10px] font-bold tabular-nums text-white/35">
                 {caption.length}/150
               </span>
             </div>
@@ -520,54 +515,53 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </>
       ) : type === 'text' ? (
         <div 
-          className="absolute inset-0 flex flex-col p-6 transition-all duration-300 select-none justify-between"
+          className="absolute inset-0 flex select-none flex-col justify-between p-6 transition-all duration-300"
           style={TEXT_GRADIENTS[gradientIndex].style}
         >
-          {/* Gradient index controller */}
           <button
             type="button"
             onClick={() => setGradientIndex((prev) => (prev + 1) % TEXT_GRADIENTS.length)}
-            className="absolute top-4 right-4 size-9 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-20"
+            className="absolute right-4 top-4 z-20 flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-md transition-all hover:scale-105 active:scale-95"
             title="Change background gradient"
           >
             <Palette className="size-4" />
           </button>
 
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-1 items-center justify-center">
             <textarea
               value={textContent}
               onChange={e => setTextContent(e.target.value)}
               placeholder="Type your message..."
-              className="w-full bg-transparent text-xl md:text-2xl font-bold text-white text-center outline-none placeholder:text-white/20 resize-none max-h-[70%] leading-relaxed"
+              className="max-h-[70%] w-full resize-none bg-transparent text-center text-xl font-black leading-relaxed text-white outline-none placeholder:text-white/25 md:text-2xl"
               maxLength={300}
             />
           </div>
-          <span className="text-[10px] text-white/40 font-bold tracking-wider text-center">{textContent.length} / 300</span>
+          <span className="text-center text-[10px] font-black tracking-wider text-white/45">{textContent.length} / 300</span>
         </div>
       ) : (
-        <label className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer gap-4 text-center px-6 bg-[var(--bg-secondary)] border border-dashed border-[var(--glass-border)] hover:border-[var(--accent)] transition-all">
+        <label className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center gap-4 border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)] px-6 text-center transition-all hover:border-[var(--accent)]">
           <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept={type === 'image' ? 'image/*' : 'video/*'} />
-          <div className="size-14 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center group-hover:scale-105 transition-transform shadow-md">
+          <div className="flex size-16 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-md transition-transform group-hover:scale-105">
             {type === 'image' ? <ImageIcon className="size-6 text-[var(--accent)]" /> : <Video className="size-6 text-[var(--accent)]" />}
           </div>
           <div>
-            <p className="text-xs font-bold text-[var(--text-primary)]">Upload {type === 'image' ? 'Image' : 'Video'}</p>
-            <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-1 leading-snug">Max {type === 'image' ? '8MB' : '500MB source · auto-trimmed to 30s'}</p>
+            <p className="text-sm font-black text-[var(--text-primary)]">Upload {type === 'image' ? 'Image' : 'Video'}</p>
+            <p className="mt-1 text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">
+              Max {type === 'image' ? '8MB' : '500MB source - optimized to 30s'}
+            </p>
           </div>
         </label>
       )}
     </div>
   );
 
-  // Render Metadata Options
   const metadataOptions = (
     <div className="space-y-5">
-      {/* Expiry / Duration */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)]">
           <Clock className="size-3 text-[var(--accent)]" /> Story Duration
         </label>
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-3 gap-2">
           {DURATION_OPTIONS.map(opt => {
             const active = expiryDays === opt.value;
             return (
@@ -575,14 +569,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 key={opt.value}
                 type="button"
                 onClick={() => setExpiryDays(opt.value)}
-                className={`relative p-3 rounded-2xl border text-left flex flex-col justify-between min-h-[72px] transition-all duration-300 ${
+                className={`relative min-h-[70px] rounded-2xl border p-3 text-left transition-all ${
                   active
-                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 shadow-lg shadow-[var(--accent)]/5'
-                    : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30'
+                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 shadow-sm shadow-[var(--accent)]/10'
+                    : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/75 hover:border-[var(--accent)]/35'
                 }`}
               >
                 {opt.recommended && (
-                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] font-extrabold bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wider shadow z-10">
+                  <span className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow">
                     Best
                   </span>
                 )}
@@ -600,22 +594,21 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </div>
       </div>
 
-      {/* Category Grid */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)]">Category</label>
           {!selectedCategory && <span className="text-[10px] font-bold text-red-400">Required</span>}
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[160px] overflow-y-auto no-scrollbar border border-[var(--glass-border)] rounded-2xl bg-[var(--bg-secondary)]/50 p-2">
+        <div className="grid max-h-[176px] grid-cols-2 gap-2 overflow-y-auto rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/55 p-2 no-scrollbar sm:grid-cols-3">
           {STATUS_CATEGORIES.map(cat => (
             <button
               key={cat}
               type="button"
               onClick={() => setSelectedCategory(cat)}
-              className={`py-2 px-2 rounded-xl text-[11px] font-bold border text-center transition-all duration-200 ${
+              className={`min-h-10 rounded-xl border px-2 py-2 text-center text-[11px] font-black leading-tight transition-all ${
                 selectedCategory === cat
-                  ? 'bg-[var(--accent)] text-white border-[var(--accent)] shadow-lg shadow-[var(--accent)]/20'
-                  : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)]'
+                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
+                  : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)]'
               }`}
             >
               {cat}
@@ -624,23 +617,21 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </div>
       </div>
 
-      {/* Caption Section */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <label className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)]">Caption</label>
         <div className="relative">
           <textarea
             value={caption}
             onChange={e => setCaption(e.target.value)}
             placeholder="Add context to your story..."
-            className="w-full h-20 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-3 text-xs font-semibold focus:border-[var(--accent)] outline-none transition-all placeholder:opacity-30 resize-none text-[var(--text-primary)]"
+            className="h-20 w-full resize-none rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-3 text-xs font-semibold text-[var(--text-primary)] outline-none transition-all placeholder:opacity-35 focus:border-[var(--accent)]"
             maxLength={150}
           />
-          <span className="absolute bottom-2.5 right-3 text-[10px] font-bold opacity-30">{caption.length}/150</span>
+          <span className="absolute bottom-2.5 right-3 text-[10px] font-bold tabular-nums opacity-35">{caption.length}/150</span>
         </div>
       </div>
 
-      {/* Tag Product */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)] flex items-center gap-1.5">
             <ShoppingBag className="size-3.5 text-[var(--accent)]" /> Tag Product
@@ -716,7 +707,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     </div>
   );
 
-  // Render Post Button & Upload Progress
   const submitButton = (
     <div className="space-y-3 shrink-0">
       {loading && uploadPhase && (
@@ -738,7 +728,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         type="button"
         onClick={handlePost}
         disabled={loading || !canPost}
-        className="w-full h-12 bg-[var(--accent)] text-white rounded-2xl text-xs font-extrabold uppercase tracking-wider hover:brightness-115 transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98]"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-xs font-black uppercase tracking-wider text-white shadow-lg transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35"
       >
         {loading ? (
           <>
@@ -755,31 +745,27 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     </div>
   );
 
-  // Render Mobile Layout View
   const mobileLayout = (
-    <div className="fixed inset-0 z-[1100] bg-[var(--bg-primary)] flex flex-col">
-      {/* Header */}
-      <div className="shrink-0 h-16 border-b border-[var(--glass-border)] flex items-center justify-between px-4">
-        <h1 className="text-base font-black text-[var(--text-primary)]">
-          {isReshare ? 'Reshare Story' : 'New Story'}
-        </h1>
+    <div className="fixed inset-0 z-[1100] flex flex-col bg-[var(--bg-primary)]">
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--glass-border)] px-4">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--accent)]">Story Studio</p>
+          <h1 className="text-base font-black text-[var(--text-primary)]">
+            {isReshare ? 'Reshare Story' : 'New Story'}
+          </h1>
+        </div>
         <button 
           onClick={onClose} 
-          className="size-10 rounded-full hover:bg-[var(--bg-secondary)] flex items-center justify-center transition-all text-[var(--text-secondary)]"
+          className="flex size-10 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-secondary)]"
+          aria-label="Close story creator"
         >
           <X className="size-5" />
         </button>
       </div>
 
-      {/* Main Form Content Scrollable */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-5 pb-24 no-scrollbar">
-        {/* Sliding type tab */}
+      <div className="flex-1 space-y-5 overflow-y-auto p-4 pb-24 no-scrollbar">
         {typeSelector}
-
-        {/* 9:16 aspect preview */}
         {previewFrame}
-
-        {/* Video Trimmer panel (if type is video, preview exists and metadata loaded) */}
         {type === 'video' && videoMeta && previewUrl && (
           <div className="mt-4">
             <StatusVideoTrimmer
@@ -803,20 +789,17 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           </div>
         )}
 
-        {/* Story details / settings */}
-        <div className="border-t border-[var(--glass-border)] pt-5">
+        <div className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 p-4">
           {metadataOptions}
         </div>
       </div>
 
-      {/* Sticky Bottom Actions */}
-      <div className="absolute bottom-0 inset-x-0 bg-[var(--bg-primary)]/90 backdrop-blur-md border-t border-[var(--glass-border)] p-4">
+      <div className="absolute inset-x-0 bottom-0 border-t border-[var(--glass-border)] bg-[var(--bg-primary)]/92 p-4 backdrop-blur-md">
         {submitButton}
       </div>
     </div>
   );
 
-  // Render Desktop Layout View
   const desktopLayout = (
     <div
       className="fixed inset-0 z-[1100] flex items-center justify-center p-4"
@@ -828,7 +811,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/85 backdrop-blur-md"
+        className="absolute inset-0 bg-black/80 backdrop-blur-md"
         onClick={onClose}
       />
 
@@ -837,36 +820,32 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="relative w-full max-w-5xl bg-[var(--bg-primary)] rounded-[2.5rem] border border-white/8 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-[var(--bg-primary)] shadow-2xl"
       >
-        {/* Top visual divider bar */}
-        <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-[var(--accent)] to-transparent opacity-50 shrink-0" />
-
-        {/* Header */}
-        <div className="shrink-0 px-8 py-5 flex items-center justify-between border-b border-[var(--glass-border)]">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--glass-border)] px-7 py-5">
           <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">Story Studio</p>
             <h2 className="text-lg font-black text-[var(--text-primary)]">
               {isReshare ? 'Reshare Story' : 'New Story'}
             </h2>
             {isReshare && (
-              <p className="text-[10px] font-bold text-[var(--accent)] mt-0.5 flex items-center gap-1 opacity-80">
-                <RotateCcw className="size-3" /> Reusing previous content — replace below if desired
+              <p className="mt-0.5 flex items-center gap-1 text-[10px] font-bold text-[var(--accent)] opacity-80">
+                <RotateCcw className="size-3" /> Reusing previous content - replace below if desired
               </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="size-10 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:bg-red-500/10 hover:text-red-500 transition-all border border-[var(--glass-border)]"
+            className="flex size-10 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition-all hover:bg-red-500/10 hover:text-red-500"
+            aria-label="Close story creator"
           >
             <X className="size-5" />
           </button>
         </div>
 
-        {/* Modal columns */}
         <div className="flex-1 overflow-y-auto no-scrollbar">
-          <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1.8fr] gap-0 min-h-full">
-            {/* Left preview column */}
-            <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r border-[var(--glass-border)] flex flex-col gap-5 bg-[var(--bg-secondary)]/15">
+          <div className="grid min-h-full grid-cols-1 gap-0 lg:grid-cols-[380px_1fr]">
+            <div className="flex flex-col gap-5 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/18 p-5 md:p-7 lg:border-b-0 lg:border-r">
               {typeSelector}
               
               {previewFrame}
@@ -887,15 +866,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               )}
 
               {error && (
-                <div className="p-3 rounded-2xl bg-red-500/8 border border-red-500/20 flex items-center gap-2.5 text-red-500">
+                <div className="flex items-center gap-2.5 rounded-2xl border border-red-500/20 bg-red-500/8 p-3 text-red-500">
                   <AlertCircle className="size-4 shrink-0" />
                   <p className="text-xs font-semibold">{error}</p>
                 </div>
               )}
             </div>
 
-            {/* Right configuration options column */}
-            <div className="p-6 md:p-8 flex flex-col justify-between gap-6 overflow-y-auto max-h-[72vh] no-scrollbar">
+            <div className="flex max-h-[76vh] flex-col justify-between gap-6 overflow-y-auto p-5 no-scrollbar md:p-7">
               {metadataOptions}
               <div className="pt-6 border-t border-[var(--glass-border)]">
                 {submitButton}
