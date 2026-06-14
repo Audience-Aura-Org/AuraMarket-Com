@@ -14,7 +14,7 @@ const normalizeUploadFolder = (folder = 'general') => {
 };
 
 const UPLOAD_LIMITS = {
-  statuses: { video: 30 * MB, image: 8 * MB, file: 30 * MB },
+  statuses: { video: 16 * MB, image: 8 * MB, file: 16 * MB },
   products: { image: 5 * MB, file: 5 * MB },
   product: { image: 5 * MB, file: 5 * MB },
   banners: { image: 5 * MB, file: 5 * MB },

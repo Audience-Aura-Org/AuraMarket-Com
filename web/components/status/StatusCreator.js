@@ -7,7 +7,7 @@ import {
   X, Image as ImageIcon, Video, Type, 
   ShoppingBag, Trash2, Send, Loader2,
   AlertCircle, Clock, Search, RotateCcw,
-  Plus, Palette
+  Plus, Palette, SplitSquareHorizontal, Scissors
 } from 'lucide-react';
 import { uploadService } from '@/services/upload';
 import api from '@/services/api';
@@ -26,6 +26,11 @@ const DURATION_OPTIONS = [
   { value: 1, label: '1 Day', description: 'Quick drop' },
   { value: 3, label: '3 Days', description: 'Standard', recommended: true },
   { value: 7, label: '7 Days', description: 'Max reach' },
+];
+
+const VIDEO_POST_MODES = [
+  { id: 'split', label: 'Split', description: 'Post every 30s part', icon: SplitSquareHorizontal },
+  { id: 'trim', label: 'Trim', description: 'Post selected clip', icon: Scissors },
 ];
 
 const DEVICE_TYPE = () => {
@@ -235,6 +240,28 @@ const TEXT_GRADIENTS = [
   { style: { background: 'linear-gradient(135deg, #e65c00 0%, #F9D423 100%)' }, name: 'Warm Sun' },
 ];
 
+const formatSeconds = (seconds = 0) => {
+  const safe = Math.max(0, Number(seconds) || 0);
+  const mins = Math.floor(safe / 60);
+  const secs = safe % 60;
+  return `${mins}:${secs.toFixed(1).padStart(4, '0')}`;
+};
+
+const buildVideoSegments = (duration = 0) => {
+  const safeDuration = Math.max(0, Number(duration) || 0);
+  if (!safeDuration) return [{ start: 0, end: STATUS_VIDEO_MAX_SECONDS, index: 0 }];
+
+  const segments = [];
+  for (let start = 0; start < safeDuration - 0.05; start += STATUS_VIDEO_MAX_SECONDS) {
+    segments.push({
+      start,
+      end: Math.min(start + STATUS_VIDEO_MAX_SECONDS, safeDuration),
+      index: segments.length,
+    });
+  }
+  return segments;
+};
+
 export default function StatusCreator({ onClose, onStatusCreated, initialData = null }) {
   const isReshare = !!initialData;
 
@@ -257,6 +284,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [videoMeta, setVideoMeta]       = useState(null);
   const [trimStart, setTrimStart]       = useState(0);
   const [trimEnd, setTrimEnd]           = useState(STATUS_VIDEO_MAX_SECONDS);
+  const [videoPostMode, setVideoPostMode] = useState('split');
   const [, setEditingVideo] = useState(false);
   const [gradientIndex, setGradientIndex] = useState(0);
 
@@ -318,9 +346,10 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         setVideoMeta({ ...meta, needsTrim, needsCompression });
         setTrimStart(0);
         setTrimEnd(Math.min(STATUS_VIDEO_MAX_SECONDS, Math.max(1, meta.duration || STATUS_VIDEO_MAX_SECONDS)));
+        setVideoPostMode(needsTrim ? 'split' : 'trim');
         setEditingVideo(true);
         setError(needsTrim
-          ? `Video is longer than ${STATUS_VIDEO_MAX_SECONDS}s — trim your clip before posting.`
+          ? null
           : needsCompression
             ? 'Video will be cropped to 9:16 and optimized before upload.'
             : null
@@ -333,6 +362,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       if (!f.type.startsWith('image/'))  { setError('Select an image file.'); return; }
       if (f.size > STATUS_IMAGE_MAX_BYTES)    { setError('Max 8MB image.'); return; }
       setVideoMeta(null);
+      setVideoPostMode('trim');
       setEditingVideo(false);
     }
     setFile(f);
@@ -349,50 +379,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     try {
       let finalUrl = previewUrl;
       let thumbnailUrl = initialData?.thumbnail_url || '';
-
-      // If resharing image/video and no new file was selected, reuse existing URL
-      if (type !== 'text' && file) {
-        let uploadFile = file;
-        if (file.type.startsWith('video/')) {
-          const clipLength = trimEnd - trimStart;
-          if (clipLength > STATUS_VIDEO_MAX_SECONDS + 0.5) {
-            throw new Error(`Story clips must be ${STATUS_VIDEO_MAX_SECONDS} seconds or less.`);
-          }
-
-          setUploadPhase('Preparing video...');
-          uploadFile = await exportEditedStatusVideo(file, {
-            trimStart,
-            trimEnd,
-            onProgress: (pct) => setUploadProgress(Math.min(70, pct)),
-          });
-          if (uploadFile.size > STATUS_VIDEO_MAX_BYTES) {
-            throw new Error('Edited video is still above 30MB. Shorten the trim and try again.');
-          }
-        }
-
-        setUploadPhase(uploadFile.type.startsWith('video/') ? 'Uploading video...' : 'Uploading image...');
-        const uploadRes = await uploadService.uploadSingle(uploadFile, 'statuses', {
-          onProgress: (pct) => setUploadProgress(pct),
-        });
-        if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
-        finalUrl = uploadRes.data.url;
-        if (uploadFile.type.startsWith('video/')) {
-          setUploadPhase('Creating video preview...');
-          const thumbnailFile = await generateVideoThumbnail(uploadFile);
-          if (thumbnailFile) {
-            const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
-            if (thumbnailRes.success) thumbnailUrl = thumbnailRes.data.url;
-          }
-        }
-        setUploadPhase('Publishing story...');
-      } else if (type !== 'text' && !isReshare && !previewUrl) {
-        throw new Error('Please select a file to upload');
-      }
+      const createdStatuses = [];
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + expiryDays);
 
-      const payload = {
+      const createStatusPayload = (overrides = {}) => ({
         type,
         content_url: type !== 'text' ? finalUrl : '',
         thumbnail_url: type === 'video' ? thumbnailUrl : '',
@@ -402,11 +394,97 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         expires_at: expiresAt.toISOString(),
         expiry_days: expiryDays,
         category: selectedCategory,
+        ...overrides,
+      });
+
+      const publishStatus = async (payload) => {
+        const res = await api.post('/statuses', payload);
+        if (res.data.success) {
+          createdStatuses.push(res.data.data);
+        }
       };
 
-      const res = await api.post('/statuses', payload);
-      if (res.data.success) {
-        onStatusCreated(res.data.data);
+      // If resharing image/video and no new file was selected, reuse existing URL
+      if (type !== 'text' && file) {
+        if (file.type.startsWith('video/')) {
+          const segments = videoPostMode === 'split'
+            ? buildVideoSegments(videoMeta?.duration || trimEnd)
+            : [{ start: trimStart, end: trimEnd, index: 0 }];
+          const totalSegments = segments.length;
+
+          for (const segment of segments) {
+            const segmentNumber = segment.index + 1;
+            const clipLength = segment.end - segment.start;
+            if (clipLength > STATUS_VIDEO_MAX_SECONDS + 0.5) {
+              throw new Error(`Story clips must be ${STATUS_VIDEO_MAX_SECONDS} seconds or less.`);
+            }
+
+            setUploadPhase(totalSegments > 1
+              ? `Preparing part ${segmentNumber} of ${totalSegments}...`
+              : 'Preparing video...'
+            );
+            const uploadFile = await exportEditedStatusVideo(file, {
+              trimStart: segment.start,
+              trimEnd: segment.end,
+              onProgress: (pct) => {
+                const progress = ((segment.index + (pct / 100)) / totalSegments) * 70;
+                setUploadProgress(Math.min(70, Math.round(progress)));
+              },
+            });
+            if (uploadFile.size > STATUS_VIDEO_MAX_BYTES) {
+              throw new Error('Edited video is still above 16MB. Shorten the trim and try again.');
+            }
+
+            setUploadPhase(totalSegments > 1
+              ? `Uploading part ${segmentNumber} of ${totalSegments}...`
+              : 'Uploading video...'
+            );
+            const uploadRes = await uploadService.uploadSingle(uploadFile, 'statuses', {
+              onProgress: (pct) => {
+                const progress = 70 + (((segment.index + (pct / 100)) / totalSegments) * 25);
+                setUploadProgress(Math.min(95, Math.round(progress)));
+              },
+            });
+            if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
+
+            setUploadPhase(totalSegments > 1
+              ? `Creating preview ${segmentNumber} of ${totalSegments}...`
+              : 'Creating video preview...'
+            );
+            const thumbnailFile = await generateVideoThumbnail(uploadFile);
+            let segmentThumbnailUrl = '';
+            if (thumbnailFile) {
+              const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
+              if (thumbnailRes.success) segmentThumbnailUrl = thumbnailRes.data.url;
+            }
+
+            setUploadPhase(totalSegments > 1
+              ? `Publishing part ${segmentNumber} of ${totalSegments}...`
+              : 'Publishing story...'
+            );
+            await publishStatus(createStatusPayload({
+              content_url: uploadRes.data.url,
+              thumbnail_url: segmentThumbnailUrl,
+            }));
+          }
+        } else {
+          setUploadPhase('Uploading image...');
+          const uploadRes = await uploadService.uploadSingle(file, 'statuses', {
+            onProgress: (pct) => setUploadProgress(pct),
+          });
+          if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
+          finalUrl = uploadRes.data.url;
+          setUploadPhase('Publishing story...');
+          await publishStatus(createStatusPayload());
+        }
+      } else if (type !== 'text' && !isReshare && !previewUrl) {
+        throw new Error('Please select a file to upload');
+      } else {
+        await publishStatus(createStatusPayload());
+      }
+
+      if (createdStatuses.length) {
+        onStatusCreated?.(createdStatuses.length === 1 ? createdStatuses[0] : createdStatuses);
         onClose();
       }
     } catch (err) {
@@ -428,6 +506,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   );
 
   const canPost = selectedCategory && (type === 'text' ? textContent.trim() : (file || (isReshare && previewUrl)));
+  const videoSegments = useMemo(
+    () => buildVideoSegments(videoMeta?.duration || 0),
+    [videoMeta?.duration]
+  );
+  const isLongVideo = type === 'video' && file && videoMeta?.duration > STATUS_VIDEO_MAX_SECONDS + 0.5;
+  const selectedClipLabel = `${formatSeconds(trimStart)} - ${formatSeconds(trimEnd)}`;
 
   if (!mounted) return null;
 
@@ -554,6 +638,51 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       )}
     </div>
   );
+
+  const videoPostOptions = isLongVideo ? (
+    <div className="space-y-3 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--accent)]">
+            Long Video
+          </p>
+          <p className="mt-1 text-xs font-semibold text-[var(--text-secondary)]">
+            {formatSeconds(videoMeta.duration)} total - {videoSegments.length} story parts at up to {STATUS_VIDEO_MAX_SECONDS}s each
+          </p>
+        </div>
+        <span className="rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-3 py-1 text-[10px] font-black text-[var(--accent)]">
+          WhatsApp-style
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {VIDEO_POST_MODES.map((mode) => {
+          const Icon = mode.icon;
+          const active = videoPostMode === mode.id;
+          return (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => setVideoPostMode(mode.id)}
+              className={`rounded-2xl border p-3 text-left transition-all ${
+                active
+                  ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)]'
+                  : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/75 text-[var(--text-secondary)] hover:border-[var(--accent)]/35'
+              }`}
+            >
+              <span className="flex items-center gap-2 text-xs font-black">
+                <Icon className="size-4 text-[var(--accent)]" />
+                {mode.label}
+              </span>
+              <span className="mt-1 block text-[10px] font-semibold leading-snug opacity-75">
+                {mode.id === 'split' ? `${videoSegments.length} separate updates` : selectedClipLabel}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
 
   const metadataOptions = (
     <div className="space-y-5">
@@ -766,6 +895,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       <div className="flex-1 space-y-5 overflow-y-auto p-4 pb-24 no-scrollbar">
         {typeSelector}
         {previewFrame}
+        {videoPostOptions}
         {type === 'video' && videoMeta && previewUrl && (
           <div className="mt-4">
             <StatusVideoTrimmer
@@ -859,6 +989,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             </div>
 
             <div className="flex max-h-[76vh] flex-col justify-between gap-6 overflow-y-auto p-5 no-scrollbar md:p-7">
+              {videoPostOptions}
               {type === 'video' && videoMeta && previewUrl && (
                 <StatusVideoTrimmer
                   previewUrl={previewUrl}
