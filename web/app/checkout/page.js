@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import { flushSync } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ShieldCheck, MapPin, CreditCard, ArrowRight, 
@@ -48,7 +49,10 @@ const VENDOR_MANAGED_LOGISTICS_ID = 'vendor_managed';
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 5;
 const isMobileMoneyPayment = (method) => ['payunit', 'eversend'].includes(method);
 const normalizeZoneName = (value) => String(value || '').trim();
-const getZoneName = (zone) => normalizeZoneName(zone?.name || zone?.label || zone?.title || zone);
+const getZoneName = (zone) => {
+  if (typeof zone === 'string') return normalizeZoneName(zone);
+  return normalizeZoneName(zone?.name || zone?.label || zone?.title || zone?.zone_name || '');
+};
 const CHECKOUT_QUARTIER_KEY = 'checkout_delivery_quartier';
 
 function CheckoutContent() {
@@ -100,7 +104,13 @@ function CheckoutContent() {
   const [logisticsOpen, setLogisticsOpen] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [zones, setZones] = useState([]);
-  const [deliveryQuartier, setDeliveryQuartier] = useState('');
+  const [deliveryQuartier, setDeliveryQuartier] = useState(() => {
+    try {
+      return normalizeZoneName(sessionStorage.getItem(CHECKOUT_QUARTIER_KEY) || '');
+    } catch {
+      return '';
+    }
+  });
   const [zoneOpen, setZoneOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [removingItemKey, setRemovingItemKey] = useState(null);
@@ -121,8 +131,10 @@ function CheckoutContent() {
     const normalized = getZoneName(typeof val === 'string' ? { name: val } : val);
     if (!normalized) return;
     deliveryQuartierTouchedRef.current = true;
-    setDeliveryQuartier(normalized);
-    setZoneOpen(false);
+    flushSync(() => {
+      setDeliveryQuartier(normalized);
+      setZoneOpen(false);
+    });
     try {
       sessionStorage.setItem(CHECKOUT_QUARTIER_KEY, normalized);
     } catch {}
@@ -131,7 +143,7 @@ function CheckoutContent() {
   useEffect(() => {
     if (!zoneOpen) return undefined;
 
-    const handlePointerDown = (event) => {
+    const handleClickOutside = (event) => {
       if (zonePickerRef.current && !zonePickerRef.current.contains(event.target)) {
         setZoneOpen(false);
       }
@@ -140,23 +152,13 @@ function CheckoutContent() {
       if (event.key === 'Escape') setZoneOpen(false);
     };
 
-    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('click', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
     return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('click', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
   }, [zoneOpen]);
-
-  useEffect(() => {
-    if (deliveryQuartierTouchedRef.current || deliveryQuartier) return;
-    try {
-      const saved = sessionStorage.getItem(CHECKOUT_QUARTIER_KEY);
-      if (saved) {
-        setDeliveryQuartier(normalizeZoneName(saved));
-      }
-    } catch {}
-  }, [deliveryQuartier]);
 
   const sumLineItems = (items = []) =>
     items.reduce(
@@ -1012,7 +1014,10 @@ function CheckoutContent() {
                             <div className="relative" ref={zonePickerRef}>
                               <button
                                 type="button"
-                                onClick={() => (zoneOpen ? closeZonePicker() : openZonePicker())}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  zoneOpen ? closeZonePicker() : openZonePicker();
+                                }}
                                 aria-expanded={zoneOpen}
                                 aria-haspopup="listbox"
                                 className={`flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left outline-none transition-all ${
@@ -1029,20 +1034,11 @@ function CheckoutContent() {
                                   }`}>
                                     {deliveryQuartier ? <CheckCircle2 className="size-5" /> : <MapPin className="size-5" />}
                                   </div>
-                                  <div className="min-w-0">
-                                    {deliveryQuartier ? (
-                                      <>
-                                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] opacity-60">Selected zone</p>
-                                        <p className="truncate text-sm font-bold text-[var(--text-primary)]">{deliveryQuartier}</p>
-                                        <p className="mt-0.5 text-[10px] font-medium text-[var(--accent)]">Tap to switch zone</p>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <p className="text-sm font-bold text-[var(--text-primary)] opacity-70">Search and select your zone</p>
-                                        <p className="mt-0.5 text-[10px] font-medium text-[var(--text-secondary)] opacity-50">Choose your delivery quartier</p>
-                                      </>
-                                    )}
-                                  </div>
+                                  <p className={`min-w-0 flex-1 truncate text-sm font-bold ${
+                                    deliveryQuartier ? 'text-[var(--text-primary)]' : 'text-[var(--text-primary)] opacity-50'
+                                  }`}>
+                                    {deliveryQuartier || 'Search and select your zone'}
+                                  </p>
                                 </div>
                                 <ChevronDown className={`size-5 shrink-0 text-[var(--accent)] opacity-60 transition-transform ${zoneOpen ? 'rotate-180' : ''}`} />
                               </button>
@@ -1545,13 +1541,14 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
     if (!zoneName) return;
     onSelect(zoneName);
     setQuery('');
-    onClose?.();
   };
 
   return (
     <div
       role="listbox"
       aria-label="Delivery zones"
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       className="absolute left-0 top-full z-[110] mt-2 w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-xl animate-in fade-in slide-in-from-top-2 duration-200"
     >
       <div className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-2.5">
@@ -1586,8 +1583,11 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
                   role="option"
                   aria-selected={isSelected}
                   key={z._id || zoneName}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleSelect(z)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSelect(z);
+                  }}
                   className={`w-full p-4 flex items-center gap-4 transition-all text-left ${
                     isSelected
                       ? 'bg-[var(--accent)]/10 hover:bg-[var(--accent)]/15'
