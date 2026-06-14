@@ -1,22 +1,82 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #f20df2;
-  --color-background-dark: #120812;
-  --color-background-light: #f8f5f8;
-  --color-accent: var(--accent);
-  --color-accent-light: var(--accent-light);
-  --color-bg-primary: var(--bg-primary);
-  --color-text-primary: var(--text-primary);
-  --color-card-bg: var(--card-bg);
-  --font-display: "Poppins", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
-  --font-quicksand: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --color-primary: #ffabf3;
+  --color-primary-container: #ff00ff;
+  --color-primary-fixed: #ffd7f5;
+  --color-primary-fixed-dim: #ffabf3;
+  --color-on-primary: #5b005b;
+  --color-on-primary-container: #510051;
+  --color-on-primary-fixed: #380038;
+  --color-on-primary-fixed-variant: #810081;
+  --color-inverse-primary: #a900a9;
+  
+  --color-secondary: #d3fbff;
+  --color-secondary-container: #00eefc;
+  --color-secondary-fixed: #7df4ff;
+  --color-secondary-fixed-dim: #00dbe9;
+  --color-on-secondary: #00363a;
+  --color-on-secondary-container: #00686f;
+  --color-on-secondary-fixed: #002022;
+  --color-on-secondary-fixed-variant: #004f54;
+  
+  --color-tertiary: #bfd043;
+  --color-tertiary-container: #8a9a00;
+  --color-tertiary-fixed: #daed5c;
+  --color-tertiary-fixed-dim: #bfd043;
+  --color-on-tertiary: #2d3400;
+  --color-on-tertiary-container: #282d00;
+  --color-on-tertiary-fixed: #1a1e00;
+  --color-on-tertiary-fixed-variant: #434b00;
+  
+  --color-surface: #131315;
+  --color-surface-dim: #131315;
+  --color-surface-bright: #39393b;
+  --color-surface-midnight: #0A0A0C;
+  --color-surface-charcoal: #121214;
+  --color-surface-container: #201f21;
+  --color-surface-container-low: #1c1b1d;
+  --color-surface-container-lowest: #0e0e10;
+  --color-surface-container-high: #2a2a2c;
+  --color-surface-container-highest: #353437;
+  --color-surface-variant: #353437;
+  --color-surface-tint: #ffabf3;
+  
+  --color-background: #131315;
+  --color-on-background: #e5e1e4;
+  --color-on-surface: #e5e1e4;
+  --color-on-surface-variant: #dcbed4;
+  --color-inverse-surface: #e5e1e4;
+  --color-inverse-on-surface: #313032;
+  
+  --color-outline: #a4899d;
+  --color-outline-variant: #564052;
+  
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-on-error: #690005;
+  --color-on-error-container: #ffdad6;
+  
+  --color-glass-fill: rgba(255, 255, 255, 0.04);
+  --color-glass-border: rgba(255, 255, 255, 0.12);
+  --color-required-red: #FF4D4D;
+  --color-optional-gray: #8E8E93;
+  
+  --color-accent: #ff00ff;
+  --color-accent-light: #ffabf3;
+  
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-body-md: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-headline-lg: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-label-sm: "JetBrains Mono", ui-monospace, monospace;
+  --font-display-lg: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  --font-poppins: "Poppins", ui-sans-serif, system-ui, sans-serif;
-  --font-order: "Plus Jakarta Sans", "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-poppins: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-order: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --nav-bg: rgba(10, 5, 15, 0.95);
@@ -25,30 +85,30 @@
   --component-bg: rgba(15, 23, 42, 0.04);
   --text-primary: #0f172a;
   --text-secondary: #64748b;
-  --accent: #f20df2;
-  --accent-light: #f472b6;
-  --accent-glow: rgba(242, 13, 242, 0.05);
+  --accent: #ff00ff;
+  --accent-light: #ffabf3;
+  --accent-glow: rgba(255, 0, 255, 0.15);
   --glass-bg: rgba(255, 255, 255, 0.75);
   --glass-border: rgba(15, 23, 42, 0.08);
-  --accent-rgb: 242, 13, 242;
+  --accent-rgb: 255, 0, 255;
   --card-bg: #ffffff;
 }
 
 .dark {
-  --bg-primary: #0a050a;
-  --bg-secondary: #120812;
+  --bg-primary: #0A0A0C;
+  --bg-secondary: #0A0A0C;
   --nav-bg: rgba(255, 255, 255, 0.9);
   --nav-text: #0a051b;
-  --nav-border: rgba(15, 23, 42, 0.06);
+  --nav-border: rgba(255, 255, 255, 0.08);
   --component-bg: rgba(255, 255, 255, 0.04);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --accent: #f20df2;
-  --accent-light: #f472b6;
-  --accent-glow: rgba(242, 13, 242, 0.15);
+  --text-primary: #e5e1e4;
+  --text-secondary: #dcbed4;
+  --accent: #ff00ff;
+  --accent-light: #ffabf3;
+  --accent-glow: rgba(255, 0, 255, 0.15);
   --glass-bg: rgba(255, 255, 255, 0.04);
   --glass-border: rgba(255, 255, 255, 0.12);
-  --accent-rgb: 242, 13, 242;
+  --accent-rgb: 255, 0, 255;
   --card-bg: rgba(255, 255, 255, 0.03);
 }
 
@@ -216,11 +276,31 @@ body:has(.checkout-page) select {
 }
 
 .glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+}
+
+.magenta-glow {
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.timeline-handle {
+  width: 4px;
+  height: 24px;
+  background: #ff00ff;
+  border-radius: 2px;
+  box-shadow: 0 0 8px #ff00ff;
+  cursor: ew-resize;
 }
 
 /* Order detail / manifest — Plus Jakarta Sans (set via --font-order on <html>) */
