@@ -81,7 +81,7 @@ function ElapsedTimer() {
 }
 
 export default function WalletPage() {
-  const { user, setWalletBalance } = useAuthStore();
+  const { user, setWalletBalance, walletBalance, refreshWalletBalance } = useAuthStore();
   const { t } = useLanguage();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -180,6 +180,16 @@ export default function WalletPage() {
     }
   };
 
+  useEffect(() => {
+    if (walletBalance !== null) setBalance(walletBalance);
+  }, [walletBalance]);
+
+  useEffect(() => {
+    const onWalletUpdated = () => { fetchWallet(); };
+    window.addEventListener('aura:wallet-updated', onWalletUpdated);
+    return () => window.removeEventListener('aura:wallet-updated', onWalletUpdated);
+  }, []);
+
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
@@ -205,21 +215,22 @@ export default function WalletPage() {
   // bypassing the need to wait for the next poll cycle (saves up to 3s).
   useEffect(() => {
     if (!user?._id) return;
-    const callbackId = 'wallet-credited';
-    socketService.on('wallet:credited', callbackId, (data) => {
-      // Update balance display immediately
+
+    const handleWalletCredited = (data) => {
       fetchWallet();
-      // If the deposit modal is open and processing, snap to success
       if (depositStep === 'processing' && data.type === 'deposit') {
         setDepositStatus('success');
         setDepositStep('result');
         setDepositMessage('Payment confirmed! Your wallet has been credited.');
       }
-    });
-    socketService.on('withdrawal:paid', 'withdrawal-paid', () => fetchWallet());
+    };
+    const handleWithdrawalPaid = () => fetchWallet();
+
+    socketService.on('wallet:credited', handleWalletCredited);
+    socketService.on('withdrawal:paid', handleWithdrawalPaid);
     return () => {
-      socketService.off('wallet:credited', callbackId);
-      socketService.off('withdrawal:paid', 'withdrawal-paid');
+      socketService.off('wallet:credited', handleWalletCredited);
+      socketService.off('withdrawal:paid', handleWithdrawalPaid);
     };
   }, [user?._id, depositStep]);
   // ───────────────────────────────────────────────────────────────────────

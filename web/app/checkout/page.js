@@ -63,7 +63,8 @@ function CheckoutContent() {
   const quantity = parseInt(searchParams.get('quantity') || '1');
   const variantStr = searchParams.get('variant');
   const variant = variantStr ? JSON.parse(decodeURIComponent(variantStr)) : null;
-  const { user, setWalletBalance: setSharedWalletBalance, walletBalance: storeWalletBalance, refreshWalletBalance } = useAuthStore();
+  const { user, setWalletBalance: setSharedWalletBalance, walletBalance, refreshWalletBalance } = useAuthStore();
+  const displayedWalletBalance = Number(walletBalance ?? 0);
   
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -95,8 +96,6 @@ function CheckoutContent() {
   const [order, setOrder] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [savedAddresses, setSavedAddresses] = useState([]);
-  // Seed from auth store (populated at login) so balance shows immediately, not after async fetch
-  const [walletBalance, setWalletBalance] = useState(() => Number(storeWalletBalance) || 0);
   const [createdOrderIds, setCreatedOrderIds] = useState(null);
   const [logisticsFirms, setLogisticsFirms] = useState([]);
   const [logisticsLoading, setLogisticsLoading] = useState(false);
@@ -288,13 +287,7 @@ function CheckoutContent() {
     }
 
     if (refreshWalletBalance) {
-      refreshWalletBalance()
-        .then((result) => {
-          if (result?.balance != null) {
-            setWalletBalance(Number(result.balance));
-          }
-        })
-        .catch(() => {});
+      refreshWalletBalance().catch(() => {});
     }
 
     Promise.all([
@@ -307,7 +300,6 @@ function CheckoutContent() {
 
       if (u) {
         const freshBalance = Number(u.wallet_balance ?? 0);
-        setWalletBalance((prev) => (prev > 0 ? prev : freshBalance));
         setSharedWalletBalance(freshBalance);
       }
 
@@ -444,9 +436,9 @@ function CheckoutContent() {
     const computedCollectionFee = isExternal ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
     const totalAmount = computedOrderTotal + computedCollectionFee;
 
-    if (isWalletPayment && walletBalance < computedOrderTotal) {
+    if (isWalletPayment && displayedWalletBalance < computedOrderTotal) {
       setBlockReason('insufficient_wallet');
-      setError(`Your wallet balance (${walletBalance.toLocaleString()} XAF) is insufficient for this order (${computedOrderTotal.toLocaleString()} XAF).`);
+      setError(`Your wallet balance (${displayedWalletBalance.toLocaleString()} XAF) is insufficient for this order (${computedOrderTotal.toLocaleString()} XAF).`);
       return;
     }
     if (isEversend && totalAmount < 500) {
@@ -533,7 +525,8 @@ function CheckoutContent() {
           }
         }
         if (!isPayOnDelivery) {
-          useAuthStore.getState().refreshWalletBalance?.();
+          await refreshWalletBalance?.();
+          window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
         }
       } else if (isExternal) {
         const gateway = isPayUnit ? 'payunit' : 'eversend';
@@ -557,7 +550,7 @@ function CheckoutContent() {
 
         if (!evRes.success) {
           await markCreatedOrdersFailed(`${gatewayLabel} collection failed before payment completed.`, finalOrderIds);
-          setBlockReason(walletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
+          setBlockReason(displayedWalletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
           setError(evRes.message || 'Payment collection failed. Please try a different payment method.');
           setEversendCheckout({ active: false, reference: null, message: '' });
           setLoading(false);
@@ -599,7 +592,7 @@ function CheckoutContent() {
               onFailed: (data) => {
                 markCreatedOrdersFailed(`${gatewayLabel} collection was declined before payment completed.`, finalOrderIds);
                 setEversendCheckout({ active: false, reference: null, message: '' });
-                setBlockReason(walletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
+                setBlockReason(displayedWalletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
                 setError(data.reason || 'Payment was declined by the gateway.');
               },
               onTimeout: () => {
@@ -716,7 +709,7 @@ function CheckoutContent() {
     {
       id: 'wallet',
       label: 'Aura Wallet',
-      badge: `${walletBalance.toLocaleString()} XAF`,
+      badge: `${displayedWalletBalance.toLocaleString()} XAF`,
       description: 'Pay from your Auradime wallet balance.',
       icon: CreditCard,
     },
@@ -782,7 +775,7 @@ function CheckoutContent() {
            <div className="flex items-center gap-4">
               <div className="text-right">
                  <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)]">Your balance</p>
-                 <p className="text-sm  font-bold font-mono">{walletBalance.toLocaleString()} XAF</p>
+                 <p className="text-sm  font-bold font-mono">{displayedWalletBalance.toLocaleString()} XAF</p>
               </div>
            </div>
         </div>

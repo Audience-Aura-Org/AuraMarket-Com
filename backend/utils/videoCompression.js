@@ -23,11 +23,14 @@ const execAsync = promisify(exec);
  * Target: 1.5 Mbps bitrate, H.264 codec, AAC audio
  * Result: ~5-10MB for typical 30-60s video
  */
-/** Status stories — prioritize speed: 720p cap, ultrafast preset */
+/** Status stories — WhatsApp-style: 9:16 center crop, 30s max, 720p */
+const STATUS_VIDEO_MAX_SECONDS = 30;
+
 const compressVideoForStatus = async (inputPath, outputPath) => {
   return new Promise((resolve, reject) => {
     const command = `ffmpeg -i "${inputPath}" \
-      -vf "scale='min(720,iw)':-2" \
+      -t ${STATUS_VIDEO_MAX_SECONDS} \
+      -vf "scale=w=720:h=1280:force_original_aspect_ratio=increase,crop=720:1280" \
       -vcodec libx264 \
       -preset ultrafast \
       -b:v 1200k \

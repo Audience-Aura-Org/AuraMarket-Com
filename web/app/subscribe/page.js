@@ -64,6 +64,7 @@ function SubscribeContent() {
   const searchParams = useSearchParams();
   const { t, label } = useLanguage();
   const user = useAuthStore((state) => state.user);
+  const walletBalance = useAuthStore((state) => state.walletBalance);
   const refreshWalletBalance = useAuthStore((state) => state.refreshWalletBalance);
   const role = searchParams.get('role') || user?.role || 'vendor';
 
@@ -338,7 +339,7 @@ function SubscribeContent() {
                       <Wallet className="size-5 text-[var(--accent)]" />
                       <div>
                         <p className="text-sm font-bold">{t('subscription.wallet', 'Aura Wallet')}</p>
-                        <p className="text-[11px] text-[var(--text-secondary)]">{Number(user?.wallet_balance || 0).toLocaleString()} XAF</p>
+                        <p className="text-[11px] text-[var(--text-secondary)]">{Number(walletBalance ?? user?.wallet_balance ?? 0).toLocaleString()} XAF</p>
                       </div>
                     </button>
                     <button

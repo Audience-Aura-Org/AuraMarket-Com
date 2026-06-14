@@ -84,8 +84,8 @@ async function maybeTranscodeVideoForWeb(file, folder = 'general') {
     fs.writeFileSync(inputPath, file.buffer);
     if (folder === 'statuses') {
       const quality = await checkVideoQuality(inputPath);
-      if (quality?.duration && quality.duration > 121) {
-        throw new Error('Status videos must be 2 minutes or less.');
+      if (quality?.duration && quality.duration > 31) {
+        throw new Error('Status videos must be 30 seconds or less.');
       }
     }
     await compressFn(inputPath, outputPath);

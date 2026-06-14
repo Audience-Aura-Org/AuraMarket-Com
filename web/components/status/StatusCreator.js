@@ -11,19 +11,21 @@ import {
 import { uploadService } from '@/services/upload';
 import api from '@/services/api';
 import { STATUS_CATEGORIES } from '@/constants/statusCategories';
+import {
+  STATUS_VIDEO_MAX_BYTES,
+  STATUS_VIDEO_INPUT_MAX_BYTES,
+  STATUS_IMAGE_MAX_BYTES,
+  STATUS_VIDEO_MAX_SECONDS,
+  STATUS_VIDEO_EXPORT_WIDTH,
+  STATUS_VIDEO_EXPORT_HEIGHT,
+} from '@/constants/statusVideo';
+import StatusVideoTrimmer from '@/components/status/StatusVideoTrimmer';
 
 const DURATION_OPTIONS = [
   { value: 1, label: '1 Day',  sublabel: 'Quick drop'  },
   { value: 3, label: '3 Days', sublabel: 'Standard', recommended: true },
   { value: 7, label: '7 Days', sublabel: 'Max reach' },
 ];
-
-const STATUS_VIDEO_MAX_BYTES = 30 * 1024 * 1024;
-const STATUS_VIDEO_INPUT_MAX_BYTES = 500 * 1024 * 1024;
-const STATUS_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
-const STATUS_VIDEO_MAX_SECONDS = 120;
-const STATUS_VIDEO_EXPORT_WIDTH = 720;
-const STATUS_VIDEO_EXPORT_HEIGHT = 1280;
 
 const getSupportedVideoMimeType = () => {
   if (typeof MediaRecorder === 'undefined') return '';
@@ -108,7 +110,7 @@ async function readVideoMetadata(file) {
   }
 }
 
-function drawVideoFrame(ctx, video, mode) {
+function drawVideoFrame(ctx, video) {
   const canvas = ctx.canvas;
   const sourceWidth = video.videoWidth || canvas.width;
   const sourceHeight = video.videoHeight || canvas.height;
@@ -118,26 +120,12 @@ function drawVideoFrame(ctx, video, mode) {
   ctx.fillStyle = '#07030a';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  if (mode === 'fit') {
-    const scale = Math.min(canvas.width / sourceWidth, canvas.height / sourceHeight);
-    const width = sourceWidth * scale;
-    const height = sourceHeight * scale;
-    ctx.drawImage(video, (canvas.width - width) / 2, (canvas.height - height) / 2, width, height);
-    return;
-  }
-
   let sx = 0;
   let sy = 0;
   let sw = sourceWidth;
   let sh = sourceHeight;
 
-  if (mode === 'square') {
-    const side = Math.min(sourceWidth, sourceHeight);
-    sx = (sourceWidth - side) / 2;
-    sy = (sourceHeight - side) / 2;
-    sw = side;
-    sh = side;
-  } else if (sourceRatio > targetRatio) {
+  if (sourceRatio > targetRatio) {
     sw = sourceHeight * targetRatio;
     sx = (sourceWidth - sw) / 2;
   } else {
@@ -148,7 +136,7 @@ function drawVideoFrame(ctx, video, mode) {
   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 }
 
-async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_VIDEO_MAX_SECONDS, cropMode = 'fill', onProgress } = {}) {
+async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_VIDEO_MAX_SECONDS, onProgress } = {}) {
   const mimeType = getSupportedVideoMimeType();
   if (!mimeType) {
     throw new Error('Video editing is not supported on this browser. Please trim the video in your gallery and try again.');
@@ -173,9 +161,8 @@ async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_V
     const duration = Math.min(STATUS_VIDEO_MAX_SECONDS, end - start);
 
     const canvas = document.createElement('canvas');
-    const isSquare = cropMode === 'square';
-    canvas.width = isSquare ? 1080 : STATUS_VIDEO_EXPORT_WIDTH;
-    canvas.height = isSquare ? 1080 : STATUS_VIDEO_EXPORT_HEIGHT;
+    canvas.width = STATUS_VIDEO_EXPORT_WIDTH;
+    canvas.height = STATUS_VIDEO_EXPORT_HEIGHT;
     const ctx = canvas.getContext('2d');
     const canvasStream = canvas.captureStream(30);
     const sourceStream = video.captureStream?.();
@@ -204,7 +191,7 @@ async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_V
     let stopped = false;
     const draw = () => {
       if (stopped) return;
-      drawVideoFrame(ctx, video, cropMode);
+      drawVideoFrame(ctx, video);
       const elapsed = Math.max(0, video.currentTime - start);
       onProgress?.(Math.min(95, Math.round((elapsed / Math.max(duration, 1)) * 95)));
       if (elapsed >= duration || video.ended) {
@@ -258,7 +245,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [videoMeta, setVideoMeta]       = useState(null);
   const [trimStart, setTrimStart]       = useState(0);
   const [trimEnd, setTrimEnd]           = useState(STATUS_VIDEO_MAX_SECONDS);
-  const [cropMode, setCropMode]         = useState('fill');
   const [editingVideo, setEditingVideo] = useState(false);
 
   const fileInputRef = useRef(null);
@@ -310,10 +296,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         setVideoMeta({ ...meta, needsTrim, needsCompression });
         setTrimStart(0);
         setTrimEnd(Math.min(STATUS_VIDEO_MAX_SECONDS, Math.max(1, meta.duration || STATUS_VIDEO_MAX_SECONDS)));
-        setEditingVideo(needsTrim || needsCompression);
-        setError(needsTrim || needsCompression
-          ? 'Video will be trimmed/exported before upload.'
-          : null
+        setEditingVideo(true);
+        setError(needsTrim
+          ? `Video is longer than ${STATUS_VIDEO_MAX_SECONDS}s — trim your clip before posting.`
+          : needsCompression
+            ? 'Video will be cropped to 9:16 and optimized before upload.'
+            : null
         );
       } catch (err) {
         setError(err.message || 'Could not read video metadata.');
@@ -324,7 +312,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       if (f.size > STATUS_IMAGE_MAX_BYTES)    { setError('Max 8MB image.'); return; }
       setVideoMeta(null);
       setEditingVideo(false);
-      setCropMode('fill');
     }
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
@@ -345,24 +332,19 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       if (type !== 'text' && file) {
         let uploadFile = file;
         if (file.type.startsWith('video/')) {
-          const needsExport =
-            editingVideo ||
-            cropMode !== 'fill' ||
-            trimStart > 0.1 ||
-            (videoMeta?.duration && trimEnd < videoMeta.duration - 0.1) ||
-            file.size > STATUS_VIDEO_MAX_BYTES;
+          const clipLength = trimEnd - trimStart;
+          if (clipLength > STATUS_VIDEO_MAX_SECONDS + 0.5) {
+            throw new Error(`Story clips must be ${STATUS_VIDEO_MAX_SECONDS} seconds or less.`);
+          }
 
-          if (needsExport) {
-            setUploadPhase('Preparing video...');
-            uploadFile = await exportEditedStatusVideo(file, {
-              trimStart,
-              trimEnd,
-              cropMode,
-              onProgress: (pct) => setUploadProgress(Math.min(70, pct)),
-            });
-            if (uploadFile.size > STATUS_VIDEO_MAX_BYTES) {
-              throw new Error('Edited video is still above 30MB. Shorten the trim and try again.');
-            }
+          setUploadPhase('Preparing video...');
+          uploadFile = await exportEditedStatusVideo(file, {
+            trimStart,
+            trimEnd,
+            onProgress: (pct) => setUploadProgress(Math.min(70, pct)),
+          });
+          if (uploadFile.size > STATUS_VIDEO_MAX_BYTES) {
+            throw new Error('Edited video is still above 30MB. Shorten the trim and try again.');
           }
         }
 
@@ -546,91 +528,16 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 )}
               </div>
 
-              {type === 'video' && videoMeta && (
-                <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[12px] font-semibold text-[var(--text-primary)]">Video edit</p>
-                      <p className="text-[10px] font-medium text-[var(--text-secondary)]">
-                        {Math.round(videoMeta.duration || 0)}s source · max {STATUS_VIDEO_MAX_SECONDS}s story
-                      </p>
-                    </div>
-                    {(videoMeta.needsTrim || videoMeta.needsCompression) && (
-                      <span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-[var(--accent)]">
-                        Auto trim
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="space-y-1">
-                      <span className="text-[10px] font-semibold text-[var(--text-secondary)]">Start</span>
-                      <input
-                        type="number"
-                        min="0"
-                        max={Math.max(0, Math.floor((videoMeta.duration || 0) - 1))}
-                        value={Math.round(trimStart)}
-                        onChange={(e) => {
-                          const next = Math.max(0, Math.min(Number(e.target.value || 0), Math.max(0, (videoMeta.duration || 1) - 1)));
-                          setTrimStart(next);
-                          setTrimEnd((current) => Math.min(videoMeta.duration || STATUS_VIDEO_MAX_SECONDS, Math.max(next + 1, current)));
-                          setEditingVideo(true);
-                        }}
-                        className="h-10 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[16px] font-semibold outline-none focus:border-[var(--accent)] md:text-[12px]"
-                      />
-                    </label>
-                    <label className="space-y-1">
-                      <span className="text-[10px] font-semibold text-[var(--text-secondary)]">End</span>
-                      <input
-                        type="number"
-                        min={Math.ceil(trimStart + 1)}
-                        max={Math.floor(videoMeta.duration || STATUS_VIDEO_MAX_SECONDS)}
-                        value={Math.round(trimEnd)}
-                        onChange={(e) => {
-                          const maxEnd = Math.min(videoMeta.duration || STATUS_VIDEO_MAX_SECONDS, trimStart + STATUS_VIDEO_MAX_SECONDS);
-                          setTrimEnd(Math.max(trimStart + 1, Math.min(Number(e.target.value || maxEnd), maxEnd)));
-                          setEditingVideo(true);
-                        }}
-                        className="h-10 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[16px] font-semibold outline-none focus:border-[var(--accent)] md:text-[12px]"
-                      />
-                    </label>
-                  </div>
-
-                  <input
-                    type="range"
-                    min="0"
-                    max={Math.max(1, Math.floor((videoMeta.duration || STATUS_VIDEO_MAX_SECONDS) - 1))}
-                    value={Math.round(trimStart)}
-                    onChange={(e) => {
-                      const next = Number(e.target.value || 0);
-                      setTrimStart(next);
-                      setTrimEnd(Math.min(videoMeta.duration || STATUS_VIDEO_MAX_SECONDS, next + STATUS_VIDEO_MAX_SECONDS));
-                      setEditingVideo(true);
-                    }}
-                    className="mt-3 w-full accent-[var(--accent)]"
-                  />
-
-                  <div className="mt-3 grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'fill', label: 'Fill' },
-                      { id: 'fit', label: 'Fit' },
-                      { id: 'square', label: 'Square' },
-                    ].map((mode) => (
-                      <button
-                        key={mode.id}
-                        type="button"
-                        onClick={() => { setCropMode(mode.id); setEditingVideo(true); }}
-                        className={`rounded-xl border px-3 py-2 text-[10px] font-bold transition ${
-                          cropMode === mode.id
-                            ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
-                            : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)]'
-                        }`}
-                      >
-                        {mode.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {type === 'video' && videoMeta && previewUrl && (
+                <StatusVideoTrimmer
+                  previewUrl={previewUrl}
+                  duration={videoMeta.duration}
+                  trimStart={trimStart}
+                  trimEnd={trimEnd}
+                  onTrimStartChange={setTrimStart}
+                  onTrimEndChange={setTrimEnd}
+                  onEditingChange={setEditingVideo}
+                />
               )}
 
               {error && (

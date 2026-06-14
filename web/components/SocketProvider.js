@@ -299,14 +299,23 @@ export default function SocketProvider({ children }) {
       router.replace('/login');
     };
 
+    const handleWalletCredited = (data) => {
+      if (Number.isFinite(Number(data?.balance))) {
+        setWalletBalance(Number(data.balance));
+      }
+      refreshWalletBalance?.();
+    };
+
     socketService.on('receive_message', handleNewMessage);
-    socketService.on('notification',    handleNotification);
+    socketService.on('notification', handleNotification);
     socketService.on('account_deleted', handleAccountDeleted);
+    socketService.on('wallet:credited', handleWalletCredited);
 
     return () => {
       socketService.off('receive_message', handleNewMessage);
-      socketService.off('notification',    handleNotification);
+      socketService.off('notification', handleNotification);
       socketService.off('account_deleted', handleAccountDeleted);
+      socketService.off('wallet:credited', handleWalletCredited);
     };
   // Only re-register when the USER changes. isOpen/activePartnerId are read via refs.
   }, [user?._id, logout, router, refreshWalletBalance, setWalletBalance]);
