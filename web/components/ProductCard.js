@@ -23,17 +23,17 @@ import { useLanguage } from '@/context/LanguageContext';
  * ProductCard - Elite Nexus Version
  * Standardized premium card used across Hub and Shop.
  */
-export default function ProductCard({ product, layout = 'grid', onOpenChat = null, onClick = null }) {
+export default function ProductCard({ product, layout = "grid", onOpenChat = null, onClick = null }) {
   const router = useRouter();
   const { t } = useLanguage();
-  const { id, _id, name, price, compare_at_price, images, rating, vendor_id, category } = product;
-  const numericPrice = Number(price || 0);
-  const numericOriginalPrice = compare_at_price !== undefined && compare_at_price !== null ? Number(compare_at_price) : 0;
-  const isOnSale = numericOriginalPrice > numericPrice;
-  const displayPrice = numericPrice;
-  const displayOriginalPrice = isOnSale ? numericOriginalPrice : null;
+  const { id, _id, name, price, sale_price, images, rating, vendor_id, category } = product;
+  const numericRegularPrice = Number(price || 0);
+  const numericSalePrice = sale_price !== undefined && sale_price !== null ? Number(sale_price) : 0;
+  const isOnSale = numericSalePrice > 0 && numericSalePrice < numericRegularPrice;
+  const displayPrice = isOnSale ? numericSalePrice : numericRegularPrice;
+  const displayOriginalPrice = isOnSale ? numericRegularPrice : null;
   const discountPercent = isOnSale
-    ? Math.round(((numericOriginalPrice - numericPrice) / numericOriginalPrice) * 100)
+    ? Math.round(((numericRegularPrice - numericSalePrice) / numericRegularPrice) * 100)
     : 0;
   const productId = _id || id;
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;

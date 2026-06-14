@@ -16,27 +16,26 @@ const { normalizeUserMedia, normalizeMediaUrl } = require('../utils/media');
 
 const normalizePricing = (data = {}, existingProduct = null) => {
   const price = data.price !== undefined ? Number(data.price) : Number(existingProduct?.price || 0);
-  const rawCompareAtPrice = data.compare_at_price;
+  const rawSalePrice = data.sale_price;
 
   // Deprecated fields clean up
-  data.sale_price = null;
-  data.on_sale = false;
+  data.compare_at_price = null;
 
-  if (rawCompareAtPrice === '' || rawCompareAtPrice === null || rawCompareAtPrice === undefined) {
-    data.compare_at_price = null;
+  if (rawSalePrice === '' || rawSalePrice === null || rawSalePrice === undefined) {
+    data.sale_price = null;
   } else {
-    const compareAt = Number(rawCompareAtPrice);
-    if (!Number.isFinite(compareAt) || compareAt <= 0) {
-      const error = new Error('Compare-at price must be a valid positive amount.');
+    const salePrice = Number(rawSalePrice);
+    if (!Number.isFinite(salePrice) || salePrice <= 0) {
+      const error = new Error('Sale price must be a valid positive amount.');
       error.statusCode = 400;
       throw error;
     }
-    if (!Number.isFinite(price) || price <= 0 || compareAt <= price) {
-      const error = new Error('Compare-at price must be greater than the selling price.');
+    if (!Number.isFinite(price) || price <= 0 || salePrice >= price) {
+      const error = new Error('Sale price must be less than the regular price.');
       error.statusCode = 400;
       throw error;
     }
-    data.compare_at_price = compareAt;
+    data.sale_price = salePrice;
   }
 
   // Normalize SKU variants pricing if present
@@ -45,12 +44,12 @@ const normalizePricing = (data = {}, existingProduct = null) => {
       if (variant.price !== undefined && variant.price !== '') {
         variant.price = Number(variant.price);
       }
-      if (variant.compare_at_price === '' || variant.compare_at_price === undefined || variant.compare_at_price === null) {
-        variant.compare_at_price = null;
+      if (variant.sale_price === '' || variant.sale_price === undefined || variant.sale_price === null) {
+        variant.sale_price = null;
       } else {
-        variant.compare_at_price = Number(variant.compare_at_price);
-        if (variant.compare_at_price <= variant.price) {
-          const error = new Error('Variant compare-at price must be greater than the variant selling price.');
+        variant.sale_price = Number(variant.sale_price);
+        if (variant.sale_price >= variant.price) {
+          const error = new Error('Variant sale price must be less than the variant regular price.');
           error.statusCode = 400;
           throw error;
         }

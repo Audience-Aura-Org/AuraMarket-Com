@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -90,7 +90,7 @@ export default function AdminProductsPage() {
       name: product.name || '',
       description: product.description || '',
       price: product.price ?? '',
-      compare_at_price: product.compare_at_price ?? '',
+      sale_price: product.sale_price ?? '',
       stock: product.stock ?? '',
       category: product.category || '',
       status: product.status || 'active',
@@ -102,8 +102,8 @@ export default function AdminProductsPage() {
 
   const handleSaveEdit = async () => {
     if (!editingProduct?._id) return;
-    if (editForm.compare_at_price && Number(editForm.compare_at_price) <= Number(editForm.price)) {
-      toast.error('Compare at price (original price) must be greater than the selling price.');
+    if (editForm.sale_price && Number(editForm.sale_price) >= Number(editForm.price)) {
+      toast.error('Sale price must be less than the regular price.');
       return;
     }
     setSavingEdit(true);
@@ -242,9 +242,9 @@ export default function AdminProductsPage() {
                             </div>
                           </td>
                           <td className="px-5 py-4 text-right text-sm font-bold">
-                            <div>{(p.price)?.toLocaleString()} <span className="text-[10px] text-[var(--text-secondary)]/45">XAF</span></div>
-                            {p.compare_at_price && Number(p.compare_at_price) > Number(p.price) && (
-                              <div className="text-[10px] font-semibold text-[var(--text-secondary)]/45 line-through">{p.compare_at_price?.toLocaleString()} XAF</div>
+                            <div>{(p.sale_price && Number(p.sale_price) < Number(p.price) ? p.sale_price : p.price)?.toLocaleString()} <span className="text-[10px] text-[var(--text-secondary)]/45">XAF</span></div>
+                            {p.sale_price && Number(p.sale_price) < Number(p.price) && (
+                              <div className="text-[10px] font-semibold text-[var(--text-secondary)]/45 line-through">{p.price?.toLocaleString()} XAF</div>
                             )}
                           </td>
                           <td className="px-5 py-4">
@@ -334,8 +334,8 @@ export default function AdminProductsPage() {
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <AdminInput label="Product name" value={editForm.name} onChange={(v) => setEditForm(f => ({ ...f, name: v }))} />
                   <AdminInput label="Category" value={editForm.category} onChange={(v) => setEditForm(f => ({ ...f, category: v }))} />
-                  <AdminInput label="Price (Selling)" type="number" value={editForm.price} onChange={(v) => setEditForm(f => ({ ...f, price: v }))} />
-                  <AdminInput label="Compare at Price (Original)" type="number" value={editForm.compare_at_price} onChange={(v) => setEditForm(f => ({ ...f, compare_at_price: v }))} />
+                  <AdminInput label="Price (Regular)" type="number" value={editForm.price} onChange={(v) => setEditForm(f => ({ ...f, price: v }))} />
+                  <AdminInput label="Sale Price" type="number" value={editForm.sale_price} onChange={(v) => setEditForm(f => ({ ...f, sale_price: v }))} />
                   <AdminInput label="Stock" type="number" value={editForm.stock} onChange={(v) => setEditForm(f => ({ ...f, stock: v }))} />
                   <label className="space-y-2">
                     <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/55">Status</span>

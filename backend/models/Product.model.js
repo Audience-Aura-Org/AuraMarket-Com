@@ -138,6 +138,11 @@ const ProductSchema = new mongoose.Schema(
           required: [true, 'Variant price is required'],
           min: [0, 'Variant price cannot be negative']
         },
+        sale_price: {
+          type: Number,
+          default: null,
+          min: [0, 'Variant sale price cannot be negative']
+        },
         compare_at_price: {
           type: Number,
           default: null,

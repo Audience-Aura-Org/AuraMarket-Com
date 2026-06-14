@@ -116,7 +116,7 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
     if (!user) return router.push('/login');
     setAddingToCart(true);
     const itemToTrack = currentVariant 
-      ? { ...product, price: currentVariant.price, variant: currentVariant.combination }
+      ? { ...product, price: displayPrice, variant: currentVariant.combination }
       : { ...product, price: displayPrice };
     trackCart(itemToTrack);
     cartStore.addItem(itemToTrack, quantity);
@@ -187,8 +187,11 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
   const images = product?.images?.length ? product.images : [{ url: '/placeholder.png' }];
   const vendor = product?.vendor_id;
   
-  const displayPrice = currentVariant ? Number(currentVariant.price || 0) : Number(product?.price || 0);
-  const originalPrice = currentVariant ? (currentVariant.compare_at_price ? Number(currentVariant.compare_at_price) : 0) : (product?.compare_at_price ? Number(product.compare_at_price) : 0);
+  const regularPrice = currentVariant ? Number(currentVariant.price || 0) : Number(product?.price || 0);
+  const salePrice = currentVariant ? (currentVariant.sale_price ? Number(currentVariant.sale_price) : 0) : (product?.sale_price ? Number(product.sale_price) : 0);
+  const isOnSale = salePrice > 0 && salePrice < regularPrice;
+  const displayPrice = isOnSale ? salePrice : regularPrice;
+  const originalPrice = isOnSale ? regularPrice : 0;
   const displayStock = currentVariant ? currentVariant.stock : product?.stock;
   const inStock = Boolean(displayStock > 0);
   

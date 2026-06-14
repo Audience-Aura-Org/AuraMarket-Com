@@ -69,9 +69,11 @@ export default function VariantSelectorModal({
 
   if (!product || !mounted) return null;
 
-  const displayPrice = currentVariant ? Number(currentVariant.price || 0) : Number(product.price || 0);
-  const originalPrice = currentVariant ? (currentVariant.compare_at_price ? Number(currentVariant.compare_at_price) : null) : (product.compare_at_price ? Number(product.compare_at_price) : null);
-  const hasSale = originalPrice !== null && originalPrice > displayPrice;
+  const regularPrice = currentVariant ? Number(currentVariant.price || 0) : Number(product.price || 0);
+  const salePrice = currentVariant ? (currentVariant.sale_price ? Number(currentVariant.sale_price) : null) : (product.sale_price ? Number(product.sale_price) : null);
+  const hasSale = salePrice !== null && salePrice > 0 && salePrice < regularPrice;
+  const displayPrice = hasSale ? salePrice : regularPrice;
+  const originalPrice = hasSale ? regularPrice : null;
   const inStock      = currentVariant ? currentVariant.stock > 0 : product.stock > 0;
   const images       = product.images || [];
   const mainImage    = currentVariant?.image

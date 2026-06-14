@@ -20,7 +20,7 @@ export default function EditProductPage() {
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
   const [form, setForm] = useState({
-    name: '', description: '', price: '', compare_at_price: '',
+    name: '', description: '', price: '', sale_price: '',
     stock: 0, category: '', featured: false,
     specifications: '', long_description: ''
   });
@@ -45,8 +45,8 @@ export default function EditProductPage() {
           name:             p.name             || '',
           description:      p.description      || '',
           price:            p.price            ?? '',
-          // Use ?? so a genuine null compare_at_price becomes '' (not 'null')
-          compare_at_price: p.compare_at_price ?? '',
+          // Use ?? so a genuine null sale_price becomes '' (not 'null')
+          sale_price:       p.sale_price       ?? '',
           stock:            p.stock            ?? 0,
           category:         p.category         || '',
           featured:         !!p.featured,
@@ -161,8 +161,8 @@ export default function EditProductPage() {
     e.preventDefault();
     if (!form.price || Number(form.price) <= 0)
       return toast.error('Please enter a valid price.');
-    if (form.compare_at_price && Number(form.compare_at_price) <= Number(form.price))
-      return toast.error('Compare-at price (original price) must be greater than the selling price.');
+    if (form.sale_price && Number(form.sale_price) >= Number(form.price))
+      return toast.error('Sale price must be less than the regular price.');
 
     setLoading(true);
     try {
@@ -382,8 +382,8 @@ export default function EditProductPage() {
                             <thead className="bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)] border-b border-[var(--glass-border)]">
                               <tr>
                                 <th className="p-5">Combination</th>
-                                <th className="p-5 w-40">Price (Selling) (XAF)</th>
-                                <th className="p-5 w-40">Compare at (Original) (XAF)</th>
+                                <th className="p-5 w-40">Price (Regular) (XAF)</th>
+                                <th className="p-5 w-40">Sale Price (XAF)</th>
                                 <th className="p-5 w-32">Stock</th>
                               </tr>
                             </thead>
@@ -410,8 +410,8 @@ export default function EditProductPage() {
                                   <td className="p-5">
                                     <input
                                       type="number"
-                                      value={sku.compare_at_price || ''}
-                                      onChange={e => updateSKU(idx, 'compare_at_price', e.target.value)}
+                                      value={sku.sale_price || ''}
+                                      onChange={e => updateSKU(idx, 'sale_price', e.target.value)}
                                       placeholder="Optional"
                                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
                                     />
@@ -549,15 +549,15 @@ export default function EditProductPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-tight mb-2 block">Compare at Price (Original Price) (XAF)</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-tight mb-2 block">Sale Price (XAF)</label>
                     <input
                       type="number" min="0"
-                      value={form.compare_at_price}
-                      onChange={e => setForm({ ...form, compare_at_price: e.target.value })}
-                      placeholder="Optional original price before discount"
+                      value={form.sale_price}
+                      onChange={e => setForm({ ...form, sale_price: e.target.value })}
+                      placeholder="Optional sale price"
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
                     />
-                    <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Optional. If provided, must be greater than the selling price.</p>
+                    <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Optional. If provided, must be less than the regular price.</p>
                   </div>
                   <div>
                     <label className="text-xs font-bold text-[var(--text-secondary)] tracking-tight mb-2 block">Stock Quantity *</label>

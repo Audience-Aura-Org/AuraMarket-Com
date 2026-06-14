@@ -72,26 +72,29 @@ const resolveOrderLine = (product, item) => {
     if (variantMatch.stock < quantity) {
       throw new Error(`Insufficient stock for ${product.name} (${variantLabel(item.variant)}). Available: ${variantMatch.stock}`);
     }
-    itemPrice = Number(variantMatch.price || regularPrice);
-    if (variantMatch.image) itemImage = variantMatch.image;
-    // No sale price for variants
-  } else {
-    // Check compare_at_price first
-    const productCompareAtPrice = product.compare_at_price !== undefined && product.compare_at_price !== null 
-      ? Number(product.compare_at_price) 
+    const variantRegularPrice = Number(variantMatch.price || regularPrice);
+    const variantSalePrice = variantMatch.sale_price !== undefined && variantMatch.sale_price !== null 
+      ? Number(variantMatch.sale_price) 
       : null;
+    
+    if (variantSalePrice && variantSalePrice > 0 && variantSalePrice < variantRegularPrice) {
+      itemPrice = variantSalePrice;
+      salePrice = variantSalePrice;
+      compare_at_price = variantRegularPrice;
+    } else {
+      itemPrice = variantRegularPrice;
+    }
+    
+    if (variantMatch.image) itemImage = variantMatch.image;
+  } else {
     const productSalePrice = product.sale_price !== undefined && product.sale_price !== null 
       ? Number(product.sale_price) 
       : null;
     
-    if (productCompareAtPrice && productCompareAtPrice > 0 && productCompareAtPrice > regularPrice) {
-      itemPrice = regularPrice;
-      compare_at_price = productCompareAtPrice;
-      salePrice = productCompareAtPrice;
-    } else if (productSalePrice && productSalePrice > 0 && productSalePrice < regularPrice) {
+    if (productSalePrice && productSalePrice > 0 && productSalePrice < regularPrice) {
       itemPrice = productSalePrice;
-      compare_at_price = regularPrice;
       salePrice = productSalePrice;
+      compare_at_price = regularPrice;
     } else {
       itemPrice = regularPrice;
     }
