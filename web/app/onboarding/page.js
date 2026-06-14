@@ -142,7 +142,7 @@ export default function OnboardingFlow() {
     }
 
     if (role === 'customer' && user.onboarded) {
-      router.replace('/discovery');
+      router.replace('/shop');
       return;
     }
 
@@ -179,7 +179,7 @@ export default function OnboardingFlow() {
         const hasLocation = !!user.onboarding_location?.city;
         const hasPhone = !!user.phone;
         if (!isVendor && !isLogistics && hasFollows && hasCategories && hasLocation && hasPhone) {
-          router.replace('/discovery');
+          router.replace('/shop');
         }
       } catch (err) {
         toast.error('Failed to load onboarding data.');
@@ -266,7 +266,7 @@ export default function OnboardingFlow() {
   };
 
   const goBack = () => { dismissKeyboard(); setSearch(''); setStep(s => s - 1); };
-  const skip = () => { dismissKeyboard(); sessionStorage.setItem('onboarding_skipped', 'true'); router.push('/discovery'); };
+  const skip = () => { dismissKeyboard(); sessionStorage.setItem('onboarding_skipped', 'true'); router.push('/shop'); };
 
   const finish = async () => {
     dismissKeyboard();
@@ -325,7 +325,7 @@ export default function OnboardingFlow() {
         });
         if (res.data.success) {
           updateUser(res.data.data.user);
-          router.push('/discovery');
+          router.push('/shop');
         }
       }
     } catch (err) {

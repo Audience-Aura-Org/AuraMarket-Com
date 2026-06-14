@@ -29,7 +29,7 @@ export default function HomePage() {
       return;
     }
 
-    router.replace('/discovery?tab=discover');
+    router.replace('/shop');
   }, [authLoading, isAuthenticated, router, user]);
 
   if (authLoading || isAuthenticated) {

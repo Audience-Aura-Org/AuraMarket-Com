@@ -113,7 +113,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
     if (role === 'vendor') return '/vendor/dashboard';
     if (role === 'admin') return '/admin/dashboard';
     if (role === 'logistics') return '/logistics/dashboard';
-    return '/discovery';
+    return '/shop';
   };
 
   const redirectAfterAuth = (nextUser) => {

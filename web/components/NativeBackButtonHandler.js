@@ -27,7 +27,7 @@ export default function NativeBackButtonHandler() {
     if (user?.role === 'admin') return '/admin/dashboard';
     if (user?.role === 'vendor') return '/vendor/dashboard';
     if (user?.role === 'logistics') return '/logistics/dashboard';
-    return '/discovery?tab=discover';
+    return '/shop';
   }, [isAuthenticated, user?.role]);
 
   useEffect(() => {

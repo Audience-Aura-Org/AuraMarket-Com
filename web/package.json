@@ -16,7 +16,8 @@
     "mobile:sync:android": "npm run mobile:build:web && npx cap sync android",
     "mobile:open:android": "npx cap open android",
     "mobile:build:android:debug": "npm run mobile:sync:android && cd android && gradlew.bat assembleDebug",
-    "mobile:build:android:release": "npm run mobile:sync:android && cd android && gradlew.bat bundleRelease",
+    "mobile:build:android:release": "npm run mobile:sync:android && cd android && gradlew.bat assembleRelease",
+    "mobile:build:android:bundle": "npm run mobile:sync:android && cd android && gradlew.bat bundleRelease",
     "mobile:add:ios": "npm install @capacitor/ios && npx cap add ios",
     "mobile:sync:ios": "npm run mobile:build:web && npx cap sync ios",
     "mobile:open:ios": "npx cap open ios"

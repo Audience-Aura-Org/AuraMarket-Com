@@ -63,7 +63,7 @@ export default function OrderConfirmationPage() {
               <Link href={`/orders/${id}/tracking`} className="w-full py-7 rounded-[32px] bg-[var(--accent)] text-white  font-bold text-2xl flex items-center justify-center gap-4 shadow-2xl shadow-[var(--accent)]/20 hover:shadow-[var(--accent)]/40 hover:-translate-y-2 transition-all active:scale-95 group">
                 Trace Signal <ChevronRight className="size-8 group-hover:translate-x-2 transition-transform" />
               </Link>
-              <Link href="/discovery" className="w-full py-6 rounded-[32px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)]  font-bold text-xs tracking-[0.3em] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] transition-all ">
+              <Link href="/shop" className="w-full py-6 rounded-[32px] bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)]  font-bold text-xs tracking-[0.3em] hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)] transition-all ">
                 Return to Discovery
               </Link>
            </div>

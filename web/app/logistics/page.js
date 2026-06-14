@@ -93,7 +93,7 @@ export default function GlobalLogisticsPage() {
               Partner sign in <ChevronRight className="size-4" />
             </Link>
             <Link
-              href="/discovery?tab=discover"
+              href="/shop"
               className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-6 py-2.5 text-[11px] font-semibold transition hover:border-[var(--accent)]/30"
             >
               Browse marketplace

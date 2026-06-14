@@ -631,7 +631,7 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
         <section className="w-full px-4 md:px-6 pb-24 space-y-8">
           <div className="flex items-center justify-between">
             <h2 className="text-xl md:text-3xl  font-bold text-[var(--text-primary)] tracking-tighter">{t('product.related')}</h2>
-            <Link href="/discovery"
+            <Link href="/shop"
               className="text-xs  font-bold tracking-tight text-[var(--text-primary)] hover:opacity-70 transition-opacity flex items-center gap-1 pb-1 border-b-2 border-transparent hover:border-[var(--text-primary)]">
               {t('product.viewAll')}
             </Link>

@@ -248,7 +248,7 @@ function VerifyContent() {
                     <ChevronRight className="size-4" />
                   </button>
                   <button
-                    onClick={() => router.push('/discovery')}
+                    onClick={() => router.push('/shop')}
                     className="w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)]  font-semibold text-[11px] lg:text-[12px] tracking-tight hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)] transition-all"
                   >
                     Continue Shopping

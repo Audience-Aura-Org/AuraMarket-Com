@@ -525,6 +525,9 @@ function CheckoutContent() {
           }
         }
         if (!isPayOnDelivery) {
+          if (isWalletPayment) {
+            setSharedWalletBalance(Math.max(0, displayedWalletBalance - computedOrderTotal));
+          }
           await refreshWalletBalance?.();
           window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
         }
@@ -1283,7 +1286,7 @@ function CheckoutContent() {
                          <Package className="size-4" /> Go to My Orders
                       </Link>
                       <Link 
-                        href="/discovery"
+                        href="/shop"
                         className="w-full h-16 rounded-3xl glass-panel border border-[var(--glass-border)] text-[var(--text-primary)] font-semibold text-[10px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 hover:bg-[var(--text-primary)] hover:text-[var(--bg-primary)] transition-all"
                       >
                          Continue Exploring <ArrowRight className="size-4" />

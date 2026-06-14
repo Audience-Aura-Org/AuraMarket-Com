@@ -4,11 +4,13 @@ import { Menu, X, ShoppingCart, MessageCircle, User, Wallet } from 'lucide-react
 import Link from 'next/link';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useWalletBalance } from '@/hooks/useWalletBalance';
 import { useChat } from '@/context/ChatContext';
 import cartStore from '@/services/cartStore';
 
 export default function MobileHeader({ isOpen, toggleSidebar }) {
-  const { user, walletBalance, refreshWalletBalance } = useAuthStore();
+  const { user } = useAuthStore();
+  const { walletBalance } = useWalletBalance();
   const { openChat, isOpen: chatOverlayOpen } = useChat();
   const { unreadMessages } = useNotifications();
   const [cartCount, setCartCount] = useState(cartStore.getCount());
@@ -25,20 +27,17 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
     }
 
     const unsub = cartStore.subscribe(({ count }) => setCartCount(count));
-    const refresh = () => {
-      cartStore.refresh();
-      refreshWalletBalance();
-    };
-    refresh();
-    window.addEventListener('focus', refresh);
-    document.addEventListener('visibilitychange', refresh);
+    const refreshCart = () => cartStore.refresh();
+    refreshCart();
+    window.addEventListener('focus', refreshCart);
+    document.addEventListener('visibilitychange', refreshCart);
 
     return () => {
       unsub();
-      window.removeEventListener('focus', refresh);
-      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('focus', refreshCart);
+      document.removeEventListener('visibilitychange', refreshCart);
     };
-  }, [user?._id, refreshWalletBalance]);
+  }, [user?._id]);
 
   return (
     <header className="fixed inset-x-0 top-0 z-[500] w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_10px_40px_-14px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-colors duration-300 dark:shadow-[0_10px_36px_-12px_rgba(0,0,0,0.12)] lg:hidden">
@@ -54,7 +53,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
             {isOpen ? <X className="size-[22px]" /> : <Menu className="size-[22px]" />}
           </button>
           <Link
-            href={user ? "/discovery?tab=discover" : "/"}
+            href={user ? "/shop" : "/"}
             className="flex min-w-0 max-w-[52vw] items-center gap-2 transition-transform active:scale-[0.98] sm:max-w-none"
           >
             {mounted && <img src="/icon-512.png" alt="Aura" className="h-[18px] w-auto shrink-0" />}

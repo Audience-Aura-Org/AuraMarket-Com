@@ -9,7 +9,7 @@ function chatExitHref(role) {
   if (role === 'vendor') return '/vendor/dashboard';
   if (role === 'admin') return '/admin/dashboard';
   if (role === 'logistics') return '/logistics/dashboard';
-  return '/discovery?tab=discover';
+  return '/shop';
 }
 
 function ChatContent() {

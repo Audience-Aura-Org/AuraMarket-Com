@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
+import { useWalletBalance } from '@/hooks/useWalletBalance';
 import { ShoppingCart, Search, User as UserIcon, MessageCircle, Wallet } from 'lucide-react';
 import { trackSearch } from "@/services/tracking";
 import cartStore from '@/services/cartStore';
@@ -18,7 +19,8 @@ export default function TopNav() {
   const pathname = usePathname();
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
   const router = useRouter();
-  const { user, walletBalance, refreshWalletBalance } = useAuthStore();
+  const { user } = useAuthStore();
+  const { walletBalance } = useWalletBalance();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { unreadMessages, refresh: refreshNotifications } = useNotifications();
@@ -40,12 +42,10 @@ export default function TopNav() {
     const fetchCounts = () => {
       cartStore.refresh();
       refreshNotifications();
-      refreshWalletBalance();
     };
 
     fetchCounts();
-    
-    // Subscribe to cart changes
+
     const unsubCart = cartStore.subscribe(({ count }) => {
       setCartCount(count);
     });
@@ -57,7 +57,7 @@ export default function TopNav() {
       window.removeEventListener('focus', fetchCounts);
       document.removeEventListener('visibilitychange', fetchCounts);
     };
-  }, [user?._id, refreshNotifications, refreshWalletBalance]);
+  }, [user?._id, refreshNotifications]);
 
   // Hide on auth, admin, vendor, logistics, wallet, and full-screen chat pages
   if (
@@ -91,7 +91,7 @@ export default function TopNav() {
         
         {/* Logo Section */}
         <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3 lg:gap-12">
-          <Link href={user ? "/discovery?tab=discover" : "/"} className="flex items-center gap-2 md:gap-3 group">
+          <Link href={user ? "/shop" : "/"} className="flex items-center gap-2 md:gap-3 group">
             <img
               src="/icon-512.png"
               alt="Auradime"

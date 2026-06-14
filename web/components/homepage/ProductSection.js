@@ -26,7 +26,7 @@ export default function ProductSection({ title, subtitle, data, config }) {
           )}
         </div>
         <Link
-          href="/discovery"
+          href="/shop"
           className="group inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 font-[var(--font-poppins)] text-[11px] font-semibold text-[var(--accent)] transition hover:border-[var(--accent)]/45 hover:bg-[var(--accent)] hover:text-white active:scale-[0.98] sm:h-10 sm:px-4 sm:text-[12px]"
           aria-label={`${t('overtime.explore', 'Explore')} ${label(title || 'products')}`}
         >

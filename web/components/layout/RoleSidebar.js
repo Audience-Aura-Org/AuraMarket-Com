@@ -9,7 +9,7 @@ import { useChat } from '@/context/ChatContext';
 import { useLanguage } from '@/context/LanguageContext';
 
 const VENDOR_NAV = [
-  { icon: 'home',                     label: 'Marketplace',      href: '/discovery?tab=discover' },
+  { icon: 'home',                     label: 'Marketplace',      href: '/shop' },
   { icon: 'dashboard',                label: 'Dashboard',        href: '/vendor/dashboard' },
   { icon: 'workspace_premium',        label: 'Subscription',     href: '/subscribe?role=vendor' },
   { icon: 'inventory_2',              label: 'Products',         href: '/vendor/products' },
@@ -23,7 +23,7 @@ const VENDOR_NAV = [
 ];
 
 const ADMIN_NAV = [
-  { icon: 'home',           label: 'Marketplace',      href: '/discovery?tab=discover' },
+  { icon: 'home',           label: 'Marketplace',      href: '/shop' },
   { icon: 'dashboard',      label: 'Dashboard',        href: '/admin/dashboard' },
   { icon: 'person',         label: 'Users',            href: '/admin/users' },
   { icon: 'store',          label: 'Vendors',          href: '/admin/vendors' },
@@ -48,7 +48,7 @@ const ADMIN_NAV = [
 ];
 
 const CUSTOMER_NAV = [
-  { icon: 'home',                     label: 'Marketplace',      href: '/discovery?tab=discover' },
+  { icon: 'home',                     label: 'Marketplace',      href: '/shop' },
   { icon: 'shopping_bag',             label: 'Orders',           href: '/profile?tab=orders' },
   { icon: 'favorite',                 label: 'Wishlist',         href: '/wishlist' },
   { icon: 'chat',                     label: 'Messages',         href: '/chat',             badge: 'messages' },
@@ -65,7 +65,7 @@ const ACCOUNT_NAV = [
 ];
 
 const LOGISTICS_NAV = [
-  { icon: 'home',                label: 'Marketplace',  href: '/discovery?tab=discover' },
+  { icon: 'home',                label: 'Marketplace',  href: '/shop' },
   { icon: 'dashboard_customize', label: 'Dashboard',    href: '/logistics/dashboard' },
   { icon: 'workspace_premium',   label: 'Subscription', href: '/subscribe?role=logistics' },
   { icon: 'list_alt',            label: 'Manifests',    href: '/logistics/manifests', badge: 'orders' },
