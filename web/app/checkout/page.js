@@ -895,7 +895,7 @@ function CheckoutContent() {
                             <input 
                               placeholder="Full Name"
                               value={formData.name}
-                              onChange={e => setFormData({...formData, name: e.target.value})}
+                              onChange={e => setFormData(prev => ({...prev, name: e.target.value}))}
                               className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                             />
                           </div>
@@ -904,7 +904,7 @@ function CheckoutContent() {
                             <input 
                               placeholder="+237 ..."
                               value={formData.phone}
-                              onChange={e => setFormData({...formData, phone: e.target.value})}
+                              onChange={e => setFormData(prev => ({...prev, phone: e.target.value}))}
                               className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                             />
                           </div>
@@ -914,7 +914,7 @@ function CheckoutContent() {
                               type="email"
                               placeholder="email@example.com"
                               value={formData.email}
-                              onChange={e => setFormData({...formData, email: e.target.value})}
+                              onChange={e => setFormData(prev => ({...prev, email: e.target.value}))}
                               className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                             />
                           </div>
@@ -954,7 +954,7 @@ function CheckoutContent() {
                               placeholder="House number, color of gate, or specific landmarks..."
                               rows={3}
                               value={formData.address}
-                              onChange={e => setFormData({...formData, address: e.target.value})}
+                              onChange={e => setFormData(prev => ({...prev, address: e.target.value}))}
                               className="w-full resize-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                             />
                           </div>
@@ -1008,7 +1008,7 @@ function CheckoutContent() {
                              <SearchableLogisticsDropdown 
                                 firms={logisticsOptions}
                                 selectedId={formData.logistics_company_id}
-                                onSelect={(id) => setFormData({...formData, logistics_company_id: id})}
+                                onSelect={(id) => setFormData(prev => ({...prev, logistics_company_id: id}))}
                                 loading={logisticsLoading}
                                 open={logisticsOpen}
                                 onClose={() => setLogisticsOpen(false)}
@@ -1084,7 +1084,7 @@ function CheckoutContent() {
 
                            {formData.paymentMethod !== 'pay_on_delivery' && (
                               <div className="mt-4 flex cursor-pointer items-center justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4 transition-all hover:border-[var(--accent)]/30"
-                                   onClick={() => setFormData({...formData, escrowEnabled: !formData.escrowEnabled})}>
+                                   onClick={() => setFormData(prev => ({...prev, escrowEnabled: !prev.escrowEnabled}))}>
                                  <div className="flex items-center gap-4">
                                     <div className={`size-12 rounded-2xl flex items-center justify-center transition-all ${formData.escrowEnabled ? 'bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] opacity-40 border border-[var(--glass-border)]'}`}>
                                        <ShieldCheck className="size-6" />
@@ -1111,9 +1111,9 @@ function CheckoutContent() {
                                           value={formData.paymentMethod === 'payunit' ? formData.payunit.phone : formData.eversend.phone}
                                           onChange={e => {
                                             if (formData.paymentMethod === 'payunit') {
-                                              setFormData({...formData, payunit: {...formData.payunit, phone: e.target.value}});
+                                              setFormData(prev => ({...prev, payunit: {...prev.payunit, phone: e.target.value}}));
                                             } else {
-                                              setFormData({...formData, eversend: {...formData.eversend, phone: e.target.value}});
+                                              setFormData(prev => ({...prev, eversend: {...prev.eversend, phone: e.target.value}}));
                                             }
                                           }}
                                           className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
@@ -1126,7 +1126,7 @@ function CheckoutContent() {
                                        {formData.paymentMethod === 'payunit' ? (
                                           <select
                                             value={formData.payunit.provider}
-                                            onChange={(e) => setFormData({...formData, payunit: {...formData.payunit, provider: e.target.value}})}
+                                            onChange={(e) => setFormData(prev => ({...prev, payunit: {...prev.payunit, provider: e.target.value}}))}
                                             className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                                           >
                                             <option value="CM_MTNMOMO">MTN Mobile Money</option>
