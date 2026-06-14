@@ -16,6 +16,7 @@
  */
 
 import api from './api';
+import { applyVariantPricing } from '../utils/variants';
 
 // ── Internal State ────────────────────────────────────────────────────────────
 
@@ -31,41 +32,19 @@ let _sidebarOpen = true;    // Default open on desktop per user preference
 function parseItems(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.map(i => {
-    const hasVariant = i.variant && Object.keys(i.variant).length > 0;
-    const regularPrice = Number(i.product?.price || 0);
-    const salePrice = Number(i.product?.sale_price || 0);
-    
-    let effectivePrice;
-    let applicableSalePrice = null;
-    
-    if (hasVariant) {
-      // Variant case: find the selected variant and use its price, no sale price
-      const selectedVariant = i.product?.sku_variants?.find(v => 
-        Object.keys(i.variant).every(key => String(v.combination?.[key] ?? '') === String(i.variant[key]))
-      );
-      effectivePrice = selectedVariant?.price ?? regularPrice;
-    } else {
-      // Non-variant case: use sale price if valid
-      if (salePrice > 0 && salePrice < regularPrice) {
-        effectivePrice = salePrice;
-        applicableSalePrice = salePrice;
-      } else {
-        effectivePrice = regularPrice;
-      }
-    }
-    
+    const priced = applyVariantPricing(i.product || {}, i.variant);
+    const key = i.variant ? `${i.product?._id || i.product}::${JSON.stringify(i.variant)}` : (i.product?._id || i.product);
     return {
-      id: i._id || (i.product?._id || i.product),
+      id: i._id || key,
       productId: i.product?._id || i.product,
       name: i.product?.name || 'Product',
-      price: effectivePrice,
-      sale_price: applicableSalePrice,
-      regular_price: regularPrice,
+      price: priced.price,
+      compare_at_price: priced.compare_at_price,
       quantity: i.quantity || 1,
-      image: i.product?.images?.[0]?.url || i.product?.images?.[0] || '',
+      image: priced.image || '',
+      variant: i.variant || null,
       vendor_name: i.product?.vendor_id?.store_name || 'Vendor',
       vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id || null,
-      variant: i.variant || null,
       raw: i,
     };
   });
@@ -243,50 +222,27 @@ export const cartStore = {
    * Optimistically add an item to the local cart state.
    * This provides the 'Liquid' feel before the server responds.
    */
-  addItem(product, quantity = 1, variant = null) {
-    const hasVariant = variant && Object.keys(variant).length > 0;
-    const regularPrice = Number(product.price || 0);
-    const salePrice = Number(product.sale_price || 0);
-    
-    let effectivePrice;
-    let applicableSalePrice = null;
-    
-    if (hasVariant) {
-      // Variant case: find the selected variant and use its price, no sale price
-      const selectedVariant = product.sku_variants?.find(v => 
-        Object.keys(variant).every(key => String(v.combination?.[key] ?? '') === String(variant[key]))
-      );
-      effectivePrice = selectedVariant?.price ?? regularPrice;
-    } else {
-      // Non-variant case: use sale price if valid
-      if (salePrice > 0 && salePrice < regularPrice) {
-        effectivePrice = salePrice;
-        applicableSalePrice = salePrice;
-      } else {
-        effectivePrice = regularPrice;
-      }
-    }
-    
+  addItem(product, quantity = 1) {
+    const priced = applyVariantPricing(product, product.variant);
+    const baseId = product._id || product.id;
+    const key = product.variant ? `${baseId}::${JSON.stringify(product.variant)}` : baseId;
     const newItem = {
-      id: product._id || product.id,
-      productId: product._id || product.id,
+      id: key,
+      productId: baseId,
       name: product.name,
-      price: effectivePrice,
-      sale_price: applicableSalePrice,
-      regular_price: regularPrice,
+      price: priced.price,
+      compare_at_price: priced.compare_at_price,
+      variant: product.variant || null,
       quantity,
-      image: product.images?.[0]?.url || product.images?.[0] || '',
+      image: priced.image || '',
       vendor_name: product.vendor_id?.store_name || 'Vendor',
       vendor_id: product.vendor_id?._id || product.vendor_id || null,
-      variant,
     };
 
-    // Find existing item by product ID AND variant
     const existingIndex = _items.findIndex(it => 
       it.productId === newItem.productId && 
-      JSON.stringify(it.variant) === JSON.stringify(newItem.variant)
+      JSON.stringify(it.variant || null) === JSON.stringify(newItem.variant || null)
     );
-    
     if (existingIndex !== -1) {
       // Immutable update — new array + new item object
       _items = _items.map((it, i) =>

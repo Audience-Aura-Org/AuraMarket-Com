@@ -56,7 +56,7 @@ const populateHomepageSections = (query) => HomepageSection.find(query)
   .sort({ order: 1 })
   .populate({
     path: 'data.product_id',
-    select: 'name price sale_price on_sale images rating stock vendor_id view_count purchase_count',
+    select: 'name price compare_at_price has_variants sku_variants images rating stock vendor_id view_count purchase_count',
     populate: {
       path: 'vendor_id',
       select: 'store_name user_id',
@@ -73,7 +73,7 @@ const populateHomepageSections = (query) => HomepageSection.find(query)
 const getLegacyHomepageSections = async () => {
   const layout = await Homepage.findOne({ version: 'v1' }).populate({
     path: 'featured_products.product_id',
-    select: 'name price sale_price on_sale images rating stock vendor_id view_count purchase_count',
+    select: 'name price compare_at_price has_variants sku_variants images rating stock vendor_id view_count purchase_count',
     populate: {
       path: 'vendor_id',
       select: 'store_name user_id',
@@ -270,7 +270,7 @@ const getAdminSections = async (req, res, next) => {
       .sort({ order: 1 })
       .populate({
         path: 'data.product_id',
-        select: 'name price sale_price on_sale images rating stock vendor_id view_count purchase_count',
+        select: 'name price compare_at_price has_variants sku_variants images rating stock vendor_id view_count purchase_count',
         populate: { 
           path: 'vendor_id', 
           select: 'store_name user_id',

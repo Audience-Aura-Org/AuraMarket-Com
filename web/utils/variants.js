@@ -12,29 +12,21 @@ export function findSelectedVariant(product = {}, selected = null) {
 export function applyVariantPricing(product = {}, selected = null) {
   const selectedVariant = findSelectedVariant(product, selected);
   const productImage = product.images?.[0]?.url || product.images?.[0] || null;
-  const regularPrice = Number(product.price || 0);
-  
+
   let price;
-  let salePrice = null;
+  let compare_at_price;
 
   if (selectedVariant) {
-    // Variant case: price is always variant's price, no sale price
-    price = selectedVariant.price;
+    price = selectedVariant.price !== undefined && selectedVariant.price !== null ? Number(selectedVariant.price) : Number(product.price || 0);
+    compare_at_price = selectedVariant.compare_at_price !== undefined && selectedVariant.compare_at_price !== null ? Number(selectedVariant.compare_at_price) : null;
   } else {
-    // Non-variant case: check for valid sale price
-    const productSalePrice = Number(product.sale_price || 0);
-    if (productSalePrice > 0 && productSalePrice < regularPrice) {
-      price = productSalePrice;
-      salePrice = productSalePrice;
-    } else {
-      price = regularPrice;
-    }
+    price = Number(product.price || 0);
+    compare_at_price = product.compare_at_price !== undefined && product.compare_at_price !== null ? Number(product.compare_at_price) : null;
   }
 
   return {
     price,
-    regular_price: regularPrice,
-    sale_price: salePrice,
+    compare_at_price,
     image: selectedVariant?.image || productImage,
     variant: selected || null,
     selectedVariant,

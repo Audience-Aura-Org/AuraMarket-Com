@@ -75,7 +75,7 @@ const getHomepageLayout = async (req, res, next) => {
   try {
     let layout = await Homepage.findOne({ version: 'v1' }).populate({
       path: 'featured_products.product_id',
-      select: 'name price sale_price on_sale images rating vendor_id',
+      select: 'name price compare_at_price images rating vendor_id',
       populate: { path: 'vendor_id', select: 'store_name' },
     });
 
@@ -504,7 +504,7 @@ const updateProductAdmin = async (req, res, next) => {
       'name',
       'description',
       'price',
-      'sale_price',
+      'compare_at_price',
       'stock',
       'category',
       'status',
@@ -517,27 +517,20 @@ const updateProductAdmin = async (req, res, next) => {
       if (req.body[field] !== undefined) updateData[field] = req.body[field];
     });
 
-    if (updateData.sale_price === '' || updateData.sale_price === null) {
-      updateData.sale_price = null;
-      updateData.on_sale = false;
-    } else if (updateData.sale_price !== undefined) {
+    if (updateData.compare_at_price === '' || updateData.compare_at_price === null) {
+      updateData.compare_at_price = null;
+    } else if (updateData.compare_at_price !== undefined) {
       const nextPrice = updateData.price !== undefined ? Number(updateData.price) : undefined;
-      const salePrice = Number(updateData.sale_price);
+      const compareAt = Number(updateData.compare_at_price);
       const product = await Product.findById(req.params.id).select('price');
-      const regularPrice = nextPrice || Number(product?.price || 0);
-      if (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= regularPrice) {
-        return res.status(400).json({ success: false, message: 'Sale price must be lower than the regular price.' });
+      const sellingPrice = nextPrice !== undefined ? nextPrice : Number(product?.price || 0);
+      if (!Number.isFinite(compareAt) || compareAt <= 0 || compareAt <= sellingPrice) {
+        return res.status(400).json({ success: false, message: 'Compare-at price must be greater than the selling price.' });
       }
-      updateData.sale_price = salePrice;
-      updateData.on_sale = true;
+      updateData.compare_at_price = compareAt;
     }
-
-    if (updateData.status) {
-      const allowedStatuses = ['active', 'pending', 'archived', 'suspended', 'draft'];
-      if (!allowedStatuses.includes(updateData.status)) {
-        return res.status(400).json({ success: false, message: 'Invalid product status.' });
-      }
-    }
+    updateData.sale_price = null;
+    updateData.on_sale = false;
     if (updateData.price !== undefined) {
       updateData.price = Number(updateData.price);
       if (!Number.isFinite(updateData.price) || updateData.price < 0) {

@@ -69,10 +69,9 @@ export default function VariantSelectorModal({
 
   if (!product || !mounted) return null;
 
-  const regularPrice = Number(product.price || 0);
-  const salePrice = Number(product.sale_price || 0);
-  const productPrice = salePrice > 0 && salePrice < regularPrice ? salePrice : regularPrice;
-  const displayPrice = currentVariant?.price ?? productPrice;
+  const displayPrice = currentVariant ? Number(currentVariant.price || 0) : Number(product.price || 0);
+  const originalPrice = currentVariant ? (currentVariant.compare_at_price ? Number(currentVariant.compare_at_price) : null) : (product.compare_at_price ? Number(product.compare_at_price) : null);
+  const hasSale = originalPrice !== null && originalPrice > displayPrice;
   const inStock      = currentVariant ? currentVariant.stock > 0 : product.stock > 0;
   const images       = product.images || [];
   const mainImage    = currentVariant?.image
@@ -136,6 +135,9 @@ export default function VariantSelectorModal({
                   <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] truncate leading-tight">{product.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-sm  font-bold text-[var(--accent)]">{displayPrice?.toLocaleString()} XAF</span>
+                    {hasSale && (
+                      <span className="text-[11px] text-[var(--text-secondary)] line-through opacity-50">{originalPrice?.toLocaleString()} XAF</span>
+                    )}
                     <span className={`text-[11px] lg:text-[12px]  font-semibold tracking-tight px-1.5 py-0.5 rounded-full ${inStock ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
                       {inStock ? 'In stock' : 'Out of stock'}
                     </span>

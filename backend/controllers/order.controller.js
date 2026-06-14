@@ -61,6 +61,7 @@ const resolveOrderLine = (product, item) => {
   
   let itemPrice;
   let salePrice = null;
+  let compare_at_price = null;
   let itemImage = product.images?.[0]?.url || null;
 
   if (product.has_variants) {
@@ -71,23 +72,36 @@ const resolveOrderLine = (product, item) => {
     if (variantMatch.stock < quantity) {
       throw new Error(`Insufficient stock for ${product.name} (${variantLabel(item.variant)}). Available: ${variantMatch.stock}`);
     }
-    itemPrice = variantMatch.price;
+    itemPrice = Number(variantMatch.price || regularPrice);
     if (variantMatch.image) itemImage = variantMatch.image;
+    // No sale price for variants
   } else {
-    // Non-variant: check for valid sale price
-    const productSalePrice = Number(product.sale_price || 0);
-    if (productSalePrice > 0 && productSalePrice < regularPrice) {
+    // Check compare_at_price first
+    const productCompareAtPrice = product.compare_at_price !== undefined && product.compare_at_price !== null 
+      ? Number(product.compare_at_price) 
+      : null;
+    const productSalePrice = product.sale_price !== undefined && product.sale_price !== null 
+      ? Number(product.sale_price) 
+      : null;
+    
+    if (productCompareAtPrice && productCompareAtPrice > 0 && productCompareAtPrice > regularPrice) {
+      itemPrice = regularPrice;
+      compare_at_price = productCompareAtPrice;
+      salePrice = productCompareAtPrice;
+    } else if (productSalePrice && productSalePrice > 0 && productSalePrice < regularPrice) {
       itemPrice = productSalePrice;
+      compare_at_price = regularPrice;
       salePrice = productSalePrice;
     } else {
       itemPrice = regularPrice;
     }
+    
     if (product.stock < quantity) {
       throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
     }
   }
 
-  return { quantity, itemPrice, regularPrice, salePrice, itemImage };
+  return { quantity, itemPrice, regularPrice, salePrice, compare_at_price, itemImage };
 };
 
 const restoreOrderInventory = async (order, session) => {
@@ -145,7 +159,7 @@ const createOrder = async (req, res, next) => {
         throw new Error(`Product ${item.product_id} is unavailable.`);
       }
 
-      const { quantity, itemPrice, regularPrice, salePrice, itemImage } = resolveOrderLine(product, item);
+      const { quantity, itemPrice, regularPrice, salePrice, compare_at_price, itemImage } = resolveOrderLine(product, item);
 
       if (product.has_variants) {
         const variantMatch = findSelectedVariant(product, item.variant);
@@ -175,6 +189,7 @@ const createOrder = async (req, res, next) => {
         price:      itemPrice,
         regular_price: regularPrice,
         sale_price: salePrice,
+        compare_at_price: compare_at_price,
         image:      itemImage,
         variant:    item.variant
       });
@@ -1045,20 +1060,21 @@ const createOrdersFromCart = async (req, res, next) => {
     for (const [vendorId, items] of Object.entries(itemsByVendor)) {
       let subtotal = 0;
       const orderProducts = items.map(it => {
-                const { quantity, itemPrice, regularPrice, salePrice, itemImage } = resolveOrderLine(it.product, it);
+        const { quantity, itemPrice, regularPrice, salePrice, compare_at_price, itemImage } = resolveOrderLine(it.product, it);
 
-                subtotal += itemPrice * quantity;
-                return { 
-                  product_id: it.product._id, 
-                  name: it.product.name, 
-                  quantity,
-                  price: itemPrice,
-                  regular_price: regularPrice,
-                  sale_price: salePrice,
-                  image: itemImage,
-                  variant: it.variant
-                };
-              });
+        subtotal += itemPrice * quantity;
+        return { 
+          product_id: it.product._id, 
+          name: it.product.name, 
+          quantity,
+          price: itemPrice, 
+          regular_price: regularPrice,
+          sale_price: salePrice,
+          compare_at_price: compare_at_price,
+          image: itemImage,
+          variant: it.variant
+        };
+      });
 
       for (const it of items) {
         // Find product to update stock

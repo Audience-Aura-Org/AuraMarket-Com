@@ -32,15 +32,15 @@ const ProductSchema = new mongoose.Schema(
       required: [true, 'Product price is required'],
       min: [0, 'Price cannot be negative'],
     },
+    compare_at_price: {
+      type: Number,
+      default: null,
+      min: [0, 'Compare-at price cannot be negative'],
+    },
     sale_price: {
       type: Number,
       default: null,
       min: [0, 'Sale price cannot be negative'],
-      // NOTE: The cross-field check (sale_price < price) is enforced in
-      // normalizeSalePricing() before every create/update. We intentionally
-      // omit a schema-level validator here because Mongoose's `this` context
-      // inside findByIdAndUpdate validators is the Query, not the document,
-      // so `this.price` is always undefined → 0, causing false 400 errors.
     },
     on_sale: {
       type: Boolean,
@@ -133,8 +133,22 @@ const ProductSchema = new mongoose.Schema(
     sku_variants: [
       {
         combination: mongoose.Schema.Types.Mixed, // e.g., { "Size": "M", "Color": "Red" }
-        price: Number,
-        stock: Number,
+        price: {
+          type: Number,
+          required: [true, 'Variant price is required'],
+          min: [0, 'Variant price cannot be negative']
+        },
+        compare_at_price: {
+          type: Number,
+          default: null,
+          min: [0, 'Variant compare-at price cannot be negative']
+        },
+        stock: {
+          type: Number,
+          required: [true, 'Variant stock is required'],
+          min: [0, 'Variant stock cannot be negative'],
+          default: 0
+        },
         sku: String,
         image: String
       }

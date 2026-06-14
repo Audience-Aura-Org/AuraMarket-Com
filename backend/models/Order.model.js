@@ -24,6 +24,7 @@ const OrderItemSchema = new mongoose.Schema({
   price: { type: Number, required: true }, // price locked at time of purchase (effective price)
   regular_price: { type: Number, required: true }, // product's regular price
   sale_price: { type: Number, default: null }, // product's sale price (if applicable and used)
+  compare_at_price: { type: Number, default: null }, // product's compare at price (if applicable and used)
   image: { type: String },
   variant: { type: mongoose.Schema.Types.Mixed, default: null }
 });

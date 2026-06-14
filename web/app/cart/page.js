@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { cartStore } from '@/services/cartStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useChat } from '@/context/ChatContext';
+import { formatVariantLabel } from '@/utils/variants';
 
 export default function CartPage() {
   const router = useRouter();
@@ -171,11 +172,23 @@ export default function CartPage() {
                          <button onClick={() => removeCartItem(item.id)} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm hover:border-red-500/30"><Trash2 className="w-4 h-4" /></button>
                        </div>
                     </div>
-                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-3">Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span></p>
+                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-2">Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span></p>
+                    {item.variant && (
+                      <p className="text-[10px] font-semibold text-[var(--accent)]/85 mb-3 leading-relaxed">
+                        {formatVariantLabel(item.variant)}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xl sm:text-2xl  font-bold text-[var(--text-primary)] font-mono">{item.price.toLocaleString()} XAF</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl sm:text-2xl  font-bold text-[var(--text-primary)] font-mono">{item.price.toLocaleString()} XAF</span>
+                      {item.compare_at_price && Number(item.compare_at_price) > Number(item.price) && (
+                        <span className="text-xs font-semibold text-[var(--text-secondary)] line-through font-mono opacity-50">
+                          {Number(item.compare_at_price).toLocaleString()} XAF
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-3 bg-[var(--bg-secondary)] p-1.5 px-3 rounded-xl border border-[var(--glass-border)] shadow-inner">
                       <button onClick={() => updateCartQty(item.id, -1)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><Minus className="w-4 h-4" /></button>
                       <span className=" font-bold text-base w-5 text-center">{item.quantity}</span>

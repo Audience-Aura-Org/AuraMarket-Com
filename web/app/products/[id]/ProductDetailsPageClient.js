@@ -187,11 +187,8 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
   const images = product?.images?.length ? product.images : [{ url: '/placeholder.png' }];
   const vendor = product?.vendor_id;
   
-  const regularPrice = Number(product?.price || 0);
-  const salePrice = Number(product?.sale_price || 0);
-  const hasSalePrice = !currentVariant && salePrice > 0 && salePrice < regularPrice;
-  const displayPrice = currentVariant ? currentVariant.price : (hasSalePrice ? salePrice : product?.price);
-  const originalPrice = hasSalePrice ? regularPrice : Number(product?.oldPrice || 0);
+  const displayPrice = currentVariant ? Number(currentVariant.price || 0) : Number(product?.price || 0);
+  const originalPrice = currentVariant ? (currentVariant.compare_at_price ? Number(currentVariant.compare_at_price) : 0) : (product?.compare_at_price ? Number(product.compare_at_price) : 0);
   const displayStock = currentVariant ? currentVariant.stock : product?.stock;
   const inStock = Boolean(displayStock > 0);
   
@@ -200,7 +197,6 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
   const discount = originalPrice > displayPrice
     ? Math.round(100 - (displayPrice / originalPrice) * 100)
     : null;
-
   // Detect if the logged-in user is the vendor who listed this product
   const vendorUserId = vendor?.user_id?._id?.toString() || vendor?.user_id?.toString();
   const isOwnProduct = Boolean(user && vendorUserId && user._id?.toString() === vendorUserId);

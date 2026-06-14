@@ -72,7 +72,7 @@ export default function VendorProductsPage() {
   const lowStockCount = products.filter((p) => p.stock <= 5 && p.stock > 0).length;
   const soldUnits = products.reduce((acc, p) => acc + Number(p.purchase_count || 0), 0);
   const viewUnits = products.reduce((acc, p) => acc + Number(p.view_count || 0), 0);
-  const onSaleCount = products.filter((p) => p.sale_price != null && p.sale_price > 0 && p.sale_price < p.price).length;
+  const onSaleCount = products.filter((p) => p.compare_at_price != null && p.compare_at_price > p.price).length;
 
   const handleDeleteProduct = async (id) => {
     if (!window.confirm(t('products.deleteConfirm', 'Are you sure you want to delete this product? This action cannot be undone.'))) return;
@@ -228,8 +228,8 @@ function MetricItem({ label, value, accent }) {
 function ManagementCard({ product, onDelete, t }) {
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock <= 5 && product.stock > 0;
-  const hasSale = product.sale_price != null && Number(product.sale_price) > 0 && Number(product.sale_price) < Number(product.price);
-  const discountPct = hasSale ? Math.round(100 - (Number(product.sale_price) / Number(product.price)) * 100) : 0;
+  const hasSale = product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price);
+  const discountPct = hasSale ? Math.round(((Number(product.compare_at_price) - Number(product.price)) / Number(product.compare_at_price)) * 100) : 0;
   const status = isOutOfStock 
     ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
     : isLowStock 
@@ -289,8 +289,8 @@ function ManagementCard({ product, onDelete, t }) {
           <div className="flex flex-col">
             {hasSale ? (
               <>
-                <span className="text-[12px] font-bold text-[var(--accent)]">{Number(product.sale_price).toLocaleString()} XAF</span>
-                <span className="text-[10px] font-medium text-[var(--text-secondary)] line-through">{product.price?.toLocaleString()} XAF</span>
+                <span className="text-[12px] font-bold text-[var(--accent)]">{Number(product.price).toLocaleString()} XAF</span>
+                <span className="text-[10px] font-medium text-[var(--text-secondary)] line-through">{product.compare_at_price?.toLocaleString()} XAF</span>
               </>
             ) : (
               <span className="text-[12px] font-semibold">{product.price?.toLocaleString()} XAF</span>
@@ -312,8 +312,8 @@ function ManagementCard({ product, onDelete, t }) {
 function ListRow({ product, onDelete, t }) {
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock <= 5 && product.stock > 0;
-  const hasSale = product.sale_price != null && Number(product.sale_price) > 0 && Number(product.sale_price) < Number(product.price);
-  const discountPct = hasSale ? Math.round(100 - (Number(product.sale_price) / Number(product.price)) * 100) : 0;
+  const hasSale = product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price);
+  const discountPct = hasSale ? Math.round(((Number(product.compare_at_price) - Number(product.price)) / Number(product.compare_at_price)) * 100) : 0;
   const status = isOutOfStock 
     ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
     : isLowStock 
@@ -343,8 +343,8 @@ function ListRow({ product, onDelete, t }) {
           <span className={status.color}>{status.label}</span>
           {hasSale ? (
             <span className="flex items-center gap-1">
-              <span className="font-semibold text-[var(--accent)]">{Number(product.sale_price).toLocaleString()} XAF</span>
-              <span className="line-through">{product.price?.toLocaleString()} XAF</span>
+              <span className="font-semibold text-[var(--accent)]">{Number(product.price).toLocaleString()} XAF</span>
+              <span className="line-through">{product.compare_at_price?.toLocaleString()} XAF</span>
             </span>
           ) : (
             <span>{product.price?.toLocaleString()} XAF</span>

@@ -14,30 +14,49 @@ const { sendNotification } = require('../utils/notifier');
 const cache = require('../utils/cache');
 const { normalizeUserMedia, normalizeMediaUrl } = require('../utils/media');
 
-const normalizeSalePricing = (data = {}, existingProduct = null) => {
-  const nextPrice = data.price !== undefined ? Number(data.price) : Number(existingProduct?.price || 0);
-  const rawSalePrice = data.sale_price;
+const normalizePricing = (data = {}, existingProduct = null) => {
+  const price = data.price !== undefined ? Number(data.price) : Number(existingProduct?.price || 0);
+  const rawCompareAtPrice = data.compare_at_price;
 
-  if (rawSalePrice === '' || rawSalePrice === null || rawSalePrice === undefined) {
-    data.sale_price = null;
-    data.on_sale = false;
-    return;
+  // Deprecated fields clean up
+  data.sale_price = null;
+  data.on_sale = false;
+
+  if (rawCompareAtPrice === '' || rawCompareAtPrice === null || rawCompareAtPrice === undefined) {
+    data.compare_at_price = null;
+  } else {
+    const compareAt = Number(rawCompareAtPrice);
+    if (!Number.isFinite(compareAt) || compareAt <= 0) {
+      const error = new Error('Compare-at price must be a valid positive amount.');
+      error.statusCode = 400;
+      throw error;
+    }
+    if (!Number.isFinite(price) || price <= 0 || compareAt <= price) {
+      const error = new Error('Compare-at price must be greater than the selling price.');
+      error.statusCode = 400;
+      throw error;
+    }
+    data.compare_at_price = compareAt;
   }
 
-  const salePrice = Number(rawSalePrice);
-  if (!Number.isFinite(salePrice) || salePrice <= 0) {
-    const error = new Error('Sale price must be a valid positive amount.');
-    error.statusCode = 400;
-    throw error;
+  // Normalize SKU variants pricing if present
+  if (data.sku_variants && Array.isArray(data.sku_variants)) {
+    data.sku_variants.forEach(variant => {
+      if (variant.price !== undefined && variant.price !== '') {
+        variant.price = Number(variant.price);
+      }
+      if (variant.compare_at_price === '' || variant.compare_at_price === undefined || variant.compare_at_price === null) {
+        variant.compare_at_price = null;
+      } else {
+        variant.compare_at_price = Number(variant.compare_at_price);
+        if (variant.compare_at_price <= variant.price) {
+          const error = new Error('Variant compare-at price must be greater than the variant selling price.');
+          error.statusCode = 400;
+          throw error;
+        }
+      }
+    });
   }
-  if (!Number.isFinite(nextPrice) || nextPrice <= 0 || salePrice >= nextPrice) {
-    const error = new Error('Sale price must be lower than the regular price.');
-    error.statusCode = 400;
-    throw error;
-  }
-
-  data.sale_price = salePrice;
-  data.on_sale = true;
 };
 
 const resolveCategoryNames = async ({ categoryId, categoryName, includeDescendants = true }) => {
@@ -111,7 +130,7 @@ const createProduct = async (req, res, next) => {
     }
     if (req.body.has_variants === 'true') productData.has_variants = true;
     if (req.body.has_variants === 'false') productData.has_variants = false;
-    normalizeSalePricing(productData);
+    normalizePricing(productData);
 
     const product = await Product.create(productData);
 
@@ -327,7 +346,7 @@ const updateProduct = async (req, res, next) => {
     }
     if (req.body.has_variants === 'true') updateData.has_variants = true;
     if (req.body.has_variants === 'false') updateData.has_variants = false;
-    normalizeSalePricing(updateData, product);
+    normalizePricing(updateData, product);
 
     delete updateData.featured;
     delete updateData.existing_images;
