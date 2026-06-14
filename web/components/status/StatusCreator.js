@@ -532,6 +532,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 <StatusVideoTrimmer
                   previewUrl={previewUrl}
                   duration={videoMeta.duration}
+                  fileSize={file?.size || 0}
                   trimStart={trimStart}
                   trimEnd={trimEnd}
                   onTrimStartChange={setTrimStart}
