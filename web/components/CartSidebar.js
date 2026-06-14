@@ -140,7 +140,14 @@ export default function CartSidebar() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <h4 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] truncate leading-tight ">{it.name}</h4>
-                    <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]">{(it.price * it.quantity).toLocaleString()} XAF</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]">{(it.price * it.quantity).toLocaleString()} XAF</span>
+                      {it.sale_price && (
+                        <span className="text-[10px] font-semibold text-[var(--text-secondary)] line-through opacity-60">
+                          {(it.regular_price * it.quantity).toLocaleString()} XAF
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {/* Remove */}
                   <button

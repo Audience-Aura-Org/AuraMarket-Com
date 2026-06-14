@@ -21,7 +21,9 @@ const OrderItemSchema = new mongoose.Schema({
   },
   name: { type: String, required: true },
   quantity: { type: Number, required: true, min: 1 },
-  price: { type: Number, required: true }, // price locked at time of purchase
+  price: { type: Number, required: true }, // price locked at time of purchase (effective price)
+  regular_price: { type: Number, required: true }, // product's regular price
+  sale_price: { type: Number, default: null }, // product's sale price (if applicable and used)
   image: { type: String },
   variant: { type: mongoose.Schema.Types.Mixed, default: null }
 });
@@ -46,6 +48,10 @@ const OrderSchema = new mongoose.Schema(
       required: true,
     },
     shipping_fee: {
+      type: Number,
+      default: 0,
+    },
+    collection_fee: {
       type: Number,
       default: 0,
     },

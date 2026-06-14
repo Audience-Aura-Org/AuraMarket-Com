@@ -58,8 +58,9 @@ const findSelectedVariant = (product, selectedVariant) => {
 const resolveOrderLine = (product, item) => {
   const quantity = Number(item.quantity || 1);
   const regularPrice = Number(product.price || 0);
-  const salePrice = Number(product.sale_price || 0);
-  let itemPrice = salePrice > 0 && salePrice < regularPrice ? salePrice : regularPrice;
+  
+  let itemPrice;
+  let salePrice = null;
   let itemImage = product.images?.[0]?.url || null;
 
   if (product.has_variants) {
@@ -72,11 +73,21 @@ const resolveOrderLine = (product, item) => {
     }
     itemPrice = variantMatch.price;
     if (variantMatch.image) itemImage = variantMatch.image;
-  } else if (product.stock < quantity) {
-    throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
+  } else {
+    // Non-variant: check for valid sale price
+    const productSalePrice = Number(product.sale_price || 0);
+    if (productSalePrice > 0 && productSalePrice < regularPrice) {
+      itemPrice = productSalePrice;
+      salePrice = productSalePrice;
+    } else {
+      itemPrice = regularPrice;
+    }
+    if (product.stock < quantity) {
+      throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
+    }
   }
 
-  return { quantity, itemPrice, itemImage };
+  return { quantity, itemPrice, regularPrice, salePrice, itemImage };
 };
 
 const restoreOrderInventory = async (order, session) => {
@@ -134,11 +145,13 @@ const createOrder = async (req, res, next) => {
         throw new Error(`Product ${item.product_id} is unavailable.`);
       }
 
-      const { quantity, itemPrice, itemImage } = resolveOrderLine(product, item);
+      const { quantity, itemPrice, regularPrice, salePrice, itemImage } = resolveOrderLine(product, item);
 
       if (product.has_variants) {
         const variantMatch = findSelectedVariant(product, item.variant);
-        variantMatch.stock -= quantity;
+        if (variantMatch) {
+          variantMatch.stock -= quantity;
+        }
       }
 
       product.stock -= quantity;
@@ -160,11 +173,13 @@ const createOrder = async (req, res, next) => {
         name:       product.name,
         quantity,
         price:      itemPrice,
+        regular_price: regularPrice,
+        sale_price: salePrice,
         image:      itemImage,
         variant:    item.variant
       });
 
-      subtotal += itemPrice * item.quantity;
+      subtotal += itemPrice * quantity;
     }
 
     // 3. Handle Coupon Logic
@@ -223,7 +238,8 @@ const createOrder = async (req, res, next) => {
       shipping_fee = fees.totalFee;
     }
 
-    const total_amount = subtotal + shipping_fee - discount;
+    const collection_fee = (payment_method === 'payunit' || payment_method === 'eversend') ? 5 : 0;
+    const total_amount = subtotal + shipping_fee + collection_fee - discount;
 
     const orderData = {
       customer_id:     req.user._id,
@@ -231,6 +247,7 @@ const createOrder = async (req, res, next) => {
       products:        validatedProducts,
       subtotal,
       shipping_fee,
+      collection_fee,
       total_amount:    total_amount > 0 ? total_amount : 0,
       payment_method,
       shipping_method: normalizedShippingMethod,
@@ -1028,18 +1045,20 @@ const createOrdersFromCart = async (req, res, next) => {
     for (const [vendorId, items] of Object.entries(itemsByVendor)) {
       let subtotal = 0;
       const orderProducts = items.map(it => {
-        const { quantity, itemPrice, itemImage } = resolveOrderLine(it.product, it);
+                const { quantity, itemPrice, regularPrice, salePrice, itemImage } = resolveOrderLine(it.product, it);
 
-        subtotal += itemPrice * quantity;
-        return { 
-          product_id: it.product._id, 
-          name: it.product.name, 
-          quantity,
-          price: itemPrice, 
-          image: itemImage,
-          variant: it.variant
-        };
-      });
+                subtotal += itemPrice * quantity;
+                return { 
+                  product_id: it.product._id, 
+                  name: it.product.name, 
+                  quantity,
+                  price: itemPrice,
+                  regular_price: regularPrice,
+                  sale_price: salePrice,
+                  image: itemImage,
+                  variant: it.variant
+                };
+              });
 
       for (const it of items) {
         // Find product to update stock
@@ -1064,13 +1083,16 @@ const createOrdersFromCart = async (req, res, next) => {
           shippingFee = fees.totalFee;
       }
 
+      const collectionFee = (payment_method === 'payunit' || payment_method === 'eversend') ? 5 : 0;
+
       const [newOrder] = await Order.create([{
         customer_id: req.user._id,
         vendor_id: vendorId,
         products: orderProducts,
         subtotal,
         shipping_fee: shippingFee,
-        total_amount: subtotal + shippingFee,
+        collection_fee: collectionFee,
+        total_amount: subtotal + shippingFee + collectionFee,
         payment_method,
         shipping_method: normalizedShippingMethod,
         logistics_company_id: normalizedShippingMethod === 'logistics_partner' ? logistics_company_id : null,

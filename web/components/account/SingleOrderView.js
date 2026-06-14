@@ -843,6 +843,9 @@ export default function SingleOrderView({ orderId, onBack }) {
                     )}
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-medium text-[var(--text-secondary)]">
                       <span className="font-mono text-[var(--accent)]">{(item.price || 0).toLocaleString()} XAF</span>
+                      {item.sale_price && item.regular_price && (
+                        <span className="line-through opacity-60">{(item.regular_price || 0).toLocaleString()} XAF</span>
+                      )}
                       <span className="opacity-40">·</span>
                       <span>Qty {item.quantity}</span>
                     </div>

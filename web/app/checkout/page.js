@@ -349,17 +349,14 @@ function CheckoutContent() {
           if (res.data.success) {
             const p = res.data.data.product;
             const priced = applyVariantPricing(p, variant);
-            const regularPrice = Number(p.price || 0);
-            // hasSale: effective price is lower than regular — works for both variant and non-variant
-            const hasSale = priced.price > 0 && priced.price < regularPrice;
             setCartItems([{
               product_id: p._id,
               vendor_id: p.vendor_id?._id || p.vendor_id,
               vendor_name: p.vendor_id?.store_name || 'Aura Merchant Node',
               name: p.name,
               price: priced.price,
-              sale_price: hasSale ? priced.price : null,
-              regular_price: regularPrice,
+              sale_price: priced.sale_price,
+              regular_price: priced.regular_price,
               quantity: quantity,
               image: priced.image,
               variant: priced.variant
@@ -373,9 +370,6 @@ function CheckoutContent() {
           if (res.data.success && res.data.data.cart?.items) {
              const items = res.data.data.cart.items.map(i => {
                const priced = applyVariantPricing(i.product, i.variant);
-               const regularPrice = Number(i.product?.price || 0);
-               // hasSale: effective price is lower than regular — works for variant & non-variant
-               const hasSale = priced.price > 0 && priced.price < regularPrice;
                 return {
                 id: i._id,
                 cart_item_id: i._id,
@@ -384,8 +378,8 @@ function CheckoutContent() {
                 vendor_name: i.product?.vendor_id?.store_name || i.product?.vendor_id?.user_id?.name || 'Aura Merchant Node',
                 name: i.product?.name,
                 price: priced.price,
-                sale_price: hasSale ? priced.price : null,
-                regular_price: regularPrice,
+                sale_price: priced.sale_price,
+                regular_price: priced.regular_price,
                 quantity: i.quantity,
                 image: priced.image,
                 variant: i.variant || null
@@ -1134,23 +1128,19 @@ function CheckoutContent() {
                      </div>
 
                      <button 
-                        onClick={handlePlaceOrder}
-                        disabled={loading}
+                        onClick={() => setStep(2)}
+                        disabled={loading || checkoutBlocked}
                         className="mt-6 flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[var(--text-primary)] text-[10px] font-semibold tracking-[0.18em] text-[var(--bg-primary)] shadow-lg transition-all hover:bg-[var(--accent)] hover:text-white active:scale-95 disabled:opacity-20 lg:text-[12px]"
                       >
-                        {loading ? (
-                          <div className="size-4 border-2 border-[var(--bg-primary)] border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <>
-                            SECURE CHECKOUT
-                            <ArrowRight className="size-4" />
-                          </>
-                        )}
+                        <>
+                          REVIEW & CONFIRM
+                          <ArrowRight className="size-4" />
+                        </>
                       </button>
                   </div>
                 </section>
               )}
-              {step === 999 && (
+              {step === 2 && (
                 <section className="animate-in fade-in zoom-in-95 duration-700">
                    <div className="space-y-5">
                       <div className="flex items-center gap-3">
@@ -1259,10 +1249,10 @@ function CheckoutContent() {
                               </p>
                             )}
                             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-semibold text-[var(--text-secondary)]">
-                              {item.sale_price ? (
+                              {item.sale_price && item.regular_price ? (
                                 <>
-                                  <span className="text-[var(--accent)]">{Number(item.sale_price).toLocaleString()} XAF</span>
-                                  <span className="line-through opacity-40">{Number(item.regular_price || item.price).toLocaleString()}</span>
+                                  <span className="text-[var(--accent)]">{Number(item.price).toLocaleString()} XAF</span>
+                                  <span className="line-through opacity-40">{Number(item.regular_price).toLocaleString()}</span>
                                 </>
                               ) : (
                                 <span>{Number(item.price || 0).toLocaleString()} XAF</span>
@@ -1290,19 +1280,18 @@ function CheckoutContent() {
                <div className="space-y-4 py-5 border-t border-[var(--glass-border)]">
                    <div className="flex justify-between items-center text-[11px] font-semibold text-[var(--text-secondary)] lg:text-[12px]">
                       <span className="opacity-55">Cart Subtotal</span>
-                      <span className="font-mono text-[12px] text-[var(--text-primary)]">{subtotal.toLocaleString()} XAF</span>
+                      <span className="font-mono text-[12px] text-[var(--text-primary)]">{(order?.subtotal ?? subtotal).toLocaleString()} XAF</span>
                    </div>
                    
-                   {compatibleFee > 0 && selectedLogistics && (
+                   {((order?.shipping_fee > 0) || (compatibleFee > 0 && selectedLogistics)) && (
                       <div className="space-y-3 pt-3 border-t border-[var(--glass-border)]/20 animate-in fade-in duration-500">
                          <div className="flex items-center justify-between mb-2">
                            <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)] tracking-tight flex items-center gap-2">
                              <Truck className="size-3" /> Delivery Fees
                            </p>
-                           <p className="text-[11px] lg:text-[12px] font-mono  font-semibold text-[var(--accent)]">{compatibleFee.toLocaleString()} XAF</p>
+                           <p className="text-[11px] lg:text-[12px] font-mono  font-semibold text-[var(--accent)]">{(order?.shipping_fee ?? compatibleFee).toLocaleString()} XAF</p>
                          </div>
-                         <div className="space-y-2">
-                           {vendorList.map((v, i) => (
+                         {!order && vendorList.map((v, i) => (
                              <div key={i} className="flex justify-between items-center opacity-70">
                                <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)]">
                                  From {v.name}
@@ -1310,6 +1299,16 @@ function CheckoutContent() {
                                <p className="text-[10px] lg:text-[12px] font-mono">+{v.fee.toLocaleString()} XAF</p>
                              </div>
                            ))}
+                      </div>
+                   )}
+
+                   {order?.collection_fee > 0 && (
+                      <div className="space-y-2 pt-3 border-t border-[var(--glass-border)]/20">
+                         <div className="flex items-center justify-between">
+                           <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] opacity-55 tracking-tight flex items-center gap-2">
+                             Collection Fee
+                           </p>
+                           <p className="text-[11px] lg:text-[12px] font-mono  font-semibold text-[var(--text-secondary)]">{order.collection_fee.toLocaleString()} XAF</p>
                          </div>
                       </div>
                    )}
@@ -1317,13 +1316,13 @@ function CheckoutContent() {
                    <div className="flex justify-between items-end pt-4 border-t border-[var(--glass-border)]/50">
                       <div>
                          <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)] lg:text-[11px]">Final Total</p>
-                         <p className="font-mono text-2xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums sm:text-3xl">{totalAmount.toLocaleString()}</p>
+                         <p className="font-mono text-2xl font-bold tracking-tight text-[var(--text-primary)] tabular-nums sm:text-3xl">{(order?.total_amount ?? totalAmount).toLocaleString()}</p>
                       </div>
                       <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  pb-2">XAF</p>
                    </div>
                 </div>
 
-                {step === 999 && (
+                {step === 2 && (
                  <div className="space-y-6">
                    <button 
                      onClick={handlePlaceOrder}

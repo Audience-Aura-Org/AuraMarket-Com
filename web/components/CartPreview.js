@@ -1,101 +1,43 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { ArrowRight, Trash2 } from 'lucide-react';
 import api from '@/services/api';
-import { ArrowRight, Plus, Minus, Trash2 } from 'lucide-react';
+import cartStore from '@/services/cartStore';
 
 export default function CartPreview() {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(cartStore.getItems());
   const [loading, setLoading] = useState(true);
-
-  // Helper to safely modify global pending count
-  const setPending = (delta) => {
-    if (typeof window !== 'undefined') {
-      window.__AURA_PENDING_CART = Math.max(0, (window.__AURA_PENDING_CART || 0) + delta);
-    }
-  };
-
-  const fetchCart = async (force = false) => {
-    if (typeof window !== 'undefined' && window.__AURA_PENDING_CART > 0) return;
-    
-    // Guest protection: Don't call if no token exists
-    if (typeof window !== 'undefined') {
-       const hasToken = !!localStorage.getItem('aura_token') || !!localStorage.getItem('aura-auth-storage');
-       if (!hasToken) return;
-    }
-
-    try {
-      const res = await api.get('/cart');
-      if (res.data?.success && (!window.__AURA_PENDING_CART)) {
-        setItems((res.data.data.cart?.items || []).map(i => ({
-          id: i._id || (i.product?._id || i.product),
-          productId: i.product?._id || i.product,
-          name: i.product?.name || 'Product',
-          price: i.product?.price || 0,
-          quantity: i.quantity || 1,
-          image: i.product?.images?.[0]?.url || i.product?.images?.[0] || '',
-          vendor_name: i.product?.vendor_id?.store_name || '',
-        })));
-      }
-    } catch { setItems([]); }
-    finally { setLoading(false); }
-  };
+  const [deletingIds, setDeletingIds] = useState(new Set());
 
   useEffect(() => {
-    fetchCart();
-    const handleUpdate = (e) => {
-      if (e.detail?.cart && (!window.__AURA_PENDING_CART)) {
-        setItems((e.detail.cart.items || []).map(i => ({
-          id: i._id || (i.product?._id || i.product),
-          productId: i.product?._id || i.product,
-          name: i.product?.name || 'Product',
-          price: i.product?.price || 0,
-          quantity: i.quantity || 1,
-          image: i.product?.images?.[0]?.url || i.product?.images?.[0] || '',
-          vendor_name: i.product?.vendor_id?.store_name || '',
-        })));
-      } else if (!e.detail?.cart) {
-        fetchCart(true);
-      }
-    };
-    window.addEventListener('cart-updated', handleUpdate);
-    return () => window.removeEventListener('cart-updated', handleUpdate);
+    const unsub = cartStore.subscribe(({ items: newItems }) => {
+      setItems(newItems);
+      setLoading(false);
+    });
+    cartStore.refresh();
+    return unsub;
   }, []);
 
-  const updateQty = async (id, delta) => {
-    setPending(1);
-    setItems(prev => prev.map(it => it.id === id ? { ...it, quantity: Math.max(1, it.quantity + delta) } : it));
+  const removeItem = async (itemId) => {
+    if (deletingIds.has(itemId)) return;
+    setDeletingIds(prev => new Set([...prev, itemId]));
+    cartStore.startMutation();
+    const prev = cartStore.optimisticRemove(itemId);
     try {
-      const res = await api.patch('/cart/item', { item_id: id, quantity_delta: delta });
-      if (res.data?.success) {
-        setPending(-1);
-        if (window.__AURA_PENDING_CART === 0) {
-          window.dispatchEvent(new CustomEvent('cart-updated', { detail: { cart: res.data.data.cart } }));
-        }
-      }
-    } catch (err) {
-      console.error('Failed to update cart item', err);
-      setPending(-1);
-    }
-  };
-
-  const removeItem = async (id) => {
-    setPending(1);
-    const prev = items;
-    setItems(prevItems => prevItems.filter(i => i.id !== id));
-    try {
-      const res = await api.delete('/cart/item', { data: { item_id: id } });
-      if (res.data?.success) {
-        setPending(-1);
-        if (window.__AURA_PENDING_CART === 0) {
-          window.dispatchEvent(new CustomEvent('cart-updated', { detail: { cart: res.data.data.cart } }));
-        }
-      }
+      const res = await api.delete('/cart/item', { data: { item_id: itemId } });
+      if (res.data?.success) cartStore.setCart(res.data.data.cart);
     } catch (err) {
       console.error('Failed to remove item', err);
-      setPending(-1);
-      if (window.__AURA_PENDING_CART === 0) setItems(prev);
+      cartStore.rollback(prev);
+    } finally {
+      cartStore.endMutation();
+      setDeletingIds(prev => {
+        const next = new Set(prev);
+        next.delete(itemId);
+        return next;
+      });
     }
   };
 

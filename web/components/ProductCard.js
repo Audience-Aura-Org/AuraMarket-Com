@@ -117,17 +117,15 @@ export default function ProductCard({ product, layout = 'grid', onOpenChat = nul
   const handleVariantConfirm = async (variantOrProduct) => {
     // Merge parent product name/images into the variant (SKU variants don't carry them)
     const enriched = {
-      ...variantOrProduct,
-      _id: variantOrProduct._id || productId,
-      name: variantOrProduct.name || name,
-      images: variantOrProduct.images?.length ? variantOrProduct.images : images,
+      ...product, // use the original product so we have sku_variants
+      _id: productId,
     };
 
     if (modalActionType === 'buy') {
       router.push(`/checkout?productId=${productId}&quantity=1&variant=${encodeURIComponent(JSON.stringify(variantOrProduct.combination))}`);
     } else {
       setAddingToCart(true);
-      cartStore.addItem({ ...enriched, price: variantOrProduct.price || displayPrice }, 1);
+      cartStore.addItem(enriched, 1, variantOrProduct.combination);
       try {
         const res = await api.post('/cart', { 
           product_id: productId, 

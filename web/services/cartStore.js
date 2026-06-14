@@ -31,21 +31,41 @@ let _sidebarOpen = true;    // Default open on desktop per user preference
 function parseItems(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.map(i => {
+    const hasVariant = i.variant && Object.keys(i.variant).length > 0;
     const regularPrice = Number(i.product?.price || 0);
     const salePrice = Number(i.product?.sale_price || 0);
-    // Use sale_price when it's valid (> 0 and strictly less than regular price)
-    const effectivePrice = salePrice > 0 && salePrice < regularPrice ? salePrice : regularPrice;
+    
+    let effectivePrice;
+    let applicableSalePrice = null;
+    
+    if (hasVariant) {
+      // Variant case: find the selected variant and use its price, no sale price
+      const selectedVariant = i.product?.sku_variants?.find(v => 
+        Object.keys(i.variant).every(key => String(v.combination?.[key] ?? '') === String(i.variant[key]))
+      );
+      effectivePrice = selectedVariant?.price ?? regularPrice;
+    } else {
+      // Non-variant case: use sale price if valid
+      if (salePrice > 0 && salePrice < regularPrice) {
+        effectivePrice = salePrice;
+        applicableSalePrice = salePrice;
+      } else {
+        effectivePrice = regularPrice;
+      }
+    }
+    
     return {
       id: i._id || (i.product?._id || i.product),
       productId: i.product?._id || i.product,
       name: i.product?.name || 'Product',
       price: effectivePrice,
-      sale_price: salePrice > 0 && salePrice < regularPrice ? salePrice : null,
+      sale_price: applicableSalePrice,
       regular_price: regularPrice,
       quantity: i.quantity || 1,
       image: i.product?.images?.[0]?.url || i.product?.images?.[0] || '',
       vendor_name: i.product?.vendor_id?.store_name || 'Vendor',
       vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id || null,
+      variant: i.variant || null,
       raw: i,
     };
   });
@@ -223,24 +243,50 @@ export const cartStore = {
    * Optimistically add an item to the local cart state.
    * This provides the 'Liquid' feel before the server responds.
    */
-  addItem(product, quantity = 1) {
+  addItem(product, quantity = 1, variant = null) {
+    const hasVariant = variant && Object.keys(variant).length > 0;
     const regularPrice = Number(product.price || 0);
     const salePrice = Number(product.sale_price || 0);
-    const displayPrice = salePrice > 0 && salePrice < regularPrice ? salePrice : regularPrice;
+    
+    let effectivePrice;
+    let applicableSalePrice = null;
+    
+    if (hasVariant) {
+      // Variant case: find the selected variant and use its price, no sale price
+      const selectedVariant = product.sku_variants?.find(v => 
+        Object.keys(variant).every(key => String(v.combination?.[key] ?? '') === String(variant[key]))
+      );
+      effectivePrice = selectedVariant?.price ?? regularPrice;
+    } else {
+      // Non-variant case: use sale price if valid
+      if (salePrice > 0 && salePrice < regularPrice) {
+        effectivePrice = salePrice;
+        applicableSalePrice = salePrice;
+      } else {
+        effectivePrice = regularPrice;
+      }
+    }
+    
     const newItem = {
       id: product._id || product.id,
       productId: product._id || product.id,
       name: product.name,
-      price: displayPrice,
-      sale_price: salePrice > 0 && salePrice < regularPrice ? salePrice : null,
+      price: effectivePrice,
+      sale_price: applicableSalePrice,
       regular_price: regularPrice,
       quantity,
       image: product.images?.[0]?.url || product.images?.[0] || '',
       vendor_name: product.vendor_id?.store_name || 'Vendor',
       vendor_id: product.vendor_id?._id || product.vendor_id || null,
+      variant,
     };
 
-    const existingIndex = _items.findIndex(it => it.id === newItem.id);
+    // Find existing item by product ID AND variant
+    const existingIndex = _items.findIndex(it => 
+      it.productId === newItem.productId && 
+      JSON.stringify(it.variant) === JSON.stringify(newItem.variant)
+    );
+    
     if (existingIndex !== -1) {
       // Immutable update — new array + new item object
       _items = _items.map((it, i) =>
