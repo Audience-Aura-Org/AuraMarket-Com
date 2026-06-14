@@ -850,21 +850,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               
               {previewFrame}
 
-              {type === 'video' && videoMeta && previewUrl && (
-                <div className="mt-2">
-                  <StatusVideoTrimmer
-                    previewUrl={previewUrl}
-                    duration={videoMeta.duration}
-                    fileSize={file?.size || 0}
-                    trimStart={trimStart}
-                    trimEnd={trimEnd}
-                    onTrimStartChange={setTrimStart}
-                    onTrimEndChange={setTrimEnd}
-                    onEditingChange={setEditingVideo}
-                  />
-                </div>
-              )}
-
               {error && (
                 <div className="flex items-center gap-2.5 rounded-2xl border border-red-500/20 bg-red-500/8 p-3 text-red-500">
                   <AlertCircle className="size-4 shrink-0" />
@@ -874,6 +859,18 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             </div>
 
             <div className="flex max-h-[76vh] flex-col justify-between gap-6 overflow-y-auto p-5 no-scrollbar md:p-7">
+              {type === 'video' && videoMeta && previewUrl && (
+                <StatusVideoTrimmer
+                  previewUrl={previewUrl}
+                  duration={videoMeta.duration}
+                  fileSize={file?.size || 0}
+                  trimStart={trimStart}
+                  trimEnd={trimEnd}
+                  onTrimStartChange={setTrimStart}
+                  onTrimEndChange={setTrimEnd}
+                  onEditingChange={setEditingVideo}
+                />
+              )}
               {metadataOptions}
               <div className="pt-6 border-t border-[var(--glass-border)]">
                 {submitButton}
