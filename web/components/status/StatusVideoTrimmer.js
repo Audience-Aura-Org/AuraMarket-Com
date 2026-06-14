@@ -205,13 +205,15 @@ export default function StatusVideoTrimmer({
         <div className="flex flex-col justify-center gap-4">
           {/* Timeline Info */}
           <div className="space-y-1">
-            <div className="flex items-center justify-between text-[11px] sm:text-[12px] font-semibold text-[var(--text-secondary)]">
-              <span className="flex items-center gap-1.5">
-                <span className="text-[var(--accent)] font-bold">Selection:</span>
-                <span className="font-mono text-[var(--text-primary)]">{timelineLabel}</span>
-              </span>
-              <span className="font-mono">Total: {formatTime(selectedLength)}</span>
-            </div>
+            <span className="block text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">
+              Selection:
+            </span>
+            <span className="block text-[15px] sm:text-[16px] font-mono font-bold text-[var(--text-primary)] tracking-wide">
+              {timelineLabel}
+            </span>
+            <span className="block text-xs font-bold text-[var(--accent)] mt-0.5">
+              Total: {formatTime(selectedLength)}
+            </span>
           </div>
 
           {/* Timeline Slider with Proximity Check */}
