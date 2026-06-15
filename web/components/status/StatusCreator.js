@@ -161,8 +161,15 @@ async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_V
   video.playsInline = true;
   video.preload = 'auto';
   video.crossOrigin = 'anonymous';
+  video.style.position = 'fixed';
+  video.style.left = '-9999px';
+  video.style.top = '-9999px';
+  video.style.width = '1px';
+  video.style.height = '1px';
 
   try {
+    document.body.appendChild(video);
+
     await new Promise((resolve, reject) => {
       video.onloadedmetadata = resolve;
       video.onerror = () => reject(new Error('Could not load video for editing.'));
@@ -188,14 +195,22 @@ async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_V
     });
 
     let stopped = false;
+    let drawTimer = null;
+    const stopExport = () => {
+      if (stopped) return;
+      stopped = true;
+      if (drawTimer) {
+        window.clearInterval(drawTimer);
+        drawTimer = null;
+      }
+      video.pause();
+      if (recorder.state !== 'inactive') recorder.stop();
+    };
+
     const recorded = new Promise((resolve, reject) => {
       const maxExportMs = Math.ceil(duration * 1000) + 5000;
       const timeoutId = window.setTimeout(() => {
-        if (recorder.state !== 'inactive') {
-          stopped = true;
-          video.pause();
-          recorder.stop();
-        }
+        stopExport();
       }, maxExportMs);
       recorder.ondataavailable = (event) => {
         if (event.data?.size) chunks.push(event.data);
@@ -224,26 +239,33 @@ async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_V
       const elapsed = Math.max(elapsedByVideo, elapsedByClock);
       onProgress?.(Math.min(95, Math.round((elapsed / Math.max(duration, 1)) * 95)));
       if (elapsed >= duration || video.ended) {
-        stopped = true;
-        video.pause();
-        if (recorder.state !== 'inactive') recorder.stop();
+        stopExport();
         return;
       }
-      requestAnimationFrame(draw);
     };
 
     recorder.start(500);
     exportStartedAt = performance.now();
-    await Promise.race([
-      video.play(),
-      new Promise((_, reject) => {
-        window.setTimeout(() => reject(new Error('Video export could not start. Try trimming a shorter clip.')), 5000);
-      }),
-    ]);
+    try {
+      await Promise.race([
+        video.play(),
+        new Promise((_, reject) => {
+          window.setTimeout(() => reject(new Error('Video export could not start. Try trimming a shorter clip.')), 5000);
+        }),
+      ]);
+    } catch (playError) {
+      stopExport();
+      await recorded.catch(() => {});
+      throw playError;
+    }
+    drawTimer = window.setInterval(draw, 1000 / 30);
     draw();
     await recorded;
 
     const blob = new Blob(chunks, { type: mimeType.split(';')[0] || 'video/webm' });
+    if (!blob.size) {
+      throw new Error('Video export produced an empty clip. Try trimming a shorter section.');
+    }
     const baseName = (file.name || 'status-video').replace(/\.[^.]+$/, '');
     return new File([blob], `${baseName}-story.webm`, {
       type: blob.type || 'video/webm',
@@ -251,6 +273,7 @@ async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_V
     });
   } finally {
     video.pause();
+    video.remove();
     URL.revokeObjectURL(sourceUrl);
   }
 }
