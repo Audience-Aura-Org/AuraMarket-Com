@@ -70,7 +70,6 @@ const OFFLINE_CACHEABLE_ROUTES = [
   /^categories(?:\/|$)/,
   /^vendors(?:\/|$)/,
   /^statuses(?:\/|$)/,
-  /^chat(?:\/|$)/,
   /^reviews\/product(?:\/|$)/,
 ];
 
@@ -411,4 +410,3 @@ api.get = async (url, config = {}) => {
 };
 
 export default api;
-
