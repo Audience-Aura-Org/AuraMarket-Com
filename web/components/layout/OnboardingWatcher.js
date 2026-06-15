@@ -12,9 +12,9 @@ export default function OnboardingWatcher() {
   useEffect(() => {
     const skipAuthProbePrefixes = ['/login', '/signup', '/register', '/auth', '/onboarding'];
     const shouldSkipAuthProbe = pathname === '/' || skipAuthProbePrefixes.some((prefix) => pathname?.startsWith(prefix));
-    if (!hasHydrated || authChecked || loading || user || shouldSkipAuthProbe) return;
+    if (!hasHydrated || authChecked || loading || shouldSkipAuthProbe) return;
     fetchMe();
-  }, [authChecked, fetchMe, hasHydrated, loading, pathname, user]);
+  }, [authChecked, fetchMe, hasHydrated, loading, pathname]);
  
   // Pre-fetch followed list as soon as authenticated to avoid flicker
   useEffect(() => {
