@@ -474,7 +474,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const partnerId = event.detail?.partnerId?.toString();
       if (!partnerId) return;
       setActiveConversation(partnerId, event.detail?.partnerData || null);
-      loadConversation(partnerId, 1, { silent: true });
+        loadConversation(partnerId, 1, {
+          silent: true,
+          skipProfile: Boolean(event.detail?.partnerData),
+        });
       queuePinToLatest([0, 80, 180, 360]);
     };
     window.addEventListener('aura_chat_focus', handleFocus);
@@ -550,9 +553,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         chatEndpoint = `/chat/admin/all?userA=${pid}&userB=${pid2}&page=${pageNum}&limit=30`;
       }
 
+      const shouldFetchProfile = pageNum === 1 && !options.skipProfile && !(
+        activePartnerId?.toString?.() === pid?.toString?.() &&
+        (partnerInfo?.name || partnerInfo?.store_name || partnerInfo?.branding?.logo || partnerInfo?.avatar)
+      );
+
       const [chatRes, partnerRes] = await Promise.all([
         api.get(chatEndpoint),
-        pageNum === 1 && !options.skipProfile ? api.get(`/auth/users/${pid}`).catch(() => null) : Promise.resolve(null)
+        shouldFetchProfile ? api.get(`/auth/users/${pid}`).catch(() => null) : Promise.resolve(null)
       ]);
 
       if (chatRes.data.success) {
@@ -581,7 +589,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           if (!silent || (incomingLastId && incomingLastId !== previousLastId)) {
             scrollToBottom(silent ? 'smooth' : 'auto');
           }
-          markAsRead(pid);
+          const hasUnreadFromPartner = newMsgs.some((msg) =>
+            toId(msg.sender_id) === pid?.toString?.() && !msg.read_status
+          );
+          if (hasUnreadFromPartner) {
+            markAsRead(pid);
+          }
         }
       }
       
@@ -759,6 +772,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       client_id: `client-${sendStamp}-${Math.random().toString(36).slice(2)}`,
       text,
       image_url: imageUrl,
+      product_reference: product ? {
+        _id: product._id,
+        name: product.name,
+        price: product.price,
+        images: product.images,
+      } : null,
       sender_id: user?._id,
       receiver_id: sendPartnerId,
       createdAt: new Date().toISOString(),

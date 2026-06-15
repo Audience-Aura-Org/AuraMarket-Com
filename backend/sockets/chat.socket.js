@@ -12,6 +12,8 @@ const { sendNotification } = require('../utils/notifier');
 const { getRedis, getRedisDuplicate, redisFeatures } = require('../config/redis');
 const { JWT_SECRET } = require('../config/env');
 
+const PRODUCT_REFERENCE_SELECT = '_id name price images';
+
 const socketTransports = (process.env.SOCKET_TRANSPORTS || 'websocket,polling')
   .split(',')
   .map((transport) => transport.trim())
@@ -52,6 +54,20 @@ const roomHasSockets = async (io, room) => {
   } catch {
     return Boolean(io.sockets.adapter.rooms.get(room.toString())?.size);
   }
+};
+
+const sanitizeProductReference = (product) => {
+  if (!product || typeof product !== 'object') return product || null;
+
+  const source = product.toObject ? product.toObject() : product;
+  return {
+    _id: source._id,
+    name: source.name,
+    price: source.price,
+    images: Array.isArray(source.images) && source.images.length > 0
+      ? [source.images[0]]
+      : [],
+  };
 };
 
 const mapChatSockets = (server) => {
@@ -172,9 +188,14 @@ const mapChatSockets = (server) => {
         });
 
         const populatedMessage = await Message.findById(message._id)
-          .populate('product_reference', 'name price images')
+          .populate('product_reference', PRODUCT_REFERENCE_SELECT)
           .populate('sender_id', 'name avatar role is_online last_seen')
-          .populate('receiver_id', 'name avatar role is_online last_seen');
+          .populate('receiver_id', 'name avatar role is_online last_seen')
+          .lean();
+
+        if (populatedMessage?.product_reference) {
+          populatedMessage.product_reference = sanitizeProductReference(populatedMessage.product_reference);
+        }
 
         io.to(receiver_id.toString()).emit('receive_message', populatedMessage);
         io.to(socket.userId.toString()).emit('sent_message_echo', populatedMessage);

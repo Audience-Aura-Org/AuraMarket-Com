@@ -7,7 +7,10 @@
  */
 
 const Message = require('../models/Message.model');
+const Product = require('../models/Product.model');
 const mongoose = require('mongoose');
+
+const PRODUCT_REFERENCE_SELECT = '_id name price images';
 
 const roomHasSockets = async (io, room) => {
   if (!io || !room) return false;
@@ -17,6 +20,58 @@ const roomHasSockets = async (io, room) => {
   } catch {
     return Boolean(io.sockets?.adapter?.rooms?.get(room.toString())?.size);
   }
+};
+
+const buildParticipantSnapshot = (user) => {
+  if (!user?._id) return user;
+  return {
+    _id: user._id,
+    name: user.name,
+    avatar: user.avatar || null,
+    role: user.role,
+    branding: user.branding || {},
+    is_online: user.is_online,
+    last_seen: user.last_seen,
+  };
+};
+
+const sanitizeProductReference = (product) => {
+  if (!product || typeof product !== 'object') return product || null;
+
+  const source = product.toObject ? product.toObject() : product;
+  return {
+    _id: source._id,
+    name: source.name,
+    price: source.price,
+    images: Array.isArray(source.images) && source.images.length > 0
+      ? [source.images[0]]
+      : [],
+  };
+};
+
+const sanitizeMessageProductReference = (message) => {
+  if (!message?.product_reference) return message;
+  return {
+    ...message,
+    product_reference: sanitizeProductReference(message.product_reference),
+  };
+};
+
+const buildRealtimeMessagePayload = async ({ messageDoc, sender, receiverId, productReference, clientId }) => {
+  const payload = messageDoc?.toObject ? messageDoc.toObject() : { ...messageDoc };
+  payload.sender_id = buildParticipantSnapshot(sender);
+  payload.receiver_id = receiverId?.toString?.() || receiverId;
+
+  if (productReference) {
+    payload.product_reference = await Product.findById(productReference)
+      .select(PRODUCT_REFERENCE_SELECT)
+      .lean()
+      .then(sanitizeProductReference)
+      .catch(() => productReference);
+  }
+
+  if (clientId) payload.client_id = clientId;
+  return payload;
 };
 
 // ─────────────────────────────────────────────
@@ -41,10 +96,6 @@ const getConversation = async (req, res, next) => {
       deleted_for: { $ne: userObjectId }
     });
 
-    // For page > 1 we fetch older messages (skip from the end)
-    const skip = Math.max(0, total - page * limit);
-    const take = total - (page - 1) * limit < limit ? total - (page - 1) * limit : limit;
-
     const messages = await Message.find({
       $or: [
         { sender_id: userObjectId, receiver_id: partnerObjectId },
@@ -52,12 +103,22 @@ const getConversation = async (req, res, next) => {
       ],
       deleted_for: { $ne: userObjectId }
     })
-      .populate('product_reference', 'name price images')
-      .sort('createdAt')
-      .skip(skip)
-      .limit(take);
+      .populate('product_reference', PRODUCT_REFERENCE_SELECT)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
 
-    res.status(200).json({ success: true, count: messages.length, data: { messages, total, page, limit } });
+    res.status(200).json({
+      success: true,
+      count: messages.length,
+      data: {
+        messages: messages.map(sanitizeMessageProductReference).reverse(),
+        total,
+        page,
+        limit,
+      }
+    });
   } catch (error) {
     next(error);
   }
@@ -99,6 +160,8 @@ const getUserInbox = async (req, res, next) => {
       },
     ]);
 
+    const partnerIds = [];
+
     // Populate user identities securely across the aggregated items
     const populatedInbox = await Message.populate(inbox, {
       path: 'latestMessage.sender_id latestMessage.receiver_id',
@@ -106,14 +169,42 @@ const getUserInbox = async (req, res, next) => {
       model: 'User', // Required inside Aggregation populates
     });
 
+    populatedInbox.forEach((item) => {
+      const msg = item.latestMessage;
+      const senderId = msg?.sender_id?._id?.toString() || msg?.sender_id?.toString();
+      const partner = senderId === req.user._id.toString() ? msg?.receiver_id : msg?.sender_id;
+      const partnerId = partner?._id?.toString?.() || partner?.toString?.();
+      if (partnerId) partnerIds.push(new mongoose.Types.ObjectId(partnerId));
+    });
+
+    const unreadRows = partnerIds.length
+      ? await Message.aggregate([
+          {
+            $match: {
+              receiver_id: new mongoose.Types.ObjectId(req.user._id),
+              sender_id: { $in: partnerIds },
+              read_status: false,
+            },
+          },
+          {
+            $group: {
+              _id: '$sender_id',
+              count: { $sum: 1 },
+            },
+          },
+        ])
+      : [];
+
+    const unreadCountMap = new Map(unreadRows.map((row) => [row._id.toString(), row.count]));
+
     // Format output mapping neatly to hide the complex Object groupings
-    const activeChats = await Promise.all(populatedInbox
+    const activeChats = populatedInbox
       .filter((item) => {
         const msg = item.latestMessage;
         // Skip messages where user documents have been deleted/unpopulated
         return msg && msg.sender_id && msg.receiver_id;
       })
-      .map(async (item) => {
+      .map((item) => {
         const msg = item.latestMessage;
         // Determine the "other user" reliably safely
         const senderId = msg.sender_id?._id?.toString() || msg.sender_id?.toString();
@@ -121,12 +212,7 @@ const getUserInbox = async (req, res, next) => {
           ? msg.receiver_id
           : msg.sender_id;
 
-        // Calculate unread count for this conversation
-        const unreadCount = await Message.countDocuments({
-          sender_id: partner._id,
-          receiver_id: req.user._id,
-          read_status: false
-        });
+        const unreadCount = unreadCountMap.get(partner._id.toString()) || 0;
 
         return {
           partner,
@@ -137,7 +223,7 @@ const getUserInbox = async (req, res, next) => {
           read_status: unreadCount === 0,
           date: msg.createdAt,
         };
-      }));
+      });
 
     res.status(200).json({ success: true, count: activeChats.length, data: { activeChats } });
   } catch (error) {
@@ -174,14 +260,13 @@ const sendMessage = async (req, res, next) => {
       delivered_status: receiverOnline,
     });
 
-    // Populate for immediate UI consumption if needed
-    const populated = await Message.findById(message._id)
-      .populate('product_reference', 'name price images')
-      .populate('sender_id', 'name avatar role branding is_online last_seen')
-      .populate('receiver_id', 'name avatar role branding is_online last_seen');
-
-    const messagePayload = populated.toObject ? populated.toObject() : populated;
-    if (client_id) messagePayload.client_id = client_id;
+    const messagePayload = await buildRealtimeMessagePayload({
+      messageDoc: message,
+      sender: req.user,
+      receiverId: receiver_id,
+      productReference: product_reference,
+      clientId: client_id,
+    });
 
     // Emit socket events for real-time updates across clients
     if (io) {
@@ -200,14 +285,18 @@ const sendMessage = async (req, res, next) => {
       
       console.log(`✅ [API] Message broadcast: ${req.user._id} -> ${receiver_id}`);
 
-      // 🚀 PWA Push & In-App Signal for Chat
+    } else {
+      console.warn(`⚠️ [API] IO instance not available, socket events not emitted`);
+    }
+
+    if (!receiverOnline) {
+      // Only fall back to push when the recipient has no active socket session.
       (async () => {
         try {
           const { sendNotification } = require('../utils/notifier');
           const senderName = req.user.branding?.store_name || req.user.name || 'Someone';
           const senderAvatar = req.user.avatar || null;
 
-          // Smart body: show message text truncated, or product context
           let body;
           if (text && text.trim()) {
             body = text.length > 80 ? text.slice(0, 77) + '...' : text;
@@ -220,7 +309,7 @@ const sendMessage = async (req, res, next) => {
           }
 
           await sendNotification(req.app, receiver_id, {
-            title: senderName,              // Just the name — clean & direct
+            title: senderName,
             message: body,
             type: 'message',
             senderAvatar,
@@ -231,8 +320,6 @@ const sendMessage = async (req, res, next) => {
           console.error(`❌ [Notifier] Dispatch failed:`, err.message);
         }
       })();
-    } else {
-      console.warn(`⚠️ [API] IO instance not available, socket events not emitted`);
     }
 
     res.status(201).json({ success: true, data: { message: messagePayload } });
@@ -291,13 +378,14 @@ const getAllMessagesAdmin = async (req, res, next) => {
     const messages = await Message.find(query)
       .populate('sender_id', 'name avatar role email branding')
       .populate('receiver_id', 'name avatar role email branding')
-      .populate('product_reference', 'name price images')
-      .sort({ createdAt: -1 });
+      .populate('product_reference', PRODUCT_REFERENCE_SELECT)
+      .sort({ createdAt: -1 })
+      .lean();
 
     res.status(200).json({
       success: true,
       count: messages.length,
-      data: { messages },
+      data: { messages: messages.map(sanitizeMessageProductReference) },
     });
   } catch (error) {
     next(error);

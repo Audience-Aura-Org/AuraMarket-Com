@@ -2,6 +2,44 @@
 
 import api from '@/services/api';
 
+const NATIVE_PUSH_TOKEN_KEY = 'aura_native_push_token';
+const PENDING_PUSH_INTENT_KEY = 'aura_pending_push_intent';
+
+const saveNativePushToken = (token) => {
+  if (typeof window === 'undefined' || !token) return;
+  window.localStorage.setItem(NATIVE_PUSH_TOKEN_KEY, token);
+};
+
+const readNativePushToken = () => {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(NATIVE_PUSH_TOKEN_KEY) || null;
+};
+
+const clearNativePushToken = () => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(NATIVE_PUSH_TOKEN_KEY);
+};
+
+const storePendingPushIntent = (intent) => {
+  if (typeof window === 'undefined' || !intent) return;
+  window.localStorage.setItem(PENDING_PUSH_INTENT_KEY, JSON.stringify({
+    ...intent,
+    storedAt: Date.now(),
+  }));
+};
+
+export function consumePendingNativePushIntent() {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem(PENDING_PUSH_INTENT_KEY);
+  if (!raw) return null;
+  window.localStorage.removeItem(PENDING_PUSH_INTENT_KEY);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 async function getNativePushModules() {
   if (typeof window === 'undefined') return null;
 
@@ -38,6 +76,7 @@ export async function registerNativeAndroidPush() {
 
     PushNotifications.addListener('registration', async ({ value }) => {
       if (!value) return;
+      saveNativePushToken(value);
       try {
         await api.post('/push/native-token', {
           token: value,
@@ -55,8 +94,14 @@ export async function registerNativeAndroidPush() {
     });
 
     PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
-      const url = notification?.data?.url || notification?.data?.link || '/notifications';
-      window.location.href = url;
+      const intent = {
+        url: notification?.data?.url || notification?.data?.link || '/notifications',
+        type: notification?.data?.type || 'default',
+        senderId: notification?.data?.sender_id || notification?.data?.senderId || null,
+        senderData: notification?.data?.senderData || null,
+      };
+      storePendingPushIntent(intent);
+      window.dispatchEvent(new CustomEvent('aura:push-notification-click', { detail: intent }));
     });
 
     await PushNotifications.register();
@@ -70,6 +115,18 @@ export async function registerNativeAndroidPush() {
 export async function unregisterNativeAndroidPushToken() {
   try {
     const modules = await getNativePushModules();
+    const token = readNativePushToken();
+
+    if (token) {
+      await api.delete('/push/native-token', {
+        data: { token },
+        __skipRetry: true,
+      }).catch((error) => {
+        if (![401, 403].includes(error?.response?.status)) throw error;
+      });
+      clearNativePushToken();
+    }
+
     if (!modules) return { success: true, unsupported: true };
 
     await modules.PushNotifications.removeAllListeners();

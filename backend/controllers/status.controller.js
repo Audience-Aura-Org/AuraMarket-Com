@@ -4,6 +4,53 @@ const Follow = require('../models/Follow.model');
 const Notification = require('../models/Notification.model');
 const { deleteS3ObjectByUrl } = require('../utils/s3');
 
+const STATUS_STORY_SELECT = [
+  '_id',
+  'vendor_id',
+  'type',
+  'content_url',
+  'thumbnail_url',
+  'text_content',
+  'linked_product',
+  'caption',
+  'category',
+  'expires_at',
+  'views_count',
+  'likes_count',
+  'createdAt',
+  'segment_start',
+  'segment_end',
+  'segment_index',
+  'segment_count',
+  'viewer_ids',
+].join(' ');
+
+const STATUS_VENDOR_POPULATE = {
+  path: 'vendor_id',
+  select: 'store_name verified user_id',
+  populate: { path: 'user_id', select: 'avatar branding' },
+};
+
+const STATUS_LINKED_PRODUCT_POPULATE = {
+  path: 'linked_product',
+  select: 'name price sale_price images',
+};
+
+const formatStatusPayload = (status, userId = null) => {
+  if (!status) return status;
+
+  const viewerIds = Array.isArray(status.viewer_ids) ? status.viewer_ids : [];
+  const isViewed = userId
+    ? viewerIds.some((id) => id?.toString() === userId.toString())
+    : false;
+
+  const { viewer_ids, ...rest } = status;
+  return {
+    ...rest,
+    isViewed,
+  };
+};
+
 // @desc    Create a new status
 // @route   POST /api/statuses
 // @access  Private (Vendor only)
@@ -70,6 +117,8 @@ exports.getActiveStatuses = async (req, res) => {
     const { mode = 'global', sort = 'trending', category, page = 1, limit = 40 } = req.query;
     const now = new Date();
     const query = { expires_at: { $gt: now } };
+    const pageNumber = Math.max(1, Number(page) || 1);
+    const pageLimit = Math.min(50, Math.max(1, Number(limit) || 40));
 
     if (category && category !== 'All') {
       query.category = category;
@@ -81,6 +130,9 @@ exports.getActiveStatuses = async (req, res) => {
         return res.status(200).json({ success: true, count: 0, data: [] });
       }
       const followed = await Follow.find({ user_id: req.user._id || req.user.id }).select('vendor_id').lean();
+      if (!followed.length) {
+        return res.status(200).json({ success: true, count: 0, data: [] });
+      }
       query.vendor_id = { $in: followed.map(f => f.vendor_id) };
     }
 
@@ -93,29 +145,16 @@ exports.getActiveStatuses = async (req, res) => {
     }
 
     const statuses = await Status.find(query)
+      .select(STATUS_STORY_SELECT)
       .sort(sortOption)
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit))
-      .populate({
-        path: 'vendor_id',
-        select: 'store_name user_id',
-        populate: { path: 'user_id', select: 'avatar branding' }
-      })
-      .populate({
-        path: 'linked_product',
-        select: 'name price compare_at_price has_variants sku_variants images'
-      })
+      .skip((pageNumber - 1) * pageLimit)
+      .limit(pageLimit)
+      .populate(STATUS_VENDOR_POPULATE)
+      .populate(STATUS_LINKED_PRODUCT_POPULATE)
       .lean();
 
     const userId = req.user?._id || req.user?.id;
-    const formattedStatuses = statuses.map(s => {
-      const viewerIds = s.viewer_ids || [];
-      const isViewed = userId ? viewerIds.some(id => id.toString() === userId.toString()) : false;
-      return {
-        ...s,
-        isViewed
-      };
-    });
+    const formattedStatuses = statuses.map((status) => formatStatusPayload(status, userId));
 
     res.status(200).json({ success: true, count: formattedStatuses.length, data: formattedStatuses });
   } catch (error) {
@@ -132,15 +171,9 @@ exports.getStatusById = async (req, res) => {
       _id: req.params.id,
       expires_at: { $gt: new Date() },
     })
-      .populate({
-        path: 'vendor_id',
-        select: 'store_name logo_url user_id rating average_rating total_reviews',
-        populate: { path: 'user_id', select: 'name avatar' },
-      })
-      .populate({
-        path: 'linked_product',
-        select: 'name price compare_at_price has_variants sku_variants images',
-      })
+      .select(STATUS_STORY_SELECT)
+      .populate(STATUS_VENDOR_POPULATE)
+      .populate(STATUS_LINKED_PRODUCT_POPULATE)
       .lean();
 
     if (!status) {
@@ -148,10 +181,7 @@ exports.getStatusById = async (req, res) => {
     }
 
     const userId = req.user?._id || req.user?.id;
-    const viewerIds = status.viewer_ids || [];
-    const isViewed = userId ? viewerIds.some(id => id.toString() === userId.toString()) : false;
-
-    res.status(200).json({ success: true, data: { ...status, isViewed } });
+    res.status(200).json({ success: true, data: formatStatusPayload(status, userId) });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -168,8 +198,9 @@ exports.reactToStatus = async (req, res) => {
     // Check if already reacted
     const userId = req.user._id || req.user.id;
     const index = status.reactions.findIndex(r => r.user_id.toString() === userId.toString());
+    const hasLiked = index === -1;
     
-    if (index === -1) {
+    if (hasLiked) {
       status.reactions.push({ user_id: userId });
       
       // Notify Vendor (once per reaction)
@@ -198,7 +229,13 @@ exports.reactToStatus = async (req, res) => {
     }
 
     await status.save();
-    res.status(200).json({ success: true, data: status });
+    res.status(200).json({
+      success: true,
+      data: {
+        liked: hasLiked,
+        likes_count: status.likes_count,
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -246,11 +283,10 @@ exports.getMyStatuses = async (req, res) => {
     if (!vendor) return res.status(403).json({ success: false, message: 'Vendor profile required' });
 
     const statuses = await Status.find({ vendor_id: vendor._id })
+      .select('_id type content_url thumbnail_url text_content linked_product caption category expires_at views_count likes_count createdAt segment_start segment_end segment_index segment_count')
       .sort({ createdAt: -1 })
-      .populate({
-        path: 'linked_product',
-        select: 'name price compare_at_price has_variants sku_variants images'
-      });
+      .populate(STATUS_LINKED_PRODUCT_POPULATE)
+      .lean();
 
     res.status(200).json({ success: true, data: statuses });
   } catch (error) {

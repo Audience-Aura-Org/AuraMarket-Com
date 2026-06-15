@@ -241,12 +241,15 @@ const shouldRetry = (error) => {
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 const isInvalidStoredSession = (status, message = '') => {
-  if (status !== 401) return false;
   const normalized = String(message).toLowerCase();
-  return normalized.includes('user belonging to this token no longer exists') ||
-    normalized.includes('session is no longer valid') ||
-    normalized.includes('jwt expired') ||
-    normalized.includes('invalid token');
+  if (status === 401) {
+    return normalized.includes('user belonging to this token no longer exists') ||
+      normalized.includes('session is no longer valid') ||
+      normalized.includes('jwt expired') ||
+      normalized.includes('invalid token');
+  }
+
+  return status === 403 && normalized.includes('deactivated');
 };
 
 let lastInvalidSessionNoticeAt = 0;

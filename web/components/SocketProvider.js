@@ -6,6 +6,7 @@ import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useChat } from '@/context/ChatContext';
 import { MessageCircle, Bell, Package, Truck, CreditCard, X } from 'lucide-react';
+import { consumePendingNativePushIntent } from '@/lib/native-push';
 
 /**
  * Maps notification type → { icon, color, href }
@@ -143,7 +144,7 @@ const normalizeAppRoute = (route) => {
 };
 
 export default function SocketProvider({ children }) {
-  const { user, logout, refreshWalletBalance, setWalletBalance } = useAuthStore();
+  const { user, logout, refreshWalletBalance, setWalletBalance, authChecked, hasHydrated, fetchMe } = useAuthStore();
   const router = useRouter();
   const { isOpen, activePartnerId, openChat } = useChat();
 
@@ -163,6 +164,35 @@ export default function SocketProvider({ children }) {
   useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
   useEffect(() => { activePartnerIdRef.current = activePartnerId; }, [activePartnerId]);
 
+  const isProtectedAppRoute = (route = '') => (
+    ['/vendor', '/admin', '/logistics', '/messages', '/chat', '/cart', '/checkout', '/orders', '/profile', '/wallet', '/notifications', '/settings']
+      .some((prefix) => String(route || '').startsWith(prefix))
+  );
+
+  const ensureSessionForRoute = async (route) => {
+    const target = normalizeAppRoute(route);
+    if (!target || !isProtectedAppRoute(target)) return true;
+
+    if (!hasHydrated) return false;
+
+    const state = useAuthStore.getState();
+    if (!state.user?._id || !state.isAuthenticated) {
+      router.replace('/login');
+      return false;
+    }
+
+    if (!state.authChecked) {
+      const result = await state.fetchMe({ force: true }).catch(() => ({ success: false }));
+      const refreshedState = useAuthStore.getState();
+      if (!result?.success || !refreshedState.user?._id || !refreshedState.isAuthenticated) {
+        router.replace('/login');
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const openMessageRoute = (partnerId, partnerData = null, route = null) => {
     const target = normalizeAppRoute(route || (partnerId ? `/chat?vendorId=${encodeURIComponent(partnerId)}` : '/chat'));
     if (target) router.push(target);
@@ -172,6 +202,44 @@ export default function SocketProvider({ children }) {
         detail: { partnerId: partnerId.toString(), partnerData, route: target },
       }));
     }
+  };
+
+  const handleNotificationIntent = async ({ route, payload = {}, senderId = null, senderData = null } = {}) => {
+    const targetRoute = normalizeAppRoute(route || payload?.url);
+    if (!targetRoute) return;
+
+    const allowed = await ensureSessionForRoute(targetRoute);
+    if (!allowed) return;
+
+    const resolvedSenderId =
+      senderId ||
+      payload.sender_id ||
+      payload.senderId ||
+      payload.userId ||
+      payload.data?.sender_id ||
+      payload.data?.senderId;
+
+    let partnerId = resolvedSenderId;
+    if (!partnerId && payload.tag && typeof payload.tag === 'string' && payload.tag.startsWith('msg-')) {
+      const parts = payload.tag.split('-');
+      if (parts.length > 1) partnerId = parts[1];
+    }
+
+    const partnerPayload = senderData || payload.sender || payload.senderData || payload.data?.senderData || payload.data?.sender || {
+      _id: partnerId,
+      name: payload.title || payload.name || 'Auradime User',
+      avatar: payload.icon || null,
+      store_name: payload.store_name || payload.storeName,
+    };
+
+    const { is_online, ...partnerNoPresence } = partnerPayload || {};
+
+    if (partnerId) {
+      openMessageRoute(partnerId, partnerNoPresence, targetRoute || `/chat?vendorId=${encodeURIComponent(partnerId)}`);
+      return;
+    }
+
+    router.push(targetRoute);
   };
 
   useEffect(() => {
@@ -327,37 +395,15 @@ export default function SocketProvider({ children }) {
     const onSWMessage = (e) => {
       const msg = e.data;
       if (!msg || msg.type !== 'notification-click') return;
-      const payload = msg.payload || {};
-
-      // Attempt to extract a partner/sender id from common fields
-      const senderId = payload.sender_id || payload.senderId || payload.userId || payload.data?.sender_id || payload.data?.senderId;
-      let partnerId = senderId;
-      if (!partnerId && payload.tag && typeof payload.tag === 'string' && payload.tag.startsWith('msg-')) {
-        const parts = payload.tag.split('-');
-        if (parts.length > 1) partnerId = parts[1];
-      }
-
-      const partnerData = payload.sender || payload.senderData || payload.data?.senderData || payload.data?.sender || {
-        _id: partnerId,
-        name: payload.title || payload.name || 'Auradime User',
-        avatar: payload.icon || null,
-        store_name: payload.store_name || payload.storeName
-      };
-
-      // Strip any presence flag from the push payload — we prefer real-time status
-      const { is_online, ...partnerNoPresence } = partnerData || {};
-
-      const route = normalizeAppRoute(msg.url || payload.url);
-      if (partnerId) {
-        openMessageRoute(partnerId, partnerNoPresence, route || `/chat?vendorId=${encodeURIComponent(partnerId)}`);
-      } else if (payload.url) {
-        router.push(normalizeAppRoute(payload.url));
-      }
+      handleNotificationIntent({
+        route: msg.url,
+        payload: msg.payload || {},
+      });
     };
 
     navigator.serviceWorker.addEventListener('message', onSWMessage);
     return () => navigator.serviceWorker.removeEventListener('message', onSWMessage);
-  }, [openChat, router]);
+  }, [authChecked, fetchMe, hasHydrated, openChat, router, user?._id]);
 
   useEffect(() => {
     let listener;
@@ -372,14 +418,12 @@ export default function SocketProvider({ children }) {
           if (cancelled) return;
 
           const extra = event?.notification?.extra || {};
-          if (extra.type === 'message' && extra.senderId) {
-            openMessageRoute(extra.senderId, extra.senderData || null, extra.route);
-            return;
-          }
-
-          if (extra.route) {
-            router.push(normalizeAppRoute(extra.route));
-          }
+          handleNotificationIntent({
+            route: extra.route,
+            payload: extra,
+            senderId: extra.senderId,
+            senderData: extra.senderData || null,
+          });
         });
       } catch (error) {
         console.warn('[Notifications] Native tap listener skipped:', error?.message || error);
@@ -391,7 +435,30 @@ export default function SocketProvider({ children }) {
       cancelled = true;
       listener?.remove?.();
     };
-  }, [openChat, router]);
+  }, [authChecked, fetchMe, hasHydrated, openChat, router, user?._id]);
+
+  useEffect(() => {
+    if (!hasHydrated || !authChecked) return;
+
+    const handlePendingIntent = (intent) => {
+      if (!intent) return;
+      handleNotificationIntent({
+        route: intent.url,
+        payload: intent,
+        senderId: intent.senderId,
+        senderData: intent.senderData || null,
+      });
+    };
+
+    handlePendingIntent(consumePendingNativePushIntent());
+
+    const onPushIntent = (event) => {
+      handlePendingIntent(event.detail);
+    };
+
+    window.addEventListener('aura:push-notification-click', onPushIntent);
+    return () => window.removeEventListener('aura:push-notification-click', onPushIntent);
+  }, [authChecked, hasHydrated, user?._id]);
 
   // Handle local Cart Added event (browser-side)
   useEffect(() => {

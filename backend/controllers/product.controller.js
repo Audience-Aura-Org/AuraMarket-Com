@@ -14,6 +14,38 @@ const { sendNotification } = require('../utils/notifier');
 const cache = require('../utils/cache');
 const { normalizeUserMedia, normalizeMediaUrl } = require('../utils/media');
 
+const PRODUCT_DETAIL_SELECT = [
+  '_id',
+  'vendor_id',
+  'name',
+  'description',
+  'price',
+  'sale_price',
+  'images',
+  'category',
+  'tags',
+  'stock',
+  'featured',
+  'status',
+  'rating',
+  'specifications',
+  'long_description',
+  'has_variants',
+  'variant_types',
+  'sku_variants',
+  'createdAt',
+  'updatedAt',
+].join(' ');
+
+const PRODUCT_DETAIL_VENDOR_POPULATE = {
+  path: 'vendor_id',
+  select: 'store_name verified user_id store',
+  populate: [
+    { path: 'store', select: 'logo' },
+    { path: 'user_id', select: 'avatar branding' }
+  ]
+};
+
 const normalizePricing = (data = {}, existingProduct = null) => {
   const price = data.price !== undefined ? Number(data.price) : Number(existingProduct?.price || 0);
   const rawSalePrice = data.sale_price;
@@ -265,14 +297,10 @@ const getProducts = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getProductById = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id).populate({
-      path: 'vendor_id',
-      select: 'store_name description rating verified user_id average_response_time',
-      populate: [
-        { path: 'store', select: 'banner logo expected_shipping_time' },
-        { path: 'user_id', select: 'avatar branding' }
-      ]
-    });
+    const product = await Product.findById(req.params.id)
+      .select(PRODUCT_DETAIL_SELECT)
+      .populate(PRODUCT_DETAIL_VENDOR_POPULATE)
+      .lean();
 
     if (!product) {
       return res.status(404).json({ success: false, message: 'Product not found.' });
@@ -293,7 +321,6 @@ const getProductById = async (req, res, next) => {
     if (prodObj.vendor_id && prodObj.vendor_id.user_id) normalizeUserMedia(prodObj.vendor_id.user_id);
     if (prodObj.vendor_id && prodObj.vendor_id.store) {
       if (prodObj.vendor_id.store.logo) prodObj.vendor_id.store.logo = normalizeMediaUrl(prodObj.vendor_id.store.logo);
-      if (prodObj.vendor_id.store.banner) prodObj.vendor_id.store.banner = normalizeMediaUrl(prodObj.vendor_id.store.banner);
     }
 
     res.status(200).json({ success: true, data: { product: prodObj } });

@@ -293,6 +293,18 @@ const deleteAccount = async (req, res, next) => {
   }
 };
 
+const logout = async (_req, res, next) => {
+  try {
+    clearAuthCookie(res);
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ─────────────────────────────────────────────
 // @route   POST /api/auth/register
 // @desc    Register a new user
@@ -616,6 +628,7 @@ module.exports = {
   verify2FALogin,
   sendOtp,
   verifyOtp,
+  logout,
   deleteAccount,
   getMe,
   getUser,

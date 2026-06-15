@@ -14,20 +14,27 @@ const clearClientOnlyState = async () => {
   if (typeof window === 'undefined') return;
   await unsubscribeCurrentPushEndpoint({ removeBrowserSubscription: false }).catch(() => {});
   await unregisterNativeAndroidPushToken().catch(() => {});
+  await api.post('/auth/logout', {}, {
+    __skipRetry: true,
+  }).catch(() => {});
   await clearStoredAuthToken();
   localStorage.removeItem('aura-auth-storage');
   sessionStorage.removeItem('onboarding_skipped');
 };
 
-const isDeletedOrInvalidSession = (err) => {
+const isTerminalSessionError = (err) => {
   const status = err?.response?.status;
   const message = String(err?.response?.data?.message || err?.message || '').toLowerCase();
-  return status === 401 && (
-    message.includes('user belonging to this token no longer exists') ||
-    message.includes('session is no longer valid') ||
-    message.includes('jwt expired') ||
-    message.includes('invalid token')
-  );
+  if (status === 401) {
+    return (
+      message.includes('user belonging to this token no longer exists') ||
+      message.includes('session is no longer valid') ||
+      message.includes('jwt expired') ||
+      message.includes('invalid token')
+    );
+  }
+
+  return status === 403 && message.includes('deactivated');
 };
 
 export const useAuthStore = create(
@@ -191,7 +198,7 @@ export const useAuthStore = create(
           return await fetchMeInFlight;
         } catch (err) {
           lastFetchMeFailureAt = Date.now();
-          if (isDeletedOrInvalidSession(err)) {
+          if (isTerminalSessionError(err)) {
             await clearClientOnlyState();
             set({ user: null, token: null, isAuthenticated: false, authChecked: true, loading: false });
             return { success: false, invalidSession: true };
@@ -222,7 +229,7 @@ export const useAuthStore = create(
           return { success: true };
         } catch (err) {
           const message = err.response?.data?.message || 'Account deletion failed';
-          if (isDeletedOrInvalidSession(err)) {
+          if (isTerminalSessionError(err)) {
             socketService.disconnect();
             await clearClientOnlyState();
             set({
