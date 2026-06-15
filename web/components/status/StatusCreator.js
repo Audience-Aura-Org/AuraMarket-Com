@@ -156,7 +156,8 @@ async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_V
   const sourceUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
   video.src = sourceUrl;
-  video.muted = false;
+  video.muted = true;
+  video.volume = 0;
   video.playsInline = true;
   video.preload = 'auto';
   video.crossOrigin = 'anonymous';
@@ -289,6 +290,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [gradientIndex, setGradientIndex] = useState(0);
 
   const fileInputRef = useRef(null);
+  const productSearchRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
@@ -723,7 +725,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </div>
       </div>
 
-      <div className="space-y-2.5">
+      <div ref={productSearchRef} className="space-y-2.5 scroll-mb-40">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)]">Category</label>
           {!selectedCategory && <span className="text-[10px] font-bold text-red-400">Required</span>}
@@ -793,11 +795,16 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 type="text"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
+                onFocus={() => {
+                  setTimeout(() => {
+                    productSearchRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                  }, 120);
+                }}
                 placeholder="Search your products..."
                 className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-9 pr-4 text-xs font-semibold focus:border-[var(--accent)] outline-none transition-all text-[var(--text-primary)]"
               />
               {searchTerm && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 max-h-40 overflow-y-auto bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl shadow-2xl z-50 p-1 space-y-0.5">
+                <div className="relative z-50 mt-2 max-h-56 overflow-y-auto rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1 shadow-2xl sm:absolute sm:left-0 sm:right-0 sm:top-full sm:mt-1.5 sm:max-h-40">
                   {filteredProducts.length > 0 ? filteredProducts.map(p => (
                     <button
                       key={p._id}
@@ -892,7 +899,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </button>
       </div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto p-4 pb-24 no-scrollbar">
+      <div className="flex-1 space-y-5 overflow-y-auto p-4 pb-[calc(11rem+env(safe-area-inset-bottom))] no-scrollbar">
         {typeSelector}
         {previewFrame}
         {videoPostOptions}
