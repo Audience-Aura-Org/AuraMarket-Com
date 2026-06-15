@@ -187,12 +187,27 @@ async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_V
       audioBitsPerSecond: 96_000,
     });
 
+    let stopped = false;
     const recorded = new Promise((resolve, reject) => {
+      const maxExportMs = Math.ceil(duration * 1000) + 5000;
+      const timeoutId = window.setTimeout(() => {
+        if (recorder.state !== 'inactive') {
+          stopped = true;
+          video.pause();
+          recorder.stop();
+        }
+      }, maxExportMs);
       recorder.ondataavailable = (event) => {
         if (event.data?.size) chunks.push(event.data);
       };
-      recorder.onerror = () => reject(new Error('Video export failed.'));
-      recorder.onstop = resolve;
+      recorder.onerror = () => {
+        window.clearTimeout(timeoutId);
+        reject(new Error('Video export failed.'));
+      };
+      recorder.onstop = () => {
+        window.clearTimeout(timeoutId);
+        resolve();
+      };
     });
 
     await new Promise((resolve) => {
@@ -200,11 +215,13 @@ async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_V
       video.currentTime = start;
     });
 
-    let stopped = false;
+    let exportStartedAt = 0;
     const draw = () => {
       if (stopped) return;
       drawVideoFrame(ctx, video);
-      const elapsed = Math.max(0, video.currentTime - start);
+      const elapsedByVideo = Math.max(0, video.currentTime - start);
+      const elapsedByClock = exportStartedAt ? (performance.now() - exportStartedAt) / 1000 : 0;
+      const elapsed = Math.max(elapsedByVideo, elapsedByClock);
       onProgress?.(Math.min(95, Math.round((elapsed / Math.max(duration, 1)) * 95)));
       if (elapsed >= duration || video.ended) {
         stopped = true;
@@ -216,7 +233,13 @@ async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_V
     };
 
     recorder.start(500);
-    await video.play();
+    exportStartedAt = performance.now();
+    await Promise.race([
+      video.play(),
+      new Promise((_, reject) => {
+        window.setTimeout(() => reject(new Error('Video export could not start. Try trimming a shorter clip.')), 5000);
+      }),
+    ]);
     draw();
     await recorded;
 

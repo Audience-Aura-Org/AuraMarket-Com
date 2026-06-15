@@ -90,10 +90,8 @@ function SubscribeContent() {
       const res = await api.get('/subscriptions/me', { params: { role }, skipClientCache: true });
       const next = res.data.data;
       setStatus(next);
-      setSelectedPlanId((current) => current || next?.plans?.[0]?._id || null);
-      if (next?.subscribed && next?.required) {
-        toast.success(t('subscription.activeToast', 'Subscription active.'));
-      }
+      const currentPlanId = next?.subscription?.plan_id?._id || next?.subscription?.plan_id;
+      setSelectedPlanId((current) => current || currentPlanId || next?.plans?.[0]?._id || null);
     } catch (error) {
       toast.error(error.response?.data?.message || t('subscription.loadFailed', 'Could not load subscription.'));
     } finally {
@@ -207,7 +205,7 @@ function SubscribeContent() {
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <h2 className="text-xl font-bold">{t('subscription.alreadyActive', 'Your subscription is active')}</h2>
-                    <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                    <p className="mt-2 text-sm font-semibold text-[var(--text-secondary)]">
                       {t('subscription.activePlanDetail', 'Current package: {plan}', {
                         plan: activePlan ? t(planTranslationKey(activePlan, 'name'), activePlan.name) : t('subscription.plan', 'Plan'),
                       })}
@@ -243,11 +241,11 @@ function SubscribeContent() {
                     key={plan._id}
                     type="button"
                     onClick={() => setSelectedPlanId(plan._id)}
-                    className={`relative flex min-h-[360px] w-full flex-col rounded-3xl border p-5 text-left transition active:scale-[0.99] ${
+                    className={`relative flex min-h-[330px] w-full flex-col rounded-3xl border p-5 text-left transition active:scale-[0.99] ${
                       isSelectedPlan
                         ? 'border-[var(--accent)] bg-[var(--accent)]/5'
                         : isCurrentPlan
-                          ? 'border-emerald-500/35 bg-emerald-500/5'
+                          ? 'border-emerald-500/50 bg-emerald-500/10 shadow-sm shadow-emerald-500/10'
                         : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'
                     }`}
                   >

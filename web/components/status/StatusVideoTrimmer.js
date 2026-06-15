@@ -32,6 +32,7 @@ export default function StatusVideoTrimmer({
   onEditingChange,
 }) {
   const videoRef = useRef(null);
+  const animationRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(trimStart);
   const safeDuration = Math.max(0.1, Number(duration) || STATUS_VIDEO_MAX_SECONDS);
@@ -62,11 +63,34 @@ export default function StatusVideoTrimmer({
   }, [trimStart, trimEnd]);
 
   useEffect(() => {
+    if (!playing) {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+      return undefined;
+    }
+
+    const tick = () => {
+      const video = videoRef.current;
+      if (!video) return;
+      setCurrentTime(video.currentTime);
+      animationRef.current = requestAnimationFrame(tick);
+    };
+
+    animationRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    };
+  }, [playing]);
+
+  useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     if (video.currentTime < trimStart || video.currentTime > trimEnd) {
       video.currentTime = trimStart;
       setCurrentTime(trimStart);
+    } else {
+      setCurrentTime(video.currentTime);
     }
   }, [trimStart, trimEnd, previewUrl]);
 

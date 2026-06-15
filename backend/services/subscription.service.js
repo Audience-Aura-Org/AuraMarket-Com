@@ -376,7 +376,23 @@ const activateSubscription = async ({
   }
 
   const existing = await getActiveSubscription(userId, role, session);
-  if (existing) return existing;
+  if (existing) {
+    if (String(existing.plan_id?._id || existing.plan_id) === String(plan._id)) {
+      return existing;
+    }
+    existing.status = 'cancelled';
+    existing.history.push({
+      action: 'replaced',
+      note: `Replaced by ${plan.name} subscription.`,
+      by: activatedBy || null,
+      at: new Date(),
+    });
+    if (session) {
+      await existing.save({ session });
+    } else {
+      await existing.save();
+    }
+  }
 
   const activationDate = startedAt instanceof Date && !Number.isNaN(startedAt.getTime()) ? startedAt : new Date();
   const resolvedExpiry = expiresAt === undefined

@@ -89,8 +89,18 @@ const initializeSubscription = async (req, res, next) => {
     }
 
     const current = await getSubscriptionStatus(req.user, role);
-    if (current.subscribed && current.subscription?.status === 'active') {
-      return res.status(200).json({ success: true, message: 'Subscription already active.', data: await serializeStatus(req.user, role) });
+    const currentPlanId = current.subscription?.plan_id?._id || current.subscription?.plan_id;
+    if (
+      current.subscribed &&
+      current.subscription?.status === 'active' &&
+      currentPlanId &&
+      String(currentPlanId) === String(plan._id)
+    ) {
+      return res.status(200).json({
+        success: true,
+        message: 'This package is already active.',
+        data: await serializeStatus(req.user, role),
+      });
     }
 
     if (payment_method === 'wallet') {
