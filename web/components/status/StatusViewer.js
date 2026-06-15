@@ -11,7 +11,7 @@ import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 
 const STORY_DURATION = 5000;
-const VIDEO_PRELOAD_AHEAD = 1;
+const VIDEO_PRELOAD_AHEAD = 2;
 const VIDEO_WAIT_TIMEOUT_MS = 6000;
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
@@ -23,8 +23,8 @@ function preloadMedia(url, type, { eager = false } = {}) {
   if (type === 'video') {
     const existing = videoPreloadMap.get(url);
     if (existing) {
-      if (eager && existing.preload !== 'auto') {
-        existing.preload = 'auto';
+      if (eager && existing.preload !== 'metadata') {
+        existing.preload = 'metadata';
         existing.load();
       }
       return;
@@ -89,7 +89,7 @@ const StoryVideo = memo(function StoryVideo({
 }) {
   const ref = useRef(null);
   const [playbackSrc, setPlaybackSrc] = useState(src);
-  const [videoReady, setVideoReady] = useState(false);
+  const [videoReady, setVideoReady] = useState(() => loadedVideos.has(src));
   const [isWaiting, setIsWaiting]   = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [didRetryUrl, setDidRetryUrl] = useState(false);
@@ -107,8 +107,9 @@ const StoryVideo = memo(function StoryVideo({
     setDidRetryUrl(false);
     setDidRetryCacheBust(false);
     setReloadToken(0);
-    setVideoReady(false);
-    setIsWaiting(false);
+    const alreadyLoaded = loadedVideos.has(src);
+    setVideoReady(alreadyLoaded);
+    setIsWaiting(!alreadyLoaded);
     setHasStarted(false);
     endedSegmentRef.current = false;
   }, [src, safeSegmentStart, safeSegmentEnd]);
@@ -142,8 +143,8 @@ const StoryVideo = memo(function StoryVideo({
     const v = ref.current;
     if (!v) return;
     if (active && !paused) {
-      setIsWaiting(true);
-      if (v.currentSrc !== playbackSrc || v.readyState < 2) v.load();
+      if (v.readyState < 2) setIsWaiting(true);
+      if (v.currentSrc !== playbackSrc && v.readyState < 2) v.load();
       attemptPlay();
     } else {
       v.pause();
@@ -448,17 +449,29 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     const globalIdx = initialStatuses.findIndex((s) => s._id === story._id);
     if (globalIdx === -1) return;
 
-    const keepVideoUrls = [story.content_url];
+    const keepVideoUrls = [story.type === 'video' ? story.content_url : null];
     const prev = initialStatuses[globalIdx - 1];
     if (prev) {
-      preloadMedia(prev.type === 'video' ? prev.thumbnail_url : prev.content_url, prev.type === 'video' ? 'image' : prev.type);
+      if (prev.type === 'video') {
+        preloadMedia(prev.thumbnail_url, 'image');
+        keepVideoUrls.push(prev.content_url);
+        preloadMedia(prev.content_url, 'video');
+      } else {
+        preloadMedia(prev.content_url, prev.type);
+      }
     }
 
     for (let i = globalIdx + 1; i <= globalIdx + VIDEO_PRELOAD_AHEAD; i++) {
       const nextStory = initialStatuses[i];
       if (!nextStory) break;
       const eager = i <= globalIdx + 2;
-      preloadMedia(nextStory.type === 'video' ? nextStory.thumbnail_url : nextStory.content_url, nextStory.type === 'video' ? 'image' : nextStory.type, { eager });
+      if (nextStory.type === 'video') {
+        preloadMedia(nextStory.thumbnail_url, 'image', { eager: true });
+        keepVideoUrls.push(nextStory.content_url);
+        preloadMedia(nextStory.content_url, 'video', { eager });
+      } else {
+        preloadMedia(nextStory.content_url, nextStory.type, { eager });
+      }
     }
 
     cleanupVideoPreloads(keepVideoUrls);
