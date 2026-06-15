@@ -460,45 +460,74 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             : [{ start: trimStart, end: trimEnd, index: 0 }];
           const totalSegments = segments.length;
 
-          for (const segment of segments) {
-            const segmentNumber = segment.index + 1;
+          if (videoPostMode === 'split') {
+            setUploadPhase(totalSegments > 1
+              ? `Uploading video once for ${totalSegments} parts...`
+              : 'Uploading video...'
+            );
+            const uploadRes = await uploadService.uploadSingle(file, 'status-sources', {
+              onProgress: (pct) => setUploadProgress(Math.min(82, Math.round(pct * 0.82))),
+            });
+            if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
+            finalUrl = uploadRes.data.url;
+
+            setUploadPhase('Creating video preview...');
+            const thumbnailFile = await generateVideoThumbnail(file);
+            if (thumbnailFile) {
+              const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
+              if (thumbnailRes.success) thumbnailUrl = thumbnailRes.data.url;
+            }
+
+            for (const segment of segments) {
+              const segmentNumber = segment.index + 1;
+              const clipLength = segment.end - segment.start;
+              if (clipLength > STATUS_VIDEO_MAX_SECONDS + 0.5) {
+                throw new Error(`Story clips must be ${STATUS_VIDEO_MAX_SECONDS} seconds or less.`);
+              }
+
+              setUploadPhase(totalSegments > 1
+                ? `Publishing part ${segmentNumber} of ${totalSegments}...`
+                : 'Publishing story...'
+              );
+              setUploadProgress(Math.min(99, 84 + Math.round((segmentNumber / totalSegments) * 15)));
+              await publishStatus(createStatusPayload({
+                content_url: finalUrl,
+                thumbnail_url: thumbnailUrl,
+                segment_start: segment.start,
+                segment_end: segment.end,
+                segment_index: segment.index,
+                segment_count: totalSegments,
+              }));
+            }
+          } else {
+            const segment = segments[0];
             const clipLength = segment.end - segment.start;
             if (clipLength > STATUS_VIDEO_MAX_SECONDS + 0.5) {
               throw new Error(`Story clips must be ${STATUS_VIDEO_MAX_SECONDS} seconds or less.`);
             }
 
-            setUploadPhase(totalSegments > 1
-              ? `Preparing part ${segmentNumber} of ${totalSegments}...`
-              : 'Preparing video...'
-            );
+            setUploadPhase('Preparing video...');
             const uploadFile = await exportEditedStatusVideo(file, {
               trimStart: segment.start,
               trimEnd: segment.end,
               onProgress: (pct) => {
-                const progress = ((segment.index + (pct / 100)) / totalSegments) * 70;
-                setUploadProgress(Math.min(70, Math.round(progress)));
+                setUploadProgress(Math.min(70, Math.round(pct * 0.7)));
               },
             });
             if (uploadFile.size > STATUS_VIDEO_MAX_BYTES) {
               throw new Error('Edited video is still above 16MB. Shorten the trim and try again.');
             }
 
-            setUploadPhase(totalSegments > 1
-              ? `Uploading part ${segmentNumber} of ${totalSegments}...`
-              : 'Uploading video...'
-            );
+            setUploadPhase('Uploading video...');
             const uploadRes = await uploadService.uploadSingle(uploadFile, 'statuses', {
               onProgress: (pct) => {
-                const progress = 70 + (((segment.index + (pct / 100)) / totalSegments) * 25);
+                const progress = 70 + (pct * 0.25);
                 setUploadProgress(Math.min(95, Math.round(progress)));
               },
             });
             if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
 
-            setUploadPhase(totalSegments > 1
-              ? `Creating preview ${segmentNumber} of ${totalSegments}...`
-              : 'Creating video preview...'
-            );
+            setUploadPhase('Creating video preview...');
             const thumbnailFile = await generateVideoThumbnail(uploadFile);
             let segmentThumbnailUrl = '';
             if (thumbnailFile) {
@@ -506,13 +535,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               if (thumbnailRes.success) segmentThumbnailUrl = thumbnailRes.data.url;
             }
 
-            setUploadPhase(totalSegments > 1
-              ? `Publishing part ${segmentNumber} of ${totalSegments}...`
-              : 'Publishing story...'
-            );
+            setUploadPhase('Publishing story...');
             await publishStatus(createStatusPayload({
               content_url: uploadRes.data.url,
               thumbnail_url: segmentThumbnailUrl,
+              segment_start: 0,
+              segment_end: Math.min(STATUS_VIDEO_MAX_SECONDS, clipLength),
+              segment_index: 0,
+              segment_count: 1,
             }));
           }
         } else {

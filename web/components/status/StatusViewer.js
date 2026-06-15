@@ -76,7 +76,17 @@ function addCacheBust(url) {
 }
 
 // ─── StoryVideo ──────────────────────────────────────────────────────────────
-const StoryVideo = memo(function StoryVideo({ src, poster, muted, active, paused, onEnded, onProgress }) {
+const StoryVideo = memo(function StoryVideo({
+  src,
+  poster,
+  muted,
+  active,
+  paused,
+  onEnded,
+  onProgress,
+  segmentStart = 0,
+  segmentEnd = null,
+}) {
   const ref = useRef(null);
   const [playbackSrc, setPlaybackSrc] = useState(src);
   const [videoReady, setVideoReady] = useState(false);
@@ -86,6 +96,11 @@ const StoryVideo = memo(function StoryVideo({ src, poster, muted, active, paused
   const [didRetryCacheBust, setDidRetryCacheBust] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   const waitTimeoutRef = useRef(null);
+  const endedSegmentRef = useRef(false);
+  const safeSegmentStart = Math.max(0, Number(segmentStart) || 0);
+  const safeSegmentEnd = Number.isFinite(Number(segmentEnd)) && Number(segmentEnd) > safeSegmentStart
+    ? Number(segmentEnd)
+    : null;
 
   useEffect(() => {
     setPlaybackSrc(src);
@@ -95,11 +110,24 @@ const StoryVideo = memo(function StoryVideo({ src, poster, muted, active, paused
     setVideoReady(false);
     setIsWaiting(false);
     setHasStarted(false);
-  }, [src]);
+    endedSegmentRef.current = false;
+  }, [src, safeSegmentStart, safeSegmentEnd]);
+
+  const seekToSegmentStart = useCallback((force = false) => {
+    const v = ref.current;
+    if (!v || !Number.isFinite(v.duration)) return;
+    const target = Math.min(safeSegmentStart, Math.max(v.duration - 0.05, 0));
+    const beforeSegment = v.currentTime < target - 0.2;
+    const afterSegment = safeSegmentEnd && v.currentTime >= safeSegmentEnd - 0.05;
+    if (force || beforeSegment || afterSegment) {
+      v.currentTime = target;
+    }
+  }, [safeSegmentStart, safeSegmentEnd]);
 
   const attemptPlay = useCallback(() => {
     const v = ref.current;
     if (!v || !active || paused) return;
+    if (!hasStarted) seekToSegmentStart(true);
     const play = v.play();
     if (play?.catch) {
       play.catch(err => {
@@ -107,7 +135,7 @@ const StoryVideo = memo(function StoryVideo({ src, poster, muted, active, paused
         setIsWaiting(true);
       });
     }
-  }, [active, paused]);
+  }, [active, paused, hasStarted, seekToSegmentStart]);
 
   // Play / pause
   useEffect(() => {
@@ -120,11 +148,12 @@ const StoryVideo = memo(function StoryVideo({ src, poster, muted, active, paused
     } else {
       v.pause();
       if (!active) {
-        v.currentTime = 0;
+        seekToSegmentStart(true);
         setHasStarted(false);
+        endedSegmentRef.current = false;
       }
     }
-  }, [active, paused, playbackSrc, reloadToken, attemptPlay]);
+  }, [active, paused, playbackSrc, reloadToken, attemptPlay, seekToSegmentStart]);
 
   useEffect(() => {
     if (!active || paused || !isWaiting) {
@@ -162,10 +191,11 @@ const StoryVideo = memo(function StoryVideo({ src, poster, muted, active, paused
   const handleReady = useCallback(() => {
     if (src) loadedVideos.add(src);
     if (playbackSrc) loadedVideos.add(playbackSrc);
+    if (active && !hasStarted) seekToSegmentStart(true);
     setVideoReady(true);
     setIsWaiting(false);
     attemptPlay();
-  }, [src, playbackSrc, attemptPlay]);
+  }, [src, playbackSrc, active, hasStarted, seekToSegmentStart, attemptPlay]);
 
   const handleError = useCallback((e) => {
     const mediaErrorCode = e?.currentTarget?.error?.code;
@@ -235,6 +265,7 @@ const StoryVideo = memo(function StoryVideo({ src, poster, muted, active, paused
         onWaiting={() => setIsWaiting(true)}
         onLoadedData={handleReady}
         onLoadedMetadata={() => {
+          seekToSegmentStart(true);
           if (active) {
             handleReady();
             attemptPlay();
@@ -244,7 +275,23 @@ const StoryVideo = memo(function StoryVideo({ src, poster, muted, active, paused
         onEnded={onEnded}
         onTimeUpdate={(e) => {
           if (!hasStarted || paused || isWaiting) return;
-          onProgress(e);
+          const video = e.currentTarget;
+          const segmentDuration = safeSegmentEnd
+            ? safeSegmentEnd - safeSegmentStart
+            : Math.max((video.duration || 0) - safeSegmentStart, 0);
+          const elapsed = Math.max(0, video.currentTime - safeSegmentStart);
+          if (safeSegmentEnd && video.currentTime >= safeSegmentEnd - 0.05) {
+            if (!endedSegmentRef.current) {
+              endedSegmentRef.current = true;
+              video.pause();
+              onProgress?.(1);
+              onEnded();
+            }
+            return;
+          }
+          if (segmentDuration > 0) {
+            onProgress?.(Math.min(elapsed / segmentDuration, 1));
+          }
         }}
       />
     </div>
@@ -480,11 +527,9 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     }
   }, [storyIdx, vendorIdx, vendorGroups, resetStoryState, lockTransition, dismissKeyboard]);
 
-  const handleVideoProgress = useCallback((e) => {
-    const { currentTime, duration } = e.target;
-    if (duration && duration > 0 && videoBarRef.current) {
-      const progress = Math.min(currentTime / duration, 1);
-      videoBarRef.current.style.transform = `scaleX(${progress})`;
+  const handleVideoProgress = useCallback((progress) => {
+    if (typeof progress === 'number' && videoBarRef.current) {
+      videoBarRef.current.style.transform = `scaleX(${Math.min(Math.max(progress, 0), 1)})`;
     }
   }, []);
 
@@ -660,6 +705,8 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
                     paused={!isActive || paused || isReplying}
                     onEnded={goNext}
                     onProgress={isActive ? handleVideoProgress : undefined}
+                    segmentStart={s.segment_start || 0}
+                    segmentEnd={s.segment_end || null}
                   />
                 ) : isImg ? (
                   <img

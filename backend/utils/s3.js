@@ -33,6 +33,9 @@ function buildPublicUrl(bucket, region, key) {
 
 function normalizeS3Folder(folder = 'uploads') {
   const raw = String(folder || 'uploads').trim().toLowerCase();
+  if (['status-source', 'status-sources', 'statuses-source', 'story-source', 'story-sources', 'story-original', 'status-original'].includes(raw)) {
+    return 'status-sources';
+  }
   if (['status', 'statuses', 'story', 'stories', 'aura-story', 'aurastory'].includes(raw)) {
     return 'statuses';
   }
@@ -41,7 +44,7 @@ function normalizeS3Folder(folder = 'uploads') {
 
 function cacheControlForUpload(folder, contentType = '') {
   const normalizedFolder = normalizeS3Folder(folder);
-  const isStatusMedia = normalizedFolder === 'statuses';
+  const isStatusMedia = normalizedFolder === 'statuses' || normalizedFolder === 'status-sources';
   const isVideo = contentType.startsWith('video/');
 
   if (isStatusMedia) {
@@ -171,7 +174,11 @@ async function deleteS3ObjectByUrl(url, { allowedPrefix = 'statuses/' } = {}) {
   }
 
   const key = extractS3KeyFromUrl(url);
-  if (!key || (allowedPrefix && !key.startsWith(allowedPrefix))) {
+  const allowedPrefixes = Array.isArray(allowedPrefix) ? allowedPrefix : [allowedPrefix];
+  const hasAllowedPrefix = allowedPrefixes
+    .filter(Boolean)
+    .some((prefix) => key?.startsWith(prefix));
+  if (!key || (allowedPrefixes.some(Boolean) && !hasAllowedPrefix)) {
     return { success: false, skipped: true, reason: 'URL is not an allowed temporary S3 object.' };
   }
 

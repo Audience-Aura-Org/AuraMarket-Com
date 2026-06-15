@@ -14,7 +14,26 @@ exports.createStatus = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Only vendors can post statuses' });
     }
 
-    const { type, content_url, thumbnail_url, text_content, linked_product, caption, category, expires_at, expiry_days } = req.body;
+    const {
+      type,
+      content_url,
+      thumbnail_url,
+      text_content,
+      linked_product,
+      caption,
+      category,
+      expires_at,
+      expiry_days,
+      segment_start,
+      segment_end,
+      segment_index,
+      segment_count,
+    } = req.body;
+    const segmentStart = Math.max(0, Number(segment_start) || 0);
+    const rawSegmentEnd = Number(segment_end);
+    const segmentEnd = Number.isFinite(rawSegmentEnd) && rawSegmentEnd > segmentStart ? rawSegmentEnd : null;
+    const segmentIndex = Math.max(0, Number(segment_index) || 0);
+    const segmentCount = Math.max(1, Number(segment_count) || 1);
 
     const expiresAt = expires_at
       ? new Date(expires_at)
@@ -31,6 +50,10 @@ exports.createStatus = async (req, res) => {
       category: category || 'Moment',
       expiry_days: expiry_days || 1,
       expires_at: expiresAt,
+      segment_start: segmentStart,
+      segment_end: segmentEnd,
+      segment_index: Math.min(segmentIndex, segmentCount - 1),
+      segment_count: segmentCount,
     });
 
     res.status(201).json({ success: true, data: status });
@@ -248,13 +271,22 @@ exports.deleteStatus = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Not authorized to delete this status' });
     }
 
+    const [sameMediaCount, sameThumbnailCount] = await Promise.all([
+      status.content_url
+        ? Status.countDocuments({ _id: { $ne: status._id }, content_url: status.content_url })
+        : Promise.resolve(0),
+      status.thumbnail_url
+        ? Status.countDocuments({ _id: { $ne: status._id }, thumbnail_url: status.thumbnail_url })
+        : Promise.resolve(0),
+    ]);
+
     await status.deleteOne();
-    if (status.content_url) {
-      deleteS3ObjectByUrl(status.content_url).catch((err) => {
+    if (status.content_url && sameMediaCount === 0) {
+      deleteS3ObjectByUrl(status.content_url, { allowedPrefix: ['statuses/', 'status-sources/'] }).catch((err) => {
         console.warn(`[Status] Temporary media cleanup failed for ${status._id}: ${err.message}`);
       });
     }
-    if (status.thumbnail_url) {
+    if (status.thumbnail_url && sameThumbnailCount === 0) {
       deleteS3ObjectByUrl(status.thumbnail_url).catch((err) => {
         console.warn(`[Status] Temporary thumbnail cleanup failed for ${status._id}: ${err.message}`);
       });

@@ -7,6 +7,9 @@ const isVideo = (file) => file?.type?.startsWith('video/');
 
 const normalizeUploadFolder = (folder = 'general') => {
   const raw = String(folder || 'general').trim().toLowerCase();
+  if (['status-source', 'status-sources', 'statuses-source', 'story-source', 'story-sources', 'story-original', 'status-original'].includes(raw)) {
+    return 'status-sources';
+  }
   if (['status', 'statuses', 'story', 'stories', 'aura-story', 'aurastory'].includes(raw)) {
     return 'statuses';
   }
@@ -15,6 +18,7 @@ const normalizeUploadFolder = (folder = 'general') => {
 
 const UPLOAD_LIMITS = {
   statuses: { video: 16 * MB, image: 8 * MB, file: 16 * MB },
+  'status-sources': { video: 500 * MB, image: 8 * MB, file: 500 * MB },
   products: { image: 5 * MB, file: 5 * MB },
   product: { image: 5 * MB, file: 5 * MB },
   banners: { image: 5 * MB, file: 5 * MB },
@@ -37,7 +41,7 @@ const IMAGE_PROFILES = {
 };
 
 const cacheControlForUpload = (folder, file) => {
-  if (normalizeUploadFolder(folder) === 'statuses') return 'public, max-age=259200';
+  if (['statuses', 'status-sources'].includes(normalizeUploadFolder(folder))) return 'public, max-age=259200';
   return isVideo(file) ? 'public, max-age=31536000, immutable' : 'public, max-age=3600';
 };
 
@@ -163,7 +167,7 @@ export const uploadService = {
     const uploadFile = isVideo(file) ? file : await optimizeImageForUpload(file, folder);
     assertUploadLimit(uploadFile, folder);
 
-    if (folder === 'statuses') {
+    if (folder === 'statuses' || folder === 'status-sources') {
       try {
         return await uploadViaPresign(uploadFile, folder, onProgress);
       } catch (presignErr) {

@@ -26,6 +26,26 @@ const StatusSchema = new mongoose.Schema(
     thumbnail_url: {
       type: String, // Lightweight poster image for video/status previews
     },
+    segment_start: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    segment_end: {
+      type: Number,
+      default: null,
+      min: 0
+    },
+    segment_index: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    segment_count: {
+      type: Number,
+      default: 1,
+      min: 1
+    },
     text_content: {
       type: String, // For text-type statuses
       maxlength: [1000, 'Status text cannot exceed 1000 characters']

@@ -175,7 +175,6 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
           {/* Main Navigation */}
           {[...config.nav, ...ACCOUNT_NAV].map(item => {
             const itemPath = item.href.split('?')[0];
-            const isActive = pathname === itemPath || (item.href.startsWith('/profile') && pathname === '/profile' && new URLSearchParams(window.location.search).get('tab') === (new URL(item.href, 'http://x').searchParams.get('tab')));
             
             // Re-evaluating isActive more simply for the profile tabs
             const currentTab = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('tab') : null;
