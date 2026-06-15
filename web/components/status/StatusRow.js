@@ -3,6 +3,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Plus, Sparkles } from 'lucide-react';
 import BlurUpImage from '@/components/common/BlurUpImage';
 import MediaThumbnail from '@/components/common/MediaThumbnail';
+import { buildStatusSequences } from '@/components/status/statusSequences';
 
 /**
  * StatusRow — WhatsApp-style horizontal story bubble row.
@@ -25,21 +26,7 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
     return () => window.removeEventListener('aura_vendor_reply', handleReply);
   }, []);
 
-  // Group by vendor, sort each group so latest story is first
-  const vendorMap = statuses.reduce((acc, status) => {
-    const vId = status.vendor_id?._id;
-    if (!vId) return acc;
-    if (!acc[vId]) acc[vId] = { vendor: status.vendor_id, items: [] };
-    acc[vId].items.push(status);
-    return acc;
-  }, {});
-
-  const vendors = Object.values(vendorMap).map(({ vendor, items }) => ({
-    vendor,
-    items,
-    // Latest story = most recently created
-    latestStory: [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
-  }));
+  const vendors = buildStatusSequences(statuses);
 
   if (vendors.length === 0 && !isVendor) return null;
 
@@ -70,9 +57,8 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
       )}
 
       {/* Vendor story bubbles */}
-      {vendors.map(({ vendor, items, latestStory }) => {
+      {vendors.map(({ vendor, items, latestStory, firstUnviewed, hasUnviewed }) => {
         const logoUrl     = vendor.user_id?.branding?.logo || vendor.user_id?.avatar;
-        const hasUnviewed = items.some(s => !s.isViewed);
         const storeName   = vendor.store_name || 'Store';
         const displayName = storeName.length > 10 ? storeName.slice(0, 9) + '…' : storeName;
         const previewUrl  = latestStory?.type === 'image' || latestStory?.type === 'video'
@@ -97,9 +83,8 @@ export default function StatusRow({ statuses = [], onSelect, onAdd, isVendor }) 
                   return next;
                 });
               }
-              // Find the first unviewed story, or fallback to the latest one
-              const unviewed = items.find(s => !s.isViewed);
-              const startId  = (unviewed || latestStory)?._id;
+              // Resume at the oldest unviewed story, otherwise open the latest one.
+              const startId  = (firstUnviewed || latestStory)?._id;
               onSelect(statuses, startId);
             }}
           />

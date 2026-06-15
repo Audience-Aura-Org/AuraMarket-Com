@@ -12,6 +12,7 @@ import BlurUpImage from '@/components/common/BlurUpImage';
 import MediaThumbnail from '@/components/common/MediaThumbnail';
 import { useAuthStore } from '@/hooks/useAuth';
 import { STATUS_FILTER_CATEGORIES } from '@/constants/statusCategories';
+import { buildStatusSequences, getStatusVendorId, markStatusViewed } from '@/components/status/statusSequences';
 
 const warmStoryMedia = (story, eager = false) => {
   if (!story?.content_url) return;
@@ -193,7 +194,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
 
   const fetch = useCallback(async () => {
     try {
-      const params = { sort: 'trending', limit: 50, category: selectedCategory === 'All' ? undefined : selectedCategory };
+      const params = { sort: 'new', limit: 50, category: selectedCategory === 'All' ? undefined : selectedCategory };
       const [globalRes, followedRes] = await Promise.all([
         api.get('/statuses', { params: { ...params, mode: 'global' } }),
         user ? api.get('/statuses', { params: { ...params, mode: 'followed' } }) : Promise.resolve({ data: { data: [] } })
@@ -225,9 +226,9 @@ export default function StatusTabGrid({ onSelectStatus }) {
   }, [followedStatuses, search, selectedCategory]);
 
   const clientFilteredGlobal = useMemo(() => {
-    const followedIds = new Set(followedStatuses.map(s => s.vendor_id?._id));
+    const followedIds = new Set(followedStatuses.map((s) => getStatusVendorId(s)));
     const pool = globalStatuses.filter(s =>
-      (!user || !followedIds.has(s.vendor_id?._id)) &&
+      (!user || !followedIds.has(getStatusVendorId(s))) &&
       (!search.trim() || [s.vendor_id?.store_name, s.caption, s.text_content].some(t => t?.toLowerCase().includes(search.toLowerCase())))
     );
     return selectedCategory === 'All' ? pool : pool.filter(s => s.category?.toLowerCase() === selectedCategory.toLowerCase());
@@ -236,45 +237,31 @@ export default function StatusTabGrid({ onSelectStatus }) {
   const activePool = activeTab === 'inner' ? clientFilteredFollowed : clientFilteredGlobal;
 
   const groupedPool = useMemo(() => {
-    const groups = [];
-    const map = {};
-    for (const s of activePool) {
-      const vId = s.vendor_id?._id || (typeof s.vendor_id === 'object' ? s.vendor_id : null)?._id;
-      if (!vId) continue;
-      const vIdStr = vId.toString();
-      if (!map[vIdStr]) {
-        map[vIdStr] = {
-          vendor_id: s.vendor_id,
-          statuses: [],
+    return buildStatusSequences(activePool)
+      .map((group) => {
+        const representative = group.latestStory;
+        if (!representative) return null;
+
+        return {
+          ...representative,
+          statusesCount: group.items.length,
+          unviewedCount: group.unviewedCount,
+          isNew: group.hasUnviewed,
+          vendorStatuses: group.items,
+          latestStory: group.latestStory,
+          firstUnviewed: group.firstUnviewed,
         };
-        groups.push(map[vIdStr]);
-      }
-      map[vIdStr].statuses.push(s);
-    }
-    
-    return groups.map(g => {
-      const unviewed = g.statuses.find(s => !s.isViewed);
-      const representative = unviewed || g.statuses[0];
-      return {
-        ...representative,
-        statusesCount: g.statuses.length,
-        unviewedCount: g.statuses.filter(s => !s.isViewed).length,
-        isNew: g.statuses.some(s => !s.isViewed),
-        vendorStatuses: g.statuses
-      };
-    });
+      })
+      .filter(Boolean);
   }, [activePool]);
 
   const handleOpen = (status, pool) => {
-    pool.slice(0, 6).forEach(s => warmStoryMedia(s, s._id === status._id));
-    const vendorId = (status.vendor_id?._id || status.vendor_id)?.toString();
-    const markViewed = (items) => items.map((s) => {
-      const currentVendorId = (s.vendor_id?._id || s.vendor_id)?.toString();
-      return currentVendorId === vendorId ? { ...s, isViewed: true } : s;
-    });
-    setFollowedStatuses(markViewed);
-    setGlobalStatuses(markViewed);
-    onSelectStatus(pool, status._id);
+    const startStory = status.firstUnviewed || status.latestStory || status;
+    const startId = startStory?._id;
+    pool.slice(0, 6).forEach((s) => warmStoryMedia(s, s._id === startId));
+    setFollowedStatuses((items) => markStatusViewed(items, startId));
+    setGlobalStatuses((items) => markStatusViewed(items, startId));
+    onSelectStatus(pool, startId);
   };
 
   return (

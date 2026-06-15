@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
@@ -15,6 +15,7 @@ import VendorListPanel from '@/components/hub/VendorListPanel';
 import AuraAssistant from '@/components/onboarding/AuraAssistant';
 import StatusRow from '@/components/status/StatusRow';
 import StatusTabGrid from '@/components/status/StatusTabGrid';
+import { buildStatusSequences, markStatusViewed } from '@/components/status/statusSequences';
 
 // â”€â”€ Lazy-loaded components (Modals/Hidden Tabs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
@@ -96,7 +97,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
   const fetchFollowedStatuses = useCallback(async () => {
     try {
       const res = await api.get('/statuses', { 
-        params: { mode: user ? 'followed' : 'global', limit: 20 } 
+        params: { mode: user ? 'followed' : 'global', sort: 'new', limit: 20 } 
       });
       if (res.data.success) {
         const data = res.data.data || [];
@@ -165,6 +166,13 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
     return () => window.removeEventListener('online', fetchFollowedStatuses);
   }, [fetchFollowedStatuses]);
 
+  const openStatusSequence = useCallback((items, storyId) => {
+    if (!Array.isArray(items) || items.length === 0 || !storyId) return;
+    setFollowedStatuses((current) => markStatusViewed(current, storyId));
+    setViewingStatuses(items);
+    setSelectedStoryId(storyId);
+  }, []);
+
   const handleTabChange = (id) => {
     const tab = TABS.find(t => t.id === id);
     if (tab && tab.href) {
@@ -201,8 +209,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
                   <StatusRow 
                     statuses={followedStatuses} 
                     onSelect={(items, storyId) => {
-                      setViewingStatuses(items);
-                      setSelectedStoryId(storyId);
+                      openStatusSequence(items, storyId);
                     }}
                     onAdd={() => setShowCreator(true)}
                     isVendor={user?.role === 'vendor'}
@@ -213,11 +220,10 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
                 <VendorListPanel 
                   followedStatuses={followedStatuses} 
                   onOpenStatus={(vendorId) => {
-                    const items = followedStatuses.filter(s => s.vendor_id?._id === vendorId);
-                    if (items.length > 0) {
-                      setViewingStatuses(followedStatuses);
-                      setSelectedStoryId(items[0]._id);
-                    }
+                    const group = buildStatusSequences(followedStatuses)
+                      .find((sequence) => sequence.vendorId === vendorId);
+                    const startId = (group?.firstUnviewed || group?.latestStory)?._id;
+                    openStatusSequence(followedStatuses, startId);
                   }}
                 />
               </div>
@@ -237,8 +243,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
                   <StatusRow 
                     statuses={followedStatuses} 
                     onSelect={(items, storyId) => {
-                      setViewingStatuses(items);
-                      setSelectedStoryId(storyId);
+                      openStatusSequence(items, storyId);
                     }}
                     onAdd={() => setShowCreator(true)}
                     isVendor={user?.role === 'vendor'}
@@ -246,8 +251,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
                 </div>
               )}
               <StatusTabGrid onSelectStatus={(items, storyId) => {
-                setViewingStatuses(items);
-                setSelectedStoryId(storyId);
+                openStatusSequence(items, storyId);
               }} />
             </motion.div>
           )}
