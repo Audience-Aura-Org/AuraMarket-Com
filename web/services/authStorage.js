@@ -15,7 +15,11 @@ export const getStoredAuthToken = async () => {
     return value || null;
   }
 
-  return null;
+  try {
+    return window.localStorage.getItem(TOKEN_KEY) || null;
+  } catch {
+    return null;
+  }
 };
 
 export const setStoredAuthToken = async (token) => {
@@ -23,6 +27,11 @@ export const setStoredAuthToken = async (token) => {
 
   if (isNativeAuthStorage()) {
     await Preferences.set({ key: TOKEN_KEY, value: token });
+  }
+  try {
+    window.localStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // ignore storage errors
   }
 };
 
@@ -33,5 +42,9 @@ export const clearStoredAuthToken = async () => {
     await Preferences.remove({ key: TOKEN_KEY });
   }
 
-  localStorage.removeItem(TOKEN_KEY);
+  try {
+    window.localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // ignore
+  }
 };
