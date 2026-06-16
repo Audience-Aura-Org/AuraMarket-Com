@@ -416,7 +416,7 @@ export default function OnboardingFlow() {
 
   // ── Main UI ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] relative md:pt-0" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top, 0px))' }}>
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] relative md:pt-0" style={{ paddingTop: 'calc\(61px\ \+\ env\(safe-area-inset-top,\ 0px\)\)' }}>
       {/* Ambient glows */}
       <div className={`fixed top-0 right-0 w-[400px] h-[400px] sm:w-[600px] sm:h-[600px] rounded-full blur-[100px] sm:blur-[120px] -z-10 pointer-events-none opacity-25 sm:opacity-35 transition-all duration-700 ${colors.bg}`} />
       <div className={`fixed bottom-0 left-0 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] rounded-full blur-[80px] sm:blur-[100px] -z-10 pointer-events-none opacity-15 sm:opacity-25 transition-all duration-700 ${colors.bg}`} />
@@ -1239,3 +1239,4 @@ export default function OnboardingFlow() {
     </div>
   );
 }
+

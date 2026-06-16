@@ -331,7 +331,7 @@ export default function AdminHomepagePage() {
   }), [sections]);
 
   return (
-    <main className="min-h-screen bg-[var(--bg-secondary)] px-3 py-4 font-[var(--font-poppins)] text-[var(--text-primary)] sm:px-5 lg:px-8 md:pt-4" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top, 0px))' }}>
+    <main className="min-h-screen bg-[var(--bg-secondary)] px-3 py-4 font-[var(--font-poppins)] text-[var(--text-primary)] sm:px-5 lg:px-8 md:pt-4" style={{ paddingTop: 'calc\(56px\ \+\ env\(safe-area-inset-top,\ 0px\)\)' }}>
       <div className="w-full space-y-5">
         <header className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -429,3 +429,4 @@ export default function AdminHomepagePage() {
     </main>
   );
 }
+

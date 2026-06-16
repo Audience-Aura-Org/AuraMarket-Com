@@ -230,7 +230,7 @@ export default function EditProductPage() {
 
   // ── Page ────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500 md:pt-0" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top, 0px))' }}>
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500 md:pt-0" style={{ paddingTop: 'calc(61px + env(safe-area-inset-top, 0px))' }}>
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[var(--accent)]/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="fixed bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-indigo-600/10 blur-[100px] rounded-full pointer-events-none" />
 

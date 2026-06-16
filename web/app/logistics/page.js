@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import {
@@ -38,14 +38,14 @@ export default function GlobalLogisticsPage() {
     return (
       <div className="flex min-h-[50vh] items-center justify-center bg-[var(--bg-secondary)]">
         <p className="text-[12px] font-medium text-[var(--text-secondary)]">
-          Opening logistics dashboard…
+          Opening logistics dashboard�
         </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] px-[max(1rem,env(safe-area-inset-left))] py-8 pb-[max(2.5rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] text-[var(--text-primary)] transition-all md:px-12 md:pt-8" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top, 0px))' }}>
+    <div className="min-h-screen bg-[var(--bg-secondary)] px-[max(1rem,env(safe-area-inset-left))] py-8 pb-[max(2.5rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] text-[var(--text-primary)] transition-all md:px-12 md:pt-8" style={{ paddingTop: 'calc\(61px\ \+\ env\(safe-area-inset-top,\ 0px\)\)' }}>
       <div className="mx-auto max-w-[960px] space-y-10">
         <LogisticsSubpageHeader
           Icon={Truck}
@@ -110,7 +110,7 @@ export default function GlobalLogisticsPage() {
             <div>
               <p className="text-[12px] font-bold">Message hub</p>
               <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
-                After sign-in — relay comms
+                After sign-in � relay comms
               </p>
             </div>
           </Link>
@@ -131,3 +131,4 @@ export default function GlobalLogisticsPage() {
     </div>
   );
 }
+
