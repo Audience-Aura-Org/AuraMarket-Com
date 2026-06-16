@@ -45,7 +45,7 @@ export default function GlobalLogisticsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] px-[max(1rem,env(safe-area-inset-left))] py-8 pb-[max(2.5rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] text-[var(--text-primary)] transition-all md:px-12 pt-20 md:pt-8">
+    <div className="min-h-screen bg-[var(--bg-secondary)] px-[max(1rem,env(safe-area-inset-left))] py-8 pb-[max(2.5rem,env(safe-area-inset-bottom))] pr-[max(1rem,env(safe-area-inset-right))] text-[var(--text-primary)] transition-all md:px-12 md:pt-8" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top, 0px))' }}>
       <div className="mx-auto max-w-[960px] space-y-10">
         <LogisticsSubpageHeader
           Icon={Truck}
