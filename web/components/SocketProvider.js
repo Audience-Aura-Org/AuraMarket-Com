@@ -258,13 +258,8 @@ export default function SocketProvider({ children }) {
       return;
     }
 
-    // Don't connect socket until store is fully rehydrated
-    if (!hasHydrated) {
-      console.log('[SocketProvider] Waiting for store hydration...');
-      return;
-    }
-
-    console.log('[SocketProvider] User authenticated:', user._id, 'hydrated:', hasHydrated);
+    // Connect immediately when a user exists to restore instant messaging.
+    console.log('[SocketProvider] User authenticated:', user._id);
 
     // Connect once per user session
     if (connectedUserId.current !== user._id) {
