@@ -12,7 +12,7 @@ const FETCH_ME_FAILURE_COOLDOWN_MS = 30000;
 
 const clearClientOnlyState = async () => {
   if (typeof window === 'undefined') return;
-  await unsubscribeCurrentPushEndpoint({ removeBrowserSubscription: false }).catch(() => {});
+  await unsubscribeCurrentPushEndpoint({ removeBrowserSubscription: true }).catch(() => {});
   await unregisterNativeAndroidPushToken().catch(() => {});
   await api.post('/auth/logout', {}, {
     __skipRetry: true,
@@ -140,7 +140,7 @@ export const useAuthStore = create(
           const previousUserId = get().user?._id?.toString?.();
           if (previousUserId && previousUserId !== user?._id?.toString?.()) {
             socketService.disconnect();
-            await unsubscribeCurrentPushEndpoint({ removeBrowserSubscription: false }).catch(() => {});
+            await unsubscribeCurrentPushEndpoint({ removeBrowserSubscription: true }).catch(() => {});
           }
           await setStoredAuthToken(token);
           set({

@@ -117,7 +117,20 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
   };
 
   const redirectAfterAuth = (nextUser) => {
-    const destination = getAuthDestination(nextUser);
+    let destination = getAuthDestination(nextUser);
+
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const redirectUrl = params.get('redirect');
+        if (redirectUrl && redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
+          destination = redirectUrl;
+        }
+      } catch (e) {
+        console.warn('[UnifiedAuth] Error parsing redirect URL:', e);
+      }
+    }
+
     router.replace(destination);
 
     window.setTimeout(() => {

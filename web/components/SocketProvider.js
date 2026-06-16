@@ -177,7 +177,7 @@ export default function SocketProvider({ children }) {
 
     const state = useAuthStore.getState();
     if (!state.user?._id || !state.isAuthenticated) {
-      router.replace('/login');
+      router.replace(`/login?redirect=${encodeURIComponent(target)}`);
       return false;
     }
 
@@ -185,7 +185,7 @@ export default function SocketProvider({ children }) {
       const result = await state.fetchMe({ force: true }).catch(() => ({ success: false }));
       const refreshedState = useAuthStore.getState();
       if (!result?.success || !refreshedState.user?._id || !refreshedState.isAuthenticated) {
-        router.replace('/login');
+        router.replace(`/login?redirect=${encodeURIComponent(target)}`);
         return false;
       }
     }

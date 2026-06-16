@@ -149,10 +149,9 @@ class SocketService {
     const token = await getStoredAuthToken();
 
     if (this.socket) {
-      const currentAuth = this.socket.auth || {};
-      if (currentAuth.userId === userId && currentAuth.token === token) {
+      if (this.socket.currentUserId === userId) {
         if (this.socket.connected) {
-          debugLog('[SocketService] Already connected with current credentials, skipping reconnect.');
+          debugLog('[SocketService] Already connected, skipping reconnect.');
           return;
         }
         debugLog('[SocketService] Socket exists but disconnected, attempting reconnect.');
@@ -160,8 +159,8 @@ class SocketService {
         return;
       }
 
-      debugLog('[SocketService] Credentials changed, updating auth and reconnecting.');
-      this.socket.auth = { userId, token };
+      debugLog('[SocketService] User changed, reconnecting with new credentials.');
+      this.socket.currentUserId = userId;
       this.socket.disconnect().connect();
       return;
     }
@@ -170,20 +169,24 @@ class SocketService {
     debugLog(`[SocketService] Connecting. Attempt: ${this.connectionAttempts}`);
 
     this.socket = io(SOCKET_URL, {
-      auth: { 
-        userId, 
-        token
+      auth: (cb) => {
+        getStoredAuthToken()
+          .then((t) => {
+            cb({ userId: this.socket?.currentUserId || userId, token: t });
+          })
+          .catch(() => {
+            cb({ userId: this.socket?.currentUserId || userId, token: null });
+          });
       },
-      // ✅ Try WebSocket first (more reliable, no CORS/XHR issues), then fall back to polling
-      transports: ['websocket', 'polling'],
+      // Fast connection strategy: connect via polling instantly, then upgrade to WebSocket in the background.
+      transports: ['polling', 'websocket'],
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 10000,
       randomizationFactor: 0.5,
-      upgrade: false,  // Don't upgrade between transports (WebSocket is best; if it fails, polling unlikely to work either)
+      upgrade: true,
       path: '/socket.io',
       withCredentials: true,
-      // Advanced: Help with debugging connection issues
       transportOptions: {
         polling: {
           extraHeaders: {
@@ -192,6 +195,7 @@ class SocketService {
         }
       }
     });
+    this.socket.currentUserId = userId;
 
     this.socket.on('connect', () => {
       try {
