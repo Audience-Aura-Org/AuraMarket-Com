@@ -236,7 +236,7 @@ export default function HubContent() {
   ];
 
   return (
-    <div className="flex flex-1 min-h-[calc(100vh-57px)] bg-[var(--bg-secondary)] relative border-t border-[var(--glass-border)] pb-20 md:pb-0 pt-0 md:pt-14" style={{ '--pt-mobile': 'calc(61px + env(safe-area-inset-top, 0px))' } as React.CSSProperties}>
+    <div className="flex flex-1 min-h-[calc(100vh-57px)] bg-[var(--bg-secondary)] relative border-t border-[var(--glass-border)] pb-20 md:pb-0 pt-0 md:pt-14" style={{ ['--pt-mobile']: 'calc(61px + env(safe-area-inset-top, 0px))' } as any}>
       {/* Background Ambience */}
       <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
          <div className="absolute top-[-10%] left-[-10%] size-96 bg-[var(--accent)] blur-[100px] rounded-full" />
