@@ -197,9 +197,46 @@ const mapChatSockets = (server) => {
           populatedMessage.product_reference = sanitizeProductReference(populatedMessage.product_reference);
         }
 
-        io.to(receiver_id.toString()).emit('receive_message', populatedMessage);
+        // Attempt per-socket delivery with ACKs where possible
+        const receiverSet = userSockets.get(String(receiver_id)) || new Set();
+        let anyAck = false;
+
+        if (receiverSet.size > 0) {
+          // Emit to each socket individually and wait for client ack (with timeout)
+          const emitPromises = Array.from(receiverSet).map(async (sockId) => {
+            try {
+              // Use socket.io v4 timeout ack helper
+              const res = await io.to(sockId).timeout(5000).emit('receive_message', populatedMessage);
+              // If client calls ack, consider it delivered
+              anyAck = true;
+              return { sockId, ok: true, res };
+            } catch (err) {
+              // timeout or other error
+              return { sockId, ok: false, err };
+            }
+          });
+
+          const results = await Promise.all(emitPromises);
+          // If any socket acked, mark delivered
+          anyAck = results.some(r => r && r.ok === true);
+        } else {
+          // No active sockets in this process; still attempt room emit for cross-worker delivery
+          try {
+            io.to(receiver_id.toString()).emit('receive_message', populatedMessage);
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        // Echo back to sender
         io.to(socket.userId.toString()).emit('sent_message_echo', populatedMessage);
-        if (receiverOnline) {
+
+        if (anyAck) {
+          // Update DB message as delivered (acknowledged by a client)
+          Message.findByIdAndUpdate(populatedMessage._id, { delivered_status: true, delivered_at: new Date() }).catch(() => {});
+          io.to(socket.userId.toString()).emit('message_delivery_ack', { messageId: populatedMessage._id, partnerId: receiver_id.toString(), at: new Date().toISOString() });
+        } else if (receiverOnline) {
+          // Receiver was online (room present) but no per-socket ack; still notify sender of delivered status
           io.to(socket.userId.toString()).emit('messages_delivered', { partnerId: receiver_id.toString() });
         }
 

@@ -41,6 +41,10 @@ const MessageSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // Updated when the recipient has an active socket/device session
     },
+    delivered_at: {
+      type: Date,
+      default: null,
+    },
     image_url: {
       type: String,
       default: null,

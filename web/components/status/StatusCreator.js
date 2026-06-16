@@ -13,10 +13,12 @@ import { uploadService } from '@/services/upload';
 import api from '@/services/api';
 import { STATUS_CATEGORIES } from '@/constants/statusCategories';
 import {
+  STATUS_VIDEO_MAX_BYTES,
   STATUS_VIDEO_INPUT_MAX_BYTES,
   STATUS_IMAGE_MAX_BYTES,
   STATUS_VIDEO_MAX_SECONDS,
-  STATUS_VIDEO_MAX_BYTES,
+  STATUS_VIDEO_EXPORT_WIDTH,
+  STATUS_VIDEO_EXPORT_HEIGHT,
 } from '@/constants/statusVideo';
 import StatusVideoTrimmer from '@/components/status/StatusVideoTrimmer';
 
@@ -36,10 +38,19 @@ const DEVICE_TYPE = () => {
   return window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop';
 };
 
+const getSupportedVideoMimeType = () => {
+  if (typeof MediaRecorder === 'undefined') return '';
+  return [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm',
+  ].find((type) => MediaRecorder.isTypeSupported(type)) || '';
+};
+
 const canvasToBlob = (canvas, type = 'image/jpeg', quality = 0.78) =>
   new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 
-async function generateVideoThumbnail(file, seekTime = null) {
+async function generateVideoThumbnail(file) {
   if (!file?.type?.startsWith('video/')) return null;
 
   const objectUrl = URL.createObjectURL(file);
@@ -55,9 +66,7 @@ async function generateVideoThumbnail(file, seekTime = null) {
       video.onerror = () => reject(new Error('Could not read video metadata.'));
     });
 
-    const seekTo = Number.isFinite(Number(seekTime))
-      ? Math.max(0.1, Math.min(Number(seekTime), Math.max(0.1, (video.duration || 1) - 0.1)))
-      : Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
+    const seekTo = Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
     await new Promise((resolve) => {
       video.onseeked = resolve;
       video.currentTime = seekTo;
@@ -109,6 +118,116 @@ async function readVideoMetadata(file) {
   } catch (error) {
     URL.revokeObjectURL(objectUrl);
     throw error;
+  }
+}
+
+function drawVideoFrame(ctx, video) {
+  const canvas = ctx.canvas;
+  const sourceWidth = video.videoWidth || canvas.width;
+  const sourceHeight = video.videoHeight || canvas.height;
+  const targetRatio = canvas.width / canvas.height;
+  const sourceRatio = sourceWidth / sourceHeight;
+
+  ctx.fillStyle = '#07030a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  let sx = 0;
+  let sy = 0;
+  let sw = sourceWidth;
+  let sh = sourceHeight;
+
+  if (sourceRatio > targetRatio) {
+    sw = sourceHeight * targetRatio;
+    sx = (sourceWidth - sw) / 2;
+  } else {
+    sh = sourceWidth / targetRatio;
+    sy = (sourceHeight - sh) / 2;
+  }
+
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+}
+
+async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_VIDEO_MAX_SECONDS, onProgress } = {}) {
+  const mimeType = getSupportedVideoMimeType();
+  if (!mimeType) {
+    throw new Error('Video editing is not supported on this browser. Please trim the video in your gallery and try again.');
+  }
+
+  const sourceUrl = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.src = sourceUrl;
+  video.muted = false;
+  video.playsInline = true;
+  video.preload = 'auto';
+  video.crossOrigin = 'anonymous';
+
+  try {
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = () => reject(new Error('Could not load video for editing.'));
+    });
+
+    const start = Math.max(0, Math.min(trimStart, video.duration || 0));
+    const end = Math.min(Math.max(start + 1, trimEnd), video.duration || start + STATUS_VIDEO_MAX_SECONDS);
+    const duration = Math.min(STATUS_VIDEO_MAX_SECONDS, end - start);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = STATUS_VIDEO_EXPORT_WIDTH;
+    canvas.height = STATUS_VIDEO_EXPORT_HEIGHT;
+    const ctx = canvas.getContext('2d');
+    const canvasStream = canvas.captureStream(30);
+    const sourceStream = video.captureStream?.();
+    sourceStream?.getAudioTracks?.().forEach((track) => canvasStream.addTrack(track));
+
+    const chunks = [];
+    const recorder = new MediaRecorder(canvasStream, {
+      mimeType,
+      videoBitsPerSecond: 2_000_000,
+      audioBitsPerSecond: 96_000,
+    });
+
+    const recorded = new Promise((resolve, reject) => {
+      recorder.ondataavailable = (event) => {
+        if (event.data?.size) chunks.push(event.data);
+      };
+      recorder.onerror = () => reject(new Error('Video export failed.'));
+      recorder.onstop = resolve;
+    });
+
+    await new Promise((resolve) => {
+      video.onseeked = resolve;
+      video.currentTime = start;
+    });
+
+    let stopped = false;
+    const draw = () => {
+      if (stopped) return;
+      drawVideoFrame(ctx, video);
+      const elapsed = Math.max(0, video.currentTime - start);
+      onProgress?.(Math.min(95, Math.round((elapsed / Math.max(duration, 1)) * 95)));
+      if (elapsed >= duration || video.ended) {
+        stopped = true;
+        video.pause();
+        if (recorder.state !== 'inactive') recorder.stop();
+        return;
+      }
+      requestAnimationFrame(draw);
+    };
+
+    recorder.start(500);
+    await video.play();
+    draw();
+    await recorded;
+
+    const blob = new Blob(chunks, { type: mimeType.split(';')[0] || 'video/webm' });
+    const baseName = (file.name || 'status-video').replace(/\.[^.]+$/, '');
+    return new File([blob], `${baseName}-story.webm`, {
+      type: blob.type || 'video/webm',
+      lastModified: Date.now(),
+    });
+  } finally {
+    video.pause();
+    URL.revokeObjectURL(sourceUrl);
   }
 }
 
@@ -170,7 +289,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [gradientIndex, setGradientIndex] = useState(0);
 
   const fileInputRef = useRef(null);
-  const productSearchRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
@@ -233,7 +351,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         setError(needsTrim
           ? null
           : needsCompression
-            ? 'Video will upload once and play only the selected clip.'
+            ? 'Video will be cropped to 9:16 and optimized before upload.'
             : null
         );
       } catch (err) {
@@ -294,27 +412,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             : [{ start: trimStart, end: trimEnd, index: 0 }];
           const totalSegments = segments.length;
 
-          setUploadPhase(
-            videoPostMode === 'split' && totalSegments > 1
-              ? `Uploading video once for ${totalSegments} parts...`
-              : 'Uploading video...'
-          );
-          const uploadRes = await uploadService.uploadSingle(file, 'status-sources', {
-            onProgress: (pct) => setUploadProgress(Math.min(82, Math.round(pct * 0.82))),
-          });
-          if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
-          finalUrl = uploadRes.data.url;
-
-          const previewTime = videoPostMode === 'split'
-            ? Math.min(segments[0]?.start || 0, Math.max(0, (videoMeta?.duration || 0) - 0.1))
-            : Math.min(trimStart, Math.max(0, (videoMeta?.duration || 0) - 0.1));
-          setUploadPhase('Creating video preview...');
-          const thumbnailFile = await generateVideoThumbnail(file, previewTime);
-          if (thumbnailFile) {
-            const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
-            if (thumbnailRes.success) thumbnailUrl = thumbnailRes.data.url;
-          }
-
           for (const segment of segments) {
             const segmentNumber = segment.index + 1;
             const clipLength = segment.end - segment.start;
@@ -322,19 +419,52 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               throw new Error(`Story clips must be ${STATUS_VIDEO_MAX_SECONDS} seconds or less.`);
             }
 
-            setUploadPhase(
-              totalSegments > 1
-                ? `Publishing part ${segmentNumber} of ${totalSegments}...`
-                : 'Publishing story...'
+            setUploadPhase(totalSegments > 1
+              ? `Preparing part ${segmentNumber} of ${totalSegments}...`
+              : 'Preparing video...'
             );
-            setUploadProgress(Math.min(99, 84 + Math.round((segmentNumber / totalSegments) * 15)));
+            const uploadFile = await exportEditedStatusVideo(file, {
+              trimStart: segment.start,
+              trimEnd: segment.end,
+              onProgress: (pct) => {
+                const progress = ((segment.index + (pct / 100)) / totalSegments) * 70;
+                setUploadProgress(Math.min(70, Math.round(progress)));
+              },
+            });
+            if (uploadFile.size > STATUS_VIDEO_MAX_BYTES) {
+              throw new Error('Edited video is still above 16MB. Shorten the trim and try again.');
+            }
+
+            setUploadPhase(totalSegments > 1
+              ? `Uploading part ${segmentNumber} of ${totalSegments}...`
+              : 'Uploading video...'
+            );
+            const uploadRes = await uploadService.uploadSingle(uploadFile, 'statuses', {
+              onProgress: (pct) => {
+                const progress = 70 + (((segment.index + (pct / 100)) / totalSegments) * 25);
+                setUploadProgress(Math.min(95, Math.round(progress)));
+              },
+            });
+            if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
+
+            setUploadPhase(totalSegments > 1
+              ? `Creating preview ${segmentNumber} of ${totalSegments}...`
+              : 'Creating video preview...'
+            );
+            const thumbnailFile = await generateVideoThumbnail(uploadFile);
+            let segmentThumbnailUrl = '';
+            if (thumbnailFile) {
+              const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
+              if (thumbnailRes.success) segmentThumbnailUrl = thumbnailRes.data.url;
+            }
+
+            setUploadPhase(totalSegments > 1
+              ? `Publishing part ${segmentNumber} of ${totalSegments}...`
+              : 'Publishing story...'
+            );
             await publishStatus(createStatusPayload({
-              content_url: finalUrl,
-              thumbnail_url: thumbnailUrl,
-              segment_start: segment.start,
-              segment_end: segment.end,
-              segment_index: segment.index,
-              segment_count: totalSegments,
+              content_url: uploadRes.data.url,
+              thumbnail_url: segmentThumbnailUrl,
             }));
           }
         } else {
@@ -593,7 +723,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </div>
       </div>
 
-      <div ref={productSearchRef} className="space-y-2.5 scroll-mb-40">
+      <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <label className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)]">Category</label>
           {!selectedCategory && <span className="text-[10px] font-bold text-red-400">Required</span>}
@@ -663,16 +793,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 type="text"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                onFocus={() => {
-                  setTimeout(() => {
-                    productSearchRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-                  }, 120);
-                }}
                 placeholder="Search your products..."
                 className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-9 pr-4 text-xs font-semibold focus:border-[var(--accent)] outline-none transition-all text-[var(--text-primary)]"
               />
               {searchTerm && (
-                <div className="relative z-50 mt-2 max-h-56 overflow-y-auto rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1 shadow-2xl sm:absolute sm:left-0 sm:right-0 sm:top-full sm:mt-1.5 sm:max-h-40">
+                <div className="absolute top-full left-0 right-0 mt-1.5 max-h-40 overflow-y-auto bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl shadow-2xl z-50 p-1 space-y-0.5">
                   {filteredProducts.length > 0 ? filteredProducts.map(p => (
                     <button
                       key={p._id}
@@ -767,7 +892,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </button>
       </div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto p-4 pb-[calc(11rem+env(safe-area-inset-bottom))] no-scrollbar">
+      <div className="flex-1 space-y-5 overflow-y-auto p-4 pb-24 no-scrollbar">
         {typeSelector}
         {previewFrame}
         {videoPostOptions}

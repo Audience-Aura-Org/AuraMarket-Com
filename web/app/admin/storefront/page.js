@@ -77,7 +77,7 @@ export default function StorefrontBuilder() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-6 md:py-12 px-4 md:px-12 lg:px-20 selection:bg-[var(--accent)] selection:text-white transition-all duration-300 font-[var(--font-poppins)]">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-6 md:py-12 px-4 md:px-12 lg:px-20 selection:bg-[var(--accent)] selection:text-white transition-all duration-300 font-[var(--font-poppins)] pt-14 md:pt-6">
       <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-16">
         
         {/* Dynamic Header */}

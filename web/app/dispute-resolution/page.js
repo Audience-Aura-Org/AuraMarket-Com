@@ -29,7 +29,7 @@ export default function DisputeResolution() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-32 px-6 lg:px-20 selection:bg-[var(--accent)]/30">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-32 px-6 lg:px-20 selection:bg-[var(--accent)]/30 pt-14 md:pt-32">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16 space-y-6">
           <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full border border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)] text-xs  font-bold tracking-tight shadow-lg shadow-[var(--accent)]/20 animate-pulse">

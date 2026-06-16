@@ -160,11 +160,14 @@ class SocketService {
     }
     
     if (!token) {
-      console.warn('[SocketService] ⚠️ No auth token available for socket connection. Will try without credentials.');
+      const reason = 'Auth token missing for socket connection. Delaying until valid credentials are available.';
+      console.warn(`[SocketService] ⚠️ ${reason}`);
       console.warn(`[SocketService] authToken param: ${authToken ? 'yes' : 'no'}`);
-    } else {
-      console.log(`[SocketService] ✅ Auth token available (${token.substring(0, 10)}...)`);
+      this.lastError = reason;
+      this.warnedUnavailable = true;
+      return;
     }
+    console.log(`[SocketService] ✅ Auth token available (${token.substring(0, 10)}...)`);
 
     if (this.socket) {
       if (this.socket.currentUserId === userId) {

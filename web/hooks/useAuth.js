@@ -71,6 +71,7 @@ export const useAuthStore = create(
           if (res.data?.success) {
             const balance = Number(res.data.data?.balance ?? 0);
             get().setWalletBalance(balance);
+              token: state.token,
             return { success: true, balance };
           }
         } catch (err) {

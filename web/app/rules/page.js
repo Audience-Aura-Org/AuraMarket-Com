@@ -7,7 +7,7 @@ export default function MarketRulesPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-24 px-8 md:px-20 transition-colors duration-500 selection:bg-[var(--accent)] selection:text-white">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-24 px-8 md:px-20 transition-colors duration-500 selection:bg-[var(--accent)] selection:text-white pt-20 md:pt-24">
       <div className="max-w-4xl mx-auto">
         
         {/* Header Section */}

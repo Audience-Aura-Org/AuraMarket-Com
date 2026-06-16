@@ -27,7 +27,7 @@ export default function VerifiedBrandsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 transition-all duration-300">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 transition-all duration-300 pt-20 md:pt-12">
       <div className="max-w-5xl mx-auto space-y-12">
         
         {/* Slim Header */}

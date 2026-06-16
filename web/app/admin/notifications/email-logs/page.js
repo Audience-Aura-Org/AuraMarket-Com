@@ -47,7 +47,7 @@ export default function EmailLogsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] pb-20">
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] pb-20 pt-14 md:pt-0">
       {/* Header Grid */}
       <div className="p-10 lg:px-20 space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">

@@ -28,7 +28,7 @@ export default function NetworkStatusPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-20 px-6 md:px-12 lg:px-20 transition-colors duration-500 overflow-hidden relative">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-20 px-6 md:px-12 lg:px-20 transition-colors duration-500 overflow-hidden relative pt-20 md:pt-20">
       
       {/* Background Matrix/Grid */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--accent) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />

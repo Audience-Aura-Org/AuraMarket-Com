@@ -98,7 +98,7 @@ export default function NotificationsPage() {
   const currentNotifications = notifications.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] pb-32 transition-colors duration-500">
+    <div className="min-h-screen bg-[var(--bg-secondary)] pb-32 transition-colors duration-500 pt-14 md:pt-0">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-[var(--bg-secondary)]/80 backdrop-blur-3xl px-6 py-4 flex items-center justify-between border-b border-[var(--glass-border)] transition-all">
         <button onClick={() => router.back()} className="size-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-primary)] hover:border-[var(--accent)]/50 transition-all shadow-sm">

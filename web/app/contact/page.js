@@ -39,7 +39,7 @@ export default function GeneralContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-24 px-8 md:px-20 transition-colors duration-500 overflow-hidden relative selection:bg-[var(--accent)] selection:text-white">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-24 px-8 md:px-20 transition-colors duration-500 overflow-hidden relative selection:bg-[var(--accent)] selection:text-white pt-20 md:pt-24">
       
       {/* Background Ambience */}
       <div className="absolute inset-x-0 top-0 h-[100vh] opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--accent) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />

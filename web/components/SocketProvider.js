@@ -250,16 +250,44 @@ export default function SocketProvider({ children }) {
     const { is_online, ...partnerNoPresence } = partnerPayload || {};
 
     if (partnerId) {
+      // Ensure partner payload includes a readable name
+      if (!partnerNoPresence?.name) {
+        partnerNoPresence.name = payload.title || payload.name || payload.data?.title || 'Auradime User';
+      }
+
+      // Open chat and dismiss any toasts immediately
       openMessageRoute(partnerId, partnerNoPresence, targetRoute || `/chat?vendorId=${encodeURIComponent(partnerId)}`);
+      setChatToast(null);
+      setNotifToast(null);
       return;
     }
 
+    // Non-chat notification: navigate there and clear in-app toasts
     router.push(targetRoute);
+    setNotifToast(null);
   };
 
   useEffect(() => {
     if (!user?._id) {
       console.log('[SocketProvider] Waiting for user auth...');
+      return;
+    }
+
+    const getAuthToken = () => {
+      if (token) return token;
+      if (typeof window === 'undefined') return null;
+      try {
+        const storedToken = window.localStorage.getItem('aura_token');
+        return storedToken || null;
+      } catch (e) {
+        console.error('[SocketProvider] localStorage read error:', e);
+        return null;
+      }
+    };
+
+    const authToken = getAuthToken();
+    if (!authToken) {
+      console.warn('[SocketProvider] No auth token yet; delaying socket connect for user:', user._id);
       return;
     }
 
@@ -269,22 +297,8 @@ export default function SocketProvider({ children }) {
     // Connect once per user session
     if (connectedUserId.current !== user._id) {
       // Pass token if available; socket will use cookies with withCredentials: true
-      let authToken = tokenRef.current;
-      console.log('[SocketProvider] Token from state:', authToken ? `${authToken.substring(0, 10)}...` : 'null');
-      
-      // Try localStorage as fallback
-      if (!authToken && typeof window !== 'undefined') {
-        try {
-          const storedToken = window.localStorage.getItem('aura_token');
-          console.log('[SocketProvider] localStorage aura_token:', storedToken ? `${storedToken.substring(0, 10)}...` : 'null');
-          authToken = storedToken;
-        } catch (e) {
-          console.error('[SocketProvider] localStorage read error:', e);
-        }
-      }
-      
-      console.log('[SocketProvider] Initiating socket connection for user:', user._id);
-      socketService.connect(user._id, authToken || undefined);
+      console.log('[SocketProvider] Initiating socket connection for user:', user._id, `using token: ${authToken.substring(0, 10)}...`);
+      socketService.connect(user._id, authToken);
       connectedUserId.current = user._id;
     }
 
@@ -370,6 +384,21 @@ export default function SocketProvider({ children }) {
       const link = normalizeAppRoute(notif.metadata?.link || '/notifications');
       const metadataBalance = notif?.metadata?.wallet_balance ?? notif?.metadata?.balance;
 
+      // Detect sender/partner ID for message-related notifications
+      const resolvedSenderId =
+        notif?.metadata?.sender_id ||
+        notif.sender_id ||
+        notif.senderId ||
+        notif.data?.sender_id ||
+        notif.data?.senderId ||
+        null;
+
+      // If app is foreground and the chat for this partner is already active, suppress UI notification
+      if (isAppForeground() && resolvedSenderId && activePartnerIdRef.current?.toString() === String(resolvedSenderId)) {
+        console.log('[SocketProvider] Suppressing notif toast: chat is active for partner', resolvedSenderId);
+        return;
+      }
+
       if (['wallet_update', 'payment', 'payment_received', 'order_status'].includes(type)) {
         if (Number.isFinite(Number(metadataBalance))) {
           setWalletBalance(Number(metadataBalance));
@@ -405,7 +434,8 @@ export default function SocketProvider({ children }) {
       }
 
       if (notifToastTimer.current) clearTimeout(notifToastTimer.current);
-      notifToastTimer.current = setTimeout(() => setNotifToast(null), 7000);
+      // Shorter toast lifetime to avoid lingering notifications
+      notifToastTimer.current = setTimeout(() => setNotifToast(null), 3000);
     };
 
     const handleAccountDeleted = async () => {
@@ -432,7 +462,7 @@ export default function SocketProvider({ children }) {
       socketService.off('wallet:credited', handleWalletCredited);
     };
   // Re-register when user changes or store rehydrates. isOpen/activePartnerId are read via refs.
-  }, [user?._id, hasHydrated, logout, router, refreshWalletBalance, setWalletBalance]);
+  }, [user?._id, token, hasHydrated, logout, router, refreshWalletBalance, setWalletBalance]);
 
   // Listen for messages from the Service Worker (e.g., notification click payload)
   useEffect(() => {
@@ -457,13 +487,21 @@ export default function SocketProvider({ children }) {
         const route = payload.data?.url || payload.url || (senderId ? `/chat?vendorId=${senderId}` : '/chat');
 
         if (isAppForeground()) {
-          setNotifToast({
-            id: Date.now(),
-            type: payload.type || 'default',
-            title: payload.title || 'Auradime',
-            message: text,
-            link: route,
-          });
+          // If chat for this sender is active, don't show a toast; otherwise show briefly
+          const senderId = payload.sender_id || payload.senderId || payload.data?.senderId || payload.data?.sender_id;
+          if (senderId && activePartnerIdRef.current?.toString() === String(senderId)) {
+            console.log('[SocketProvider] SW push received for active chat; skipping toast.');
+          } else {
+            setNotifToast({
+              id: Date.now(),
+              type: payload.type || 'default',
+              title: payload.title || 'Auradime',
+              message: text,
+              link: route,
+            });
+            if (notifToastTimer.current) clearTimeout(notifToastTimer.current);
+            notifToastTimer.current = setTimeout(() => setNotifToast(null), 3000);
+          }
         }
       }
     };
@@ -504,6 +542,31 @@ export default function SocketProvider({ children }) {
     };
   }, [authChecked, fetchMe, hasHydrated, openChat, router, user?._id]);
 
+  useEffect(() => {
+    const onAuraChatFocus = (e) => {
+      try {
+        const partnerId = e?.detail?.partnerId?.toString?.();
+        if (!partnerId) {
+          setChatToast(null);
+          setNotifToast(null);
+          return;
+        }
+        // If the focused chat matches current toast, dismiss it
+        if (chatToast?.senderId && chatToast.senderId.toString() === partnerId) {
+          setChatToast(null);
+        }
+        // Also clear notification toasts
+        setNotifToast(null);
+      } catch (err) {
+        console.error('[SocketProvider] aura_chat_focus handler error:', err);
+      }
+    };
+
+    window.addEventListener('aura_chat_focus', onAuraChatFocus);
+    // cleanup
+    return () => window.removeEventListener('aura_chat_focus', onAuraChatFocus);
+  }, [chatToast, authChecked, hasHydrated]);
+  
   useEffect(() => {
     if (!hasHydrated || !authChecked) return;
 
