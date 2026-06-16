@@ -205,7 +205,7 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
   const isOwnProduct = Boolean(user && vendorUserId && user._id?.toString() === vendorUserId);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] font-poppins md:pt-0" style={{ paddingTop: 'calc(61px + env(safe-area-inset-top, 0px))' }}>
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] font-poppins md:pt-0">
 
       {/* ── Top Nav Bar ── */}
       <div className="sticky top-[57px] md:top-[64px] z-40 bg-[var(--bg-primary)]/70 backdrop-blur-[30px]">

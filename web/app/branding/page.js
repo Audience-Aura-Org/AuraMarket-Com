@@ -67,7 +67,7 @@ export default function BrandingSuitePage() {
     };
 
     return (
-        <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] relative selection:bg-[var(--accent)]/30 md:pt-0" style={{ paddingTop: 'calc(61px + env(safe-area-inset-top, 0px))' }}>
+        <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] relative selection:bg-[var(--accent)]/30 md:pt-0">
             {/* Background Decor */}
             <div className="absolute top-[-5%] right-[-5%] size-[600px] bg-[var(--accent)]/5 blur-[120px] rounded-full pointer-events-none" />
             <div className="absolute bottom-[-5%] left-[-5%] size-[500px] bg-indigo-500/5 blur-[100px] rounded-full pointer-events-none" />
