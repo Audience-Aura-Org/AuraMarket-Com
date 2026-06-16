@@ -63,7 +63,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] overflow-x-hidden transition-colors duration-500 md:pt-0" style={{ paddingTop: 'calc\(61px\ \+\ env\(safe-area-inset-top,\ 0px\)\)' }}>
+    <div className="relative min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] overflow-x-hidden transition-colors duration-500">
       {/* Ambient blobs — CSS-only, zero JS cost */}
       <div className="pointer-events-none fixed top-[-100px] left-[-100px] w-[400px] h-[400px] rounded-full opacity-20 z-0" style={{background:'radial-gradient(circle, var(--accent) 0%, transparent 70%)', filter:'blur(60px)'}} />
       <div className="pointer-events-none fixed top-[60%] right-[-50px] w-[400px] h-[400px] rounded-full opacity-20 z-0" style={{background:'radial-gradient(circle, var(--accent) 0%, transparent 70%)', filter:'blur(60px)'}} />

@@ -13,6 +13,9 @@ import { useChat } from '@/context/ChatContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useLanguage } from '@/context/LanguageContext';
 
+export const TOP_NAV_HEIGHT = 'calc(61px + env(safe-area-inset-top,0px))';
+export const TOP_NAV_HEIGHT_LG = 'calc(73px + env(safe-area-inset-top,0px))';
+
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
 
 export default function TopNav() {
@@ -226,7 +229,11 @@ export default function TopNav() {
         </div>
       )}
     </header>
-    <div className="h-[calc(61px+env(safe-area-inset-top,0px))] shrink-0 md:h-[calc(73px+env(safe-area-inset-top,0px))]" aria-hidden="true" />
+    <div
+      className="h-[var(--top-nav-height)] shrink-0 md:h-[var(--top-nav-height-lg)]"
+      style={{ '--top-nav-height': TOP_NAV_HEIGHT, '--top-nav-height-lg': TOP_NAV_HEIGHT_LG }}
+      aria-hidden="true"
+    />
     </>
   );
 }

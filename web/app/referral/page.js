@@ -21,7 +21,7 @@ export default function RewardsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] overflow-hidden pb-24 transition-colors duration-500 md:pt-0" style={{ paddingTop: 'calc\(61px\ \+\ env\(safe-area-inset-top,\ 0px\)\)' }}>
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] overflow-hidden pb-24 transition-colors duration-500 md:pt-0">
       {/* Gradients */}
       <div className="fixed top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[var(--accent)]/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="fixed bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-[var(--accent-light)]/10 blur-[150px] rounded-full pointer-events-none" />

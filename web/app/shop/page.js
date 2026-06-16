@@ -17,6 +17,7 @@ import api from '@/services/api';
 import { trackSearch } from '@/services/tracking';
 import VendorFollowButton from '@/components/VendorFollowButton';
 import { useLanguage } from '@/context/LanguageContext';
+import { TOP_NAV_HEIGHT, TOP_NAV_HEIGHT_LG } from '@/components/layout/TopNav';
 
 const PRICE_RANGES = [
   { id: 'under-5000', name: 'Under 5,000 XAF', min: 0, max: 5000 },
@@ -242,7 +243,13 @@ function ShopContent() {
         <div className="flex flex-col w-full min-h-screen relative">
 
         {/* STICKY HEADER STACK: Search + Category bar */}
-        <div className="sticky top-[calc(61px+env(safe-area-inset-top,0px))] md:top-[calc(73px+env(safe-area-inset-top,0px))] z-40 bg-[var(--bg-primary)] shadow-sm">
+        <div
+          className="sticky top-[var(--top-nav-height)] md:top-[var(--top-nav-height-lg)] z-40 bg-[var(--bg-primary)] shadow-sm"
+          style={{
+            '--top-nav-height': TOP_NAV_HEIGHT,
+            '--top-nav-height-lg': TOP_NAV_HEIGHT_LG,
+          }}
+        >
 
           {/* Search Bar - Discovery SYNC */}
           <div className="px-6 lg:px-12 py-3 bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
