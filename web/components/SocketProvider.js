@@ -268,10 +268,11 @@ export default function SocketProvider({ children }) {
 
     // Connect once per user session
     if (connectedUserId.current !== user._id) {
-      // Use provided token or fallback to localStorage
+      // Pass token if available; socket will use cookies with withCredentials: true
       let authToken = tokenRef.current;
-      console.log('[SocketProvider] tokenRef.current:', authToken ? `${authToken.substring(0, 10)}...` : 'null');
+      console.log('[SocketProvider] Token from state:', authToken ? `${authToken.substring(0, 10)}...` : 'null');
       
+      // Try localStorage as fallback
       if (!authToken && typeof window !== 'undefined') {
         try {
           const storedToken = window.localStorage.getItem('aura_token');
@@ -282,9 +283,8 @@ export default function SocketProvider({ children }) {
         }
       }
       
-      console.log('[SocketProvider] Final authToken to pass:', authToken ? `${authToken.substring(0, 10)}...` : 'NULL - SOCKET AUTH WILL FAIL');
-      console.log('[SocketProvider] Initiating socket connection for user:', user._id, 'with token:', authToken ? 'yes' : 'NO');
-      socketService.connect(user._id, authToken);
+      console.log('[SocketProvider] Initiating socket connection for user:', user._id);
+      socketService.connect(user._id, authToken || undefined);
       connectedUserId.current = user._id;
     }
 

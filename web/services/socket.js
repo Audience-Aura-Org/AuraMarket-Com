@@ -188,21 +188,18 @@ class SocketService {
 
     const connectStartTime = performance.now();
     this.socket = io(SOCKET_URL, {
+      query: {
+        userId: userId || this.socket?.currentUserId,
+      },
       auth: (cb) => {
-        // Use the token that was passed in; only fall back to storage if needed
+        // Socket.io will automatically send cookies with withCredentials: true
+        // Pass token if available, otherwise let backend use session cookies + query param
         if (token) {
-          debugLog(`[SocketService] Using provided auth token`);
+          debugLog(`[SocketService] Auth: using provided token`);
           cb({ userId: this.socket?.currentUserId || userId, token });
         } else {
-          getStoredAuthToken()
-            .then((t) => {
-              debugLog(`[SocketService] Auth token retrieved from storage: ${t ? 'yes' : 'no'}`);
-              cb({ userId: this.socket?.currentUserId || userId, token: t });
-            })
-            .catch((err) => {
-              debugWarn(`[SocketService] Auth token retrieval failed:`, err);
-              cb({ userId: this.socket?.currentUserId || userId, token: null });
-            });
+          debugLog(`[SocketService] Auth: relying on session cookies + userId query param`);
+          cb({ userId: this.socket?.currentUserId || userId });
         }
       },
       // Prioritize WebSocket for instant message delivery; fall back to polling if WS fails
@@ -213,11 +210,12 @@ class SocketService {
       randomizationFactor: 0.5,
       upgrade: true,
       path: '/socket.io',
-      withCredentials: true,
+      withCredentials: true, // 🔑 Send cookies automatically
       transportOptions: {
         polling: {
           extraHeaders: {
-            'X-Client': 'Auradime-Web'
+            'X-Client': 'Auradime-Web',
+            'X-User-Id': userId || ''
           }
         }
       }
