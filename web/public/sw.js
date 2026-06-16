@@ -156,7 +156,7 @@ self.addEventListener('push', function (event) {
     vibrate: isChat ? [100, 50, 100] : [200, 100, 200],
     tag: data.tag || 'auradime-notification',
     renotify: true,
-    requireInteraction: !isChat, // chat: auto-dismiss; alerts: stay until tapped
+    requireInteraction: !isChat,
     silent: false,
     data: {
       url: data.data?.url || data.url || '/',
@@ -173,7 +173,25 @@ self.addEventListener('push', function (event) {
         ]
   };
 
-  event.waitUntil(self.registration.showNotification(data.title || 'Auradime', options));
+  const showOrForward = async () => {
+    const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const visibleClients = windowClients.filter((client) => client.visibilityState === 'visible');
+
+    if (visibleClients.length > 0) {
+      visibleClients.forEach((client) => {
+        try {
+          client.postMessage({ type: 'push-received', payload: data });
+        } catch (e) {
+          // Ignore failures for individual clients
+        }
+      });
+      return;
+    }
+
+    await self.registration.showNotification(data.title || 'Auradime', options);
+  };
+
+  event.waitUntil(showOrForward());
 });
 
 // ── Notification Click ───────────────────────────────────────────────────────

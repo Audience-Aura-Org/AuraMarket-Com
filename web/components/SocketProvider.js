@@ -440,11 +440,32 @@ export default function SocketProvider({ children }) {
 
     const onSWMessage = (e) => {
       const msg = e.data;
-      if (!msg || msg.type !== 'notification-click') return;
-      handleNotificationIntent({
-        route: msg.url,
-        payload: msg.payload || {},
-      });
+      if (!msg) return;
+
+      if (msg.type === 'notification-click') {
+        handleNotificationIntent({
+          route: msg.url,
+          payload: msg.payload || {},
+        });
+        return;
+      }
+
+      if (msg.type === 'push-received') {
+        const payload = msg.payload || {};
+        const senderId = payload.sender_id || payload.senderId || payload.data?.senderId || payload.data?.sender_id;
+        const text = payload.body || payload.message || 'New message received';
+        const route = payload.data?.url || payload.url || (senderId ? `/chat?vendorId=${senderId}` : '/chat');
+
+        if (isAppForeground()) {
+          setNotifToast({
+            id: Date.now(),
+            type: payload.type || 'default',
+            title: payload.title || 'Auradime',
+            message: text,
+            link: route,
+          });
+        }
+      }
     };
 
     navigator.serviceWorker.addEventListener('message', onSWMessage);
