@@ -1013,7 +1013,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     <motion.div
       id="chat-root"
       ref={chatRootRef}
-      style={mobileShellStyle}
+      style={{...mobileShellStyle, contain: 'layout style paint', willChange: 'height, transform' }}
       onTouchStart={handlePanelTouchStart}
       onTouchEnd={handlePanelTouchEnd}
       {...(!fullPage
@@ -1212,7 +1212,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ref={scrollRef}
         onScroll={handleScroll}
         {...(activePartnerId ? { 'data-chat-messages': true } : {})}
-        style={{ flex: 1, minHeight: 0 }}
+        style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform' }}
         className={[
           'min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain',
           activePartnerId ? 'chat-bg-pattern chat-scrollbar' : 'bg-[var(--bg-secondary)]',
@@ -1499,11 +1499,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         <div
           data-chat-composer
           className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]"
-          style={{ paddingBottom: '0px', flexShrink: 0, backgroundColor: 'var(--bg-secondary)' }}
+          style={{ paddingBottom: '0px', flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style paint' }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (
-            <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-b border-[var(--glass-border)] px-2 py-2 sm:px-3">
+            <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-b border-[var(--glass-border)] px-2 py-2 sm:px-3" style={{ contain: 'layout style paint' }}>
               {QUICK_REPLIES.map(q => (
                 <motion.button
                   key={q}
@@ -1519,7 +1519,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           )}
 
           {/* Input row */}
-          <div className="mx-auto flex w-full max-w-4xl min-w-0 items-end gap-1.5 px-2 pb-1 pt-1.5 sm:gap-2 sm:px-3 sm:pb-1.5 sm:pt-2">
+          <div className="mx-auto flex w-full max-w-4xl min-w-0 items-end gap-1.5 px-2 pb-1 pt-1.5 sm:gap-2 sm:px-3 sm:pb-1.5 sm:pt-2" style={{ contain: 'layout style paint' }}>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
 
             <motion.button
@@ -1552,7 +1552,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 autoCapitalize="sentences"
                 spellCheck={false}
                 className="max-h-[88px] min-h-[42px] w-full min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
-                style={{ height: 'auto' }}
+                style={{ height: 'auto', contain: 'layout style paint', willChange: 'height' }}
                 onFocus={() => {
                   setTimeout(() => viewportSyncRef.current?.(), 50);
                   setTimeout(() => viewportSyncRef.current?.(), 150);

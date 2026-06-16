@@ -354,8 +354,33 @@ body:has(.checkout-page) select {
   border-radius: 10px;
 }
 
+/* Chat stability: prevent layout shifts on keyboard open/close and viewport resize */
+#chat-root {
+  contain: layout style paint;
+  will-change: height, transform;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#chat-root [data-chat-messages] {
+  contain: layout style paint;
+  scrollbar-gutter: stable;
+  will-change: transform;
+  overflow-y: overlay;
+}
+
+#chat-root [data-chat-composer] {
+  contain: layout style paint;
+  position: relative;
+}
+
+#chat-root [data-chat-header] {
+  contain: layout style;
+}
+
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 
 .notification-layer {
   position: fixed; top: 0; right: 0; padding: 1.5rem; width: 100%; max-width: 420px;
