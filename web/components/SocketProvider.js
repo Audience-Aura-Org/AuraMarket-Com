@@ -158,6 +158,16 @@ export default function SocketProvider({ children }) {
   const notifToastTimer = useRef(null);
   const cartToastTimer = useRef(null);
   const connectedUserId = useRef(null);
+  const tokenRef = useRef(token);
+  const userRef = useRef(user);
+  
+  // Keep refs in sync with state for socket auth callback
+  useEffect(() => {
+    tokenRef.current = token;
+  }, [token]);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
   // ✅ Refs to avoid stale closures in socket handlers
   const isOpenRef = useRef(isOpen);
   const activePartnerIdRef = useRef(activePartnerId);
@@ -259,16 +269,21 @@ export default function SocketProvider({ children }) {
     // Connect once per user session
     if (connectedUserId.current !== user._id) {
       // Use provided token or fallback to localStorage
-      let authToken = token;
+      let authToken = tokenRef.current;
+      console.log('[SocketProvider] tokenRef.current:', authToken ? `${authToken.substring(0, 10)}...` : 'null');
+      
       if (!authToken && typeof window !== 'undefined') {
         try {
-          authToken = window.localStorage.getItem('aura_token');
-          console.log('[SocketProvider] Token fallback from localStorage:', authToken ? 'yes' : 'no');
-        } catch {
-          // ignore
+          const storedToken = window.localStorage.getItem('aura_token');
+          console.log('[SocketProvider] localStorage aura_token:', storedToken ? `${storedToken.substring(0, 10)}...` : 'null');
+          authToken = storedToken;
+        } catch (e) {
+          console.error('[SocketProvider] localStorage read error:', e);
         }
       }
-      console.log('[SocketProvider] Initiating socket connection for user:', user._id, 'with token:', authToken ? 'yes' : 'no');
+      
+      console.log('[SocketProvider] Final authToken to pass:', authToken ? `${authToken.substring(0, 10)}...` : 'NULL - SOCKET AUTH WILL FAIL');
+      console.log('[SocketProvider] Initiating socket connection for user:', user._id, 'with token:', authToken ? 'yes' : 'NO');
       socketService.connect(user._id, authToken);
       connectedUserId.current = user._id;
     }

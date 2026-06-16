@@ -501,14 +501,11 @@ class SocketService {
   emit(event, data) {
     try {
       if (!this.socket) {
-        if (!this.warnedUnavailable) {
-          console.warn(`⚠️ Cannot emit "${event}" - socket not initialized`);
-          this.warnedUnavailable = true;
-        }
+        debugWarn(`⚠️ Cannot emit "${event}" - socket not initialized`);
         return;
       }
       if (!this.socket.connected) {
-        console.warn(`⚠️ Cannot emit "${event}" - socket not connected (status: ${this.socket.disconnected ? 'disconnected' : 'connecting'})`);
+        debugWarn(`⚠️ Cannot emit "${event}" - socket not connected (will retry on reconnect)`);
         return;
       }
       this.socket.emit(event, data);
