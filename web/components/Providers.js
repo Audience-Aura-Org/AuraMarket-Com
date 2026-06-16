@@ -112,7 +112,7 @@ export default function Providers({ children }) {
           {!isImmersiveChat && !isDashboardRoute && !isAuthRoute && <TopNav />}
 
           <div className="flex w-full items-stretch flex-1 relative">
-            <main className={`flex-1 flex flex-col min-w-0 ${!isDashboardRoute && !isAuthRoute && !isImmersiveChat ? 'pt-[calc(61px+env(safe-area-inset-top,0px))] md:pt-[calc(73px+env(safe-area-inset-top,0px))]' : ''}`}>
+            <main className="flex-1 flex flex-col min-w-0">
               {!isDashboardRoute && <SubscriptionAccessNotice />}
               <div className="flex-1 flex flex-col">
                 {children}</div>
