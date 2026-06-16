@@ -179,6 +179,11 @@ export default function SocketProvider({ children }) {
       .some((prefix) => String(route || '').startsWith(prefix))
   );
 
+  const isAppForeground = () => {
+    if (typeof document === 'undefined') return false;
+    return document.visibilityState === 'visible' && document.hasFocus?.();
+  };
+
   const ensureSessionForRoute = async (route) => {
     const target = normalizeAppRoute(route);
     if (!target || !isProtectedAppRoute(target)) return true;
@@ -317,35 +322,39 @@ export default function SocketProvider({ children }) {
         text 
       });
 
-      showNativeNotification({
-        id: msg._id || `${senderId}-${Date.now()}`,
-        title: senderName,
-        body: text,
-        route: senderId ? `/chat?vendorId=${senderId}` : '/chat',
-        type: 'message',
-        senderId,
-        senderData: {
-          _id: senderId,
-          name: senderName,
-          avatar: senderAvatar,
-          store_name: msg.sender_id?.branding?.store_name || msg.sender_id?.store_name,
-        },
-      });
-      showBrowserNotification({
-        id: msg._id || `${senderId}-${Date.now()}`,
-        title: senderName,
-        body: text,
-        route: senderId ? `/chat?vendorId=${senderId}` : '/chat',
-        type: 'message',
-        senderId,
-        senderData: {
-          _id: senderId,
-          name: senderName,
-          avatar: senderAvatar,
-          store_name: msg.sender_id?.branding?.store_name || msg.sender_id?.store_name,
-        },
-        icon: senderAvatar || '/logo-white.png',
-      });
+      if (!isAppForeground()) {
+        showNativeNotification({
+          id: msg._id || `${senderId}-${Date.now()}`,
+          title: senderName,
+          body: text,
+          route: senderId ? `/chat?vendorId=${senderId}` : '/chat',
+          type: 'message',
+          senderId,
+          senderData: {
+            _id: senderId,
+            name: senderName,
+            avatar: senderAvatar,
+            store_name: msg.sender_id?.branding?.store_name || msg.sender_id?.store_name,
+          },
+        });
+        showBrowserNotification({
+          id: msg._id || `${senderId}-${Date.now()}`,
+          title: senderName,
+          body: text,
+          route: senderId ? `/chat?vendorId=${senderId}` : '/chat',
+          type: 'message',
+          senderId,
+          senderData: {
+            _id: senderId,
+            name: senderName,
+            avatar: senderAvatar,
+            store_name: msg.sender_id?.branding?.store_name || msg.sender_id?.store_name,
+          },
+          icon: senderAvatar || '/logo-white.png',
+        });
+      } else {
+        console.log('[SocketProvider] Foreground app detected; skipping push notifications for active chat.');
+      }
 
       if (chatToastTimer.current) clearTimeout(chatToastTimer.current);
       chatToastTimer.current = setTimeout(() => setChatToast(null), 6000);
@@ -376,20 +385,24 @@ export default function SocketProvider({ children }) {
         link
       });
 
-      showNativeNotification({
-        id: notif?._id || `${type}-${Date.now()}`,
-        title,
-        body: message,
-        route: link,
-        type,
-      });
-      showBrowserNotification({
-        id: notif?._id || `${type}-${Date.now()}`,
-        title,
-        body: message,
-        route: link,
-        type,
-      });
+      if (!isAppForeground()) {
+        showNativeNotification({
+          id: notif?._id || `${type}-${Date.now()}`,
+          title,
+          body: message,
+          route: link,
+          type,
+        });
+        showBrowserNotification({
+          id: notif?._id || `${type}-${Date.now()}`,
+          title,
+          body: message,
+          route: link,
+          type,
+        });
+      } else {
+        console.log('[SocketProvider] App is foreground; suppressing push notification for in-app notification.');
+      }
 
       if (notifToastTimer.current) clearTimeout(notifToastTimer.current);
       notifToastTimer.current = setTimeout(() => setNotifToast(null), 7000);
