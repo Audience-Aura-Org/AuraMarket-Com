@@ -23,15 +23,27 @@ export const getStoredAuthToken = async () => {
 };
 
 export const setStoredAuthToken = async (token) => {
-  if (typeof window === 'undefined' || !token) return;
+  if (typeof window === 'undefined') {
+    console.warn('[authStorage] setStoredAuthToken: window is undefined');
+    return;
+  }
+  
+  if (!token) {
+    console.warn('[authStorage] setStoredAuthToken: token is null/undefined, skipping storage');
+    return;
+  }
 
   if (isNativeAuthStorage()) {
+    console.log('[authStorage] Saving token to native Preferences');
     await Preferences.set({ key: TOKEN_KEY, value: token });
   }
+  
   try {
+    console.log(`[authStorage] Saving token to localStorage: ${token.substring(0, 10)}...`);
     window.localStorage.setItem(TOKEN_KEY, token);
-  } catch {
-    // ignore storage errors
+    console.log('[authStorage] ✅ Token saved to localStorage');
+  } catch (err) {
+    console.error('[authStorage] ❌ Failed to save token to localStorage:', err);
   }
 };
 

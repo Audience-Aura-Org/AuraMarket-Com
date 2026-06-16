@@ -134,6 +134,10 @@ export const useAuthStore = create(
 
           const token = res.data?.token || res.data?.data?.token || null;
           const user = res.data?.data?.user || res.data?.user || null;
+          
+          console.log('[useAuth] OTP verification response - token:', token ? `${token.substring(0, 10)}...` : 'NULL');
+          console.log('[useAuth] OTP verification response - user:', user?.email || 'null');
+          
           if (!user) {
             throw new Error('No user returned after verification.');
           }

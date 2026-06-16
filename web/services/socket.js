@@ -192,15 +192,19 @@ class SocketService {
         userId: userId || this.socket?.currentUserId,
       },
       auth: (cb) => {
-        // Socket.io will automatically send cookies with withCredentials: true
-        // Pass token if available, otherwise let backend use session cookies + query param
+        // Backend requires BOTH userId and token in auth object for JWT verification
+        const authPayload = {
+          userId: this.socket?.currentUserId || userId,
+          token: token || null,
+        };
+        
         if (token) {
-          debugLog(`[SocketService] Auth: using provided token`);
-          cb({ userId: this.socket?.currentUserId || userId, token });
+          debugLog(`[SocketService] Sending auth: userId + token`);
         } else {
-          debugLog(`[SocketService] Auth: relying on session cookies + userId query param`);
-          cb({ userId: this.socket?.currentUserId || userId });
+          console.warn(`[SocketService] ⚠️ Sending auth without token - backend JWT verification will fail`);
         }
+        
+        cb(authPayload);
       },
       // Prioritize WebSocket for instant message delivery; fall back to polling if WS fails
       transports: ['websocket', 'polling'],
@@ -210,7 +214,7 @@ class SocketService {
       randomizationFactor: 0.5,
       upgrade: true,
       path: '/socket.io',
-      withCredentials: true, // 🔑 Send cookies automatically
+      withCredentials: true, // Send cookies automatically
       transportOptions: {
         polling: {
           extraHeaders: {
