@@ -308,7 +308,9 @@ const sendMessage = async (req, res, next) => {
             body = 'Sent you a message';
           }
 
-          await sendNotification(req.app, receiver_id, {
+          console.log(`[API] 🔔 Push fallback: sending notification to ${receiver_id} (message ${message._id})`);
+
+          const notifResult = await sendNotification(req.app, receiver_id, {
             title: senderName,
             message: body,
             type: 'message',
@@ -316,8 +318,10 @@ const sendMessage = async (req, res, next) => {
             metadata: { sender_id: req.user._id, link: `/chat?vendorId=${req.user._id}` },
             emailLink: `${process.env.WEB_CLIENT_URL}/chat?vendorId=${req.user._id}`
           });
+
+          console.log(`[API] 🔔 Push fallback result for ${receiver_id}:`, notifResult ? 'sent' : 'failed');
         } catch (err) {
-          console.error(`❌ [Notifier] Dispatch failed:`, err.message);
+          console.error(`❌ [Notifier] Dispatch failed:`, err?.message || err);
         }
       })();
     }

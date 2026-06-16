@@ -209,9 +209,13 @@ class SocketService {
       // Prioritize WebSocket for instant message delivery; fall back to polling if WS fails
       transports: ['websocket', 'polling'],
       reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 10000,
-      randomizationFactor: 0.5,
+      // Faster reconnect attempts to recover lost mobile connections sooner
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 3000,
+      randomizationFactor: 0.25,
+      // Ping frequently to detect dead peers sooner (milliseconds)
+      pingInterval: 10000,
+      pingTimeout: 5000,
       upgrade: true,
       path: '/socket.io',
       withCredentials: true, // Send cookies automatically
