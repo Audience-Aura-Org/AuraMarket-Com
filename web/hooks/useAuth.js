@@ -311,6 +311,7 @@ export const useAuthStore = create(
       name: 'aura-auth-storage',
       partialize: (state) => ({
         user: state.user,
+        token: state.token,
         rememberedEmail: state.rememberedEmail,
         followedVendorIds: state.followedVendorIds,
         walletBalance: state.walletBalance,
