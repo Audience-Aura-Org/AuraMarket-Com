@@ -140,7 +140,7 @@ class SocketService {
   lastError = null;
   warnedUnavailable = false;
 
-  async connect(userId) {
+  async connect(userId, authToken = null) {
     if (!SOCKET_URL) {
       this.lastError = 'Missing secure production socket URL. Set NEXT_PUBLIC_SOCKET_URL to an HTTPS/WSS Socket.IO origin.';
       if (!this.warnedUnavailable) {
@@ -150,7 +150,15 @@ class SocketService {
       return;
     }
 
-    const token = await getStoredAuthToken();
+    // Use provided token or fetch from storage
+    let token = authToken;
+    if (!token) {
+      token = await getStoredAuthToken();
+    }
+    
+    if (!token) {
+      console.warn('[SocketService] ⚠️ No auth token available for socket connection. Will try without credentials.');
+    }
 
     if (this.socket) {
       if (this.socket.currentUserId === userId) {
@@ -175,15 +183,21 @@ class SocketService {
     const connectStartTime = performance.now();
     this.socket = io(SOCKET_URL, {
       auth: (cb) => {
-        getStoredAuthToken()
-          .then((t) => {
-            debugLog(`[SocketService] Auth token retrieved: ${t ? 'yes' : 'no'}`);
-            cb({ userId: this.socket?.currentUserId || userId, token: t });
-          })
-          .catch((err) => {
-            debugWarn(`[SocketService] Auth token retrieval failed:`, err);
-            cb({ userId: this.socket?.currentUserId || userId, token: null });
-          });
+        // Use the token that was passed in; only fall back to storage if needed
+        if (token) {
+          debugLog(`[SocketService] Using provided auth token`);
+          cb({ userId: this.socket?.currentUserId || userId, token });
+        } else {
+          getStoredAuthToken()
+            .then((t) => {
+              debugLog(`[SocketService] Auth token retrieved from storage: ${t ? 'yes' : 'no'}`);
+              cb({ userId: this.socket?.currentUserId || userId, token: t });
+            })
+            .catch((err) => {
+              debugWarn(`[SocketService] Auth token retrieval failed:`, err);
+              cb({ userId: this.socket?.currentUserId || userId, token: null });
+            });
+        }
       },
       // Prioritize WebSocket for instant message delivery; fall back to polling if WS fails
       transports: ['websocket', 'polling'],

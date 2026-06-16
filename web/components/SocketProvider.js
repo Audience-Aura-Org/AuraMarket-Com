@@ -144,7 +144,7 @@ const normalizeAppRoute = (route) => {
 };
 
 export default function SocketProvider({ children }) {
-  const { user, logout, refreshWalletBalance, setWalletBalance, authChecked, hasHydrated, fetchMe } = useAuthStore();
+  const { user, logout, refreshWalletBalance, setWalletBalance, authChecked, hasHydrated, fetchMe, token } = useAuthStore();
   const router = useRouter();
   const { isOpen, activePartnerId, openChat } = useChat();
 
@@ -252,8 +252,8 @@ export default function SocketProvider({ children }) {
 
     // Connect once per user session
     if (connectedUserId.current !== user._id) {
-      console.log('[SocketProvider] Initiating socket connection for user:', user._id);
-      socketService.connect(user._id);
+      console.log('[SocketProvider] Initiating socket connection for user:', user._id, 'with token:', token ? 'yes' : 'no');
+      socketService.connect(user._id, token);
       connectedUserId.current = user._id;
     }
 
