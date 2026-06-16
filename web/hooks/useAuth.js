@@ -114,13 +114,12 @@ export const useAuthStore = create(
             __skipRetry: true,
           });
 
-          console.log('[useAuth] API verifyOtp response:', {
-            status: res.status,
-            dataKeys: res.data ? Object.keys(res.data) : 'no data',
-            token: res.data?.token ? `${res.data.token.substring(0, 20)}...` : 'null in data.token',
-            nestedDataKeys: res.data?.data ? Object.keys(res.data.data) : 'no data.data',
-            nestedToken: res.data?.data?.token ? `${res.data.data.token.substring(0, 20)}...` : 'null in data.data.token',
-          });
+          console.log('[useAuth] ===== API verifyOtp FULL RESPONSE =====');
+          console.log('[useAuth] Status:', res.status);
+          console.log('[useAuth] Entire res.data:', JSON.stringify(res.data, null, 2));
+          console.log('[useAuth] res.data.token exists?', !!res.data?.token);
+          console.log('[useAuth] res.data.data?.token exists?', !!res.data?.data?.token);
+          console.log('[useAuth] ===== END RESPONSE =====');
 
           const signupRequired =
             Boolean(res.data?.signup_required) ||
