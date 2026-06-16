@@ -47,6 +47,10 @@ const signToken = (id) => {
 // ─────────────────────────────────────────────
 const sendTokenResponse = (user, statusCode, res) => {
   const token = createAuthToken(user);
+  console.log('[auth.controller] sendTokenResponse called');
+  console.log('[auth.controller] token created:', token ? `${token.substring(0, 30)}...` : 'NULL');
+  console.log('[auth.controller] user email:', user?.email);
+  
   setAuthCookie(res, token);
 
   // Remove password from output (extra safety)
@@ -54,11 +58,16 @@ const sendTokenResponse = (user, statusCode, res) => {
   if (userObj.password) userObj.password = undefined;
   normalizeUserMedia(userObj);
 
-  res.status(statusCode).json({
+  const responsePayload = {
     success: true,
     token,
     data: { user: userObj },
-  });
+  };
+  
+  console.log('[auth.controller] Sending response with token:', token ? 'YES' : 'NO');
+  console.log('[auth.controller] Response payload keys:', Object.keys(responsePayload));
+
+  res.status(statusCode).json(responsePayload);
 };
 
 const buildSafeUser = (user) => {
@@ -159,24 +168,34 @@ const verifyOtp = async (req, res, next) => {
   try {
     const { email, otp, signupToken, name, role, phone, referral_code } = req.body;
     let verifiedEmail;
+    
+    console.log('[auth.controller] verifyOtp called with email:', email);
 
     if (signupToken) {
+      console.log('[auth.controller] Using signupToken path');
       verifiedEmail = verifySignupToken(signupToken);
       const existing = await User.findOne({ email: verifiedEmail });
       if (existing) {
+        console.log('[auth.controller] Found existing user via signupToken, sending token response');
         await ensureSupportAdmin(existing);
         return sendTokenResponse(existing, 200, res);
       }
     } else {
+      console.log('[auth.controller] Using OTP verification path for email:', email);
       verifiedEmail = await verifyOtpForEmail(email, otp);
+      console.log('[auth.controller] OTP verified for email:', verifiedEmail);
     }
 
     let user = await User.findOne({ email: verifiedEmail });
+    console.log('[auth.controller] User found:', user ? user.email : 'null');
+    
     if (user) user = await ensureSupportAdmin(user);
 
     if (!user) {
+      console.log('[auth.controller] User does not exist, checking if signup required');
       if (!isSupportAdminEmail(verifiedEmail) && (!name || String(name).trim().length < 2)) {
         const signupToken = createSignupToken(verifiedEmail);
+        console.log('[auth.controller] Signup token created');
         return res.status(200).json({
           success: true,
           signup_required: true,
@@ -192,6 +211,7 @@ const verifyOtp = async (req, res, next) => {
         });
       }
 
+      console.log('[auth.controller] Creating new user from signup');
       user = await createUserFromSignup({
         email: verifiedEmail,
         name: String(name).trim(),
@@ -202,9 +222,13 @@ const verifyOtp = async (req, res, next) => {
       user = await ensureSupportAdmin(user);
     }
 
+    console.log('[auth.controller] Deleting OTP for email:', verifiedEmail);
     await AuthOtp.deleteOne({ email: verifiedEmail });
+    
+    console.log('[auth.controller] Calling sendTokenResponse for user:', user?.email);
     return sendTokenResponse(user, user.createdAt && Date.now() - user.createdAt.getTime() < 30000 ? 201 : 200, res);
   } catch (error) {
+    console.error('[auth.controller] verifyOtp error:', error.message);
     if (error.retryAfter) res.set('Retry-After', String(error.retryAfter));
     res.status(error.statusCode || 400).json({
       success: false,
