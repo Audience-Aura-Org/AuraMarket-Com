@@ -243,10 +243,16 @@ export default function SocketProvider({ children }) {
   };
 
   useEffect(() => {
-    if (!user?._id) return;
+    if (!user?._id) {
+      console.log('[SocketProvider] Waiting for user auth...');
+      return;
+    }
+
+    console.log('[SocketProvider] User authenticated:', user._id);
 
     // Connect once per user session
     if (connectedUserId.current !== user._id) {
+      console.log('[SocketProvider] Initiating socket connection for user:', user._id);
       socketService.connect(user._id);
       connectedUserId.current = user._id;
     }

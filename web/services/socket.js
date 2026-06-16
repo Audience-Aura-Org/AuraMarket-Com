@@ -127,6 +127,10 @@ const getSocketURL = () => {
 
 const SOCKET_URL = getSocketURL();
 
+if (typeof window !== 'undefined') {
+  console.log('[SocketService] Socket URL configured:', SOCKET_URL);
+}
+
 class SocketService {
   socket = null;
   // Track listeners with unique IDs to prevent duplicates across reconnects
@@ -285,15 +289,18 @@ class SocketService {
     this.socket.on('connect_error', (err) => {
       try {
         const errorMsg = err?.message || err?.toString?.() || 'Unknown error';
-        debugWarn(`[SocketService] Connect error. Attempt: ${this.connectionAttempts}. Message: ${errorMsg}`);
+        console.error(`❌ [SocketService] Connect error (attempt ${this.connectionAttempts}): ${errorMsg}`);
+        console.error(`   Socket URL: ${SOCKET_URL}`);
+        console.error(`   Full error:`, err);
         
         // Provide specific guidance based on error type
         if (errorMsg.includes('xhr poll error') || errorMsg.includes('ERR_NAME_NOT_RESOLVED') || errorMsg.includes('ECONNREFUSED')) {
-          debugWarn('[SocketService] Backend socket server may be unavailable or blocked.');
+          console.error('[SocketService] ⚠️ Backend socket server is unreachable or offline.');
+          console.error('[SocketService] → Check if backend is running at', SOCKET_URL);
         } else if (errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
-          debugWarn('[SocketService] Possible CORS or auth middleware issue.');
+          console.error('[SocketService] ⚠️ CORS or auth middleware rejected the connection.');
         } else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
-          debugWarn('[SocketService] Auth token may be invalid or expired.');
+          console.error('[SocketService] ⚠️ Auth token invalid, expired, or missing.');
         }
         
         debugWarn('[SocketService] Retrying with exponential backoff.');
