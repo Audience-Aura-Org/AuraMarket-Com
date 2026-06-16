@@ -168,18 +168,21 @@ class SocketService {
     this.connectionAttempts++;
     debugLog(`[SocketService] Connecting. Attempt: ${this.connectionAttempts}`);
 
+    const connectStartTime = performance.now();
     this.socket = io(SOCKET_URL, {
       auth: (cb) => {
         getStoredAuthToken()
           .then((t) => {
+            debugLog(`[SocketService] Auth token retrieved: ${t ? 'yes' : 'no'}`);
             cb({ userId: this.socket?.currentUserId || userId, token: t });
           })
-          .catch(() => {
+          .catch((err) => {
+            debugWarn(`[SocketService] Auth token retrieval failed:`, err);
             cb({ userId: this.socket?.currentUserId || userId, token: null });
           });
       },
-      // Fast connection strategy: connect via polling instantly, then upgrade to WebSocket in the background.
-      transports: ['polling', 'websocket'],
+      // Prioritize WebSocket for instant message delivery; fall back to polling if WS fails
+      transports: ['websocket', 'polling'],
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 10000,
@@ -195,11 +198,14 @@ class SocketService {
         }
       }
     });
+    this.connectStartTime = connectStartTime;
     this.socket.currentUserId = userId;
 
     this.socket.on('connect', () => {
       try {
         const transport = this.socket.io?.engine?.transport?.name || 'unknown';
+        const connectTime = this.connectStartTime ? (performance.now() - this.connectStartTime).toFixed(0) : '?';
+        console.log(`✅ [SocketService] Connected in ${connectTime}ms via ${transport}. Attempts: ${this.connectionAttempts}`);
         debugLog(`[SocketService] Connected. Transport: ${transport}. Attempts: ${this.connectionAttempts}`);
         
         // Log transport details for debugging

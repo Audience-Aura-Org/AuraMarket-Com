@@ -253,6 +253,7 @@ export default function SocketProvider({ children }) {
 
     // ── Handler: new chat message ──────────────────────────────────────────
     const handleNewMessage = (msg) => {
+      console.log(`📨 [SocketProvider] Message received:`, msg._id, `from ${msg.sender_id?.name || msg.sender_id}`);
       const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
       if (senderId && senderId === user?._id?.toString()) return;
 
