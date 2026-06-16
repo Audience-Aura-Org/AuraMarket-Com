@@ -244,7 +244,7 @@ export default function HubContent() {
       </div>
 
       {/* ── MOBILE VIEW ────────────────────────────────────── */}
-      <div className="md:hidden flex flex-col w-full relative z-10 pt-14">
+      <div className="md:hidden flex flex-col w-full relative z-10 pt-20">
          {/* Sticky Tab Bar */}
          <div className="sticky top-14 z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 py-2.5 shadow-sm">
             <div className="flex bg-[var(--bg-secondary)] p-1 gap-1 rounded-full border border-[var(--glass-border)]/50">

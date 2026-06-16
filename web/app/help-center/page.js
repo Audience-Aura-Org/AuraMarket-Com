@@ -47,7 +47,7 @@ export default function HelpCenter() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] overflow-hidden pt-14 md:pt-0">
+    <div className="min-h-screen bg-[var(--bg-secondary)] overflow-hidden pt-20 md:pt-0">
       {/* Hero Section */}
       <div className="relative pt-32 pb-20 px-6 lg:px-20 bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--accent)]/10 blur-[100px] pointer-events-none rounded-full" />

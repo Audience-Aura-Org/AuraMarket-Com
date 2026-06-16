@@ -238,7 +238,7 @@ function ShopContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 pt-14 md:pt-0">
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 pt-20 md:pt-0">
         <div className="flex flex-col w-full min-h-screen relative">
 
         {/* STICKY HEADER STACK: Search + Category bar */}
