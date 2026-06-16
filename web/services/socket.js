@@ -154,10 +154,16 @@ class SocketService {
     let token = authToken;
     if (!token) {
       token = await getStoredAuthToken();
+      debugLog(`[SocketService] Token fetched from storage: ${token ? 'yes' : 'no'}`);
+    } else {
+      debugLog(`[SocketService] Using provided token`);
     }
     
     if (!token) {
       console.warn('[SocketService] ⚠️ No auth token available for socket connection. Will try without credentials.');
+      console.warn(`[SocketService] authToken param: ${authToken ? 'yes' : 'no'}`);
+    } else {
+      console.log(`[SocketService] ✅ Auth token available (${token.substring(0, 10)}...)`);
     }
 
     if (this.socket) {

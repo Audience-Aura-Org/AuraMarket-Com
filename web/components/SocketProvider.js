@@ -248,12 +248,28 @@ export default function SocketProvider({ children }) {
       return;
     }
 
-    console.log('[SocketProvider] User authenticated:', user._id);
+    // Don't connect socket until store is fully rehydrated
+    if (!hasHydrated) {
+      console.log('[SocketProvider] Waiting for store hydration...');
+      return;
+    }
+
+    console.log('[SocketProvider] User authenticated:', user._id, 'hydrated:', hasHydrated);
 
     // Connect once per user session
     if (connectedUserId.current !== user._id) {
-      console.log('[SocketProvider] Initiating socket connection for user:', user._id, 'with token:', token ? 'yes' : 'no');
-      socketService.connect(user._id, token);
+      // Use provided token or fallback to localStorage
+      let authToken = token;
+      if (!authToken && typeof window !== 'undefined') {
+        try {
+          authToken = window.localStorage.getItem('aura_token');
+          console.log('[SocketProvider] Token fallback from localStorage:', authToken ? 'yes' : 'no');
+        } catch {
+          // ignore
+        }
+      }
+      console.log('[SocketProvider] Initiating socket connection for user:', user._id, 'with token:', authToken ? 'yes' : 'no');
+      socketService.connect(user._id, authToken);
       connectedUserId.current = user._id;
     }
 
@@ -392,8 +408,8 @@ export default function SocketProvider({ children }) {
       socketService.off('account_deleted', handleAccountDeleted);
       socketService.off('wallet:credited', handleWalletCredited);
     };
-  // Only re-register when the USER changes. isOpen/activePartnerId are read via refs.
-  }, [user?._id, logout, router, refreshWalletBalance, setWalletBalance]);
+  // Re-register when user changes or store rehydrates. isOpen/activePartnerId are read via refs.
+  }, [user?._id, hasHydrated, logout, router, refreshWalletBalance, setWalletBalance]);
 
   // Listen for messages from the Service Worker (e.g., notification click payload)
   useEffect(() => {
