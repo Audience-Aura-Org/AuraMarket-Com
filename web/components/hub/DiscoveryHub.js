@@ -207,7 +207,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
             >
               {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
                 <div
-                  className="sticky z-[35] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 shadow-sm overflow-hidden"
+                  className="sticky z-[50] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 shadow-sm overflow-hidden"
                   style={{ top: TOP_NAV_HEIGHT }}
                 >
                   <StatusRow 
@@ -244,7 +244,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
             >
               {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
                 <div
-                  className="sticky z-[35] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 overflow-hidden"
+                  className="sticky z-[50] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 overflow-hidden"
                   style={{ top: TOP_NAV_HEIGHT }}
                 >
                   <StatusRow 
