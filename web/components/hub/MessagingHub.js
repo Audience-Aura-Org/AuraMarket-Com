@@ -80,21 +80,34 @@ const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
 const stableChatViewport = (() => {
   let normalHeight = 0;
   let keyboardHeight = 0;
+  let stableOffset = 0;
   let lastMode = 'normal';
   const HEIGHT_JITTER_PX = 18;
+  const OFFSET_JITTER_PX = 10;
 
   return (metrics) => {
     const mode = metrics.keyboardOpen ? 'keyboard' : 'normal';
-    const previous = mode === 'keyboard' ? keyboardHeight : normalHeight;
+    const previousHeight = mode === 'keyboard' ? keyboardHeight : normalHeight;
     let height = metrics.height;
+    let offsetTop = mode === 'keyboard' ? Math.max(0, metrics.offsetTop) : 0;
 
-    if (previous && Math.abs(previous - metrics.height) <= HEIGHT_JITTER_PX) {
-      height = previous;
+    if (previousHeight && Math.abs(previousHeight - metrics.height) <= HEIGHT_JITTER_PX) {
+      height = previousHeight;
     } else if (mode === 'keyboard') {
       keyboardHeight = metrics.height;
     } else {
       normalHeight = Math.max(normalHeight, metrics.height);
       height = normalHeight;
+    }
+
+    if (mode === 'keyboard') {
+      if (stableOffset && Math.abs(stableOffset - offsetTop) <= OFFSET_JITTER_PX) {
+        offsetTop = stableOffset;
+      } else {
+        stableOffset = offsetTop;
+      }
+    } else {
+      stableOffset = 0;
     }
 
     if (mode !== lastMode) {
@@ -105,7 +118,7 @@ const stableChatViewport = (() => {
     return {
       ...metrics,
       height,
-      offsetTop: mode === 'keyboard' ? metrics.offsetTop : 0,
+      offsetTop,
       mode,
     };
   };
@@ -397,9 +410,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   };
 
   const keepChatInView = (behavior = 'auto') => {
-    if (typeof window === 'undefined') return;
     requestAnimationFrame(() => {
-      if (window.scrollY !== 0) window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       pinToLatestMessage(behavior);
     });
   };
@@ -428,16 +439,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   };
 
   const releaseMobileKeyboard = () => {
-    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    if (typeof document === 'undefined') return;
     const active = document.activeElement;
     if (active && typeof active.blur === 'function') active.blur();
     inputRef.current?.blur?.();
 
     const settle = () => {
-      scrollToBottom('auto');
-      if (window.visualViewport) {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      }
+      pinToLatestMessage('auto');
       document.body.style.transform = 'translateZ(0)';
       requestAnimationFrame(() => {
         document.body.style.transform = '';
