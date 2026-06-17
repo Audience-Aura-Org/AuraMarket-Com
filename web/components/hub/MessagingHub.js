@@ -178,6 +178,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const messagesRef = useRef(activeMessages);
   const initialChatSyncRef = useRef(null);
   const chatRootRef = useRef(null);
+  const headerRef = useRef(null);
   const viewportSyncRef = useRef(null);
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
@@ -973,21 +974,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           },
         }
       : {};
+  // Keep shell styling minimal to avoid interfering with runtime layout adjustments
   const mobileShellStyle = mobileLayout
     ? {
-        paddingTop: 'env(safe-area-inset-top, 0px)',
         position: 'fixed',
-        top: 0,
-        left: 0,
-        bottom: 'auto',
-        width: '100%',
-        overflow: 'hidden',
+        inset: 0,
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: 'var(--bg-secondary)',
-        height: `${viewportHeight?.height ?? 800}px`,
-        maxHeight: `${viewportHeight?.height ?? 800}px`,
-        transform: isAndroidNative ? 'translateY(0px)' : `translateY(${viewportHeight?.offsetTop ?? 0}px)`,
+        height: viewportHeight?.height ? `${viewportHeight.height}px` : '100vh',
+        maxHeight: '100vh',
+        overflow: 'hidden',
       }
     : undefined;
 
@@ -1017,6 +1014,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         exit: { opacity: 0, y: 16 },
       };
 
+  // compute header padding to avoid overlap
+  const headerHeight = headerRef.current?.offsetHeight || 64;
+
   return (
     <motion.div
       id="chat-root"
@@ -1041,6 +1041,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18 }}
+            ref={headerRef}
             className="shrink-0 bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_1px_3px_rgba(0,0,0,0.15)] w-full"
             data-chat-header
             style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40 }}
@@ -1221,7 +1222,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ref={scrollRef}
         onScroll={handleScroll}
         {...(activePartnerId ? { 'data-chat-messages': true } : {})}
-        style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform', paddingTop: activePartnerId ? '64px' : 0 }}
+      style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform', paddingTop: activePartnerId ? `${headerHeight}px` : 0 }}
         className={[
           'min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain',
           activePartnerId ? 'chat-bg-pattern chat-scrollbar' : 'bg-[var(--bg-secondary)]',
