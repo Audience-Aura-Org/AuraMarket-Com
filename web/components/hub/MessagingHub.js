@@ -179,6 +179,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const initialChatSyncRef = useRef(null);
   const chatRootRef = useRef(null);
   const headerRef = useRef(null);
+  const composerRef = useRef(null);
   const viewportSyncRef = useRef(null);
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
@@ -264,10 +265,21 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   useEffect(() => {
     if (!mobileLayout || !activePartnerId) return;
 
+    const resizeComposer = () => {
+      if (composerRef.current) {
+        // force recompute composer height
+        const h = composerRef.current.offsetHeight;
+        // trigger re-render by touching ref (no-op)
+      }
+    };
+
     viewportSyncRef.current?.();
     requestAnimationFrame(() => viewportSyncRef.current?.());
     const timers = [80, 180, 360, 700].map(delay => (
-      setTimeout(() => viewportSyncRef.current?.(), delay)
+      setTimeout(() => {
+        viewportSyncRef.current?.();
+        resizeComposer();
+      }, delay)
     ));
     return () => timers.forEach(clearTimeout);
   }, [activePartnerId, mobileLayout]);
@@ -1016,6 +1028,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   // compute header padding to avoid overlap
   const headerHeight = headerRef.current?.offsetHeight || 64;
+  const composerHeight = composerRef.current?.offsetHeight || 0;
 
   return (
     <motion.div
@@ -1222,7 +1235,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ref={scrollRef}
         onScroll={handleScroll}
         {...(activePartnerId ? { 'data-chat-messages': true } : {})}
-      style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform', paddingTop: activePartnerId ? `${headerHeight}px` : 0 }}
+      style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform', paddingTop: activePartnerId ? `${headerHeight}px` : 0, paddingBottom: activePartnerId ? `${composerHeight}px` : undefined }}
         className={[
           'min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain',
           activePartnerId ? 'chat-bg-pattern chat-scrollbar' : 'bg-[var(--bg-secondary)]',
@@ -1507,9 +1520,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       {/* ── COMPOSER (only in an active chat) ───────────────────── */}
       {activePartnerId && (
         <div
+          ref={composerRef}
           data-chat-composer
           className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingTop: 0, margin: 0, flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style paint' }}
+          style={{ position: mobileLayout ? 'absolute' : undefined, left: 0, right: 0, bottom: mobileLayout ? 0 : undefined, paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingTop: 0, margin: 0, flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style paint' }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (
