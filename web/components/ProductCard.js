@@ -237,7 +237,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
                 aria-label={t('product.addToCart', 'Add to cart')}
                 className="h-9 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-1.5 text-[11px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                <ShoppingCart className={`size-4 shrink-0 ${addingToCart ? 'animate-bounce' : ''}`} />
+                <Plus className={`size-4 shrink-0 ${addingToCart ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:block text-[10px] font-bold">Cart</span>
               </button>
               {/* Chat — ICON */}
@@ -353,7 +353,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
               aria-label={t('product.addToCart', 'Add to cart')}
               className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--accent)] text-white flex items-center justify-center gap-1 text-[9px] md:text-[10px] font-bold shadow-lg shadow-[var(--accent)]/25 hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-1"
             >
-              <ShoppingCart className={`size-3 md:size-3.5 shrink-0 ${addingToCart ? 'animate-bounce' : ''}`} />
+              <Plus className={`size-3 md:size-3.5 shrink-0 ${addingToCart ? 'animate-spin' : ''}`} />
               <span className="truncate hidden sm:block">Cart</span>
             </button>
             {/* Chat — ICON */}
