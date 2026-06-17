@@ -92,6 +92,9 @@
   --glass-border: rgba(15, 23, 42, 0.08);
   --accent-rgb: 255, 0, 255;
   --card-bg: #ffffff;
+  /* Default top nav heights; pages may override these variables */
+  --top-nav-height: calc(61px + env(safe-area-inset-top, 0px));
+  --top-nav-height-lg: calc(73px + env(safe-area-inset-top, 0px));
 }
 
 .dark {
