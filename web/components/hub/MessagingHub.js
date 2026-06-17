@@ -82,8 +82,8 @@ const stableChatViewport = (() => {
   let keyboardHeight = 0;
   let stableOffset = 0;
   let lastMode = 'normal';
-  const HEIGHT_JITTER_PX = 18;
-  const OFFSET_JITTER_PX = 10;
+  const HEIGHT_JITTER_PX = 4;
+  const OFFSET_JITTER_PX = 2;
 
   return (metrics) => {
     const mode = metrics.keyboardOpen ? 'keyboard' : 'normal';
@@ -1043,6 +1043,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             transition={{ duration: 0.18 }}
             className="shrink-0 bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
             data-chat-header
+            style={{ position: 'sticky', top: 0, zIndex: 40, flexShrink: 0 }}
           >
             <motion.div {...headerSwipeProps} className="touch-pan-y">
               <div className="flex min-h-[54px] items-center gap-1.5 px-2 py-1.5 sm:min-h-[60px] sm:gap-2 sm:px-3 sm:py-2">
@@ -1507,7 +1508,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         <div
           data-chat-composer
           className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]"
-          style={{ paddingBottom: '0px', flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style paint' }}
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingTop: 0, margin: 0, flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style paint' }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (
@@ -1527,7 +1528,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           )}
 
           {/* Input row */}
-          <div className="mx-auto flex w-full max-w-4xl min-w-0 items-end gap-1.5 px-2 pb-1 pt-1.5 sm:gap-2 sm:px-3 sm:pb-1.5 sm:pt-2" style={{ contain: 'layout style paint' }}>
+          <div className="mx-auto flex w-full max-w-4xl min-w-0 items-end gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-3 sm:py-2" style={{ contain: 'layout style paint', margin: 0 }}>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
 
             <motion.button
