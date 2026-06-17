@@ -245,6 +245,10 @@ function ShopContent() {
         {/* STICKY HEADER STACK: Search + Category bar */}
         <div
           className="sticky top-[var(--top-nav-height)] md:top-[var(--top-nav-height-lg)] z-40 bg-[var(--bg-primary)] shadow-sm"
+          style={{
+            '--top-nav-height': TOP_NAV_HEIGHT,
+            '--top-nav-height-lg': TOP_NAV_HEIGHT_LG,
+          }}
         >
 
           {/* Search Bar - Discovery SYNC */}

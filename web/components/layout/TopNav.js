@@ -229,10 +229,7 @@ export default function TopNav() {
         </div>
       )}
     </header>
-    <div
-      className="h-[var(--top-nav-height)] shrink-0 md:h-[var(--top-nav-height-lg)]"
-      aria-hidden="true"
-    />
+    <div className="h-[calc(61px+env(safe-area-inset-top,0px))] shrink-0 md:h-[calc(73px+env(safe-area-inset-top,0px))]" aria-hidden="true" />
     </>
   );
 }
