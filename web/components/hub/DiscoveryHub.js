@@ -16,6 +16,7 @@ import AuraAssistant from '@/components/onboarding/AuraAssistant';
 import StatusRow from '@/components/status/StatusRow';
 import StatusTabGrid from '@/components/status/StatusTabGrid';
 import { buildStatusSequences, markStatusViewed } from '@/components/status/statusSequences';
+import { TOP_NAV_HEIGHT, TOP_NAV_HEIGHT_LG } from '@/components/layout/TopNav';
 
 // â”€â”€ Lazy-loaded components (Modals/Hidden Tabs) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
@@ -205,7 +206,10 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
               className="flex flex-col relative"
             >
               {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
-                <div className="sticky top-0 z-[35] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 shadow-sm overflow-hidden">
+                <div
+                  className="sticky z-[35] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 shadow-sm overflow-hidden"
+                  style={{ top: TOP_NAV_HEIGHT }}
+                >
                   <StatusRow 
                     statuses={followedStatuses} 
                     onSelect={(items, storyId) => {
@@ -239,7 +243,10 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
               transition={{ duration: 0.2 }}
             >
               {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
-                <div className="relative z-10 bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 overflow-hidden">
+                <div
+                  className="sticky z-[35] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 overflow-hidden"
+                  style={{ top: TOP_NAV_HEIGHT }}
+                >
                   <StatusRow 
                     statuses={followedStatuses} 
                     onSelect={(items, storyId) => {
