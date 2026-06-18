@@ -522,38 +522,61 @@ const modifyShipmentStatus = async (req, res, next) => {
 
     // Email/notify customer about shipment status change
     if (customer) {
+      const webUrl = process.env.WEB_CLIENT_URL;
+      const orderForEmail = {
+        ...order.toObject(),
+        shipment: shipment.toObject(),
+        logistics_name: firm.company_name,
+        customer_name: customer.name,
+      };
       const statusTpl = templates.shipmentStatusChanged({
         shipment,
-        order,
+        order: orderForEmail,
         recipient: customer,
         status,
+        webUrl,
+        dashboardLink: `${webUrl}/orders/${order._id}`,
       });
       await sendNotification(req.app, order.customer_id, {
         title:         `Shipment Update: ${status.replace(/_/g, ' ')}`,
         message:       statusTpl.text,
         type:          'order_status',
-        metadata:      { shipment_id: shipment._id, order_id: order._id, link: `/orders/${order._id}` },
+        metadata:      { shipment_id: shipment._id, order_id: order._id, link: `/orders/${order._id}`, status },
         sendEmail:     true,
         emailTemplate: statusTpl,
+        orderDetails:  orderForEmail,
+        emailLink:     `${webUrl}/orders/${order._id}`,
+        webUrl,
         role:          'customer'
       });
     }
 
     // If vendor is a separate entity, also notify them
     if (vendor?.user_id?._id) {
+      const webUrl = process.env.WEB_CLIENT_URL;
+      const orderForEmail = {
+        ...order.toObject(),
+        shipment: shipment.toObject(),
+        logistics_name: firm.company_name,
+      };
       const vendorStatusTpl = templates.shipmentStatusChanged({
         shipment,
-        order,
+        order: orderForEmail,
         recipient: vendor.user_id,
         status,
+        webUrl,
+        dashboardLink: `${webUrl}/vendor/orders?orderId=${order._id}`,
       });
       await sendNotification(req.app, vendor.user_id._id, {
         title:         `Shipment Update: ${status.replace(/_/g, ' ')}`,
         message:       vendorStatusTpl.text,
         type:          'order_status',
-        metadata:      { shipment_id: shipment._id, order_id: order._id, link: '/vendor/orders' },
+        metadata:      { shipment_id: shipment._id, order_id: order._id, link: '/vendor/orders', status },
         sendEmail:     true,
         emailTemplate: vendorStatusTpl,
+        orderDetails:  orderForEmail,
+        emailLink:     `${webUrl}/vendor/orders?orderId=${order._id}`,
+        webUrl,
         role:          'vendor'
       });
     }

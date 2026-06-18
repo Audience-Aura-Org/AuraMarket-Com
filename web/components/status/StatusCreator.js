@@ -21,7 +21,6 @@ import {
 } from '@/constants/statusVideo';
 import StatusVideoTrimmer from '@/components/status/StatusVideoTrimmer';
 import { prepareStatusVideoForUpload } from '@/lib/statusVideoExport';
-import { Capacitor } from '@capacitor/core';
 
 const DURATION_OPTIONS = [
   { value: 1, label: '1 Day', description: 'Quick drop' },

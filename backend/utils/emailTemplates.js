@@ -261,6 +261,14 @@ const resolveTrackingCode = (shipment, order) =>
   order?.tracking_code ||
   `ORD-${orderRef(order)}`;
 
+const resolveLogisticsName = (shipment = {}, order = {}) => {
+  if (typeof order.logistics_name === 'string' && order.logistics_name) return order.logistics_name;
+  if (typeof shipment?.logistics_id === 'object' && shipment.logistics_id?.company_name) {
+    return shipment.logistics_id.company_name;
+  }
+  return null;
+};
+
 const orderSummaryCard = ({
   order,
   status,
@@ -424,6 +432,7 @@ const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl, das
   const ref = orderRef(order);
   const track = resolveTrackingCode(shipment, order);
   const normalizedStatus = status || shipment?.status || order?.order_status || 'updated';
+  const logisticsName = resolveLogisticsName(shipment, order);
   
   const messages = {
     'picked_up': 'Your order has been picked up and is on its way to you!',
@@ -446,6 +455,7 @@ const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl, das
       <div class="card-row"><span class="card-label">Tracking</span><span class="card-value">${track}</span></div>
       <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge(normalizedStatus)}</span></div>
       <div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>
+      ${logisticsName ? `<div class="card-row"><span class="card-label">Carrier</span><span class="card-value">${logisticsName}</span></div>` : ''}
       <div class="card-row"><span class="card-label">Items</span><span class="card-value">${productCount(order.products || [])} item(s)</span></div>
       <div class="card-row"><span class="card-label">Delivery To</span><span class="card-value" style="text-align:right;">${formatAddress(shipment?.delivery_address || order.shipping_address)}</span></div>
     </div>
