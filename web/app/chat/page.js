@@ -81,8 +81,8 @@ function ChatContent() {
 
   useEffect(() => {
     if (!vendorId) return;
-    setActiveConversation(vendorId, initialData || null);
-  }, [vendorId, initialData, setActiveConversation]);
+    setActiveConversation(vendorId, initialData || null, notificationTitle || undefined);
+  }, [vendorId, initialData, notificationTitle, setActiveConversation]);
 
   const hasSeedPartner = Boolean(
     initialData?.name ||

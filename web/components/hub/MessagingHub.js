@@ -638,7 +638,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const handleFocus = (event) => {
       const partnerId = event.detail?.partnerId?.toString();
       if (!partnerId) return;
-      setActiveConversation(partnerId, event.detail?.partnerData || null);
+      setActiveConversation(partnerId, event.detail?.partnerData || null, event.detail?.notificationTitle);
         loadConversation(partnerId, 1, {
           silent: true,
           skipProfile: Boolean(event.detail?.partnerData),
@@ -1231,15 +1231,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                   <div className="size-9 overflow-hidden rounded-full bg-white/15 ring-2 ring-white/20 sm:size-10">
                     {partnerAvatar && typeof partnerAvatar === 'string'
                       ? <img src={partnerAvatar} className="size-full object-cover" alt="" />
-                      : <div className="flex size-full items-center justify-center text-sm font-semibold text-[var(--nav-text)]">{partnerName[0]}</div>}
+                      : <div className="flex size-full items-center justify-center text-sm font-semibold text-[var(--nav-text)]">{(partnerName || notificationTitle || '?')[0]}</div>}
                   </div>
                 </div>
 
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate text-[14px] font-semibold leading-tight text-[var(--nav-text)] capitalize sm:text-[15px]">
                     {isSystemWide && partnerBInfo
-                      ? <span>{partnerName} <span className="text-[var(--nav-text)]/40">&</span> {partnerBInfo?.name}</span>
-                      : partnerName}
+                      ? <span>{partnerName || notificationTitle} <span className="text-[var(--nav-text)]/40">&</span> {partnerBInfo?.name}</span>
+                      : (partnerName || notificationTitle || 'Chat')}
                   </h3>
                   <div className="mt-0.5 flex items-center gap-1">
                     {partnerTyping ? (
@@ -1460,7 +1460,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ) : (
           /* ─ Messages ─ */
           <div className="mx-auto w-full max-w-4xl space-y-0.5 px-2 pb-4 pt-2 sm:space-y-1 sm:px-4 sm:pb-6">
-            {messages.length === 0 ? (
+            {messages.length === 0 && loading && hasSeedPartnerData ? null : messages.length === 0 ? (
               <div className="flex min-h-[42dvh] flex-col items-center justify-center px-8 py-16 text-center">
                 <MessageCircle className="mb-4 size-12 text-[var(--text-secondary)]/70" />
                 <p className="text-[15px] font-semibold text-[var(--text-primary)]">
