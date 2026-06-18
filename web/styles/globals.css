@@ -366,7 +366,7 @@ body:has(.checkout-page) select {
 #chat-root [data-chat-messages] {
   contain: layout style;
   scrollbar-gutter: stable;
-  overflow-y: auto;
+  overflow-y: overlay;
 }
 
 #chat-root [data-chat-composer] {
