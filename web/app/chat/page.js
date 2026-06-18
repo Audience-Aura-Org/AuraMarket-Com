@@ -41,7 +41,7 @@ function ChatContent() {
 
 export default function ChatPage() {
   return (
-    <Suspense fallback={<div className="h-screen w-full bg-[var(--bg-secondary)] animate-pulse" />}>
+    <Suspense fallback={null}>
       <ChatContent />
     </Suspense>
   );

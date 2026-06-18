@@ -1409,10 +1409,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
               <div className="flex min-h-[42dvh] flex-col items-center justify-center px-8 py-16 text-center">
                 <MessageCircle className="mb-4 size-12 text-[var(--text-secondary)]/70" />
                 <p className="text-[15px] font-semibold text-[var(--text-primary)]">
-                  {loading ? 'Opening conversation' : 'Start the conversation'}
+                  Start the conversation
                 </p>
                 <p className="mt-1 max-w-[280px] text-[13px] leading-snug text-[var(--text-secondary)]">
-                  {loading ? 'Saved messages appear instantly while the chat syncs.' : 'Send a message or pick a quick reply below.'}
+                  Send a message or pick a quick reply below.
                 </p>
               </div>
             ) : (
