@@ -617,46 +617,4 @@ const getUser = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
-    const userObj = user ? (typeof user.toObject === 'function' ? user.toObject() : user) : null;
-    normalizeUserMedia(userObj);
-    res.status(200).json({ success: true, data: { user: userObj } });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ─────────────────────────────────────────────
-// @route   GET /api/auth/admin-info
-// @desc    Get the primary platform admin for support/contact
-// @access  Private
-// ─────────────────────────────────────────────
-const getAdminInfo = async (req, res, next) => {
-  try {
-    let admin = await User.findOne({ email: SUPPORT_ADMIN_EMAIL }).select('name email avatar role branding onboarded is_active verification_status');
-    if (admin) admin = await ensureSupportAdmin(admin);
-    if (!admin) admin = await User.findOne({ role: 'admin' }).select('name avatar role branding');
-    if (!admin) {
-      return res.status(404).json({ success: false, message: 'Admin node not found.' });
-    }
-    const adminObj = admin ? (typeof admin.toObject === 'function' ? admin.toObject() : admin) : null;
-    normalizeUserMedia(adminObj);
-    res.status(200).json({ success: true, data: { admin: adminObj } });
-  } catch (error) {
-    next(error);
-  }
-};
-
-module.exports = {
-  register,
-  login,
-  verify2FALogin,
-  sendOtp,
-  verifyOtp,
-  logout,
-  deleteAccount,
-  getMe,
-  getUser,
-  updateProfile,
-  changePassword,
-  getAdminInfo,
-};
+    const userObj = user ? (typeof user.toObject === 'f 
