@@ -1,10 +1,17 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { Capacitor } from '@capacitor/core';
+import { Download, Smartphone, X } from 'lucide-react';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 import { useAuthStore } from '@/hooks/useAuth';
 import { registerNativeAndroidPush } from '@/lib/native-push';
+
+const APK_FILE_ID = '1H18CWEpqJ8VtJxDjw9Qzvx-zBdHnPOGy';
+const APK_DOWNLOAD_URL = `https://drive.google.com/uc?export=download&id=${APK_FILE_ID}`;
+const INSTALL_DISMISS_KEY = 'aura_install_prompt_dismissed_until';
+const INSTALL_DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * PWAInit — Secure Background Channel Lifecycle
@@ -15,6 +22,9 @@ import { registerNativeAndroidPush } from '@/lib/native-push';
 export default function PWAInit() {
   const { user, isAuthenticated, hasHydrated } = useAuthStore();
   const pathname = usePathname();
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [installMessage, setInstallMessage] = useState('');
   const subscribedRef = useRef(false);
   const authErrorRef = useRef(false);
   const syncInFlightRef = useRef(false);
@@ -52,6 +62,67 @@ export default function PWAInit() {
       syncInFlightRef.current = false;
     }
   };
+
+  const dismissInstallPrompt = () => {
+    setShowInstallPrompt(false);
+    try {
+      window.localStorage.setItem(INSTALL_DISMISS_KEY, String(Date.now() + INSTALL_DISMISS_MS));
+    } catch {}
+  };
+
+  const handleInstallWebApp = async () => {
+    if (!installPrompt) {
+      setInstallMessage('Use your browser menu to add Auradime to your home screen.');
+      return;
+    }
+
+    installPrompt.prompt();
+    const result = await installPrompt.userChoice;
+    setInstallPrompt(null);
+    setInstallMessage(result?.outcome === 'accepted' ? 'Auradime is installing.' : 'Install was dismissed.');
+    if (result?.outcome === 'accepted') setShowInstallPrompt(false);
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || Capacitor.isNativePlatform()) return;
+
+    const standalone =
+      window.matchMedia?.('(display-mode: standalone)')?.matches ||
+      window.navigator.standalone === true;
+    if (standalone) return;
+
+    const isSuppressed = () => {
+      try {
+        return Date.now() < Number(window.localStorage.getItem(INSTALL_DISMISS_KEY) || 0);
+      } catch {
+        return false;
+      }
+    };
+
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPrompt(event);
+      if (!isSuppressed()) setShowInstallPrompt(true);
+    };
+
+    const handleInstalled = () => {
+      setInstallPrompt(null);
+      setShowInstallPrompt(false);
+    };
+
+    const timer = setTimeout(() => {
+      if (!isSuppressed()) setShowInstallPrompt(true);
+    }, 4500);
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleInstalled);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleInstalled);
+    };
+  }, []);
 
   // 1. On initial mount, register SW and subscribe if user is logged in
   useEffect(() => {
@@ -118,5 +189,63 @@ export default function PWAInit() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  return null;
+  if (
+    !showInstallPrompt ||
+    pathname?.startsWith('/chat') ||
+    pathname?.startsWith('/messages') ||
+    pathname?.startsWith('/admin/messages')
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-[9000] mx-auto max-w-md rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3 text-[var(--text-primary)] shadow-[0_24px_60px_rgba(15,23,42,0.22)]">
+      <button
+        type="button"
+        onClick={dismissInstallPrompt}
+        className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full text-[var(--text-secondary)] transition hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
+        aria-label="Dismiss install prompt"
+      >
+        <X className="size-4" />
+      </button>
+
+      <div className="flex gap-3 pr-8">
+        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-white">
+          <Smartphone className="size-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-bold tracking-tight">Get the Auradime app</p>
+          <p className="mt-1 text-[12px] leading-5 text-[var(--text-secondary)]">
+            Install from this browser or download the Android APK.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={handleInstallWebApp}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-3 text-[12px] font-bold text-[var(--bg-primary)] transition hover:bg-[var(--accent)]"
+        >
+          <Smartphone className="size-4" />
+          Install
+        </button>
+        <a
+          href={APK_DOWNLOAD_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-3 text-[12px] font-bold text-white transition hover:brightness-110"
+        >
+          <Download className="size-4" />
+          Android
+        </a>
+      </div>
+
+      {installMessage && (
+        <p className="mt-2 text-[11px] font-medium text-[var(--text-secondary)]">
+          {installMessage}
+        </p>
+      )}
+    </div>
+  );
 }
