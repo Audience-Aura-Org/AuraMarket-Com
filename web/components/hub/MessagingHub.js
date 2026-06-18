@@ -21,12 +21,13 @@ import { toast } from 'react-hot-toast';
 const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
 
 const getChatViewportMetrics = () => {
-  if (typeof window === 'undefined') return { height: 800, offsetTop: 0 };
+  if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardOpen: false, keyboardInset: 0 };
   const viewport = window.visualViewport;
   const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
   const visualHeight = viewport?.height || layoutHeight;
   const offsetTop = viewport?.offsetTop || 0;
-  const keyboardOpen = Boolean(viewport && visualHeight < layoutHeight * 0.78);
+  const keyboardInset = Math.max(0, layoutHeight - visualHeight - offsetTop);
+  const keyboardOpen = Boolean(viewport && (keyboardInset > 80 || visualHeight < layoutHeight * 0.82));
   const zoomValue = Number.parseFloat(window.getComputedStyle(document.documentElement).zoom);
   const zoomScale = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
   const targetHeight = keyboardOpen ? visualHeight : Math.max(layoutHeight, visualHeight);
@@ -35,6 +36,7 @@ const getChatViewportMetrics = () => {
     height: targetHeight / zoomScale,
     offsetTop: keyboardOpen ? offsetTop / zoomScale : 0,
     keyboardOpen,
+    keyboardInset: keyboardOpen ? keyboardInset / zoomScale : 0,
     zoomScale,
   };
 };
@@ -44,7 +46,7 @@ const androidNativeViewportState = {
 };
 
 const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
-  if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardOpen: false };
+  if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardOpen: false, keyboardInset: 0 };
   const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
   const visualHeight = window.visualViewport?.height || layoutHeight;
   const reportedHeight = Math.max(layoutHeight, visualHeight);
@@ -63,16 +65,12 @@ const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
     androidNativeViewportState.normalHeight || 0,
     reportedHeight
   );
-  const nativeAdjustedHeight = Math.max(320, baseHeight - Number(keyboardHeight || 0));
-  const webViewAlreadyResized = keyboardOpen && reportedHeight < baseHeight - 24;
-  const targetHeight = keyboardOpen
-    ? (webViewAlreadyResized ? Math.max(reportedHeight, nativeAdjustedHeight) : nativeAdjustedHeight)
-    : baseHeight;
 
   return {
-    height: targetHeight / zoomScale,
+    height: baseHeight / zoomScale,
     offsetTop: 0,
     keyboardOpen,
+    keyboardInset: keyboardOpen ? Number(keyboardHeight || 0) / zoomScale : 0,
     zoomScale,
   };
 };
@@ -162,6 +160,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [storyViewer, setStoryViewer] = useState({ statuses: null, storyId: null });
   const [mediaPreview, setMediaPreview] = useState(null);
   const [viewportHeight, setViewportHeight] = useState(() => stableChatViewport(getChatViewportMetrics()));
+  const [chromeHeights, setChromeHeights] = useState({ header: 64, composer: 0 });
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -265,24 +264,59 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   useEffect(() => {
     if (!mobileLayout || !activePartnerId) return;
 
-    const resizeComposer = () => {
-      if (composerRef.current) {
-        // force recompute composer height
-        const h = composerRef.current.offsetHeight;
-        // trigger re-render by touching ref (no-op)
-      }
-    };
-
     viewportSyncRef.current?.();
     requestAnimationFrame(() => viewportSyncRef.current?.());
     const timers = [80, 180, 360, 700].map(delay => (
       setTimeout(() => {
         viewportSyncRef.current?.();
-        resizeComposer();
       }, delay)
     ));
     return () => timers.forEach(clearTimeout);
   }, [activePartnerId, mobileLayout]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let frame = null;
+    const measure = () => {
+      if (frame) cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const header = headerRef.current?.offsetHeight || 0;
+        const composer = composerRef.current?.offsetHeight || 0;
+        setChromeHeights(prev => {
+          const nextHeader = header || (activePartnerId ? 64 : prev.header);
+          if (
+            Math.abs(prev.header - nextHeader) < 1 &&
+            Math.abs(prev.composer - composer) < 1
+          ) {
+            return prev;
+          }
+          return { header: nextHeader, composer };
+        });
+      });
+    };
+
+    measure();
+
+    if (typeof ResizeObserver === 'undefined') {
+      window.addEventListener('resize', measure);
+      return () => {
+        if (frame) cancelAnimationFrame(frame);
+        window.removeEventListener('resize', measure);
+      };
+    }
+
+    const observer = new ResizeObserver(measure);
+    if (headerRef.current) observer.observe(headerRef.current);
+    if (composerRef.current) observer.observe(composerRef.current);
+    window.visualViewport?.addEventListener('resize', measure);
+
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.visualViewport?.removeEventListener('resize', measure);
+    };
+  }, [activePartnerId, mobileLayout, input, messages.length]);
 
   useEffect(() => {
     if (!draftKey || typeof window === 'undefined') return;
@@ -986,6 +1020,22 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           },
         }
       : {};
+  const activeMobileChat = Boolean(mobileLayout && activePartnerId);
+  const keyboardInset = activeMobileChat && viewportHeight?.keyboardOpen
+    ? Math.max(0, viewportHeight.keyboardInset || 0)
+    : 0;
+  const composerBottomOffset = activeMobileChat && isAndroidNative ? keyboardInset : 0;
+  const composerSafeAreaPadding = activeMobileChat && viewportHeight?.keyboardOpen
+    ? '0px'
+    : 'env(safe-area-inset-bottom, 0px)';
+  const hasProductContext = Boolean(activePartnerId && product);
+  const headerHeight = activePartnerId ? chromeHeights.header || 64 : 0;
+  const composerHeight = activePartnerId ? chromeHeights.composer || 0 : 0;
+  const scrollPaddingTop = activePartnerId && !hasProductContext ? headerHeight : 0;
+  const scrollPaddingBottom = activePartnerId
+    ? composerHeight + composerBottomOffset
+    : undefined;
+
   // Keep shell styling minimal to avoid interfering with runtime layout adjustments
   const mobileShellStyle = mobileLayout
     ? {
@@ -995,7 +1045,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         flexDirection: 'column',
         backgroundColor: 'var(--bg-secondary)',
         height: viewportHeight?.height ? `${viewportHeight.height}px` : '100vh',
-        maxHeight: '100vh',
+        transform: viewportHeight?.offsetTop ? `translate3d(0, ${viewportHeight.offsetTop}px, 0)` : undefined,
         overflow: 'hidden',
       }
     : undefined;
@@ -1025,10 +1075,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         animate: { opacity: 1, y: 0 },
         exit: { opacity: 0, y: 16 },
       };
-
-  // compute header padding to avoid overlap
-  const headerHeight = headerRef.current?.offsetHeight || 64;
-  const composerHeight = composerRef.current?.offsetHeight || 0;
 
   return (
     <motion.div
@@ -1213,7 +1259,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
       {/* ── PRODUCT CONTEXT ──────────────────────────────────────── */}
       {activePartnerId && product && (
-        <div className="shrink-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2 sm:px-4">
+        <div
+          className="shrink-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2 sm:px-4"
+          style={{ marginTop: headerHeight ? `${headerHeight}px` : undefined }}
+        >
           <div className="flex items-center gap-3">
             <div className="size-10 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-primary)] ring-1 ring-[var(--glass-border)] sm:size-11">
               <img src={product.images?.[0]?.url || product.images?.[0]} className="size-full object-cover" alt="" />
@@ -1235,7 +1284,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ref={scrollRef}
         onScroll={handleScroll}
         {...(activePartnerId ? { 'data-chat-messages': true } : {})}
-      style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform', paddingTop: activePartnerId ? `${headerHeight}px` : 0, paddingBottom: activePartnerId ? `${composerHeight}px` : undefined }}
+      style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform', paddingTop: scrollPaddingTop ? `${scrollPaddingTop}px` : 0, paddingBottom: typeof scrollPaddingBottom === 'number' ? `${scrollPaddingBottom}px` : undefined }}
         className={[
           'min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain',
           activePartnerId ? 'chat-bg-pattern chat-scrollbar' : 'bg-[var(--bg-secondary)]',
@@ -1523,7 +1572,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           ref={composerRef}
           data-chat-composer
           className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]"
-          style={{ position: mobileLayout ? 'absolute' : undefined, left: 0, right: 0, bottom: mobileLayout ? 0 : undefined, paddingBottom: 'env(safe-area-inset-bottom, 0px)', paddingTop: 0, margin: 0, flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style paint' }}
+          style={{ position: activeMobileChat ? 'absolute' : undefined, left: 0, right: 0, bottom: activeMobileChat ? `${composerBottomOffset}px` : undefined, zIndex: activeMobileChat ? 35 : undefined, paddingBottom: composerSafeAreaPadding, paddingTop: 0, margin: 0, flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style paint' }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (
