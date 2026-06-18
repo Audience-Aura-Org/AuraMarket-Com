@@ -101,14 +101,16 @@ const stableChatViewport = (() => {
   let normalHeight = 0;
   let keyboardHeight = 0;
   let lastMode = 'normal';
-  const HEIGHT_JITTER_PX = 18;
+  const NORMAL_HEIGHT_JITTER_PX = 32;
+  const KEYBOARD_HEIGHT_JITTER_PX = 48;
 
   return (metrics) => {
     const mode = metrics.keyboardOpen ? 'keyboard' : 'normal';
     const previous = mode === 'keyboard' ? keyboardHeight : normalHeight;
+    const jitter = mode === 'keyboard' ? KEYBOARD_HEIGHT_JITTER_PX : NORMAL_HEIGHT_JITTER_PX;
     let height = metrics.height;
 
-    if (previous && Math.abs(previous - metrics.height) <= HEIGHT_JITTER_PX) {
+    if (previous && Math.abs(previous - metrics.height) <= jitter) {
       height = previous;
     } else if (mode === 'keyboard') {
       keyboardHeight = metrics.height;
@@ -326,13 +328,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const previousMetrics = viewportHeightRef.current;
       const viewportChanged = !previousMetrics ||
         previousMetrics.mode !== metrics.mode ||
-        Math.abs(previousMetrics.height - metrics.height) >= 8;
+        Math.abs(previousMetrics.height - metrics.height) >= 24;
 
       setViewportHeight(prev => {
         if (
           prev &&
           prev.mode === metrics.mode &&
-          Math.abs(prev.height - metrics.height) < 8
+          Math.abs(prev.height - metrics.height) < 24
         ) {
           return prev;
         }
@@ -359,12 +361,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     requestAnimationFrame(syncViewport);
     [80, 180, 360, 700].forEach(scheduleSync);
     window.visualViewport?.addEventListener('resize', syncViewport);
-    window.visualViewport?.addEventListener('scroll', syncViewport);
     window.addEventListener('resize', syncViewport);
 
     return () => {
       window.visualViewport?.removeEventListener('resize', syncViewport);
-      window.visualViewport?.removeEventListener('scroll', syncViewport);
       window.removeEventListener('resize', syncViewport);
       syncTimers.forEach(clearTimeout);
       viewportSyncRef.current = null;
@@ -1051,7 +1051,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     <motion.div
       id="chat-root"
       ref={chatRootRef}
-      style={{...mobileShellStyle, contain: 'layout style paint' }}
+      style={{...mobileShellStyle, contain: 'layout style' }}
       onTouchStart={handlePanelTouchStart}
       onTouchEnd={handlePanelTouchEnd}
       {...(!fullPage
@@ -1253,9 +1253,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         style={{
           flex: 1,
           minHeight: 0,
-          contain: 'layout style paint',
+          contain: 'layout style',
           scrollbarGutter: 'stable',
-          willChange: 'transform',
           paddingBottom: mobileComposerReserve,
         }}
         className={[
@@ -1553,7 +1552,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             paddingBottom: activeMobileChat ? 'env(safe-area-inset-bottom, 0px)' : '0px',
             flexShrink: 0,
             backgroundColor: 'var(--bg-secondary)',
-            contain: 'layout style paint',
+            contain: 'layout style',
           }}
         >
           {/* Quick replies */}
