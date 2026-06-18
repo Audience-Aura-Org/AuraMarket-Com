@@ -408,6 +408,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const timer = setTimeout(syncViewport, delay);
       syncTimers.push(timer);
     };
+    const releaseComposerBeforeBackground = () => {
+      if (document.activeElement === inputRef.current) {
+        inputRef.current?.blur?.();
+      }
+      viewportResumeUntilRef.current = 0;
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      });
+    };
     const settleViewportAfterResume = () => {
       if (document.visibilityState === 'hidden') return;
       const wasKeyboardOpen = viewportHeightRef.current?.mode === 'keyboard';
@@ -420,12 +431,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
-        if (wasKeyboardOpen) inputRef.current?.focus?.({ preventScroll: true });
         pinToLatestMessage('auto');
       });
       [120, 260, 540, 900, 1300, 1850].forEach(scheduleSync);
     };
     const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') releaseComposerBeforeBackground();
       if (document.visibilityState === 'visible') settleViewportAfterResume();
     };
 
@@ -437,6 +448,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     window.addEventListener('resize', syncViewport);
     window.addEventListener('pageshow', settleViewportAfterResume);
     window.addEventListener('focus', settleViewportAfterResume);
+    window.addEventListener('pagehide', releaseComposerBeforeBackground);
+    window.addEventListener('blur', releaseComposerBeforeBackground);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
@@ -445,6 +458,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       window.removeEventListener('resize', syncViewport);
       window.removeEventListener('pageshow', settleViewportAfterResume);
       window.removeEventListener('focus', settleViewportAfterResume);
+      window.removeEventListener('pagehide', releaseComposerBeforeBackground);
+      window.removeEventListener('blur', releaseComposerBeforeBackground);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       syncTimers.forEach(clearTimeout);
       viewportSyncRef.current = null;
