@@ -237,7 +237,22 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   });
   const inbox = conversations;
   const messages = activeMessages;
-  const partnerInfo = activeConversation?.partner || initialData || null;
+  const partnerInfo = useMemo(() => {
+    const fromConversation = activeConversation?.partner;
+    const seeded = initialData;
+    const hasMeta = (p) => Boolean(
+      p?.name || p?.store_name || p?.branding?.store_name || p?.avatar || p?.profile_picture || p?.branding?.logo
+    );
+    if (hasMeta(fromConversation)) return fromConversation;
+    if (hasMeta(seeded)) return seeded;
+    return fromConversation || seeded || null;
+  }, [activeConversation?.partner, initialData]);
+  const hasSeedPartnerData = Boolean(
+    partnerInfo?.name ||
+    partnerInfo?.store_name ||
+    partnerInfo?.branding?.store_name ||
+    notificationTitle
+  );
   const partnerTyping = Boolean(activePartnerId && typingIndicators[activePartnerId]);
   const latestMessageKey = messages.length
     ? messages[messages.length - 1]?._id || messages[messages.length - 1]?.client_id || messages[messages.length - 1]?.createdAt
@@ -609,11 +624,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   // -- Data Fetching --
   useEffect(() => {
     if (activePartnerId) {
-      loadConversation(activePartnerId, 1);
+      loadConversation(activePartnerId, 1, {
+        silent: hasSeedPartnerData,
+        skipProfile: hasSeedPartnerData,
+      });
     } else {
       loadInbox();
     }
-  }, [activePartnerId, isSystemWide]);
+  }, [activePartnerId, isSystemWide, hasSeedPartnerData]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -987,7 +1005,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     // Last resort: use the notification title that was already shown to the user.
     // This avoids the jarring "User" flash. Replace with your own prop name if different.
     notificationTitle             ||
-    'Loading...'                       // honest placeholder instead of "User"
+    ''
   ).toString();
   const partnerAvatar = partnerInfo?.store?.logo || partnerInfo?.branding?.logo || partnerInfo?._id?.branding?.logo || partnerInfo?.avatar || partnerInfo?.profile_picture;
   const lastPartnerMessageAt = useMemo(() => {
@@ -1037,8 +1055,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     return meta?.type === 'story_reply' ? meta : null;
   };
 
+  const storyThumbnailSource = (meta) => {
+    if (!meta) return null;
+    return meta.storyThumbnail || meta.thumbnail_url || meta.storyPreviewUrl || null;
+  };
+
   const storyPreviewSource = (meta) => {
     if (!meta) return null;
+    if (meta.storyType === 'video') {
+      return storyThumbnailSource(meta);
+    }
     return meta.storyThumbnail || meta.storyPreviewUrl || meta.storyPreview || meta.content_url || null;
   };
 
@@ -1535,9 +1561,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                               <div className="flex items-center gap-2">
                                 {storyReplyMeta(msg).storyType === 'image' && storyPreviewSource(storyReplyMeta(msg)) ? (
                                   <img src={storyPreviewSource(storyReplyMeta(msg))} className="size-10 rounded-lg object-cover" alt="" />
-                                ) : storyReplyMeta(msg).storyType === 'video' && storyPreviewSource(storyReplyMeta(msg)) ? (
-                                  <div className="relative size-10 overflow-hidden rounded-lg bg-black">
-                                    <video src={storyPreviewSource(storyReplyMeta(msg))} className="size-full object-cover" muted playsInline preload="metadata" />
+                                ) : storyReplyMeta(msg).storyType === 'video' && storyThumbnailSource(storyReplyMeta(msg)) ? (
+                                  <div className="relative size-10 overflow-hidden rounded-lg">
+                                    <img src={storyThumbnailSource(storyReplyMeta(msg))} className="size-full object-cover" alt="" />
                                     <span className="absolute inset-0 flex items-center justify-center bg-black/25 text-[9px] font-bold uppercase tracking-wide text-white">Video</span>
                                   </div>
                                 ) : (

@@ -84,13 +84,21 @@ function ChatContent() {
     setActiveConversation(vendorId, initialData || null);
   }, [vendorId, initialData, setActiveConversation]);
 
+  const hasSeedPartner = Boolean(
+    initialData?.name ||
+    initialData?.store_name ||
+    initialData?.branding?.store_name ||
+    notificationTitle
+  );
+
   useEffect(() => {
     if (!vendorId || !user?._id) {
       setPrefetchedPartner(null);
       return;
     }
 
-    setPrefetchedPartner(null);
+    if (hasSeedPartner) return;
+
     let cancelled = false;
     const currentUserId = user._id.toString();
 
@@ -126,10 +134,10 @@ function ChatContent() {
     return () => {
       cancelled = true;
     };
-  }, [vendorId, user?._id, setActiveConversation]);
+  }, [vendorId, user?._id, setActiveConversation, hasSeedPartner]);
 
-  if (authLoading) return null;
-  if (!user) return null;
+  if (!vendorId && authLoading) return null;
+  if (!authLoading && !user) return null;
 
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>

@@ -357,13 +357,17 @@ function chatReducer(state, action) {
 
       if (alreadyActive && hasNoNewPartnerData && alreadyRead) return state;
 
+      const seededPartner = action.partnerData
+        ? stripPayloadPresence(action.partnerData)
+        : (toId(state.initialPartnerData) === partnerId ? state.initialPartnerData : null);
+
       return {
         ...state,
         isOpen: true,
         activePartnerId: partnerId,
         activeConversationId: partnerId,
-        initialPartnerData: action.partnerData ? state.initialPartnerData : null,
-        notificationTitle: null,
+        initialPartnerData: seededPartner,
+        notificationTitle: action.notificationTitle !== undefined ? action.notificationTitle : state.notificationTitle,
         conversationsById: {
           ...state.conversationsById,
           [partnerId]: {
@@ -819,11 +823,12 @@ export function ChatProvider({ children }) {
     dispatch({ type: 'CLOSE_CHAT' });
   }, []);
 
-  const setActiveConversation = useCallback((partnerId, partnerData = null) => {
+  const setActiveConversation = useCallback((partnerId, partnerData = null, notificationTitle = undefined) => {
     dispatch({
       type: 'SET_ACTIVE_CONVERSATION',
       partnerId: partnerId ? partnerId.toString() : null,
       partnerData: partnerData ? stripPayloadPresence(partnerData) : null,
+      notificationTitle,
     });
   }, []);
 

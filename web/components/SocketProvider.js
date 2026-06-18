@@ -209,7 +209,10 @@ export default function SocketProvider({ children }) {
   };
 
   const openMessageRoute = (partnerId, partnerData = null, route = null, notificationTitle = null) => {
-    const target = normalizeAppRoute(route || (partnerId ? `/chat?vendorId=${encodeURIComponent(partnerId)}` : '/chat'));
+    const chatQuery = partnerId
+      ? `/chat?vendorId=${encodeURIComponent(partnerId)}${notificationTitle ? `&notificationTitle=${encodeURIComponent(notificationTitle)}` : ''}`
+      : '/chat';
+    const target = normalizeAppRoute(route || chatQuery);
     const isFullPageChat = Boolean(target && (target === '/chat' || target.startsWith('/chat?')));
     if (target) router.push(target);
     if (partnerId) {
