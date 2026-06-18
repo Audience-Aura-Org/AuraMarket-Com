@@ -20,6 +20,20 @@ import { toast } from 'react-hot-toast';
 
 const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
 
+const GENERIC_CHAT_NAMES = new Set([
+  'user',
+  'aura user',
+  'auradime user',
+  'new message',
+  'new notification',
+  'auradime',
+]);
+
+const hasReadablePartnerName = (partner) => {
+  const candidate = (partner?.name || partner?.store_name || partner?.branding?.store_name || '').toString().trim();
+  return Boolean(candidate && !GENERIC_CHAT_NAMES.has(candidate.toLowerCase()));
+};
+
 const getChatViewportMetrics = () => {
   if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardInset: 0 };
   const viewport = window.visualViewport;
@@ -478,7 +492,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   // -- Data Fetching --
   useEffect(() => {
     if (activePartnerId) {
-      loadConversation(activePartnerId, 1);
+      const hasPartnerHint = Boolean(partnerInfo?._id || partnerInfo?.name || partnerInfo?.store_name || partnerInfo?.avatar || partnerInfo?.branding?.logo);
+      loadConversation(activePartnerId, 1, {
+        silent: hasPartnerHint,
+        skipProfile: hasReadablePartnerName(partnerInfo),
+      });
     } else {
       loadInbox();
     }
@@ -492,7 +510,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       setActiveConversation(partnerId, event.detail?.partnerData || null);
         loadConversation(partnerId, 1, {
           silent: true,
-          skipProfile: Boolean(event.detail?.partnerData),
+          skipProfile: hasReadablePartnerName(event.detail?.partnerData),
         });
       queuePinToLatest([0, 80, 180, 360]);
     };
@@ -571,7 +589,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
       const shouldFetchProfile = pageNum === 1 && !options.skipProfile && !(
         activePartnerId?.toString?.() === pid?.toString?.() &&
-        (partnerInfo?.name || partnerInfo?.store_name || partnerInfo?.branding?.logo || partnerInfo?.avatar)
+        hasReadablePartnerName(partnerInfo)
       );
 
       const [chatRes, partnerRes] = await Promise.all([
@@ -847,7 +865,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       });
   }, [inbox, deletedConvos, searchQuery]);
 
-  const partnerName = (partnerInfo?.store_name || partnerInfo?.branding?.store_name || partnerInfo?.name || 'User').toString();
+  const partnerName = (partnerInfo?.name || partnerInfo?.store_name || partnerInfo?.branding?.store_name || 'User').toString();
   const partnerAvatar = partnerInfo?.store?.logo || partnerInfo?.branding?.logo || partnerInfo?._id?.branding?.logo || partnerInfo?.avatar || partnerInfo?.profile_picture;
   const lastPartnerMessageAt = useMemo(() => {
     if (!activePartnerId) return null;
