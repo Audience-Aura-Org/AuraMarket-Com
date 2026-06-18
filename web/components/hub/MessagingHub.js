@@ -33,6 +33,7 @@ const getChatViewportMetrics = () => {
 
   return {
     height: targetHeight / zoomScale,
+    fullHeight: Math.max(layoutHeight, visualHeight) / zoomScale,
     offsetTop: keyboardOpen ? offsetTop / zoomScale : 0,
     keyboardOpen,
     zoomScale,
@@ -71,6 +72,7 @@ const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
 
   return {
     height: targetHeight / zoomScale,
+    fullHeight: baseHeight / zoomScale,
     offsetTop: 0,
     keyboardOpen,
     zoomScale,
@@ -82,13 +84,19 @@ const stableChatViewport = (() => {
   let keyboardHeight = 0;
   let lastMode = 'normal';
   const HEIGHT_JITTER_PX = 18;
+  const MIN_KEYBOARD_VIEWPORT_RATIO = 0.52;
 
   return (metrics) => {
     const mode = metrics.keyboardOpen ? 'keyboard' : 'normal';
     const previous = mode === 'keyboard' ? keyboardHeight : normalHeight;
     let height = metrics.height;
+    const keyboardFloor = mode === 'keyboard' && metrics.fullHeight
+      ? metrics.fullHeight * MIN_KEYBOARD_VIEWPORT_RATIO
+      : 0;
 
-    if (previous && Math.abs(previous - metrics.height) <= HEIGHT_JITTER_PX) {
+    if (keyboardFloor && metrics.height < keyboardFloor) {
+      height = previous || keyboardFloor;
+    } else if (previous && Math.abs(previous - metrics.height) <= HEIGHT_JITTER_PX) {
       height = previous;
     } else if (mode === 'keyboard') {
       keyboardHeight = metrics.height;
