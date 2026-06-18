@@ -203,18 +203,12 @@ html.chat-open body {
   overscroll-behavior: none !important;
 }
 
-html.chat-open {
-  zoom: 1 !important;
-}
-
 html.chat-open #chat-root {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
   width: 100% !important;
-  height: 100dvh !important;
   overflow: hidden !important;
-  zoom: 1 !important;
 }
 
 h1,h2,h3,h4,h5,h6 {
@@ -365,7 +359,6 @@ body:has(.checkout-page) select {
 
 /* Chat stability: prevent layout shifts on keyboard open/close and viewport resize */
 #chat-root {
-  contain: layout style;
   backface-visibility: hidden;
   -webkit-font-smoothing: antialiased;
 }
@@ -383,7 +376,7 @@ body:has(.checkout-page) select {
 }
 
 #chat-root [data-chat-header] {
-  contain: layout style;
+  contain: none;
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
