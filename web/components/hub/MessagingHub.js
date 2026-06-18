@@ -999,6 +999,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           },
         }
       : {};
+  const activeMobileChat = Boolean(mobileLayout && activePartnerId);
+  const mobileComposerReserve = activeMobileChat
+    ? (messages.length < 5 && !input ? '118px' : '74px')
+    : undefined;
   const mobileShellStyle = mobileLayout
     ? {
         paddingTop: 'env(safe-area-inset-top, 0px)',
@@ -1246,7 +1250,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ref={scrollRef}
         onScroll={handleScroll}
         {...(activePartnerId ? { 'data-chat-messages': true } : {})}
-        style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform' }}
+        style={{
+          flex: 1,
+          minHeight: 0,
+          contain: 'layout style paint',
+          scrollbarGutter: 'stable',
+          willChange: 'transform',
+          paddingBottom: mobileComposerReserve,
+        }}
         className={[
           'min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain',
           activePartnerId ? 'chat-bg-pattern chat-scrollbar' : 'bg-[var(--bg-secondary)]',
@@ -1533,7 +1544,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         <div
           data-chat-composer
           className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]"
-          style={{ paddingBottom: '0px', flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style paint' }}
+          style={{
+            position: activeMobileChat ? 'absolute' : undefined,
+            left: activeMobileChat ? 0 : undefined,
+            right: activeMobileChat ? 0 : undefined,
+            bottom: activeMobileChat ? 0 : undefined,
+            zIndex: activeMobileChat ? 45 : undefined,
+            paddingBottom: activeMobileChat ? 'env(safe-area-inset-bottom, 0px)' : '0px',
+            flexShrink: 0,
+            backgroundColor: 'var(--bg-secondary)',
+            contain: 'layout style paint',
+          }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (
