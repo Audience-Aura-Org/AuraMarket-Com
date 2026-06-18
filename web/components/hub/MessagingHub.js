@@ -25,19 +25,15 @@ const getChatViewportMetrics = () => {
   const viewport = window.visualViewport;
   const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
   const visualHeight = viewport?.height || layoutHeight;
-  const offsetTop = viewport?.offsetTop || 0;
-  const keyboardInset = Math.max(0, layoutHeight - visualHeight - offsetTop);
-  const keyboardOpen = Boolean(viewport && (keyboardInset > 80 || visualHeight < layoutHeight * 0.82));
-  const zoomValue = Number.parseFloat(window.getComputedStyle(document.documentElement).zoom);
-  const zoomScale = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
-  const targetHeight = keyboardOpen ? visualHeight : Math.max(layoutHeight, visualHeight);
+  const keyboardOpen = Boolean(viewport && visualHeight < layoutHeight * 0.8);
+  const keyboardInset = keyboardOpen ? Math.max(0, layoutHeight - visualHeight) : 0;
 
   return {
-    height: targetHeight / zoomScale,
-    offsetTop: keyboardOpen ? offsetTop / zoomScale : 0,
+    height: layoutHeight,
+    offsetTop: 0,
     keyboardOpen,
-    keyboardInset: keyboardOpen ? keyboardInset / zoomScale : 0,
-    zoomScale,
+    keyboardInset,
+    zoomScale: 1,
   };
 };
 
@@ -50,8 +46,6 @@ const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
   const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
   const visualHeight = window.visualViewport?.height || layoutHeight;
   const reportedHeight = Math.max(layoutHeight, visualHeight);
-  const zoomValue = Number.parseFloat(window.getComputedStyle(document.documentElement).zoom);
-  const zoomScale = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
   const keyboardOpen = Number(keyboardHeight || 0) > 0;
 
   if (!keyboardOpen) {
@@ -67,11 +61,11 @@ const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
   );
 
   return {
-    height: baseHeight / zoomScale,
+    height: baseHeight,
     offsetTop: 0,
     keyboardOpen,
-    keyboardInset: keyboardOpen ? Number(keyboardHeight || 0) / zoomScale : 0,
-    zoomScale,
+    keyboardInset: keyboardOpen ? Number(keyboardHeight || 0) : 0,
+    zoomScale: 1,
   };
 };
 
@@ -1028,18 +1022,21 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const composerSafeAreaPadding = activeMobileChat && viewportHeight?.keyboardOpen
     ? '0px'
     : 'env(safe-area-inset-bottom, 0px)';
-  const headerTopOffset = activeMobileChat
-    ? 'max(env(safe-area-inset-top, 0px), 8px)'
-    : '0px';
   const hasProductContext = Boolean(activePartnerId && product);
-  const headerHeight = activePartnerId ? chromeHeights.header || 64 : 0;
+  const floatingComposer = Boolean(activeMobileChat && isAndroidNative);
   const composerHeight = activePartnerId ? chromeHeights.composer || 0 : 0;
-  const headerStackOffset = activePartnerId
-    ? (activeMobileChat ? `calc(${headerTopOffset} + ${headerHeight}px)` : `${headerHeight}px`)
-    : '0px';
-  const scrollPaddingTop = activePartnerId && !hasProductContext ? headerStackOffset : '0px';
+  const scrollGridRow = activePartnerId
+    ? (hasProductContext ? '3' : '2')
+    : (mobileLayout ? '2' : undefined);
+  const composerGridRow = activePartnerId
+    ? (hasProductContext ? '4' : '3')
+    : undefined;
+  const mobileGridTemplateRows = activePartnerId
+    ? (hasProductContext ? 'auto auto minmax(0,1fr) auto' : 'auto minmax(0,1fr) auto')
+    : 'auto minmax(0,1fr)';
+  const scrollPaddingTop = '0px';
   const scrollPaddingBottom = activePartnerId
-    ? composerHeight + composerBottomOffset
+    ? (floatingComposer ? composerHeight + composerBottomOffset : 0)
     : undefined;
 
   // Keep shell styling minimal to avoid interfering with runtime layout adjustments
@@ -1047,12 +1044,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     ? {
         position: 'fixed',
         inset: 0,
-        display: 'flex',
-        flexDirection: 'column',
+        display: 'grid',
+        gridTemplateRows: mobileGridTemplateRows,
         backgroundColor: 'var(--bg-secondary)',
-        height: viewportHeight?.height ? `${viewportHeight.height}px` : '100vh',
-        transform: viewportHeight?.offsetTop ? `translate3d(0, ${viewportHeight.offsetTop}px, 0)` : undefined,
+        height: '100dvh',
         overflow: 'hidden',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
       }
     : undefined;
 
@@ -1086,7 +1083,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     <motion.div
       id="chat-root"
       ref={chatRootRef}
-      style={{...mobileShellStyle, contain: 'layout style paint', willChange: 'height, transform' }}
+      style={{...mobileShellStyle, contain: 'layout style' }}
       onTouchStart={handlePanelTouchStart}
       onTouchEnd={handlePanelTouchEnd}
       {...(!fullPage
@@ -1109,7 +1106,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             ref={headerRef}
             className="shrink-0 bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_1px_3px_rgba(0,0,0,0.15)] w-full"
             data-chat-header
-            style={{ position: 'absolute', top: headerTopOffset, left: 0, right: 0, zIndex: 60 }}
+            style={{ contain: 'layout style', gridRow: activeMobileChat ? '1' : undefined, zIndex: 60 }}
           >
             <motion.div {...headerSwipeProps} className="touch-pan-y">
               <div className="flex min-h-[54px] items-center gap-1.5 px-2 py-1.5 sm:min-h-[60px] sm:gap-2 sm:px-3 sm:py-2">
@@ -1267,7 +1264,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       {activePartnerId && product && (
         <div
           className="shrink-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2 sm:px-4"
-          style={{ marginTop: headerStackOffset }}
+          style={{ gridRow: activeMobileChat ? '2' : undefined }}
         >
           <div className="flex items-center gap-3">
             <div className="size-10 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-primary)] ring-1 ring-[var(--glass-border)] sm:size-11">
@@ -1290,7 +1287,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ref={scrollRef}
         onScroll={handleScroll}
         {...(activePartnerId ? { 'data-chat-messages': true } : {})}
-      style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform', paddingTop: scrollPaddingTop, paddingBottom: typeof scrollPaddingBottom === 'number' ? `${scrollPaddingBottom}px` : undefined }}
+      style={{ flex: 1, gridRow: scrollGridRow, minHeight: 0, overflowY: 'auto', contain: 'layout style', scrollbarGutter: 'stable', paddingTop: scrollPaddingTop, paddingBottom: typeof scrollPaddingBottom === 'number' ? `${scrollPaddingBottom}px` : undefined }}
         className={[
           'min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain',
           activePartnerId ? 'chat-bg-pattern chat-scrollbar' : 'bg-[var(--bg-secondary)]',
@@ -1578,11 +1575,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           ref={composerRef}
           data-chat-composer
           className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]"
-          style={{ position: activeMobileChat ? 'absolute' : undefined, left: 0, right: 0, bottom: activeMobileChat ? `${composerBottomOffset}px` : undefined, zIndex: activeMobileChat ? 35 : undefined, paddingBottom: composerSafeAreaPadding, paddingTop: 0, margin: 0, flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style paint' }}
+          style={{ gridRow: composerGridRow, position: floatingComposer ? 'absolute' : undefined, left: floatingComposer ? 0 : undefined, right: floatingComposer ? 0 : undefined, bottom: floatingComposer ? `${composerBottomOffset}px` : undefined, zIndex: activeMobileChat ? 35 : undefined, paddingBottom: composerSafeAreaPadding, paddingTop: 0, margin: 0, flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style' }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (
-            <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-b border-[var(--glass-border)] px-2 py-2 sm:px-3" style={{ contain: 'layout style paint' }}>
+            <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-b border-[var(--glass-border)] px-2 py-2 sm:px-3" style={{ contain: 'layout style' }}>
               {QUICK_REPLIES.map(q => (
                 <motion.button
                   key={q}
@@ -1598,7 +1595,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           )}
 
           {/* Input row */}
-          <div className="mx-auto flex w-full max-w-4xl min-w-0 items-end gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-3 sm:py-2" style={{ contain: 'layout style paint', margin: 0 }}>
+          <div className="mx-auto flex w-full max-w-4xl min-w-0 items-end gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-3 sm:py-2" style={{ contain: 'layout style', margin: 0 }}>
             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
 
             <motion.button
@@ -1631,7 +1628,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 autoCapitalize="sentences"
                 spellCheck={false}
                 className="max-h-[88px] min-h-[42px] w-full min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
-                style={{ height: 'auto', contain: 'layout style paint', willChange: 'height' }}
+                style={{ height: 'auto', contain: 'layout style' }}
                 onFocus={() => {
                   setTimeout(() => viewportSyncRef.current?.(), 50);
                   setTimeout(() => viewportSyncRef.current?.(), 150);
