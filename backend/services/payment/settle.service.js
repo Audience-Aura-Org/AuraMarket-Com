@@ -232,6 +232,10 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
 
     setImmediate(async () => {
       try {
+        const shipmentDoc = await Shipment.findOne({ order_id: order._id }).lean();
+        if (shipmentDoc) orderObj.shipment = shipmentDoc;
+        orderObj.customer_name = user.name;
+
         if (vendor) {
           await sendNotification(app, vendor.user_id, {
             title: 'Order Paid & Confirmed',
@@ -257,14 +261,21 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
         if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
           const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
           if (logisticsFirm) {
+            const logisticsOrderDetails = {
+              ...orderObj,
+              logistics_name: logisticsFirm.company_name,
+            };
             await sendNotification(app, logisticsFirm.user_id, {
               title: 'New Shipment Assigned',
               message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
-              type: 'system_alert',
-              metadata: { order_id: order._id, link: '/logistics/manifests' },
+              type: 'logistics_update',
+              metadata: { order_id: order._id, link: '/logistics/manifests', status: shipmentDoc?.status || 'assigned' },
               sendEmail: true,
               role: 'logistics',
               webUrl,
+              orderDetails: logisticsOrderDetails,
+              emailLink: `${webUrl}/logistics/manifests`,
+              overrideEmail: logisticsFirm.contact_email,
             });
           }
         }
@@ -362,6 +373,10 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
 
       setImmediate(async () => {
         try {
+          const shipmentDoc = await Shipment.findOne({ order_id: order._id }).lean();
+          if (shipmentDoc) orderObj.shipment = shipmentDoc;
+          orderObj.customer_name = userSnap.name;
+
           if (vendor) {
             await sendNotification(app, vendor.user_id, {
               title: 'Order Paid & Confirmed',
@@ -381,11 +396,21 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
           if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
             const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
             if (logisticsFirm) {
+              const logisticsOrderDetails = {
+                ...orderObj,
+                logistics_name: logisticsFirm.company_name,
+              };
               await sendNotification(app, logisticsFirm.user_id, {
                 title: 'New Shipment Assigned',
                 message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
-                type: 'system_alert', sendEmail: true, role: 'logistics', webUrl,
-                metadata: { order_id: order._id, link: '/logistics/manifests' },
+                type: 'logistics_update',
+                sendEmail: true,
+                role: 'logistics',
+                webUrl,
+                metadata: { order_id: order._id, link: '/logistics/manifests', status: shipmentDoc?.status || 'assigned' },
+                orderDetails: logisticsOrderDetails,
+                emailLink: `${webUrl}/logistics/manifests`,
+                overrideEmail: logisticsFirm.contact_email,
               });
             }
           }

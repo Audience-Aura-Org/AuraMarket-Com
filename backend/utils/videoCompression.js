@@ -26,7 +26,49 @@ const execAsync = promisify(exec);
 /** Status stories — WhatsApp-style: 9:16 center crop, 30s max, 720p */
 const STATUS_VIDEO_MAX_SECONDS = 30;
 
-const compressVideoForStatus = async (inputPath, outputPath) => {
+const trimAndCompressStatusVideo = async (inputPath, outputPath, { start = 0, end = STATUS_VIDEO_MAX_SECONDS } = {}) => {
+  const clipDuration = Math.min(
+    STATUS_VIDEO_MAX_SECONDS,
+    Math.max(0.5, Number(end) - Number(start))
+  );
+  const seekStart = Math.max(0, Number(start) || 0);
+
+  return new Promise((resolve, reject) => {
+    const command = `ffmpeg -ss ${seekStart} -i "${inputPath}" \
+      -t ${clipDuration} \
+      -vf "scale=w=720:h=1280:force_original_aspect_ratio=increase,crop=720:1280" \
+      -vcodec libx264 \
+      -preset ultrafast \
+      -b:v 1200k \
+      -maxrate 1500k \
+      -bufsize 3000k \
+      -acodec aac \
+      -b:a 96k \
+      -movflags +faststart \
+      -y \
+      "${outputPath}"`;
+
+    exec(command, { timeout: 120000 }, (error) => {
+      if (error) {
+        reject(new Error(`Status video trim failed: ${error.message}`));
+        return;
+      }
+      const stats = fs.statSync(outputPath);
+      resolve({
+        success: true,
+        path: outputPath,
+        size: stats.size,
+        sizeMB: parseFloat((stats.size / 1024 / 1024).toFixed(2)),
+      });
+    });
+  });
+};
+
+const compressVideoForStatus = async (inputPath, outputPath, trimOptions = null) => {
+  if (trimOptions && (trimOptions.start > 0 || trimOptions.end < STATUS_VIDEO_MAX_SECONDS)) {
+    return trimAndCompressStatusVideo(inputPath, outputPath, trimOptions);
+  }
+
   return new Promise((resolve, reject) => {
     const command = `ffmpeg -i "${inputPath}" \
       -t ${STATUS_VIDEO_MAX_SECONDS} \
@@ -155,6 +197,7 @@ const generateThumbnail = async (videoPath, outputPath) => {
 module.exports = {
   compressVideo,
   compressVideoForStatus,
+  trimAndCompressStatusVideo,
   checkVideoQuality,
   generateThumbnail,
 };

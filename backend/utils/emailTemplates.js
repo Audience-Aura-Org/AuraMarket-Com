@@ -221,6 +221,88 @@ const otpEmail = ({ otp, email, expiresMinutes = 10 }) => {
   return { subject, html, text: `Your Auradime verification code is ${otp}. It expires in ${expiresMinutes} minutes.` };
 };
 
+/* ─── Shared order / logistics helpers ─── */
+const orderRef = (order) => {
+  if (!order?._id) return 'N/A';
+  return order._id.toString().slice(-6).toUpperCase();
+};
+
+const productCount = (products = []) =>
+  (products || []).reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+
+const formatAddress = (address = {}) => {
+  if (!address || typeof address !== 'object') return 'Not provided';
+  const parts = [
+    address.name,
+    address.street,
+    address.quartier,
+    address.city,
+    address.region,
+    address.phone,
+  ].filter(Boolean);
+  return parts.join(', ') || 'Not provided';
+};
+
+const resolveVendorName = (order = {}) => {
+  if (typeof order.vendor_name === 'string' && order.vendor_name) return order.vendor_name;
+  if (typeof order.vendor_id === 'object' && order.vendor_id?.store_name) return order.vendor_id.store_name;
+  return 'Vendor';
+};
+
+const resolveCustomerName = (order = {}, fallback = 'Valued Customer') => {
+  if (typeof order.customer_name === 'string' && order.customer_name) return order.customer_name;
+  if (order.shipping_address?.name) return order.shipping_address.name;
+  return fallback;
+};
+
+const resolveTrackingCode = (shipment, order) =>
+  shipment?.tracking_code ||
+  order?.tracking_number ||
+  order?.tracking_code ||
+  `ORD-${orderRef(order)}`;
+
+const orderSummaryCard = ({
+  order,
+  status,
+  extraRows = [],
+  includeProducts = false,
+}) => {
+  const ref = orderRef(order);
+  const rows = [
+    `<div class="card-row"><span class="card-label">Order Ref</span><span class="card-value">#${ref}</span></div>`,
+    status
+      ? `<div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge(status)}</span></div>`
+      : '',
+    `<div class="card-row"><span class="card-label">Items</span><span class="card-value">${productCount(order.products || [])} item(s)</span></div>`,
+    `<div class="card-row"><span class="card-label">Total</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>`,
+    ...extraRows,
+  ].filter(Boolean).join('');
+
+  return `
+    <div class="card">${rows}</div>
+    ${includeProducts ? formatProducts(order.products || []) : ''}
+  `;
+};
+
+const logisticsRouteCard = ({ order, shipment }) => {
+  const pickup = shipment?.pickup_address || order.vendor_id?.pickup_address || order.pickup_address;
+  const delivery = shipment?.delivery_address || order.shipping_address;
+  const tracking = resolveTrackingCode(shipment, order);
+
+  return `
+    <div class="card">
+      <div class="card-row"><span class="card-label">Tracking</span><span class="card-value">${tracking}</span></div>
+      <div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(order)}</span></div>
+      <div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>
+      <div class="card-row"><span class="card-label">Pickup</span><span class="card-value" style="text-align:right;">${formatAddress(pickup)}</span></div>
+      <div class="card-row"><span class="card-label">Delivery</span><span class="card-value" style="text-align:right;">${formatAddress(delivery)}</span></div>
+    </div>
+  `;
+};
+
+const dashboardButton = (href, label = 'View Details') =>
+  href ? `<div style="text-align: center; margin-top: 32px;"><a href="${href}" class="btn">${label}</a></div>` : '';
+
 /* ─── Product Helper ─── */
 const formatProducts = (products = []) => {
   if (!products.length) return '';
@@ -279,52 +361,69 @@ const qrSection = (qrCode) => {
 /* ─── ORDER PLACED (Customer) ─── */
 const orderPlaced = ({ order, customer, qrCode, webUrl }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
+  const ref = orderRef(order);
   const subject = `✅ Order Confirmed — #${ref}`;
   const body = `
-    <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
-    <p>Your order has been confirmed and is being prepared.</p>
+    <p>Hi <strong>${customer?.name || resolveCustomerName(order)}</strong>,</p>
+    <p>Your order has been confirmed and is being prepared by <strong>${resolveVendorName(order)}</strong>.</p>
     
-    <div class="card">
-      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
-      <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge('placed')}</span></div>
-      <div class="card-row"><span class="card-label">Total</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
-    </div>
+    ${orderSummaryCard({
+      order,
+      status: order.order_status || 'placed',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Delivery To</span><span class="card-value" style="text-align:right;">${formatAddress(order.shipping_address)}</span></div>`,
+      ],
+      includeProducts: true,
+    })}
     
     ${qrSection(qrCode)}
-    ${formatProducts(order.products || [])}
-    
-    <a href="${baseUrl}/orders" class="btn">View Order</a>
+    ${dashboardButton(`${baseUrl}/orders/${order._id}`, 'Track Order')}
   `;
   const html = wrap(subject, 'Order Confirmed', body);
-  return { subject, html, text: `Order #${ref} confirmed. Total: XAF ${(order.total_amount || 0).toLocaleString()}.` };
+  return {
+    subject,
+    html,
+    text: `Order #${ref} confirmed with ${productCount(order.products || [])} item(s). Total: XAF ${(order.total_amount || 0).toLocaleString()}. Vendor: ${resolveVendorName(order)}.`,
+  };
 };
 
 /* ─── PAYMENT CONFIRMED (Customer) ─── */
 const paymentConfirmed = ({ order, customer, qrCode, webUrl }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
+  const ref = orderRef(order);
   const subject = `💳 Payment Confirmed — #${ref}`;
   const body = `
-    <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
-    <p>Payment received. Your order is now in processing.</p>
+    <p>Hi <strong>${customer?.name || resolveCustomerName(order)}</strong>,</p>
+    <p>Payment received for your order from <strong>${resolveVendorName(order)}</strong>. Fulfillment is now in progress.</p>
     
-    <div class="card">
-      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
-      <div class="card-row"><span class="card-label">Amount</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
-    </div>
+    ${orderSummaryCard({
+      order,
+      status: order.order_status || 'processing',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Payment</span><span class="card-value">${badge(order.payment_status || 'paid')}</span></div>`,
+      ],
+      includeProducts: true,
+    })}
     
-    <a href="${baseUrl}/orders" class="btn">Track Order</a>
+    ${qrSection(qrCode)}
+    ${dashboardButton(`${baseUrl}/orders/${order._id}`, 'Track Order')}
   `;
   const html = wrap(subject, 'Payment Received', body);
-  return { subject, html, text: `Payment confirmed for Order #${ref}.` };
+  return {
+    subject,
+    html,
+    text: `Payment confirmed for Order #${ref}. ${productCount(order.products || [])} item(s), total XAF ${(order.total_amount || 0).toLocaleString()}.`,
+  };
 };
 
 /* ─── SHIPMENT STATUS CHANGED (Customer) ─── */
-const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl }) => {
+const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl, dashboardLink }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
-  const track = shipment.tracking_code;
+  const ref = orderRef(order);
+  const track = resolveTrackingCode(shipment, order);
+  const normalizedStatus = status || shipment?.status || order?.order_status || 'updated';
   
   const messages = {
     'picked_up': 'Your order has been picked up and is on its way to you!',
@@ -332,23 +431,34 @@ const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl }) =
     'out_for_delivery': 'Your delivery is out for delivery. Expect it soon!',
     'delivered': 'Your order has been delivered. Thank you for shopping!',
     'failed': 'We had trouble delivering your order. We\'ll attempt again shortly.',
+    'assigned': 'A carrier has been assigned to your order.',
+    'pending': 'Your shipment is awaiting pickup.',
   };
   
-  const msg = messages[status] || `Your shipment status has been updated to: ${status}.`;
-  const subject = `📦 Delivery Update — ${status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`;
+  const msg = messages[normalizedStatus] || `Your shipment status has been updated to: ${normalizedStatus.replace(/_/g, ' ')}.`;
+  const subject = `📦 Delivery Update — ${normalizedStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`;
   const body = `
-    <p>Hi <strong>${recipient.name || 'there'}</strong>,</p>
+    <p>Hi <strong>${recipient?.name || resolveCustomerName(order)}</strong>,</p>
     <p>${msg}</p>
     
     <div class="card">
-      <div class="card-row"><span class="card-label">Track</span><span class="card-value">${track}</span></div>
-      <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge(status)}</span></div>
+      <div class="card-row"><span class="card-label">Order Ref</span><span class="card-value">#${ref}</span></div>
+      <div class="card-row"><span class="card-label">Tracking</span><span class="card-value">${track}</span></div>
+      <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge(normalizedStatus)}</span></div>
+      <div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>
+      <div class="card-row"><span class="card-label">Items</span><span class="card-value">${productCount(order.products || [])} item(s)</span></div>
+      <div class="card-row"><span class="card-label">Delivery To</span><span class="card-value" style="text-align:right;">${formatAddress(shipment?.delivery_address || order.shipping_address)}</span></div>
     </div>
     
-    <a href="${baseUrl}/orders" class="btn">View Details</a>
+    ${formatProducts(order.products || [])}
+    ${dashboardButton(dashboardLink || `${baseUrl}/orders/${order._id}`, 'Track Shipment')}
   `;
   const html = wrap(subject, 'Shipment Update', body);
-  return { subject, html, text: `Shipment ${track} is now ${status}.` };
+  return {
+    subject,
+    html,
+    text: `Order #${ref} / ${track} is now ${normalizedStatus}. ${productCount(order.products || [])} item(s) for ${resolveCustomerName(order)}.`,
+  };
 };
 
 /* ─── REFUND APPROVED (Customer) ─── */
@@ -393,45 +503,139 @@ const orderCompleted = ({ order, vendor, webUrl }) => {
 /* ─── NEW ORDER FOR VENDOR ─── */
 const newOrderForVendor = ({ order, vendor, webUrl }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
+  const ref = orderRef(order);
   const subject = `🛒 New Order Received — #${ref}`;
   const body = `
-    <p>Hi <strong>${vendor.store_name || 'there'}</strong>,</p>
-    <p>You have a new order! Please prepare it for shipment.</p>
+    <p>Hi <strong>${vendor?.store_name || resolveVendorName(order)}</strong>,</p>
+    <p>You have a new order from <strong>${resolveCustomerName(order)}</strong>. Please prepare it for shipment.</p>
     
-    <div class="card">
-      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
-      <div class="card-row"><span class="card-label">Total</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
-    </div>
+    ${orderSummaryCard({
+      order,
+      status: order.order_status || 'placed',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Phone</span><span class="card-value">${order.shipping_address?.phone || 'Not provided'}</span></div>`,
+        `<div class="card-row"><span class="card-label">Delivery To</span><span class="card-value" style="text-align:right;">${formatAddress(order.shipping_address)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Payment</span><span class="card-value">${badge(order.payment_status || 'pending')}</span></div>`,
+      ],
+      includeProducts: true,
+    })}
     
-    ${formatProducts(order.products || [])}
-    <a href="${baseUrl}/vendor/orders" class="btn">Manage Order</a>
+    ${dashboardButton(`${baseUrl}/vendor/orders?orderId=${order._id}`, 'Manage Order')}
   `;
   const html = wrap(subject, 'New Order', body);
-  return { subject, html, text: `New order #${ref} received.` };
+  return {
+    subject,
+    html,
+    text: `New order #${ref} from ${resolveCustomerName(order)}. ${productCount(order.products || [])} item(s), total XAF ${(order.total_amount || 0).toLocaleString()}.`,
+  };
 };
 
 /* ─── SHIPMENT ASSIGNED (Logistics) ─── */
-const shipmentAssigned = ({ shipment, order, logistics, firm, webUrl }) => {
+const shipmentAssigned = ({ shipment, order, logistics, firm, webUrl, dashboardLink }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
-  const track = shipment?.tracking_code || `ORD-${ref}`;
+  const ref = orderRef(order);
+  const track = resolveTrackingCode(shipment, order);
   const subject = `📦 New Shipment Assigned — ${track}`;
   const firmInfo = logistics || firm || {};
   
   const body = `
     <p>Hi <strong>${firmInfo.company_name || 'Partner'}</strong>,</p>
-    <p>A new delivery assignment is ready for pickup.</p>
+    <p>A new delivery assignment is ready for pickup from <strong>${resolveVendorName(order)}</strong>.</p>
     
-    <div class="card">
-      <div class="card-row"><span class="card-label">Track</span><span class="card-value">${track}</span></div>
-      <div class="card-row"><span class="card-label">Fee</span><span class="card-value">XAF ${(shipment?.price || order.shipping_fee || 0).toLocaleString()}</span></div>
-    </div>
-    
-    <a href="${baseUrl}/logistics/shipments" class="btn">View Assignment</a>
+    ${orderSummaryCard({
+      order,
+      status: shipment?.status || order.order_status || 'assigned',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Tracking</span><span class="card-value">${track}</span></div>`,
+        `<div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Delivery Fee</span><span class="card-value">XAF ${(shipment?.price || order.shipping_fee || 0).toLocaleString()}</span></div>`,
+      ],
+    })}
+
+    ${logisticsRouteCard({ order, shipment })}
+    ${formatProducts(order.products || [])}
+    ${dashboardButton(dashboardLink || `${baseUrl}/logistics/manifests`, 'View Assignment')}
   `;
   const html = wrap(subject, 'New Assignment', body);
-  return { subject, html, text: `Shipment ${track} assigned.` };
+  return {
+    subject,
+    html,
+    text: `Shipment ${track} assigned for Order #${ref}. Customer: ${resolveCustomerName(order)}. Pickup from ${resolveVendorName(order)}.`,
+  };
+};
+
+/* ─── SHIPMENT CLOSED (Logistics) ─── */
+const logisticsShipmentClosed = ({ order, shipment, logistics, webUrl, dashboardLink, message }) => {
+  const baseUrl = webUrl || WEB_URL;
+  const ref = orderRef(order);
+  const track = resolveTrackingCode(shipment, order);
+  const subject = `✅ Shipment Closed — ${track}`;
+  const firmInfo = logistics || {};
+
+  const body = `
+    <p>Hi <strong>${firmInfo.company_name || 'Partner'}</strong>,</p>
+    <p>${message || `Shipment for Order #${ref} has been confirmed delivered and settled.`}</p>
+
+    ${orderSummaryCard({
+      order,
+      status: 'delivered',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Tracking</span><span class="card-value">${track}</span></div>`,
+        `<div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>`,
+      ],
+    })}
+
+    ${dashboardButton(dashboardLink || `${baseUrl}/logistics/manifests`, 'View Manifests')}
+  `;
+  const html = wrap(subject, 'Shipment Closed', body);
+  return {
+    subject,
+    html,
+    text: `Shipment ${track} for Order #${ref} is closed. Customer: ${resolveCustomerName(order)}.`,
+  };
+};
+
+/* ─── DELIVERY CONFIRMATION (Customer) ─── */
+const deliveryConfirmationRequest = ({ order, customer, webUrl, dashboardLink, message }) => {
+  const baseUrl = webUrl || WEB_URL;
+  const ref = orderRef(order);
+  const subject = `📬 Confirm Delivery — Order #${ref}`;
+  const body = `
+    <p>Hi <strong>${customer?.name || resolveCustomerName(order)}</strong>,</p>
+    <p>${message || `Order #${ref} was delivered. Please confirm receipt to release funds to the vendor.`}</p>
+
+    ${orderSummaryCard({
+      order,
+      status: 'delivered',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Items</span><span class="card-value">${productCount(order.products || [])} item(s)</span></div>`,
+      ],
+      includeProducts: true,
+    })}
+
+    ${dashboardButton(dashboardLink || `${baseUrl}/orders/${order._id}`, 'Confirm Delivery')}
+  `;
+  const html = wrap(subject, 'Confirm Delivery', body);
+  return {
+    subject,
+    html,
+    text: `Order #${ref} was delivered. Confirm receipt for ${resolveVendorName(order)}.`,
+  };
+};
+
+/* ─── Generic fallback for order/logistics alerts ─── */
+const orderNotificationFallback = ({ title, message, link, webUrl, order }) => {
+  const baseUrl = webUrl || WEB_URL;
+  const body = `
+    <p>${message || 'You have a new update on Auradime.'}</p>
+    ${order ? orderSummaryCard({ order, status: order.order_status || 'updated' }) : ''}
+    ${dashboardButton(link || baseUrl, 'View Details')}
+  `;
+  const html = wrap(title || 'Auradime Update', title || 'Notification', body);
+  return { subject: title || 'Auradime Update', html, text: message || title || 'Auradime update' };
 };
 
 /* ─── REFUND REQUESTED (Vendor) ─── */
@@ -472,24 +676,33 @@ const refundRequested = ({ order, vendor, reason, webUrl }) => {
 /* ─── ORDER STATUS UPDATED (Customer) ─── */
 const orderStatusUpdated = ({ order, customer, qrCode, webUrl }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
+  const ref = orderRef(order);
   const subject = `📋 Order Update — #${ref}`;
   const status = order.order_status || 'updated';
   
   const body = `
-    <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
-    <p>Order status updated to <strong>${status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</strong>.</p>
+    <p>Hi <strong>${customer?.name || resolveCustomerName(order)}</strong>,</p>
+    <p>Order status updated to <strong>${status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</strong> for your purchase from <strong>${resolveVendorName(order)}</strong>.</p>
     
-    <div class="card">
-      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
-      <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge(status)}</span></div>
-    </div>
+    ${orderSummaryCard({
+      order,
+      status,
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Delivery To</span><span class="card-value" style="text-align:right;">${formatAddress(order.shipping_address)}</span></div>`,
+      ],
+      includeProducts: true,
+    })}
     
     ${qrSection(qrCode)}
-    <a href="${baseUrl}/orders" class="btn">View Details</a>
+    ${dashboardButton(`${baseUrl}/orders/${order._id}`, 'View Order')}
   `;
   const html = wrap(subject, 'Order Update', body);
-  return { subject, html, text: `Order #${ref} status updated to ${status}.` };
+  return {
+    subject,
+    html,
+    text: `Order #${ref} status updated to ${status}. ${productCount(order.products || [])} item(s) from ${resolveVendorName(order)}.`,
+  };
 };
 
 module.exports = {
@@ -503,7 +716,13 @@ module.exports = {
   orderCompleted,
   newOrderForVendor,
   shipmentAssigned,
+  logisticsShipmentClosed,
+  deliveryConfirmationRequest,
+  orderNotificationFallback,
   refundRequested,
   orderStatusUpdated,
   wrap,
+  orderRef,
+  resolveCustomerName,
+  resolveVendorName,
 };

@@ -51,7 +51,7 @@ function enforceUploadSize({ folder = 'general', contentType = '', size = 0 }) {
 
 const SKIP_TRANSCODE_MAX_BYTES = 28 * 1024 * 1024; // already-mp4 under ~28MB → upload as-is
 
-async function maybeTranscodeVideoForWeb(file, folder = 'general') {
+async function maybeTranscodeVideoForWeb(file, folder = 'general', trimOptions = null) {
   if (!file?.buffer || !file?.mimetype?.startsWith('video/')) {
     return {
       buffer: file?.buffer,
@@ -61,7 +61,7 @@ async function maybeTranscodeVideoForWeb(file, folder = 'general') {
   }
 
   const isMp4 = file.mimetype === 'video/mp4' || /\.mp4$/i.test(file.originalname || '');
-  if (isMp4 && file.buffer.length <= SKIP_TRANSCODE_MAX_BYTES) {
+  if (isMp4 && file.buffer.length <= SKIP_TRANSCODE_MAX_BYTES && !trimOptions) {
     console.log(`🎬 [Video] Skipping transcode (${(file.buffer.length / 1024 / 1024).toFixed(1)}MB mp4)`);
     return {
       buffer: file.buffer,
@@ -79,17 +79,18 @@ async function maybeTranscodeVideoForWeb(file, folder = 'general') {
   const outputBase = (file.originalname || 'video').replace(/\.[^.]+$/, '');
   const outputName = `${outputBase}-web.mp4`;
   const outputPath = path.join(tmpDir, `out-${Date.now()}-${outputName}`);
-  const compressFn = folder === 'statuses' ? compressVideoForStatus : compressVideo;
+  const compressFn = (folder === 'statuses' || trimOptions) ? compressVideoForStatus : compressVideo;
+  const outputFolder = trimOptions ? 'statuses' : folder;
 
   try {
     fs.writeFileSync(inputPath, file.buffer);
-    if (folder === 'statuses') {
+    if (outputFolder === 'statuses' && !trimOptions) {
       const quality = await checkVideoQuality(inputPath);
       if (quality?.duration && quality.duration > 31) {
         throw new Error('Status videos must be 30 seconds or less.');
       }
     }
-    await compressFn(inputPath, outputPath);
+    await compressFn(inputPath, outputPath, trimOptions);
     const outBuffer = fs.readFileSync(outputPath);
     const compressedSize = (outBuffer.length / 1024 / 1024).toFixed(2);
     const reduction = (((file.buffer.length - outBuffer.length) / file.buffer.length) * 100).toFixed(0);
@@ -141,11 +142,19 @@ const uploadSingle = async (req, res) => {
       const folder = normalizeS3Folder(req.body.type || 'general');
       enforceUploadSize({ folder, contentType: req.file.mimetype, size: req.file.size || req.file.buffer?.length });
       console.log(`🚀 [API] Uploading to S3 with folder: ${folder}, mimetype: ${req.file.mimetype}`);
-      const uploadPayload = await maybeTranscodeVideoForWeb(req.file, folder);
+
+      const trimStart = Number(req.body.trimStart);
+      const trimEnd = Number(req.body.trimEnd);
+      const trimOptions = Number.isFinite(trimStart) && Number.isFinite(trimEnd)
+        ? { start: trimStart, end: trimEnd }
+        : null;
+
+      const uploadPayload = await maybeTranscodeVideoForWeb(req.file, folder, trimOptions);
+      const outputFolder = trimOptions ? 'statuses' : folder;
       const s3Result = await uploadToS3(
         uploadPayload.buffer,
         uploadPayload.originalname,
-        folder,
+        outputFolder,
         uploadPayload.mimetype
       );
       fileUrl = s3Result.url;

@@ -9,6 +9,7 @@ import {
   AlertCircle, Clock, Search, RotateCcw,
   Plus, Palette, SplitSquareHorizontal, Scissors
 } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { uploadService } from '@/services/upload';
 import api from '@/services/api';
 import { STATUS_CATEGORIES } from '@/constants/statusCategories';
@@ -17,10 +18,10 @@ import {
   STATUS_VIDEO_INPUT_MAX_BYTES,
   STATUS_IMAGE_MAX_BYTES,
   STATUS_VIDEO_MAX_SECONDS,
-  STATUS_VIDEO_EXPORT_WIDTH,
-  STATUS_VIDEO_EXPORT_HEIGHT,
 } from '@/constants/statusVideo';
 import StatusVideoTrimmer from '@/components/status/StatusVideoTrimmer';
+import { prepareStatusVideoForUpload } from '@/lib/statusVideoExport';
+import { Capacitor } from '@capacitor/core';
 
 const DURATION_OPTIONS = [
   { value: 1, label: '1 Day', description: 'Quick drop' },
@@ -35,16 +36,8 @@ const VIDEO_POST_MODES = [
 
 const DEVICE_TYPE = () => {
   if (typeof window === 'undefined') return 'desktop';
+  if (Capacitor?.isNativePlatform?.()) return 'mobile';
   return window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop';
-};
-
-const getSupportedVideoMimeType = () => {
-  if (typeof MediaRecorder === 'undefined') return '';
-  return [
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm',
-  ].find((type) => MediaRecorder.isTypeSupported(type)) || '';
 };
 
 const canvasToBlob = (canvas, type = 'image/jpeg', quality = 0.78) =>
@@ -118,116 +111,6 @@ async function readVideoMetadata(file) {
   } catch (error) {
     URL.revokeObjectURL(objectUrl);
     throw error;
-  }
-}
-
-function drawVideoFrame(ctx, video) {
-  const canvas = ctx.canvas;
-  const sourceWidth = video.videoWidth || canvas.width;
-  const sourceHeight = video.videoHeight || canvas.height;
-  const targetRatio = canvas.width / canvas.height;
-  const sourceRatio = sourceWidth / sourceHeight;
-
-  ctx.fillStyle = '#07030a';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  let sx = 0;
-  let sy = 0;
-  let sw = sourceWidth;
-  let sh = sourceHeight;
-
-  if (sourceRatio > targetRatio) {
-    sw = sourceHeight * targetRatio;
-    sx = (sourceWidth - sw) / 2;
-  } else {
-    sh = sourceWidth / targetRatio;
-    sy = (sourceHeight - sh) / 2;
-  }
-
-  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-}
-
-async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_VIDEO_MAX_SECONDS, onProgress } = {}) {
-  const mimeType = getSupportedVideoMimeType();
-  if (!mimeType) {
-    throw new Error('Video editing is not supported on this browser. Please trim the video in your gallery and try again.');
-  }
-
-  const sourceUrl = URL.createObjectURL(file);
-  const video = document.createElement('video');
-  video.src = sourceUrl;
-  video.muted = false;
-  video.playsInline = true;
-  video.preload = 'auto';
-  video.crossOrigin = 'anonymous';
-
-  try {
-    await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve;
-      video.onerror = () => reject(new Error('Could not load video for editing.'));
-    });
-
-    const start = Math.max(0, Math.min(trimStart, video.duration || 0));
-    const end = Math.min(Math.max(start + 1, trimEnd), video.duration || start + STATUS_VIDEO_MAX_SECONDS);
-    const duration = Math.min(STATUS_VIDEO_MAX_SECONDS, end - start);
-
-    const canvas = document.createElement('canvas');
-    canvas.width = STATUS_VIDEO_EXPORT_WIDTH;
-    canvas.height = STATUS_VIDEO_EXPORT_HEIGHT;
-    const ctx = canvas.getContext('2d');
-    const canvasStream = canvas.captureStream(30);
-    const sourceStream = video.captureStream?.();
-    sourceStream?.getAudioTracks?.().forEach((track) => canvasStream.addTrack(track));
-
-    const chunks = [];
-    const recorder = new MediaRecorder(canvasStream, {
-      mimeType,
-      videoBitsPerSecond: 2_000_000,
-      audioBitsPerSecond: 96_000,
-    });
-
-    const recorded = new Promise((resolve, reject) => {
-      recorder.ondataavailable = (event) => {
-        if (event.data?.size) chunks.push(event.data);
-      };
-      recorder.onerror = () => reject(new Error('Video export failed.'));
-      recorder.onstop = resolve;
-    });
-
-    await new Promise((resolve) => {
-      video.onseeked = resolve;
-      video.currentTime = start;
-    });
-
-    let stopped = false;
-    const draw = () => {
-      if (stopped) return;
-      drawVideoFrame(ctx, video);
-      const elapsed = Math.max(0, video.currentTime - start);
-      onProgress?.(Math.min(95, Math.round((elapsed / Math.max(duration, 1)) * 95)));
-      if (elapsed >= duration || video.ended) {
-        stopped = true;
-        video.pause();
-        if (recorder.state !== 'inactive') recorder.stop();
-        return;
-      }
-      requestAnimationFrame(draw);
-    };
-
-    recorder.start(500);
-    await video.play();
-    draw();
-    await recorded;
-
-    const blob = new Blob(chunks, { type: mimeType.split(';')[0] || 'video/webm' });
-    const baseName = (file.name || 'status-video').replace(/\.[^.]+$/, '');
-    return new File([blob], `${baseName}-story.webm`, {
-      type: blob.type || 'video/webm',
-      lastModified: Date.now(),
-    });
-  } finally {
-    video.pause();
-    URL.revokeObjectURL(sourceUrl);
   }
 }
 
@@ -423,7 +306,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               ? `Preparing part ${segmentNumber} of ${totalSegments}...`
               : 'Preparing video...'
             );
-            const uploadFile = await exportEditedStatusVideo(file, {
+            const preparedVideo = await prepareStatusVideoForUpload(file, {
               trimStart: segment.start,
               trimEnd: segment.end,
               onProgress: (pct) => {
@@ -431,27 +314,42 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 setUploadProgress(Math.min(70, Math.round(progress)));
               },
             });
-            if (uploadFile.size > STATUS_VIDEO_MAX_BYTES) {
-              throw new Error('Edited video is still above 16MB. Shorten the trim and try again.');
-            }
 
-            setUploadPhase(totalSegments > 1
-              ? `Uploading part ${segmentNumber} of ${totalSegments}...`
-              : 'Uploading video...'
-            );
-            const uploadRes = await uploadService.uploadSingle(uploadFile, 'statuses', {
-              onProgress: (pct) => {
-                const progress = 70 + (((segment.index + (pct / 100)) / totalSegments) * 25);
-                setUploadProgress(Math.min(95, Math.round(progress)));
-              },
-            });
-            if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
+            let segmentUrl = '';
+            let thumbnailSource = file;
+
+            if (preparedVideo.mode === 'server') {
+              if (!preparedVideo.uploadResult?.success) {
+                throw new Error(preparedVideo.uploadResult?.message || 'Server video trim failed.');
+              }
+              segmentUrl = preparedVideo.uploadResult.data.url;
+              setUploadProgress(Math.min(95, Math.round(((segment.index + 1) / totalSegments) * 95)));
+            } else {
+              const uploadFile = preparedVideo.file;
+              if (uploadFile.size > STATUS_VIDEO_MAX_BYTES) {
+                throw new Error('Edited video is still above 16MB. Shorten the trim and try again.');
+              }
+
+              setUploadPhase(totalSegments > 1
+                ? `Uploading part ${segmentNumber} of ${totalSegments}...`
+                : 'Uploading video...'
+              );
+              const uploadRes = await uploadService.uploadSingle(uploadFile, 'statuses', {
+                onProgress: (pct) => {
+                  const progress = 70 + (((segment.index + (pct / 100)) / totalSegments) * 25);
+                  setUploadProgress(Math.min(95, Math.round(progress)));
+                },
+              });
+              if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
+              segmentUrl = uploadRes.data.url;
+              thumbnailSource = uploadFile;
+            }
 
             setUploadPhase(totalSegments > 1
               ? `Creating preview ${segmentNumber} of ${totalSegments}...`
               : 'Creating video preview...'
             );
-            const thumbnailFile = await generateVideoThumbnail(uploadFile);
+            const thumbnailFile = await generateVideoThumbnail(thumbnailSource);
             let segmentThumbnailUrl = '';
             if (thumbnailFile) {
               const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
@@ -463,7 +361,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               : 'Publishing story...'
             );
             await publishStatus(createStatusPayload({
-              content_url: uploadRes.data.url,
+              content_url: segmentUrl,
               thumbnail_url: segmentThumbnailUrl,
             }));
           }

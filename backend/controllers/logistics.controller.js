@@ -400,13 +400,26 @@ const modifyShipmentStatus = async (req, res, next) => {
           console.log(`🔒 Escrow order #${order._id} delivered by logistics. Vendor funds held. Awaiting customer confirmation.`);
 
           // Notify customer to confirm arrival
-          setImmediate(() => {
+          setImmediate(async () => {
+            const customer = await User.findById(order.customer_id).select('name email').lean();
+            const deliveryTpl = templates.deliveryConfirmationRequest({
+              order: order.toObject(),
+              customer,
+              webUrl: process.env.WEB_CLIENT_URL,
+              dashboardLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`,
+              message: `Order #${order._id.toString().slice(-6).toUpperCase()} was delivered by the carrier. Please confirm receipt to release funds to the vendor.`,
+            });
+
             sendNotification(req.app, order.customer_id, {
               title: 'Your order has been delivered',
               message: `Order #${order._id.toString().slice(-6).toUpperCase()} was delivered by the carrier. Please confirm receipt to release funds to the vendor.`,
               type: 'order_status',
-              metadata: { order_id: order._id, link: `/orders/${order._id}` },
-              role: 'customer'
+              metadata: { order_id: order._id, link: `/orders/${order._id}`, status: 'delivered' },
+              sendEmail: true,
+              emailTemplate: deliveryTpl,
+              orderDetails: order.toObject(),
+              role: 'customer',
+              emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`,
             });
           });
 
@@ -491,7 +504,11 @@ const modifyShipmentStatus = async (req, res, next) => {
         sendEmail: true,
         overrideEmail: firm.contact_email,
         emailLink: `${process.env.WEB_CLIENT_URL}/logistics/manifests?shipmentId=${shipment._id}`,
-        orderDetails: order.toObject(),
+        orderDetails: {
+          ...order.toObject(),
+          shipment: shipment.toObject(),
+          logistics_name: firm.company_name,
+        },
         role: 'logistics'
       });
     }

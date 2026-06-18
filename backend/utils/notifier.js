@@ -104,47 +104,114 @@ const translateNotificationText = (text, language = 'en') => {
     .replace(/^Withdrawal /, 'Retrait ');
 };
 
-/**
- * Signal Template: Standard Order/Status Email (Updated with app colors)
- * This now uses the shared premium templates to ensure consistency.
- */
-const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink, qrCode, webUrl) => {
-  // If we have full order details, use the premium order template
+const normalizeTitle = (title = '') => String(title).toLowerCase();
+
+const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink, qrCode, webUrl, context = {}) => {
+  const baseUrl = webUrl || process.env.WEB_CLIENT_URL || 'https://auradime.com';
+  const dashboardLink = emailLink || (context.metadata?.link ? `${baseUrl}${context.metadata.link}` : null);
+  const titleKey = normalizeTitle(title);
+  const shipment = orderDetails?.shipment || context.shipment || null;
+
   if (orderDetails) {
-    if (role === 'customer' || role === 'user') {
-      const templateData = templates.orderPlaced({ 
-        order: orderDetails, 
-        customer: { name: orderDetails.customer_name || 'Valued Customer' },
-        qrCode: qrCode || orderDetails.qrCode,
-        webUrl: webUrl
-      });
-      return templateData.html;
-    }
-    
-    if (role === 'logistics') {
-      const templateData = templates.shipmentAssigned({ 
+    const customer = { name: templates.resolveCustomerName(orderDetails) };
+    const vendor = { store_name: templates.resolveVendorName(orderDetails) };
+
+    if (role === 'logistics' || context.type === 'logistics_update') {
+      if (titleKey.includes('closed') || titleKey.includes('settled') || titleKey.includes('successfully closed')) {
+        return templates.logisticsShipmentClosed({
+          order: orderDetails,
+          shipment,
+          logistics: { company_name: orderDetails.logistics_name || 'Logistics Partner' },
+          webUrl: baseUrl,
+          dashboardLink,
+          message,
+        }).html;
+      }
+
+      return templates.shipmentAssigned({
+        shipment,
         order: orderDetails,
-        logistics: { company_name: 'Logistics Partner' }, // Generic label, notifier will fetch contact_email
-        webUrl: webUrl
-      });
-      return templateData.html;
+        logistics: { company_name: orderDetails.logistics_name || 'Logistics Partner' },
+        webUrl: baseUrl,
+        dashboardLink,
+      }).html;
     }
- 
+
     if (role === 'vendor') {
-      const templateData = templates.newOrderForVendor({ 
+      if (titleKey.includes('completed') || titleKey.includes('payment released')) {
+        return templates.orderCompleted({ order: orderDetails, vendor, webUrl: baseUrl }).html;
+      }
+      if (titleKey.includes('refund')) {
+        return templates.refundRequested({ order: orderDetails, vendor, webUrl: baseUrl }).html;
+      }
+      if (titleKey.includes('shipment') || titleKey.includes('delivery')) {
+        return templates.shipmentStatusChanged({
+          shipment,
+          order: orderDetails,
+          recipient: vendor,
+          status: context.metadata?.status || shipment?.status || orderDetails.order_status,
+          webUrl: baseUrl,
+          dashboardLink: dashboardLink || `${baseUrl}/vendor/orders`,
+        }).html;
+      }
+      return templates.newOrderForVendor({ order: orderDetails, vendor, webUrl: baseUrl }).html;
+    }
+
+    if (role === 'customer' || role === 'user') {
+      if (titleKey.includes('delivered') && titleKey.includes('confirm')) {
+        return templates.deliveryConfirmationRequest({
+          order: orderDetails,
+          customer,
+          webUrl: baseUrl,
+          dashboardLink,
+          message,
+        }).html;
+      }
+      if (titleKey.includes('payment')) {
+        return templates.paymentConfirmed({
+          order: orderDetails,
+          customer,
+          qrCode: qrCode || orderDetails.qrCode,
+          webUrl: baseUrl,
+        }).html;
+      }
+      if (titleKey.includes('refund')) {
+        return templates.refundApproved({ order: orderDetails, customer, webUrl: baseUrl }).html;
+      }
+      if (titleKey.includes('shipment') || titleKey.includes('delivery') || titleKey.includes('delivered')) {
+        return templates.shipmentStatusChanged({
+          shipment,
+          order: orderDetails,
+          recipient: customer,
+          status: context.metadata?.status || shipment?.status || orderDetails.order_status,
+          webUrl: baseUrl,
+          dashboardLink,
+        }).html;
+      }
+      if (titleKey.includes('update') || titleKey.includes('status')) {
+        return templates.orderStatusUpdated({
+          order: orderDetails,
+          customer,
+          qrCode: qrCode || orderDetails.qrCode,
+          webUrl: baseUrl,
+        }).html;
+      }
+      return templates.orderPlaced({
         order: orderDetails,
-        vendor: { store_name: orderDetails.vendor_name || 'Vendor' },
-        webUrl: webUrl
-      });
-      return templateData.html;
+        customer,
+        qrCode: qrCode || orderDetails.qrCode,
+        webUrl: baseUrl,
+      }).html;
     }
   }
- 
-  // Fallback to a styled generic notification using the shared wrapper
-  return templates.wrap(title, title, `
-    <p>${message}</p>
-    ${emailLink ? `<div style="text-align: center; margin-top: 32px;"><a href="${emailLink}" class="btn">View Details</a></div>` : ''}
-  `);
+
+  return templates.orderNotificationFallback({
+    title,
+    message,
+    link: dashboardLink,
+    webUrl: baseUrl,
+    order: orderDetails || null,
+  }).html;
 };
  
 const sendNotification = async (app, recipientId, data) => {
@@ -288,8 +355,17 @@ const sendNotification = async (app, recipientId, data) => {
             const success = await dispatchEmail({
               to: targetEmail,
               subject: localizedTitle,
-              text: localizedMessage,
-              html: emailTemplate?.html || buildOrderEmailHtml(localizedTitle, localizedMessage, orderDetails, role, emailLink, qrCode, webUrl),
+              text: emailTemplate?.text || localizedMessage,
+              html: emailTemplate?.html || buildOrderEmailHtml(
+                localizedTitle,
+                localizedMessage,
+                orderDetails,
+                role,
+                emailLink,
+                qrCode,
+                webUrl,
+                { type, metadata, shipment: metadata?.shipment || orderDetails?.shipment }
+              ),
               role: role || 'user'
             });
 
