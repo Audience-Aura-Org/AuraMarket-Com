@@ -21,7 +21,7 @@ import { toast } from 'react-hot-toast';
 const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
 
 const getChatViewportMetrics = () => {
-  if (typeof window === 'undefined') return { height: 800, offsetTop: 0 };
+  if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardInset: 0 };
   const viewport = window.visualViewport;
   const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
   const visualHeight = viewport?.height || layoutHeight;
@@ -29,12 +29,17 @@ const getChatViewportMetrics = () => {
   const keyboardOpen = Boolean(viewport && visualHeight < layoutHeight * 0.78);
   const zoomValue = Number.parseFloat(window.getComputedStyle(document.documentElement).zoom);
   const zoomScale = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
+  const keyboardInset = keyboardOpen ? Math.max(0, layoutHeight - visualHeight - offsetTop) : 0;
   const targetHeight = keyboardOpen ? visualHeight : Math.max(layoutHeight, visualHeight);
 
   return {
-    height: targetHeight / zoomScale,
+    // Some Android browsers (notably Brave) already report keyboard-resized
+    // visualViewport values in usable CSS pixels. Dividing those by global
+    // html zoom makes the chat taller than the visible area and hides input.
+    height: keyboardOpen ? targetHeight : targetHeight / zoomScale,
     offsetTop: keyboardOpen ? offsetTop / zoomScale : 0,
     keyboardOpen,
+    keyboardInset: keyboardInset / zoomScale,
     zoomScale,
   };
 };
@@ -44,7 +49,7 @@ const androidNativeViewportState = {
 };
 
 const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
-  if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardOpen: false };
+  if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardOpen: false, keyboardInset: 0 };
   const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
   const visualHeight = window.visualViewport?.height || layoutHeight;
   const reportedHeight = Math.max(layoutHeight, visualHeight);
@@ -73,6 +78,7 @@ const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
     height: targetHeight / zoomScale,
     offsetTop: 0,
     keyboardOpen,
+    keyboardInset: keyboardOpen ? Number(keyboardHeight || 0) / zoomScale : 0,
     zoomScale,
   };
 };
