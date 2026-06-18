@@ -1028,10 +1028,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const composerSafeAreaPadding = activeMobileChat && viewportHeight?.keyboardOpen
     ? '0px'
     : 'env(safe-area-inset-bottom, 0px)';
+  const headerTopOffset = activeMobileChat
+    ? 'max(env(safe-area-inset-top, 0px), 8px)'
+    : '0px';
   const hasProductContext = Boolean(activePartnerId && product);
   const headerHeight = activePartnerId ? chromeHeights.header || 64 : 0;
   const composerHeight = activePartnerId ? chromeHeights.composer || 0 : 0;
-  const scrollPaddingTop = activePartnerId && !hasProductContext ? headerHeight : 0;
+  const headerStackOffset = activePartnerId
+    ? (activeMobileChat ? `calc(${headerTopOffset} + ${headerHeight}px)` : `${headerHeight}px`)
+    : '0px';
+  const scrollPaddingTop = activePartnerId && !hasProductContext ? headerStackOffset : '0px';
   const scrollPaddingBottom = activePartnerId
     ? composerHeight + composerBottomOffset
     : undefined;
@@ -1103,7 +1109,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             ref={headerRef}
             className="shrink-0 bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_1px_3px_rgba(0,0,0,0.15)] w-full"
             data-chat-header
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40 }}
+            style={{ position: 'absolute', top: headerTopOffset, left: 0, right: 0, zIndex: 60 }}
           >
             <motion.div {...headerSwipeProps} className="touch-pan-y">
               <div className="flex min-h-[54px] items-center gap-1.5 px-2 py-1.5 sm:min-h-[60px] sm:gap-2 sm:px-3 sm:py-2">
@@ -1261,7 +1267,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       {activePartnerId && product && (
         <div
           className="shrink-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2 sm:px-4"
-          style={{ marginTop: headerHeight ? `${headerHeight}px` : undefined }}
+          style={{ marginTop: headerStackOffset }}
         >
           <div className="flex items-center gap-3">
             <div className="size-10 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-primary)] ring-1 ring-[var(--glass-border)] sm:size-11">
@@ -1284,7 +1290,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ref={scrollRef}
         onScroll={handleScroll}
         {...(activePartnerId ? { 'data-chat-messages': true } : {})}
-      style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform', paddingTop: scrollPaddingTop ? `${scrollPaddingTop}px` : 0, paddingBottom: typeof scrollPaddingBottom === 'number' ? `${scrollPaddingBottom}px` : undefined }}
+      style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform', paddingTop: scrollPaddingTop, paddingBottom: typeof scrollPaddingBottom === 'number' ? `${scrollPaddingBottom}px` : undefined }}
         className={[
           'min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain',
           activePartnerId ? 'chat-bg-pattern chat-scrollbar' : 'bg-[var(--bg-secondary)]',
