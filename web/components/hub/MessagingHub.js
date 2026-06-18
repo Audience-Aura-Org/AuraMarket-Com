@@ -305,10 +305,24 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }
 
       const previousMetrics = viewportHeightRef.current;
+      const resumeActive = Boolean(viewportResumeUntilRef.current && Date.now() < viewportResumeUntilRef.current);
+      const focusedComposer = document.activeElement === inputRef.current;
+      const implausibleKeyboardShrink = Boolean(
+        previousMetrics &&
+        previousMetrics.mode === 'keyboard' &&
+        metrics.mode === 'keyboard' &&
+        metrics.height < previousMetrics.height - 96 &&
+        (resumeActive || focusedComposer)
+      );
+
+      if (implausibleKeyboardShrink) {
+        scheduleSync(180);
+        return;
+      }
+
       if (
         previousMetrics &&
-        viewportResumeUntilRef.current &&
-        Date.now() < viewportResumeUntilRef.current &&
+        resumeActive &&
         previousMetrics.mode === metrics.mode
       ) {
         return;
@@ -346,11 +360,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     };
     const settleViewportAfterResume = () => {
       if (document.visibilityState === 'hidden') return;
-      viewportResumeUntilRef.current = Date.now() + 520;
+      viewportResumeUntilRef.current = Date.now() + 1800;
       requestAnimationFrame(() => {
         pinToLatestMessage('auto');
       });
-      [120, 260, 540, 760].forEach(scheduleSync);
+      [120, 260, 540, 900, 1300, 1850].forEach(scheduleSync);
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') settleViewportAfterResume();
