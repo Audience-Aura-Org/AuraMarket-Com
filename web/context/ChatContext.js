@@ -236,6 +236,7 @@ const initialState = {
   activeConversationId: null,
   contextProduct: null,
   initialPartnerData: null,
+  notificationTitle: null,
   isSystemWide: false,
   conversationsById: {},
   conversationOrder: [],
@@ -315,6 +316,7 @@ function chatReducer(state, action) {
         activeConversationId: partnerId,
         contextProduct: action.product || null,
         initialPartnerData: action.partnerData ? stripPayloadPresence(action.partnerData) : null,
+        notificationTitle: action.notificationTitle || null,
         isSystemWide: Boolean(action.global),
         conversationsById,
         conversationOrder,
@@ -329,6 +331,7 @@ function chatReducer(state, action) {
         activeConversationId: null,
         contextProduct: null,
         initialPartnerData: null,
+        notificationTitle: null,
         isSystemWide: false,
         typingIndicators: {},
       };
@@ -360,6 +363,7 @@ function chatReducer(state, action) {
         activePartnerId: partnerId,
         activeConversationId: partnerId,
         initialPartnerData: action.partnerData ? state.initialPartnerData : null,
+        notificationTitle: null,
         conversationsById: {
           ...state.conversationsById,
           [partnerId]: {
@@ -793,7 +797,7 @@ export function ChatProvider({ children }) {
   }, [user?._id]);
 
   const openChat = useCallback(
-    (partnerId, product = null, partnerData = null, global = false) => {
+    (partnerId, product = null, partnerData = null, global = false, notificationTitle = null) => {
       if (!user) {
         router.push('/login?from=chat');
         return;
@@ -803,6 +807,7 @@ export function ChatProvider({ children }) {
         partnerId: partnerId ? partnerId.toString() : null,
         product,
         partnerData: partnerData ? stripPayloadPresence(partnerData) : null,
+        notificationTitle: notificationTitle || null,
         global,
       });
     },

@@ -205,10 +205,24 @@ html.chat-open body {
 
 html.chat-open #chat-root {
   position: fixed !important;
-  top: 0 !important;
+  top: var(--chat-shell-offset-top, 0) !important;
   left: 0 !important;
   width: 100% !important;
+  /* JS sets --chat-shell-height when the keyboard is open; otherwise dvh/svh. */
+  height: var(--chat-shell-height, 100dvh) !important;
+  height: var(--chat-shell-height, 100svh) !important;
+  max-height: var(--chat-shell-height, 100svh) !important;
   overflow: hidden !important;
+}
+
+/* ── Chat zoom isolation ─────────────────────────────────────────
+   Global zoom (0.7 / 0.8) stays active everywhere EXCEPT inside
+   the chat shell. chat-open resets zoom to 1 so that dvh/svh
+   units and visualViewport values are not scaled by the browser
+   before JS reads them. No other pages are affected.
+──────────────────────────────────────────────────────────────── */
+html.chat-open {
+  zoom: 1 !important;
 }
 
 h1,h2,h3,h4,h5,h6 {

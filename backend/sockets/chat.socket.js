@@ -70,6 +70,17 @@ const sanitizeProductReference = (product) => {
   };
 };
 
+const buildSenderNotificationData = (sender, fallbackId) => {
+  if (!sender && !fallbackId) return null;
+  return {
+    _id: sender?._id || fallbackId,
+    name: sender?.branding?.store_name || sender?.store_name || sender?.name || 'Auradime User',
+    avatar: sender?.avatar || sender?.branding?.logo || null,
+    store_name: sender?.branding?.store_name || sender?.store_name || null,
+    branding: sender?.branding || {},
+  };
+};
+
 const mapChatSockets = (server) => {
   const io = socketIo(server, {
     cors: createCorsOptions(),
@@ -189,8 +200,8 @@ const mapChatSockets = (server) => {
 
         const populatedMessage = await Message.findById(message._id)
           .populate('product_reference', PRODUCT_REFERENCE_SELECT)
-          .populate('sender_id', 'name avatar role is_online last_seen')
-          .populate('receiver_id', 'name avatar role is_online last_seen')
+          .populate('sender_id', 'name avatar role branding store_name is_online last_seen')
+          .populate('receiver_id', 'name avatar role branding store_name is_online last_seen')
           .lean();
 
         if (populatedMessage?.product_reference) {
@@ -242,8 +253,9 @@ const mapChatSockets = (server) => {
 
         setImmediate(() => {
           const sender = populatedMessage.sender_id;
-          const senderName = sender?.name || 'Auradime User';
+          const senderName = sender?.branding?.store_name || sender?.store_name || sender?.name || 'Auradime User';
           const senderAvatar = sender?.avatar || sender?.branding?.logo || null;
+          const senderData = buildSenderNotificationData(sender, socket.userId);
 
           sendNotification({ get: (key) => (key === 'io' ? io : null) }, receiver_id, {
             title: senderName,
@@ -252,6 +264,7 @@ const mapChatSockets = (server) => {
             senderAvatar,
             metadata: {
               sender_id: socket.userId,
+              senderData,
               message_id: populatedMessage._id,
               link: `/chat?vendorId=${socket.userId}`,
             },

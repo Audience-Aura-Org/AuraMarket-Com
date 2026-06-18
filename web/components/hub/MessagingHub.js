@@ -43,27 +43,34 @@ const rememberChatFullHeight = (height) => {
 };
 
 const getChatViewportMetrics = () => {
-  if (typeof window === 'undefined') return { height: 800, offsetTop: 0 };
+  if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardOpen: false, zoomScale: 1 };
   const viewport = window.visualViewport;
-  const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
+  // layoutHeight: the CSS layout viewport (ignores keyboard, includes address bar)
+  const layoutHeight =
+    document.documentElement?.clientHeight ||
+    window.innerHeight ||
+    800;
+  // visualHeight: shrinks when the keyboard is open (all browsers)
   const visualHeight = viewport?.height || layoutHeight;
-  const offsetTop = viewport?.offsetTop || 0;
-  const keyboardOpen = Boolean(viewport && visualHeight < layoutHeight * 0.78);
-  const zoomValue = Number.parseFloat(window.getComputedStyle(document.documentElement).zoom);
-  const zoomScale = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
-  const targetHeight = keyboardOpen ? visualHeight : Math.max(layoutHeight, visualHeight);
-  const screenHeight = window.screen?.height || 0;
-  const fullHeight = Math.max(
-    Math.max(layoutHeight, visualHeight, screenHeight) / zoomScale,
-    getStoredChatFullHeight()
-  );
+  const offsetTop    = viewport?.offsetTop || 0;
+
+  // Keyboard is open when the visual viewport is meaningfully smaller
+  // than the layout viewport. 0.75 is slightly more conservative than
+  // the previous 0.78, reducing false positives on Chrome when the
+  // address bar collapses.
+  const keyboardOpen = Boolean(viewport && visualHeight < layoutHeight * 0.75);
+
+  // ── zoom is now reset to 1 on chat-open, so we never divide by it ──
+  // Keeping the read here for diagnostics / future use, but NOT dividing.
+  const targetHeight = keyboardOpen
+    ? visualHeight          // shrunk to visible area above keyboard
+    : layoutHeight;         // full layout height (CSS dvh/svh will govern anyway)
 
   return {
-    height: targetHeight / zoomScale,
-    fullHeight,
-    offsetTop: keyboardOpen ? offsetTop / zoomScale : 0,
+    height: targetHeight,   // no longer divided by zoomScale
+    offsetTop: keyboardOpen ? offsetTop : 0,
     keyboardOpen,
-    zoomScale,
+    zoomScale: 1,           // always 1 inside chat-open
   };
 };
 
@@ -76,8 +83,6 @@ const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
   const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
   const visualHeight = window.visualViewport?.height || layoutHeight;
   const reportedHeight = Math.max(layoutHeight, visualHeight);
-  const zoomValue = Number.parseFloat(window.getComputedStyle(document.documentElement).zoom);
-  const zoomScale = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
   const keyboardOpen = Number(keyboardHeight || 0) > 0;
 
   if (!keyboardOpen) {
@@ -98,16 +103,16 @@ const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
     : baseHeight;
   const screenHeight = window.screen?.height || 0;
   const fullHeight = Math.max(
-    Math.max(baseHeight, screenHeight) / zoomScale,
+    Math.max(baseHeight, screenHeight),
     getStoredChatFullHeight()
   );
 
   return {
-    height: targetHeight / zoomScale,
+    height: targetHeight,
     fullHeight,
     offsetTop: 0,
     keyboardOpen,
-    zoomScale,
+    zoomScale: 1,
   };
 };
 
@@ -156,7 +161,7 @@ const stableChatViewport = (() => {
  * MessagingHub - Premium Global Messaging Center
  * Features: Infinite scroll, typing indicators, grouped bubbles, and search.
  */
-export default function MessagingHub({ vendorId: initialVendorId, product, initialData, onClose, fullPage = false }) {
+export default function MessagingHub({ vendorId: initialVendorId, product, initialData, notificationTitle, onClose, fullPage = false }) {
   const { user } = useAuthStore();
   const {
     isSystemWide,
@@ -332,7 +337,21 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
     const mobileQuery = window.matchMedia?.('(max-width: 767px)');
     const resetChatRootStyles = () => {
+      chatRootRef.current?.style.removeProperty('--chat-shell-height');
       setViewportHeight(null);
+    };
+    const applyChatShellHeight = (metrics, isMobileChat) => {
+      const root = chatRootRef.current;
+      if (!root) return;
+      if (!isMobileChat) {
+        root.style.removeProperty('--chat-shell-height');
+        return;
+      }
+      if (metrics?.keyboardOpen && Number.isFinite(metrics.height) && metrics.height > 0) {
+        root.style.setProperty('--chat-shell-height', `${Math.round(metrics.height)}px`);
+      } else {
+        root.style.removeProperty('--chat-shell-height');
+      }
     };
     const syncViewport = () => {
       const rawMetrics = isAndroidNative
@@ -345,6 +364,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         resetChatRootStyles();
         return;
       }
+
+      applyChatShellHeight(metrics, isMobileChat);
 
       const previousMetrics = viewportHeightRef.current;
       const resumeActive = Boolean(viewportResumeUntilRef.current && Date.now() < viewportResumeUntilRef.current);
@@ -426,6 +447,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       if (wasKeyboardOpen && lastKeyboardViewportRef.current) {
         viewportHeightRef.current = lastKeyboardViewportRef.current;
         setViewportHeight(lastKeyboardViewportRef.current);
+        applyChatShellMetrics(lastKeyboardViewportRef.current);
       }
       requestAnimationFrame(() => {
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -956,7 +978,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       });
   }, [inbox, deletedConvos, searchQuery]);
 
-  const partnerName = (partnerInfo?.store_name || partnerInfo?.branding?.store_name || partnerInfo?.name || 'User').toString();
+  const partnerName = (
+    partnerInfo?.store_name       ||
+    partnerInfo?.branding?.store_name ||
+    partnerInfo?.name             ||
+    initialData?.name             ||   // from senderData passed by SocketProvider
+    initialData?.store_name       ||
+    // Last resort: use the notification title that was already shown to the user.
+    // This avoids the jarring "User" flash. Replace with your own prop name if different.
+    notificationTitle             ||
+    'Loading...'                       // honest placeholder instead of "User"
+  ).toString();
   const partnerAvatar = partnerInfo?.store?.logo || partnerInfo?.branding?.logo || partnerInfo?._id?.branding?.logo || partnerInfo?.avatar || partnerInfo?.profile_picture;
   const lastPartnerMessageAt = useMemo(() => {
     if (!activePartnerId) return null;
@@ -1102,9 +1134,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: 'var(--bg-secondary)',
-        height: `${viewportHeight?.height ?? 800}px`,
-        maxHeight: `${viewportHeight?.height ?? 800}px`,
-        transform: 'translateY(0px)',
       }
     : undefined;
 
@@ -1624,7 +1653,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         <div
           data-chat-composer
           className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]"
-          style={{ paddingBottom: '0px', flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style paint' }}
+          style={{
+            paddingBottom: viewportHeight?.mode === 'keyboard'
+              ? '0px'
+              : 'env(safe-area-inset-bottom, 0px)',
+            flexShrink: 0,
+            backgroundColor: 'var(--bg-secondary)',
+            contain: 'layout style paint',
+          }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (

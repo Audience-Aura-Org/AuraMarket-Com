@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, Suspense } from 'react';
+import { useEffect, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useChat } from '@/context/ChatContext';
+import { peekPendingPushIntentForVendor } from '@/lib/native-push';
 import MessagingHub from '@/components/hub/MessagingHub';
 
 function chatExitHref(role) {
@@ -14,10 +16,26 @@ function chatExitHref(role) {
 
 function ChatContent() {
   const { user, loading: authLoading } = useAuthStore();
+  const { initialPartnerData, notificationTitle: contextNotificationTitle } = useChat();
   const router = useRouter();
   const searchParams = useSearchParams();
   
   const vendorId = searchParams.get('vendorId');
+  const urlNotificationTitle = searchParams.get('notificationTitle');
+  const pendingNotificationTitle = useMemo(
+    () => peekPendingPushIntentForVendor(vendorId),
+    [vendorId]
+  );
+  const initialData = useMemo(() => {
+    if (!vendorId || !initialPartnerData) return null;
+    const partnerId = initialPartnerData._id?.toString?.() || initialPartnerData._id;
+    return partnerId?.toString?.() === vendorId.toString() ? initialPartnerData : null;
+  }, [vendorId, initialPartnerData]);
+  const notificationTitle =
+    contextNotificationTitle ||
+    urlNotificationTitle ||
+    pendingNotificationTitle ||
+    null;
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -31,7 +49,9 @@ function ChatContent() {
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden' }}>
       <MessagingHub 
-        vendorId={vendorId} 
+        vendorId={vendorId}
+        initialData={initialData}
+        notificationTitle={notificationTitle}
         fullPage={true}
         onClose={() => router.push(chatExitHref(user?.role))}
       />

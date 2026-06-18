@@ -204,6 +204,7 @@ const sendNotification = async (app, recipientId, data) => {
             : '/logo-white.png';
 
           const senderId = metadata?.sender_id || metadata?.senderId;
+          const senderData = metadata?.senderData || null;
 
           const payload = JSON.stringify({
             title: localizedTitle,
@@ -211,10 +212,12 @@ const sendNotification = async (app, recipientId, data) => {
             icon: iconUrl,
             image: (type === 'message' && senderAvatar) ? senderAvatar : undefined,
             tag: (type === 'message' && senderId) ? `msg-${senderId}` : `alert-${recipientId}-${Date.now()}`,
+            senderData,
             data: { 
               url: notificationUrl,
               sender_id: senderId,
               senderId: senderId,
+              senderData,
               notification_id: notification._id.toString(),
               type
             },
@@ -248,6 +251,7 @@ const sendNotification = async (app, recipientId, data) => {
               notification_id: notification._id.toString(),
               sender_id: senderId,
               senderId,
+              senderData,
             });
 
             if (androidResult.invalidTokens?.length) {

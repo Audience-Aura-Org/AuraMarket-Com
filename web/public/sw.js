@@ -160,7 +160,8 @@ self.addEventListener('push', function (event) {
     silent: false,
     data: {
       url: data.data?.url || data.url || '/',
-      payload: data
+      payload: data,
+      senderData: data.senderData || data.data?.senderData || null
     },
     actions: isChat
       ? [
@@ -201,6 +202,31 @@ self.addEventListener('notificationclick', function (event) {
 
   let urlToOpen = normalizeNotificationUrl(event.notification.data?.url || '/notifications');
 
+  const notifData = event.notification.data || {};
+  const innerPayload = notifData.payload || {};
+  const senderId =
+    innerPayload.sender_id ||
+    innerPayload.senderId ||
+    innerPayload.data?.sender_id ||
+    innerPayload.data?.senderId ||
+    null;
+  const notificationTitle = event.notification.title || innerPayload.title || null;
+
+  // Cold-start pages cannot receive postMessage; preserve the visible title in the URL.
+  if (notificationTitle) {
+    try {
+      const parsed = new URL(
+        urlToOpen.startsWith('http') ? urlToOpen : self.location.origin + (urlToOpen.startsWith('/') ? '' : '/') + urlToOpen
+      );
+      if (!parsed.searchParams.has('notificationTitle')) {
+        parsed.searchParams.set('notificationTitle', notificationTitle);
+      }
+      urlToOpen = parsed.toString();
+    } catch (e) {
+      // Keep the original URL if parsing fails.
+    }
+  }
+
   // Ensure absolute URL for reliable cross-device opening
   if (!urlToOpen.startsWith('http')) {
     urlToOpen = self.location.origin + (urlToOpen.startsWith('/') ? '' : '/') + urlToOpen;
@@ -212,11 +238,15 @@ self.addEventListener('notificationclick', function (event) {
       for (const client of windowClients) {
         if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
           try {
-            client.postMessage({
-              type: 'notification-click',
-              url: urlToOpen,
-              payload: event.notification.data?.payload || {}
-            });
+          client.postMessage({
+            type:       'notification-click',
+            url:        urlToOpen,
+            // Pass the entire notification data object so SocketProvider
+            // can find senderData regardless of where it was nested.
+            payload:    notifData,
+            senderId:   senderId,
+            senderData: notifData.senderData || null,
+          });
           } catch (e) {
             console.error('[SW] postMessage failed:', e);
           }

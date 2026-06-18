@@ -5,7 +5,7 @@ import MessagingHub from '@/components/hub/MessagingHub';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function GlobalChatOverlay() {
-  const { isOpen, activePartnerId, contextProduct, initialPartnerData, closeChat } = useChat();
+  const { isOpen, activePartnerId, contextProduct, initialPartnerData, notificationTitle, closeChat } = useChat();
 
   return (
     <AnimatePresence>
@@ -24,6 +24,7 @@ export default function GlobalChatOverlay() {
             vendorId={activePartnerId}
             product={contextProduct}
             initialData={initialPartnerData}
+            notificationTitle={notificationTitle}
             onClose={closeChat}
           />
         </>

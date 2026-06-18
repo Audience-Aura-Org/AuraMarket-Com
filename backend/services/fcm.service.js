@@ -56,6 +56,7 @@ const sendAndroidPush = async (tokens, payload) => {
         notification_id: payload.notification_id || '',
         sender_id: payload.sender_id || payload.senderId || '',
         senderId: payload.senderId || payload.sender_id || '',
+        senderData: payload.senderData ? JSON.stringify(payload.senderData) : '',
       }).map(([key, value]) => [key, String(value ?? '')])
     ),
     android: {

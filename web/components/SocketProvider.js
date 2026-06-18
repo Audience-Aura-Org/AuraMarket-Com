@@ -208,19 +208,25 @@ export default function SocketProvider({ children }) {
     return true;
   };
 
-  const openMessageRoute = (partnerId, partnerData = null, route = null) => {
+  const openMessageRoute = (partnerId, partnerData = null, route = null, notificationTitle = null) => {
     const target = normalizeAppRoute(route || (partnerId ? `/chat?vendorId=${encodeURIComponent(partnerId)}` : '/chat'));
     if (target) router.push(target);
     if (partnerId) {
-      openChat(partnerId, null, partnerData);
+      openChat(partnerId, null, partnerData, false, notificationTitle);
       window.dispatchEvent(new CustomEvent('aura_chat_focus', {
-        detail: { partnerId: partnerId.toString(), partnerData, route: target },
+        detail: { partnerId: partnerId.toString(), partnerData, route: target, notificationTitle },
       }));
     }
   };
 
   const handleNotificationIntent = async ({ route, payload = {}, senderId = null, senderData = null } = {}) => {
-    const targetRoute = normalizeAppRoute(route || payload?.url);
+    const nestedPayload = payload?.payload && typeof payload.payload === 'object' ? payload.payload : {};
+    const notificationPayload = { ...nestedPayload, ...payload };
+    const payloadData = {
+      ...(nestedPayload?.data && typeof nestedPayload.data === 'object' ? nestedPayload.data : {}),
+      ...(payload?.data && typeof payload.data === 'object' ? payload.data : {}),
+    };
+    const targetRoute = normalizeAppRoute(route || notificationPayload?.url || payloadData?.url);
     if (!targetRoute) return;
 
     const allowed = await ensureSessionForRoute(targetRoute);
@@ -228,35 +234,46 @@ export default function SocketProvider({ children }) {
 
     const resolvedSenderId =
       senderId ||
-      payload.sender_id ||
-      payload.senderId ||
-      payload.userId ||
-      payload.data?.sender_id ||
-      payload.data?.senderId;
+      notificationPayload.sender_id ||
+      notificationPayload.senderId ||
+      notificationPayload.userId ||
+      payloadData.sender_id ||
+      payloadData.senderId;
 
     let partnerId = resolvedSenderId;
-    if (!partnerId && payload.tag && typeof payload.tag === 'string' && payload.tag.startsWith('msg-')) {
-      const parts = payload.tag.split('-');
+    if (!partnerId && notificationPayload.tag && typeof notificationPayload.tag === 'string' && notificationPayload.tag.startsWith('msg-')) {
+      const parts = notificationPayload.tag.split('-');
       if (parts.length > 1) partnerId = parts[1];
     }
 
-    const partnerPayload = senderData || payload.sender || payload.senderData || payload.data?.senderData || payload.data?.sender || {
+    const partnerPayload = senderData || notificationPayload.sender || notificationPayload.senderData || payloadData.senderData || payloadData.sender || {
       _id: partnerId,
-      name: payload.title || payload.name || 'Auradime User',
-      avatar: payload.icon || null,
-      store_name: payload.store_name || payload.storeName,
+      name: notificationPayload.title || notificationPayload.name || 'Auradime User',
+      avatar: notificationPayload.icon || null,
+      store_name: notificationPayload.store_name || notificationPayload.storeName,
     };
+
+    const notificationTitle =
+      notificationPayload.title ||
+      payloadData.title ||
+      nestedPayload?.title ||
+      null;
 
     const { is_online, ...partnerNoPresence } = partnerPayload || {};
 
     if (partnerId) {
       // Ensure partner payload includes a readable name
       if (!partnerNoPresence?.name) {
-        partnerNoPresence.name = payload.title || payload.name || payload.data?.title || 'Auradime User';
+        partnerNoPresence.name = notificationTitle || notificationPayload.name || 'Auradime User';
       }
 
       // Open chat and dismiss any toasts immediately
-      openMessageRoute(partnerId, partnerNoPresence, targetRoute || `/chat?vendorId=${encodeURIComponent(partnerId)}`);
+      openMessageRoute(
+        partnerId,
+        partnerNoPresence,
+        targetRoute || `/chat?vendorId=${encodeURIComponent(partnerId)}`,
+        notificationTitle
+      );
       setChatToast(null);
       setNotifToast(null);
       return;
@@ -476,6 +493,8 @@ export default function SocketProvider({ children }) {
         handleNotificationIntent({
           route: msg.url,
           payload: msg.payload || {},
+          senderId: msg.senderId || null,
+          senderData: msg.senderData || null,
         });
         return;
       }
@@ -645,7 +664,7 @@ export default function SocketProvider({ children }) {
           <div
             onClick={() => { 
               if (chatToast.senderId) {
-                openChat(chatToast.senderId, null, chatToast.senderData);
+                openChat(chatToast.senderId, null, chatToast.senderData, false, chatToast.sender);
               }
               setChatToast(null); 
             }}

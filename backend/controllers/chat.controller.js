@@ -35,6 +35,17 @@ const buildParticipantSnapshot = (user) => {
   };
 };
 
+const buildSenderNotificationData = (user) => {
+  if (!user?._id) return null;
+  return {
+    _id: user._id,
+    name: user.branding?.store_name || user.name || 'Auradime User',
+    avatar: user.avatar || user.branding?.logo || null,
+    store_name: user.branding?.store_name || null,
+    branding: user.branding || {},
+  };
+};
+
 const sanitizeProductReference = (product) => {
   if (!product || typeof product !== 'object') return product || null;
 
@@ -103,6 +114,8 @@ const getConversation = async (req, res, next) => {
       ],
       deleted_for: { $ne: userObjectId }
     })
+      .populate('sender_id', 'name avatar role branding store_name is_online last_seen')
+      .populate('receiver_id', 'name avatar role branding store_name is_online last_seen')
       .populate('product_reference', PRODUCT_REFERENCE_SELECT)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
@@ -296,6 +309,7 @@ const sendMessage = async (req, res, next) => {
           const { sendNotification } = require('../utils/notifier');
           const senderName = req.user.branding?.store_name || req.user.name || 'Someone';
           const senderAvatar = req.user.avatar || null;
+          const senderData = buildSenderNotificationData(req.user);
 
           let body;
           if (text && text.trim()) {
@@ -315,7 +329,11 @@ const sendMessage = async (req, res, next) => {
             message: body,
             type: 'message',
             senderAvatar,
-            metadata: { sender_id: req.user._id, link: `/chat?vendorId=${req.user._id}` },
+            metadata: {
+              sender_id: req.user._id,
+              senderData,
+              link: `/chat?vendorId=${req.user._id}`,
+            },
             emailLink: `${process.env.WEB_CLIENT_URL}/chat?vendorId=${req.user._id}`
           });
 

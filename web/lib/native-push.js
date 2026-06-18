@@ -20,6 +20,16 @@ const clearNativePushToken = () => {
   window.localStorage.removeItem(NATIVE_PUSH_TOKEN_KEY);
 };
 
+const parseSenderData = (value) => {
+  if (!value) return null;
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
 const storePendingPushIntent = (intent) => {
   if (typeof window === 'undefined' || !intent) return;
   window.localStorage.setItem(PENDING_PUSH_INTENT_KEY, JSON.stringify({
@@ -35,6 +45,20 @@ export function consumePendingNativePushIntent() {
   window.localStorage.removeItem(PENDING_PUSH_INTENT_KEY);
   try {
     return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function peekPendingPushIntentForVendor(vendorId) {
+  if (typeof window === 'undefined' || !vendorId) return null;
+  const raw = window.localStorage.getItem(PENDING_PUSH_INTENT_KEY);
+  if (!raw) return null;
+  try {
+    const intent = JSON.parse(raw);
+    const senderId = intent?.senderId?.toString?.() || intent?.senderId;
+    if (!senderId || senderId.toString() !== vendorId.toString()) return null;
+    return intent.title || intent.senderData?.name || intent.senderData?.store_name || null;
   } catch {
     return null;
   }
@@ -98,7 +122,8 @@ export async function registerNativeAndroidPush() {
         url: notification?.data?.url || notification?.data?.link || '/notifications',
         type: notification?.data?.type || 'default',
         senderId: notification?.data?.sender_id || notification?.data?.senderId || null,
-        senderData: notification?.data?.senderData || null,
+        title: notification?.title || notification?.data?.title || null,
+        senderData: parseSenderData(notification?.data?.senderData),
       };
       storePendingPushIntent(intent);
       window.dispatchEvent(new CustomEvent('aura:push-notification-click', { detail: intent }));
