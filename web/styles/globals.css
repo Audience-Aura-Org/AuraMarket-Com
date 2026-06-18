@@ -359,18 +359,21 @@ body:has(.checkout-page) select {
 
 /* Chat stability: prevent layout shifts on keyboard open/close and viewport resize */
 #chat-root {
-  contain: layout style;
+  contain: layout style paint;
+  will-change: height, transform;
+  backface-visibility: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
 #chat-root [data-chat-messages] {
-  contain: layout style;
+  contain: layout style paint;
   scrollbar-gutter: stable;
+  will-change: transform;
   overflow-y: overlay;
 }
 
 #chat-root [data-chat-composer] {
-  contain: layout style;
+  contain: layout style paint;
   position: relative;
 }
 

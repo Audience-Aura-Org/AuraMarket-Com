@@ -20,22 +20,8 @@ import { toast } from 'react-hot-toast';
 
 const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
 
-const GENERIC_CHAT_NAMES = new Set([
-  'user',
-  'aura user',
-  'auradime user',
-  'new message',
-  'new notification',
-  'auradime',
-]);
-
-const hasReadablePartnerName = (partner) => {
-  const candidate = (partner?.name || partner?.store_name || partner?.branding?.store_name || '').toString().trim();
-  return Boolean(candidate && !GENERIC_CHAT_NAMES.has(candidate.toLowerCase()));
-};
-
 const getChatViewportMetrics = () => {
-  if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardInset: 0 };
+  if (typeof window === 'undefined') return { height: 800, offsetTop: 0 };
   const viewport = window.visualViewport;
   const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
   const visualHeight = viewport?.height || layoutHeight;
@@ -43,17 +29,12 @@ const getChatViewportMetrics = () => {
   const keyboardOpen = Boolean(viewport && visualHeight < layoutHeight * 0.78);
   const zoomValue = Number.parseFloat(window.getComputedStyle(document.documentElement).zoom);
   const zoomScale = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
-  const keyboardInset = keyboardOpen ? Math.max(0, layoutHeight - visualHeight - offsetTop) : 0;
   const targetHeight = keyboardOpen ? visualHeight : Math.max(layoutHeight, visualHeight);
 
   return {
-    // Some Android browsers (notably Brave) already report keyboard-resized
-    // visualViewport values in usable CSS pixels. Dividing those by global
-    // html zoom makes the chat taller than the visible area and hides input.
-    height: keyboardOpen ? targetHeight : targetHeight / zoomScale,
+    height: targetHeight / zoomScale,
     offsetTop: keyboardOpen ? offsetTop / zoomScale : 0,
     keyboardOpen,
-    keyboardInset: keyboardInset / zoomScale,
     zoomScale,
   };
 };
@@ -63,7 +44,7 @@ const androidNativeViewportState = {
 };
 
 const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
-  if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardOpen: false, keyboardInset: 0 };
+  if (typeof window === 'undefined') return { height: 800, offsetTop: 0, keyboardOpen: false };
   const layoutHeight = window.innerHeight || document.documentElement?.clientHeight || 800;
   const visualHeight = window.visualViewport?.height || layoutHeight;
   const reportedHeight = Math.max(layoutHeight, visualHeight);
@@ -92,7 +73,6 @@ const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
     height: targetHeight / zoomScale,
     offsetTop: 0,
     keyboardOpen,
-    keyboardInset: keyboardOpen ? Number(keyboardHeight || 0) / zoomScale : 0,
     zoomScale,
   };
 };
@@ -101,16 +81,14 @@ const stableChatViewport = (() => {
   let normalHeight = 0;
   let keyboardHeight = 0;
   let lastMode = 'normal';
-  const NORMAL_HEIGHT_JITTER_PX = 32;
-  const KEYBOARD_HEIGHT_JITTER_PX = 48;
+  const HEIGHT_JITTER_PX = 18;
 
   return (metrics) => {
     const mode = metrics.keyboardOpen ? 'keyboard' : 'normal';
     const previous = mode === 'keyboard' ? keyboardHeight : normalHeight;
-    const jitter = mode === 'keyboard' ? KEYBOARD_HEIGHT_JITTER_PX : NORMAL_HEIGHT_JITTER_PX;
     let height = metrics.height;
 
-    if (previous && Math.abs(previous - metrics.height) <= jitter) {
+    if (previous && Math.abs(previous - metrics.height) <= HEIGHT_JITTER_PX) {
       height = previous;
     } else if (mode === 'keyboard') {
       keyboardHeight = metrics.height;
@@ -328,13 +306,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const previousMetrics = viewportHeightRef.current;
       const viewportChanged = !previousMetrics ||
         previousMetrics.mode !== metrics.mode ||
-        Math.abs(previousMetrics.height - metrics.height) >= 24;
+        Math.abs(previousMetrics.height - metrics.height) >= 8;
 
       setViewportHeight(prev => {
         if (
           prev &&
           prev.mode === metrics.mode &&
-          Math.abs(prev.height - metrics.height) < 24
+          Math.abs(prev.height - metrics.height) < 8
         ) {
           return prev;
         }
@@ -361,10 +339,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     requestAnimationFrame(syncViewport);
     [80, 180, 360, 700].forEach(scheduleSync);
     window.visualViewport?.addEventListener('resize', syncViewport);
+    window.visualViewport?.addEventListener('scroll', syncViewport);
     window.addEventListener('resize', syncViewport);
 
     return () => {
       window.visualViewport?.removeEventListener('resize', syncViewport);
+      window.visualViewport?.removeEventListener('scroll', syncViewport);
       window.removeEventListener('resize', syncViewport);
       syncTimers.forEach(clearTimeout);
       viewportSyncRef.current = null;
@@ -492,11 +472,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   // -- Data Fetching --
   useEffect(() => {
     if (activePartnerId) {
-      const hasPartnerHint = Boolean(partnerInfo?._id || partnerInfo?.name || partnerInfo?.store_name || partnerInfo?.avatar || partnerInfo?.branding?.logo);
-      loadConversation(activePartnerId, 1, {
-        silent: hasPartnerHint,
-        skipProfile: hasReadablePartnerName(partnerInfo),
-      });
+      loadConversation(activePartnerId, 1);
     } else {
       loadInbox();
     }
@@ -510,7 +486,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       setActiveConversation(partnerId, event.detail?.partnerData || null);
         loadConversation(partnerId, 1, {
           silent: true,
-          skipProfile: hasReadablePartnerName(event.detail?.partnerData),
+          skipProfile: Boolean(event.detail?.partnerData),
         });
       queuePinToLatest([0, 80, 180, 360]);
     };
@@ -589,7 +565,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
       const shouldFetchProfile = pageNum === 1 && !options.skipProfile && !(
         activePartnerId?.toString?.() === pid?.toString?.() &&
-        hasReadablePartnerName(partnerInfo)
+        (partnerInfo?.name || partnerInfo?.store_name || partnerInfo?.branding?.logo || partnerInfo?.avatar)
       );
 
       const [chatRes, partnerRes] = await Promise.all([
@@ -865,7 +841,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       });
   }, [inbox, deletedConvos, searchQuery]);
 
-  const partnerName = (partnerInfo?.name || partnerInfo?.store_name || partnerInfo?.branding?.store_name || 'User').toString();
+  const partnerName = (partnerInfo?.store_name || partnerInfo?.branding?.store_name || partnerInfo?.name || 'User').toString();
   const partnerAvatar = partnerInfo?.store?.logo || partnerInfo?.branding?.logo || partnerInfo?._id?.branding?.logo || partnerInfo?.avatar || partnerInfo?.profile_picture;
   const lastPartnerMessageAt = useMemo(() => {
     if (!activePartnerId) return null;
@@ -1013,7 +989,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         backgroundColor: 'var(--bg-secondary)',
         height: `${viewportHeight?.height ?? 800}px`,
         maxHeight: `${viewportHeight?.height ?? 800}px`,
-        transform: isAndroidNative ? 'translateY(0px)' : `translateY(${viewportHeight?.offsetTop ?? 0}px)`,
+        transform: 'translateY(0px)',
       }
     : undefined;
 
@@ -1047,7 +1023,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     <motion.div
       id="chat-root"
       ref={chatRootRef}
-      style={{...mobileShellStyle, contain: 'layout style' }}
+      style={{...mobileShellStyle, contain: 'layout style paint' }}
       onTouchStart={handlePanelTouchStart}
       onTouchEnd={handlePanelTouchEnd}
       {...(!fullPage
@@ -1246,12 +1222,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ref={scrollRef}
         onScroll={handleScroll}
         {...(activePartnerId ? { 'data-chat-messages': true } : {})}
-        style={{
-          flex: 1,
-          minHeight: 0,
-          contain: 'layout style',
-          scrollbarGutter: 'stable',
-        }}
+        style={{ flex: 1, minHeight: 0, contain: 'layout style paint', scrollbarGutter: 'stable', willChange: 'transform' }}
         className={[
           'min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain',
           activePartnerId ? 'chat-bg-pattern chat-scrollbar' : 'bg-[var(--bg-secondary)]',
@@ -1538,7 +1509,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         <div
           data-chat-composer
           className="shrink-0 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]"
-          style={{ paddingBottom: '0px', flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style' }}
+          style={{ paddingBottom: '0px', flexShrink: 0, backgroundColor: 'var(--bg-secondary)', contain: 'layout style paint' }}
         >
           {/* Quick replies */}
           {messages.length < 5 && !input && (
