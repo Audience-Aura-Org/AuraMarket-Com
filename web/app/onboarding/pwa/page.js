@@ -2,11 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, Download, ExternalLink, MonitorSmartphone, Smartphone } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Download, MonitorSmartphone, Smartphone } from 'lucide-react';
 
-const APK_FILE_ID = '1H18CWEpqJ8VtJxDjw9Qzvx-zBdHnPOGy';
-const APK_DOWNLOAD_URL = `https://drive.google.com/uc?export=download&id=${APK_FILE_ID}`;
-const APK_VIEW_URL = `https://drive.google.com/file/d/${APK_FILE_ID}/view?usp=sharing`;
+const APK_DOWNLOAD_URL = '/downloads/Auradime.apk';
 
 export default function PWAInstallPage() {
   const [installPrompt, setInstallPrompt] = useState(null);
@@ -129,7 +127,7 @@ export default function PWAInstallPage() {
               </div>
               <h2 className="text-[17px] font-bold tracking-tight">Download Android APK</h2>
               <p className="mt-2 min-h-[48px] text-[13px] leading-6 text-[var(--text-secondary)]">
-                Direct Android package hosted on Google Drive.
+                Direct Android package hosted on auradime.com.
               </p>
               <a
                 href={APK_DOWNLOAD_URL}
@@ -139,15 +137,6 @@ export default function PWAInstallPage() {
               >
                 <Download className="size-4" />
                 Download APK
-              </a>
-              <a
-                href={APK_VIEW_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] px-4 text-[12px] font-bold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
-              >
-                <ExternalLink className="size-4" />
-                Open Drive file
               </a>
             </section>
           </div>

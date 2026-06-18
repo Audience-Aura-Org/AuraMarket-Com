@@ -9,6 +9,7 @@ const routes = [
   ['app/api', '.capacitor-disabled-routes/api'],
   ['app/uploads', '.capacitor-disabled-routes/uploads'],
   ['app/admin', '.capacitor-disabled-routes/admin'],
+  ['public/downloads/Auradime.apk', '.capacitor-disabled-routes/Auradime.apk'],
 ];
 
 const moveIfExists = (from, to) => {

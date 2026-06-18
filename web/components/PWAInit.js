@@ -8,10 +8,19 @@ import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 import { useAuthStore } from '@/hooks/useAuth';
 import { registerNativeAndroidPush } from '@/lib/native-push';
 
-const APK_FILE_ID = '1H18CWEpqJ8VtJxDjw9Qzvx-zBdHnPOGy';
-const APK_DOWNLOAD_URL = `https://drive.google.com/uc?export=download&id=${APK_FILE_ID}`;
+const APK_DOWNLOAD_URL = '/downloads/Auradime.apk';
 const INSTALL_DISMISS_KEY = 'aura_install_prompt_dismissed_until';
+const INSTALL_DONE_KEY = 'aura_pwa_installed';
 const INSTALL_DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
+
+const isStandalonePWA = () => {
+  if (typeof window === 'undefined') return false;
+  return Boolean(
+    window.matchMedia?.('(display-mode: standalone)')?.matches ||
+    window.matchMedia?.('(display-mode: fullscreen)')?.matches ||
+    window.navigator.standalone === true
+  );
+};
 
 /**
  * PWAInit — Secure Background Channel Lifecycle
@@ -86,13 +95,16 @@ export default function PWAInit() {
   useEffect(() => {
     if (typeof window === 'undefined' || Capacitor.isNativePlatform()) return;
 
-    const standalone =
-      window.matchMedia?.('(display-mode: standalone)')?.matches ||
-      window.navigator.standalone === true;
-    if (standalone) return;
+    if (isStandalonePWA()) {
+      try {
+        window.localStorage.setItem(INSTALL_DONE_KEY, '1');
+      } catch {}
+      return;
+    }
 
     const isSuppressed = () => {
       try {
+        if (window.localStorage.getItem(INSTALL_DONE_KEY) === '1') return true;
         return Date.now() < Number(window.localStorage.getItem(INSTALL_DISMISS_KEY) || 0);
       } catch {
         return false;
@@ -108,6 +120,9 @@ export default function PWAInit() {
     const handleInstalled = () => {
       setInstallPrompt(null);
       setShowInstallPrompt(false);
+      try {
+        window.localStorage.setItem(INSTALL_DONE_KEY, '1');
+      } catch {}
     };
 
     const timer = setTimeout(() => {
@@ -191,6 +206,7 @@ export default function PWAInit() {
 
   if (
     !showInstallPrompt ||
+    (typeof window !== 'undefined' && isStandalonePWA()) ||
     pathname?.startsWith('/chat') ||
     pathname?.startsWith('/messages') ||
     pathname?.startsWith('/admin/messages')
@@ -210,8 +226,8 @@ export default function PWAInit() {
       </button>
 
       <div className="flex gap-3 pr-8">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-white">
-          <Smartphone className="size-5" />
+        <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-black p-1.5 ring-1 ring-white/10">
+          <img src="/icon-512.png" alt="" className="size-full rounded-lg object-cover" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[14px] font-bold tracking-tight">Get the Auradime app</p>
