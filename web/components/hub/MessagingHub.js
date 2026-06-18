@@ -20,6 +20,28 @@ import { toast } from 'react-hot-toast';
 
 const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
 
+const CHAT_FULL_HEIGHT_KEY = 'aura_chat_full_viewport_height';
+
+const getStoredChatFullHeight = () => {
+  if (typeof window === 'undefined') return 0;
+  try {
+    const stored = Number(window.localStorage?.getItem(CHAT_FULL_HEIGHT_KEY));
+    return Number.isFinite(stored) && stored > 0 ? stored : 0;
+  } catch {
+    return 0;
+  }
+};
+
+const rememberChatFullHeight = (height) => {
+  if (typeof window === 'undefined' || !Number.isFinite(height) || height < 500) return;
+  try {
+    const stored = getStoredChatFullHeight();
+    if (height > stored) window.localStorage?.setItem(CHAT_FULL_HEIGHT_KEY, String(Math.round(height)));
+  } catch {
+    // localStorage can be unavailable in private contexts.
+  }
+};
+
 const getChatViewportMetrics = () => {
   if (typeof window === 'undefined') return { height: 800, offsetTop: 0 };
   const viewport = window.visualViewport;
@@ -30,10 +52,15 @@ const getChatViewportMetrics = () => {
   const zoomValue = Number.parseFloat(window.getComputedStyle(document.documentElement).zoom);
   const zoomScale = Number.isFinite(zoomValue) && zoomValue > 0 ? zoomValue : 1;
   const targetHeight = keyboardOpen ? visualHeight : Math.max(layoutHeight, visualHeight);
+  const screenHeight = window.screen?.height || 0;
+  const fullHeight = Math.max(
+    Math.max(layoutHeight, visualHeight, screenHeight) / zoomScale,
+    getStoredChatFullHeight()
+  );
 
   return {
     height: targetHeight / zoomScale,
-    fullHeight: Math.max(layoutHeight, visualHeight) / zoomScale,
+    fullHeight,
     offsetTop: keyboardOpen ? offsetTop / zoomScale : 0,
     keyboardOpen,
     zoomScale,
@@ -69,10 +96,15 @@ const getAndroidNativeViewportMetrics = (keyboardHeight = 0) => {
   const targetHeight = keyboardOpen
     ? (webViewAlreadyResized ? Math.max(reportedHeight, nativeAdjustedHeight) : nativeAdjustedHeight)
     : baseHeight;
+  const screenHeight = window.screen?.height || 0;
+  const fullHeight = Math.max(
+    Math.max(baseHeight, screenHeight) / zoomScale,
+    getStoredChatFullHeight()
+  );
 
   return {
     height: targetHeight / zoomScale,
-    fullHeight: baseHeight / zoomScale,
+    fullHeight,
     offsetTop: 0,
     keyboardOpen,
     zoomScale,
@@ -95,7 +127,7 @@ const stableChatViewport = (() => {
       : 0;
 
     if (keyboardFloor && metrics.height < keyboardFloor) {
-      height = previous || keyboardFloor;
+      height = previous && previous >= keyboardFloor ? previous : keyboardFloor;
     } else if (previous && Math.abs(previous - metrics.height) <= HEIGHT_JITTER_PX) {
       height = previous;
     } else if (mode === 'keyboard') {
@@ -103,6 +135,7 @@ const stableChatViewport = (() => {
     } else {
       normalHeight = Math.max(normalHeight, metrics.height);
       height = normalHeight;
+      rememberChatFullHeight(metrics.fullHeight || height);
     }
 
     if (mode !== lastMode) {
