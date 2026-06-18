@@ -167,6 +167,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const initialChatSyncRef = useRef(null);
   const chatRootRef = useRef(null);
   const viewportSyncRef = useRef(null);
+  const viewportResumeUntilRef = useRef(0);
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
     if (typeof window === 'undefined') return {};
@@ -304,6 +305,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }
 
       const previousMetrics = viewportHeightRef.current;
+      if (
+        previousMetrics &&
+        viewportResumeUntilRef.current &&
+        Date.now() < viewportResumeUntilRef.current &&
+        previousMetrics.mode === metrics.mode
+      ) {
+        return;
+      }
+
       const viewportChanged = !previousMetrics ||
         previousMetrics.mode !== metrics.mode ||
         Math.abs(previousMetrics.height - metrics.height) >= 8;
@@ -334,6 +344,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const timer = setTimeout(syncViewport, delay);
       syncTimers.push(timer);
     };
+    const settleViewportAfterResume = () => {
+      if (document.visibilityState === 'hidden') return;
+      viewportResumeUntilRef.current = Date.now() + 520;
+      requestAnimationFrame(() => {
+        pinToLatestMessage('auto');
+      });
+      [120, 260, 540, 760].forEach(scheduleSync);
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') settleViewportAfterResume();
+    };
 
     syncViewport();
     requestAnimationFrame(syncViewport);
@@ -341,11 +362,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     window.visualViewport?.addEventListener('resize', syncViewport);
     window.visualViewport?.addEventListener('scroll', syncViewport);
     window.addEventListener('resize', syncViewport);
+    window.addEventListener('pageshow', settleViewportAfterResume);
+    window.addEventListener('focus', settleViewportAfterResume);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       window.visualViewport?.removeEventListener('resize', syncViewport);
       window.visualViewport?.removeEventListener('scroll', syncViewport);
       window.removeEventListener('resize', syncViewport);
+      window.removeEventListener('pageshow', settleViewportAfterResume);
+      window.removeEventListener('focus', settleViewportAfterResume);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       syncTimers.forEach(clearTimeout);
       viewportSyncRef.current = null;
       resetChatRootStyles();
