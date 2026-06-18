@@ -168,6 +168,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const chatRootRef = useRef(null);
   const viewportSyncRef = useRef(null);
   const viewportResumeUntilRef = useRef(0);
+  const lastKeyboardViewportRef = useRef(null);
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
     if (typeof window === 'undefined') return {};
@@ -296,7 +297,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const rawMetrics = isAndroidNative
         ? getAndroidNativeViewportMetrics(nativeKeyboardHeight)
         : getChatViewportMetrics();
-      const metrics = stableChatViewport(rawMetrics);
+      let metrics = stableChatViewport(rawMetrics);
       const isMobileChat = mobileQuery?.matches ?? window.innerWidth < 768;
 
       if (!isMobileChat) {
@@ -307,17 +308,21 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const previousMetrics = viewportHeightRef.current;
       const resumeActive = Boolean(viewportResumeUntilRef.current && Date.now() < viewportResumeUntilRef.current);
       const focusedComposer = document.activeElement === inputRef.current;
+      const lastKeyboardMetrics = lastKeyboardViewportRef.current;
       const implausibleKeyboardShrink = Boolean(
-        previousMetrics &&
-        previousMetrics.mode === 'keyboard' &&
+        lastKeyboardMetrics &&
         metrics.mode === 'keyboard' &&
-        metrics.height < previousMetrics.height - 96 &&
+        Math.abs(metrics.height - lastKeyboardMetrics.height) > 64 &&
         (resumeActive || focusedComposer)
       );
 
       if (implausibleKeyboardShrink) {
+        metrics = {
+          ...lastKeyboardMetrics,
+          keyboardOpen: true,
+          mode: 'keyboard',
+        };
         scheduleSync(180);
-        return;
       }
 
       if (
@@ -344,6 +349,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         return metrics;
       });
 
+      if (metrics.mode === 'keyboard' && !resumeActive) {
+        lastKeyboardViewportRef.current = metrics;
+      }
+
       if (viewportChanged && activePartnerIdRef.current) {
         requestAnimationFrame(() => {
           pinToLatestMessage('auto');
@@ -360,8 +369,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     };
     const settleViewportAfterResume = () => {
       if (document.visibilityState === 'hidden') return;
+      const wasKeyboardOpen = viewportHeightRef.current?.mode === 'keyboard';
       viewportResumeUntilRef.current = Date.now() + 1800;
+      if (wasKeyboardOpen && lastKeyboardViewportRef.current) {
+        viewportHeightRef.current = lastKeyboardViewportRef.current;
+        setViewportHeight(lastKeyboardViewportRef.current);
+      }
       requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        if (wasKeyboardOpen) inputRef.current?.focus?.({ preventScroll: true });
         pinToLatestMessage('auto');
       });
       [120, 260, 540, 900, 1300, 1850].forEach(scheduleSync);
