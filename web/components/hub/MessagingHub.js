@@ -149,6 +149,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [storyViewer, setStoryViewer] = useState({ statuses: null, storyId: null });
   const [mediaPreview, setMediaPreview] = useState(null);
   const [viewportHeight, setViewportHeight] = useState(() => stableChatViewport(getChatViewportMetrics()));
+  const viewportHeightRef = useRef(viewportHeight);
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -205,6 +206,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   useEffect(() => {
     messagesRef.current = activeMessages;
   }, [activeMessages]);
+
+  useEffect(() => {
+    viewportHeightRef.current = viewportHeight;
+  }, [viewportHeight]);
 
   useEffect(() => {
     const objectUrl = mediaPreview?.objectUrl;
@@ -298,23 +303,28 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         return;
       }
 
+      const previousMetrics = viewportHeightRef.current;
+      const viewportChanged = !previousMetrics ||
+        previousMetrics.mode !== metrics.mode ||
+        Math.abs(previousMetrics.height - metrics.height) >= 8;
+
       setViewportHeight(prev => {
         if (
           prev &&
           prev.mode === metrics.mode &&
-          Math.abs(prev.height - metrics.height) < 1 &&
-          Math.abs(prev.offsetTop - metrics.offsetTop) < 1
+          Math.abs(prev.height - metrics.height) < 8
         ) {
           return prev;
         }
+        viewportHeightRef.current = metrics;
         return metrics;
       });
 
-      if (activePartnerIdRef.current) {
+      if (viewportChanged && activePartnerIdRef.current) {
         requestAnimationFrame(() => {
           pinToLatestMessage('auto');
         });
-        queuePinToLatest([80, 180, 320, 520]);
+        queuePinToLatest([120, 260]);
       }
     };
     viewportSyncRef.current = syncViewport;
@@ -979,7 +989,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         backgroundColor: 'var(--bg-secondary)',
         height: `${viewportHeight?.height ?? 800}px`,
         maxHeight: `${viewportHeight?.height ?? 800}px`,
-        transform: isAndroidNative ? 'translateY(0px)' : `translateY(${viewportHeight?.offsetTop ?? 0}px)`,
+        transform: 'translateY(0px)',
       }
     : undefined;
 
@@ -1013,7 +1023,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     <motion.div
       id="chat-root"
       ref={chatRootRef}
-      style={{...mobileShellStyle, contain: 'layout style paint', willChange: 'height, transform' }}
+      style={{...mobileShellStyle, contain: 'layout style paint' }}
       onTouchStart={handlePanelTouchStart}
       onTouchEnd={handlePanelTouchEnd}
       {...(!fullPage
