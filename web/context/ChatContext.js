@@ -311,7 +311,7 @@ function chatReducer(state, action) {
 
       return {
         ...state,
-        isOpen: true,
+        isOpen: action.openOverlay !== false,
         activePartnerId: partnerId,
         activeConversationId: partnerId,
         contextProduct: action.product || null,
@@ -797,7 +797,7 @@ export function ChatProvider({ children }) {
   }, [user?._id]);
 
   const openChat = useCallback(
-    (partnerId, product = null, partnerData = null, global = false, notificationTitle = null) => {
+    (partnerId, product = null, partnerData = null, global = false, notificationTitle = null, openOverlay = true) => {
       if (!user) {
         router.push('/login?from=chat');
         return;
@@ -809,6 +809,7 @@ export function ChatProvider({ children }) {
         partnerData: partnerData ? stripPayloadPresence(partnerData) : null,
         notificationTitle: notificationTitle || null,
         global,
+        openOverlay,
       });
     },
     [user, router]

@@ -1,15 +1,19 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useChat } from '@/context/ChatContext';
 import MessagingHub from '@/components/hub/MessagingHub';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function GlobalChatOverlay() {
+  const pathname = usePathname();
   const { isOpen, activePartnerId, contextProduct, initialPartnerData, notificationTitle, closeChat } = useChat();
+  const onFullPageChat = pathname?.startsWith('/chat');
+  const showOverlay = isOpen && !onFullPageChat;
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      {showOverlay && (
         <>
           {/* Backdrop for Mobile/Desktop click-outside */}
           <motion.div

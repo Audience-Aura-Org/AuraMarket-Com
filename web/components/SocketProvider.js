@@ -210,9 +210,10 @@ export default function SocketProvider({ children }) {
 
   const openMessageRoute = (partnerId, partnerData = null, route = null, notificationTitle = null) => {
     const target = normalizeAppRoute(route || (partnerId ? `/chat?vendorId=${encodeURIComponent(partnerId)}` : '/chat'));
+    const isFullPageChat = Boolean(target && (target === '/chat' || target.startsWith('/chat?')));
     if (target) router.push(target);
     if (partnerId) {
-      openChat(partnerId, null, partnerData, false, notificationTitle);
+      openChat(partnerId, null, partnerData, false, notificationTitle, !isFullPageChat);
       window.dispatchEvent(new CustomEvent('aura_chat_focus', {
         detail: { partnerId: partnerId.toString(), partnerData, route: target, notificationTitle },
       }));
