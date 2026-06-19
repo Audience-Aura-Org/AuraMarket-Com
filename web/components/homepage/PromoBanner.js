@@ -28,7 +28,7 @@ export default function PromoBanner({ data }) {
               Limited Offer
             </span>
             {banner.headline && (
-              <h2 className="text-4xl md:text-6xl  font-bold text-white leading-[1.1] tracking-tight">
+              <h2 className="text-4xl md:text-6xl font-bold text-white leading-[1.1] tracking-tight font-quicksand">
                 {banner.headline}
               </h2>
             )}

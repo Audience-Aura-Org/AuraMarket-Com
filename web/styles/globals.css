@@ -72,10 +72,12 @@
   --font-headline-lg: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-label-sm: "JetBrains Mono", ui-monospace, monospace;
   --font-display-lg: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-quicksand: "Quicksand", "Poppins", sans-serif;
 }
 
 :root {
   --font-poppins: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-quicksand: "Quicksand", "Poppins", sans-serif;
   --font-order: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;

@@ -200,11 +200,8 @@ export async function prepareStatusVideoForUpload(file, { trimStart = 0, trimEnd
       const exported = await exportEditedStatusVideo(file, { trimStart, trimEnd, onProgress });
       return { mode: 'client', file: exported };
     } catch (err) {
-      if (!isAndroidNative()) throw err;
-      console.warn('[StatusVideo] Client export failed on Android, using server trim fallback:', err.message);
+      console.warn('[StatusVideo] Client export failed, using server trim fallback:', err.message);
     }
-  } else if (!isAndroidNative()) {
-    throw new Error('Video editing is not supported on this browser. Please trim the video in your gallery and try again.');
   }
 
   const uploadResult = await uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, onProgress });

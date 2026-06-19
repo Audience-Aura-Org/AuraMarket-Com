@@ -61,7 +61,7 @@ export default function Hero({ data, config }) {
             <div className="absolute inset-0 z-20 flex items-center justify-start px-4 sm:px-8 md:px-20">
               <div className={`w-full sm:max-w-2xl transition-all duration-700 delay-300 ${i === current ? 'translate-x-0 opacity-100 block' : '-translate-x-12 opacity-0 hidden'}`}>
                 <div className="liquid-glass p-6 sm:p-8 md:p-12 rounded-[1.5rem] sm:rounded-[2.5rem] space-y-4 md:space-y-6">
-                  <h1 className="text-2xl sm:text-4xl md:text-6xl  font-bold text-white leading-[1.1] tracking-tight drop-shadow-2xl">
+                  <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold text-white leading-[1.1] tracking-tight drop-shadow-2xl font-quicksand">
                     {label(banner.headline)}
                   </h1>
                   

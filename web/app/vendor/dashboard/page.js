@@ -231,9 +231,14 @@ export default function VendorDashboard() {
       const month = d.getMonth();
       const year = d.getFullYear();
       const key = d.toISOString().slice(0, 7);
-      const analyticsMonth = analyticsHistory.find((entry) => String(entry._id || '').startsWith(key));
       
-      const monthSales = analyticsMonth?.revenue ?? paidOrders.filter(o => {
+      // Sum all daily revenues in analyticsHistory for this month
+      const apiMonthRevenue = analyticsHistory
+        .filter((entry) => String(entry._id || '').startsWith(key))
+        .reduce((sum, entry) => sum + Number(entry.revenue || 0), 0);
+      
+      const hasApiHistory = analyticsHistory.some((entry) => String(entry._id || '').startsWith(key));
+      const monthSales = hasApiHistory ? apiMonthRevenue : paidOrders.filter(o => {
         const od = new Date(o.createdAt);
         return od.getMonth() === month && od.getFullYear() === year;
       }).reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
