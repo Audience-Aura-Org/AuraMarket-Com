@@ -1091,7 +1091,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   );
 
   return createPortal(
-    deviceType === 'mobile' ? mobileLayout : desktopLayout,
+    mobileLayout,
     document.body
   );
 }
