@@ -69,25 +69,29 @@ export default function AdminDashboard() {
   return (
     <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">
       {/* Surgical Header */}
-      <div className="px-4 md:px-6 py-4 md:py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
-               <LayoutDashboard className="size-5" />
+      <div className="relative border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-2xl sticky top-0 z-50">
+        {/* Accent gradient line */}
+        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
+        <div className="px-4 md:px-6 py-3 md:py-4">
+          <div className="max-w-[1600px] mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="size-10 md:size-11 rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0 shadow-lg shadow-[var(--accent)]/5">
+                 <LayoutDashboard className="size-5" />
+              </div>
+              <div>
+                <h1 className="text-base md:text-lg font-bold tracking-tight font-[Poppins]">{t('admin.platformCommand', 'Platform Command')}</h1>
+                <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight font-[Poppins]">{t('admin.globalHub', 'Global Administrative Hub')}</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-lg font-bold tracking-tight">{t('admin.platformCommand', 'Platform Command')}</h1>
-              <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{t('admin.globalHub', 'Global Administrative Hub')}</p>
+            <div className="flex items-center gap-2 md:gap-3">
+               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
+                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-semibold text-emerald-500 font-[Poppins]">{t('admin.systemsNominal', 'Systems Nominal')}</span>
+               </div>
+               <button onClick={fetchStats} className="size-10 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] flex items-center justify-center hover:text-[var(--accent)] hover:border-[var(--accent)]/30 transition-all active:scale-95">
+                  <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+               </button>
             </div>
-          </div>
-          <div className="flex items-center gap-2 md:gap-4">
-             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
-                <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-emerald-500 uppercase">{t('admin.systemsNominal', 'Systems Nominal')}</span>
-             </div>
-             <button onClick={fetchStats} className="p-2 md:p-2.5 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-90">
-                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-             </button>
           </div>
         </div>
       </div>

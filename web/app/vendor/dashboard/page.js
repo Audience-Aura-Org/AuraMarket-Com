@@ -49,6 +49,7 @@ export default function VendorDashboard() {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [orderFilter, setOrderFilter] = useState('all');
 
   useEffect(() => {
     setMounted(true);
@@ -252,62 +253,70 @@ export default function VendorDashboard() {
         <div className="fixed top-[-10%] right-[-10%] size-[500px] bg-[var(--accent)]/5 blur-[120px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
         <div className="fixed bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
 
-        {/* Top Header */}
-        <header className="relative min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-14 lg:top-0 z-40 gap-4 md:gap-0">
-          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-start pr-12 md:pr-0">
-            <div className="flex items-center gap-4">
-              <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0 overflow-hidden">
-                 <img src="/icon-192.png" alt="Auradime" className="size-7 md:size-8 object-contain" />
-              </div>
-              <div>
-                <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">{t('dashboard.vendorTitle', 'Vendor Dashboard')}</h2>
-                <div className="flex items-center gap-2 mt-0.5">
-                   <div className={`size-1.5 rounded-full ${subscriptionDotClass} animate-pulse`} />
-                   <Link
-                     href="/subscribe?role=vendor"
-                     className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-70 uppercase transition-colors hover:text-[var(--accent)] hover:opacity-100"
-                   >
-                     {subscriptionLabel}
-                   </Link>
+        {/* Redesigned Header */}
+        <header className="relative sticky top-14 lg:top-0 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-2xl">
+          {/* Accent gradient line */}
+          <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
+          <div className="mx-auto max-w-[1600px] px-4 py-3 sm:px-6 md:px-8">
+            {/* Row 1: Logo + Title + Status + Actions */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 md:gap-4 min-w-0">
+                <div className="size-10 md:size-11 rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0 shadow-lg shadow-[var(--accent)]/5">
+                   <img src="/icon-192.png" alt="Auradime" className="size-6 md:size-7 object-contain" />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="text-base md:text-lg font-bold text-[var(--text-primary)] tracking-tight font-[Poppins]">Vendor Dashboard</h2>
+                  <div className="flex items-center gap-2 mt-0.5">
+                     <div className={`size-1.5 rounded-full ${subscriptionDotClass} animate-pulse`} />
+                     <Link
+                       href="/subscribe?role=vendor"
+                       className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-60 transition-colors hover:text-[var(--accent)] hover:opacity-100 font-[Poppins]"
+                     >
+                       {subscriptionLabel}
+                     </Link>
+                     <span className="hidden sm:inline text-[var(--text-secondary)] opacity-20">·</span>
+                     <span className="hidden sm:inline text-[10px] font-medium text-[var(--text-secondary)] opacity-40 font-[Poppins]">{user?.name || 'Vendor'}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <button 
-              onClick={handleRefresh} 
-              className="absolute right-4 top-5 md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95 disabled:opacity-50"
-               disabled={loading}
-            >
-               <RefreshCw className={`size-5 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
 
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="relative flex-1 group md:w-80">
-              <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--text-secondary)] opacity-20" />
+              <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                <button 
+                  onClick={handleRefresh} 
+                  className="size-10 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] flex items-center justify-center hover:text-[var(--accent)] hover:border-[var(--accent)]/30 active:scale-95 transition-all disabled:opacity-50"
+                  disabled={loading}
+                >
+                   <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+                <Link href="/profile?tab=store" className="hidden md:flex items-center gap-3 pl-3 border-l border-[var(--glass-border)]/30">
+                   <div className="text-right">
+                     <p className="text-xs font-bold text-[var(--text-primary)] tracking-tight font-[Poppins]">{user?.name || 'Vendor'}</p>
+                     <p className="text-[10px] font-semibold text-[var(--accent)]/60 tracking-tight font-[Poppins]">Store Info</p>
+                   </div>
+                   <div className="size-9 rounded-full bg-gradient-to-tr from-[var(--accent)] to-indigo-600 p-0.5 shadow-lg shadow-[var(--accent)]/10 hover:scale-105 transition-all">
+                     <div className="size-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center overflow-hidden">
+                       {user?.avatar ? (
+                         <img src={user.avatar} className="size-full object-cover" alt={user.name} />
+                       ) : (
+                         <span className="text-[10px] font-bold text-[var(--text-primary)] uppercase font-[Poppins]">
+                           {user?.name?.[0] || 'V'}
+                         </span>
+                       )}
+                     </div>
+                   </div>
+                </Link>
+              </div>
+            </div>
+
+            {/* Row 2: Search */}
+            <div className="mt-3 relative group md:max-w-md">
+              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-secondary)] opacity-30 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
               <input 
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-11 pr-4 text-[11px] lg:text-[12px] font-semibold outline-none focus:border-[var(--accent)] transition-all" 
+                className="w-full h-10 bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-xs font-medium outline-none focus:border-[var(--accent)]/40 focus:bg-[var(--bg-secondary)] transition-all font-[Poppins]" 
                 placeholder="Find anything..." 
                 type="text" 
               />
             </div>
-            
-            <Link href="/profile?tab=store" className="hidden md:flex items-center gap-3 pl-6 border-l border-[var(--glass-border)]/30 rounded-2xl transition-all hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30">
-               <div className="text-right">
-                 <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight">{user?.name || 'Vendor'}</p>
-                 <p className="text-[10px] font-semibold text-[var(--accent)] uppercase tracking-tight opacity-50">Store Info</p>
-               </div>
-               <div className="size-10 rounded-full bg-gradient-to-tr from-[var(--accent)] to-indigo-600 p-0.5 shadow-xl shadow-[var(--accent)]/10 hover:scale-110 transition-all cursor-pointer">
-                 <div className="size-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center overflow-hidden">
-                   {user?.avatar ? (
-                     <img src={user.avatar} className="size-full object-cover" alt={user.name} />
-                   ) : (
-                     <span className="text-[11px] font-bold text-[var(--text-primary)] uppercase">
-                       {user?.name?.[0] || 'V'}
-                     </span>
-                   )}
-                 </div>
-               </div>
-            </Link>
           </div>
         </header>
 
@@ -548,9 +557,19 @@ export default function VendorDashboard() {
             <div className="p-5 md:p-6 border-b border-[var(--glass-border)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">Recent Orders</h3>
               <div className="flex gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
-                <button className="bg-[var(--accent)]/10 text-[var(--accent)] text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight whitespace-nowrap">ALL</button>
-                <button className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight hover:bg-[var(--accent)]/5 whitespace-nowrap uppercase">Processing</button>
-                <button className="text-[var(--text-secondary)] text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight hover:bg-[var(--accent)]/5 whitespace-nowrap uppercase">Shipped</button>
+                {['all', 'processing', 'shipped'].map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setOrderFilter(f)}
+                    className={`text-[10px] lg:text-[12px] px-4 py-1.5 rounded-full font-semibold tracking-tight whitespace-nowrap uppercase transition-all font-[Poppins] ${
+                      orderFilter === f
+                        ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/20'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--accent)]/5'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -568,7 +587,7 @@ export default function VendorDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--glass-border)]">
-                  {orders.slice(0, 10).map((order, i) => {
+                  {orders.filter(o => orderFilter === 'all' || o.order_status === orderFilter).slice(0, 10).map((order, i) => {
                     const status = order.order_status || 'processing';
                     const statusStyles = {
                       processing: 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20',
@@ -616,7 +635,7 @@ export default function VendorDashboard() {
 
             {/* Mobile Cards */}
             <div className="md:hidden divide-y divide-[var(--glass-border)]">
-              {orders.slice(0, 10).map((order, i) => {
+              {orders.filter(o => orderFilter === 'all' || o.order_status === orderFilter).slice(0, 10).map((order, i) => {
                 const status = order.order_status || 'processing';
                 const statusStyles = {
                   processing: 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20',

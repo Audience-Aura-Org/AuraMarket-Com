@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 @theme {
   --color-primary: #ffabf3;
@@ -65,18 +65,18 @@
   --color-accent: #ff00ff;
   --color-accent-light: #ffabf3;
   
-  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --font-body-md: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-headline-lg: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-body-md: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-headline-lg: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-label-sm: "JetBrains Mono", ui-monospace, monospace;
-  --font-display-lg: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display-lg: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  --font-poppins: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-order: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-poppins: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-order: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --nav-bg: rgba(10, 5, 15, 0.95);
@@ -261,9 +261,20 @@ i, em { font-style: normal !important; }
     font-size: 14px; 
     zoom: 0.8;
   }
-  input, textarea, select { font-size: 16px !important; }
+  input, textarea, select {
+    font-size: 16px !important;
+    /* Prevent iOS/Android zoom on focus */
+    touch-action: manipulation;
+  }
   p { line-height: 1.45; }
   button, a { word-break: normal; }
+}
+
+/* ── Prevent page zoom on input focus (mobile) ── */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
 }
 
 body:has(.checkout-page) input,

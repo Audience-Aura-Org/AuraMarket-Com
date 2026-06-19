@@ -268,10 +268,10 @@ export default function OrdersTab({ user, onViewOrder }) {
                 key={f.id}
                 type="button"
                 onClick={() => setStatusFilter(f.id)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-medium transition ${
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-[10px] font-semibold tracking-tight uppercase transition-all font-[Poppins] ${
                   statusFilter === f.id
-                    ? 'bg-[var(--accent)] text-white'
-                    : 'border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                    ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/20 scale-[1.03]'
+                    : 'border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--accent)]/5'
                 }`}
               >
                 {t(f.labelKey)}

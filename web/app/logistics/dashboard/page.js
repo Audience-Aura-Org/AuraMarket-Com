@@ -121,26 +121,28 @@ export default function LogisticsDashboard() {
   return (
     <div className="flex w-full min-w-0 flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] pb-[max(5.5rem,env(safe-area-inset-bottom,1.25rem))] lg:pb-10">
       {/* Hero header — first visual block */}
-      <header className="relative z-20 min-w-0 max-w-[100vw] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 backdrop-blur-xl">
-        <div className="mx-auto flex min-w-0 max-w-[1600px] flex-col gap-4 px-3 py-4 sm:px-5 sm:py-5 md:flex-row md:items-center md:justify-between md:px-8 md:py-6">
+      <header className="relative z-20 min-w-0 max-w-[100vw] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 backdrop-blur-2xl">
+        {/* Accent gradient line */}
+        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
+        <div className="mx-auto flex min-w-0 max-w-[1600px] flex-col gap-3 px-4 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between md:px-8 md:py-4">
           <div className="flex min-w-0 items-center gap-3 md:gap-4">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 md:size-12">
+            <div className="flex size-10 md:size-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent)]/25 bg-gradient-to-br from-[var(--accent)]/20 to-indigo-600/10 shadow-lg shadow-[var(--accent)]/5 md:size-12">
               <Truck className="size-5 text-[var(--accent)] md:size-6" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-balance text-xl font-bold tracking-tight md:text-2xl">
+              <h1 className="text-balance text-base md:text-lg font-bold tracking-tight font-[Poppins]">
                 Logistics <span className="text-[var(--accent)]">Hub</span>
               </h1>
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="inline-flex items-center gap-1.5">
                   <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">
+                  <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 font-[Poppins]">
                     Network nominal
                   </span>
                 </span>
-                <span className="hidden text-[var(--text-secondary)] opacity-30 sm:inline">·</span>
-                <span className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60 line-clamp-3 md:line-clamp-none">
-                  Vendor-managed fulfilment keeps the shipping fee with the vendor when they take over delivery.
+                <span className="hidden text-[var(--text-secondary)] opacity-20 sm:inline">·</span>
+                <span className="hidden sm:inline text-[10px] font-medium text-[var(--text-secondary)] opacity-40 font-[Poppins]">
+                  {user.name?.replace(/\s/g, '_') || 'Partner'}
                 </span>
               </div>
             </div>
@@ -150,21 +152,21 @@ export default function LogisticsDashboard() {
             <button
               type="button"
               onClick={() => fetchDashboard()}
-              className="flex size-11 min-h-[2.75rem] min-w-[2.75rem] touch-manipulation items-center justify-center rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] transition-all hover:bg-white/5 active:scale-95"
+              className="flex size-10 min-h-[2.75rem] min-w-[2.75rem] touch-manipulation items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] transition-all hover:text-[var(--accent)] hover:border-[var(--accent)]/30 active:scale-95"
               aria-label="Refresh"
             >
-              <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <div className="hidden text-right sm:block">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-40">
+              <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 font-[Poppins]">
                 {new Date().toLocaleDateString(undefined, {
-                  weekday: "short",
-                  month: "short",
-                  day: "numeric",
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
                 })}
               </p>
-              <p className="truncate text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">
-                {user.name?.replace(/\s/g, "_") || "Partner"}
+              <p className="truncate text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 font-[Poppins]">
+                {user.name?.replace(/\s/g, '_') || 'Partner'}
               </p>
             </div>
           </div>

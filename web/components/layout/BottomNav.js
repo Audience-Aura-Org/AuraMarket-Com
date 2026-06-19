@@ -43,15 +43,15 @@ export default function BottomNav() {
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const menu = isCustomer ? [
-    { label: t('bottomNav.shop', 'Shop'), href: "/shop", icon: Compass },
+    { label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },
     { label: t('bottomNav.vendors', 'Vendors'), href: "/discovery?tab=vendors", icon: Store },
     { label: t('bottomNav.stories', 'Stories'), href: "/discovery?tab=status", icon: Activity },
     { label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House },
     { label: t('bottomNav.profile', 'Profile'), href: "/profile", icon: User }
   ] : [
     { label: t('bottomNav.dashboard', 'Dashboard'), href: dashboardHref, icon: LayoutDashboard },
-    { label: t('bottomNav.shop', 'Shop'), href: "/shop", icon: Compass },
-    { label: t('bottomNav.story', 'Story'), href: "/vendor/stories", icon: Activity },
+    { label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },
+    { label: t('bottomNav.stories', 'Stories'), href: "/vendor/stories", icon: Activity },
     { label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House },
     { label: t('bottomNav.profile', 'Profile'), href: "/profile", icon: User }
   ];
