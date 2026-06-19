@@ -173,6 +173,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [gradientIndex, setGradientIndex] = useState(0);
   const [muted, setMuted]               = useState(true);
   const [showDetails, setShowDetails]   = useState(false);
+  const [cropMode, setCropMode]         = useState('crop');
 
   const fileInputRef = useRef(null);
   const imageInputRef = useRef(null);
@@ -319,6 +320,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             const preparedVideo = await prepareStatusVideoForUpload(file, {
               trimStart: segment.start,
               trimEnd: segment.end,
+              cropMode,
               onProgress: (pct) => {
                 const progress = ((segment.index + (pct / 100)) / totalSegments) * 70;
                 setUploadProgress(Math.min(70, Math.round(progress)));
@@ -787,15 +789,16 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const mediaDurationLabel = type === 'video' && videoMeta?.duration
     ? `${formatSeconds(videoMeta.duration)} · ${file ? (file.size / (1024 * 1024)).toFixed(1) : '0.0'} MB`
     : `${expiryDays}d · ${selectedCategory}`;
+  const previewFitClass = cropMode === 'crop' ? 'object-cover' : 'object-contain';
 
   const mobilePreview = (
     <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-0">
       {previewUrl ? (
         <div className="relative w-full overflow-hidden bg-black" style={{ maxHeight: '48vh' }}>
           {type === 'video' ? (
-            <video src={previewUrl} className="mx-auto max-h-[48vh] w-full object-contain" autoPlay muted={muted} loop playsInline />
+            <video src={previewUrl} className={`mx-auto aspect-[9/16] max-h-[48vh] w-full ${previewFitClass}`} autoPlay muted={muted} loop playsInline />
           ) : (
-            <img src={previewUrl} className="mx-auto max-h-[48vh] w-full object-contain" alt="status preview" />
+            <img src={previewUrl} className={`mx-auto aspect-[9/16] max-h-[48vh] w-full ${previewFitClass}`} alt="status preview" />
           )}
           {type === 'video' && (
             <button
@@ -850,6 +853,203 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     </div>
   );
 
+  const mobileVideoPostOptions = type === 'video' && file ? (
+    <div className="space-y-3 rounded-3xl border border-white/10 bg-[#151517] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#20c763]">Video tools</p>
+          <p className="mt-1 text-xs font-semibold text-white/55">
+            {videoMeta?.duration ? `${formatSeconds(videoMeta.duration)} total` : 'Ready to edit'} - max {STATUS_VIDEO_MAX_SECONDS}s per status
+          </p>
+        </div>
+        {isLongVideo && (
+          <span className="rounded-full border border-[#20c763]/20 bg-[#20c763]/10 px-3 py-1 text-[10px] font-black text-[#20c763]">
+            {videoSegments.length} parts
+          </span>
+        )}
+      </div>
+
+      {isLongVideo && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {VIDEO_POST_MODES.map((mode) => {
+            const Icon = mode.icon;
+            const active = videoPostMode === mode.id;
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setVideoPostMode(mode.id)}
+                className={`rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+                  active
+                    ? 'border-[#20c763] bg-[#20c763]/12 text-white'
+                    : 'border-white/10 bg-white/8 text-white/70'
+                }`}
+              >
+                <span className="flex items-center gap-2 text-xs font-black">
+                  <Icon className="size-4 text-[#20c763]" />
+                  {mode.label}
+                </span>
+                <span className="mt-1 block text-[10px] font-semibold leading-snug opacity-75">
+                  {mode.id === 'split' ? `${videoSegments.length} separate updates` : selectedClipLabel}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        {[
+          { id: 'crop', label: 'Crop 9:16', description: 'Fill the status frame' },
+          { id: 'fit', label: 'Fit full video', description: 'Keep full frame with bars' },
+        ].map((mode) => {
+          const active = cropMode === mode.id;
+          return (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => setCropMode(mode.id)}
+              className={`rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+                active
+                  ? 'border-[#20c763] bg-[#20c763]/12 text-white'
+                  : 'border-white/10 bg-white/8 text-white/70'
+              }`}
+            >
+              <span className="flex items-center gap-2 text-xs font-black">
+                <Crop className="size-4 text-[#20c763]" />
+                {mode.label}
+              </span>
+              <span className="mt-1 block text-[10px] font-semibold leading-snug opacity-75">{mode.description}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  ) : null;
+
+  const mobileSettingsOptions = (
+    <div className="space-y-5">
+      <div className="space-y-2.5">
+        <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-white/50">
+          <Clock className="size-3 text-[#20c763]" /> Story Duration
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {DURATION_OPTIONS.map((opt) => {
+            const active = expiryDays === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setExpiryDays(opt.value)}
+                className={`relative min-h-[64px] rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+                  active ? 'border-[#20c763] bg-[#20c763]/12 text-white' : 'border-white/10 bg-white/8 text-white/70'
+                }`}
+              >
+                {opt.recommended && (
+                  <span className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-[#20c763] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-black">
+                    Best
+                  </span>
+                )}
+                <p className="text-xs font-black">{opt.label}</p>
+                <p className="mt-0.5 text-[10px] font-semibold opacity-65">{opt.description}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-2.5">
+        <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/50">Category</label>
+        <div className="grid max-h-44 grid-cols-2 gap-2 overflow-y-auto rounded-3xl border border-white/10 bg-black/30 p-2 no-scrollbar sm:grid-cols-3">
+          {STATUS_CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSelectedCategory(cat)}
+              className={`min-h-10 rounded-2xl border px-2 py-2 text-center text-[11px] font-black leading-tight transition active:scale-[0.99] ${
+                selectedCategory === cat ? 'border-[#20c763] bg-[#20c763] text-black' : 'border-white/10 bg-white/8 text-white/75'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-2.5">
+        <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/50">Caption</label>
+        <div className="relative">
+          <textarea
+            value={caption}
+            onChange={e => setCaption(e.target.value.slice(0, 150))}
+            placeholder="Add a caption..."
+            className="h-20 w-full resize-none rounded-3xl border border-white/10 bg-white/8 p-4 pr-14 text-sm font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#20c763]"
+            maxLength={150}
+          />
+          <span className="absolute bottom-3 right-4 text-[10px] font-bold tabular-nums text-white/35">{caption.length}/150</span>
+        </div>
+      </div>
+
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-white/50">
+            <ShoppingBag className="size-3.5 text-[#20c763]" /> Tag Product
+          </label>
+          <span className="text-[10px] font-semibold text-white/35">Optional</span>
+        </div>
+        {linkedProduct ? (
+          <div className="flex items-center justify-between gap-3 rounded-3xl border border-[#20c763]/25 bg-[#20c763]/8 p-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="size-11 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-black">
+                <img src={typeof linkedProduct.images?.[0] === 'string' ? linkedProduct.images[0] : linkedProduct.images?.[0]?.url} className="size-full object-cover" alt="" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-black text-white">{linkedProduct.name}</p>
+                <p className="mt-0.5 text-[10px] font-semibold text-[#20c763]">{linkedProduct.price?.toLocaleString()} XAF</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => setLinkedProduct(null)} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white">
+              <Trash2 className="size-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/35" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search your products..."
+              className="h-12 w-full rounded-3xl border border-white/10 bg-white/8 pl-11 pr-4 text-sm font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#20c763]"
+            />
+            {searchTerm && (
+              <div className="absolute inset-x-0 top-full z-50 mt-2 max-h-48 overflow-y-auto rounded-3xl border border-white/10 bg-[#151517] p-2 shadow-2xl no-scrollbar">
+                {filteredProducts.length > 0 ? filteredProducts.map((p) => (
+                  <button
+                    key={p._id}
+                    type="button"
+                    onClick={() => { setLinkedProduct(p); setSearchTerm(''); }}
+                    className="flex w-full items-center gap-3 rounded-2xl p-2 text-left transition hover:bg-white/8"
+                  >
+                    <div className="size-10 shrink-0 overflow-hidden rounded-xl bg-black">
+                      <img src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url} className="size-full object-cover" alt="" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-black text-white">{p.name}</p>
+                      <p className="mt-0.5 text-[10px] font-semibold text-[#20c763]">{p.price?.toLocaleString()} XAF</p>
+                    </div>
+                  </button>
+                )) : (
+                  <div className="p-4 text-center text-xs font-bold text-white/40">No products found</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   const mobileDetailsSheet = (
     <AnimatePresence>
       {showDetails && (
@@ -870,7 +1070,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             </button>
           </div>
           <div className="space-y-4">
-            {videoPostOptions}
+            {mobileVideoPostOptions}
             {type === 'video' && videoMeta && previewUrl && (
               <StatusVideoTrimmer
                 previewUrl={previewUrl}
@@ -883,7 +1083,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 onEditingChange={setEditingVideo}
               />
             )}
-            {metadataOptions}
+            {mobileSettingsOptions}
           </div>
         </motion.div>
       )}
@@ -903,7 +1103,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         <div className="ml-auto flex items-center gap-2">
           {[
             { label: 'Add music', icon: Music, action: () => setMuted((prev) => !prev), active: !muted },
-            { label: 'Trim and crop', icon: Crop, action: () => setShowDetails(true), active: showDetails },
+            { label: 'Trim and crop', icon: Crop, action: () => setShowDetails(true), active: showDetails || cropMode === 'crop' },
             { label: 'Tag product', icon: Sticker, action: () => setShowDetails(true), active: !!linkedProduct },
             {
               label: 'Text status',

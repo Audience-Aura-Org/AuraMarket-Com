@@ -46,7 +46,7 @@ export const canClientExportStatusVideo = () => {
   return hasVideoStream && hasCanvasStream;
 };
 
-const drawVideoFrame = (ctx, video) => {
+const drawVideoFrame = (ctx, video, cropMode = 'crop') => {
   const sourceWidth = video.videoWidth || STATUS_VIDEO_EXPORT_WIDTH;
   const sourceHeight = video.videoHeight || STATUS_VIDEO_EXPORT_HEIGHT;
   const targetRatio = STATUS_VIDEO_EXPORT_WIDTH / STATUS_VIDEO_EXPORT_HEIGHT;
@@ -60,6 +60,17 @@ const drawVideoFrame = (ctx, video) => {
   let sw = sourceWidth;
   let sh = sourceHeight;
 
+  if (cropMode === 'fit') {
+    if (sourceRatio > targetRatio) {
+      const targetHeight = STATUS_VIDEO_EXPORT_WIDTH / sourceRatio;
+      ctx.drawImage(video, 0, 0, sourceWidth, sourceHeight, 0, (STATUS_VIDEO_EXPORT_HEIGHT - targetHeight) / 2, STATUS_VIDEO_EXPORT_WIDTH, targetHeight);
+    } else {
+      const targetWidth = STATUS_VIDEO_EXPORT_HEIGHT * sourceRatio;
+      ctx.drawImage(video, 0, 0, sourceWidth, sourceHeight, (STATUS_VIDEO_EXPORT_WIDTH - targetWidth) / 2, 0, targetWidth, STATUS_VIDEO_EXPORT_HEIGHT);
+    }
+    return;
+  }
+
   if (sourceRatio > targetRatio) {
     sw = sourceHeight * targetRatio;
     sx = (sourceWidth - sw) / 2;
@@ -71,7 +82,7 @@ const drawVideoFrame = (ctx, video) => {
   ctx.drawImage(video, sx, sy, sw, sh, 0, 0, ctx.canvas.width, ctx.canvas.height);
 };
 
-export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_VIDEO_MAX_SECONDS, onProgress } = {}) {
+export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_VIDEO_MAX_SECONDS, cropMode = 'crop', onProgress } = {}) {
   const mimeType = getSupportedVideoMimeType();
   if (!mimeType) {
     throw new Error('Video editing is not supported on this device. Please trim the video in your gallery and try again.');
@@ -130,7 +141,7 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
     let stopped = false;
     const draw = () => {
       if (stopped) return;
-      drawVideoFrame(ctx, video);
+      drawVideoFrame(ctx, video, cropMode);
       const elapsed = Math.max(0, video.currentTime - start);
       onProgress?.(Math.min(95, Math.round((elapsed / Math.max(duration, 1)) * 95)));
       if (elapsed >= duration || video.ended) {
@@ -165,13 +176,14 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
   }
 }
 
-async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, onProgress } = {}) {
+async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropMode = 'crop', onProgress } = {}) {
   const formData = new FormData();
   formData.append('type', 'status-sources');
   formData.append('video', file);
   formData.append('image', file);
   formData.append('trimStart', String(trimStart ?? 0));
   formData.append('trimEnd', String(trimEnd ?? STATUS_VIDEO_MAX_SECONDS));
+  formData.append('cropMode', cropMode);
 
   const res = await api.post('/upload/single', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -194,16 +206,16 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, onPro
   return res.data;
 }
 
-export async function prepareStatusVideoForUpload(file, { trimStart = 0, trimEnd = STATUS_VIDEO_MAX_SECONDS, onProgress } = {}) {
+export async function prepareStatusVideoForUpload(file, { trimStart = 0, trimEnd = STATUS_VIDEO_MAX_SECONDS, cropMode = 'crop', onProgress } = {}) {
   if (canClientExportStatusVideo()) {
     try {
-      const exported = await exportEditedStatusVideo(file, { trimStart, trimEnd, onProgress });
+      const exported = await exportEditedStatusVideo(file, { trimStart, trimEnd, cropMode, onProgress });
       return { mode: 'client', file: exported };
     } catch (err) {
       console.warn('[StatusVideo] Client export failed, using server trim fallback:', err.message);
     }
   }
 
-  const uploadResult = await uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, onProgress });
+  const uploadResult = await uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropMode, onProgress });
   return { mode: 'server', uploadResult };
 }

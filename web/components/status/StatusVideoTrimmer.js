@@ -39,9 +39,6 @@ export default function StatusVideoTrimmer({
   const selectedLength = Math.max(0.1, trimEnd - trimStart);
   const maxClip = STATUS_VIDEO_MAX_SECONDS;
 
-  const startPct = (trimStart / safeDuration) * 100;
-  const endPct = (trimEnd / safeDuration) * 100;
-
   const atMax = selectedLength >= maxClip - 0.05;
   const overMax = selectedLength > maxClip + 0.01;
 
@@ -131,47 +128,40 @@ export default function StatusVideoTrimmer({
   };
 
   const timelineLabel = useMemo(
-    () => `${formatTime(trimStart)} – ${formatTime(trimEnd)}`,
+    () => `${formatTime(trimStart)} - ${formatTime(trimEnd)}`,
     [trimStart, trimEnd]
   );
 
   return (
-    <div className="space-y-4 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-4 shadow-sm md:p-5">
-      {/* Header Section */}
+    <div className="space-y-4 rounded-3xl border border-white/10 bg-[#151517] p-4 text-white shadow-sm md:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent)]/10">
-            <Scissors className="size-5 text-[var(--accent)]" />
+          <div className="flex size-10 items-center justify-center rounded-2xl border border-[#20c763]/25 bg-[#20c763]/10">
+            <Scissors className="size-5 text-[#20c763]" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-[var(--text-primary)]">
-              Trim Story Video
-            </h3>
-            <p className="mt-0.5 text-[11px] font-semibold text-[var(--text-secondary)]">
-              WhatsApp-style - max {maxClip}s - 9:16 aspect
-            </p>
+            <h3 className="text-sm font-black text-white">Trim Story Video</h3>
+            <p className="mt-0.5 text-[11px] font-semibold text-white/55">Max {maxClip}s - exports 9:16</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-wider ${
-            overMax ? 'border border-red-500/20 bg-red-500/15 text-red-500' :
+            overMax ? 'border border-red-500/20 bg-red-500/15 text-red-300' :
             atMax ? 'border border-amber-400/25 bg-amber-400/15 text-amber-300' :
-            'border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]'
+            'border border-[#20c763]/20 bg-[#20c763]/10 text-[#20c763]'
           }`}>
             <Maximize2 className="size-3.5" />
             {selectedLength.toFixed(1)}s / {maxClip}s
           </span>
-          <span className="flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[11px] font-bold text-[var(--text-secondary)]">
+          <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-[11px] font-bold text-white/65">
             <FileVideo className="size-3.5" />
             {formatSize(fileSize)}
           </span>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[180px_1fr]">
-        {/* Video Preview */}
-        <div className="relative mx-auto w-full max-w-[180px] overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-black shadow-xl xl:mx-0">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[160px_1fr]">
+        <div className="relative mx-auto w-full max-w-[160px] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-xl lg:mx-0">
           <video
             ref={videoRef}
             src={previewUrl}
@@ -184,75 +174,63 @@ export default function StatusVideoTrimmer({
           <button
             type="button"
             onClick={togglePlayback}
-            className="absolute bottom-3 right-3 flex size-11 items-center justify-center rounded-full border border-white/25 bg-black/65 text-white shadow-xl backdrop-blur-xl transition-all hover:scale-105 hover:bg-black/80 active:scale-95"
+            className="absolute bottom-3 right-3 flex size-11 items-center justify-center rounded-full border border-white/25 bg-black/65 text-white shadow-xl backdrop-blur-xl transition-all active:scale-95"
+            aria-label={playing ? 'Pause trim preview' : 'Play trim preview'}
           >
             {playing ? <Pause className="size-5" /> : <Play className="ml-0.5 size-5" />}
           </button>
           <div className="absolute left-3 top-3 rounded-full border border-white/20 bg-black/65 px-3 py-1.5 shadow-lg backdrop-blur-xl">
-            <span className="font-mono text-[11px] font-bold text-white">
-              {formatTime(currentTime)}
-            </span>
+            <span className="font-mono text-[11px] font-bold text-white">{formatTime(currentTime)}</span>
           </div>
         </div>
 
-        {/* Controls Section */}
         <div className="flex flex-col justify-center space-y-4">
-          {/* Timeline Info */}
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-[var(--text-secondary)]">
-              <span className="flex items-center gap-2">
-                <span className="font-black text-[var(--accent)]">Selection</span>
-                <span className="font-mono">{timelineLabel}</span>
-              </span>
-              <span className="font-mono">Total: {formatTime(safeDuration)}</span>
-            </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-white/60">
+            <span className="flex items-center gap-2">
+              <span className="font-black text-[#20c763]">Selection</span>
+              <span className="font-mono">{timelineLabel}</span>
+            </span>
+            <span className="font-mono">Total: {formatTime(safeDuration)}</span>
           </div>
 
-          {/* Timeline Slider */}
-          <div className="space-y-3">
-            <div className="relative h-14 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-2">
-              <div
-                className="absolute inset-y-2 rounded-xl bg-[var(--accent)]/18"
-                style={{ left: `${startPct}%`, width: `${Math.max(0, endPct - startPct)}%` }}
-              />
-              <div
-                className="absolute top-1/2 z-20 size-6 -translate-y-1/2 cursor-grab rounded-full border-4 border-white bg-[var(--accent)] shadow-xl transition-transform hover:scale-110 active:cursor-grabbing"
-                style={{ left: `calc(${startPct}% - 12px)` }}
-              />
-              <div
-                className="absolute top-1/2 z-20 size-6 -translate-y-1/2 cursor-grab rounded-full border-4 border-white bg-[var(--accent)] shadow-xl transition-transform hover:scale-110 active:cursor-grabbing"
-                style={{ left: `calc(${endPct}% - 12px)` }}
-              />
+          <div className="space-y-4 rounded-2xl border border-white/10 bg-black/35 p-3">
+            <label className="block space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.12em] text-white/55">
+                <span>Start</span>
+                <span className="font-mono text-[#20c763]">{formatTime(trimStart)}</span>
+              </div>
               <input
                 type="range"
                 min={0}
-                max={safeDuration}
+                max={Math.max(0, safeDuration - 0.5)}
                 step={0.1}
                 value={trimStart}
                 onChange={(e) => updateStart(e.target.value)}
-                className="absolute inset-0 z-30 h-full w-full cursor-pointer opacity-0"
+                className="h-2 w-full accent-[#20c763]"
                 aria-label="Trim start"
               />
+            </label>
+            <label className="block space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-black uppercase tracking-[0.12em] text-white/55">
+                <span>End</span>
+                <span className="font-mono text-[#20c763]">{formatTime(trimEnd)}</span>
+              </div>
               <input
                 type="range"
-                min={0}
-                max={safeDuration}
+                min={trimStart + 0.5}
+                max={Math.min(safeDuration, trimStart + maxClip)}
                 step={0.1}
                 value={trimEnd}
                 onChange={(e) => updateEnd(e.target.value)}
-                className="absolute inset-0 z-40 h-full w-full cursor-pointer opacity-0"
+                className="h-2 w-full accent-[#20c763]"
                 aria-label="Trim end"
               />
-            </div>
+            </label>
           </div>
 
-          {/* Numeric Inputs */}
           <div className="grid grid-cols-2 gap-3">
             <label className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-[var(--accent)]"></span>
-                <span className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--text-secondary)]">Start</span>
-              </div>
+              <span className="text-[11px] font-black uppercase tracking-[0.12em] text-white/55">Start</span>
               <input
                 type="number"
                 min={0}
@@ -260,14 +238,11 @@ export default function StatusVideoTrimmer({
                 step={0.1}
                 value={Number(trimStart.toFixed(1))}
                 onChange={(e) => updateStart(e.target.value)}
-                className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 font-mono text-sm font-bold text-[var(--text-primary)] outline-none transition-all focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent)]/10"
+                className="h-12 w-full rounded-2xl border border-white/10 bg-white/8 px-4 font-mono text-sm font-bold text-white outline-none transition-all focus:border-[#20c763] focus:ring-4 focus:ring-[#20c763]/10"
               />
             </label>
             <label className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="size-2 rounded-full bg-[var(--accent)]"></span>
-                <span className="text-[11px] font-black uppercase tracking-[0.12em] text-[var(--text-secondary)]">End</span>
-              </div>
+              <span className="text-[11px] font-black uppercase tracking-[0.12em] text-white/55">End</span>
               <input
                 type="number"
                 min={trimStart + 0.5}
@@ -275,16 +250,9 @@ export default function StatusVideoTrimmer({
                 step={0.1}
                 value={Number(trimEnd.toFixed(1))}
                 onChange={(e) => updateEnd(e.target.value)}
-                className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 font-mono text-sm font-bold text-[var(--text-primary)] outline-none transition-all focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent)]/10"
+                className="h-12 w-full rounded-2xl border border-white/10 bg-white/8 px-4 font-mono text-sm font-bold text-white outline-none transition-all focus:border-[#20c763] focus:ring-4 focus:ring-[#20c763]/10"
               />
             </label>
-          </div>
-
-          {/* Helper Text */}
-          <div className="rounded-2xl border border-[var(--accent)]/15 bg-[var(--accent)]/5 p-3">
-            <p className="text-[11px] font-semibold leading-relaxed text-[var(--text-secondary)]">
-              <span className="font-black text-[var(--accent)]">Tip:</span> Drag the handles or type exact times. Stories publish at {maxClip}s or less.
-            </p>
           </div>
         </div>
       </div>
