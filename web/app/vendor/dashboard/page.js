@@ -15,7 +15,6 @@ import {
   Inbox,
   PlusSquare,
   RefreshCw,
-  Search,
   ShieldAlert,
   ShoppingBag,
   Sparkles,
@@ -306,16 +305,6 @@ export default function VendorDashboard() {
                    </div>
                 </Link>
               </div>
-            </div>
-
-            {/* Row 2: Search */}
-            <div className="mt-3 relative group md:max-w-md">
-              <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-secondary)] opacity-30 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
-              <input 
-                className="w-full h-10 bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-xs font-medium outline-none focus:border-[var(--accent)]/40 focus:bg-[var(--bg-secondary)] transition-all font-[Poppins]" 
-                placeholder="Find anything..." 
-                type="text" 
-              />
             </div>
           </div>
         </header>

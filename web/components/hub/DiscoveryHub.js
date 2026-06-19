@@ -61,17 +61,17 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const TABS = isCustomer ? [
-    { id: 'discover', label: t('nav.shop'), href: "/shop", icon: Compass },
-    { id: 'vendors', label: t('nav.vendors'), icon: Store },
-    { id: 'status', label: t('nav.stories'), icon: Activity },
-    { id: 'overtime', label: t('nav.overtime'), href: "/overtime", icon: House },
-    { id: 'profile', label: t('nav.profile'), icon: User }
+    { id: 'discover', label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },
+    { id: 'vendors', label: t('bottomNav.vendors', 'Vendors'), icon: Store },
+    { id: 'status', label: t('bottomNav.stories', 'Stories'), icon: Activity },
+    { id: 'overtime', label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House },
+    { id: 'profile', label: t('bottomNav.profile', 'Profile'), icon: User }
   ] : [
-    { id: 'dashboard', label: t('nav.dashboard'), href: dashboardHref, icon: LayoutDashboard },
-    { id: 'discover', label: t('nav.shop'), href: "/shop", icon: Compass },
-    { id: 'status', label: t('nav.story'), icon: Activity },
-    { id: 'overtime', label: t('nav.overtime'), href: "/overtime", icon: House },
-    { id: 'profile', label: t('nav.profile'), icon: User }
+    { id: 'dashboard', label: t('bottomNav.dashboard', 'Dashboard'), href: dashboardHref, icon: LayoutDashboard },
+    { id: 'discover', label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },
+    { id: 'status', label: t('bottomNav.stories', 'Stories'), icon: Activity },
+    { id: 'overtime', label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House },
+    { id: 'profile', label: t('bottomNav.profile', 'Profile'), icon: User }
   ];
 
   useEffect(() => {
@@ -326,7 +326,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
                 </div>
 
                 <span
-                  className={`max-w-full truncate px-0.5 text-[11px] font-medium tracking-tight transition-colors ${
+                  className={`max-w-full truncate px-0.5 text-[10px] font-medium leading-none tracking-tight transition-colors min-[380px]:text-[11px] font-[Poppins] ${
                     isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)] opacity-90"
                   }`}
                 >
@@ -360,8 +360,8 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
                     isActive ? 'text-[var(--accent)]' : 'text-white/50 hover:text-white/80'
                   }`}
                 >
-                   <Icon className={`size-[18px] ${isActive ? 'stroke-2 text-[var(--accent)]' : 'stroke-2 text-white/45'}`} />
-                   <span className={`text-[10px] font-medium tracking-tight mt-1.5 ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{tab.label}</span>
+                   <Icon className={`size-[20px] ${isActive ? 'stroke-2 text-[var(--accent)]' : 'stroke-2 text-white/45'}`} />
+                   <span className={`max-w-[82px] truncate text-[10px] font-medium tracking-tight mt-1.5 md:text-[11px] font-[Poppins] ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{tab.label}</span>
                 </button>
               </div>
             );

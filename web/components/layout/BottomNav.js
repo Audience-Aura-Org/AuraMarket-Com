@@ -105,7 +105,7 @@ export default function BottomNav() {
                 </div>
 
                 <span
-                  className={`max-w-full truncate px-0.5 text-[10px] font-semibold leading-none tracking-tight transition-colors min-[380px]:text-[11px] ${
+                  className={`max-w-full truncate px-0.5 text-[10px] font-medium leading-none tracking-tight transition-colors min-[380px]:text-[11px] font-[Poppins] ${
                     isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)] opacity-90"
                   }`}
                 >
@@ -134,7 +134,7 @@ export default function BottomNav() {
             const itemContent = (
               <>
                   <Icon className={`size-[20px] ${isActive ? 'stroke-2 text-[var(--accent)]' : 'stroke-2 text-white/45'}`} />
-                  <span className={`max-w-[82px] truncate text-[10px] font-semibold tracking-wide mt-1.5 md:text-[11px] ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{item.label}</span>
+                  <span className={`max-w-[82px] truncate text-[10px] font-medium tracking-tight mt-1.5 md:text-[11px] font-[Poppins] ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{item.label}</span>
               </>
             );
 
