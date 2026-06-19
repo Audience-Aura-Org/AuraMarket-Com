@@ -34,6 +34,7 @@ export default function PWAInit() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [installMessage, setInstallMessage] = useState('');
+  const [statusComposerOpen, setStatusComposerOpen] = useState(false);
   const subscribedRef = useRef(false);
   const authErrorRef = useRef(false);
   const syncInFlightRef = useRef(false);
@@ -139,6 +140,17 @@ export default function PWAInit() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleStatusComposerVisibility = (event) => {
+      const open = Boolean(event.detail?.open);
+      setStatusComposerOpen(open);
+      if (open) setShowInstallPrompt(false);
+    };
+
+    window.addEventListener('aura_status_composer_visibility', handleStatusComposerVisibility);
+    return () => window.removeEventListener('aura_status_composer_visibility', handleStatusComposerVisibility);
+  }, []);
+
   // 1. On initial mount, register SW and subscribe if user is logged in
   useEffect(() => {
     registerPWA();
@@ -206,6 +218,7 @@ export default function PWAInit() {
 
   if (
     !showInstallPrompt ||
+    statusComposerOpen ||
     (typeof window !== 'undefined' && isStandalonePWA()) ||
     pathname?.startsWith('/chat') ||
     pathname?.startsWith('/messages') ||

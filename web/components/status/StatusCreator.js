@@ -7,7 +7,9 @@ import {
   X, Image as ImageIcon, Video, Type, 
   ShoppingBag, Trash2, Send, Loader2,
   AlertCircle, Clock, Search, RotateCcw,
-  Plus, Palette, SplitSquareHorizontal, Scissors
+  Plus, Palette, SplitSquareHorizontal, Scissors,
+  Music, Crop, Sticker, Pencil, AtSign,
+  Volume2, VolumeX, ChevronUp, Repeat2
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { uploadService } from '@/services/upload';
@@ -161,7 +163,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [uploadPhase, setUploadPhase]   = useState('');
   const [error, setError]               = useState(null);
   const [expiryDays, setExpiryDays]     = useState(initialData?.expiry_days || 3);
-  const [selectedCategory, setSelectedCategory] = useState(initialData?.category || null);
+  const [selectedCategory, setSelectedCategory] = useState(initialData?.category || 'Moment');
   const [mounted, setMounted]           = useState(false);
   const [videoMeta, setVideoMeta]       = useState(null);
   const [trimStart, setTrimStart]       = useState(0);
@@ -169,8 +171,13 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [videoPostMode, setVideoPostMode] = useState('split');
   const [, setEditingVideo] = useState(false);
   const [gradientIndex, setGradientIndex] = useState(0);
+  const [muted, setMuted]               = useState(true);
+  const [showDetails, setShowDetails]   = useState(false);
 
   const fileInputRef = useRef(null);
+  const imageInputRef = useRef(null);
+  const videoInputRef = useRef(null);
+  const captionInputRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
@@ -208,15 +215,19 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = 'unset'; };
+    window.dispatchEvent(new CustomEvent('aura_status_composer_visibility', { detail: { open: true } }));
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.dispatchEvent(new CustomEvent('aura_status_composer_visibility', { detail: { open: false } }));
+    };
   }, []);
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = async (e, nextType = type) => {
     const f = e.target.files[0];
     if (!f) return;
     if (previewUrl && file) URL.revokeObjectURL(previewUrl);
 
-    if (type === 'video') {
+    if (nextType === 'video') {
       if (!f.type.startsWith('video/'))  { setError('Select a video file.'); return; }
       if (f.size > STATUS_VIDEO_INPUT_MAX_BYTES) { setError('Max 500MB source video.'); return; }
 
@@ -249,7 +260,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     }
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
-    if (type !== 'video') setError(null);
+    if (nextType !== 'video') setError(null);
   };
 
   const handlePost = async () => {
@@ -771,59 +782,228 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     </div>
   );
 
-  const mobileLayout = (
-    <div className="fixed inset-0 z-[1100] flex flex-col bg-[var(--bg-primary)]">
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-[var(--glass-border)] px-4">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--accent)]">Story Studio</p>
-          <h1 className="text-base font-black text-[var(--text-primary)]">
-            {isReshare ? 'Reshare Story' : 'New Story'}
-          </h1>
+  const mobileToolButtonClass = "flex size-14 items-center justify-center rounded-full bg-[#1d1d1f] text-white shadow-xl shadow-black/35 transition active:scale-95";
+  const statusTargetLabel = linkedProduct ? 'Status + product' : 'Status (4 excluded)';
+  const mediaDurationLabel = type === 'video' && videoMeta?.duration
+    ? `${formatSeconds(videoMeta.duration)} · ${file ? (file.size / (1024 * 1024)).toFixed(1) : '0.0'} MB`
+    : `${expiryDays}d · ${selectedCategory}`;
+
+  const mobilePreview = (
+    <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-0">
+      {previewUrl ? (
+        <div className="relative w-full overflow-hidden bg-black" style={{ maxHeight: '48vh' }}>
+          {type === 'video' ? (
+            <video src={previewUrl} className="mx-auto max-h-[48vh] w-full object-contain" autoPlay muted={muted} loop playsInline />
+          ) : (
+            <img src={previewUrl} className="mx-auto max-h-[48vh] w-full object-contain" alt="status preview" />
+          )}
+          {type === 'video' && (
+            <button
+              type="button"
+              onClick={() => setMuted((prev) => !prev)}
+              className="absolute left-4 top-4 flex size-10 items-center justify-center rounded-xl bg-black/60 text-white backdrop-blur"
+              aria-label={muted ? 'Unmute video preview' : 'Mute video preview'}
+            >
+              {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+            </button>
+          )}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/10" />
         </div>
-        <button 
-          onClick={onClose} 
-          className="flex size-10 items-center justify-center rounded-full text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-secondary)]"
-          aria-label="Close story creator"
+      ) : type === 'text' ? (
+        <div
+          className="mx-6 flex aspect-[9/16] w-full max-w-[340px] flex-col justify-center rounded-2xl p-6 shadow-2xl"
+          style={TEXT_GRADIENTS[gradientIndex].style}
         >
-          <X className="size-5" />
+          <textarea
+            value={textContent}
+            onChange={e => setTextContent(e.target.value)}
+            placeholder="Type a status"
+            className="max-h-[62vh] resize-none bg-transparent text-center text-3xl font-black leading-tight text-white outline-none placeholder:text-white/30"
+            maxLength={300}
+          />
+          <span className="mt-4 text-center text-[11px] font-bold text-white/55">{textContent.length}/300</span>
+        </div>
+      ) : (
+        <div className="mx-6 grid w-full max-w-[340px] gap-3">
+          <button type="button" onClick={() => imageInputRef.current?.click()} className="flex h-16 items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/8 text-sm font-bold text-white transition active:scale-[0.99]">
+            <ImageIcon className="size-5" />
+            Choose photo
+          </button>
+          <button type="button" onClick={() => videoInputRef.current?.click()} className="flex h-16 items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/8 text-sm font-bold text-white transition active:scale-[0.99]">
+            <Video className="size-5" />
+            Choose video
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setType('text');
+              setPreviewUrl('');
+              setFile(null);
+            }}
+            className="flex h-16 items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/8 text-sm font-bold text-white transition active:scale-[0.99]"
+          >
+            <Type className="size-5" />
+            Text status
+          </button>
+        </div>
+      )}
+    </div>
+  );
+
+  const mobileDetailsSheet = (
+    <AnimatePresence>
+      {showDetails && (
+        <motion.div
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+          className="absolute inset-x-0 bottom-0 z-40 max-h-[76vh] overflow-y-auto rounded-t-[2rem] border border-white/10 bg-[#111113] p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] text-white shadow-2xl no-scrollbar"
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-400">Status settings</p>
+              <h2 className="text-base font-black">Audience and details</h2>
+            </div>
+            <button type="button" onClick={() => setShowDetails(false)} className="flex size-10 items-center justify-center rounded-full bg-white/10" aria-label="Close status settings">
+              <X className="size-5" />
+            </button>
+          </div>
+          <div className="space-y-4">
+            {videoPostOptions}
+            {type === 'video' && videoMeta && previewUrl && (
+              <StatusVideoTrimmer
+                previewUrl={previewUrl}
+                duration={videoMeta.duration}
+                fileSize={file?.size || 0}
+                trimStart={trimStart}
+                trimEnd={trimEnd}
+                onTrimStartChange={setTrimStart}
+                onTrimEndChange={setTrimEnd}
+                onEditingChange={setEditingVideo}
+              />
+            )}
+            {metadataOptions}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  const mobileLayout = (
+    <div className="fixed inset-0 z-[1100] flex flex-col overflow-hidden bg-black text-white">
+      <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => { setType('image'); handleFileChange(event, 'image'); }} />
+      <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={(event) => { setType('video'); handleFileChange(event, 'video'); }} />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-28 bg-gradient-to-b from-black via-black/85 to-transparent" />
+
+      <div className="relative z-20 flex shrink-0 items-center gap-3 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+        <button type="button" onClick={onClose} className={mobileToolButtonClass} aria-label="Close status editor">
+          <X className="size-7" />
         </button>
-      </div>
-
-      <div className="flex-1 space-y-5 overflow-y-auto p-4 pb-24 no-scrollbar">
-        {typeSelector}
-        {previewFrame}
-        {videoPostOptions}
-        {type === 'video' && videoMeta && previewUrl && (
-          <div className="mt-4">
-            <StatusVideoTrimmer
-              previewUrl={previewUrl}
-              duration={videoMeta.duration}
-              fileSize={file?.size || 0}
-              trimStart={trimStart}
-              trimEnd={trimEnd}
-              onTrimStartChange={setTrimStart}
-              onTrimEndChange={setTrimEnd}
-              onEditingChange={setEditingVideo}
-            />
-          </div>
-        )}
-
-        {/* Error messaging */}
-        {error && (
-          <div className="p-3.5 rounded-2xl bg-red-500/8 border border-red-500/20 flex items-center gap-3 text-red-500">
-            <AlertCircle className="size-4 shrink-0" />
-            <p className="text-xs font-semibold">{error}</p>
-          </div>
-        )}
-
-        <div className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 p-4">
-          {metadataOptions}
+        <div className="ml-auto flex items-center gap-2">
+          {[
+            { label: 'Add music', icon: Music, action: () => setMuted((prev) => !prev), active: !muted },
+            { label: 'Trim and crop', icon: Crop, action: () => setShowDetails(true), active: showDetails },
+            { label: 'Tag product', icon: Sticker, action: () => setShowDetails(true), active: !!linkedProduct },
+            {
+              label: 'Text status',
+              icon: Type,
+              action: () => {
+                setType('text');
+                if (!isReshare) {
+                  setPreviewUrl('');
+                  setFile(null);
+                }
+              },
+              active: type === 'text',
+            },
+            { label: 'Edit caption', icon: Pencil, action: () => captionInputRef.current?.focus(), active: false },
+          ].map(({ label, icon: Icon, action, active }) => (
+            <button key={label} type="button" onClick={action} className={`${mobileToolButtonClass} ${active ? 'ring-2 ring-emerald-400' : ''}`} aria-label={label} title={label}>
+              <Icon className="size-6" />
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 border-t border-[var(--glass-border)] bg-[var(--bg-primary)]/92 p-4 backdrop-blur-md">
-        {submitButton}
+      {previewUrl && (
+        <div className="relative z-20 mt-8 shrink-0 px-3">
+          <div className="flex h-12 items-center overflow-hidden rounded-sm bg-white/75">
+            <button type="button" onClick={() => { setFile(null); setPreviewUrl(''); setVideoMeta(null); }} className="flex h-full w-8 items-center justify-center bg-yellow-400 text-black" aria-label="Replace media">
+              <ChevronUp className="-rotate-90 size-5" />
+            </button>
+            <div className="h-full w-16 overflow-hidden border-4 border-yellow-400 bg-black">
+              {type === 'video' ? <video src={previewUrl} muted className="size-full object-cover" /> : <img src={previewUrl} className="size-full object-cover" alt="" />}
+            </div>
+            <div className="flex h-full flex-1 gap-1 overflow-hidden px-1 opacity-40">
+              {Array.from({ length: 12 }).map((_, index) => (
+                <div key={index} className="h-full min-w-10 overflow-hidden bg-black">
+                  {type === 'video' ? <video src={previewUrl} muted className="size-full object-cover" /> : <img src={previewUrl} className="size-full object-cover" alt="" />}
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={() => setShowDetails(true)} className="flex h-full w-8 items-center justify-center bg-yellow-400 text-black" aria-label="Open trim settings">
+              <ChevronUp className="rotate-90 size-5" />
+            </button>
+          </div>
+          <div className="mt-7 flex items-center gap-3">
+            <button type="button" onClick={() => setMuted((prev) => !prev)} className="flex size-12 items-center justify-center rounded-xl bg-[#202124] text-white" aria-label={muted ? 'Unmute status' : 'Mute status'}>
+              {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+            </button>
+            <button type="button" onClick={() => setShowDetails(true)} className="rounded-xl bg-[#202124] px-4 py-3 text-sm font-medium text-white">
+              {mediaDurationLabel}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {mobilePreview}
+
+      <div className="relative z-20 flex shrink-0 flex-col gap-5 px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+        {error && (
+          <div className="flex items-center gap-2 rounded-xl border border-red-400/25 bg-red-500/15 px-3 py-2 text-xs font-semibold text-red-100">
+            <AlertCircle className="size-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+        <div className="flex flex-col items-center gap-1 text-center text-sm font-medium text-white/90">
+          <ChevronUp className="size-5" />
+          <span>Swipe up for filters</span>
+        </div>
+        <div className="flex h-16 items-center gap-3 rounded-full border border-white/20 bg-black/55 px-4 backdrop-blur">
+          <button type="button" onClick={() => setShowDetails(true)} className="flex size-9 items-center justify-center rounded-full text-white" aria-label="Attach product">
+            <Sticker className="size-6" />
+          </button>
+          <input ref={captionInputRef} value={caption} onChange={e => setCaption(e.target.value.slice(0, 150))} placeholder="Add a caption..." className="min-w-0 flex-1 border-0 bg-transparent text-base font-medium text-white outline-none placeholder:text-white/75" />
+          <button type="button" onClick={() => setShowDetails(true)} className="flex size-9 items-center justify-center rounded-full text-white" aria-label="Mention or tag">
+            <AtSign className="size-7" />
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => setShowDetails(true)} className="flex min-w-0 items-center gap-2 rounded-xl bg-[#1f1f21] px-4 py-3 text-sm font-semibold text-white">
+            <Repeat2 className="size-5" />
+            <span className="truncate">{statusTargetLabel}</span>
+            <Plus className="size-5" />
+            <Repeat2 className="size-5" />
+          </button>
+          <button type="button" onClick={handlePost} disabled={loading || !canPost} className="ml-auto flex size-14 items-center justify-center rounded-full bg-[#20c763] text-black shadow-lg transition active:scale-95 disabled:opacity-40" aria-label={isReshare ? 'Reshare status' : 'Post status'}>
+            {loading ? <Loader2 className="size-6 animate-spin" /> : <Send className="ml-1 size-7 fill-black" />}
+          </button>
+        </div>
+        {loading && uploadPhase && (
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-white/75">
+              <span>{uploadPhase}</span>
+              {uploadProgress > 0 && <span>{uploadProgress}%</span>}
+            </div>
+            <div className="h-1 overflow-hidden rounded-full bg-white/15">
+              <div className="h-full bg-[#20c763] transition-all duration-300" style={{ width: `${Math.max(uploadProgress, uploadPhase ? 8 : 0)}%` }} />
+            </div>
+          </div>
+        )}
       </div>
+
+      {mobileDetailsSheet}
     </div>
   );
 
