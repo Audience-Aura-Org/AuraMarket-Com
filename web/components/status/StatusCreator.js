@@ -291,6 +291,23 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   
   const [isPlaying, setIsPlaying] = useState(true);
 
+  const resetMediaInputs = () => {
+    if (imageInputRef.current) imageInputRef.current.value = '';
+    if (videoInputRef.current) videoInputRef.current.value = '';
+  };
+
+  const clearSelectedMedia = () => {
+    resetMediaInputs();
+    setFile(null);
+    setPreviewUrl('');
+    setVideoMeta(null);
+    setVideoPostMode('trim');
+    setEditingVideo(false);
+    setTimelineFrames([]);
+    setTrimStart(0);
+    setTrimEnd(STATUS_VIDEO_MAX_SECONDS);
+  };
+
   const togglePlayPause = () => {
     const video = previewVideoRef.current;
     if (!video) return;
@@ -517,6 +534,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
   const handleFileChange = async (e, nextType = type) => {
     const f = e.target.files[0];
+    e.target.value = '';
     if (!f) return;
     if (previewUrl && file) URL.revokeObjectURL(previewUrl);
 
@@ -532,7 +550,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         setVideoMeta({ ...meta, needsTrim, needsCompression });
         setTrimStart(0);
         setTrimEnd(Math.min(STATUS_VIDEO_MAX_SECONDS, Math.max(1, meta.duration || STATUS_VIDEO_MAX_SECONDS)));
-        setVideoPostMode(needsTrim ? 'split' : 'trim');
+        setVideoPostMode('trim');
         setEditingVideo(true);
         setError(needsTrim
           ? null
@@ -561,9 +579,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
   const handlePost = async () => {
     if (!selectedCategory) { setError('Please select a category.'); return; }
-    // #region debug-point E:handle-post-start
-    fetch("http://192.168.1.167:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"E",location:"web/components/status/StatusCreator.js:handlePost",msg:"[DEBUG] Status send tapped",data:{type,isNative:Capacitor?.isNativePlatform?.()||false,platform:Capacitor?.getPlatform?.()||"web",hasFile:!!file,fileType:file?.type||null,fileSize:file?.size||0,videoMetaDuration:videoMeta?.duration||0,trimStart,trimEnd,selectedCategory},ts:Date.now()})}).catch(()=>{});
-    // #endregion
     setLoading(true);
     setUploadProgress(0);
     setUploadPhase('');
@@ -618,14 +633,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           throw err;
         }
       };
-
-      console.log('[StatusCreator] handlePost state check', {
-        type,
-        hasFile: !!file,
-        fileName: file?.name,
-        isReshare,
-        hasPreviewUrl: !!previewUrl,
-      });
 
       if (type !== 'text' && file) {
         if (file.type.startsWith('video/')) {
@@ -745,13 +752,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       }
 
       if (createdStatuses.length) {
+        clearSelectedMedia();
         onStatusCreated?.(createdStatuses.length === 1 ? createdStatuses[0] : createdStatuses);
         onClose();
       }
     } catch (err) {
-      // #region debug-point E:handle-post-error
-      fetch("http://192.168.1.167:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"E",location:"web/components/status/StatusCreator.js:handlePost:catch",msg:"[DEBUG] Status send failed in client catch",data:{message:err?.message||null,responseStatus:err?.response?.status||null,responseMessage:err?.response?.data?.message||null,responseError:err?.response?.data?.error||null,code:err?.code||null,stack:String(err?.stack||"").slice(0,600)},ts:Date.now()})}).catch(()=>{});
-      // #endregion
       const msg =
         err.response?.data?.message ||
         err.response?.data?.error ||
@@ -979,7 +984,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               <>
                 <button
                   type="button"
-                  onClick={() => { setFile(null); setPreviewUrl(''); setVideoMeta(null); setTimelineFrames([]); }}
+                  onClick={clearSelectedMedia}
                   className="p-2 rounded-full hover:bg-white/10 text-red-400 hover:text-red-300 transition-colors"
                   title="Remove Media"
                 >
@@ -1018,7 +1023,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               <>
                 <button
                   type="button"
-                  onClick={() => { setType('image'); setPreviewUrl(''); setFile(null); }}
+                  onClick={() => { setType('image'); clearSelectedMedia(); }}
                   className={`p-2 rounded-full transition-colors ${type === 'image' ? 'text-[#20c763] bg-white/5' : 'text-white hover:bg-white/10'}`}
                   title="Photo Mode"
                 >
@@ -1026,7 +1031,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setType('video'); setPreviewUrl(''); setFile(null); }}
+                  onClick={() => { setType('video'); clearSelectedMedia(); }}
                   className={`p-2 rounded-full transition-colors ${type === 'video' ? 'text-[#20c763] bg-white/5' : 'text-white hover:bg-white/10'}`}
                   title="Video Mode"
                 >
@@ -1034,7 +1039,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setType('text'); setPreviewUrl(''); setFile(null); }}
+                  onClick={() => { setType('text'); clearSelectedMedia(); }}
                   className={`p-2 rounded-full transition-colors ${type === 'text' ? 'text-[#20c763] bg-white/5' : 'text-white hover:bg-white/10'}`}
                   title="Text Mode"
                 >
@@ -1231,8 +1236,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                   type="button" 
                   onClick={() => {
                     setType('text');
-                    setPreviewUrl('');
-                    setFile(null);
+                    clearSelectedMedia();
                   }}
                   className="w-full py-3 px-4 rounded-2xl border border-white/10 bg-white/5 text-white text-xs font-bold transition-all hover:bg-white/10"
                 >

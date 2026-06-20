@@ -230,20 +230,6 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
   formData.append('trimEnd', String(trimEnd ?? STATUS_VIDEO_MAX_SECONDS));
   formData.append('cropMode', cropMode);
 
-  // Debug: Log FormData contents (for development only)
-  console.log('[StatusVideo] FormData being sent', {
-    fileName: file?.name,
-    fileSize: file?.size,
-    fileType: file?.type,
-    formDataEntries: Array.from(formData.entries()).map(([key, val]) => [
-      key,
-      val instanceof File ? `File(${val.name})` : val
-    ]),
-  });
-
-  // #region debug-point B:server-trim-start
-  fetch("http://192.168.1.167:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"B",location:"web/lib/statusVideoExport.js:uploadStatusVideoWithServerTrim:start",msg:"[DEBUG] Starting server trim upload",data:{fileName:file?.name||null,fileType:file?.type||null,fileSize:file?.size||0,trimStart:trimStart??0,trimEnd:trimEnd??STATUS_VIDEO_MAX_SECONDS,cropMode},ts:Date.now()})}).catch(()=>{});
-  // #endregion
   try {
     const res = await api.post('/upload/single', formData, {
       // IMPORTANT: Do NOT manually set Content-Type for FormData
@@ -259,10 +245,6 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
       },
     });
 
-    // #region debug-point B:server-trim-response
-    fetch("http://192.168.1.167:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"B",location:"web/lib/statusVideoExport.js:uploadStatusVideoWithServerTrim:response",msg:"[DEBUG] Server trim upload returned",data:{success:!!res?.data?.success,status:res?.status||null,message:res?.data?.message||null,error:res?.data?.error||null,code:res?.data?.code||null},ts:Date.now()})}).catch(()=>{});
-    // #endregion
-
     if (!res.data?.success) {
       throw new Error(res.data?.message || 'Server video trim failed.');
     }
@@ -270,9 +252,6 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
     onProgress?.(100);
     return res.data;
   } catch (err) {
-    // #region debug-point B:server-trim-error
-    fetch("http://192.168.1.167:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"B",location:"web/lib/statusVideoExport.js:uploadStatusVideoWithServerTrim:catch",msg:"[DEBUG] Server trim upload threw",data:{message:err?.message||null,code:err?.code||null,responseStatus:err?.response?.status||null,responseMessage:err?.response?.data?.message||null,responseError:err?.response?.data?.error||null,baseURL:err?.config?.baseURL||null,url:err?.config?.url||null},ts:Date.now()})}).catch(()=>{});
-    // #endregion
     throw err;
   }
 }
