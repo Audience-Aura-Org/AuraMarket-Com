@@ -237,17 +237,22 @@ api.interceptors.request.use(async (config) => {
     // Clear any preset content-type for multipart requests so XHR can inject the boundary.
     if (isFormDataPayload(config.data)) {
       console.log('[API:Interceptor] FormData detected for:', config.url, {
-        hasContentType: !!config.headers['Content-Type'],
-        headerKeys: Object.keys(config.headers).sort(),
+        isFormData: isFormDataPayload(config.data),
+        hasVideo: config.data?.has?.('video'),
+        contentTypeBeforeCleared: config.headers['Content-Type'],
       });
       delete config.headers['Content-Type'];
       delete config.headers['content-type'];
       config.headers.setContentType?.(undefined);
       console.log('[API:Interceptor] After clearing Content-Type:', {
-        contentTypeExists: !!config.headers['Content-Type'],
-        headerKeys: Object.keys(config.headers).sort(),
+        contentTypeAfter: config.headers['Content-Type'],
+        willLetAxiosSetIt: !config.headers['Content-Type'],
       });
     } else {
+      console.log('[API:Interceptor] Non-FormData request detected for:', config.url, {
+        dataType: typeof config.data,
+        isFormData: isFormDataPayload(config.data),
+      });
       config.headers['Content-Type'] = 'application/json';
     }
   }

@@ -230,6 +230,18 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
   formData.append('trimEnd', String(trimEnd ?? STATUS_VIDEO_MAX_SECONDS));
   formData.append('cropMode', cropMode);
 
+  // Log FormData contents to verify it's properly formed
+  console.log('[StatusVideo] FormData created:', {
+    hasVideo: !!file,
+    videoSize: file.size,
+    videoType: file.type,
+    videoName: file.name,
+    formDataEntries: Array.from(formData.entries()).map(([k, v]) => [
+      k,
+      v instanceof File ? `File(${v.name}, ${v.size} bytes)` : String(v).substring(0, 50)
+    ]),
+  });
+
   try {
     console.log('[StatusVideo] Starting server trim upload...', {
       fileName: file.name,

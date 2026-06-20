@@ -38,19 +38,42 @@ router.post('/presign', presignUpload);
 
 // Accept image | file | video field names (status creator compatibility)
 const pickUploadFile = (req, res, next) => {
+  console.log('🔍 [MULTER-CHAIN] After multer.fields():', {
+    hasFiles: !!req.files,
+    filesKeys: req.files ? Object.keys(req.files) : 'none',
+    fileDetails: req.files ? Object.entries(req.files).map(([k, arr]) => `${k}: ${arr?.length || 0} file(s)`).join(', ') : 'N/A',
+    headers: {
+      contentType: req.headers['content-type'],
+      contentLength: req.headers['content-length'],
+    }
+  });
   req.file = req.files?.image?.[0] || req.files?.file?.[0] || req.files?.video?.[0] || null;
   next();
 };
 
 // @route   POST /api/upload/single
+// @desc    Upload a single file (image/video) to S3 with server-side processing
+// @access  Private
 router.post(
   '/single',
+  // Debug: log request BEFORE multer processes
+  (req, res, next) => {
+    console.log('🔍 [MULTER-BEFORE] Request headers:', {
+      contentType: req.headers['content-type'],
+      contentLength: req.headers['content-length'],
+      transferEncoding: req.headers['transfer-encoding'],
+    });
+    next();
+  },
+  // Multer field parser
   upload.fields([
     { name: 'image', maxCount: 1 },
     { name: 'file', maxCount: 1 },
     { name: 'video', maxCount: 1 },
   ]),
+  // Pick the uploaded file from any field
   pickUploadFile,
+  // Upload to S3
   uploadSingle
 );
 
