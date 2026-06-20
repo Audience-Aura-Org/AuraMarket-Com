@@ -90,6 +90,15 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
 
   const sourceUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
+  video.style.position = 'fixed';
+  video.style.top = '-9999px';
+  video.style.left = '-9999px';
+  video.style.width = '100px';
+  video.style.height = '100px';
+  video.style.opacity = '0';
+  video.style.pointerEvents = 'none';
+  document.body.appendChild(video);
+
   video.src = sourceUrl;
   video.muted = true;
   video.playsInline = true;
@@ -172,13 +181,14 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
     });
   } finally {
     video.pause();
+    if (video.parentNode) {
+      video.parentNode.removeChild(video);
+    }
     URL.revokeObjectURL(sourceUrl);
   }
 }
 
 async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropMode = 'crop', onProgress } = {}) {
-  const formData = new FormData();
-  formData.append('type', 'status-sources');
   formData.append('video', file);
   formData.append('image', file);
   formData.append('trimStart', String(trimStart ?? 0));

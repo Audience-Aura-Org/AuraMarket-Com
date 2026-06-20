@@ -51,7 +51,7 @@ function enforceUploadSize({ folder = 'general', contentType = '', size = 0 }) {
 
 const SKIP_TRANSCODE_MAX_BYTES = 28 * 1024 * 1024; // already-mp4 under ~28MB → upload as-is
 
-async function maybeTranscodeVideoForWeb(file, folder = 'general', trimOptions = null) {
+async function maybeTranscodeVideoForWeb(file, folder = 'general', trimOptions = null, cropMode = 'crop') {
   if (!file?.buffer || !file?.mimetype?.startsWith('video/')) {
     return {
       buffer: file?.buffer,
@@ -90,7 +90,7 @@ async function maybeTranscodeVideoForWeb(file, folder = 'general', trimOptions =
         throw new Error('Status videos must be 30 seconds or less.');
       }
     }
-    await compressFn(inputPath, outputPath, trimOptions);
+    await compressFn(inputPath, outputPath, trimOptions, cropMode);
     const outBuffer = fs.readFileSync(outputPath);
     const compressedSize = (outBuffer.length / 1024 / 1024).toFixed(2);
     const reduction = (((file.buffer.length - outBuffer.length) / file.buffer.length) * 100).toFixed(0);
@@ -148,8 +148,9 @@ const uploadSingle = async (req, res) => {
       const trimOptions = Number.isFinite(trimStart) && Number.isFinite(trimEnd)
         ? { start: trimStart, end: trimEnd }
         : null;
+      const cropMode = req.body.cropMode || 'crop';
 
-      const uploadPayload = await maybeTranscodeVideoForWeb(req.file, folder, trimOptions);
+      const uploadPayload = await maybeTranscodeVideoForWeb(req.file, folder, trimOptions, cropMode);
       const outputFolder = trimOptions ? 'statuses' : folder;
       const s3Result = await uploadToS3(
         uploadPayload.buffer,
@@ -161,26 +162,36 @@ const uploadSingle = async (req, res) => {
       uploadMethod = 'S3';
       console.log(`✅ [API] S3 upload successful: ${fileUrl}`);
     }
-    // Fallback: external storage URL or local disk
-    else if (req.file.path && req.file.path.startsWith('http')) {
-      fileUrl = req.file.path;
-      uploadMethod = 'External';
-      console.log(`✅ [API] External upload successful: ${fileUrl}`);
-    }
-    // Fallback: Local disk
-    else if (req.file.path) {
-      const normalizedPath = req.file.path.replace(/\\/g, '/');
-      const uploadsIndex = normalizedPath.lastIndexOf('/uploads');
-      if (uploadsIndex !== -1) {
-        fileUrl = normalizedPath.substring(uploadsIndex);
-      } else {
-        fileUrl = `/uploads/${req.body.type || 'general'}/${req.file.filename}`;
+    // Fallback: external storage URL or local disk saving with transcode/trim support
+    else {
+      const folder = normalizeS3Folder(req.body.type || 'general');
+      const trimStart = Number(req.body.trimStart);
+      const trimEnd = Number(req.body.trimEnd);
+      const trimOptions = Number.isFinite(trimStart) && Number.isFinite(trimEnd)
+        ? { start: trimStart, end: trimEnd }
+        : null;
+      const cropMode = req.body.cropMode || 'crop';
+
+      // Run video transcode/trim if video file
+      const uploadPayload = await maybeTranscodeVideoForWeb(req.file, folder, trimOptions, cropMode);
+      
+      const uploadDir = path.join(__dirname, '..', 'uploads', folder);
+      // Ensure directory exists
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
       }
-      uploadMethod = 'Local';
-      console.log(`✅ [API] Local upload successful: ${fileUrl}`);
-    } else {
-      fileUrl = `/uploads/${req.body.type || 'general'}/${req.file.filename}`;
-      uploadMethod = 'Local (filename only)';
+
+      const timestamp = Date.now();
+      const ext = path.extname(uploadPayload.originalname || req.file.originalname || '.jpg');
+      const filename = `${timestamp}-${Math.round(Math.random() * 1e9)}${ext}`;
+      const targetPath = path.join(uploadDir, filename);
+
+      // Write buffer to local disk
+      fs.writeFileSync(targetPath, uploadPayload.buffer || req.file.buffer);
+
+      fileUrl = `/uploads/${folder}/${filename}`;
+      uploadMethod = 'Local (saved + trimmed)';
+      console.log(`✅ [API] Local upload saved & trimmed: ${fileUrl}`);
     }
 
     res.status(200).json({

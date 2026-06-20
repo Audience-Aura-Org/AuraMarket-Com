@@ -48,6 +48,15 @@ async function generateVideoThumbnail(file) {
 
   const objectUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
+  video.style.position = 'fixed';
+  video.style.top = '-9999px';
+  video.style.left = '-9999px';
+  video.style.width = '100px';
+  video.style.height = '100px';
+  video.style.opacity = '0';
+  video.style.pointerEvents = 'none';
+  document.body.appendChild(video);
+
   video.preload = 'metadata';
   video.muted = true;
   video.playsInline = true;
@@ -83,6 +92,9 @@ async function generateVideoThumbnail(file) {
       lastModified: Date.now(),
     });
   } finally {
+    if (video.parentNode) {
+      video.parentNode.removeChild(video);
+    }
     URL.revokeObjectURL(objectUrl);
   }
 }
@@ -91,6 +103,15 @@ async function readVideoMetadata(file) {
   if (!file?.type?.startsWith('video/')) return null;
   const objectUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
+  video.style.position = 'fixed';
+  video.style.top = '-9999px';
+  video.style.left = '-9999px';
+  video.style.width = '100px';
+  video.style.height = '100px';
+  video.style.opacity = '0';
+  video.style.pointerEvents = 'none';
+  document.body.appendChild(video);
+
   video.preload = 'metadata';
   video.muted = true;
   video.playsInline = true;
@@ -102,13 +123,24 @@ async function readVideoMetadata(file) {
       video.onerror = () => reject(new Error('Could not read video metadata.'));
     });
 
+    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    const width = video.videoWidth || 0;
+    const height = video.videoHeight || 0;
+
+    if (video.parentNode) {
+      video.parentNode.removeChild(video);
+    }
+
     return {
-      duration: Number.isFinite(video.duration) ? video.duration : 0,
-      width: video.videoWidth || 0,
-      height: video.videoHeight || 0,
+      duration,
+      width,
+      height,
       objectUrl,
     };
   } catch (error) {
+    if (video.parentNode) {
+      video.parentNode.removeChild(video);
+    }
     URL.revokeObjectURL(objectUrl);
     throw error;
   }
@@ -275,9 +307,20 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     setTimelineFrames([]);
     const objectUrl = URL.createObjectURL(videoFile);
     const video = document.createElement('video');
+    video.style.position = 'fixed';
+    video.style.top = '-9999px';
+    video.style.left = '-9999px';
+    video.style.width = '100px';
+    video.style.height = '100px';
+    video.style.opacity = '0';
+    video.style.pointerEvents = 'none';
+    document.body.appendChild(video);
+
     video.src = objectUrl;
     video.muted = true;
     video.playsInline = true;
+    video.preload = 'auto';
+    video.crossOrigin = 'anonymous';
     
     try {
       await new Promise((resolve) => {
@@ -308,6 +351,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     } catch (e) {
       console.warn("Failed to generate timeline frames", e);
     } finally {
+      if (video.parentNode) {
+        video.parentNode.removeChild(video);
+      }
       URL.revokeObjectURL(objectUrl);
     }
   };
@@ -521,8 +567,10 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       const newTime = Math.max(0, Math.min(duration, offsetPct * duration));
 
       if (handle === 'start') {
-        const nextStart = Math.max(0, Math.min(newTime, trimEnd - 0.5));
+        const minStart = Math.max(0, trimEnd - STATUS_VIDEO_MAX_SECONDS);
+        const nextStart = Math.max(minStart, Math.min(newTime, trimEnd - 0.5));
         setTrimStart(nextStart);
+        setVideoPostMode('trim');
         // WhatsApp Mechanic: jump to current frame on drag
         if (previewVideoRef.current) {
           previewVideoRef.current.currentTime = nextStart;
@@ -531,6 +579,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         const maxEnd = Math.min(duration, trimStart + STATUS_VIDEO_MAX_SECONDS);
         const nextEnd = Math.max(trimStart + 0.5, Math.min(newTime, maxEnd));
         setTrimEnd(nextEnd);
+        setVideoPostMode('trim');
         // WhatsApp Mechanic: jump to current frame on drag
         if (previewVideoRef.current) {
           previewVideoRef.current.currentTime = nextEnd;
@@ -734,7 +783,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               
               {/* Floating Product Tag (If tagged) */}
               {linkedProduct && (
-                <div className="absolute top-4 left-4 right-4 z-20 p-2.5 rounded-2xl border border-[#20c763]/25 bg-black/75 backdrop-blur-md flex items-center justify-between min-w-0 shadow-xl">
+                <div className={`absolute left-4 right-4 z-20 p-2.5 rounded-2xl border border-[#20c763]/25 bg-black/75 backdrop-blur-md flex items-center justify-between min-w-0 shadow-xl transition-all duration-300 ${
+                  (type === 'video' && showTrimmer && videoMeta) ? 'top-[96px]' : 'top-4'
+                }`}>
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="size-9 rounded-xl overflow-hidden border border-white/10 bg-black shrink-0">
                       <img src={typeof linkedProduct.images?.[0] === 'string' ? linkedProduct.images[0] : linkedProduct.images?.[0]?.url} className="size-full object-cover" alt="" />
@@ -754,9 +805,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 </div>
               )}
 
-              {/* WhatsApp-Style bottom filmstrip trimmer timeline (Video only, overlaying at the bottom of the video preview screen) */}
+              {/* WhatsApp-Style top filmstrip trimmer timeline (Video only, overlaying at the top of the video preview screen) */}
               {type === 'video' && videoMeta && previewUrl && showTrimmer && (
-                <div className="absolute bottom-4 left-4 right-4 z-30 select-none bg-black/60 p-2.5 rounded-2xl border border-white/10 backdrop-blur-md">
+                <div className="absolute top-4 left-4 right-4 z-30 select-none bg-black/60 p-2.5 rounded-2xl border border-white/10 backdrop-blur-md">
                   <div className="flex items-center justify-between mb-2 text-[10px] font-bold text-white/60 uppercase tracking-wider">
                     <span className="flex items-center gap-1">
                       <Scissors className="size-3 text-[#20c763]" />

@@ -26,17 +26,22 @@ const execAsync = promisify(exec);
 /** Status stories — WhatsApp-style: 9:16 center crop, 30s max, 720p */
 const STATUS_VIDEO_MAX_SECONDS = 30;
 
-const trimAndCompressStatusVideo = async (inputPath, outputPath, { start = 0, end = STATUS_VIDEO_MAX_SECONDS } = {}) => {
+const trimAndCompressStatusVideo = async (inputPath, outputPath, { start = 0, end = STATUS_VIDEO_MAX_SECONDS } = {}, cropMode = 'crop') => {
   const clipDuration = Math.min(
     STATUS_VIDEO_MAX_SECONDS,
     Math.max(0.5, Number(end) - Number(start))
   );
   const seekStart = Math.max(0, Number(start) || 0);
 
+  // Generate ffmpeg filter based on cropMode
+  const videoFilter = cropMode === 'fit'
+    ? 'scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black'
+    : 'scale=w=720:h=1280:force_original_aspect_ratio=increase,crop=720:1280';
+
   return new Promise((resolve, reject) => {
     const command = `ffmpeg -ss ${seekStart} -i "${inputPath}" \
       -t ${clipDuration} \
-      -vf "scale=w=720:h=1280:force_original_aspect_ratio=increase,crop=720:1280" \
+      -vf "${videoFilter}" \
       -vcodec libx264 \
       -preset ultrafast \
       -b:v 1200k \
@@ -64,15 +69,20 @@ const trimAndCompressStatusVideo = async (inputPath, outputPath, { start = 0, en
   });
 };
 
-const compressVideoForStatus = async (inputPath, outputPath, trimOptions = null) => {
-  if (trimOptions && (trimOptions.start > 0 || trimOptions.end < STATUS_VIDEO_MAX_SECONDS)) {
-    return trimAndCompressStatusVideo(inputPath, outputPath, trimOptions);
+const compressVideoForStatus = async (inputPath, outputPath, trimOptions = null, cropMode = 'crop') => {
+  if (trimOptions) {
+    return trimAndCompressStatusVideo(inputPath, outputPath, trimOptions, cropMode);
   }
+
+  // Generate ffmpeg filter based on cropMode
+  const videoFilter = cropMode === 'fit'
+    ? 'scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2:color=black'
+    : 'scale=w=720:h=1280:force_original_aspect_ratio=increase,crop=720:1280';
 
   return new Promise((resolve, reject) => {
     const command = `ffmpeg -i "${inputPath}" \
       -t ${STATUS_VIDEO_MAX_SECONDS} \
-      -vf "scale=w=720:h=1280:force_original_aspect_ratio=increase,crop=720:1280" \
+      -vf "${videoFilter}" \
       -vcodec libx264 \
       -preset ultrafast \
       -b:v 1200k \
