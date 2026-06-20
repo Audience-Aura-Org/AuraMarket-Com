@@ -6,10 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Image as ImageIcon, Video, Type, 
   ShoppingBag, Trash2, Send, Loader2,
-  AlertCircle, Clock, Search, RotateCcw,
+  AlertCircle, Clock, Search,
   Plus, Palette, SplitSquareHorizontal, Scissors,
-  Music, Crop, Sticker, Pencil, AtSign,
-  Volume2, VolumeX, ChevronUp, Repeat2
+  Crop, Sticker, Pencil, AtSign,
+  Volume2, VolumeX
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { uploadService } from '@/services/upload';
@@ -21,7 +21,6 @@ import {
   STATUS_IMAGE_MAX_BYTES,
   STATUS_VIDEO_MAX_SECONDS,
 } from '@/constants/statusVideo';
-import StatusVideoTrimmer from '@/components/status/StatusVideoTrimmer';
 import { prepareStatusVideoForUpload } from '@/lib/statusVideoExport';
 
 const DURATION_OPTIONS = [
@@ -124,6 +123,13 @@ const TEXT_GRADIENTS = [
   { style: { background: 'linear-gradient(135deg, #e65c00 0%, #F9D423 100%)' }, name: 'Warm Sun' },
 ];
 
+const TEXT_FONTS = [
+  { className: 'font-[Poppins]', name: 'Poppins' },
+  { className: 'font-quicksand font-bold', name: 'Quicksand' },
+  { className: 'font-[Georgia] italic', name: 'Serif' },
+  { className: 'font-[Courier_New] font-black', name: 'Monospace' },
+];
+
 const formatSeconds = (seconds = 0) => {
   const safe = Math.max(0, Number(seconds) || 0);
   const mins = Math.floor(safe / 60);
@@ -149,7 +155,7 @@ const buildVideoSegments = (duration = 0) => {
 export default function StatusCreator({ onClose, onStatusCreated, initialData = null }) {
   const isReshare = !!initialData;
 
-  const [deviceType, setDeviceType] = useState('desktop');
+  const [, setDeviceType] = useState('desktop');
   const [type, setType]                 = useState(initialData?.type || 'image');
   const [file, setFile]                 = useState(null);
   const [previewUrl, setPreviewUrl]     = useState(initialData?.content_url || '');
@@ -172,13 +178,43 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [, setEditingVideo] = useState(false);
   const [gradientIndex, setGradientIndex] = useState(0);
   const [muted, setMuted]               = useState(true);
-  const [showDetails, setShowDetails]   = useState(false);
   const [cropMode, setCropMode]         = useState('crop');
 
-  const fileInputRef = useRef(null);
+  // WhatsApp Layout Specific States
+  const [currentTime, setCurrentTime]   = useState(0);
+  const [showProductPicker, setShowProductPicker] = useState(false);
+  const [showSettingsPicker, setShowSettingsPicker] = useState(false);
+  const [showTrimmer, setShowTrimmer]   = useState(true);
+  const [fontFamilyIndex, setFontFamilyIndex] = useState(1); // Default to Quicksand (index 1)
+
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const captionInputRef = useRef(null);
+  const previewVideoRef = useRef(null);
+  const trimmerTrackRef = useRef(null);
+
+  // Sync main preview video playback range with trimmer start/end
+  useEffect(() => {
+    const video = previewVideoRef.current;
+    if (!video) return;
+
+    if (video.currentTime < trimStart || video.currentTime > trimEnd) {
+      video.currentTime = trimStart;
+      setCurrentTime(trimStart);
+    }
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+      if (video.currentTime >= trimEnd - 0.05) {
+        video.currentTime = trimStart;
+      }
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+    };
+  }, [trimStart, trimEnd, previewUrl]);
 
   useEffect(() => {
     setMounted(true);
@@ -190,6 +226,15 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Revoke preview object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl && !initialData?.content_url) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl, initialData]);
 
   // Load products for tagging
   useEffect(() => {
@@ -298,7 +343,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         }
       };
 
-      // If resharing image/video and no new file was selected, reuse existing URL
       if (type !== 'text' && file) {
         if (file.type.startsWith('video/')) {
           const segments = videoPostMode === 'split'
@@ -411,6 +455,59 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     }
   };
 
+  const startDrag = (event, handle) => {
+    event.stopPropagation();
+    const track = trimmerTrackRef.current;
+    if (!track || !videoMeta?.duration) return;
+
+    const getClientX = (e) => {
+      if (e.touches && e.touches.length > 0) return e.touches[0].clientX;
+      return e.clientX;
+    };
+
+    const rect = track.getBoundingClientRect();
+    const duration = videoMeta.duration;
+
+    const onDrag = (moveEvent) => {
+      const currentX = getClientX(moveEvent);
+      const offsetPct = (currentX - rect.left) / rect.width;
+      const newTime = Math.max(0, Math.min(duration, offsetPct * duration));
+
+      if (handle === 'start') {
+        setTrimStart(Math.max(0, Math.min(newTime, trimEnd - 0.5)));
+      } else {
+        const maxEnd = Math.min(duration, trimStart + STATUS_VIDEO_MAX_SECONDS);
+        setTrimEnd(Math.max(trimStart + 0.5, Math.min(newTime, maxEnd)));
+      }
+    };
+
+    const endDrag = () => {
+      window.removeEventListener('mousemove', onDrag);
+      window.removeEventListener('mouseup', endDrag);
+      window.removeEventListener('touchmove', onDrag);
+      window.removeEventListener('touchend', endDrag);
+    };
+
+    window.addEventListener('mousemove', onDrag);
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchmove', onDrag);
+    window.addEventListener('touchend', endDrag);
+  };
+
+  const handleTrackClick = (e) => {
+    if (!trimmerTrackRef.current || !videoMeta?.duration) return;
+    const rect = trimmerTrackRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const pct = clickX / rect.width;
+    const clickTime = pct * videoMeta.duration;
+
+    const video = previewVideoRef.current;
+    if (video) {
+      video.currentTime = Math.max(trimStart, Math.min(trimEnd, clickTime));
+      setCurrentTime(video.currentTime);
+    }
+  };
+
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -422,902 +519,604 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   );
   const isLongVideo = type === 'video' && file && videoMeta?.duration > STATUS_VIDEO_MAX_SECONDS + 0.5;
   const selectedClipLabel = `${formatSeconds(trimStart)} - ${formatSeconds(trimEnd)}`;
+  const selectedLength = Math.max(0.1, trimEnd - trimStart);
+  const maxClip = STATUS_VIDEO_MAX_SECONDS;
+
+  const previewFitClass = cropMode === 'crop' ? 'object-cover' : 'object-contain';
 
   if (!mounted) return null;
 
-  const typeSelector = (
-    <div className="grid grid-cols-3 gap-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 p-1">
-      {[
-        { id: 'image', label: 'Image', icon: ImageIcon },
-        { id: 'video', label: 'Video', icon: Video },
-        { id: 'text', label: 'Text', icon: Type },
-      ].map((t) => {
-        const Icon = t.icon;
-        return (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => {
-              setType(t.id);
-              if (!isReshare) {
-                setFile(null);
-                setPreviewUrl('');
-              }
-              setError(null);
-            }}
-            className={`flex h-11 items-center justify-center gap-2 rounded-xl text-xs font-black transition-all ${
-              type === t.id
-                ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-sm ring-1 ring-[var(--accent)]/20'
-                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]/55 hover:text-[var(--text-primary)]'
-            }`}
-          >
-            <Icon className="size-3.5" />
-            {t.label}
-          </button>
-        );
-      })}
-    </div>
-  );
+  const layout = (
+    <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/85 backdrop-blur-md overflow-hidden font-[Poppins]">
+      {/* Blurred background showing status contents (premium gradient/image blur) */}
+      {previewUrl && (
+        <div 
+          className="absolute inset-0 z-0 opacity-20 blur-3xl scale-125 transition-all duration-500 pointer-events-none"
+          style={type === 'text' ? TEXT_GRADIENTS[gradientIndex].style : { backgroundImage: `url(${previewUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+        />
+      )}
 
-  const previewFrame = (
-    <div className="relative mx-auto aspect-[9/16] w-full max-w-[300px] overflow-hidden rounded-[2rem] border border-white/10 bg-[#09090b] shadow-2xl shadow-black/30">
-      {previewUrl ? (
-        <>
-          {type === 'video' ? (
-            <video src={previewUrl} className="absolute inset-0 size-full object-cover" autoPlay muted loop />
-          ) : (
-            <img src={previewUrl} className="absolute inset-0 size-full object-cover" alt="story preview" />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-black/35" />
-          
-          <div className="absolute left-4 top-4 z-20 rounded-full bg-black/55 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-white/80 backdrop-blur-md">
-            {type}
+      {/* Central Phone Mockup Container */}
+      <div className="relative z-10 w-full h-full md:h-[90vh] md:max-h-[760px] md:aspect-[9/16] md:rounded-[2.5rem] md:border-8 md:border-[#202022] md:shadow-2xl bg-black overflow-hidden flex flex-col">
+        
+        {/* Top Status Bar Mockup (Only on desktop frames for premium detail) */}
+        <div className="hidden md:flex justify-between items-center px-6 py-2.5 bg-black/45 text-white/50 text-[10px] font-bold select-none shrink-0 z-30">
+          <span>12:45 PM</span>
+          <div className="flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-white/50" />
+            <span className="w-4 h-2 border border-white/50 rounded-sm relative flex items-center p-0.5">
+              <span className="h-full w-2.5 bg-white/70" />
+            </span>
           </div>
+        </div>
 
-          <div className="absolute right-4 top-4 z-20 flex gap-2">
-            {!isReshare || file ? (
-              <button
-                type="button"
-                onClick={() => { setFile(null); setPreviewUrl(''); }}
-                className="flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white shadow-lg backdrop-blur-md transition-all hover:bg-red-500"
-                aria-label="Remove media"
-              >
-                <Trash2 className="size-4" />
-              </button>
+        {/* Header / Top Tool Bar */}
+        <header className="p-4 flex items-center justify-between bg-black/45 backdrop-blur-sm z-30 border-b border-white/5 shrink-0">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="p-2 -ml-2 rounded-full hover:bg-white/10 text-white transition-colors" 
+            aria-label="Close editor"
+          >
+            <X className="size-5.5" />
+          </button>
+          
+          <div className="flex items-center gap-1">
+            {type === 'text' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setFontFamilyIndex(prev => (prev + 1) % TEXT_FONTS.length)}
+                  className="p-2 rounded-full hover:bg-white/10 text-white transition-colors"
+                  title="Change Font Style"
+                >
+                  <Type className="size-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGradientIndex(prev => (prev + 1) % TEXT_GRADIENTS.length)}
+                  className="p-2 rounded-full hover:bg-white/10 text-white transition-colors"
+                  title="Change Gradient"
+                >
+                  <Palette className="size-5" />
+                </button>
+              </>
+            ) : previewUrl ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => { setFile(null); setPreviewUrl(''); setVideoMeta(null); }}
+                  className="p-2 rounded-full hover:bg-white/10 text-red-400 hover:text-red-300 transition-colors"
+                  title="Remove Media"
+                >
+                  <Trash2 className="size-5" />
+                </button>
+                {type === 'video' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setMuted(prev => !prev)}
+                      className="p-2 rounded-full hover:bg-white/10 text-white transition-colors"
+                      title={muted ? "Unmute Preview" : "Mute Preview"}
+                    >
+                      {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowTrimmer(prev => !prev)}
+                      className={`p-2 rounded-full hover:bg-white/10 transition-colors ${showTrimmer ? 'text-[#20c763]' : 'text-white'}`}
+                      title="Trim Video"
+                    >
+                      <Scissors className="size-5" />
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setCropMode(prev => prev === 'crop' ? 'fit' : 'crop')}
+                  className={`p-2 rounded-full hover:bg-white/10 transition-colors ${cropMode === 'crop' ? 'text-[#20c763]' : 'text-white'}`}
+                  title={cropMode === 'crop' ? "Fit Full View" : "Crop to 9:16"}
+                >
+                  <Crop className="size-5" />
+                </button>
+              </>
             ) : (
-              <label className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/55 text-white shadow-lg backdrop-blur-md transition-all hover:bg-[var(--accent)]">
-                <input type="file" className="hidden" accept={type === 'image' ? 'image/*' : 'video/*'} onChange={handleFileChange} />
-                <ImageIcon className="size-4" />
-              </label>
+              <>
+                <button
+                  type="button"
+                  onClick={() => { setType('image'); setPreviewUrl(''); setFile(null); }}
+                  className={`p-2 rounded-full transition-colors ${type === 'image' ? 'text-[#20c763] bg-white/5' : 'text-white hover:bg-white/10'}`}
+                  title="Photo Mode"
+                >
+                  <ImageIcon className="size-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setType('video'); setPreviewUrl(''); setFile(null); }}
+                  className={`p-2 rounded-full transition-colors ${type === 'video' ? 'text-[#20c763] bg-white/5' : 'text-white hover:bg-white/10'}`}
+                  title="Video Mode"
+                >
+                  <Video className="size-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setType('text'); setPreviewUrl(''); setFile(null); }}
+                  className={`p-2 rounded-full transition-colors ${type === 'text' ? 'text-[#20c763] bg-white/5' : 'text-white hover:bg-white/10'}`}
+                  title="Text Mode"
+                >
+                  <Type className="size-5" />
+                </button>
+              </>
             )}
           </div>
+        </header>
 
-          <div className="absolute inset-x-4 bottom-4 z-20">
-            <div className="relative flex items-center rounded-2xl border border-white/15 bg-black/60 px-4 py-2.5 backdrop-blur-md">
-              <input
-                type="text"
-                value={caption}
-                onChange={e => setCaption(e.target.value.slice(0, 150))}
-                placeholder="Add context to your story..."
-                className="flex-1 border-none bg-transparent py-1 pr-10 text-xs font-semibold text-white outline-none placeholder:text-white/45"
-              />
-              <span className="absolute right-3 text-[10px] font-bold tabular-nums text-white/35">
-                {caption.length}/150
+        {/* WhatsApp-Style Top Inline Scrubber (Video Trimmer) */}
+        {type === 'video' && videoMeta && previewUrl && showTrimmer && (
+          <div className="px-4 py-3 border-b border-white/5 bg-black/60 backdrop-blur-sm z-30 shrink-0 select-none font-[Poppins]">
+            <div className="flex items-center justify-between mb-2 text-[10px] font-bold text-white/50 uppercase tracking-wider">
+              <span className="flex items-center gap-1">
+                <Scissors className="size-3 text-[#20c763]" />
+                <span>Trim: {formatSeconds(trimStart)} - {formatSeconds(trimEnd)}</span>
               </span>
+              <span>{selectedLength.toFixed(1)}s / {maxClip}s</span>
+            </div>
+            
+            {/* Scrubber track */}
+            <div 
+              ref={trimmerTrackRef}
+              onClick={handleTrackClick}
+              className="relative h-6 flex items-center cursor-pointer"
+            >
+              {/* Timeline background track */}
+              <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full" />
+              
+              {/* Highlight selection range */}
+              <div 
+                className="absolute h-1.5 bg-[#20c763] rounded-full"
+                style={{
+                  left: `${(trimStart / (videoMeta?.duration || 1)) * 100}%`,
+                  right: `${100 - (trimEnd / (videoMeta?.duration || 1)) * 100}%`
+                }}
+              />
+              
+              {/* Playhead line */}
+              <div 
+                className="absolute h-full w-0.5 bg-white z-10 pointer-events-none"
+                style={{ left: `${(currentTime / (videoMeta?.duration || 1)) * 100}%` }}
+              />
+              
+              {/* Start Handle */}
+              <div 
+                className="absolute size-4 rounded-full bg-[#20c763] border-2 border-white cursor-ew-resize z-20 shadow hover:scale-110 active:scale-95 transition-transform"
+                style={{ left: `${(trimStart / (videoMeta?.duration || 1)) * 100}%`, transform: 'translateX(-50%)' }}
+                onMouseDown={(e) => startDrag(e, 'start')}
+                onTouchStart={(e) => startDrag(e, 'start')}
+              />
+              
+              {/* End Handle */}
+              <div 
+                className="absolute size-4 rounded-full bg-[#20c763] border-2 border-white cursor-ew-resize z-20 shadow hover:scale-110 active:scale-95 transition-transform"
+                style={{ left: `${(trimEnd / (videoMeta?.duration || 1)) * 100}%`, transform: 'translateX(-50%)' }}
+                onMouseDown={(e) => startDrag(e, 'end')}
+                onTouchStart={(e) => startDrag(e, 'end')}
+              />
             </div>
           </div>
-        </>
-      ) : type === 'text' ? (
-        <div 
-          className="absolute inset-0 flex select-none flex-col justify-between p-6 transition-all duration-300"
-          style={TEXT_GRADIENTS[gradientIndex].style}
-        >
-          <button
-            type="button"
-            onClick={() => setGradientIndex((prev) => (prev + 1) % TEXT_GRADIENTS.length)}
-            className="absolute right-4 top-4 z-20 flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white backdrop-blur-md transition-all hover:scale-105 active:scale-95"
-            title="Change background gradient"
-          >
-            <Palette className="size-4" />
-          </button>
+        )}
 
-          <div className="flex flex-1 items-center justify-center">
-            <textarea
-              value={textContent}
-              onChange={e => setTextContent(e.target.value)}
-              placeholder="Type your message..."
-              className="max-h-[70%] w-full resize-none bg-transparent text-center text-xl font-black leading-relaxed text-white outline-none placeholder:text-white/25 md:text-2xl"
-              maxLength={300}
-            />
-          </div>
-          <span className="text-center text-[10px] font-black tracking-wider text-white/45">{textContent.length} / 300</span>
-        </div>
-      ) : (
-        <label className="absolute inset-0 flex cursor-pointer flex-col items-center justify-center gap-4 border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)] px-6 text-center transition-all hover:border-[var(--accent)]">
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept={type === 'image' ? 'image/*' : 'video/*'} />
-          <div className="flex size-16 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-md transition-transform group-hover:scale-105">
-            {type === 'image' ? <ImageIcon className="size-6 text-[var(--accent)]" /> : <Video className="size-6 text-[var(--accent)]" />}
-          </div>
-          <div>
-            <p className="text-sm font-black text-[var(--text-primary)]">Upload {type === 'image' ? 'Image' : 'Video'}</p>
-            <p className="mt-1 text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">
-              Max {type === 'image' ? '8MB' : '500MB source - optimized to 30s'}
-            </p>
-          </div>
-        </label>
-      )}
-    </div>
-  );
-
-  const videoPostOptions = isLongVideo ? (
-    <div className="space-y-3 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--accent)]">
-            Long Video
-          </p>
-          <p className="mt-1 text-xs font-semibold text-[var(--text-secondary)]">
-            {formatSeconds(videoMeta.duration)} total - {videoSegments.length} story parts at up to {STATUS_VIDEO_MAX_SECONDS}s each
-          </p>
-        </div>
-        <span className="rounded-full border border-[var(--accent)]/20 bg-[var(--accent)]/10 px-3 py-1 text-[10px] font-black text-[var(--accent)]">
-          WhatsApp-style
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        {VIDEO_POST_MODES.map((mode) => {
-          const Icon = mode.icon;
-          const active = videoPostMode === mode.id;
-          return (
-            <button
-              key={mode.id}
-              type="button"
-              onClick={() => setVideoPostMode(mode.id)}
-              className={`rounded-2xl border p-3 text-left transition-all ${
-                active
-                  ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--text-primary)]'
-                  : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/75 text-[var(--text-secondary)] hover:border-[var(--accent)]/35'
-              }`}
-            >
-              <span className="flex items-center gap-2 text-xs font-black">
-                <Icon className="size-4 text-[var(--accent)]" />
-                {mode.label}
-              </span>
-              <span className="mt-1 block text-[10px] font-semibold leading-snug opacity-75">
-                {mode.id === 'split' ? `${videoSegments.length} separate updates` : selectedClipLabel}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  ) : null;
-
-  const metadataOptions = (
-    <div className="space-y-5">
-      <div className="space-y-2.5">
-        <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)]">
-          <Clock className="size-3 text-[var(--accent)]" /> Story Duration
-        </label>
-        <div className="grid grid-cols-3 gap-2">
-          {DURATION_OPTIONS.map(opt => {
-            const active = expiryDays === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setExpiryDays(opt.value)}
-                className={`relative min-h-[70px] rounded-2xl border p-3 text-left transition-all ${
-                  active
-                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 shadow-sm shadow-[var(--accent)]/10'
-                    : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/75 hover:border-[var(--accent)]/35'
-                }`}
-              >
-                {opt.recommended && (
-                  <span className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-amber-500 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow">
-                    Best
-                  </span>
-                )}
-                <div>
-                  <p className={`text-xs font-black ${active ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
-                    {opt.label}
-                  </p>
-                  <p className="text-[10px] font-semibold text-[var(--text-secondary)] mt-0.5 leading-none">
-                    {opt.description}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <label className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)]">Category</label>
-          {!selectedCategory && <span className="text-[10px] font-bold text-red-400">Required</span>}
-        </div>
-        <div className="grid max-h-[176px] grid-cols-2 gap-2 overflow-y-auto rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/55 p-2 no-scrollbar sm:grid-cols-3">
-          {STATUS_CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setSelectedCategory(cat)}
-              className={`min-h-10 rounded-xl border px-2 py-2 text-center text-[11px] font-black leading-tight transition-all ${
-                selectedCategory === cat
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                  : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)]'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2.5">
-        <label className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)]">Caption</label>
-        <div className="relative">
-          <textarea
-            value={caption}
-            onChange={e => setCaption(e.target.value)}
-            placeholder="Add context to your story..."
-            className="h-20 w-full resize-none rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-3 text-xs font-semibold text-[var(--text-primary)] outline-none transition-all placeholder:opacity-35 focus:border-[var(--accent)]"
-            maxLength={150}
-          />
-          <span className="absolute bottom-2.5 right-3 text-[10px] font-bold tabular-nums opacity-35">{caption.length}/150</span>
-        </div>
-      </div>
-
-      <div className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <label className="text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)] flex items-center gap-1.5">
-            <ShoppingBag className="size-3.5 text-[var(--accent)]" /> Tag Product
-          </label>
-          <span className="text-[10px] font-semibold text-[var(--accent)] opacity-70">Optional</span>
-        </div>
-
-        {linkedProduct ? (
-          <div className="p-3 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="size-10 rounded-xl overflow-hidden border border-[var(--glass-border)] shrink-0">
-                <img src={typeof linkedProduct.images?.[0] === 'string' ? linkedProduct.images[0] : linkedProduct.images?.[0]?.url} className="size-full object-cover" alt="" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-[var(--text-primary)] truncate">{linkedProduct.name}</p>
-                <p className="text-[10px] font-semibold text-[var(--accent)] mt-0.5">{linkedProduct.price?.toLocaleString()} XAF</p>
-              </div>
-            </div>
-            <button type="button" onClick={() => setLinkedProduct(null)} className="size-8 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 transition-all shrink-0">
-              <Trash2 className="size-3.5" />
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <div className="relative">
-              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 opacity-30">
-                <Search className="size-3.5" />
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Search your products..."
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-9 pr-4 text-xs font-semibold focus:border-[var(--accent)] outline-none transition-all text-[var(--text-primary)]"
-              />
-              {searchTerm && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 max-h-40 overflow-y-auto bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl shadow-2xl z-50 p-1 space-y-0.5">
-                  {filteredProducts.length > 0 ? filteredProducts.map(p => (
-                    <button
-                      key={p._id}
-                      type="button"
-                      onClick={() => { setLinkedProduct(p); setSearchTerm(''); }}
-                      className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-[var(--bg-secondary)] transition-all text-left"
-                    >
-                      <div className="size-8 rounded-lg overflow-hidden border border-[var(--glass-border)] shrink-0">
-                        <img src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url} className="size-full object-cover" alt="" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-[var(--text-primary)] truncate">{p.name}</p>
-                        <p className="text-[10px] font-semibold text-[var(--accent)] mt-0.5">{p.price?.toLocaleString()} XAF</p>
-                      </div>
-                    </button>
-                  )) : (
-                    <div className="p-4 text-center text-xs opacity-40 font-bold">No products found</div>
-                  )}
+        {/* Central Workspace / Media Preview Container */}
+        <div className="flex-1 relative bg-[#09090b] flex items-center justify-center overflow-hidden">
+          {previewUrl ? (
+            <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+              {type === 'video' ? (
+                <video
+                  ref={previewVideoRef}
+                  src={previewUrl}
+                  className={`w-full h-full ${previewFitClass} z-10`}
+                  autoPlay
+                  muted={muted}
+                  loop
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={previewUrl}
+                  className={`w-full h-full ${previewFitClass} z-10`}
+                  alt="status preview"
+                />
+              )}
+              {/* Overlay shadow gradients to keep inputs/headers legible */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60 z-20 pointer-events-none" />
+              
+              {/* Floating Product Tag (If tagged) */}
+              {linkedProduct && (
+                <div className="absolute top-4 left-4 right-4 z-20 p-2.5 rounded-2xl border border-[#20c763]/25 bg-black/75 backdrop-blur-md flex items-center justify-between min-w-0 shadow-xl">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="size-9 rounded-xl overflow-hidden border border-white/10 bg-black shrink-0">
+                      <img src={typeof linkedProduct.images?.[0] === 'string' ? linkedProduct.images[0] : linkedProduct.images?.[0]?.url} className="size-full object-cover" alt="" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-white truncate">{linkedProduct.name}</p>
+                      <p className="text-[10px] font-black text-[#20c763] mt-0.5">{linkedProduct.price?.toLocaleString()} XAF</p>
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setLinkedProduct(null)} 
+                    className="size-7 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white flex items-center justify-center shrink-0 transition-colors"
+                  >
+                    <X className="size-3.5" />
+                  </button>
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-between px-1">
-              <span className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">Can't find your product?</span>
-              <a 
-                href="/vendor/products/add" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="text-[10px] font-bold text-[var(--accent)] hover:underline flex items-center gap-0.5 transition-all"
-              >
-                <Plus className="size-3" /> Add new product
-              </a>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const submitButton = (
-    <div className="space-y-3 shrink-0">
-      {loading && uploadPhase && (
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-[10px] font-extrabold text-[var(--text-secondary)] uppercase tracking-wider">
-            <span>{uploadPhase}</span>
-            {uploadProgress > 0 && <span className="tabular-nums">{uploadProgress}%</span>}
-          </div>
-          <div className="h-1 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
-            <div
-              className="h-full bg-[var(--accent)] transition-all duration-300"
-              style={{ width: `${Math.max(uploadProgress, uploadPhase ? 8 : 0)}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={handlePost}
-        disabled={loading || !canPost}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-xs font-black uppercase tracking-wider text-white shadow-lg transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-35"
-      >
-        {loading ? (
-          <>
-            <Loader2 className="size-4 animate-spin" />
-            <span>Publishing...</span>
-          </>
-        ) : (
-          <>
-            <Send className="size-3.5" />
-            <span>{isReshare ? 'Reshare Story' : 'Publish Story'}</span>
-          </>
-        )}
-      </button>
-    </div>
-  );
-
-  const mobileToolButtonClass = "flex size-14 items-center justify-center rounded-full bg-[#1d1d1f] text-white shadow-xl shadow-black/35 transition active:scale-95";
-  const statusTargetLabel = linkedProduct ? 'Status + product' : 'Status (4 excluded)';
-  const mediaDurationLabel = type === 'video' && videoMeta?.duration
-    ? `${formatSeconds(videoMeta.duration)} · ${file ? (file.size / (1024 * 1024)).toFixed(1) : '0.0'} MB`
-    : `${expiryDays}d · ${selectedCategory}`;
-  const previewFitClass = cropMode === 'crop' ? 'object-cover' : 'object-contain';
-
-  const mobilePreview = (
-    <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-0 lg:pr-[420px]">
-      {previewUrl ? (
-        <div className="relative w-full overflow-hidden bg-black" style={{ maxHeight: '48vh' }}>
-          {type === 'video' ? (
-            <video src={previewUrl} className={`mx-auto aspect-[9/16] max-h-[48vh] w-full ${previewFitClass}`} autoPlay muted={muted} loop playsInline />
-          ) : (
-            <img src={previewUrl} className={`mx-auto aspect-[9/16] max-h-[48vh] w-full ${previewFitClass}`} alt="status preview" />
-          )}
-          {type === 'video' && (
-            <button
-              type="button"
-              onClick={() => setMuted((prev) => !prev)}
-              className="absolute left-4 top-4 flex size-10 items-center justify-center rounded-xl bg-black/60 text-white backdrop-blur"
-              aria-label={muted ? 'Unmute video preview' : 'Mute video preview'}
+          ) : type === 'text' ? (
+            <div 
+              className="absolute inset-0 flex flex-col justify-center items-center p-6 text-center select-none transition-all duration-300"
+              style={TEXT_GRADIENTS[gradientIndex].style}
             >
-              {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
-            </button>
-          )}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/10" />
-        </div>
-      ) : type === 'text' ? (
-        <div
-          className="mx-6 flex aspect-[9/16] w-full max-w-[340px] flex-col justify-center rounded-2xl p-6 shadow-2xl"
-          style={TEXT_GRADIENTS[gradientIndex].style}
-        >
-          <textarea
-            value={textContent}
-            onChange={e => setTextContent(e.target.value)}
-            placeholder="Type a status"
-            className="max-h-[62vh] resize-none bg-transparent text-center text-3xl font-black leading-tight text-white outline-none placeholder:text-white/30"
-            maxLength={300}
-          />
-          <span className="mt-4 text-center text-[11px] font-bold text-white/55">{textContent.length}/300</span>
-        </div>
-      ) : (
-        <div className="mx-6 grid w-full max-w-[340px] gap-3">
-          <button type="button" onClick={() => imageInputRef.current?.click()} className="flex h-16 items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/8 text-sm font-bold text-white transition active:scale-[0.99]">
-            <ImageIcon className="size-5" />
-            Choose photo
-          </button>
-          <button type="button" onClick={() => videoInputRef.current?.click()} className="flex h-16 items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/8 text-sm font-bold text-white transition active:scale-[0.99]">
-            <Video className="size-5" />
-            Choose video
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setType('text');
-              setPreviewUrl('');
-              setFile(null);
-            }}
-            className="flex h-16 items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/8 text-sm font-bold text-white transition active:scale-[0.99]"
-          >
-            <Type className="size-5" />
-            Text status
-          </button>
-        </div>
-      )}
-    </div>
-  );
-
-  const mobileVideoPostOptions = type === 'video' && file ? (
-    <div className="space-y-3 rounded-3xl border border-white/10 bg-[#151517] p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#20c763]">Video tools</p>
-          <p className="mt-1 text-xs font-semibold text-white/55">
-            {videoMeta?.duration ? `${formatSeconds(videoMeta.duration)} total` : 'Ready to edit'} - max {STATUS_VIDEO_MAX_SECONDS}s per status
-          </p>
-        </div>
-        {isLongVideo && (
-          <span className="rounded-full border border-[#20c763]/20 bg-[#20c763]/10 px-3 py-1 text-[10px] font-black text-[#20c763]">
-            {videoSegments.length} parts
-          </span>
-        )}
-      </div>
-
-      {isLongVideo && (
-        <div className="grid gap-2 sm:grid-cols-2">
-          {VIDEO_POST_MODES.map((mode) => {
-            const Icon = mode.icon;
-            const active = videoPostMode === mode.id;
-            return (
-              <button
-                key={mode.id}
-                type="button"
-                onClick={() => setVideoPostMode(mode.id)}
-                className={`rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
-                  active
-                    ? 'border-[#20c763] bg-[#20c763]/12 text-white'
-                    : 'border-white/10 bg-white/8 text-white/70'
-                }`}
-              >
-                <span className="flex items-center gap-2 text-xs font-black">
-                  <Icon className="size-4 text-[#20c763]" />
-                  {mode.label}
-                </span>
-                <span className="mt-1 block text-[10px] font-semibold leading-snug opacity-75">
-                  {mode.id === 'split' ? `${videoSegments.length} separate updates` : selectedClipLabel}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="grid gap-2 sm:grid-cols-2">
-        {[
-          { id: 'crop', label: 'Crop 9:16', description: 'Fill the status frame' },
-          { id: 'fit', label: 'Fit full video', description: 'Keep full frame with bars' },
-        ].map((mode) => {
-          const active = cropMode === mode.id;
-          return (
-            <button
-              key={mode.id}
-              type="button"
-              onClick={() => setCropMode(mode.id)}
-              className={`rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
-                active
-                  ? 'border-[#20c763] bg-[#20c763]/12 text-white'
-                  : 'border-white/10 bg-white/8 text-white/70'
-              }`}
-            >
-              <span className="flex items-center gap-2 text-xs font-black">
-                <Crop className="size-4 text-[#20c763]" />
-                {mode.label}
-              </span>
-              <span className="mt-1 block text-[10px] font-semibold leading-snug opacity-75">{mode.description}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  ) : null;
-
-  const mobileSettingsOptions = (
-    <div className="space-y-5">
-      <div className="space-y-2.5">
-        <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-white/50">
-          <Clock className="size-3 text-[#20c763]" /> Story Duration
-        </label>
-        <div className="grid grid-cols-3 gap-2">
-          {DURATION_OPTIONS.map((opt) => {
-            const active = expiryDays === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setExpiryDays(opt.value)}
-                className={`relative min-h-[64px] rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
-                  active ? 'border-[#20c763] bg-[#20c763]/12 text-white' : 'border-white/10 bg-white/8 text-white/70'
-                }`}
-              >
-                {opt.recommended && (
-                  <span className="absolute -top-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-[#20c763] px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-black">
-                    Best
-                  </span>
-                )}
-                <p className="text-xs font-black">{opt.label}</p>
-                <p className="mt-0.5 text-[10px] font-semibold opacity-65">{opt.description}</p>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="space-y-2.5">
-        <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/50">Category</label>
-        <div className="grid max-h-44 grid-cols-2 gap-2 overflow-y-auto rounded-3xl border border-white/10 bg-black/30 p-2 no-scrollbar sm:grid-cols-3">
-          {STATUS_CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setSelectedCategory(cat)}
-              className={`min-h-10 rounded-2xl border px-2 py-2 text-center text-[11px] font-black leading-tight transition active:scale-[0.99] ${
-                selectedCategory === cat ? 'border-[#20c763] bg-[#20c763] text-black' : 'border-white/10 bg-white/8 text-white/75'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-2.5">
-        <label className="text-[10px] font-black uppercase tracking-[0.15em] text-white/50">Caption</label>
-        <div className="relative">
-          <textarea
-            value={caption}
-            onChange={e => setCaption(e.target.value.slice(0, 150))}
-            placeholder="Add a caption..."
-            className="h-20 w-full resize-none rounded-3xl border border-white/10 bg-white/8 p-4 pr-14 text-sm font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#20c763]"
-            maxLength={150}
-          />
-          <span className="absolute bottom-3 right-4 text-[10px] font-bold tabular-nums text-white/35">{caption.length}/150</span>
-        </div>
-      </div>
-
-      <div className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-white/50">
-            <ShoppingBag className="size-3.5 text-[#20c763]" /> Tag Product
-          </label>
-          <span className="text-[10px] font-semibold text-white/35">Optional</span>
-        </div>
-        {linkedProduct ? (
-          <div className="flex items-center justify-between gap-3 rounded-3xl border border-[#20c763]/25 bg-[#20c763]/8 p-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="size-11 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-black">
-                <img src={typeof linkedProduct.images?.[0] === 'string' ? linkedProduct.images[0] : linkedProduct.images?.[0]?.url} className="size-full object-cover" alt="" />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-xs font-black text-white">{linkedProduct.name}</p>
-                <p className="mt-0.5 text-[10px] font-semibold text-[#20c763]">{linkedProduct.price?.toLocaleString()} XAF</p>
-              </div>
-            </div>
-            <button type="button" onClick={() => setLinkedProduct(null)} className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white">
-              <Trash2 className="size-4" />
-            </button>
-          </div>
-        ) : (
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-white/35" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Search your products..."
-              className="h-12 w-full rounded-3xl border border-white/10 bg-white/8 pl-11 pr-4 text-sm font-semibold text-white outline-none placeholder:text-white/35 focus:border-[#20c763]"
-            />
-            {searchTerm && (
-              <div className="absolute inset-x-0 top-full z-50 mt-2 max-h-48 overflow-y-auto rounded-3xl border border-white/10 bg-[#151517] p-2 shadow-2xl no-scrollbar">
-                {filteredProducts.length > 0 ? filteredProducts.map((p) => (
-                  <button
-                    key={p._id}
-                    type="button"
-                    onClick={() => { setLinkedProduct(p); setSearchTerm(''); }}
-                    className="flex w-full items-center gap-3 rounded-2xl p-2 text-left transition hover:bg-white/8"
-                  >
-                    <div className="size-10 shrink-0 overflow-hidden rounded-xl bg-black">
-                      <img src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url} className="size-full object-cover" alt="" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-black text-white">{p.name}</p>
-                      <p className="mt-0.5 text-[10px] font-semibold text-[#20c763]">{p.price?.toLocaleString()} XAF</p>
-                    </div>
-                  </button>
-                )) : (
-                  <div className="p-4 text-center text-xs font-bold text-white/40">No products found</div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  const mobileDetailsSheet = (
-    <AnimatePresence>
-      {showDetails && (
-        <motion.div
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
-          transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-          className="absolute inset-x-0 bottom-0 z-40 max-h-[76vh] overflow-y-auto rounded-t-[2rem] border border-white/10 bg-[#111113] p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] text-white shadow-2xl no-scrollbar lg:hidden"
-        >
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-400">Status settings</p>
-              <h2 className="text-base font-black">Audience and details</h2>
-            </div>
-            <button type="button" onClick={() => setShowDetails(false)} className="flex size-10 items-center justify-center rounded-full bg-white/10" aria-label="Close status settings">
-              <X className="size-5" />
-            </button>
-          </div>
-          <div className="space-y-4">
-            {mobileVideoPostOptions}
-            {type === 'video' && videoMeta && previewUrl && (
-              <StatusVideoTrimmer
-                previewUrl={previewUrl}
-                duration={videoMeta.duration}
-                fileSize={file?.size || 0}
-                trimStart={trimStart}
-                trimEnd={trimEnd}
-                onTrimStartChange={setTrimStart}
-                onTrimEndChange={setTrimEnd}
-                onEditingChange={setEditingVideo}
+              <textarea
+                value={textContent}
+                onChange={e => setTextContent(e.target.value)}
+                placeholder="Type a status"
+                className={`w-full max-h-[50%] resize-none bg-transparent text-center text-2xl md:text-3xl leading-relaxed text-white outline-none placeholder:text-white/30 border-0 focus:ring-0 focus:border-0 ${TEXT_FONTS[fontFamilyIndex].className}`}
+                maxLength={300}
               />
+              <span className="text-[10px] font-bold tracking-wider text-white/40 font-mono mt-4">
+                {textContent.length} / 300
+              </span>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-6">
+              <div className="size-16 rounded-3xl bg-gradient-to-br from-[#20c763]/20 to-[#00a884]/5 flex items-center justify-center text-[#20c763] border border-[#20c763]/25 shadow-lg shadow-[#20c763]/5">
+                {type === 'image' ? <ImageIcon className="size-8" /> : <Video className="size-8" />}
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Create a {type === 'image' ? 'photo' : 'video'} status</h3>
+                <p className="text-xs text-white/55 mt-1 max-w-[240px] mx-auto leading-relaxed">
+                  Choose a local {type === 'image' ? 'image' : 'video file'} to edit and share with your audience
+                </p>
+              </div>
+              
+              <div className="w-full max-w-[240px] space-y-2">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (type === 'image') imageInputRef.current?.click();
+                    else videoInputRef.current?.click();
+                  }}
+                  className="w-full py-3 px-4 rounded-2xl bg-[#00a884] text-black text-xs font-black uppercase tracking-wider shadow-lg active:scale-98 transition-all hover:brightness-105"
+                >
+                  Choose {type === 'image' ? 'Photo' : 'Video'}
+                </button>
+                
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setType('text');
+                    setPreviewUrl('');
+                    setFile(null);
+                  }}
+                  className="w-full py-3 px-4 rounded-2xl border border-white/10 bg-white/5 text-white text-xs font-bold transition-all hover:bg-white/10"
+                >
+                  Or type text status
+                </button>
+              </div>
+              
+              <input 
+                ref={imageInputRef} 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={(e) => handleFileChange(e, 'image')} 
+              />
+              <input 
+                ref={videoInputRef} 
+                type="file" 
+                accept="video/*" 
+                className="hidden" 
+                onChange={(e) => handleFileChange(e, 'video')} 
+              />
+            </div>
+          )}
+
+          {/* Inline Product Picker Sheet inside Mockup */}
+          <AnimatePresence>
+            {showProductPicker && (
+              <>
+                <div className="absolute inset-0 bg-black/55 z-40" onClick={() => setShowProductPicker(false)} />
+                <motion.div
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%' }}
+                  transition={{ type: 'spring', damping: 26, stiffness: 240 }}
+                  className="absolute inset-x-0 bottom-0 z-50 bg-[#121214] border-t border-white/10 rounded-t-[2rem] p-4 max-h-[60%] flex flex-col"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <div>
+                      <p className="text-[9px] font-bold text-[#20c763] uppercase tracking-wider">AuraMarket Catalog</p>
+                      <h3 className="text-xs font-bold text-white mt-0.5">Tag a Product</h3>
+                    </div>
+                    <button type="button" onClick={() => setShowProductPicker(false)} className="size-8 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white flex items-center justify-center">
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="mt-3 flex-1 overflow-y-auto space-y-3 pr-1 no-scrollbar text-white">
+                    {linkedProduct ? (
+                      <div className="p-3 rounded-2xl border border-[#20c763]/30 bg-[#20c763]/5 flex items-center justify-between">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="size-10 rounded-xl overflow-hidden border border-white/10 bg-black shrink-0">
+                            <img src={typeof linkedProduct.images?.[0] === 'string' ? linkedProduct.images[0] : linkedProduct.images?.[0]?.url} className="size-full object-cover" alt="" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white truncate">{linkedProduct.name}</p>
+                            <p className="text-[10px] font-black text-[#20c763] mt-0.5">{linkedProduct.price?.toLocaleString()} XAF</p>
+                          </div>
+                        </div>
+                        <button type="button" onClick={() => setLinkedProduct(null)} className="size-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-red-500/10 hover:text-red-500 transition-colors shrink-0">
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-white/35" />
+                          <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            placeholder="Search your products..."
+                            className="h-10 w-full rounded-2xl border border-white/10 bg-white/8 pl-10 pr-4 text-xs font-semibold text-white outline-none focus:border-[#20c763] transition-all"
+                          />
+                        </div>
+                        <div className="space-y-1 max-h-48 overflow-y-auto no-scrollbar">
+                          {filteredProducts.length > 0 ? filteredProducts.map(p => (
+                            <button
+                              key={p._id}
+                              type="button"
+                              onClick={() => { setLinkedProduct(p); setSearchTerm(''); setShowProductPicker(false); }}
+                              className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 transition-all text-left"
+                            >
+                              <div className="size-9 rounded-lg overflow-hidden border border-white/10 bg-black shrink-0">
+                                <img src={typeof p.images?.[0] === 'string' ? p.images[0] : p.images?.[0]?.url} className="size-full object-cover" alt="" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-white truncate">{p.name}</p>
+                                <p className="text-[10px] font-black text-[#20c763] mt-0.5">{p.price?.toLocaleString()} XAF</p>
+                              </div>
+                            </button>
+                          )) : (
+                            <div className="p-6 text-center text-xs font-bold text-white/30">No products found</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </>
             )}
-            {mobileSettingsOptions}
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+          </AnimatePresence>
 
-  const integratedSettingsPanel = (
-    <aside className="absolute bottom-4 right-4 top-24 z-30 hidden w-[390px] overflow-y-auto rounded-[2rem] border border-white/10 bg-[#0f0f11]/92 p-4 text-white shadow-2xl backdrop-blur-xl no-scrollbar lg:block">
-      <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b border-white/10 bg-[#0f0f11]/95 px-4 py-4 backdrop-blur-xl">
-        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#20c763]">Status settings</p>
-        <h2 className="text-base font-black">Edit before posting</h2>
-      </div>
-      <div className="space-y-4">
-        {mobileVideoPostOptions}
-        {type === 'video' && videoMeta && previewUrl && (
-          <StatusVideoTrimmer
-            previewUrl={previewUrl}
-            duration={videoMeta.duration}
-            fileSize={file?.size || 0}
-            trimStart={trimStart}
-            trimEnd={trimEnd}
-            onTrimStartChange={setTrimStart}
-            onTrimEndChange={setTrimEnd}
-            onEditingChange={setEditingVideo}
-          />
-        )}
-        {mobileSettingsOptions}
-      </div>
-    </aside>
-  );
+          {/* Inline Settings Picker Sheet inside Mockup */}
+          <AnimatePresence>
+            {showSettingsPicker && (
+              <>
+                <div className="absolute inset-0 bg-black/55 z-40" onClick={() => setShowSettingsPicker(false)} />
+                <motion.div
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%' }}
+                  transition={{ type: 'spring', damping: 26, stiffness: 240 }}
+                  className="absolute inset-x-0 bottom-0 z-50 bg-[#121214] border-t border-white/10 rounded-t-[2rem] p-4 max-h-[70%] flex flex-col no-scrollbar text-white"
+                >
+                  <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                    <div>
+                      <p className="text-[9px] font-bold text-[#20c763] uppercase tracking-wider">Configure Story</p>
+                      <h3 className="text-xs font-bold text-white mt-0.5">Status Details</h3>
+                    </div>
+                    <button type="button" onClick={() => setShowSettingsPicker(false)} className="size-8 rounded-full bg-white/5 hover:bg-white/10 text-white/70 hover:text-white flex items-center justify-center">
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="mt-4 flex-1 overflow-y-auto space-y-4 pr-1 no-scrollbar">
+                    {/* Duration Select */}
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-white/40">Story Duration</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {DURATION_OPTIONS.map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setExpiryDays(opt.value)}
+                            className={`p-2.5 rounded-xl border text-left transition-all ${
+                              expiryDays === opt.value
+                                ? 'border-[#20c763] bg-[#20c763]/10 text-white shadow-md shadow-[#20c763]/5'
+                                : 'border-white/5 bg-white/5 text-white/60 hover:border-white/10'
+                            }`}
+                          >
+                            <p className="text-xs font-bold">{opt.label}</p>
+                            <p className="text-[8px] opacity-50 mt-0.5 leading-none">{opt.description}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-  const mobileLayout = (
-    <div className="fixed inset-0 z-[1100] flex flex-col overflow-hidden bg-black text-white">
-      <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={(event) => { setType('image'); handleFileChange(event, 'image'); }} />
-      <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={(event) => { setType('video'); handleFileChange(event, 'video'); }} />
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-28 bg-gradient-to-b from-black via-black/85 to-transparent" />
+                    {/* Category Select */}
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-bold uppercase tracking-wider text-white/40">Category</label>
+                      <div className="grid grid-cols-3 gap-1.5 max-h-36 overflow-y-auto no-scrollbar">
+                        {STATUS_CATEGORIES.map(cat => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setSelectedCategory(cat)}
+                            className={`py-2 px-1 rounded-xl border text-center text-[10px] font-bold transition-all truncate ${
+                              selectedCategory === cat
+                                ? 'border-[#20c763] bg-[#20c763] text-black'
+                                : 'border-white/5 bg-white/5 text-white/60 hover:border-white/10'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    {/* Long Video options (Split/Trim) */}
+                    {isLongVideo && (
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-bold uppercase tracking-wider text-white/40">Splitting Options</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {VIDEO_POST_MODES.map((mode) => {
+                            const Icon = mode.icon;
+                            const active = videoPostMode === mode.id;
+                            return (
+                              <button
+                                key={mode.id}
+                                type="button"
+                                onClick={() => setVideoPostMode(mode.id)}
+                                className={`p-2.5 rounded-xl border text-left transition-all ${
+                                  active
+                                    ? 'border-[#20c763] bg-[#20c763]/10 text-white'
+                                    : 'border-white/5 bg-white/5 text-white/60 hover:border-white/10'
+                                }`}
+                              >
+                                <span className="flex items-center gap-1.5 text-xs font-bold">
+                                  <Icon className="size-3.5 text-[#20c763]" />
+                                  {mode.label}
+                                </span>
+                                <span className="mt-0.5 block text-[8px] opacity-50">
+                                  {mode.id === 'split' ? `${videoSegments.length} parts` : selectedClipLabel}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
 
-      <div className="relative z-20 flex shrink-0 items-center gap-3 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-        <button type="button" onClick={onClose} className={mobileToolButtonClass} aria-label="Close status editor">
-          <X className="size-7" />
-        </button>
-        <div className="ml-auto flex items-center gap-2">
-          {[
-            { label: 'Add music', icon: Music, action: () => setMuted((prev) => !prev), active: !muted },
-            { label: 'Trim and crop', icon: Crop, action: () => setShowDetails(true), active: showDetails || cropMode === 'crop' },
-            { label: 'Tag product', icon: Sticker, action: () => setShowDetails(true), active: !!linkedProduct },
-            {
-              label: 'Text status',
-              icon: Type,
-              action: () => {
-                setType('text');
-                if (!isReshare) {
-                  setPreviewUrl('');
-                  setFile(null);
-                }
-              },
-              active: type === 'text',
-            },
-            { label: 'Edit caption', icon: Pencil, action: () => captionInputRef.current?.focus(), active: false },
-          ].map(({ label, icon: Icon, action, active }) => (
-            <button key={label} type="button" onClick={action} className={`${mobileToolButtonClass} ${active ? 'ring-2 ring-emerald-400' : ''}`} aria-label={label} title={label}>
-              <Icon className="size-6" />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {previewUrl && (
-        <div className="relative z-20 mt-8 shrink-0 px-3">
-          <div className="flex h-12 items-center overflow-hidden rounded-sm bg-white/75">
-            <button type="button" onClick={() => { setFile(null); setPreviewUrl(''); setVideoMeta(null); }} className="flex h-full w-8 items-center justify-center bg-yellow-400 text-black" aria-label="Replace media">
-              <ChevronUp className="-rotate-90 size-5" />
-            </button>
-            <div className="h-full w-16 overflow-hidden border-4 border-yellow-400 bg-black">
-              {type === 'video' ? <video src={previewUrl} muted className="size-full object-cover" /> : <img src={previewUrl} className="size-full object-cover" alt="" />}
-            </div>
-            <div className="flex h-full flex-1 gap-1 overflow-hidden px-1 opacity-40">
-              {Array.from({ length: 12 }).map((_, index) => (
-                <div key={index} className="h-full min-w-10 overflow-hidden bg-black">
-                  {type === 'video' ? <video src={previewUrl} muted className="size-full object-cover" /> : <img src={previewUrl} className="size-full object-cover" alt="" />}
+          {/* Full Screen Loading Overlay inside Mockup */}
+          {loading && uploadPhase && (
+            <div className="absolute inset-0 bg-black/85 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center">
+              <Loader2 className="size-10 text-[#20c763] animate-spin mb-4" />
+              <p className="text-xs font-bold text-white tracking-wide uppercase mb-2">{uploadPhase}</p>
+              {uploadProgress > 0 && (
+                <div className="w-full max-w-[200px]">
+                  <div className="flex justify-between text-[9px] font-bold text-white/50 mb-1">
+                    <span>Uploading</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+                    <div className="h-full bg-[#20c763] transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
-            <button type="button" onClick={() => setShowDetails(true)} className="flex h-full w-8 items-center justify-center bg-yellow-400 text-black" aria-label="Open trim settings">
-              <ChevronUp className="rotate-90 size-5" />
-            </button>
-          </div>
-          <div className="mt-7 flex items-center gap-3">
-            <button type="button" onClick={() => setMuted((prev) => !prev)} className="flex size-12 items-center justify-center rounded-xl bg-[#202124] text-white" aria-label={muted ? 'Unmute status' : 'Mute status'}>
-              {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
-            </button>
-            <button type="button" onClick={() => setShowDetails(true)} className="rounded-xl bg-[#202124] px-4 py-3 text-sm font-medium text-white">
-              {mediaDurationLabel}
-            </button>
-          </div>
+          )}
         </div>
-      )}
 
-      {mobilePreview}
+        {/* Bottom Tool Bar / Input Capsule */}
+        <div className="p-4 flex items-center gap-3 bg-black/45 backdrop-blur-sm z-30 shrink-0">
+          {type === 'text' ? (
+            <>
+              {/* Text Mode Bottom bar */}
+              <button 
+                type="button" 
+                onClick={() => setShowSettingsPicker(true)} 
+                className="flex items-center gap-1.5 rounded-full bg-[#1f2c34] px-4 py-2.5 border border-white/5 text-xs text-white/80 hover:bg-[#2a3942] transition-colors"
+              >
+                <Clock className="size-3.5 text-[#20c763]" />
+                <span>{selectedCategory} · {expiryDays}d</span>
+              </button>
+              
+              <button 
+                type="button" 
+                onClick={() => setShowProductPicker(true)} 
+                className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 border text-xs transition-colors ${
+                  linkedProduct 
+                    ? 'bg-[#20c763]/10 border-[#20c763]/30 text-[#20c763]' 
+                    : 'bg-[#1f2c34] border-white/5 text-white/80 hover:bg-[#2a3942]'
+                }`}
+              >
+                <Sticker className="size-3.5" />
+                <span>{linkedProduct ? 'Product Tagged' : 'Tag Product'}</span>
+              </button>
 
-      <div className="relative z-20 flex shrink-0 flex-col gap-5 px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] lg:pr-[440px]">
+              <button 
+                type="button" 
+                onClick={handlePost} 
+                disabled={loading || !canPost} 
+                className="ml-auto size-11 rounded-full bg-[#00a884] text-black flex items-center justify-center shadow-lg active:scale-95 transition-all disabled:opacity-40"
+                aria-label="Send status"
+              >
+                {loading ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5 ml-0.5 fill-black" />}
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Media Mode Bottom bar (WhatsApp rounded Capsule) */}
+              <div className="flex-1 flex items-center bg-[#1f2c34] border border-white/5 rounded-full px-3 py-1.5 min-w-0">
+                <button 
+                  type="button" 
+                  onClick={() => setShowProductPicker(true)} 
+                  className={`p-1.5 rounded-full hover:bg-white/5 transition-colors shrink-0 ${linkedProduct ? 'text-[#20c763]' : 'text-white/60'}`}
+                  title="Tag Product"
+                >
+                  <Sticker className="size-5" />
+                </button>
+                
+                <input 
+                  ref={captionInputRef} 
+                  value={caption} 
+                  onChange={e => setCaption(e.target.value.slice(0, 150))} 
+                  placeholder="Add a caption..." 
+                  className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-white/40 focus:ring-0 px-2 py-1" 
+                />
+                
+                <button 
+                  type="button" 
+                  onClick={() => setShowSettingsPicker(true)} 
+                  className="p-1.5 rounded-full hover:bg-white/5 text-white/60 transition-colors shrink-0"
+                  title="Status Settings"
+                >
+                  <Clock className="size-5" />
+                </button>
+              </div>
+
+              <button 
+                type="button" 
+                onClick={handlePost} 
+                disabled={loading || !canPost} 
+                className="size-11 rounded-full bg-[#00a884] text-black flex items-center justify-center shadow-lg active:scale-95 transition-all disabled:opacity-40 shrink-0"
+                aria-label="Send status"
+              >
+                {loading ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5 ml-0.5 fill-black" />}
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Display Error bar if exists */}
         {error && (
-          <div className="flex items-center gap-2 rounded-xl border border-red-400/25 bg-red-500/15 px-3 py-2 text-xs font-semibold text-red-100">
-            <AlertCircle className="size-4 shrink-0" />
+          <div className="absolute top-16 left-4 right-4 z-40 flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 shadow-lg shrink-0">
+            <AlertCircle className="size-4 shrink-0 text-red-400" />
             <span>{error}</span>
           </div>
         )}
-        <div className="flex flex-col items-center gap-1 text-center text-sm font-medium text-white/90 lg:hidden">
-          <ChevronUp className="size-5" />
-          <span>Swipe up for filters</span>
-        </div>
-        <div className="flex h-16 items-center gap-3 rounded-full border border-white/20 bg-black/55 px-4 backdrop-blur">
-          <button type="button" onClick={() => setShowDetails(true)} className="flex size-9 items-center justify-center rounded-full text-white" aria-label="Attach product">
-            <Sticker className="size-6" />
-          </button>
-          <input ref={captionInputRef} value={caption} onChange={e => setCaption(e.target.value.slice(0, 150))} placeholder="Add a caption..." className="min-w-0 flex-1 border-0 bg-transparent text-base font-medium text-white outline-none placeholder:text-white/75" />
-          <button type="button" onClick={() => setShowDetails(true)} className="flex size-9 items-center justify-center rounded-full text-white" aria-label="Mention or tag">
-            <AtSign className="size-7" />
-          </button>
-        </div>
-        <div className="flex items-center gap-3">
-          <button type="button" onClick={() => setShowDetails(true)} className="flex min-w-0 items-center gap-2 rounded-xl bg-[#1f1f21] px-4 py-3 text-sm font-semibold text-white">
-            <Repeat2 className="size-5" />
-            <span className="truncate">{statusTargetLabel}</span>
-            <Plus className="size-5" />
-            <Repeat2 className="size-5" />
-          </button>
-          <button type="button" onClick={handlePost} disabled={loading || !canPost} className="ml-auto flex size-14 items-center justify-center rounded-full bg-[#20c763] text-black shadow-lg transition active:scale-95 disabled:opacity-40" aria-label={isReshare ? 'Reshare status' : 'Post status'}>
-            {loading ? <Loader2 className="size-6 animate-spin" /> : <Send className="ml-1 size-7 fill-black" />}
-          </button>
-        </div>
-        {loading && uploadPhase && (
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-white/75">
-              <span>{uploadPhase}</span>
-              {uploadProgress > 0 && <span>{uploadProgress}%</span>}
-            </div>
-            <div className="h-1 overflow-hidden rounded-full bg-white/15">
-              <div className="h-full bg-[#20c763] transition-all duration-300" style={{ width: `${Math.max(uploadProgress, uploadPhase ? 8 : 0)}%` }} />
-            </div>
-          </div>
-        )}
       </div>
-
-      {integratedSettingsPanel}
-      {mobileDetailsSheet}
-    </div>
-  );
-
-  const desktopLayout = (
-    <div
-      className="fixed inset-0 z-[1100] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-    >
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/80 backdrop-blur-md"
-        onClick={onClose}
-      />
-
-      {/* Modal */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.96 }}
-        className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-[var(--bg-primary)] shadow-2xl"
-      >
-        <div className="flex shrink-0 items-center justify-between border-b border-[var(--glass-border)] px-7 py-5">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--accent)]">Story Studio</p>
-            <h2 className="text-lg font-black text-[var(--text-primary)]">
-              {isReshare ? 'Reshare Story' : 'New Story'}
-            </h2>
-            {isReshare && (
-              <p className="mt-0.5 flex items-center gap-1 text-[10px] font-bold text-[var(--accent)] opacity-80">
-                <RotateCcw className="size-3" /> Reusing previous content - replace below if desired
-              </p>
-            )}
-          </div>
-          <button
-            onClick={onClose}
-            className="flex size-10 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition-all hover:bg-red-500/10 hover:text-red-500"
-            aria-label="Close story creator"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto no-scrollbar">
-          <div className="grid min-h-full grid-cols-1 gap-0 lg:grid-cols-[380px_1fr]">
-            <div className="flex flex-col gap-5 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/18 p-5 md:p-7 lg:border-b-0 lg:border-r">
-              {typeSelector}
-              
-              {previewFrame}
-
-              {error && (
-                <div className="flex items-center gap-2.5 rounded-2xl border border-red-500/20 bg-red-500/8 p-3 text-red-500">
-                  <AlertCircle className="size-4 shrink-0" />
-                  <p className="text-xs font-semibold">{error}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex max-h-[76vh] flex-col justify-between gap-6 overflow-y-auto p-5 no-scrollbar md:p-7">
-              {videoPostOptions}
-              {type === 'video' && videoMeta && previewUrl && (
-                <StatusVideoTrimmer
-                  previewUrl={previewUrl}
-                  duration={videoMeta.duration}
-                  fileSize={file?.size || 0}
-                  trimStart={trimStart}
-                  trimEnd={trimEnd}
-                  onTrimStartChange={setTrimStart}
-                  onTrimEndChange={setTrimEnd}
-                  onEditingChange={setEditingVideo}
-                />
-              )}
-              {metadataOptions}
-              <div className="pt-6 border-t border-[var(--glass-border)]">
-                {submitButton}
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.div>
     </div>
   );
 
   return createPortal(
-    mobileLayout,
+    layout,
     document.body
   );
 }

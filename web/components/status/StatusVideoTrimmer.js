@@ -30,6 +30,7 @@ export default function StatusVideoTrimmer({
   onTrimStartChange,
   onTrimEndChange,
   onEditingChange,
+  hideVideoPreview = false,
 }) {
   const videoRef = useRef(null);
   const animationRef = useRef(null);
@@ -134,55 +135,59 @@ export default function StatusVideoTrimmer({
 
   return (
     <div className="space-y-4 rounded-3xl border border-white/10 bg-[#151517] p-4 text-white shadow-sm md:p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-2xl border border-[#20c763]/25 bg-[#20c763]/10">
-            <Scissors className="size-5 text-[#20c763]" />
+      {!hideVideoPreview && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-2xl border border-[#20c763]/25 bg-[#20c763]/10">
+              <Scissors className="size-5 text-[#20c763]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-white">Trim Story Video</h3>
+              <p className="mt-0.5 text-[11px] font-semibold text-white/55">Max {maxClip}s - exports 9:16</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-black text-white">Trim Story Video</h3>
-            <p className="mt-0.5 text-[11px] font-semibold text-white/55">Max {maxClip}s - exports 9:16</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-wider ${
+              overMax ? 'border border-red-500/20 bg-red-500/15 text-red-300' :
+              atMax ? 'border border-amber-400/25 bg-amber-400/15 text-amber-300' :
+              'border border-[#20c763]/20 bg-[#20c763]/10 text-[#20c763]'
+            }`}>
+              <Maximize2 className="size-3.5" />
+              {selectedLength.toFixed(1)}s / {maxClip}s
+            </span>
+            <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-[11px] font-bold text-white/65">
+              <FileVideo className="size-3.5" />
+              {formatSize(fileSize)}
+            </span>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-black uppercase tracking-wider ${
-            overMax ? 'border border-red-500/20 bg-red-500/15 text-red-300' :
-            atMax ? 'border border-amber-400/25 bg-amber-400/15 text-amber-300' :
-            'border border-[#20c763]/20 bg-[#20c763]/10 text-[#20c763]'
-          }`}>
-            <Maximize2 className="size-3.5" />
-            {selectedLength.toFixed(1)}s / {maxClip}s
-          </span>
-          <span className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-[11px] font-bold text-white/65">
-            <FileVideo className="size-3.5" />
-            {formatSize(fileSize)}
-          </span>
-        </div>
-      </div>
+      )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[160px_1fr]">
-        <div className="relative mx-auto w-full max-w-[160px] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-xl lg:mx-0">
-          <video
-            ref={videoRef}
-            src={previewUrl}
-            className="aspect-[9/16] w-full object-cover"
-            playsInline
-            muted={false}
-            onPause={() => setPlaying(false)}
-            onPlay={() => setPlaying(true)}
-          />
-          <button
-            type="button"
-            onClick={togglePlayback}
-            className="absolute bottom-3 right-3 flex size-11 items-center justify-center rounded-full border border-white/25 bg-black/65 text-white shadow-xl backdrop-blur-xl transition-all active:scale-95"
-            aria-label={playing ? 'Pause trim preview' : 'Play trim preview'}
-          >
-            {playing ? <Pause className="size-5" /> : <Play className="ml-0.5 size-5" />}
-          </button>
-          <div className="absolute left-3 top-3 rounded-full border border-white/20 bg-black/65 px-3 py-1.5 shadow-lg backdrop-blur-xl">
-            <span className="font-mono text-[11px] font-bold text-white">{formatTime(currentTime)}</span>
+      <div className={hideVideoPreview ? "w-full" : "grid grid-cols-1 gap-4 lg:grid-cols-[160px_1fr]"}>
+        {!hideVideoPreview && (
+          <div className="relative mx-auto w-full max-w-[160px] overflow-hidden rounded-2xl border border-white/10 bg-black shadow-xl lg:mx-0">
+            <video
+              ref={videoRef}
+              src={previewUrl}
+              className="aspect-[9/16] w-full object-cover"
+              playsInline
+              muted={false}
+              onPause={() => setPlaying(false)}
+              onPlay={() => setPlaying(true)}
+            />
+            <button
+              type="button"
+              onClick={togglePlayback}
+              className="absolute bottom-3 right-3 flex size-11 items-center justify-center rounded-full border border-white/25 bg-black/65 text-white shadow-xl backdrop-blur-xl transition-all active:scale-95"
+              aria-label={playing ? 'Pause trim preview' : 'Play trim preview'}
+            >
+              {playing ? <Pause className="size-5" /> : <Play className="ml-0.5 size-5" />}
+            </button>
+            <div className="absolute left-3 top-3 rounded-full border border-white/20 bg-black/65 px-3 py-1.5 shadow-lg backdrop-blur-xl">
+              <span className="font-mono text-[11px] font-bold text-white">{formatTime(currentTime)}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex flex-col justify-center space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-white/60">
@@ -190,6 +195,15 @@ export default function StatusVideoTrimmer({
               <span className="font-black text-[#20c763]">Selection</span>
               <span className="font-mono">{timelineLabel}</span>
             </span>
+            {hideVideoPreview && (
+              <span className={`flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${
+                overMax ? 'bg-red-500/15 text-red-300' :
+                atMax ? 'bg-amber-400/15 text-amber-300' :
+                'bg-[#20c763]/10 text-[#20c763]'
+              }`}>
+                {selectedLength.toFixed(1)}s / {maxClip}s
+              </span>
+            )}
             <span className="font-mono">Total: {formatTime(safeDuration)}</span>
           </div>
 
