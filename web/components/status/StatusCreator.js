@@ -619,6 +619,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         }
       };
 
+      console.log('[StatusCreator] handlePost state check', {
+        type,
+        hasFile: !!file,
+        fileName: file?.name,
+        isReshare,
+        hasPreviewUrl: !!previewUrl,
+      });
+
       if (type !== 'text' && file) {
         if (file.type.startsWith('video/')) {
           const segments = videoPostMode === 'split'
@@ -645,6 +653,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 const progress = ((segment.index + (pct / 100)) / totalSegments) * 70;
                 setUploadProgress(Math.min(70, Math.round(progress)));
               },
+            });
+
+            console.log('[StatusCreator] Video prepared', {
+              segmentNumber,
+              mode: preparedVideo.mode,
+              hasUploadResult: !!preparedVideo.uploadResult,
+              uploadSuccess: preparedVideo.uploadResult?.success,
+              error: preparedVideo.uploadResult?.message,
             });
 
             let segmentUrl = '';
@@ -707,8 +723,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           setUploadPhase('Publishing story...');
           await publishStatus(createStatusPayload());
         }
-      } else if (type !== 'text' && !isReshare && !previewUrl) {
+      } else if (type !== 'text' && !isReshare && !previewUrl && !file) {
         throw new Error('Please select a file to upload');
+      } else if (type !== 'text' && !previewUrl && !file) {
+        // Video/image selected but not ready yet or upload didn't complete
+        throw new Error('Unable to prepare media. Please try again.');
       } else {
         await publishStatus(createStatusPayload());
       }
