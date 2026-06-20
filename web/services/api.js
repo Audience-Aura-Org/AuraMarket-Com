@@ -55,7 +55,8 @@ const api = axios.create({
   timeout: 300000, // Increased to 5 minutes for large file uploads (100MB)
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
+    // Don't set default Content-Type here - let axios auto-set based on request type
+    // (application/json for JSON, multipart/form-data for FormData)
   },
 });
 
@@ -223,14 +224,10 @@ api.interceptors.request.use(async (config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // If request data is FormData, do not force JSON content-type so axios
-    // can set the correct multipart boundary header. This ensures files
-    // are sent correctly and multer receives the fields.
-    if (config.data instanceof FormData) {
-      // Remove Content-Type if present so axios can auto-populate with boundary
-      if (config.headers && config.headers['Content-Type']) {
-        delete config.headers['Content-Type'];
-      }
+    // Set JSON content-type ONLY for non-FormData requests
+    // This allows axios to auto-set multipart/form-data with boundary for file uploads
+    if (!(config.data instanceof FormData)) {
+      config.headers['Content-Type'] = 'application/json';
     }
   }
   return config;
