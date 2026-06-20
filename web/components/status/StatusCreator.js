@@ -6,10 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Image as ImageIcon, Video, Type, 
   ShoppingBag, Trash2, Send, Loader2,
-  AlertCircle, Clock, Search,
+  AlertCircle, Search,
   Plus, Palette, SplitSquareHorizontal, Scissors,
   Crop, Sticker, Pencil, AtSign,
-  Volume2, VolumeX
+  Volume2, VolumeX, Tag, Sliders
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { uploadService } from '@/services/upload';
@@ -186,6 +186,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [showSettingsPicker, setShowSettingsPicker] = useState(false);
   const [showTrimmer, setShowTrimmer]   = useState(true);
   const [fontFamilyIndex, setFontFamilyIndex] = useState(1); // Default to Quicksand (index 1)
+  const [timelineFrames, setTimelineFrames] = useState([]);
 
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
@@ -268,6 +269,49 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
   }, []);
 
+  // Extraction of timeline frames from uploaded video file
+  const generateTimelineFrames = async (videoFile, duration) => {
+    if (!videoFile || !duration) return;
+    setTimelineFrames([]);
+    const objectUrl = URL.createObjectURL(videoFile);
+    const video = document.createElement('video');
+    video.src = objectUrl;
+    video.muted = true;
+    video.playsInline = true;
+    
+    try {
+      await new Promise((resolve) => {
+        video.onloadedmetadata = () => resolve();
+        video.onerror = () => resolve();
+      });
+      
+      const numFrames = 8;
+      const extracted = [];
+      const canvas = document.createElement('canvas');
+      canvas.width = 160;
+      canvas.height = 90;
+      const ctx = canvas.getContext('2d');
+      
+      for (let i = 0; i < numFrames; i++) {
+        const time = (i / (numFrames - 1)) * duration;
+        await new Promise((resolve) => {
+          video.onseeked = () => resolve();
+          video.onerror = () => resolve();
+          video.currentTime = time;
+        });
+        
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
+        extracted.push(dataUrl);
+      }
+      setTimelineFrames(extracted);
+    } catch (e) {
+      console.warn("Failed to generate timeline frames", e);
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  };
+
   const handleFileChange = async (e, nextType = type) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -293,6 +337,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             ? 'Video will be cropped to 9:16 and optimized before upload.'
             : null
         );
+        // Generate thumbnail strip frames!
+        generateTimelineFrames(f, meta.duration);
       } catch (err) {
         setError(err.message || 'Could not read video metadata.');
         return;
@@ -303,6 +349,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       setVideoMeta(null);
       setVideoPostMode('trim');
       setEditingVideo(false);
+      setTimelineFrames([]);
     }
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
@@ -474,10 +521,20 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       const newTime = Math.max(0, Math.min(duration, offsetPct * duration));
 
       if (handle === 'start') {
-        setTrimStart(Math.max(0, Math.min(newTime, trimEnd - 0.5)));
+        const nextStart = Math.max(0, Math.min(newTime, trimEnd - 0.5));
+        setTrimStart(nextStart);
+        // WhatsApp Mechanic: jump to current frame on drag
+        if (previewVideoRef.current) {
+          previewVideoRef.current.currentTime = nextStart;
+        }
       } else {
         const maxEnd = Math.min(duration, trimStart + STATUS_VIDEO_MAX_SECONDS);
-        setTrimEnd(Math.max(trimStart + 0.5, Math.min(newTime, maxEnd)));
+        const nextEnd = Math.max(trimStart + 0.5, Math.min(newTime, maxEnd));
+        setTrimEnd(nextEnd);
+        // WhatsApp Mechanic: jump to current frame on drag
+        if (previewVideoRef.current) {
+          previewVideoRef.current.currentTime = nextEnd;
+        }
       }
     };
 
@@ -585,7 +642,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               <>
                 <button
                   type="button"
-                  onClick={() => { setFile(null); setPreviewUrl(''); setVideoMeta(null); }}
+                  onClick={() => { setFile(null); setPreviewUrl(''); setVideoMeta(null); setTimelineFrames([]); }}
                   className="p-2 rounded-full hover:bg-white/10 text-red-400 hover:text-red-300 transition-colors"
                   title="Remove Media"
                 >
@@ -651,60 +708,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           </div>
         </header>
 
-        {/* WhatsApp-Style Top Inline Scrubber (Video Trimmer) */}
-        {type === 'video' && videoMeta && previewUrl && showTrimmer && (
-          <div className="px-4 py-3 border-b border-white/5 bg-black/60 backdrop-blur-sm z-30 shrink-0 select-none font-[Poppins]">
-            <div className="flex items-center justify-between mb-2 text-[10px] font-bold text-white/50 uppercase tracking-wider">
-              <span className="flex items-center gap-1">
-                <Scissors className="size-3 text-[#20c763]" />
-                <span>Trim: {formatSeconds(trimStart)} - {formatSeconds(trimEnd)}</span>
-              </span>
-              <span>{selectedLength.toFixed(1)}s / {maxClip}s</span>
-            </div>
-            
-            {/* Scrubber track */}
-            <div 
-              ref={trimmerTrackRef}
-              onClick={handleTrackClick}
-              className="relative h-6 flex items-center cursor-pointer"
-            >
-              {/* Timeline background track */}
-              <div className="absolute inset-x-0 h-1.5 bg-white/10 rounded-full" />
-              
-              {/* Highlight selection range */}
-              <div 
-                className="absolute h-1.5 bg-[#20c763] rounded-full"
-                style={{
-                  left: `${(trimStart / (videoMeta?.duration || 1)) * 100}%`,
-                  right: `${100 - (trimEnd / (videoMeta?.duration || 1)) * 100}%`
-                }}
-              />
-              
-              {/* Playhead line */}
-              <div 
-                className="absolute h-full w-0.5 bg-white z-10 pointer-events-none"
-                style={{ left: `${(currentTime / (videoMeta?.duration || 1)) * 100}%` }}
-              />
-              
-              {/* Start Handle */}
-              <div 
-                className="absolute size-4 rounded-full bg-[#20c763] border-2 border-white cursor-ew-resize z-20 shadow hover:scale-110 active:scale-95 transition-transform"
-                style={{ left: `${(trimStart / (videoMeta?.duration || 1)) * 100}%`, transform: 'translateX(-50%)' }}
-                onMouseDown={(e) => startDrag(e, 'start')}
-                onTouchStart={(e) => startDrag(e, 'start')}
-              />
-              
-              {/* End Handle */}
-              <div 
-                className="absolute size-4 rounded-full bg-[#20c763] border-2 border-white cursor-ew-resize z-20 shadow hover:scale-110 active:scale-95 transition-transform"
-                style={{ left: `${(trimEnd / (videoMeta?.duration || 1)) * 100}%`, transform: 'translateX(-50%)' }}
-                onMouseDown={(e) => startDrag(e, 'end')}
-                onTouchStart={(e) => startDrag(e, 'end')}
-              />
-            </div>
-          </div>
-        )}
-
         {/* Central Workspace / Media Preview Container */}
         <div className="flex-1 relative bg-[#09090b] flex items-center justify-center overflow-hidden">
           {previewUrl ? (
@@ -748,6 +751,84 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                   >
                     <X className="size-3.5" />
                   </button>
+                </div>
+              )}
+
+              {/* WhatsApp-Style bottom filmstrip trimmer timeline (Video only, overlaying at the bottom of the video preview screen) */}
+              {type === 'video' && videoMeta && previewUrl && showTrimmer && (
+                <div className="absolute bottom-4 left-4 right-4 z-30 select-none bg-black/60 p-2.5 rounded-2xl border border-white/10 backdrop-blur-md">
+                  <div className="flex items-center justify-between mb-2 text-[10px] font-bold text-white/60 uppercase tracking-wider">
+                    <span className="flex items-center gap-1">
+                      <Scissors className="size-3 text-[#20c763]" />
+                      <span>Trim Clip: {formatSeconds(trimStart)} - {formatSeconds(trimEnd)}</span>
+                    </span>
+                    <span>{selectedLength.toFixed(1)}s / {maxClip}s</span>
+                  </div>
+                  
+                  {/* filmstrip track */}
+                  <div 
+                    ref={trimmerTrackRef}
+                    onClick={handleTrackClick}
+                    className="relative h-12 flex items-center cursor-pointer rounded-lg overflow-hidden border border-white/20 bg-black/40"
+                  >
+                    {/* Thumbnail Frames Row */}
+                    <div className="absolute inset-0 flex overflow-hidden rounded-lg pointer-events-none opacity-45">
+                      {timelineFrames.length > 0 ? (
+                        timelineFrames.map((src, i) => (
+                          <img key={i} src={src} className="flex-1 h-full object-cover" alt="" />
+                        ))
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-r from-neutral-800 to-neutral-900" />
+                      )}
+                    </div>
+                    
+                    {/* Darkened mask: Left of selection */}
+                    <div 
+                      className="absolute left-0 top-0 bottom-0 bg-black/70 z-10 pointer-events-none border-y border-transparent"
+                      style={{ width: `${(trimStart / (videoMeta?.duration || 1)) * 100}%` }}
+                    />
+                    
+                    {/* Darkened mask: Right of selection */}
+                    <div 
+                      className="absolute right-0 top-0 bottom-0 bg-black/70 z-10 pointer-events-none border-y border-transparent"
+                      style={{ width: `${100 - (trimEnd / (videoMeta?.duration || 1)) * 100}%` }}
+                    />
+
+                    {/* Bright range window border */}
+                    <div 
+                      className="absolute top-0 bottom-0 border-y-2 border-[#20c763] pointer-events-none z-10"
+                      style={{
+                        left: `${(trimStart / (videoMeta?.duration || 1)) * 100}%`,
+                        right: `${100 - (trimEnd / (videoMeta?.duration || 1)) * 100}%`
+                      }}
+                    />
+                    
+                    {/* Playhead line */}
+                    <div 
+                      className="absolute h-full w-0.5 bg-white z-15 pointer-events-none shadow"
+                      style={{ left: `${(currentTime / (videoMeta?.duration || 1)) * 100}%` }}
+                    />
+                    
+                    {/* Left bracket handle */}
+                    <div 
+                      className="absolute top-0 bottom-0 w-3 bg-[#20c763] cursor-ew-resize z-20 flex items-center justify-center rounded-l-md shadow-md border-r border-white/20 hover:brightness-110 active:scale-y-95 transition-all"
+                      style={{ left: `${(trimStart / (videoMeta?.duration || 1)) * 100}%`, transform: 'translateX(-50%)' }}
+                      onMouseDown={(e) => startDrag(e, 'start')}
+                      onTouchStart={(e) => startDrag(e, 'start')}
+                    >
+                      <div className="w-0.5 h-4 bg-white/70 rounded-full" />
+                    </div>
+                    
+                    {/* Right bracket handle */}
+                    <div 
+                      className="absolute top-0 bottom-0 w-3 bg-[#20c763] cursor-ew-resize z-20 flex items-center justify-center rounded-r-md shadow-md border-l border-white/20 hover:brightness-110 active:scale-y-95 transition-all"
+                      style={{ left: `${(trimEnd / (videoMeta?.duration || 1)) * 100}%`, transform: 'translateX(-50%)' }}
+                      onMouseDown={(e) => startDrag(e, 'end')}
+                      onTouchStart={(e) => startDrag(e, 'end')}
+                    >
+                      <div className="w-0.5 h-4 bg-white/70 rounded-full" />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1033,7 +1114,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 onClick={() => setShowSettingsPicker(true)} 
                 className="flex items-center gap-1.5 rounded-full bg-[#1f2c34] px-4 py-2.5 border border-white/5 text-xs text-white/80 hover:bg-[#2a3942] transition-colors"
               >
-                <Clock className="size-3.5 text-[#20c763]" />
+                <Sliders className="size-3.5 text-[#20c763]" />
                 <span>{selectedCategory} · {expiryDays}d</span>
               </button>
               
@@ -1046,7 +1127,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     : 'bg-[#1f2c34] border-white/5 text-white/80 hover:bg-[#2a3942]'
                 }`}
               >
-                <Sticker className="size-3.5" />
+                <Tag className="size-3.5" />
                 <span>{linkedProduct ? 'Product Tagged' : 'Tag Product'}</span>
               </button>
 
@@ -1070,7 +1151,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                   className={`p-1.5 rounded-full hover:bg-white/5 transition-colors shrink-0 ${linkedProduct ? 'text-[#20c763]' : 'text-white/60'}`}
                   title="Tag Product"
                 >
-                  <Sticker className="size-5" />
+                  <Tag className="size-5" />
                 </button>
                 
                 <input 
@@ -1087,7 +1168,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                   className="p-1.5 rounded-full hover:bg-white/5 text-white/60 transition-colors shrink-0"
                   title="Status Settings"
                 >
-                  <Clock className="size-5" />
+                  <Sliders className="size-5" />
                 </button>
               </div>
 

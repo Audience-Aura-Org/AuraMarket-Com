@@ -18,7 +18,7 @@ const getBaseURL = () => {
       if (!configuredApiURL) {
         console.error('[API] Native build requires NEXT_PUBLIC_API_URL to point at the AWS backend.');
       }
-      return configuredApiURL || 'http://localhost:5000/api/v1';
+      return configuredApiURL || 'https://api.auradime.com/api/v1';
     }
 
     if (configuredApiURL) return configuredApiURL;
