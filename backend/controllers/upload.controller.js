@@ -120,21 +120,26 @@ async function maybeTranscodeVideoForWeb(file, folder = 'general', trimOptions =
 
 const uploadSingle = async (req, res) => {
   console.log(`📡 [API] Upload triggered - S3 Enabled: ${isS3Enabled()}`);
-  console.log(`📦 [API] Request fields:`, {
+  console.log(`📦 [API] Request Headers:`, {
+    contentType: req.headers['content-type'],
+    contentLength: req.headers['content-length'],
+    transferEncoding: req.headers['transfer-encoding'],
+    authorization: req.headers.authorization ? 'Bearer ...' : 'NONE',
+    allHeaders: Object.keys(req.headers).sort().join(', '),
+  });
+  console.log(`📦 [API] Request Method & Path:`, {
+    method: req.method,
+    url: req.url,
+    originalUrl: req.originalUrl,
+  });
+  console.log(`📦 [API] Multer Parse State:`, {
     hasFile: !!req.file,
-    requestFiles: req.files ? Object.keys(req.files).map(key => `${key}: ${req.files[key]?.length || 0} file(s)`) : 'none',
-    headers: {
-      contentType: req.headers['content-type'],
-      contentLength: req.headers['content-length'],
-    }
+    hasFiles: !!req.files,
+    filesKeys: req.files ? Object.keys(req.files) : 'NONE',
+    fileCount: req.files ? Object.values(req.files).reduce((sum, arr) => sum + (arr?.length || 0), 0) : 0,
+    bodyFields: req.body ? Object.keys(req.body) : 'NO BODY',
   });
-  console.log(`📦 [API] File received:`, {
-    filename: req.file?.filename,
-    originalname: req.file?.originalname,
-    mimetype: req.file?.mimetype,
-    size: req.file?.size,
-    hasBuffer: !!req.file?.buffer,
-  });
+  console.log(`📦 [API] req.files value:`, JSON.stringify(req.files, null, 2));
   
   if (!req.file) {
     console.error('❌ [API] No file provided in request');

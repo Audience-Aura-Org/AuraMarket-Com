@@ -236,9 +236,17 @@ api.interceptors.request.use(async (config) => {
     // Mobile browsers can fail `instanceof FormData` across realms.
     // Clear any preset content-type for multipart requests so XHR can inject the boundary.
     if (isFormDataPayload(config.data)) {
+      console.log('[API:Interceptor] FormData detected for:', config.url, {
+        hasContentType: !!config.headers['Content-Type'],
+        headerKeys: Object.keys(config.headers).sort(),
+      });
       delete config.headers['Content-Type'];
       delete config.headers['content-type'];
       config.headers.setContentType?.(undefined);
+      console.log('[API:Interceptor] After clearing Content-Type:', {
+        contentTypeExists: !!config.headers['Content-Type'],
+        headerKeys: Object.keys(config.headers).sort(),
+      });
     } else {
       config.headers['Content-Type'] = 'application/json';
     }
