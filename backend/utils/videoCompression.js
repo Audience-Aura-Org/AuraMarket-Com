@@ -12,8 +12,8 @@ const ffmpeg = require('ffmpeg-static');
 
 const execAsync = promisify(exec);
 
-/** Status stories — WhatsApp-style: 9:16 center crop, 30s max, 720p */
-const STATUS_VIDEO_MAX_SECONDS = 30;
+/** Status stories — WhatsApp-style: 9:16 center crop, 60s max, 720p */
+const STATUS_VIDEO_MAX_SECONDS = 60;
 
 const trimAndCompressStatusVideo = async (inputPath, outputPath, { start = 0, end = STATUS_VIDEO_MAX_SECONDS } = {}, cropMode = 'crop') => {
   const clipDuration = Math.min(

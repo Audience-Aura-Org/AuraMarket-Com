@@ -225,7 +225,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [videoMeta, setVideoMeta]       = useState(null);
   const [trimStart, setTrimStart]       = useState(0);
   const [trimEnd, setTrimEnd]           = useState(STATUS_VIDEO_MAX_SECONDS);
-  const [videoPostMode, setVideoPostMode] = useState('split');
+  const [videoPostMode, setVideoPostMode] = useState('trim');
   const [, setEditingVideo] = useState(false);
   const [gradientIndex, setGradientIndex] = useState(0);
   const [muted, setMuted]               = useState(true);
@@ -665,6 +665,66 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     window.addEventListener('touchend', endDrag);
   };
 
+  // Drag the entire selection window left/right (pan the clip)
+  const startDragSelection = (event) => {
+    event.stopPropagation();
+    const track = trimmerTrackRef.current;
+    if (!track || !videoMeta?.duration) return;
+
+    if (previewVideoRef.current) previewVideoRef.current.pause();
+
+    const getClientX = (e) => {
+      if (e.touches && e.touches.length > 0) return e.touches[0].clientX;
+      return e.clientX;
+    };
+
+    const rect = track.getBoundingClientRect();
+    const duration = videoMeta.duration;
+    const clipLen = trimEndRef.current - trimStartRef.current;
+    let startX = getClientX(event);
+
+    const onDrag = (moveEvent) => {
+      moveEvent.preventDefault();
+      const dx = getClientX(moveEvent) - startX;
+      startX = getClientX(moveEvent);
+      const dtSec = (dx / rect.width) * duration;
+
+      const curStart = trimStartRef.current;
+      const curEnd = trimEndRef.current;
+      let nextStart = curStart + dtSec;
+      let nextEnd = curEnd + dtSec;
+
+      // Clamp to video bounds
+      if (nextStart < 0) { nextStart = 0; nextEnd = clipLen; }
+      if (nextEnd > duration) { nextEnd = duration; nextStart = duration - clipLen; }
+
+      setTrimStart(nextStart);
+      setTrimEnd(nextEnd);
+      setVideoPostMode('trim');
+
+      if (previewVideoRef.current) {
+        previewVideoRef.current.currentTime = nextStart;
+      }
+    };
+
+    const endDrag = () => {
+      window.removeEventListener('mousemove', onDrag);
+      window.removeEventListener('mouseup', endDrag);
+      window.removeEventListener('touchmove', onDrag);
+      window.removeEventListener('touchend', endDrag);
+
+      if (previewVideoRef.current) {
+        previewVideoRef.current.currentTime = trimStartRef.current;
+        previewVideoRef.current.play().catch(() => {});
+      }
+    };
+
+    window.addEventListener('mousemove', onDrag);
+    window.addEventListener('mouseup', endDrag);
+    window.addEventListener('touchmove', onDrag, { passive: false });
+    window.addEventListener('touchend', endDrag);
+  };
+
   const handleTrackClick = (e) => {
     if (!trimmerTrackRef.current || !videoMeta?.duration) return;
     const rect = trimmerTrackRef.current.getBoundingClientRect();
@@ -887,14 +947,18 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     onClick={handleTrackClick}
                     className="relative h-12 flex items-center cursor-pointer rounded-lg overflow-hidden border border-white/20 bg-black/40"
                   >
-                    {/* Thumbnail Frames Row */}
-                    <div className="absolute inset-0 flex overflow-hidden rounded-lg pointer-events-none opacity-45">
+                    {/* Thumbnail Frames Row — full opacity so filmstrip is clearly visible */}
+                    <div className="absolute inset-0 flex overflow-hidden rounded-lg pointer-events-none">
                       {timelineFrames.length > 0 ? (
                         timelineFrames.map((src, i) => (
                           <img key={i} src={src} className="flex-1 h-full object-cover" alt="" />
                         ))
                       ) : (
-                        <div className="w-full h-full bg-gradient-to-r from-neutral-800 to-neutral-900" />
+                        <div className="w-full h-full flex items-center justify-center gap-0.5">
+                          {Array.from({ length: 8 }).map((_, i) => (
+                            <div key={i} className="flex-1 h-full bg-gradient-to-b from-neutral-700 to-neutral-800 animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
+                          ))}
+                        </div>
                       )}
                     </div>
                     
@@ -910,13 +974,15 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                       style={{ width: `${100 - (trimEnd / (videoMeta?.duration || 1)) * 100}%` }}
                     />
 
-                    {/* Bright range window border */}
+                    {/* Bright selection window — draggable to move the entire clip */}
                     <div 
-                      className="absolute top-0 bottom-0 border-y-2 border-[#20c763] pointer-events-none z-10"
+                      className="absolute top-0 bottom-0 border-y-2 border-x-2 border-[#20c763] z-10 cursor-grab active:cursor-grabbing"
                       style={{
                         left: `${(trimStart / (videoMeta?.duration || 1)) * 100}%`,
                         right: `${100 - (trimEnd / (videoMeta?.duration || 1)) * 100}%`
                       }}
+                      onMouseDown={(e) => startDragSelection(e)}
+                      onTouchStart={(e) => startDragSelection(e)}
                     />
                     
                     {/* Playhead line */}

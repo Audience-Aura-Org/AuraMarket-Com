@@ -17,7 +17,7 @@ const { compressVideo, compressVideoForStatus, checkVideoQuality } = require('..
 
 const MB = 1024 * 1024;
 const UPLOAD_LIMITS = {
-  statuses: { video: 30 * MB, image: 8 * MB, file: 30 * MB },
+  statuses: { video: 64 * MB, image: 8 * MB, file: 64 * MB },
   'status-sources': { video: 500 * MB, image: 8 * MB, file: 500 * MB },
   products: { image: 5 * MB, file: 5 * MB },
   product: { image: 5 * MB, file: 5 * MB },

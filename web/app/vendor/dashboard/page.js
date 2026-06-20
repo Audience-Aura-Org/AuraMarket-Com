@@ -225,31 +225,35 @@ export default function VendorDashboard() {
   if (!mounted) return null;
 
     // Calculate monthly sales data for the chart
+    // Backend now returns monthly buckets with _id = "YYYY-MM" — use exact match
     const monthlySales = Array(6).fill(0).map((_, i) => {
       const d = new Date();
+      d.setDate(1); // Pin to 1st so setMonth never skips a month
       d.setMonth(d.getMonth() - (5 - i));
       const month = d.getMonth();
       const year = d.getFullYear();
-      const key = d.toISOString().slice(0, 7);
-      
-      // Sum all daily revenues in analyticsHistory for this month
-      const apiMonthRevenue = analyticsHistory
-        .filter((entry) => String(entry._id || '').startsWith(key))
-        .reduce((sum, entry) => sum + Number(entry.revenue || 0), 0);
-      
-      const hasApiHistory = analyticsHistory.some((entry) => String(entry._id || '').startsWith(key));
-      const monthSales = hasApiHistory ? apiMonthRevenue : paidOrders.filter(o => {
-        const od = new Date(o.createdAt);
-        return od.getMonth() === month && od.getFullYear() === year;
-      }).reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
-      
-      return {
-        month: d.toLocaleString('default', { month: 'short' }),
-        value: monthSales
-      };
+      const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+      // Primary: exact monthly bucket from API (format: "YYYY-MM")
+      const apiEntry = analyticsHistory.find((entry) => String(entry._id || '') === key);
+      const monthSales = apiEntry
+        ? Number(apiEntry.revenue || 0)
+        : paidOrders.filter(o => {
+            const od = new Date(o.createdAt);
+            return od.getMonth() === month && od.getFullYear() === year;
+          }).reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+
+      return { month: d.toLocaleString('default', { month: 'short' }), value: monthSales, key };
     });
 
     const maxMonthlySales = Math.max(...monthlySales.map(m => m.value), 1);
+    // Growth % vs previous month
+    const currentMonthVal = monthlySales[5]?.value ?? 0;
+    const prevMonthVal = monthlySales[4]?.value ?? 0;
+    const growthPct = prevMonthVal > 0
+      ? Math.round(((currentMonthVal - prevMonthVal) / prevMonthVal) * 100)
+      : currentMonthVal > 0 ? 100 : 0;
+    const isGrowthPositive = growthPct >= 0;
 
     return (
     <div className="relative bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500">
@@ -480,11 +484,22 @@ export default function VendorDashboard() {
             <div className="lg:col-span-2 glass-panel rounded-[2rem] p-6 border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-sm  font-bold text-[var(--text-primary)] tracking-tighter ">{t('dashboard.salesGrowth', 'Sales Growth')}</h3>
-                  <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)]  font-semibold opacity-50 tracking-tight">{t('dashboard.monthlyRevenueTrends', 'Monthly revenue trends')}</p>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">{t('dashboard.salesGrowth', 'Sales Growth')}</h3>
+                  <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-semibold opacity-50 tracking-tight">{t('dashboard.monthlyRevenueTrends', 'Monthly revenue trends')}</p>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 text-[10px] font-medium text-[var(--text-secondary)] opacity-80">
-                  <span className="size-1.5 shrink-0 rounded-full bg-[var(--accent)] opacity-80" /> {t('dashboard.liveAnalysis', 'Live analysis')}
+                <div className="flex items-center gap-2">
+                  {/* Real growth % badge */}
+                  <div className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-[10px] font-bold tracking-tight ${
+                    isGrowthPositive
+                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                      : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                  }`}>
+                    <span>{isGrowthPositive ? '▲' : '▼'}</span>
+                    <span>{Math.abs(growthPct)}% vs last month</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 text-[10px] font-medium text-[var(--text-secondary)] opacity-80">
+                    <span className="size-1.5 shrink-0 rounded-full bg-[var(--accent)] opacity-80" /> {t('dashboard.liveAnalysis', 'Live analysis')}
+                  </div>
                 </div>
               </div>
               <div className="relative h-48 w-full flex items-end gap-3 pt-8">

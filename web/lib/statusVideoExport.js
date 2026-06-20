@@ -210,6 +210,8 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
 }
 
 async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropMode = 'crop', onProgress } = {}) {
+  const formData = new FormData();
+  formData.append('type', 'status-sources');
   formData.append('video', file);
   formData.append('image', file);
   formData.append('trimStart', String(trimStart ?? 0));
