@@ -231,6 +231,15 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
   formData.append('cropMode', cropMode);
 
   try {
+    console.log('[StatusVideo] Starting server trim upload...', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      trimStart,
+      trimEnd,
+      cropMode,
+    });
+
     const res = await api.post('/upload/single', formData, {
       // IMPORTANT: Do NOT manually set Content-Type for FormData
       // Let axios set it automatically with the correct boundary
@@ -240,18 +249,40 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
       __skipRetry: true,
       onUploadProgress: (event) => {
         if (onProgress && event.total) {
-          onProgress(Math.min(99, Math.round((event.loaded * 100) / event.total)));
+          const percent = Math.min(99, Math.round((event.loaded * 100) / event.total));
+          onProgress(percent);
         }
       },
     });
 
+    console.log('[StatusVideo] Server trim response received', {
+      statusCode: res.status,
+      success: res.data?.success,
+      hasData: !!res.data?.data,
+    });
+
     if (!res.data?.success) {
-      throw new Error(res.data?.message || 'Server video trim failed.');
+      const errMsg = res.data?.message || 'Server video trim failed.';
+      console.error('[StatusVideo] Server trim failed with error:', {
+        message: errMsg,
+        code: res.data?.code,
+        statusCode: res.status,
+        fullResponse: res.data,
+      });
+      throw new Error(errMsg);
     }
 
     onProgress?.(100);
     return res.data;
   } catch (err) {
+    console.error('[StatusVideo] Server trim request error:', {
+      message: err.message,
+      code: err.code,
+      statusCode: err.response?.status,
+      responseData: err.response?.data,
+      requestURL: err.config?.url,
+      requestHeaders: err.config?.headers,
+    });
     throw err;
   }
 }
