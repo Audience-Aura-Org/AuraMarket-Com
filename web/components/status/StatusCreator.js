@@ -724,11 +724,23 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           await publishStatus(createStatusPayload());
         }
       } else if (type !== 'text' && !isReshare && !previewUrl && !file) {
+        console.error('[StatusCreator] Error condition met: no file', {
+          type,
+          isReshare,
+          previewUrl,
+          file: !!file,
+        });
         throw new Error('Please select a file to upload');
       } else if (type !== 'text' && !previewUrl && !file) {
+        console.error('[StatusCreator] Error condition met: media not ready', {
+          type,
+          previewUrl,
+          file: !!file,
+        });
         // Video/image selected but not ready yet or upload didn't complete
-        throw new Error('Unable to prepare media. Please try again.');
+        throw new Error('Unable to prepare media. Please try again');
       } else {
+        console.log('[StatusCreator] Publishing status without media');
         await publishStatus(createStatusPayload());
       }
 
