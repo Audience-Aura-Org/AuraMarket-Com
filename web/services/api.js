@@ -222,6 +222,16 @@ api.interceptors.request.use(async (config) => {
     if (token && token !== 'undefined' && token !== 'null' && token !== '') {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // If request data is FormData, do not force JSON content-type so axios
+    // can set the correct multipart boundary header. This ensures files
+    // are sent correctly and multer receives the fields.
+    if (config.data instanceof FormData) {
+      // Remove Content-Type if present so axios can auto-populate with boundary
+      if (config.headers && config.headers['Content-Type']) {
+        delete config.headers['Content-Type'];
+      }
+    }
   }
   return config;
 });
