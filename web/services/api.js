@@ -60,6 +60,15 @@ const api = axios.create({
   },
 });
 
+const isFormDataPayload = (value) => {
+  if (!value) return false;
+  if (typeof FormData !== 'undefined' && value instanceof FormData) return true;
+  if (Object.prototype.toString.call(value) === '[object FormData]') return true;
+  return typeof value.append === 'function'
+    && typeof value.entries === 'function'
+    && typeof value.get === 'function';
+};
+
 const isNativeApp = () => typeof window !== 'undefined' && Capacitor.isNativePlatform();
 const OFFLINE_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 const CLIENT_FAST_CACHE_TTL_MS = 45 * 1000;
@@ -224,9 +233,13 @@ api.interceptors.request.use(async (config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Set JSON content-type ONLY for non-FormData requests
-    // This allows axios to auto-set multipart/form-data with boundary for file uploads
-    if (!(config.data instanceof FormData)) {
+    // Mobile browsers can fail `instanceof FormData` across realms.
+    // Clear any preset content-type for multipart requests so XHR can inject the boundary.
+    if (isFormDataPayload(config.data)) {
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+      config.headers.setContentType?.(undefined);
+    } else {
       config.headers['Content-Type'] = 'application/json';
     }
   }
