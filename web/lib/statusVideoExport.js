@@ -223,7 +223,8 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
   // #endregion
   try {
     const res = await api.post('/upload/single', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      // IMPORTANT: Do NOT manually set Content-Type for FormData
+      // Let axios set it automatically with the correct boundary
       timeout: 600000,
       maxBodyLength: Infinity,
       maxContentLength: Infinity,
