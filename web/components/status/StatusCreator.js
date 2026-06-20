@@ -589,7 +589,35 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         ...overrides,
       });
 
-      const publishStatus = async (payload) => {\n        try {\n          const res = await api.post('/statuses', payload);\n          if (!res.data.success) {\n            // Detailed error logging for mobile debugging\n            console.error('[STATUS_PUBLISH_ERROR] API returned failure', {\n              status: res.status,\n              code: res.data?.code,\n              message: res.data?.message,\n              fullResponse: res.data,\n            });\n            throw new Error(res.data.message || 'Status creation failed');\n          }\n          createdStatuses.push(res.data.data);\n        } catch (err) {\n          // Log full error context for debugging\n          console.error('[STATUS_PUBLISH_ERROR] Request failed', {\n            status: err.response?.status,\n            code: err.response?.data?.code,\n            message: err.response?.data?.message || err.message,\n            errorType: err.response?.status === 402 ? 'SUBSCRIPTION_REQUIRED' : \n                      err.response?.status === 403 ? 'VENDOR_NOT_FOUND' : \n                      'UNKNOWN',\n            fullResponse: err.response?.data,\n            requestPayload: { type: payload.type, hasContent: !!payload.content_url },\n          });\n          throw err;\n        }\n      };"
+      const publishStatus = async (payload) => {
+        try {
+          const res = await api.post('/statuses', payload);
+          if (!res.data.success) {
+            // Detailed error logging for mobile debugging
+            console.error('[STATUS_PUBLISH_ERROR] API returned failure', {
+              status: res.status,
+              code: res.data?.code,
+              message: res.data?.message,
+              fullResponse: res.data,
+            });
+            throw new Error(res.data.message || 'Status creation failed');
+          }
+          createdStatuses.push(res.data.data);
+        } catch (err) {
+          // Log full error context for debugging
+          console.error('[STATUS_PUBLISH_ERROR] Request failed', {
+            status: err.response?.status,
+            code: err.response?.data?.code,
+            message: err.response?.data?.message || err.message,
+            errorType: err.response?.status === 402 ? 'SUBSCRIPTION_REQUIRED' : 
+                      err.response?.status === 403 ? 'VENDOR_NOT_FOUND' : 
+                      'UNKNOWN',
+            fullResponse: err.response?.data,
+            requestPayload: { type: payload.type, hasContent: !!payload.content_url },
+          });
+          throw err;
+        }
+      };"
 
       if (type !== 'text' && file) {
         if (file.type.startsWith('video/')) {
