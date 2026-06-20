@@ -211,6 +211,18 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
 }
 
 async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropMode = 'crop', onProgress } = {}) {
+  // Validate file exists and is a File/Blob object
+  if (!file || !(file instanceof File || file instanceof Blob)) {
+    console.error('[StatusVideo] Invalid file object for upload', {
+      fileExists: !!file,
+      fileType: typeof file,
+      isFile: file instanceof File,
+      isBlob: file instanceof Blob,
+      fileKeys: file ? Object.keys(file).slice(0, 10) : null,
+    });
+    throw new Error('Invalid file object. File must be a File or Blob.');
+  }
+
   const formData = new FormData();
   formData.append('type', 'status-sources');
   formData.append('video', file);
@@ -218,6 +230,18 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
   formData.append('trimStart', String(trimStart ?? 0));
   formData.append('trimEnd', String(trimEnd ?? STATUS_VIDEO_MAX_SECONDS));
   formData.append('cropMode', cropMode);
+
+  // Debug: Log FormData contents (for development only)
+  console.log('[StatusVideo] FormData being sent', {
+    fileName: file?.name,
+    fileSize: file?.size,
+    fileType: file?.type,
+    formDataEntries: Array.from(formData.entries()).map(([key, val]) => [
+      key,
+      val instanceof File ? `File(${val.name})` : val
+    ]),
+  });
+
   // #region debug-point B:server-trim-start
   fetch("http://192.168.1.167:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"B",location:"web/lib/statusVideoExport.js:uploadStatusVideoWithServerTrim:start",msg:"[DEBUG] Starting server trim upload",data:{fileName:file?.name||null,fileType:file?.type||null,fileSize:file?.size||0,trimStart:trimStart??0,trimEnd:trimEnd??STATUS_VIDEO_MAX_SECONDS,cropMode},ts:Date.now()})}).catch(()=>{});
   // #endregion

@@ -123,6 +123,14 @@ const uploadSingle = async (req, res) => {
   fetch("http://127.0.0.1:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"D",location:"backend/controllers/upload.controller.js:uploadSingle:entry",msg:"[DEBUG] uploadSingle entered",data:{hasFile:!!req.file,bodyType:req.body?.type||null,contentType:req.headers["content-type"]||null,contentLength:req.headers["content-length"]||null,origin:req.headers.origin||null,userId:req.user?._id?.toString?.()||null,fileField:req.files?Object.keys(req.files):[]},ts:Date.now()})}).catch(()=>{});
   // #endregion
   console.log(`📡 [API] Upload triggered - S3 Enabled: ${isS3Enabled()}`);
+  console.log(`📦 [API] Request fields:`, {
+    hasFile: !!req.file,
+    requestFiles: req.files ? Object.keys(req.files).map(key => `${key}: ${req.files[key]?.length || 0} file(s)`) : 'none',
+    headers: {
+      contentType: req.headers['content-type'],
+      contentLength: req.headers['content-length'],
+    }
+  });
   console.log(`📦 [API] File received:`, {
     filename: req.file?.filename,
     originalname: req.file?.originalname,
@@ -136,6 +144,7 @@ const uploadSingle = async (req, res) => {
     fetch("http://127.0.0.1:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"D",location:"backend/controllers/upload.controller.js:uploadSingle:no-file",msg:"[DEBUG] uploadSingle missing file",data:{bodyType:req.body?.type||null,contentType:req.headers["content-type"]||null,fileField:req.files?Object.keys(req.files):[]},ts:Date.now()})}).catch(()=>{});
     // #endregion
     console.error('❌ [API] No file provided in request');
+    console.error('❌ [API] Received fields:', req.files ? Object.keys(req.files) : 'no req.files object');
     return res.status(400).json({ success: false, message: 'Please upload a file' });
   }
 
