@@ -792,7 +792,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const previewFitClass = cropMode === 'crop' ? 'object-cover' : 'object-contain';
 
   const mobilePreview = (
-    <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-0">
+    <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden px-0 lg:pr-[420px]">
       {previewUrl ? (
         <div className="relative w-full overflow-hidden bg-black" style={{ maxHeight: '48vh' }}>
           {type === 'video' ? (
@@ -1058,7 +1058,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-          className="absolute inset-x-0 bottom-0 z-40 max-h-[76vh] overflow-y-auto rounded-t-[2rem] border border-white/10 bg-[#111113] p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] text-white shadow-2xl no-scrollbar"
+          className="absolute inset-x-0 bottom-0 z-40 max-h-[76vh] overflow-y-auto rounded-t-[2rem] border border-white/10 bg-[#111113] p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] text-white shadow-2xl no-scrollbar lg:hidden"
         >
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -1088,6 +1088,31 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </motion.div>
       )}
     </AnimatePresence>
+  );
+
+  const integratedSettingsPanel = (
+    <aside className="absolute bottom-4 right-4 top-24 z-30 hidden w-[390px] overflow-y-auto rounded-[2rem] border border-white/10 bg-[#0f0f11]/92 p-4 text-white shadow-2xl backdrop-blur-xl no-scrollbar lg:block">
+      <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-4 border-b border-white/10 bg-[#0f0f11]/95 px-4 py-4 backdrop-blur-xl">
+        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#20c763]">Status settings</p>
+        <h2 className="text-base font-black">Edit before posting</h2>
+      </div>
+      <div className="space-y-4">
+        {mobileVideoPostOptions}
+        {type === 'video' && videoMeta && previewUrl && (
+          <StatusVideoTrimmer
+            previewUrl={previewUrl}
+            duration={videoMeta.duration}
+            fileSize={file?.size || 0}
+            trimStart={trimStart}
+            trimEnd={trimEnd}
+            onTrimStartChange={setTrimStart}
+            onTrimEndChange={setTrimEnd}
+            onEditingChange={setEditingVideo}
+          />
+        )}
+        {mobileSettingsOptions}
+      </div>
+    </aside>
   );
 
   const mobileLayout = (
@@ -1159,14 +1184,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
       {mobilePreview}
 
-      <div className="relative z-20 flex shrink-0 flex-col gap-5 px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+      <div className="relative z-20 flex shrink-0 flex-col gap-5 px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] lg:pr-[440px]">
         {error && (
           <div className="flex items-center gap-2 rounded-xl border border-red-400/25 bg-red-500/15 px-3 py-2 text-xs font-semibold text-red-100">
             <AlertCircle className="size-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
-        <div className="flex flex-col items-center gap-1 text-center text-sm font-medium text-white/90">
+        <div className="flex flex-col items-center gap-1 text-center text-sm font-medium text-white/90 lg:hidden">
           <ChevronUp className="size-5" />
           <span>Swipe up for filters</span>
         </div>
@@ -1203,6 +1228,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         )}
       </div>
 
+      {integratedSettingsPanel}
       {mobileDetailsSheet}
     </div>
   );
