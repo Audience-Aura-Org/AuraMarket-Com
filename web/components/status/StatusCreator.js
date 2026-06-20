@@ -561,6 +561,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
   const handlePost = async () => {
     if (!selectedCategory) { setError('Please select a category.'); return; }
+    // #region debug-point E:handle-post-start
+    fetch("http://192.168.1.167:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"E",location:"web/components/status/StatusCreator.js:handlePost",msg:"[DEBUG] Status send tapped",data:{type,isNative:Capacitor?.isNativePlatform?.()||false,platform:Capacitor?.getPlatform?.()||"web",hasFile:!!file,fileType:file?.type||null,fileSize:file?.size||0,videoMetaDuration:videoMeta?.duration||0,trimStart,trimEnd,selectedCategory},ts:Date.now()})}).catch(()=>{});
+    // #endregion
     setLoading(true);
     setUploadProgress(0);
     setUploadPhase('');
@@ -586,12 +589,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         ...overrides,
       });
 
-      const publishStatus = async (payload) => {
-        const res = await api.post('/statuses', payload);
-        if (res.data.success) {
-          createdStatuses.push(res.data.data);
-        }
-      };
+      const publishStatus = async (payload) => {\n        try {\n          const res = await api.post('/statuses', payload);\n          if (!res.data.success) {\n            // Detailed error logging for mobile debugging\n            console.error('[STATUS_PUBLISH_ERROR] API returned failure', {\n              status: res.status,\n              code: res.data?.code,\n              message: res.data?.message,\n              fullResponse: res.data,\n            });\n            throw new Error(res.data.message || 'Status creation failed');\n          }\n          createdStatuses.push(res.data.data);\n        } catch (err) {\n          // Log full error context for debugging\n          console.error('[STATUS_PUBLISH_ERROR] Request failed', {\n            status: err.response?.status,\n            code: err.response?.data?.code,\n            message: err.response?.data?.message || err.message,\n            errorType: err.response?.status === 402 ? 'SUBSCRIPTION_REQUIRED' : \n                      err.response?.status === 403 ? 'VENDOR_NOT_FOUND' : \n                      'UNKNOWN',\n            fullResponse: err.response?.data,\n            requestPayload: { type: payload.type, hasContent: !!payload.content_url },\n          });\n          throw err;\n        }\n      };"
 
       if (type !== 'text' && file) {
         if (file.type.startsWith('video/')) {
@@ -692,6 +690,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         onClose();
       }
     } catch (err) {
+      // #region debug-point E:handle-post-error
+      fetch("http://192.168.1.167:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"E",location:"web/components/status/StatusCreator.js:handlePost:catch",msg:"[DEBUG] Status send failed in client catch",data:{message:err?.message||null,responseStatus:err?.response?.status||null,responseMessage:err?.response?.data?.message||null,responseError:err?.response?.data?.error||null,code:err?.code||null,stack:String(err?.stack||"").slice(0,600)},ts:Date.now()})}).catch(()=>{});
+      // #endregion
       const msg =
         err.response?.data?.message ||
         err.response?.data?.error ||

@@ -119,6 +119,9 @@ async function maybeTranscodeVideoForWeb(file, folder = 'general', trimOptions =
 }
 
 const uploadSingle = async (req, res) => {
+  // #region debug-point D:upload-single-entry
+  fetch("http://127.0.0.1:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"D",location:"backend/controllers/upload.controller.js:uploadSingle:entry",msg:"[DEBUG] uploadSingle entered",data:{hasFile:!!req.file,bodyType:req.body?.type||null,contentType:req.headers["content-type"]||null,contentLength:req.headers["content-length"]||null,origin:req.headers.origin||null,userId:req.user?._id?.toString?.()||null,fileField:req.files?Object.keys(req.files):[]},ts:Date.now()})}).catch(()=>{});
+  // #endregion
   console.log(`📡 [API] Upload triggered - S3 Enabled: ${isS3Enabled()}`);
   console.log(`📦 [API] File received:`, {
     filename: req.file?.filename,
@@ -129,6 +132,9 @@ const uploadSingle = async (req, res) => {
   });
   
   if (!req.file) {
+    // #region debug-point D:no-file
+    fetch("http://127.0.0.1:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"D",location:"backend/controllers/upload.controller.js:uploadSingle:no-file",msg:"[DEBUG] uploadSingle missing file",data:{bodyType:req.body?.type||null,contentType:req.headers["content-type"]||null,fileField:req.files?Object.keys(req.files):[]},ts:Date.now()})}).catch(()=>{});
+    // #endregion
     console.error('❌ [API] No file provided in request');
     return res.status(400).json({ success: false, message: 'Please upload a file' });
   }
@@ -205,6 +211,9 @@ const uploadSingle = async (req, res) => {
       }
     });
   } catch (err) {
+    // #region debug-point D:upload-single-error
+    fetch("http://127.0.0.1:7777/event",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sessionId:"mobile-video-upload",runId:"pre-fix",hypothesisId:"D",location:"backend/controllers/upload.controller.js:uploadSingle:catch",msg:"[DEBUG] uploadSingle failed",data:{message:err?.message||null,code:err?.Code||err?.code||err?.name||null,s3Status:err?.$metadata?.httpStatusCode||null,bodyType:req.body?.type||null,fileName:req.file?.originalname||null,fileType:req.file?.mimetype||null,fileSize:req.file?.size||req.file?.buffer?.length||0},ts:Date.now()})}).catch(()=>{});
+    // #endregion
     const errorCode = err.Code || err.code || err.name || 'UnknownError';
     const s3Status = err.$metadata?.httpStatusCode;
     console.error(`❌ [API] Upload failed [${errorCode}]:`, err.message);

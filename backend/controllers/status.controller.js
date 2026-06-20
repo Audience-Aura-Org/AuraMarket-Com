@@ -3,6 +3,7 @@ const Vendor = require('../models/Vendor.model');
 const Follow = require('../models/Follow.model');
 const Notification = require('../models/Notification.model');
 const { deleteS3ObjectByUrl } = require('../utils/s3');
+const { getSubscriptionStatus } = require('../services/subscription.service');
 
 const STATUS_STORY_SELECT = [
   '_id',
@@ -56,9 +57,36 @@ const formatStatusPayload = (status, userId = null) => {
 // @access  Private (Vendor only)
 exports.createStatus = async (req, res) => {
   try {
-    const vendor = await Vendor.findOne({ user_id: req.user._id || req.user.id });
+    // 1. CRITICAL: Check subscription explicitly with detailed error message
+    // This prevents generic 402 responses and ensures proper error context for mobile
+    const subscriptionStatus = await getSubscriptionStatus(req.user, 'vendor');
+    if (!subscriptionStatus.active) {
+      console.warn('[STATUS_CREATE] Subscription check failed', {
+        userId: req.user._id,
+        role: 'vendor',
+        subscriptionState: subscriptionStatus.access_state,
+      });
+      return res.status(402).json({
+        success: false,
+        code: 'SUBSCRIPTION_REQUIRED',
+        message: 'Vendors must have an active subscription to create statuses.',
+        subscription: subscriptionStatus,
+      });
+    }
+
+    // 2. Look up vendor using standardized _id field
+    // Using only _id ensures consistent behavior across mobile and desktop
+    const vendor = await Vendor.findOne({ user_id: req.user._id });
     if (!vendor) {
-      return res.status(403).json({ success: false, message: 'Only vendors can post statuses' });
+      console.warn('[STATUS_CREATE] Vendor not found', {
+        userId: req.user._id,
+        userName: req.user.name,
+      });
+      return res.status(403).json({
+        success: false,
+        message: 'Vendor profile not found. Complete vendor onboarding first.',
+        code: 'VENDOR_NOT_FOUND',
+      });
     }
 
     const {
@@ -105,7 +133,21 @@ exports.createStatus = async (req, res) => {
 
     res.status(201).json({ success: true, data: status });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    // Log detailed error context for mobile debugging
+    console.error('[STATUS_CREATE_ERROR]', {
+      userId: req.user?._id,
+      endpoint: 'POST /api/statuses',
+      errorMessage: error.message,
+      errorCode: error.code,
+      timestamp: new Date().toISOString(),
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      code: 'INTERNAL_ERROR',
+      timestamp: new Date().toISOString(),
+    });
   }
 };
 
@@ -279,7 +321,7 @@ exports.viewStatus = async (req, res) => {
 // @access  Private (Vendor)
 exports.getMyStatuses = async (req, res) => {
   try {
-    const vendor = await Vendor.findOne({ user_id: req.user._id || req.user.id });
+    const vendor = await Vendor.findOne({ user_id: req.user._id });
     if (!vendor) return res.status(403).json({ success: false, message: 'Vendor profile required' });
 
     const statuses = await Status.find({ vendor_id: vendor._id })
@@ -299,7 +341,7 @@ exports.getMyStatuses = async (req, res) => {
 // @access  Private (Vendor Owner)
 exports.deleteStatus = async (req, res) => {
   try {
-    const vendor = await Vendor.findOne({ user_id: req.user._id || req.user.id });
+    const vendor = await Vendor.findOne({ user_id: req.user._id });
     const status = await Status.findById(req.params.id);
 
     if (!status) return res.status(404).json({ success: false, message: 'Status not found' });

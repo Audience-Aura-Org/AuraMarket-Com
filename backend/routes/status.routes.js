@@ -17,12 +17,16 @@ router.get('/story/:id', protectOptional, getStatusById);
 router.post('/:id/view', protectOptional, viewStatus);
 
 router.use(protect); // Protect all write/private status routes
-router.use(requireActiveSubscription());
 
+// NOTE: createStatus now handles subscription validation internally (see controller)
+// This allows for better error messaging and mobile debugging
 router.route('/')
   .post(createStatus);
 
 router.get('/my-statuses', getMyStatuses);
+
+// Apply subscription requirement only to delete and react operations
+router.use(requireActiveSubscription());
 
 router.route('/:id')
   .delete(deleteStatus);
