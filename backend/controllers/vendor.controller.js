@@ -543,12 +543,6 @@ const getFollowing = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-      success: true,
-      data: { store },
-    });
-  } catch (error) {
-    next(error);
-  }
 };
 
 // ─────────────────────────────────────────────
