@@ -25,7 +25,9 @@ const upload = multer({
   storage: memoryStorage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 30 * 1024 * 1024 // 30MB max; stricter type-specific checks run in controller
+    // Mobile story videos use the server-trim path first, so this route must allow
+    // the larger source upload before folder-specific limits are enforced later.
+    fileSize: 500 * 1024 * 1024
   }
 });
 
@@ -63,7 +65,7 @@ router.use((error, req, res, next) => {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         success: false,
-        message: 'File too large. Maximum size is 30MB'
+        message: 'File too large. Maximum size is 500MB'
       });
     }
   }

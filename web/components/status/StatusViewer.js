@@ -621,6 +621,11 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     });
   }, []);
 
+  const togglePaused = useCallback((e) => {
+    e.stopPropagation();
+    setPaused((current) => !current);
+  }, []);
+
   const handleSendReply = useCallback(() => {
     if (!replyText.trim()) return;
     const recipientUserId = story?.vendor_id?.user_id?._id || story?.vendor_id?.user_id;
@@ -832,10 +837,19 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
           </div>
 
           <div className="flex items-center gap-2 pointer-events-auto">
-            {paused && (
+            {paused && !isVideo && (
               <div className="size-9 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
                 <Pause className="size-4 text-white" />
               </div>
+            )}
+            {isVideo && (
+              <button
+                onClick={togglePaused}
+                className="size-9 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white cursor-pointer"
+                aria-label={paused ? 'Play video' : 'Pause video'}
+              >
+                {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
+              </button>
             )}
             {isVideo && (
               <button

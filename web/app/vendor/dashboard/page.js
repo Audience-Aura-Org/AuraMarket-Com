@@ -7,6 +7,15 @@ import api from '@/services/api';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import {
   ArrowRight,
   BarChart3,
   Boxes,
@@ -24,6 +33,46 @@ import {
 const getResponseData = (res) => res?.data?.data || {};
 
 const fulfilledValue = (result) => result?.status === 'fulfilled' ? result.value : null;
+
+const getMonthBucketKey = (date) => {
+  const safeDate = new Date(date);
+  return `${safeDate.getFullYear()}-${String(safeDate.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const buildMonthlySalesSeries = (analyticsHistory = [], paidOrders = []) => {
+  const historyMap = new Map();
+
+  analyticsHistory.forEach((entry) => {
+    const rawKey = entry?._id || entry?.month || entry?.label || entry?.key;
+    if (!rawKey) return;
+    const key = String(rawKey).slice(0, 7);
+    const revenue = Number(
+      entry?.revenue ??
+      entry?.value ??
+      entry?.amount ??
+      entry?.total ??
+      0
+    );
+    historyMap.set(key, Number.isFinite(revenue) ? revenue : 0);
+  });
+
+  return Array.from({ length: 6 }, (_, i) => {
+    const date = new Date();
+    date.setDate(1);
+    date.setMonth(date.getMonth() - (5 - i));
+    const key = getMonthBucketKey(date);
+    const fallbackRevenue = paidOrders
+      .filter((order) => getMonthBucketKey(order?.createdAt) === key)
+      .reduce((sum, order) => sum + Number(order?.total_amount || 0), 0);
+    const value = historyMap.has(key) ? historyMap.get(key) : fallbackRevenue;
+
+    return {
+      key,
+      month: date.toLocaleString('default', { month: 'short' }).toUpperCase(),
+      value: Number.isFinite(value) ? value : 0,
+    };
+  });
+};
 
 const getOrderProductName = (order) => {
   const item = order?.products?.[0];
@@ -224,29 +273,8 @@ export default function VendorDashboard() {
 
   if (!mounted) return null;
 
-    // Calculate monthly sales data for the chart
-    // Backend now returns monthly buckets with _id = "YYYY-MM" — use exact match
-    const monthlySales = Array(6).fill(0).map((_, i) => {
-      const d = new Date();
-      d.setDate(1); // Pin to 1st so setMonth never skips a month
-      d.setMonth(d.getMonth() - (5 - i));
-      const month = d.getMonth();
-      const year = d.getFullYear();
-      const key = `${year}-${String(month + 1).padStart(2, '0')}`;
-
-      // Primary: exact monthly bucket from API (format: "YYYY-MM")
-      const apiEntry = analyticsHistory.find((entry) => String(entry._id || '') === key);
-      const monthSales = apiEntry
-        ? Number(apiEntry.revenue || 0)
-        : paidOrders.filter(o => {
-            const od = new Date(o.createdAt);
-            return od.getMonth() === month && od.getFullYear() === year;
-          }).reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
-
-      return { month: d.toLocaleString('default', { month: 'short' }), value: monthSales, key };
-    });
-
-    const maxMonthlySales = Math.max(...monthlySales.map(m => m.value), 1);
+    const monthlySales = buildMonthlySalesSeries(analyticsHistory, paidOrders);
+    const hasMonthlySalesData = monthlySales.some((entry) => entry.value > 0);
     // Growth % vs previous month
     const currentMonthVal = monthlySales[5]?.value ?? 0;
     const prevMonthVal = monthlySales[4]?.value ?? 0;
@@ -502,28 +530,57 @@ export default function VendorDashboard() {
                   </div>
                 </div>
               </div>
-              <div className="relative h-48 w-full flex items-end gap-3 pt-8">
-                <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-5">
-                  {[0,1,2,3].map(i => <div key={i} className="w-full border-t border-[var(--text-secondary)] h-px" />)}
-                </div>
-                {monthlySales.map((m, i) => {
-                  const h = (m.value / maxMonthlySales) * 100;
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-3 group">
-                      <div className="relative w-full flex-1 flex items-end justify-center">
-                         <div 
-                           className={`w-full max-w-[40px] rounded-t-xl transition-all duration-1000 ${i === 5 ? 'bg-[var(--accent)] shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)]' : 'bg-[var(--accent)]/20 hover:bg-[var(--accent)]/40'}`}
-                           style={{ height: `${Math.max(h, 5)}%` }}
-                         />
-                         {/* Tooltip */}
-                         <div className="absolute -top-8 bg-[var(--bg-primary)] border border-[var(--glass-border)] px-2 py-1 rounded-lg text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-xl">
-                            {m.value.toLocaleString()} XAF
-                         </div>
-                      </div>
-                      <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-tighter">{m.month}</span>
+              <div className="h-48 w-full">
+                {hasMonthlySalesData ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={monthlySales} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="dashboardRevenueFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.32} />
+                          <stop offset="95%" stopColor="var(--accent)" stopOpacity={0.02} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid vertical={false} stroke="rgba(148, 163, 184, 0.12)" />
+                      <XAxis
+                        dataKey="month"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--text-secondary)', opacity: 0.65 }}
+                      />
+                      <YAxis hide />
+                      <Tooltip
+                        cursor={{ stroke: 'rgba(255, 255, 255, 0.08)' }}
+                        contentStyle={{
+                          backgroundColor: 'var(--bg-primary)',
+                          border: '1px solid var(--glass-border)',
+                          borderRadius: '14px',
+                          boxShadow: '0 18px 45px rgba(0, 0, 0, 0.18)',
+                        }}
+                        formatter={(value) => [`${Number(value).toLocaleString()} XAF`, 'Revenue']}
+                        labelFormatter={(label) => `${label}`}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="value"
+                        stroke="var(--accent)"
+                        strokeWidth={3}
+                        fill="url(#dashboardRevenueFill)"
+                        activeDot={{ r: 5, fill: 'var(--accent)', stroke: '#fff', strokeWidth: 2 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center rounded-[1.5rem] border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 text-center">
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-[var(--text-primary)] tracking-tight">
+                        {t('dashboard.noSalesData', 'No sales data yet')}
+                      </p>
+                      <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
+                        {t('dashboard.graphWillUpdate', 'The chart updates automatically when paid orders come in.')}
+                      </p>
                     </div>
-                  );
-                })}
+                  </div>
+                )}
               </div>
             </div>
             {/* Recent Orders */}

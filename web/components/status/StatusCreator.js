@@ -9,7 +9,8 @@ import {
   AlertCircle, Search,
   Plus, Palette, SplitSquareHorizontal, Scissors,
   Crop, Sticker, Pencil, AtSign,
-  Volume2, VolumeX, Tag, Sliders
+  Volume2, VolumeX, Tag, Sliders,
+  Play, Pause
 } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { uploadService } from '@/services/upload';
@@ -288,6 +289,20 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const trimStartRef = useRef(trimStart);
   const trimEndRef = useRef(trimEnd);
   
+  const [isPlaying, setIsPlaying] = useState(true);
+
+  const togglePlayPause = () => {
+    const video = previewVideoRef.current;
+    if (!video) return;
+    if (isPlaying) {
+      video.pause();
+      setIsPlaying(false);
+    } else {
+      video.play().catch(() => {});
+      setIsPlaying(true);
+    }
+  };
+  
   useEffect(() => {
     trimStartRef.current = trimStart;
   }, [trimStart]);
@@ -295,6 +310,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   useEffect(() => {
     trimEndRef.current = trimEnd;
   }, [trimEnd]);
+
+  useEffect(() => {
+    if (type !== 'video' || !previewUrl) {
+      setIsPlaying(false);
+      return;
+    }
+    setIsPlaying(true);
+  }, [type, previewUrl]);
 
   // Sync main preview video playback range with trimmer start/end
   useEffect(() => {
@@ -318,6 +341,24 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       video.removeEventListener('timeupdate', handleTimeUpdate);
     };
   }, [trimStart, trimEnd, previewUrl]);
+
+  useEffect(() => {
+    const video = previewVideoRef.current;
+    if (!video) return;
+
+    const syncPlayState = () => setIsPlaying(!video.paused && !video.ended);
+    syncPlayState();
+
+    video.addEventListener('play', syncPlayState);
+    video.addEventListener('pause', syncPlayState);
+    video.addEventListener('ended', syncPlayState);
+
+    return () => {
+      video.removeEventListener('play', syncPlayState);
+      video.removeEventListener('pause', syncPlayState);
+      video.removeEventListener('ended', syncPlayState);
+    };
+  }, [previewUrl]);
 
   useEffect(() => {
     setMounted(true);
@@ -949,15 +990,25 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           {previewUrl ? (
             <div className="absolute inset-0 w-full h-full flex items-center justify-center">
               {type === 'video' ? (
-                <video
-                  ref={previewVideoRef}
-                  src={previewUrl}
-                  className={`w-full h-full ${previewFitClass} z-10`}
-                  autoPlay
-                  muted={muted}
-                  loop
-                  playsInline
-                />
+                <>
+                  <video
+                    ref={previewVideoRef}
+                    src={previewUrl}
+                    className={`w-full h-full ${previewFitClass} z-10`}
+                    autoPlay
+                    muted={muted}
+                    loop
+                    playsInline
+                  />
+                  <button
+                    type="button"
+                    onClick={togglePlayPause}
+                    className="absolute bottom-4 right-4 z-30 flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/70"
+                    aria-label={isPlaying ? 'Pause video preview' : 'Play video preview'}
+                  >
+                    {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
+                  </button>
+                </>
               ) : (
                 <img
                   src={previewUrl}
