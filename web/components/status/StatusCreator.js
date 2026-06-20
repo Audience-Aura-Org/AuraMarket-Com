@@ -617,7 +617,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           });
           throw err;
         }
-      };"
+      };
 
       if (type !== 'text' && file) {
         if (file.type.startsWith('video/')) {
