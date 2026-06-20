@@ -226,7 +226,6 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
   const formData = new FormData();
   formData.append('type', 'status-sources');
   formData.append('video', file);
-  formData.append('image', file);
   formData.append('trimStart', String(trimStart ?? 0));
   formData.append('trimEnd', String(trimEnd ?? STATUS_VIDEO_MAX_SECONDS));
   formData.append('cropMode', cropMode);

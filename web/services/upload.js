@@ -139,11 +139,9 @@ async function uploadViaApi(file, folder, fieldName = 'image') {
   const formData = new FormData();
   formData.append('type', normalizeUploadFolder(folder));
   formData.append(fieldName, file);
-  if (fieldName !== 'image') formData.append('image', file);
 
   try {
     const res = await api.post('/upload/single', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 600000,
       maxBodyLength: Infinity,
       maxContentLength: Infinity,
