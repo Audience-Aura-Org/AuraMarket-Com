@@ -34,6 +34,7 @@ export const getSupportedVideoMimeType = () => {
 
 export const canClientExportStatusVideo = () => {
   if (typeof window === 'undefined') return false;
+  if (Capacitor.isNativePlatform()) return false;
   if (!getSupportedVideoMimeType()) return false;
 
   const video = document.createElement('video');

@@ -48,27 +48,46 @@ async function generateVideoThumbnail(file) {
 
   const objectUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
+  
+  // Position hidden video element so the browser's layout engine does not suspend decoding
   video.style.position = 'fixed';
-  video.style.top = '-9999px';
-  video.style.left = '-9999px';
-  video.style.width = '100px';
-  video.style.height = '100px';
-  video.style.opacity = '0';
+  video.style.bottom = '0px';
+  video.style.right = '0px';
+  video.style.width = '1px';
+  video.style.height = '1px';
+  video.style.opacity = '0.01';
   video.style.pointerEvents = 'none';
   document.body.appendChild(video);
 
-  const metadataLoaded = new Promise((resolve, reject) => {
-    video.onloadedmetadata = resolve;
-    video.onerror = () => reject(new Error('Could not read video metadata.'));
+  const metadataLoaded = new Promise((resolve) => {
+    let resolved = false;
+    const done = () => {
+      if (!resolved) {
+        resolved = true;
+        resolve();
+      }
+    };
+    video.onloadedmetadata = done;
+    video.onloadeddata = done;
+    video.oncanplay = done;
+    video.onerror = done;
+    setTimeout(done, 2000); // 2s safety timeout
   });
 
-  video.preload = 'metadata';
+  video.preload = 'auto';
   video.muted = true;
   video.playsInline = true;
   video.src = objectUrl;
+  video.load();
 
   try {
     await metadataLoaded;
+    
+    // Kick the hardware decoder on mobile webviews by playing/pausing briefly
+    try {
+      await video.play();
+      video.pause();
+    } catch (_) {}
 
     const seekTo = Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
     await new Promise((resolve) => {
@@ -79,7 +98,10 @@ async function generateVideoThumbnail(file) {
           resolve();
         }
       };
-      const timer = setTimeout(done, 250);
+      const isNative = Capacitor?.isNativePlatform?.();
+      const seekTimeout = isNative ? 850 : 350;
+      const timer = setTimeout(done, seekTimeout);
+      
       video.onseeked = () => {
         clearTimeout(timer);
         done();
@@ -108,6 +130,9 @@ async function generateVideoThumbnail(file) {
       type: 'image/jpeg',
       lastModified: Date.now(),
     });
+  } catch (e) {
+    console.warn("Failed to generate video thumbnail", e);
+    return null;
   } finally {
     if (video.parentNode) {
       video.parentNode.removeChild(video);
@@ -120,24 +145,42 @@ async function readVideoMetadata(file) {
   if (!file?.type?.startsWith('video/')) return null;
   const objectUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
+  
+  // Position hidden video element so the browser's layout engine does not suspend decoding
   video.style.position = 'fixed';
-  video.style.top = '-9999px';
-  video.style.left = '-9999px';
-  video.style.width = '100px';
-  video.style.height = '100px';
-  video.style.opacity = '0';
+  video.style.bottom = '0px';
+  video.style.right = '0px';
+  video.style.width = '1px';
+  video.style.height = '1px';
+  video.style.opacity = '0.01';
   video.style.pointerEvents = 'none';
   document.body.appendChild(video);
 
   const metadataLoaded = new Promise((resolve, reject) => {
-    video.onloadedmetadata = resolve;
-    video.onerror = () => reject(new Error('Could not read video metadata.'));
+    let resolved = false;
+    const done = () => {
+      if (!resolved) {
+        resolved = true;
+        resolve();
+      }
+    };
+    video.onloadedmetadata = done;
+    video.onloadeddata = done;
+    video.oncanplay = done;
+    video.onerror = () => {
+      if (!resolved) {
+        resolved = true;
+        reject(new Error('Could not read video metadata.'));
+      }
+    };
+    setTimeout(done, 2000); // 2s safety timeout
   });
 
-  video.preload = 'metadata';
+  video.preload = 'auto';
   video.muted = true;
   video.playsInline = true;
   video.src = objectUrl;
+  video.load();
 
   try {
     await metadataLoaded;
@@ -146,10 +189,6 @@ async function readVideoMetadata(file) {
     const width = video.videoWidth || 0;
     const height = video.videoHeight || 0;
 
-    if (video.parentNode) {
-      video.parentNode.removeChild(video);
-    }
-
     return {
       duration,
       width,
@@ -157,11 +196,12 @@ async function readVideoMetadata(file) {
       objectUrl,
     };
   } catch (error) {
+    URL.revokeObjectURL(objectUrl);
+    throw error;
+  } finally {
     if (video.parentNode) {
       video.parentNode.removeChild(video);
     }
-    URL.revokeObjectURL(objectUrl);
-    throw error;
   }
 }
 
@@ -337,19 +377,31 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     setTimelineFrames([]);
     const objectUrl = URL.createObjectURL(videoFile);
     const video = document.createElement('video');
+    
+    // Position hidden video element so the browser's layout engine does not suspend decoding
     video.style.position = 'fixed';
-    video.style.top = '-9999px';
-    video.style.left = '-9999px';
-    video.style.width = '100px';
-    video.style.height = '100px';
-    video.style.opacity = '0';
+    video.style.bottom = '0px';
+    video.style.right = '0px';
+    video.style.width = '1px';
+    video.style.height = '1px';
+    video.style.opacity = '0.01';
     video.style.pointerEvents = 'none';
     document.body.appendChild(video);
 
     // Bind event listeners BEFORE setting source to prevent race conditions
     const metadataLoaded = new Promise((resolve) => {
-      video.onloadedmetadata = () => resolve();
-      video.onerror = () => resolve();
+      let resolved = false;
+      const done = () => {
+        if (!resolved) {
+          resolved = true;
+          resolve();
+        }
+      };
+      video.onloadedmetadata = done;
+      video.onloadeddata = done;
+      video.oncanplay = done;
+      video.onerror = done;
+      setTimeout(done, 2000); // 2 seconds safety timeout
     });
 
     video.src = objectUrl;
@@ -357,9 +409,16 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     video.playsInline = true;
     video.preload = 'auto';
     video.crossOrigin = 'anonymous';
+    video.load();
     
     try {
       await metadataLoaded;
+      
+      // Kick the hardware decoder on mobile webviews by playing/pausing briefly
+      try {
+        await video.play();
+        video.pause();
+      } catch (_) {}
       
       const numFrames = 8;
       const extracted = [];
@@ -367,6 +426,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       canvas.width = 160;
       canvas.height = 90;
       const ctx = canvas.getContext('2d');
+      
+      const isNative = Capacitor?.isNativePlatform?.();
+      const seekTimeout = isNative ? 850 : 350; // Longer seek timeout on native apps
       
       for (let i = 0; i < numFrames; i++) {
         const time = (i / (numFrames - 1)) * duration;
@@ -378,7 +440,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               resolve();
             }
           };
-          const timer = setTimeout(done, 250); // Fallback timeout if seek hangs
+          const timer = setTimeout(done, seekTimeout);
           
           video.onseeked = () => {
             clearTimeout(timer);
@@ -768,7 +830,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       )}
 
       {/* Central Phone Mockup Container */}
-      <div className="relative z-10 w-full h-full md:h-[90vh] md:max-h-[760px] md:aspect-[9/16] md:rounded-[2.5rem] md:border-8 md:border-[#202022] md:shadow-2xl bg-black overflow-hidden flex flex-col">
+      <div className="relative z-10 w-full md:w-[428px] h-full md:h-[90vh] md:max-h-[760px] md:aspect-[9/16] md:rounded-[2.5rem] md:border-8 md:border-[#202022] md:shadow-2xl bg-black overflow-hidden flex flex-col">
         
         {/* Top Status Bar Mockup (Only on desktop frames for premium detail) */}
         <div className="hidden md:flex justify-between items-center px-6 py-2.5 bg-black/45 text-white/50 text-[10px] font-bold select-none shrink-0 z-30">
