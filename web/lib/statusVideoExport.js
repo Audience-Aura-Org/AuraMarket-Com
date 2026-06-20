@@ -99,6 +99,11 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
   video.style.pointerEvents = 'none';
   document.body.appendChild(video);
 
+  const metadataLoaded = new Promise((resolve, reject) => {
+    video.onloadedmetadata = resolve;
+    video.onerror = () => reject(new Error('Could not load video for editing.'));
+  });
+
   video.src = sourceUrl;
   video.muted = true;
   video.playsInline = true;
@@ -108,10 +113,7 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
   video.crossOrigin = 'anonymous';
 
   try {
-    await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve;
-      video.onerror = () => reject(new Error('Could not load video for editing.'));
-    });
+    await metadataLoaded;
 
     const start = Math.max(0, Math.min(trimStart, video.duration || 0));
     const end = Math.min(Math.max(start + 1, trimEnd), video.duration || start + STATUS_VIDEO_MAX_SECONDS);
@@ -143,8 +145,27 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
     });
 
     await new Promise((resolve) => {
-      video.onseeked = resolve;
-      video.currentTime = start;
+      let resolved = false;
+      const done = () => {
+        if (!resolved) {
+          resolved = true;
+          resolve();
+        }
+      };
+      const timer = setTimeout(done, 250);
+      video.onseeked = () => {
+        clearTimeout(timer);
+        done();
+      };
+      video.onerror = () => {
+        clearTimeout(timer);
+        done();
+      };
+      if (start === 0 && video.currentTime === 0) {
+        video.currentTime = 0.001;
+      } else {
+        video.currentTime = start;
+      }
     });
 
     let stopped = false;

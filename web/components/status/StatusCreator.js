@@ -57,20 +57,37 @@ async function generateVideoThumbnail(file) {
   video.style.pointerEvents = 'none';
   document.body.appendChild(video);
 
+  const metadataLoaded = new Promise((resolve, reject) => {
+    video.onloadedmetadata = resolve;
+    video.onerror = () => reject(new Error('Could not read video metadata.'));
+  });
+
   video.preload = 'metadata';
   video.muted = true;
   video.playsInline = true;
   video.src = objectUrl;
 
   try {
-    await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve;
-      video.onerror = () => reject(new Error('Could not read video metadata.'));
-    });
+    await metadataLoaded;
 
     const seekTo = Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
     await new Promise((resolve) => {
-      video.onseeked = resolve;
+      let resolved = false;
+      const done = () => {
+        if (!resolved) {
+          resolved = true;
+          resolve();
+        }
+      };
+      const timer = setTimeout(done, 250);
+      video.onseeked = () => {
+        clearTimeout(timer);
+        done();
+      };
+      video.onerror = () => {
+        clearTimeout(timer);
+        done();
+      };
       video.currentTime = seekTo;
     });
 
@@ -112,16 +129,18 @@ async function readVideoMetadata(file) {
   video.style.pointerEvents = 'none';
   document.body.appendChild(video);
 
+  const metadataLoaded = new Promise((resolve, reject) => {
+    video.onloadedmetadata = resolve;
+    video.onerror = () => reject(new Error('Could not read video metadata.'));
+  });
+
   video.preload = 'metadata';
   video.muted = true;
   video.playsInline = true;
   video.src = objectUrl;
 
   try {
-    await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve;
-      video.onerror = () => reject(new Error('Could not read video metadata.'));
-    });
+    await metadataLoaded;
 
     const duration = Number.isFinite(video.duration) ? video.duration : 0;
     const width = video.videoWidth || 0;
@@ -226,6 +245,17 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const previewVideoRef = useRef(null);
   const trimmerTrackRef = useRef(null);
 
+  const trimStartRef = useRef(trimStart);
+  const trimEndRef = useRef(trimEnd);
+  
+  useEffect(() => {
+    trimStartRef.current = trimStart;
+  }, [trimStart]);
+
+  useEffect(() => {
+    trimEndRef.current = trimEnd;
+  }, [trimEnd]);
+
   // Sync main preview video playback range with trimmer start/end
   useEffect(() => {
     const video = previewVideoRef.current;
@@ -316,6 +346,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     video.style.pointerEvents = 'none';
     document.body.appendChild(video);
 
+    // Bind event listeners BEFORE setting source to prevent race conditions
+    const metadataLoaded = new Promise((resolve) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => resolve();
+    });
+
     video.src = objectUrl;
     video.muted = true;
     video.playsInline = true;
@@ -323,10 +359,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     video.crossOrigin = 'anonymous';
     
     try {
-      await new Promise((resolve) => {
-        video.onloadedmetadata = () => resolve();
-        video.onerror = () => resolve();
-      });
+      await metadataLoaded;
       
       const numFrames = 8;
       const extracted = [];
@@ -338,9 +371,30 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       for (let i = 0; i < numFrames; i++) {
         const time = (i / (numFrames - 1)) * duration;
         await new Promise((resolve) => {
-          video.onseeked = () => resolve();
-          video.onerror = () => resolve();
-          video.currentTime = time;
+          let resolved = false;
+          const done = () => {
+            if (!resolved) {
+              resolved = true;
+              resolve();
+            }
+          };
+          const timer = setTimeout(done, 250); // Fallback timeout if seek hangs
+          
+          video.onseeked = () => {
+            clearTimeout(timer);
+            done();
+          };
+          video.onerror = () => {
+            clearTimeout(timer);
+            done();
+          };
+          
+          // Avoid seeking to exactly the current value to guarantee onseeked triggers
+          if (time === 0 && video.currentTime === 0) {
+            video.currentTime = 0.001;
+          } else {
+            video.currentTime = time;
+          }
         });
         
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -553,6 +607,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     const track = trimmerTrackRef.current;
     if (!track || !videoMeta?.duration) return;
 
+    // WhatsApp mechanic: pause video when dragging starts
+    if (previewVideoRef.current) {
+      previewVideoRef.current.pause();
+    }
+
     const getClientX = (e) => {
       if (e.touches && e.touches.length > 0) return e.touches[0].clientX;
       return e.clientX;
@@ -567,8 +626,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       const newTime = Math.max(0, Math.min(duration, offsetPct * duration));
 
       if (handle === 'start') {
-        const minStart = Math.max(0, trimEnd - STATUS_VIDEO_MAX_SECONDS);
-        const nextStart = Math.max(minStart, Math.min(newTime, trimEnd - 0.5));
+        const minStart = Math.max(0, trimEndRef.current - STATUS_VIDEO_MAX_SECONDS);
+        const nextStart = Math.max(minStart, Math.min(newTime, trimEndRef.current - 0.5));
         setTrimStart(nextStart);
         setVideoPostMode('trim');
         // WhatsApp Mechanic: jump to current frame on drag
@@ -576,8 +635,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           previewVideoRef.current.currentTime = nextStart;
         }
       } else {
-        const maxEnd = Math.min(duration, trimStart + STATUS_VIDEO_MAX_SECONDS);
-        const nextEnd = Math.max(trimStart + 0.5, Math.min(newTime, maxEnd));
+        const maxEnd = Math.min(duration, trimStartRef.current + STATUS_VIDEO_MAX_SECONDS);
+        const nextEnd = Math.max(trimStartRef.current + 0.5, Math.min(newTime, maxEnd));
         setTrimEnd(nextEnd);
         setVideoPostMode('trim');
         // WhatsApp Mechanic: jump to current frame on drag
@@ -592,6 +651,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       window.removeEventListener('mouseup', endDrag);
       window.removeEventListener('touchmove', onDrag);
       window.removeEventListener('touchend', endDrag);
+
+      // WhatsApp mechanic: play video from trimStart when dragging ends
+      if (previewVideoRef.current) {
+        previewVideoRef.current.currentTime = trimStartRef.current;
+        previewVideoRef.current.play().catch(() => {});
+      }
     };
 
     window.addEventListener('mousemove', onDrag);

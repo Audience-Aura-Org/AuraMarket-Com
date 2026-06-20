@@ -1,28 +1,17 @@
 /**
  * Video Compression Utility
  * Optimizes videos for fast streaming on status
- * 
- * Usage:
- * const compressed = await compressVideo(inputPath, outputPath);
- * 
- * Install ffmpeg first:
- * macOS: brew install ffmpeg
- * Ubuntu: sudo apt-get install ffmpeg
- * Windows: Download from ffmpeg.org
+ * Uses ffmpeg-static for self-contained execution
  */
 
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 const { promisify } = require('util');
+const ffmpeg = require('ffmpeg-static');
 
 const execAsync = promisify(exec);
 
-/**
- * Compress video for streaming
- * Target: 1.5 Mbps bitrate, H.264 codec, AAC audio
- * Result: ~5-10MB for typical 30-60s video
- */
 /** Status stories — WhatsApp-style: 9:16 center crop, 30s max, 720p */
 const STATUS_VIDEO_MAX_SECONDS = 30;
 
@@ -39,7 +28,7 @@ const trimAndCompressStatusVideo = async (inputPath, outputPath, { start = 0, en
     : 'scale=w=720:h=1280:force_original_aspect_ratio=increase,crop=720:1280';
 
   return new Promise((resolve, reject) => {
-    const command = `ffmpeg -ss ${seekStart} -i "${inputPath}" \
+    const command = `"${ffmpeg}" -ss ${seekStart} -i "${inputPath}" \
       -t ${clipDuration} \
       -vf "${videoFilter}" \
       -vcodec libx264 \
@@ -80,7 +69,7 @@ const compressVideoForStatus = async (inputPath, outputPath, trimOptions = null,
     : 'scale=w=720:h=1280:force_original_aspect_ratio=increase,crop=720:1280';
 
   return new Promise((resolve, reject) => {
-    const command = `ffmpeg -i "${inputPath}" \
+    const command = `"${ffmpeg}" -i "${inputPath}" \
       -t ${STATUS_VIDEO_MAX_SECONDS} \
       -vf "${videoFilter}" \
       -vcodec libx264 \
@@ -112,7 +101,7 @@ const compressVideoForStatus = async (inputPath, outputPath, trimOptions = null,
 
 const compressVideo = async (inputPath, outputPath) => {
   return new Promise((resolve, reject) => {
-    const command = `ffmpeg -i "${inputPath}" \
+    const command = `"${ffmpeg}" -i "${inputPath}" \
       -vcodec libx264 \
       -preset faster \
       -b:v 1500k \
@@ -150,7 +139,7 @@ const compressVideo = async (inputPath, outputPath) => {
 };
 
 /**
- * Quick quality check for video
+ * Quick quality check for video (falls back to parsing ffmpeg output if ffprobe is missing)
  */
 const checkVideoQuality = async (filePath) => {
   try {
@@ -173,9 +162,37 @@ const checkVideoQuality = async (filePath) => {
     
     throw new Error('No video stream found');
   } catch (error) {
-    console.error('[Video] Quality check failed:', error.message);
-    return null;
+    console.log('[Video] ffprobe is not available, attempting ffmpeg parser fallback');
   }
+
+  // Fallback: parse ffmpeg output for duration
+  try {
+    const command = `"${ffmpeg}" -i "${filePath}"`;
+    let info = '';
+    try {
+      await execAsync(command);
+    } catch (err) {
+      info = err.stderr || err.message || '';
+    }
+
+    const match = info.match(/Duration:\s*(\d{2}):(\d{2}):(\d{2})\.(\d{2})/i);
+    if (match) {
+      const hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const seconds = parseInt(match[3], 10);
+      const ms = parseInt(match[4], 10);
+      const duration = hours * 3600 + minutes * 60 + seconds + ms / 100;
+      return {
+        codec: 'unknown',
+        width: 720,
+        height: 1280,
+        duration,
+      };
+    }
+  } catch (err) {
+    console.error('[Video] ffmpeg fallback check failed:', err.message);
+  }
+  return null;
 };
 
 /**
@@ -184,7 +201,7 @@ const checkVideoQuality = async (filePath) => {
  */
 const generateThumbnail = async (videoPath, outputPath) => {
   return new Promise((resolve, reject) => {
-    const command = `ffmpeg -i "${videoPath}" \
+    const command = `"${ffmpeg}" -i "${videoPath}" \
       -ss 2 \
       -vframes 1 \
       -vf "scale=320:180:force_original_aspect_ratio=decrease" \
@@ -211,26 +228,3 @@ module.exports = {
   checkVideoQuality,
   generateThumbnail,
 };
-
-// Example usage (uncomment to test):
-/*
-(async () => {
-  try {
-    const inputVideo = './test-video.mp4';
-    const outputVideo = './test-video-compressed.mp4';
-    
-    // Check original quality
-    const original = await checkVideoQuality(inputVideo);
-    console.log('Original:', original);
-    
-    // Compress
-    const result = await compressVideo(inputVideo, outputVideo);
-    console.log('Compressed:', result);
-    
-    // Generate thumbnail
-    await generateThumbnail(outputVideo, './thumbnail.jpg');
-  } catch (error) {
-    console.error('Error:', error);
-  }
-})();
-*/
