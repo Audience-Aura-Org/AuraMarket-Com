@@ -287,14 +287,22 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
     onProgress?.(100);
     return res.data;
   } catch (err) {
-    console.error('[StatusVideo] Server trim request error:', {
-      message: err.message,
-      code: err.code,
+    // Log FULL error details including network errors
+    const errorDetails = {
+      errorName: err.name,
+      errorMessage: err.message,
+      errorCode: err.code,
+      isNetworkError: !err.response,
       statusCode: err.response?.status,
+      responseStatus: err.response?.statusText,
       responseData: err.response?.data,
       requestURL: err.config?.url,
-      requestHeaders: err.config?.headers,
-    });
+      requestMethod: err.config?.method,
+      requestHeaders: err.config?.headers ? Object.keys(err.config.headers) : 'none',
+      axiosCode: err.code,
+    };
+    console.error('[StatusVideo] FULL ERROR DETAILS:', errorDetails);
+    console.error('[StatusVideo] Error stack:', err.stack);
     throw err;
   }
 }

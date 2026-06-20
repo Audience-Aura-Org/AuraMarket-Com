@@ -757,6 +757,15 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         onClose();
       }
     } catch (err) {
+      console.error('[StatusCreator] handlePost error caught:', {
+        errorName: err.name,
+        errorMessage: err.message,
+        isNetworkError: !err.response && err.code,
+        statusCode: err.response?.status,
+        responseData: err.response?.data,
+        errorStack: err.stack?.split('\n').slice(0, 3).join('\n'),
+      });
+      
       const msg =
         err.response?.data?.message ||
         err.response?.data?.error ||
