@@ -23,6 +23,7 @@ import {
   STATUS_VIDEO_MAX_SECONDS,
 } from '@/constants/statusVideo';
 import { prepareStatusVideoForUpload } from '@/lib/statusVideoExport';
+import { useUploadQueue } from '@/context/UploadQueueContext';
 
 const DURATION_OPTIONS = [
   { value: 1, label: '1 Day', description: 'Quick drop' },
@@ -244,8 +245,124 @@ const buildVideoSegments = (duration = 0) => {
   return segments;
 };
 
+/**
+ * runVideoUploadTask
+ * Standalone async function that does the full video upload + publish pipeline.
+ * Runs entirely outside any React component lifecycle — safe to call after
+ * the StatusCreator modal has unmounted.
+ *
+ * @param {object} snapshot - State values captured at the moment the user tapped Share
+ * @param {{ onProgress: Function, onPhase: Function }} callbacks
+ * @returns {Promise<Array>} Array of created status objects
+ */
+async function runVideoUploadTask(snapshot, { onProgress, onPhase }) {
+  const {
+    file, type, trimStart, trimEnd, cropMode, videoPostMode,
+    videoMeta, selectedCategory, caption, linkedProduct, expiryDays,
+  } = snapshot;
+
+  const createdStatuses = [];
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + expiryDays);
+
+  const createStatusPayload = (overrides = {}) => ({
+    type,
+    content_url: '',
+    thumbnail_url: '',
+    text_content: '',
+    caption,
+    linked_product: linkedProduct?._id || null,
+    expires_at: expiresAt.toISOString(),
+    expiry_days: expiryDays,
+    category: selectedCategory,
+    ...overrides,
+  });
+
+  const segments = videoPostMode === 'split'
+    ? buildVideoSegments(videoMeta?.duration || trimEnd)
+    : [{ start: trimStart, end: trimEnd, index: 0 }];
+  const totalSegments = segments.length;
+
+  for (const segment of segments) {
+    const segmentNumber = segment.index + 1;
+    const clipLength = segment.end - segment.start;
+    if (clipLength > STATUS_VIDEO_MAX_SECONDS + 0.5) {
+      throw new Error(`Story clips must be ${STATUS_VIDEO_MAX_SECONDS} seconds or less.`);
+    }
+
+    onPhase(totalSegments > 1
+      ? `Preparing part ${segmentNumber} of ${totalSegments}...`
+      : 'Preparing video...'
+    );
+
+    const preparedVideo = await prepareStatusVideoForUpload(file, {
+      trimStart: segment.start,
+      trimEnd: segment.end,
+      cropMode,
+      onProgress: (pct) => {
+        const progress = ((segment.index + (pct / 100)) / totalSegments) * 70;
+        onProgress(Math.min(70, Math.round(progress)));
+      },
+    });
+
+    let segmentUrl = '';
+    let thumbnailSource = file;
+
+    if (preparedVideo.mode === 'server') {
+      if (!preparedVideo.uploadResult?.success) {
+        throw new Error(preparedVideo.uploadResult?.message || 'Server video trim failed.');
+      }
+      segmentUrl = preparedVideo.uploadResult.data.url;
+      onProgress(Math.min(95, Math.round(((segment.index + 1) / totalSegments) * 95)));
+    } else {
+      const uploadFile = preparedVideo.file;
+      if (uploadFile.size > STATUS_VIDEO_MAX_BYTES) {
+        throw new Error('Edited video is still above 16MB. Shorten the trim and try again.');
+      }
+      onPhase(totalSegments > 1
+        ? `Uploading part ${segmentNumber} of ${totalSegments}...`
+        : 'Uploading video...'
+      );
+      const uploadRes = await uploadService.uploadSingle(uploadFile, 'statuses', {
+        onProgress: (pct) => {
+          const progress = 70 + (((segment.index + (pct / 100)) / totalSegments) * 25);
+          onProgress(Math.min(95, Math.round(progress)));
+        },
+      });
+      if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
+      segmentUrl = uploadRes.data.url;
+      thumbnailSource = uploadFile;
+    }
+
+    onPhase(totalSegments > 1
+      ? `Creating preview ${segmentNumber} of ${totalSegments}...`
+      : 'Creating preview...'
+    );
+    const thumbnailFile = await generateVideoThumbnail(thumbnailSource);
+    let segmentThumbnailUrl = '';
+    if (thumbnailFile) {
+      const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
+      if (thumbnailRes.success) segmentThumbnailUrl = thumbnailRes.data.url;
+    }
+
+    onPhase(totalSegments > 1
+      ? `Publishing part ${segmentNumber} of ${totalSegments}...`
+      : 'Publishing story...'
+    );
+    const res = await api.post('/statuses', createStatusPayload({
+      content_url: segmentUrl,
+      thumbnail_url: segmentThumbnailUrl,
+    }));
+    if (!res.data?.success) throw new Error(res.data?.message || 'Status creation failed');
+    createdStatuses.push(res.data.data);
+  }
+
+  return createdStatuses;
+}
+
 export default function StatusCreator({ onClose, onStatusCreated, initialData = null }) {
   const isReshare = !!initialData;
+  const { enqueueUpload } = useUploadQueue();
 
   const [, setDeviceType] = useState('desktop');
   const [type, setType]                 = useState(initialData?.type || 'image');
@@ -579,6 +696,33 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
   const handlePost = async () => {
     if (!selectedCategory) { setError('Please select a category.'); return; }
+
+    // ── VIDEO: hand off to background queue immediately, close modal ─────────
+    if (type === 'video' && file) {
+      // Snapshot all state values at click time — the component may unmount
+      // before the upload finishes, so we cannot reference React state inside the task.
+      const snapshot = {
+        file, type, trimStart, trimEnd, cropMode, videoPostMode,
+        videoMeta, selectedCategory, caption, linkedProduct, expiryDays,
+      };
+
+      enqueueUpload(
+        (callbacks) => runVideoUploadTask(snapshot, callbacks),
+        {
+          label: 'Uploading story...',
+          onSuccess: (statuses) => {
+            onStatusCreated?.(statuses.length === 1 ? statuses[0] : statuses);
+          },
+        }
+      );
+
+      // Clear form and close — upload continues in the background
+      clearSelectedMedia();
+      onClose();
+      return;
+    }
+
+    // ── IMAGE / TEXT: synchronous (fast, no background needed) ───────────────
     setLoading(true);
     setUploadProgress(0);
     setUploadPhase('');

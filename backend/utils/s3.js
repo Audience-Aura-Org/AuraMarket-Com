@@ -211,11 +211,28 @@ async function downloadFromS3(key) {
   return Buffer.concat(chunks);
 }
 
+/**
+ * Stream an S3 object directly (without buffering the full file in RAM).
+ * Use this when you want to pipe into a write stream, e.g. writing to a temp file.
+ */
+async function getS3Stream(key) {
+  if (!s3Client) throw new Error('S3 is not enabled or not configured.');
+
+  const command = new GetObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET,
+    Key: key,
+  });
+
+  const response = await s3Client.send(command);
+  return response.Body; // Node.js Readable stream
+}
+
 module.exports = {
   uploadToS3,
   uploadMultipleToS3,
   createPresignedUpload,
   downloadFromS3,
+  getS3Stream,
   deleteS3ObjectByUrl,
   normalizeS3Folder,
   isS3Enabled,

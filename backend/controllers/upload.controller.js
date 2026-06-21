@@ -6,11 +6,13 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { pipeline } = require('stream/promises');
 const {
   uploadToS3,
   uploadMultipleToS3,
   createPresignedUpload,
   downloadFromS3,
+  getS3Stream,
   isS3Enabled,
   normalizeS3Folder,
 } = require('../utils/s3');
@@ -389,42 +391,41 @@ const processVideoFromS3 = async (req, res) => {
   }
 
   try {
-    console.log(`🎬 [API] process-s3: Downloading source from S3: ${key}`);
-    const sourceBuffer = await downloadFromS3(key);
-    console.log(`🎬 [API] process-s3: Downloaded ${(sourceBuffer.length / 1024 / 1024).toFixed(1)}MB`);
-
+    // Stream S3 object directly to a temp file — avoids allocating a full in-memory
+    // Buffer (~7.8MB RAM saved per upload). Bytes are written to disk as they arrive.
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aura-s3trim-'));
     const fileName = key.split('/').pop() || 'video.mp4';
-    const fakeFile = {
-      buffer: sourceBuffer,
-      originalname: fileName,
-      mimetype: 'video/mp4',
-      size: sourceBuffer.length,
-    };
+    const inputPath = path.join(tmpDir, `in-${Date.now()}-${fileName}`);
+    const outputName = fileName.replace(/\.[^.]+$/, '') + '-trimmed.mp4';
+    const outputPath = path.join(tmpDir, `out-${Date.now()}-${outputName}`);
 
-    const trimOptions =
-      Number.isFinite(Number(trimStart)) && Number.isFinite(Number(trimEnd))
-        ? { start: Number(trimStart), end: Number(trimEnd) }
-        : null;
+    try {
+      console.log(`🎬 [API] process-s3: Streaming source from S3 to disk: ${key}`);
+      const s3Stream = await getS3Stream(key);
+      await pipeline(s3Stream, fs.createWriteStream(inputPath));
 
-    const uploadPayload = await maybeTranscodeVideoForWeb(fakeFile, 'status-sources', trimOptions, cropMode);
+      const inputSizeMB = (fs.statSync(inputPath).size / 1024 / 1024).toFixed(1);
+      console.log(`🎬 [API] process-s3: Wrote ${inputSizeMB}MB to disk, starting ffmpeg...`);
 
-    const s3Result = await uploadToS3(
-      uploadPayload.buffer,
-      uploadPayload.originalname,
-      'statuses',
-      uploadPayload.mimetype
-    );
+      const trimOptions =
+        Number.isFinite(Number(trimStart)) && Number.isFinite(Number(trimEnd))
+          ? { start: Number(trimStart), end: Number(trimEnd) }
+          : null;
 
-    console.log(`✅ [API] process-s3: Trimmed video uploaded: ${s3Result.url}`);
+      await compressVideoForStatus(inputPath, outputPath, trimOptions, cropMode);
 
-    return res.status(200).json({
-      success: true,
-      data: {
-        url: s3Result.url,
-        method: 'S3-trim',
-        mimetype: uploadPayload.mimetype,
-      },
-    });
+      const outBuffer = fs.readFileSync(outputPath);
+      const s3Result = await uploadToS3(outBuffer, outputName, 'statuses', 'video/mp4');
+
+      console.log(`✅ [API] process-s3: Trimmed video uploaded: ${s3Result.url}`);
+
+      return res.status(200).json({
+        success: true,
+        data: { url: s3Result.url, method: 'S3-trim', mimetype: 'video/mp4' },
+      });
+    } finally {
+      try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+    }
   } catch (err) {
     const errorCode = err.Code || err.code || err.name || 'UnknownError';
     console.error(`❌ [API] process-s3 failed [${errorCode}]:`, err.message);

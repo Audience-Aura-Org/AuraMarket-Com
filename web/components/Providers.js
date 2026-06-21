@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { LanguageProvider } from '@/context/LanguageContext';
+import { UploadQueueProvider } from '@/context/UploadQueueContext';
 import SocketProvider from '@/components/SocketProvider';
 import OnboardingWatcher from '@/components/layout/OnboardingWatcher';
 import TopNav from '@/components/layout/TopNav';
@@ -27,6 +28,7 @@ const NativeBackButtonHandler = dynamic(() => import('@/components/NativeBackBut
 // Navigation & footer — visible but non-critical for first paint
 const BottomNav = dynamic(() => import('@/components/layout/BottomNav'), { ssr: false });
 const Footer = dynamic(() => import('@/components/layout/Footer'), { ssr: false });
+const FloatingUploadBadge = dynamic(() => import('@/components/ui/FloatingUploadBadge'), { ssr: false });
 
 export default function Providers({ children }) {
   const pathname = usePathname();
@@ -88,6 +90,7 @@ export default function Providers({ children }) {
   return (
     <ThemeProvider>
       <LanguageProvider>
+      <UploadQueueProvider>
       <AnimatePresence>
         {showSplash && <SplashScreen />}
       </AnimatePresence>
@@ -124,10 +127,14 @@ export default function Providers({ children }) {
 
           {!isAuthRoute && !isImmersiveChat && <BottomNav />}
 
+          {/* Floating upload progress ring — persists across navigation */}
+          <FloatingUploadBadge />
+
           {/* Global chat overlay — deferred, heavy */}
           {!isAuthRoute && <GlobalChatOverlay />}
         </SocketProvider>
       </ChatProvider>
+      </UploadQueueProvider>
       </LanguageProvider>
     </ThemeProvider>
   );
