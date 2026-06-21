@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import api from '@/services/api';
+import { getStoredAuthToken } from '@/services/authStorage';
 import {
   STATUS_VIDEO_MAX_SECONDS,
   STATUS_VIDEO_EXPORT_WIDTH,
@@ -252,25 +253,61 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
       cropMode,
     });
 
-    // Use api.post() (axios) — the interceptor's Content-Type deletion bug is now fixed
-    // (it uses `= undefined` instead of `delete`, preserving AxiosHeaders boundary tracking).
-    // A raw fetch() approach was tried but caused "Load failed" on Capacitor due to
-    // differences in how the native WebView handles preflight for large multipart bodies.
-    const res = await api.post('/upload/single', formData, {
-      timeout: 600000,
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
-      __skipRetry: true,
-      onUploadProgress: (event) => {
-        if (onProgress && event.total) {
-          const percent = Math.min(99, Math.round((event.loaded * 100) / event.total));
-          onProgress(percent);
-        }
-      },
+    // Use fetch() directly — NOT axios — for this upload.
+    // Reason: on Capacitor Android WebViews, XHR (which axios uses) encodes multipart
+    // FormData bodies in a way that doesn't always match the boundary reported in the
+    // Content-Type header. multer on the server then finds no files. The Fetch API
+    // handles multipart/form-data boundary injection correctly in all environments.
+    // NOTE: An earlier attempt at this approach failed due to a dynamic import bug
+    // (getStoredAuthToken was being imported dynamically inside the function body).
+    // That is now fixed — getStoredAuthToken is a static import at the top of this file.
+    const baseURL = String(api.defaults.baseURL || '').replace(/\/$/, '');
+    const token = await getStoredAuthToken();
+    const language = typeof window !== 'undefined'
+      ? window.localStorage.getItem('aura_language') || 'en'
+      : 'en';
+
+    const headers = {
+      'Accept-Language': language,
+      'X-Aura-Language': language,
+      // Do NOT set Content-Type — browser must auto-set multipart/form-data + boundary
+    };
+    if (token && token !== 'undefined' && token !== 'null' && token !== '') {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 600000);
+
+    let response;
+    try {
+      response = await fetch(`${baseURL}/upload/single`, {
+        method: 'POST',
+        headers,
+        body: formData,
+        credentials: 'include',
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    const resData = await response.json().catch(() => null);
+
+    console.log('[StatusVideo] Server trim response received', {
+      statusCode: response.status,
+      success: resData?.success,
+      hasData: !!resData?.data,
     });
 
+    if (!response.ok || !resData?.success) {
+      const errMsg = resData?.message || resData?.error || `Server video trim failed (${response.status}).`;
+      console.error('[StatusVideo] Server trim failed:', { message: errMsg, statusCode: response.status });
+      throw new Error(errMsg);
+    }
+
     onProgress?.(100);
-    return res.data;
+    return resData;
   } catch (err) {
     // Log FULL error details including network errors
     const errorDetails = {

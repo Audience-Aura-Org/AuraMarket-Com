@@ -235,20 +235,18 @@ api.interceptors.request.use(async (config) => {
 
     // Mobile browsers can fail `instanceof FormData` across realms.
     // For FormData, we must NOT set Content-Type manually — the browser/XHR
-    // must set it automatically so it can inject the correct multipart boundary.
-    // Using `delete` on an AxiosHeaders object can break boundary injection on
-    // some mobile/Capacitor environments. Setting to undefined is the safe approach.
+    // must set it automatically so it can inject the correct multipart/form-data
+    // boundary. We delete both casing variants so axios doesn't call
+    // xhr.setRequestHeader('Content-Type', ...) at all, leaving the browser free.
+    // NOTE: using `= undefined` instead of `delete` leaves a phantom key that some
+    // Android WebViews serialize as `Content-Type: ` (empty), breaking multipart.
     if (isFormDataPayload(config.data)) {
-      const hadContentType = !!config.headers['Content-Type'];
-      // Unset in all the ways axios may have it stored
-      config.headers['Content-Type'] = undefined;
-      config.headers['content-type'] = undefined;
-      if (typeof config.headers.setContentType === 'function') {
-        config.headers.setContentType(undefined);
-      }
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+      // Do NOT call setContentType() here — it re-adds the key after deletion.
       console.log('[API:Interceptor] FormData detected for:', config.url, {
-        hasContentType: hadContentType,
-        headerKeys: Object.keys(config.headers).filter(k => config.headers[k] !== undefined),
+        hasContentType: false,
+        headerKeys: Object.keys(config.headers),
       });
     } else {
       config.headers['Content-Type'] = 'application/json';
