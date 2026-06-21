@@ -3,7 +3,7 @@
  * AWS SDK v3 implementation for S3 uploads (uses @aws-sdk/client-s3 and @aws-sdk/lib-storage)
  */
 
-const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { Upload } = require('@aws-sdk/lib-storage');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 require('dotenv').config();
@@ -190,10 +190,32 @@ async function deleteS3ObjectByUrl(url, { allowedPrefix = 'statuses/' } = {}) {
   return { success: true, key };
 }
 
+/**
+ * Download an S3 object as a Buffer (used by process-s3 endpoint for server-side trim).
+ */
+async function downloadFromS3(key) {
+  if (!s3Client) throw new Error('S3 is not enabled or not configured.');
+
+  const command = new GetObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET,
+    Key: key,
+  });
+
+  const response = await s3Client.send(command);
+
+  // AWS SDK v3 returns Body as a Node.js Readable stream
+  const chunks = [];
+  for await (const chunk of response.Body) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
 module.exports = {
   uploadToS3,
   uploadMultipleToS3,
   createPresignedUpload,
+  downloadFromS3,
   deleteS3ObjectByUrl,
   normalizeS3Folder,
   isS3Enabled,

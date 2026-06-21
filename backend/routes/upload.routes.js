@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const { protect } = require('../middleware/auth.middleware');
-const { uploadSingle, uploadMultiple, presignUpload } = require('../controllers/upload.controller');
+const { uploadSingle, uploadMultiple, presignUpload, processVideoFromS3 } = require('../controllers/upload.controller');
 
 const router = express.Router();
 
@@ -35,6 +35,11 @@ router.use(protect); // Ensure all uploads are authenticated
 
 // @route   POST /api/upload/presign — JSON body; returns S3 PUT URL (no file through API)
 router.post('/presign', presignUpload);
+
+// @route   POST /api/upload/process-s3 — JSON body; trims/transcodes a file already in S3
+// @desc    Downloads source from status-sources/, runs ffmpeg, re-uploads to statuses/
+// @access  Private (no multer — body is plain JSON)
+router.post('/process-s3', protect, processVideoFromS3);
 
 // Accept image | file | video field names (status creator compatibility)
 const pickUploadFile = (req, res, next) => {

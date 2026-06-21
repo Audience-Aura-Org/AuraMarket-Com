@@ -1,6 +1,6 @@
+import axios from 'axios';
 import { Capacitor } from '@capacitor/core';
 import api from '@/services/api';
-import { getStoredAuthToken } from '@/services/authStorage';
 import {
   STATUS_VIDEO_MAX_SECONDS,
   STATUS_VIDEO_EXPORT_WIDTH,
@@ -212,113 +212,78 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
 }
 
 async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropMode = 'crop', onProgress } = {}) {
-  // Validate file exists and is a File/Blob object
   if (!file || !(file instanceof File || file instanceof Blob)) {
-    console.error('[StatusVideo] Invalid file object for upload', {
-      fileExists: !!file,
-      fileType: typeof file,
-      isFile: file instanceof File,
-      isBlob: file instanceof Blob,
-      fileKeys: file ? Object.keys(file).slice(0, 10) : null,
-    });
+    console.error('[StatusVideo] Invalid file object for upload', { fileType: typeof file });
     throw new Error('Invalid file object. File must be a File or Blob.');
   }
 
-  const formData = new FormData();
-  formData.append('type', 'status-sources');
-  formData.append('video', file);
-  formData.append('trimStart', String(trimStart ?? 0));
-  formData.append('trimEnd', String(trimEnd ?? STATUS_VIDEO_MAX_SECONDS));
-  formData.append('cropMode', cropMode);
-
-  // Log FormData contents to verify it's properly formed
-  console.log('[StatusVideo] FormData created:', {
-    hasVideo: !!file,
-    videoSize: file.size,
-    videoType: file.type,
-    videoName: file.name,
-    formDataEntries: Array.from(formData.entries()).map(([k, v]) => [
-      k,
-      v instanceof File ? `File(${v.name}, ${v.size} bytes)` : String(v).substring(0, 50)
-    ]),
+  console.log('[StatusVideo] Starting server trim upload (presign + process-s3)...', {
+    fileName: file.name,
+    fileSize: file.size,
+    fileType: file.type,
+    trimStart,
+    trimEnd,
+    cropMode,
   });
 
-  try {
-    console.log('[StatusVideo] Starting server trim upload...', {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      trimStart,
-      trimEnd,
-      cropMode,
-    });
+  // ─── Step 1: Get a presigned S3 PUT URL ───────────────────────────────────
+  // Small JSON POST — no multipart, no file body, always works on iOS.
+  const presignRes = await api.post('/upload/presign', {
+    fileName: file.name || 'status-video.mp4',
+    contentType: file.type || 'video/mp4',
+    fileSize: file.size,
+    type: 'status-sources',
+  });
 
-    // Use fetch() directly — NOT axios — for this upload.
-    // Reason: on Capacitor Android WebViews, XHR (which axios uses) encodes multipart
-    // FormData bodies in a way that doesn't always match the boundary reported in the
-    // Content-Type header. multer on the server then finds no files. The Fetch API
-    // handles multipart/form-data boundary injection correctly in all environments.
-    // NOTE: An earlier attempt at this approach failed due to a dynamic import bug
-    // (getStoredAuthToken was being imported dynamically inside the function body).
-    // That is now fixed — getStoredAuthToken is a static import at the top of this file.
-    const baseURL = String(api.defaults.baseURL || '').replace(/\/$/, '');
-    const token = await getStoredAuthToken();
-    const language = typeof window !== 'undefined'
-      ? window.localStorage.getItem('aura_language') || 'en'
-      : 'en';
-
-    const headers = {
-      'Accept-Language': language,
-      'X-Aura-Language': language,
-      // Do NOT set Content-Type — browser must auto-set multipart/form-data + boundary
-    };
-    if (token && token !== 'undefined' && token !== 'null' && token !== '') {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 600000);
-
-    let response;
-    try {
-      response = await fetch(`${baseURL}/upload/single`, {
-        method: 'POST',
-        headers,
-        body: formData,
-        credentials: 'include',
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    const resData = await response.json().catch(() => null);
-
-    console.log('[StatusVideo] Server trim response received', {
-      statusCode: response.status,
-      success: resData?.success,
-      hasData: !!resData?.data,
-    });
-
-    if (!response.ok || !resData?.success) {
-      const errMsg = resData?.message || resData?.error || `Server video trim failed (${response.status}).`;
-      console.error('[StatusVideo] Server trim failed:', { message: errMsg, statusCode: response.status });
-      throw new Error(errMsg);
-    }
-
-    onProgress?.(100);
-    return resData;
-  } catch (err) {
-    // Log FULL error details including network errors
-    const errorDetails = {
-      errorName: err.name,
-      errorMessage: err.message,
-      errorCode: err.code,
-    };
-    console.error('[StatusVideo] FULL ERROR DETAILS:', errorDetails);
-    console.error('[StatusVideo] Error stack:', err.stack);
-    throw err;
+  if (!presignRes.data?.success) {
+    throw new Error(presignRes.data?.message || 'Could not prepare upload URL.');
   }
+
+  const { uploadUrl, key } = presignRes.data.data;
+  console.log('[StatusVideo] Got presigned URL, uploading raw file to S3...', { key });
+
+  // ─── Step 2: PUT the raw binary file directly to S3 ───────────────────────
+  // A binary PUT request (not multipart). iOS Safari handles this correctly.
+  // This is the same pattern used by uploadViaPresign() in upload.js.
+  await axios.put(uploadUrl, file, {
+    headers: {
+      'Content-Type': file.type || 'video/mp4',
+      'Cache-Control': 'public, max-age=259200',
+      'Content-Disposition': 'inline',
+    },
+    maxBodyLength: Infinity,
+    maxContentLength: Infinity,
+    timeout: 600000,
+    onUploadProgress: (event) => {
+      if (onProgress && event.total) {
+        // Scale to 0–90% for the upload phase; 90–100% reserved for server processing
+        onProgress(Math.min(90, Math.round((event.loaded * 100) / event.total * 0.9)));
+      }
+    },
+  });
+
+  onProgress?.(92);
+  console.log('[StatusVideo] File uploaded to S3, requesting server trim...', { key, trimStart, trimEnd });
+
+  // ─── Step 3: Ask the backend to trim/transcode from S3 ────────────────────
+  // Small JSON POST — backend downloads from S3, runs ffmpeg, re-uploads to
+  // statuses/ folder, and returns the final URL.
+  const trimRes = await api.post('/upload/process-s3', {
+    key,
+    trimStart: trimStart ?? 0,
+    trimEnd: trimEnd ?? STATUS_VIDEO_MAX_SECONDS,
+    cropMode,
+  });
+
+  if (!trimRes.data?.success) {
+    const errMsg = trimRes.data?.message || 'Server video trim failed.';
+    console.error('[StatusVideo] process-s3 failed:', { message: errMsg, response: trimRes.data });
+    throw new Error(errMsg);
+  }
+
+  console.log('[StatusVideo] Server trim complete', { url: trimRes.data?.data?.url });
+  onProgress?.(100);
+  return trimRes.data;
 }
 
 export async function prepareStatusVideoForUpload(file, { trimStart = 0, trimEnd = STATUS_VIDEO_MAX_SECONDS, cropMode = 'crop', onProgress } = {}) {

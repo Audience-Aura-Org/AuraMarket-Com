@@ -10,6 +10,7 @@ const {
   uploadToS3,
   uploadMultipleToS3,
   createPresignedUpload,
+  downloadFromS3,
   isS3Enabled,
   normalizeS3Folder,
 } = require('../utils/s3');
@@ -363,8 +364,82 @@ const presignUpload = async (req, res) => {
   }
 };
 
+/**
+ * @route POST /api/upload/process-s3
+ * @desc  Server-side trim + transcode a video already uploaded to S3 via presigned PUT.
+ *        Accepts { key, trimStart, trimEnd, cropMode }.
+ *        Downloads the source from status-sources/, runs ffmpeg, re-uploads to statuses/.
+ * @access Private
+ */
+const processVideoFromS3 = async (req, res) => {
+  const { key, trimStart, trimEnd, cropMode = 'crop' } = req.body;
+
+  if (!key || typeof key !== 'string') {
+    return res.status(400).json({ success: false, message: 'S3 key is required.' });
+  }
+  // Security: only allow keys from the status-sources folder
+  if (!key.startsWith('status-sources/')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid key. Only status-sources objects may be processed.',
+    });
+  }
+  if (!isS3Enabled()) {
+    return res.status(503).json({ success: false, message: 'S3 is not enabled on this server.' });
+  }
+
+  try {
+    console.log(`🎬 [API] process-s3: Downloading source from S3: ${key}`);
+    const sourceBuffer = await downloadFromS3(key);
+    console.log(`🎬 [API] process-s3: Downloaded ${(sourceBuffer.length / 1024 / 1024).toFixed(1)}MB`);
+
+    const fileName = key.split('/').pop() || 'video.mp4';
+    const fakeFile = {
+      buffer: sourceBuffer,
+      originalname: fileName,
+      mimetype: 'video/mp4',
+      size: sourceBuffer.length,
+    };
+
+    const trimOptions =
+      Number.isFinite(Number(trimStart)) && Number.isFinite(Number(trimEnd))
+        ? { start: Number(trimStart), end: Number(trimEnd) }
+        : null;
+
+    const uploadPayload = await maybeTranscodeVideoForWeb(fakeFile, 'status-sources', trimOptions, cropMode);
+
+    const s3Result = await uploadToS3(
+      uploadPayload.buffer,
+      uploadPayload.originalname,
+      'statuses',
+      uploadPayload.mimetype
+    );
+
+    console.log(`✅ [API] process-s3: Trimmed video uploaded: ${s3Result.url}`);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        url: s3Result.url,
+        method: 'S3-trim',
+        mimetype: uploadPayload.mimetype,
+      },
+    });
+  } catch (err) {
+    const errorCode = err.Code || err.code || err.name || 'UnknownError';
+    console.error(`❌ [API] process-s3 failed [${errorCode}]:`, err.message);
+    return res.status(500).json({
+      success: false,
+      message: err.message || 'Video processing failed.',
+      code: errorCode,
+    });
+  }
+};
+
 module.exports = {
   uploadSingle,
   uploadMultiple,
   presignUpload,
+  processVideoFromS3,
 };
+
