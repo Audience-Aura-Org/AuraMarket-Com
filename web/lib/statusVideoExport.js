@@ -252,66 +252,26 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
       cropMode,
     });
 
-    // Use fetch directly (NOT axios) to avoid the axios request interceptor mutating
-    // FormData headers. The interceptor's Content-Type manipulation can break multipart
-    // boundary injection on mobile/Capacitor, causing multer to receive no file.
-    const { getStoredAuthToken } = await import('@/services/authStorage');
-    const baseURL = String(api.defaults.baseURL || '').replace(/\/$/, '');
-    const token = await getStoredAuthToken();
-    const language = typeof window !== 'undefined'
-      ? window.localStorage.getItem('aura_language') || 'en'
-      : 'en';
-
-    const headers = {
-      'Accept-Language': language,
-      'X-Aura-Language': language,
-      // Do NOT set Content-Type — the browser must auto-set multipart/form-data + boundary
-    };
-    if (token && token !== 'undefined' && token !== 'null' && token !== '') {
-      headers.Authorization = `Bearer ${token}`;
-    }
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 600000);
-
-    let response;
-    try {
-      response = await fetch(`${baseURL}/upload/single`, {
-        method: 'POST',
-        headers,
-        body: formData,
-        credentials: 'include',
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    const resData = await response.json().catch(() => null);
-
-    console.log('[StatusVideo] Server trim response received', {
-      statusCode: response.status,
-      success: resData?.success,
-      hasData: !!resData?.data,
+    // Use api.post() (axios) — the interceptor's Content-Type deletion bug is now fixed
+    // (it uses `= undefined` instead of `delete`, preserving AxiosHeaders boundary tracking).
+    // A raw fetch() approach was tried but caused "Load failed" on Capacitor due to
+    // differences in how the native WebView handles preflight for large multipart bodies.
+    const res = await api.post('/upload/single', formData, {
+      timeout: 600000,
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      __skipRetry: true,
+      onUploadProgress: (event) => {
+        if (onProgress && event.total) {
+          const percent = Math.min(99, Math.round((event.loaded * 100) / event.total));
+          onProgress(percent);
+        }
+      },
     });
 
-    if (!response.ok || !resData?.success) {
-      const errMsg = resData?.message || resData?.error || `Server video trim failed (${response.status}).`;
-      console.error('[StatusVideo] Server trim failed with error:', {
-        message: errMsg,
-        code: resData?.code,
-        statusCode: response.status,
-        fullResponse: resData,
-      });
-      throw new Error(errMsg);
-    }
-
     onProgress?.(100);
-    return resData;
+    return res.data;
   } catch (err) {
-    if (err?.name === 'AbortError') {
-      throw new Error('Upload timed out. Please try again.');
-    }
     // Log FULL error details including network errors
     const errorDetails = {
       errorName: err.name,
