@@ -234,25 +234,23 @@ api.interceptors.request.use(async (config) => {
     }
 
     // Mobile browsers can fail `instanceof FormData` across realms.
-    // Clear any preset content-type for multipart requests so XHR can inject the boundary.
+    // For FormData, we must NOT set Content-Type manually — the browser/XHR
+    // must set it automatically so it can inject the correct multipart boundary.
+    // Using `delete` on an AxiosHeaders object can break boundary injection on
+    // some mobile/Capacitor environments. Setting to undefined is the safe approach.
     if (isFormDataPayload(config.data)) {
+      const hadContentType = !!config.headers['Content-Type'];
+      // Unset in all the ways axios may have it stored
+      config.headers['Content-Type'] = undefined;
+      config.headers['content-type'] = undefined;
+      if (typeof config.headers.setContentType === 'function') {
+        config.headers.setContentType(undefined);
+      }
       console.log('[API:Interceptor] FormData detected for:', config.url, {
-        isFormData: isFormDataPayload(config.data),
-        hasVideo: config.data?.has?.('video'),
-        contentTypeBeforeCleared: config.headers['Content-Type'],
-      });
-      delete config.headers['Content-Type'];
-      delete config.headers['content-type'];
-      config.headers.setContentType?.(undefined);
-      console.log('[API:Interceptor] After clearing Content-Type:', {
-        contentTypeAfter: config.headers['Content-Type'],
-        willLetAxiosSetIt: !config.headers['Content-Type'],
+        hasContentType: hadContentType,
+        headerKeys: Object.keys(config.headers).filter(k => config.headers[k] !== undefined),
       });
     } else {
-      console.log('[API:Interceptor] Non-FormData request detected for:', config.url, {
-        dataType: typeof config.data,
-        isFormData: isFormDataPayload(config.data),
-      });
       config.headers['Content-Type'] = 'application/json';
     }
   }

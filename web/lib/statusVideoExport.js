@@ -252,54 +252,71 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
       cropMode,
     });
 
-    const res = await api.post('/upload/single', formData, {
-      // IMPORTANT: Do NOT manually set Content-Type for FormData
-      // Let axios set it automatically with the correct boundary
-      timeout: 600000,
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
-      __skipRetry: true,
-      onUploadProgress: (event) => {
-        if (onProgress && event.total) {
-          const percent = Math.min(99, Math.round((event.loaded * 100) / event.total));
-          onProgress(percent);
-        }
-      },
-    });
+    // Use fetch directly (NOT axios) to avoid the axios request interceptor mutating
+    // FormData headers. The interceptor's Content-Type manipulation can break multipart
+    // boundary injection on mobile/Capacitor, causing multer to receive no file.
+    const { getStoredAuthToken } = await import('@/services/authStorage');
+    const baseURL = String(api.defaults.baseURL || '').replace(/\/$/, '');
+    const token = await getStoredAuthToken();
+    const language = typeof window !== 'undefined'
+      ? window.localStorage.getItem('aura_language') || 'en'
+      : 'en';
+
+    const headers = {
+      'Accept-Language': language,
+      'X-Aura-Language': language,
+      // Do NOT set Content-Type — the browser must auto-set multipart/form-data + boundary
+    };
+    if (token && token !== 'undefined' && token !== 'null' && token !== '') {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 600000);
+
+    let response;
+    try {
+      response = await fetch(`${baseURL}/upload/single`, {
+        method: 'POST',
+        headers,
+        body: formData,
+        credentials: 'include',
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    const resData = await response.json().catch(() => null);
 
     console.log('[StatusVideo] Server trim response received', {
-      statusCode: res.status,
-      success: res.data?.success,
-      hasData: !!res.data?.data,
+      statusCode: response.status,
+      success: resData?.success,
+      hasData: !!resData?.data,
     });
 
-    if (!res.data?.success) {
-      const errMsg = res.data?.message || 'Server video trim failed.';
+    if (!response.ok || !resData?.success) {
+      const errMsg = resData?.message || resData?.error || `Server video trim failed (${response.status}).`;
       console.error('[StatusVideo] Server trim failed with error:', {
         message: errMsg,
-        code: res.data?.code,
-        statusCode: res.status,
-        fullResponse: res.data,
+        code: resData?.code,
+        statusCode: response.status,
+        fullResponse: resData,
       });
       throw new Error(errMsg);
     }
 
     onProgress?.(100);
-    return res.data;
+    return resData;
   } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error('Upload timed out. Please try again.');
+    }
     // Log FULL error details including network errors
     const errorDetails = {
       errorName: err.name,
       errorMessage: err.message,
       errorCode: err.code,
-      isNetworkError: !err.response,
-      statusCode: err.response?.status,
-      responseStatus: err.response?.statusText,
-      responseData: err.response?.data,
-      requestURL: err.config?.url,
-      requestMethod: err.config?.method,
-      requestHeaders: err.config?.headers ? Object.keys(err.config.headers) : 'none',
-      axiosCode: err.code,
     };
     console.error('[StatusVideo] FULL ERROR DETAILS:', errorDetails);
     console.error('[StatusVideo] Error stack:', err.stack);
