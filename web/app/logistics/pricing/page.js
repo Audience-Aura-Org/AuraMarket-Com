@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { useAuthStore } from "@/hooks/useAuth";
+import { useWalletBalance } from "@/hooks/useWalletBalance";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
 import Pagination from "@/components/common/Pagination";
@@ -29,11 +30,11 @@ import {
 
 export default function LogisticsPricingPage() {
   const { user } = useAuthStore();
+  const { balance } = useWalletBalance();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [zones, setZones] = useState([]);
-  const [balance, setBalance] = useState(0);
   const [profile, setProfile] = useState({
     quartier_prices: [],
   });
@@ -54,10 +55,9 @@ export default function LogisticsPricingPage() {
 
   const fetchData = async () => {
     try {
-      const [zonesRes, profileRes, walletRes] = await Promise.all([
+      const [zonesRes, profileRes] = await Promise.all([
         api.get("/logistics/zones"),
         api.get("/logistics/profile"),
-        api.get("/wallet"),
       ]);
 
       if (zonesRes.data.success) setZones(zonesRes.data.data.zones);
@@ -65,9 +65,6 @@ export default function LogisticsPricingPage() {
         setProfile({
           quartier_prices: profileRes.data.data.firm.quartier_prices || [],
         });
-      }
-      if (walletRes.data.success) {
-        setBalance(walletRes.data.data?.balance ?? 0);
       }
     } catch (err) {
       toast.error("Failed to sync pricing matrix.");

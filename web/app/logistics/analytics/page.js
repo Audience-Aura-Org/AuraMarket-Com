@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useMemo } from 'react';
 import { 
@@ -7,18 +7,20 @@ import {
   Truck, Activity, Zap, Filter, 
   ArrowDownLeft, ArrowUpLeft,
   RefreshCw, MapPin, Shield,
-  ArrowUpRight
+  ArrowUpRight, LayoutDashboard, List, LineChart,
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  LogisticsSubpageHeader,
+  LogisticsShortcutsRow,
+} from '@/components/logistics/LogisticsSubpageShell';
 
 export const dynamic = 'force-dynamic';
 
 export default function LogisticsAnalyticsPage() {
   const user = useAuthStore((s) => s.user);
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [shipments, setShipments] = useState([]);
   const [range, setRange] = useState('30');
@@ -86,18 +88,14 @@ export default function LogisticsAnalyticsPage() {
 
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col bg-[var(--bg-primary)] pb-[max(5.5rem,env(safe-area-inset-bottom,1.25rem))] text-[var(--text-primary)]">
-      {/* Mobile header */}
-      <div className="sticky top-0 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/90 px-3 py-3 backdrop-blur-xl md:hidden">
-        <div className="mx-auto flex max-w-[1600px] min-w-0 items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10">
-              <BarChart3 className="size-5 text-[var(--accent)]" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-balance text-base font-bold tracking-tight">Logistics Intelligence</h1>
-              <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Analytics</p>
-            </div>
-          </div>
+
+      <LogisticsSubpageHeader
+        Icon={BarChart3}
+        title="Logistics"
+        accentTitle="Intelligence"
+        tag="Operational Analytics"
+        hint="Shipment trends, regional efficiency & network performance"
+        actions={
           <div className="flex shrink-0 gap-1.5">
             {['7', '30', '90'].map((t) => (
               <button
@@ -114,40 +112,19 @@ export default function LogisticsAnalyticsPage() {
               </button>
             ))}
           </div>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Desktop header */}
-      <div className="sticky top-0 z-30 hidden border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-4 py-6 backdrop-blur-xl md:block md:px-8 lg:px-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20 shadow-sm transition-transform hover:rotate-3">
-              <BarChart3 className="w-6 h-6 text-[var(--accent)]" />
-            </div>
-            <div>
-              <h1 className="text-2xl  font-bold tracking-tight">Logistics Intelligence</h1>
-              <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-40">Operational Analytics</p>
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            {['7', '30', '90'].map(t => (
-              <button
-                type="button"
-                key={t}
-                onClick={() => setRange(t)}
-                className={`px-5 py-2 rounded-full text-[11px] lg:text-[12px]  font-semibold  transition-all tracking-tight ${
-                  range === t ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:bg-white/5 border border-transparent hover:border-[var(--glass-border)]'
-                }`}
-              >
-                {t}D
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+      <div className="mx-auto max-w-[1600px] w-full space-y-6 px-3 py-5 sm:space-y-8 sm:px-4 sm:py-6 md:p-8">
 
-      <div className="mx-auto max-w-[1600px] space-y-6 px-3 py-5 sm:space-y-8 sm:px-4 sm:py-6 md:p-8">
+        {/* Navigation shortcuts */}
+        <LogisticsShortcutsRow
+          links={[
+            { label: 'Dashboard',  sub: 'Ops overview',  icon: LayoutDashboard, href: '/logistics/dashboard'  },
+            { label: 'Manifests',  sub: 'Shipments',     icon: List,             href: '/logistics/manifests'  },
+            { label: 'Pricing',    sub: 'Zone rates',    icon: LineChart,        href: '/logistics/pricing'    },
+          ]}
+        />
         
         {/* Shipment Flux Histogram */}
         <section className="relative rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-4 sm:rounded-[2rem] sm:p-6 md:p-8">

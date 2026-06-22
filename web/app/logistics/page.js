@@ -38,7 +38,7 @@ export default function GlobalLogisticsPage() {
     return (
       <div className="flex min-h-[50vh] items-center justify-center bg-[var(--bg-secondary)]">
         <p className="text-[12px] font-medium text-[var(--text-secondary)]">
-          Opening logistics dashboard�
+          Opening logistics dashboard&hellip;
         </p>
       </div>
     );
@@ -110,7 +110,7 @@ export default function GlobalLogisticsPage() {
             <div>
               <p className="text-[12px] font-bold">Message hub</p>
               <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
-                After sign-in � relay comms
+                After sign-in &mdash; relay comms
               </p>
             </div>
           </Link>

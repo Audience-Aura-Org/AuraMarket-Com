@@ -1,7 +1,7 @@
 import {
   User, Bell, Shield, Store, ShieldAlert,
   Database, Truck, ShoppingBag,
-  Users, Heart, ShieldCheck
+  Users, Heart, ShieldCheck, Smartphone
 } from 'lucide-react';
 
 export const TABS = [
@@ -13,9 +13,7 @@ export const TABS = [
   { id: 'network', label: 'Network', icon: Users, roles: ['customer', 'vendor'] },
   { id: 'audience', label: 'Audience', icon: Heart, roles: ['vendor'] },
   { id: 'store', label: 'Store', icon: Store, roles: ['vendor'] },
-  { id: 'fleet', label: 'Fleet', icon: Truck, roles: ['logistics'] },
-  { id: 'governance', label: 'Governance', icon: ShieldAlert, roles: ['admin'] },
   { id: 'kyc', label: 'Verification', icon: ShieldCheck, roles: ['customer', 'vendor'] },
   { id: 'notifications', label: 'Alerts', icon: Bell, roles: ['customer', 'vendor', 'admin', 'logistics'] },
-  { id: 'advanced', label: 'Advanced', icon: Database, roles: ['admin'] },
+  { id: 'install', label: 'Install App', icon: Smartphone, roles: ['customer', 'vendor', 'admin', 'logistics'] },
 ];

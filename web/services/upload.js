@@ -1,5 +1,6 @@
 import api from './api';
 import axios from 'axios';
+import { getStoredAuthToken } from './authStorage';
 
 const MB = 1024 * 1024;
 
@@ -139,20 +140,56 @@ async function uploadViaApi(file, folder, fieldName = 'image') {
   const formData = new FormData();
   formData.append('type', normalizeUploadFolder(folder));
   formData.append(fieldName, file);
+  let timeoutId;
 
   try {
-    const res = await api.post('/upload/single', formData, {
-      timeout: 600000,
-      maxBodyLength: Infinity,
-      maxContentLength: Infinity,
-      __skipRetry: true,
+    const baseURL = String(api.defaults.baseURL || '').replace(/\/$/, '');
+    const token = await getStoredAuthToken();
+    const language = typeof window !== 'undefined'
+      ? window.localStorage.getItem('aura_language') || 'en'
+      : 'en';
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 600000);
+
+    const headers = {
+      'Accept-Language': language,
+      'X-Aura-Language': language,
+    };
+
+    if (token && token !== 'undefined' && token !== 'null' && token !== '') {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${baseURL}/upload/single`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+      signal: controller.signal,
     });
-    return res.data;
+    clearTimeout(timeoutId);
+
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      const error = new Error(data?.message || data?.error || `Upload failed (${response.status})`);
+      error.response = {
+        status: response.status,
+        data,
+      };
+      throw error;
+    }
+
+    return data;
   } catch (err) {
+    if (err?.name === 'AbortError') {
+      throw new Error('Upload timed out. Please try again.');
+    }
     if (!err.response) {
       throw new Error('Upload server is unreachable. Check your connection and try again.');
     }
     throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

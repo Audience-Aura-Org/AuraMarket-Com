@@ -15,12 +15,15 @@ import {
   Clock,
   CheckCircle2,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 import api from "@/services/api";
 import { useAuthStore } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import StatCard from "@/components/layout/StatCard";
 import { formatVariantLabel } from "@/utils/variants";
+import { useWalletBalance } from "@/hooks/useWalletBalance";
+import { LogisticsShortcutsRow } from "@/components/logistics/LogisticsSubpageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +56,7 @@ export default function LogisticsDashboard() {
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
   const [shipments, setShipments] = useState([]);
-  const [balance, setBalance] = useState(0);
+  const { displayedBalance: walletBalance, refreshWalletBalance } = useWalletBalance();
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -65,11 +68,16 @@ export default function LogisticsDashboard() {
     active: 0,
     delivered: 0,
   });
+  const [subscription, setSubscription] = useState({
+    subscribed: false,
+    isTrial: true,
+    daysLeft: 14,
+  });
 
   const fetchDashboard = useCallback(async () => {
     try {
       setLoading(true);
-      const [shipRes, walletRes] = await Promise.all([
+      const [shipRes, subRes] = await Promise.all([
         api.get("/logistics/shipments", {
           params: {
             page,
@@ -78,7 +86,8 @@ export default function LogisticsDashboard() {
             sortBy,
           },
         }),
-        api.get("/wallet"),
+        api.get("/subscriptions/me", { params: { role: "logistics" }, silent: true }).catch(() => null),
+        refreshWalletBalance().catch(() => {}),
       ]);
 
       if (shipRes.data.success) {
@@ -95,15 +104,27 @@ export default function LogisticsDashboard() {
           });
         }
       }
-      if (walletRes.data.success) {
-        setBalance(walletRes.data.data?.balance ?? 0);
+
+      if (subRes?.data?.success) {
+        const subData = subRes.data.data;
+        setSubscription({
+          subscribed: subData.subscribed ?? false,
+          isTrial: subData.access_state === "grace" || subData.grace || !subData.subscribed,
+          daysLeft: subData.grace_days_remaining ?? 14,
+        });
+      } else {
+        setSubscription({
+          subscribed: false,
+          isTrial: true,
+          daysLeft: 14,
+        });
       }
     } catch (err) {
       console.error("Failed to fetch logistics dashboard:", err);
     } finally {
       setLoading(false);
     }
-  }, [page, filterStatus, sortBy]);
+  }, [page, filterStatus, sortBy, refreshWalletBalance]);
 
   useEffect(() => {
     if (!user || user.role !== "logistics") return;
@@ -174,11 +195,40 @@ export default function LogisticsDashboard() {
       </header>
 
       <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+        {/* Trial mode indicator banner when no subscription is added by admin */}
+        {!subscription.subscribed && (
+          <div className="relative overflow-hidden rounded-[2rem] border border-amber-500/20 bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-amber-500/5 p-5 md:p-6 shadow-md shadow-amber-500/5 flex flex-col md:flex-row items-center md:items-center justify-between gap-4">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="size-11 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+                <AlertTriangle className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-amber-500">Free Trial active</h4>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-[9px] font-bold text-amber-500 uppercase tracking-wider">
+                    {subscription.daysLeft} days remaining
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] font-medium leading-relaxed text-[var(--text-secondary)] opacity-85">
+                  No logistics subscription has been configured yet by the administrator. Gated features are open for trial access.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.push("/subscribe?role=logistics")}
+              className="w-full md:w-auto relative z-10 flex min-h-10 items-center justify-center rounded-xl bg-amber-500 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-amber-500/20 transition hover:bg-amber-600 active:scale-95"
+            >
+              Activate Partner plan
+            </button>
+          </div>
+        )}
+
         {/* Exactly 4 KPI cards */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
           <StatCard
             label="Wallet"
-            value={`${balance.toLocaleString()} XAF`}
+            value={`${walletBalance.toLocaleString()} XAF`}
             sub="Available balance"
             icon="account_balance_wallet"
             color="purple"
@@ -207,9 +257,9 @@ export default function LogisticsDashboard() {
           />
         </div>
 
-        {/* Compact shortcuts — replaces mock “node saturation” */}
-        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3 sm:grid-cols-3">
-          {[
+        {/* Compact shortcuts - fully optimized premium grid component */}
+        <LogisticsShortcutsRow
+          links={[
             {
               label: "Manifests",
               sub: "Ledger & batches",
@@ -228,28 +278,8 @@ export default function LogisticsDashboard() {
               icon: Activity,
               href: "/logistics/analytics",
             },
-          ].map((item) => (
-            <button
-              key={item.href}
-              type="button"
-              onClick={() => router.push(item.href)}
-              className="flex min-h-[3.25rem] touch-manipulation items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 px-4 py-3 text-left transition hover:border-[var(--accent)]/35 active:scale-[0.99]"
-            >
-              <div className="flex size-10 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                <item.icon className="size-5" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold tracking-tight text-[var(--text-primary)]">
-                  {item.label}
-                </p>
-                <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
-                  {item.sub}
-                </p>
-              </div>
-              <ChevronRight className="size-4 shrink-0 opacity-30" />
-            </button>
-          ))}
-        </div>
+          ]}
+        />
 
         {/* Shipment stream */}
         <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-3 sm:p-4 md:p-8">

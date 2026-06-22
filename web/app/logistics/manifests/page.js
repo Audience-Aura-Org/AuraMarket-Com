@@ -7,29 +7,28 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import {
   Loader2,
-  Truck,
   Cuboid,
   Search,
   RefreshCw,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
   Package,
-  MapPin,
   ChevronRight,
   ChevronLeft,
-  Activity,
-  LineChart,
-  LayoutDashboard,
-  Calendar,
-  Wallet,
   ArrowRight,
+  LayoutDashboard,
+  LineChart,
+  Activity,
+  MapPin,
 } from "lucide-react";
 import api from "@/services/api";
 import { useAuthStore } from "@/hooks/useAuth";
+import { useWalletBalance } from "@/hooks/useWalletBalance";
 import StatCard from "@/components/layout/StatCard";
 import ShipmentStatusModal from "@/components/logistics/ShipmentStatusModal";
 import { formatVariantLabel } from "@/utils/variants";
+import {
+  LogisticsSubpageHeader,
+  LogisticsShortcutsRow,
+} from "@/components/logistics/LogisticsSubpageShell";
 
 const PAGE_SIZE = 10;
 
@@ -78,10 +77,11 @@ export default function LogisticsManifestsPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
 
+  const { balance } = useWalletBalance();
+
   const [loading, setLoading]               = useState(true);
   const [updating, setUpdating]             = useState(false);
   const [shipments, setShipments]           = useState([]);
-  const [balance, setBalance]               = useState(0);
   const [total, setTotal]                   = useState(0);
   const [pages, setPages]                   = useState(1);
   const [currentPage, setCurrentPage]       = useState(1);
@@ -101,12 +101,9 @@ export default function LogisticsManifestsPage() {
     const page = opts.page ?? currentPage;
     try {
       setLoading(true);
-      const [shipRes, walletRes] = await Promise.all([
-        api.get("/logistics/shipments/firm", {
-          params: { page, limit: PAGE_SIZE, status: statusFilter, sortBy, search: opts.search ?? search },
-        }),
-        api.get("/wallet"),
-      ]);
+      const shipRes = await api.get("/logistics/shipments/firm", {
+        params: { page, limit: PAGE_SIZE, status: statusFilter, sortBy, search: opts.search ?? search },
+      });
       if (shipRes.data.success) {
         const list = shipRes.data.data?.shipments ?? shipRes.data.shipments ?? [];
         setShipments(list);
@@ -115,7 +112,6 @@ export default function LogisticsManifestsPage() {
         const m = shipRes.data.meta?.counts;
         if (m) setCounts({ pending: m.pending ?? 0, active: m.active ?? 0, delivered: m.delivered ?? 0 });
       }
-      if (walletRes.data.success) setBalance(walletRes.data.data?.balance ?? 0);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to load manifests");
     } finally {
@@ -217,33 +213,14 @@ export default function LogisticsManifestsPage() {
     <div className="flex w-full min-w-0 flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] pb-[max(5.5rem,env(safe-area-inset-bottom,1.25rem))] lg:pb-10">
 
       {/* ── Header ── */}
-      <header className="relative z-20 min-w-0 max-w-[100vw] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 backdrop-blur-xl">
-        <div className="mx-auto flex min-w-0 max-w-[1600px] flex-col gap-4 px-3 py-4 sm:px-5 sm:py-5 md:flex-row md:items-center md:justify-between md:px-8 md:py-6">
-          <div className="flex min-w-0 items-center gap-3 md:gap-4">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 md:size-12">
-              <Cuboid className="size-5 text-[var(--accent)] md:size-6" strokeWidth={1.4} />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-balance text-xl font-bold tracking-tight md:text-2xl">
-                Manifests <span className="text-[var(--accent)]">Ledger</span>
-              </h1>
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">
-                    Live Ledger
-                  </span>
-                </span>
-                <span className="hidden text-[var(--text-secondary)] opacity-30 sm:inline">·</span>
-                <span className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
-                  {total} total tickets
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2 md:gap-3">
-            {/* Search */}
+      <LogisticsSubpageHeader
+        Icon={Cuboid}
+        title="Manifests"
+        accentTitle="Ledger"
+        tag="Live Ledger"
+        hint={`${total} total tickets`}
+        actions={
+          <>
             <div className="relative w-full sm:w-64">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[var(--text-secondary)] opacity-40" />
               <input
@@ -263,9 +240,9 @@ export default function LogisticsManifestsPage() {
             >
               <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
             </button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* ── Detail view ── */}
       {viewingShipmentId ? (
@@ -326,30 +303,14 @@ export default function LogisticsManifestsPage() {
             />
           </div>
 
-          {/* ── Quick nav — same style as dashboard shortcuts ── */}
-          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3 sm:grid-cols-3">
-            {[
-              { label: "Dashboard",    sub: "Overview",      icon: LayoutDashboard, href: "/logistics/dashboard" },
-              { label: "Pricing",      sub: "Zones & rates", icon: LineChart,        href: "/logistics/pricing"   },
-              { label: "Analytics",    sub: "Performance",   icon: Activity,         href: "/logistics/analytics" },
-            ].map((item) => (
-              <button
-                key={item.href}
-                type="button"
-                onClick={() => router.push(item.href)}
-                className="flex min-h-[3.25rem] touch-manipulation items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 px-4 py-3 text-left transition hover:border-[var(--accent)]/35 active:scale-[0.99]"
-              >
-                <div className="flex size-10 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                  <item.icon className="size-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-bold tracking-tight text-[var(--text-primary)]">{item.label}</p>
-                  <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">{item.sub}</p>
-                </div>
-                <ChevronRight className="size-4 shrink-0 opacity-30" />
-              </button>
-            ))}
-          </div>
+          {/* ── Quick nav ── */}
+          <LogisticsShortcutsRow
+            links={[
+              { label: "Dashboard", sub: "Ops overview",   icon: LayoutDashboard, href: "/logistics/dashboard" },
+              { label: "Pricing",   sub: "Zones & rates",  icon: LineChart,        href: "/logistics/pricing"   },
+              { label: "Analytics", sub: "Performance",    icon: Activity,         href: "/logistics/analytics" },
+            ]}
+          />
 
           {/* ── Shipment ledger ── */}
           <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-3 sm:p-4 md:p-8">

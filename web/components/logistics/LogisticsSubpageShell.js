@@ -69,26 +69,25 @@ export function LogisticsShortcutsRow({ links }) {
   const router = useRouter();
   if (!links?.length) return null;
   return (
-    <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3 sm:grid-cols-3">
+    <div className="grid grid-cols-3 gap-2 sm:gap-4">
       {links.map((item) => (
         <button
           key={item.href}
           type="button"
           onClick={() => router.push(item.href)}
-          className="flex min-h-[3.25rem] touch-manipulation items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 px-4 py-3.5 text-left transition hover:border-[var(--accent)]/35 active:scale-[0.99]"
+          className="flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-4 rounded-2xl sm:rounded-[2rem] border border-[var(--glass-border)] bg-gradient-to-b from-[var(--bg-primary)]/80 to-[var(--bg-secondary)]/30 px-3 py-3 sm:px-5 sm:py-4 text-center sm:text-left transition-all duration-300 hover:border-[var(--accent)]/55 hover:shadow-lg hover:shadow-[var(--accent)]/5 hover:-translate-y-0.5 active:scale-[0.98]"
         >
-          <div className="flex size-10 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]">
-            <item.icon className="size-5" />
+          <div className="flex size-10 sm:size-12 items-center justify-center rounded-xl sm:rounded-2xl bg-[var(--accent)]/15 text-[var(--accent)] border border-[var(--accent)]/10 shrink-0">
+            <item.icon className="size-5 sm:size-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-bold tracking-tight text-[var(--text-primary)]">
+            <p className="text-[10px] sm:text-[12px] font-bold tracking-tight text-[var(--text-primary)]">
               {item.label}
             </p>
-            <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
+            <p className="hidden sm:block text-[10px] font-medium text-[var(--text-secondary)] opacity-60 mt-0.5">
               {item.sub}
             </p>
           </div>
-          <ChevronRight className="size-4 shrink-0 opacity-30" />
         </button>
       ))}
     </div>

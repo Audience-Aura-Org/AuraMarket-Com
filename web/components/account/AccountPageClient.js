@@ -6,7 +6,8 @@ import {
   Store, ShieldAlert, Database, BarChart3,
   Mail, MapPin, Camera, ExternalLink, RefreshCw, Search,
   Truck, LayoutGrid, ShoppingBag, Activity,
-  Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock, Star, Globe2
+  Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock, Star, Globe2,
+  Smartphone, Download, Monitor, Apple
 } from 'lucide-react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -1082,6 +1083,8 @@ export default function AccountPageClient() {
                 </div>
               )}
 
+              {activeTab === 'install' && <InstallAppTab />}
+
               {activeTab === 'wishlist' && (
                 <div className="space-y-6 md:space-y-8">
                   <div className="flex items-center gap-6 px-4 md:px-6">
@@ -1272,6 +1275,190 @@ function NotificationToggle({ label, icon: Icon, active }) {
       </div>
       <div className={`w-12 h-6 rounded-full transition-colors relative ${active ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}>
         <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--text-primary)] transition-transform ${active ? 'left-[26px]' : 'left-0.5'}`} />
+      </div>
+    </div>
+  );
+}
+
+function InstallAppTab() {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isReady, setIsReady] = useState(false);
+  const [activePlatform, setActivePlatform] = useState('android'); // 'android' | 'ios' | 'desktop'
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsReady(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      setIsReady(false);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setIsReady(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 md:space-y-8">
+      <div className="flex items-center gap-6 px-4 md:px-6">
+        <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-semibold tracking-tighter text-[var(--accent)] shadow-sm">
+          App Installation Portal
+        </h3>
+        <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+      </div>
+
+      <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 shadow-xl">
+        <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">
+          <div className="w-full md:w-2/5 flex flex-col items-center justify-center p-6 bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2.5rem] text-center">
+            <div className="size-20 rounded-3xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center mb-4 text-[var(--accent)]">
+              <Smartphone className="size-10" />
+            </div>
+            <h4 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">Auradime Mobile</h4>
+            <p className="text-xs text-[var(--text-secondary)] opacity-70 mt-2 max-w-xs">
+              Install the official app for the fastest shopping, instant notifications, and smooth animations.
+            </p>
+            <div className="mt-6 w-full space-y-3">
+              <a
+                href="/downloads/Auradime.apk"
+                download
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[var(--accent)] text-white font-bold text-xs tracking-wide shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-[0.98] transition-all"
+              >
+                <Download className="size-4" />
+                Download Android APK
+              </a>
+              {isReady && (
+                <button
+                  onClick={handleInstallClick}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-xs tracking-wide hover:bg-[var(--bg-primary)] active:scale-[0.98] transition-all"
+                >
+                  <Smartphone className="size-4" />
+                  Install Web App (PWA)
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="w-full md:w-3/5 space-y-6">
+            <div>
+              <h5 className="text-sm font-bold tracking-tight text-[var(--text-primary)] mb-4">Installation Guide</h5>
+              <div className="flex gap-2 p-1 bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-2xl">
+                {['android', 'ios', 'desktop'].map((plat) => (
+                  <button
+                    key={plat}
+                    onClick={() => setActivePlatform(plat)}
+                    className={`flex-1 py-2 text-center text-xs font-bold rounded-xl transition-all capitalize ${
+                      activePlatform === plat
+                        ? 'bg-[var(--accent)] text-white shadow-md'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {plat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {activePlatform === 'android' && (
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Tap the <strong className="text-[var(--text-primary)]">Download Android APK</strong> button to download the install file.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Open the downloaded <code className="bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded text-[var(--text-primary)]">Auradime.apk</code> file from your notifications or files app.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      If prompted, enable installation from <strong className="text-[var(--text-primary)]">Unknown Sources</strong> in your settings.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">4</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Alternatively, click the <strong className="text-[var(--text-primary)]">Install Web App</strong> button if you prefer a lighter, browser-based app.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {activePlatform === 'ios' && (
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Make sure you are using <strong className="text-[var(--text-primary)]">Safari browser</strong> to install.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Tap the <strong className="text-[var(--text-primary)]">Share</strong> button at the bottom navigation bar of Safari.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Scroll down and tap <strong className="text-[var(--text-primary)]">Add to Home Screen</strong>.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">4</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Tap <strong className="text-[var(--text-primary)]">Add</strong> in the top-right corner to launch Aura from your home screen.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {activePlatform === 'desktop' && (
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Using Chrome or Edge on desktop, look at the right side of the address bar.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Click the <strong className="text-[var(--text-primary)]">Install</strong> icon (looks like a monitor with an arrow, or a plus sign).
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Confirm by clicking <strong className="text-[var(--text-primary)]">Install</strong> in the browser prompt.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
