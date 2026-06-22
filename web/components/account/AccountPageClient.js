@@ -492,6 +492,88 @@ export default function AccountPageClient() {
                           </select>
                         </div>
 
+                        {/* ── Delivery / Home Address — customer & logistics only ── */}
+                        {(user?.role === 'customer' || user?.role === 'logistics') && (
+                          <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-4 md:p-5 space-y-4">
+                            <div className="flex items-center gap-3 mb-1">
+                              <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                                <MapPin className="size-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">
+                                  {user?.role === 'logistics' ? 'Home / Base Address' : 'Delivery Address'}
+                                </p>
+                                <p className="text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">
+                                  {user?.role === 'logistics'
+                                    ? 'Your base location used for wallet payments and zone matching.'
+                                    : 'Your default delivery location for wallet-based checkout.'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <FormSelect
+                                label="City"
+                                value={userData.onboarding_location.city}
+                                onChange={(v) =>
+                                  setUserData({
+                                    ...userData,
+                                    onboarding_location: {
+                                      ...userData.onboarding_location,
+                                      city: v,
+                                      quartier: '',
+                                    },
+                                  })
+                                }
+                                options={zones
+                                  .filter((z) => z.type === 'region')
+                                  .map((z) => ({ label: z.name, value: z.name }))}
+                                icon={MapPin}
+                                placeholder="Select city"
+                              />
+                              <FormSelect
+                                label="Quartier"
+                                value={userData.onboarding_location.quartier}
+                                onChange={(v) =>
+                                  setUserData({
+                                    ...userData,
+                                    onboarding_location: {
+                                      ...userData.onboarding_location,
+                                      quartier: v,
+                                    },
+                                  })
+                                }
+                                options={zones
+                                  .filter(
+                                    (z) =>
+                                      z.type === 'quartier' &&
+                                      z.parent_id?.name === userData.onboarding_location.city,
+                                  )
+                                  .map((z) => ({ label: z.name, value: z.name }))}
+                                icon={MapPin}
+                                placeholder="Select quartier"
+                                disabled={!userData.onboarding_location.city}
+                              />
+                            </div>
+
+                            <FormField
+                              label="Street / Landmark"
+                              value={userData.onboarding_location.address_description}
+                              onChange={(v) =>
+                                setUserData({
+                                  ...userData,
+                                  onboarding_location: {
+                                    ...userData.onboarding_location,
+                                    address_description: v,
+                                  },
+                                })
+                              }
+                              icon={MapPin}
+                              placeholder="Building, gate, landmark, or street name…"
+                              textarea={true}
+                            />
+                          </div>
+                        )}
 
                         <button
                           onClick={handleUpdateProfile}
