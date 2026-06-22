@@ -25,7 +25,7 @@ export function LogisticsSubpageHeader({
             </div>
           ) : null}
           <div className="min-w-0">
-            <h1 className="text-balance text-xl font-bold tracking-tight md:text-2xl">
+            <h1 className="text-balance text-lg font-bold tracking-tight md:text-xl">
               {title}
               {accentTitle ? (
                 <>
