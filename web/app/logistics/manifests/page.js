@@ -229,7 +229,7 @@ export default function LogisticsManifestsPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={handleSearchKey}
-                className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] pl-9 pr-3 text-[11px] font-semibold outline-none ring-[var(--accent)]/20 focus:ring-4 focus:ring-offset-1"
+                className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] pl-9 pr-3 text-[10px] font-semibold outline-none ring-[var(--accent)]/20 focus:ring-4 focus:ring-offset-1"
               />
             </div>
             <button
@@ -318,7 +318,7 @@ export default function LogisticsManifestsPage() {
               <div className="flex items-center gap-2 md:gap-3">
                 <Cuboid className="size-5 shrink-0 text-[var(--accent)]" strokeWidth={1.4} />
                 <div>
-                  <h2 className="text-lg font-bold tracking-tight md:text-xl">Active Assignments</h2>
+                  <h2 className="text-sm font-bold tracking-tight md:text-base">Active Assignments</h2>
                   <p className="mt-0.5 text-[10px] font-medium text-[var(--text-secondary)] opacity-70 md:text-[11px]">
                     {sortBy === "order_placed" ? "Sorted by customer order date (newest first)." : "Sorted by assignment time (newest first)."}
                   </p>
@@ -329,7 +329,7 @@ export default function LogisticsManifestsPage() {
                 <select
                   value={sortBy}
                   onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
-                  className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[11px] font-semibold text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-[var(--accent)]/40 sm:w-auto sm:min-h-10 sm:text-[10px] md:text-[11px]"
+                  className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[10px] font-semibold text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-[var(--accent)]/40 sm:w-auto sm:min-h-10"
                 >
                   <option value="order_placed">📅 Recent orders</option>
                   <option value="assignment">🚚 Recent assignments</option>
@@ -337,7 +337,7 @@ export default function LogisticsManifestsPage() {
                 <select
                   value={statusFilter}
                   onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                  className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[11px] font-semibold text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-[var(--accent)]/40 sm:w-auto sm:min-h-10 sm:text-[10px] md:text-[11px]"
+                  className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[10px] font-semibold text-[var(--text-primary)] outline-none transition focus:ring-2 focus:ring-[var(--accent)]/40 sm:w-auto sm:min-h-10"
                 >
                   <option value="all">📦 All statuses</option>
                   <option value="pending">⏳ Pending</option>

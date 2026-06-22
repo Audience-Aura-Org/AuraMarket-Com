@@ -130,7 +130,7 @@ export default function LogisticsAnalyticsPage() {
         <section className="relative rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-4 sm:rounded-[2rem] sm:p-6 md:p-8">
           <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-lg font-bold sm:text-xl">Shipment Flux</h3>
+              <h3 className="text-sm font-bold tracking-tight md:text-base">Shipment Flux</h3>
               <p className="mt-1 text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-60 sm:text-xs">Daily Volume Trends</p>
             </div>
             <div className="flex gap-4">
@@ -211,7 +211,7 @@ export default function LogisticsAnalyticsPage() {
           <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:rounded-[2rem] sm:p-6 md:p-8">
             <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-lg  font-bold">Regional Efficiency</h3>
+                <h3 className="text-sm font-bold tracking-tight md:text-base">Regional Efficiency</h3>
                 <p className="text-xs text-[var(--text-secondary)] opacity-60">Transit Time Accuracy</p>
               </div>
               <MapPin className="w-5 h-5 text-[var(--accent)] opacity-20" />
@@ -245,7 +245,7 @@ export default function LogisticsAnalyticsPage() {
             <div className="w-16 h-16 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mb-6">
               <Zap className="w-8 h-8 text-[var(--accent)]" />
             </div>
-            <h3 className="text-2xl  font-bold tracking-tight mb-2">Automated Insights</h3>
+            <h3 className="text-base font-bold tracking-tight mb-2 md:text-lg">Automated Insights</h3>
             <p className="text-sm text-[var(--text-secondary)] opacity-60 mb-8 max-w-[280px]">
               Regional load in <span className="text-[var(--text-primary)]  font-bold">Douala</span> is peaking. Reallocate assets to Zone 04.
             </p>

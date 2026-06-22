@@ -251,7 +251,7 @@ export default function LogisticsPricingPage() {
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-purple-500/20 bg-purple-500/10 text-purple-600 shadow-sm lg:size-12 lg:rounded-2xl">
               <MapPinIcon className="size-5 lg:size-6" />
             </div>
-            <h2 className="text-lg font-bold tracking-tight lg:text-2xl">
+            <h2 className="text-sm font-bold tracking-tight md:text-base lg:text-lg">
               Last-mile rates
             </h2>
           </div>

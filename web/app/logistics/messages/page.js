@@ -136,7 +136,7 @@ export default function LogisticsMessagesHubPage() {
         />
 
         <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-4 sm:p-6 md:p-10">
-          <h2 className="text-lg font-bold tracking-tight md:text-xl">
+          <h2 className="text-sm font-bold tracking-tight md:text-base">
             Open messaging
           </h2>
           <p className="mt-2 max-w-xl text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-85 md:text-[12px]">
