@@ -30,7 +30,7 @@ import {
 
 export default function LogisticsPricingPage() {
   const { user } = useAuthStore();
-  const { balance } = useWalletBalance();
+  const { displayedBalance: balance } = useWalletBalance();
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

@@ -106,7 +106,11 @@ export async function subscribeToPush({ promptIfNeeded = true } = {}) {
     }
 
     if (permission !== 'granted') {
-      console.warn('⚠️ Push permission denied by user.');
+      if (permission === 'denied') {
+        console.log('[PWA] Push permission previously denied by user.');
+      } else {
+        console.warn('⚠️ Push permission denied by user.');
+      }
       return null;
     }
 

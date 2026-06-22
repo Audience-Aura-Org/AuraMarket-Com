@@ -81,6 +81,82 @@ const DEFAULT_VENDOR_PLANS = [
   },
 ];
 
+const DEFAULT_LOGISTICS_PLANS = [
+  {
+    name: 'Welcome',
+    slug: 'logistics-welcome',
+    description: "Perfect if you're testing the waters and want to see how delivery services work.",
+    price: 500,
+    currency: 'XAF',
+    billing_cycle: 'one_time',
+    duration_days: 30,
+    roles: ['logistics'],
+    features: [
+      'Manage up to 10 active shipments',
+      'Basic route optimization tools',
+      'Email support when you are stuck',
+      'No custom pricing/zones',
+      'Basic analytics dashboard',
+    ],
+    is_active: true,
+  },
+  {
+    name: 'Standard Partner',
+    slug: 'logistics-standard',
+    description: 'Best for growing logistics companies and delivery drivers who want more shipments.',
+    price: 15000,
+    currency: 'XAF',
+    billing_cycle: 'one_time',
+    duration_days: 60,
+    roles: ['logistics'],
+    features: [
+      'Manage up to 100 active shipments',
+      'Advanced routing & dispatch tools',
+      'Custom pricing tariffs & zones',
+      'Detailed shipment analytics',
+      'Priority email support',
+    ],
+    is_active: true,
+  },
+  {
+    name: 'Logistics Pro',
+    slug: 'logistics-business',
+    description: 'For established delivery networks needing full visibility and automation.',
+    price: 35000,
+    currency: 'XAF',
+    billing_cycle: 'one_time',
+    duration_days: 90,
+    roles: ['logistics'],
+    features: [
+      'Manage up to 500 active shipments',
+      'Automatic dispatcher assignment',
+      'Custom pricing tariffs & unlimited zones',
+      'Real-time manifest analytics & exports',
+      '24/7 Priority support',
+    ],
+    is_active: true,
+  },
+  {
+    name: 'Enterprise Logistics',
+    slug: 'logistics-enterprise',
+    description: 'For major shipping networks requiring custom deals and full system integration.',
+    price: 100000,
+    currency: 'XAF',
+    billing_cycle: 'one_time',
+    duration_days: 365,
+    contact_required: true,
+    roles: ['logistics'],
+    features: [
+      'Unlimited shipments & dispatchers',
+      'Connect API/Webhooks to your systems',
+      'Custom SLA & dedicated account manager',
+      'Aura Market direct integration placement',
+      'Lowest escrow commission rate',
+    ],
+    is_active: true,
+  },
+];
+
 const DEFAULT_VENDOR_PLAN = DEFAULT_VENDOR_PLANS[0];
 const LEGACY_VENDOR_PLAN_SLUGS = ['vendor-welcome-package'];
 
@@ -94,7 +170,16 @@ const ensureDefaultSubscriptionPlan = async () => {
   for (const defaults of DEFAULT_VENDOR_PLANS) {
     const plan = await SubscriptionPlan.findOneAndUpdate(
       { slug: defaults.slug },
-      { $setOnInsert: defaults },
+      { $set: defaults },
+      { returnDocument: 'after', upsert: true }
+    );
+    plans.push(plan);
+  }
+
+  for (const defaults of DEFAULT_LOGISTICS_PLANS) {
+    const plan = await SubscriptionPlan.findOneAndUpdate(
+      { slug: defaults.slug },
+      { $set: defaults },
       { returnDocument: 'after', upsert: true }
     );
     plans.push(plan);
@@ -111,6 +196,18 @@ const ensureDefaultSubscriptionPlan = async () => {
   );
 
   for (const defaults of DEFAULT_VENDOR_PLANS) {
+    if (Number(defaults.price || 0) > 0) {
+      await SubscriptionPlan.updateMany(
+        {
+          slug: defaults.slug,
+          $or: [{ price: { $exists: false } }, { price: { $lte: 0 } }],
+        },
+        { $set: { price: defaults.price } }
+      );
+    }
+  }
+
+  for (const defaults of DEFAULT_LOGISTICS_PLANS) {
     if (Number(defaults.price || 0) > 0) {
       await SubscriptionPlan.updateMany(
         {

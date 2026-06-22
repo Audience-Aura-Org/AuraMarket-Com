@@ -77,7 +77,7 @@ export default function LogisticsManifestsPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
 
-  const { balance } = useWalletBalance();
+  const { displayedBalance: balance } = useWalletBalance();
 
   const [loading, setLoading]               = useState(true);
   const [updating, setUpdating]             = useState(false);

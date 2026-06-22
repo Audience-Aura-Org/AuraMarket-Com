@@ -13,10 +13,11 @@ export function LogisticsSubpageHeader({
   tag,
   hint,
   actions,
+  fullWidth = false,
 }) {
   return (
-    <header className="relative z-20 min-w-0 max-w-[100vw] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 backdrop-blur-xl">
-      <div className="mx-auto flex w-full min-w-0 max-w-[1600px] flex-col gap-4 py-4 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-5 sm:py-5 md:flex-row md:items-center md:justify-between md:px-8 md:py-6">
+    <header className="relative z-20 w-full min-w-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 backdrop-blur-xl">
+      <div className={`mx-auto flex w-full min-w-0 ${fullWidth ? "max-w-none" : "max-w-[1600px]"} flex-col gap-4 py-4 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] sm:px-5 sm:py-5 md:flex-row md:items-center md:justify-between md:px-8 md:py-6`}>
         <div className="flex min-w-0 flex-1 items-center gap-3 md:gap-4">
           {Icon ? (
             <div className="flex size-11 shrink-0 touch-manipulation items-center justify-center rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 md:size-12">

@@ -141,7 +141,7 @@ export default function LogisticsDashboard() {
   return (
     <div className="flex w-full min-w-0 flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] pb-[max(5.5rem,env(safe-area-inset-bottom,1.25rem))] lg:pb-10">
       {/* Hero header — first visual block */}
-      <header className="relative z-20 min-w-0 max-w-[100vw] border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 backdrop-blur-2xl">
+      <header className="relative z-20 w-full min-w-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 backdrop-blur-2xl">
         {/* Accent gradient line */}
         <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
         <div className="mx-auto flex min-w-0 max-w-[1600px] flex-col gap-3 px-4 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between md:px-8 md:py-4">
@@ -210,7 +210,7 @@ export default function LogisticsDashboard() {
                   </span>
                 </div>
                 <p className="mt-1 text-[11px] font-medium leading-relaxed text-[var(--text-secondary)] opacity-85">
-                  No logistics subscription has been configured yet by the administrator. Gated features are open for trial access.
+                  Activate a logistics partner plan (including our Welcome package for 500 XAF) to operate without interruption.
                 </p>
               </div>
             </div>

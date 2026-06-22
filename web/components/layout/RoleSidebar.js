@@ -71,6 +71,7 @@ const LOGISTICS_NAV = [
   { icon: 'list_alt',            label: 'Manifests',    href: '/logistics/manifests', badge: 'orders' },
   { icon: 'payments',            label: 'Route Pricing',href: '/logistics/pricing' },
   { icon: 'location_on',         label: 'Live Tracking',href: '/logistics/tracking' },
+  { icon: 'auto_awesome',        label: 'Aura Stories', href: '/discovery?tab=status' },
   { icon: 'chat',                label: 'Messages',     href: '/logistics/messages', badge: 'messages' },
   { icon: 'hub',                 label: 'Relay Nodes',  href: '/logistics/nodes' },
   { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },

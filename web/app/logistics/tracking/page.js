@@ -107,6 +107,7 @@ export default function LogisticsTrackingPage() {
         accentTitle="tracking"
         tag="Signal stream"
         hint="Newest customer orders first, or switch to assignment time. Tap a row to open tracking detail."
+        fullWidth
         actions={
           <button
             type="button"
