@@ -78,7 +78,7 @@ export default function LogisticsDashboard() {
     try {
       setLoading(true);
       const [shipRes, subRes] = await Promise.all([
-        api.get("/logistics/shipments", {
+        api.get("/logistics/shipments/firm", {
           params: {
             page,
             limit: PAGE_SIZE,
@@ -95,14 +95,13 @@ export default function LogisticsDashboard() {
         setShipments(payload);
         setTotal(shipRes.data.total ?? payload.length);
         setPages(shipRes.data.pages ?? 1);
+        // meta.counts is always returned by getFirmShipments — use it directly
         const m = shipRes.data.meta?.counts;
-        if (m) {
-          setCounts({
-            pending: m.pending ?? 0,
-            active: m.active ?? 0,
-            delivered: m.delivered ?? 0,
-          });
-        }
+        setCounts({
+          pending:   m?.pending   ?? 0,
+          active:    m?.active    ?? 0,
+          delivered: m?.delivered ?? 0,
+        });
       }
 
       if (subRes?.data?.success) {

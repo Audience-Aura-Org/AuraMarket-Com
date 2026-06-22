@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
 import { useAuthStore } from "@/hooks/useAuth";
+import { useWalletBalance } from "@/hooks/useWalletBalance";
 import StatCard from "@/components/layout/StatCard";
 import {
   LogisticsSubpageHeader,
@@ -52,9 +53,9 @@ function destinationLine(s) {
 export default function LogisticsTrackingPage() {
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
+  const { displayedBalance: balance } = useWalletBalance();
   const [loading, setLoading] = useState(true);
   const [shipments, setShipments] = useState([]);
-  const [balance, setBalance] = useState(0);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(1);
@@ -69,34 +70,20 @@ export default function LogisticsTrackingPage() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [shipRes, walletRes] = await Promise.all([
-        api.get("/logistics/shipments/firm", {
-          params: {
-            page,
-            limit: PAGE_SIZE,
-            status: filterStatus,
-            sortBy,
-          },
-        }),
-        api.get("/wallet"),
-      ]);
+      const shipRes = await api.get("/logistics/shipments/firm", {
+        params: { page, limit: PAGE_SIZE, status: filterStatus, sortBy },
+      });
       if (shipRes.data.success) {
-        const list =
-          shipRes.data.data?.shipments ?? shipRes.data.shipments ?? [];
+        const list = shipRes.data.data?.shipments ?? shipRes.data.shipments ?? [];
         setShipments(list);
         setTotal(shipRes.data.total ?? list.length);
         setPages(shipRes.data.pages ?? 1);
         const m = shipRes.data.meta?.counts;
-        if (m) {
-          setCounts({
-            pending: m.pending ?? 0,
-            active: m.active ?? 0,
-            delivered: m.delivered ?? 0,
-          });
-        }
-      }
-      if (walletRes.data.success) {
-        setBalance(walletRes.data.data?.balance ?? 0);
+        setCounts({
+          pending:   m?.pending   ?? 0,
+          active:    m?.active    ?? 0,
+          delivered: m?.delivered ?? 0,
+        });
       }
     } catch (err) {
       toast.error("Failed to load live tracking");

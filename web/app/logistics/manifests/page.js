@@ -110,7 +110,7 @@ export default function LogisticsManifestsPage() {
         setTotal(shipRes.data.total ?? list.length);
         setPages(shipRes.data.pages ?? 1);
         const m = shipRes.data.meta?.counts;
-        if (m) setCounts({ pending: m.pending ?? 0, active: m.active ?? 0, delivered: m.delivered ?? 0 });
+        setCounts({ pending: m?.pending ?? 0, active: m?.active ?? 0, delivered: m?.delivered ?? 0 });
       }
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to load manifests");
