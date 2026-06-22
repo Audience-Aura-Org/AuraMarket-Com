@@ -286,7 +286,7 @@ export default function LogisticsDashboard() {
             <div className="flex items-center gap-2 md:gap-3">
               <Activity className="size-5 shrink-0 text-[var(--accent)]" />
               <div>
-                <h2 className="text-lg font-bold tracking-tight md:text-xl">
+                <h2 className="text-sm font-bold tracking-tight md:text-base">
                   Shipment stream
                 </h2>
                 <p className="mt-0.5 text-[10px] font-medium text-[var(--text-secondary)] opacity-70 md:text-[11px]">
@@ -304,7 +304,7 @@ export default function LogisticsDashboard() {
                   setSortBy(e.target.value);
                   setPage(1);
                 }}
-                className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[11px] font-semibold text-[var(--text-primary)] outline-none sm:w-auto sm:min-h-10 sm:text-[10px] md:text-[11px]"
+                className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[10px] font-semibold text-[var(--text-primary)] outline-none sm:w-auto sm:min-h-10"
               >
                 <option value="order_placed">Recent orders first</option>
                 <option value="assignment">Recent assignments first</option>
@@ -315,7 +315,7 @@ export default function LogisticsDashboard() {
                   setFilterStatus(e.target.value);
                   setPage(1);
                 }}
-                className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[11px] font-semibold text-[var(--text-primary)] outline-none sm:w-auto sm:min-h-10 sm:text-[10px] md:text-[11px]"
+                className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[10px] font-semibold text-[var(--text-primary)] outline-none sm:w-auto sm:min-h-10"
               >
                 <option value="all">All statuses</option>
                 <option value="pending">Pending</option>
@@ -331,7 +331,7 @@ export default function LogisticsDashboard() {
               <button
                 type="button"
                 onClick={() => router.push("/logistics/manifests")}
-                className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-1.5 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 text-[11px] font-semibold text-[var(--accent)] sm:w-auto sm:min-h-10 sm:text-[10px] md:text-[11px]"
+                className="inline-flex min-h-11 w-full touch-manipulation items-center justify-center gap-1.5 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 text-[10px] font-semibold text-[var(--accent)] sm:w-auto sm:min-h-10"
               >
                 Full ledger <ChevronRight className="size-3.5" />
               </button>
