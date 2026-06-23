@@ -363,6 +363,7 @@ async function runVideoUploadTask(snapshot, { onProgress, onPhase }) {
 export default function StatusCreator({ onClose, onStatusCreated, initialData = null }) {
   const isReshare = !!initialData;
   const { enqueueUpload } = useUploadQueue();
+  const isNativeStatusApp = Capacitor?.isNativePlatform?.() === true;
 
   const [, setDeviceType] = useState('desktop');
   const [type, setType]                 = useState(initialData?.type || 'image');
@@ -1597,7 +1598,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           </AnimatePresence>
 
           {/* Full Screen Loading Overlay inside Mockup */}
-          {loading && uploadPhase && (
+          {loading && uploadPhase && !isNativeStatusApp && (
             <div className="absolute inset-0 bg-black/85 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center">
               <Loader2 className="size-10 text-[#20c763] animate-spin mb-4" />
               <p className="text-xs font-bold text-white tracking-wide uppercase mb-2">{uploadPhase}</p>
@@ -1650,7 +1651,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 className="ml-auto size-11 rounded-full bg-[#00a884] text-black flex items-center justify-center shadow-lg active:scale-95 transition-all disabled:opacity-40"
                 aria-label="Send status"
               >
-                {loading ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5 ml-0.5 fill-black" />}
+                {loading && !isNativeStatusApp ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5 ml-0.5 fill-black" />}
               </button>
             </>
           ) : (
@@ -1691,7 +1692,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 className="size-11 rounded-full bg-[#00a884] text-black flex items-center justify-center shadow-lg active:scale-95 transition-all disabled:opacity-40 shrink-0"
                 aria-label="Send status"
               >
-                {loading ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5 ml-0.5 fill-black" />}
+                {loading && !isNativeStatusApp ? <Loader2 className="size-5 animate-spin" /> : <Send className="size-5 ml-0.5 fill-black" />}
               </button>
             </>
           )}

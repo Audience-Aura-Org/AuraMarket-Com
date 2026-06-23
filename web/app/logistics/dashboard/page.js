@@ -139,61 +139,51 @@ export default function LogisticsDashboard() {
   if (user?.role !== "logistics") return null;
 
   return (
-    <div className="flex w-full min-w-0 flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] pb-[max(5.5rem,env(safe-area-inset-bottom,1.25rem))] lg:pb-10">
-      {/* Hero header — first visual block */}
-      <header className="relative z-20 w-full min-w-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 backdrop-blur-2xl">
+    <div className="relative bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500">
+      {/* Background blobs */}
+      <div className="fixed top-[-10%] right-[-10%] size-[500px] bg-[var(--accent)]/5 blur-[120px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
+      <div className="fixed bottom-[-10%] left-[20%] size-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none -z-0 transition-all duration-1000" />
+
+      {/* Redesigned Header */}
+      <header className="relative sticky top-14 lg:top-0 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-2xl">
         {/* Accent gradient line */}
         <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
-        <div className="mx-auto flex min-w-0 max-w-[1600px] flex-col gap-3 px-4 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between md:px-8 md:py-4">
-          <div className="flex min-w-0 items-center gap-3 md:gap-4">
-            <div className="flex size-10 md:size-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent)]/25 bg-gradient-to-br from-[var(--accent)]/20 to-indigo-600/10 shadow-lg shadow-[var(--accent)]/5 md:size-12">
-              <Truck className="size-5 text-[var(--accent)] md:size-6" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-balance text-base md:text-lg font-bold tracking-tight font-[Poppins]">
-                Logistics <span className="text-[var(--accent)]">Hub</span>
-              </h1>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 font-[Poppins]">
+        <div className="mx-auto max-w-[1600px] px-4 py-3 sm:px-6 md:px-8">
+          {/* Row 1: Logo + Title + Status + Actions */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 md:gap-4 min-w-0">
+              <div className="size-10 md:size-11 rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0 shadow-lg shadow-[var(--accent)]/5">
+                <Truck className="size-5 md:size-6" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base md:text-lg font-bold text-[var(--text-primary)] tracking-tight font-[Poppins]">Logistics Hub</h2>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-60 font-[Poppins]">
                     Network nominal
                   </span>
-                </span>
-                <span className="hidden text-[var(--text-secondary)] opacity-20 sm:inline">·</span>
-                <span className="hidden sm:inline text-[10px] font-medium text-[var(--text-secondary)] opacity-40 font-[Poppins]">
-                  {user.name?.replace(/\s/g, '_') || 'Partner'}
-                </span>
+                  <span className="hidden sm:inline text-[var(--text-secondary)] opacity-20">·</span>
+                  <span className="hidden sm:inline text-[10px] font-medium text-[var(--text-secondary)] opacity-40 font-[Poppins]">
+                    {user.name?.replace(/\s/g, '_') || 'Partner'}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex shrink-0 items-center gap-2 md:gap-3">
-            <button
-              type="button"
-              onClick={() => fetchDashboard()}
-              className="flex size-10 min-h-[2.75rem] min-w-[2.75rem] touch-manipulation items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] transition-all hover:text-[var(--accent)] hover:border-[var(--accent)]/30 active:scale-95"
-              aria-label="Refresh"
-            >
-              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-            <div className="hidden text-right sm:block">
-              <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 font-[Poppins]">
-                {new Date().toLocaleDateString(undefined, {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </p>
-              <p className="truncate text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 font-[Poppins]">
-                {user.name?.replace(/\s/g, '_') || 'Partner'}
-              </p>
+            <div className="flex items-center gap-2 md:gap-3 shrink-0">
+              <button 
+                onClick={() => fetchDashboard()} 
+                className="size-10 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] flex items-center justify-center hover:text-[var(--accent)] hover:border-[var(--accent)]/30 active:scale-95 transition-all disabled:opacity-50"
+                disabled={loading}
+              >
+                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+      <div className="p-3 sm:p-6 space-y-6 relative z-10 pb-32">
         {/* Trial mode indicator banner when no subscription is added by admin */}
         {!subscription.subscribed && (
           <div className="relative overflow-hidden rounded-[2rem] border border-amber-500/20 bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-amber-500/5 p-5 md:p-6 shadow-md shadow-amber-500/5 flex flex-col md:flex-row items-center md:items-center justify-between gap-4">

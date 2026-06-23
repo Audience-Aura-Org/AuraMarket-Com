@@ -130,6 +130,56 @@ html {
   touch-action: pan-y;
 }
 
+/* Font Size Presets */
+html[data-font-size="sm"] {
+  font-size: 14px;
+}
+
+html[data-font-size="md"] {
+  font-size: 16px; /* default */
+}
+
+html[data-font-size="lg"] {
+  font-size: 18px;
+}
+
+html[data-font-size="xl"] {
+  font-size: 20px;
+}
+
+/* OpenDyslexic – loaded from CDN for the dyslexia-friendly font option */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Font Family Presets */
+html[data-font="default"] {
+  font-family: 'Poppins', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+html[data-font="serif"] {
+  font-family: 'Lora', Georgia, serif;
+}
+
+html[data-font="mono"] {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+html[data-font="dyslexic"] {
+  font-family: 'OpenDyslexic', sans-serif;
+}
+
 /* Desktop readability — 16px base with fixed 0.7 zoom */
 @media (min-width: 1024px) {
   html {

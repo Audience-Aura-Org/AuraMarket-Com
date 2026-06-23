@@ -1,8 +1,14 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Capacitor } from '@capacitor/core';
 
 export default function LoadingSpinner({ fullScreen = false, text = '' }) {
+  // Safer check for Capacitor availability
+  if (typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) {
+    return null;
+  }
+
   const content = (
     <div className="flex flex-col items-center justify-center gap-8">
       <div className="relative flex items-center justify-center size-24">

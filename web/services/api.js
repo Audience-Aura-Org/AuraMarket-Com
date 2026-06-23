@@ -70,7 +70,7 @@ const isFormDataPayload = (value) => {
 };
 
 const isNativeApp = () => typeof window !== 'undefined' && Capacitor.isNativePlatform();
-const OFFLINE_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+const getOfflineCacheTTL = () => isNativeApp() ? 30 * 24 * 60 * 60 * 1000 : 3 * 24 * 60 * 60 * 1000;
 const CLIENT_FAST_CACHE_TTL_MS = 45 * 1000;
 const OFFLINE_CACHE_PREFIX = 'aura_api_cache:';
 const clientGetInFlight = new Map();
@@ -81,6 +81,13 @@ const OFFLINE_CACHEABLE_ROUTES = [
   /^vendors(?:\/|$)/,
   /^statuses(?:\/|$)/,
   /^reviews\/product(?:\/|$)/,
+];
+const NATIVE_OFFLINE_CACHEABLE_ROUTES = [
+  /^vendor\/products(?:\/|$)/,
+  /^statuses\/my-statuses(?:\/|$)/,
+  /^users\/followed-vendors(?:\/|$)/,
+  /^wishlist(?:\/|$)/,
+  /^logistics\/zones(?:\/|$)/,
 ];
 
 const getOfflineStorage = () => {
@@ -108,6 +115,12 @@ const normalizeCacheUrl = (url = '') =>
 
 const isOfflineCacheableRoute = (url = '') => {
   const normalized = normalizeCacheUrl(url);
+  if (OFFLINE_CACHEABLE_ROUTES.some((route) => route.test(normalized))) {
+    return true;
+  }
+  if (isNativeApp() && NATIVE_OFFLINE_CACHEABLE_ROUTES.some((route) => route.test(normalized))) {
+    return true;
+  }
   if (
     normalized.startsWith('auth/') ||
     normalized.startsWith('admin/') ||
@@ -123,7 +136,7 @@ const isOfflineCacheableRoute = (url = '') => {
     return false;
   }
   if (normalized.startsWith('chat/admin')) return false;
-  return OFFLINE_CACHEABLE_ROUTES.some((route) => route.test(normalized));
+  return false;
 };
 
 const hashCacheScope = (value = '') => {
@@ -166,7 +179,7 @@ const readOfflineCache = (config) => {
   if (!storage) return null;
   const cached = JSON.parse(storage.getItem(getCacheKey(config)) || 'null');
   if (!cached?.data) return null;
-  if (Date.now() - Number(cached.cachedAt || 0) > OFFLINE_CACHE_TTL_MS) {
+  if (Date.now() - Number(cached.cachedAt || 0) > getOfflineCacheTTL()) {
     storage.removeItem(getCacheKey(config));
     return null;
   }

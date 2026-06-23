@@ -2,14 +2,23 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2, Download, MonitorSmartphone, Smartphone } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 
 const APK_DOWNLOAD_URL = '/downloads/Auradime.apk';
 
 export default function PWAInstallPage() {
+  const router = useRouter();
   const [installPrompt, setInstallPrompt] = useState(null);
   const [installStatus, setInstallStatus] = useState('');
   const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      router.replace('/');
+    }
+  }, [router]);
 
   useEffect(() => {
     const standalone =

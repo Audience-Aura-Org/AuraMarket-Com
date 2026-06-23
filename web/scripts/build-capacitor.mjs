@@ -74,7 +74,8 @@ try {
     if (moveIfExists(source, target)) moved.push([target, source]);
   }
 
-  const result = spawnSync('npx next build', {
+  const nextBin = join(root, 'node_modules', 'next', 'dist', 'bin', 'next');
+  const result = spawnSync(process.execPath, [nextBin, 'build'], {
     cwd: root,
     env: {
       ...process.env,
@@ -82,7 +83,6 @@ try {
       NODE_OPTIONS: '--max-old-space-size=4096',
     },
     stdio: 'inherit',
-    shell: true,
   });
 
   if (result.error) {

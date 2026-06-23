@@ -13,6 +13,7 @@ import { ChatProvider } from '@/context/ChatContext';
 import dynamic from 'next/dynamic';
 import SplashScreen from '@/components/layout/SplashScreen';
 import { useAuthStore } from '@/hooks/useAuth';
+import { Capacitor } from '@capacitor/core';
 
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
@@ -24,6 +25,9 @@ const GlobalChatOverlay = dynamic(() => import('@/components/layout/GlobalChatOv
 const PWAInit = dynamic(() => import('@/components/PWAInit'), { ssr: false });
 const MobileKeyboardRecovery = dynamic(() => import('@/components/MobileKeyboardRecovery'), { ssr: false });
 const NativeBackButtonHandler = dynamic(() => import('@/components/NativeBackButtonHandler'), { ssr: false });
+
+// Font settings panel
+const FontSettingsPanel = dynamic(() => import('@/components/settings/FontSettingsPanel'), { ssr: false });
 
 // Navigation & footer — visible but non-critical for first paint
 const BottomNav = dynamic(() => import('@/components/layout/BottomNav'), { ssr: false });
@@ -40,6 +44,16 @@ export default function Providers({ children }) {
                           normalizedPath.startsWith('/logistics') ||
                           normalizedPath === '/subscribe';
   const [showSplash, setShowSplash] = useState(!isDashboardRoute);
+
+  // Initialize font settings on app load
+  useEffect(() => {
+    // Dynamically import to avoid SSR issues
+    import('@/utils/fontSettings').then(({ initFontSettings }) => {
+      initFontSettings();
+    }).catch(err => {
+      console.error('Failed to initialize font settings:', err);
+    });
+  }, []);
 
   useEffect(() => {
     if (isDashboardRoute) {
@@ -129,6 +143,9 @@ export default function Providers({ children }) {
 
           {/* Floating upload progress ring — persists across navigation */}
           <FloatingUploadBadge />
+
+          {/* Font settings panel — available on all pages */}
+          <FontSettingsPanel />
 
           {/* Global chat overlay — deferred, heavy */}
           {!isAuthRoute && <GlobalChatOverlay />}

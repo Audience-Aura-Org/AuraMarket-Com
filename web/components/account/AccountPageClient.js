@@ -28,6 +28,15 @@ import { TABS } from './constants';
 import AccountHeader from './AccountHeader';
 import AccountSidebar from './AccountSidebar';
 import { useLanguage } from '@/context/LanguageContext';
+import {
+  setFontSize as applyFontSize,
+  setFontFamily as applyFontFamily,
+  getFontSize,
+  getFontFamily,
+  resetFontSettings,
+  FONT_SIZES,
+  FONT_FAMILIES,
+} from '@/utils/fontSettings';
 
 const normalizePickupAddress = (pickup = {}, fallback = {}) => ({
   city: pickup.city || fallback.city || '',
@@ -57,6 +66,16 @@ export default function AccountPageClient() {
   const [activeTab, setActiveTab] = useState('general');
   const [viewingOrderId, setViewingOrderId] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  // Typography settings state
+  const [currentFontSize, setCurrentFontSize] = useState('md');
+  const [currentFontFamily, setCurrentFontFamily] = useState('default');
+  // Initialize typography from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentFontSize(getFontSize());
+      setCurrentFontFamily(getFontFamily());
+    }
+  }, []);
   const canUseBanner = ['vendor', 'logistics'].includes(user?.role);
 
   useEffect(() => {
@@ -586,6 +605,130 @@ export default function AccountPageClient() {
                           </span>
                         </button>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* ── Typography Settings Card ── */}
+                  <div className="glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-8 shadow-xl w-full">
+                    {/* Section header */}
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                        <span className="text-lg leading-none select-none">Aa</span>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Typography</h3>
+                        <p className="text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">Customize your reading experience</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      {/* Font Size */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-[11px] lg:text-[12px] font-semibold tracking-tighter text-[var(--accent)]">Font Size</p>
+                          <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60 capitalize">
+                            {currentFontSize === 'sm' ? 'Small' : currentFontSize === 'md' ? 'Medium' : currentFontSize === 'lg' ? 'Large' : 'Extra Large'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[
+                            { key: 'sm', label: 'Sm', display: 'A', px: '14px', size: 'text-[13px]' },
+                            { key: 'md', label: 'Md', display: 'A', px: '16px', size: 'text-[15px]' },
+                            { key: 'lg', label: 'Lg', display: 'A', px: '18px', size: 'text-[17px]' },
+                            { key: 'xl', label: 'XL', display: 'A', px: '20px', size: 'text-[19px]' },
+                          ].map(({ key, label, display, px, size }) => (
+                            <button
+                              key={key}
+                              id={`font-size-${key}`}
+                              onClick={() => {
+                                applyFontSize(key);
+                                setCurrentFontSize(key);
+                              }}
+                              className={`flex flex-col items-center justify-center gap-1 rounded-2xl border py-3 transition-all duration-200 ${
+                                currentFontSize === key
+                                  ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm shadow-[var(--accent)]/10'
+                                  : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'
+                              }`}
+                              aria-label={`Font size ${label}`}
+                              aria-pressed={currentFontSize === key}
+                            >
+                              <span className={`font-bold leading-none ${size}`}>{display}</span>
+                              <span className="text-[9px] font-semibold uppercase tracking-wide opacity-70">{label}</span>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="mt-2 flex items-center justify-between px-1">
+                          <span className="text-[9px] text-[var(--text-secondary)] opacity-50">14px</span>
+                          <span className="text-[9px] text-[var(--text-secondary)] opacity-50">16px</span>
+                          <span className="text-[9px] text-[var(--text-secondary)] opacity-50">18px</span>
+                          <span className="text-[9px] text-[var(--text-secondary)] opacity-50">20px</span>
+                        </div>
+                      </div>
+
+                      {/* Font Family */}
+                      <div>
+                        <p className="text-[11px] lg:text-[12px] font-semibold tracking-tighter text-[var(--accent)] mb-3">Font Style</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            { key: 'default', label: 'Default', desc: 'Clean, modern', sample: 'Poppins' },
+                            { key: 'serif',   label: 'Serif',   desc: 'Editorial, warm', sample: 'Lora' },
+                            { key: 'mono',    label: 'Mono',    desc: 'Technical', sample: 'JetBrains Mono' },
+                            { key: 'dyslexic',label: 'Dyslexic-friendly', desc: 'Accessible', sample: 'OpenDyslexic' },
+                          ].map(({ key, label, desc, sample }) => (
+                            <button
+                              key={key}
+                              id={`font-family-${key}`}
+                              onClick={() => {
+                                applyFontFamily(key);
+                                setCurrentFontFamily(key);
+                              }}
+                              className={`flex flex-col items-start rounded-2xl border p-3 text-left transition-all duration-200 ${
+                                currentFontFamily === key
+                                  ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm shadow-[var(--accent)]/10'
+                                  : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'
+                              }`}
+                              aria-label={`Font family ${label}`}
+                              aria-pressed={currentFontFamily === key}
+                            >
+                              <div className="flex w-full items-center justify-between mb-1">
+                                <span className="text-[12px] font-bold tracking-tight">{label}</span>
+                                {currentFontFamily === key && (
+                                  <span className="size-4 flex items-center justify-center rounded-full bg-[var(--accent)] text-white text-[8px] font-bold">✓</span>
+                                )}
+                              </div>
+                              <p className="text-[10px] opacity-60 font-semibold leading-snug">{desc}</p>
+                              <p className="mt-1.5 text-[11px] opacity-40" style={{ fontFamily: sample }}>Aa Bb Cc</p>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Live Preview */}
+                      <div>
+                        <p className="text-[11px] lg:text-[12px] font-semibold tracking-tighter text-[var(--accent)] mb-3">Preview</p>
+                        <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-4">
+                          <p className="text-sm leading-relaxed text-[var(--text-primary)]">
+                            The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet.
+                          </p>
+                          <p className="mt-2 text-[10px] text-[var(--text-secondary)] opacity-50 font-semibold">
+                            Changes apply instantly across the app.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Reset button */}
+                      <button
+                        id="font-settings-reset"
+                        onClick={() => {
+                          resetFontSettings();
+                          setCurrentFontSize('md');
+                          setCurrentFontFamily('default');
+                        }}
+                        className="flex items-center gap-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-60 hover:text-[var(--accent)] hover:opacity-100 transition-all duration-200"
+                      >
+                        <RefreshCw className="size-3.5" />
+                        Reset to defaults
+                      </button>
                     </div>
                   </div>
                 </div>
