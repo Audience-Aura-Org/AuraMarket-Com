@@ -256,7 +256,7 @@ const createOrder = async (req, res, next) => {
       shipping_fee = fees.totalFee;
     }
 
-    const collection_fee = (payment_method === 'payunit' || payment_method === 'eversend') ? 5 : 0;
+    const collection_fee = (payment_method === 'payunit' || payment_method === 'eversend') ? 50 : 0;
     const total_amount = subtotal + shipping_fee + collection_fee - discount;
 
     const orderData = {
@@ -1102,7 +1102,7 @@ const createOrdersFromCart = async (req, res, next) => {
           shippingFee = fees.totalFee;
       }
 
-      const collectionFee = (payment_method === 'payunit' || payment_method === 'eversend') ? 5 : 0;
+      const collectionFee = (payment_method === 'payunit' || payment_method === 'eversend') ? 50 : 0;
 
       const [newOrder] = await Order.create([{
         customer_id: req.user._id,

@@ -30,7 +30,7 @@ const run = async () => {
     commission_type: settings.commission_type,
     commission_value: settings.commission_value,
     commission_rate: settings.commission_rate,
-    mobile_money_collection_fee_xaf: Number(process.env.MOBILE_MONEY_COLLECTION_FEE_XAF || 5),
+    mobile_money_collection_fee_xaf: Number(process.env.MOBILE_MONEY_COLLECTION_FEE_XAF || 50),
   });
   process.exit(0);
 };

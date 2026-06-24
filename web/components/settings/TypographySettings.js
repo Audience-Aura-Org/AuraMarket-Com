@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { Check, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import {
-  FONT_FAMILIES,
   FONT_SIZES,
-  getFontFamily,
   getFontSize,
   resetFontSettings,
-  setFontFamily,
   setFontSize,
 } from '@/utils/fontSettings';
 
@@ -19,36 +16,22 @@ const SIZE_OPTIONS = [
   { key: FONT_SIZES.xl, label: 'Extra Large', short: 'XL', sample: 'text-[21px]' },
 ];
 
-const FAMILY_OPTIONS = [
-  { key: FONT_FAMILIES.default, label: 'Default', description: 'Poppins — clean, modern' },
-  { key: FONT_FAMILIES.serif, label: 'Serif', description: 'Lora — editorial, warm' },
-  { key: FONT_FAMILIES.mono, label: 'Mono', description: 'JetBrains Mono — technical' },
-  { key: FONT_FAMILIES.dyslexic, label: 'Dyslexic', description: 'OpenDyslexic — accessible' },
-];
-
 export default function TypographySettings() {
   const [currentFontSize, setCurrentFontSize] = useState(FONT_SIZES.md);
-  const [currentFontFamily, setCurrentFontFamily] = useState(FONT_FAMILIES.default);
 
   useEffect(() => {
     setCurrentFontSize(getFontSize());
-    setCurrentFontFamily(getFontFamily());
 
     const onSizeChange = (event) => setCurrentFontSize(event.detail.size);
-    const onFamilyChange = (event) => setCurrentFontFamily(event.detail.family);
-
     window.addEventListener('fontsizechange', onSizeChange);
-    window.addEventListener('fontfamilychange', onFamilyChange);
     return () => {
       window.removeEventListener('fontsizechange', onSizeChange);
-      window.removeEventListener('fontfamilychange', onFamilyChange);
     };
   }, []);
 
   const handleReset = () => {
     resetFontSettings();
     setCurrentFontSize(FONT_SIZES.md);
-    setCurrentFontFamily(FONT_FAMILIES.default);
   };
 
   return (
@@ -61,7 +44,7 @@ export default function TypographySettings() {
           <div className="min-w-0">
             <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Typography</p>
             <p className="text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">
-              Font size and style apply across the app. Default font is Poppins.
+              Font size applies across the app. Default font is Poppins.
             </p>
           </div>
         </div>
@@ -110,46 +93,6 @@ export default function TypographySettings() {
           <span>16px</span>
           <span>18px</span>
           <span>20px</span>
-        </div>
-      </div>
-
-      <div>
-        <p className="mb-3 text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)]">Font Style</p>
-        <div className="grid grid-cols-2 gap-2">
-          {FAMILY_OPTIONS.map(({ key, label, description }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => {
-                setFontFamily(key);
-                setCurrentFontFamily(key);
-              }}
-              className={`flex flex-col items-start rounded-2xl border p-3 text-left transition-all ${
-                currentFontFamily === key
-                  ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm shadow-[var(--accent)]/10'
-                  : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'
-              }`}
-              aria-pressed={currentFontFamily === key}
-            >
-              <div className="flex w-full items-center justify-between gap-2">
-                <span className="text-[12px] font-semibold">{label}</span>
-                {currentFontFamily === key && <Check className="size-3.5 shrink-0" />}
-              </div>
-              <span className="mt-1 text-[10px] opacity-70">{description}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <p className="mb-2 text-[10px] font-black uppercase tracking-[0.15em] text-[var(--text-secondary)]">Preview</p>
-        <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-4">
-          <p className="text-sm leading-relaxed text-[var(--text-primary)]">
-            The quick brown fox jumps over the lazy dog.
-          </p>
-          <p className="mt-2 text-[11px] leading-relaxed text-[var(--text-secondary)]">
-            Auradime marketplace — browse products, stories, and wallet balance with your chosen typography.
-          </p>
         </div>
       </div>
     </div>

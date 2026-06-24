@@ -228,7 +228,7 @@ const getRoleRequirements = async () => {
     required: {
       customer: Boolean(settings.subscription_required_roles?.customer),
       vendor: settings.subscription_required_roles?.vendor !== false,
-      logistics: Boolean(settings.subscription_required_roles?.logistics),
+      logistics: settings.subscription_required_roles?.logistics !== false,
       admin: false,
     },
     grace_days: {
