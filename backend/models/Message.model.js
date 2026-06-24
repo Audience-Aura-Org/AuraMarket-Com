@@ -53,6 +53,10 @@ const MessageSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: null,
     },
+    deleted_content: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null, // preserves original message content when deleted for everyone
+    },
     deleted_for: [
       {
         type: mongoose.Schema.Types.ObjectId,

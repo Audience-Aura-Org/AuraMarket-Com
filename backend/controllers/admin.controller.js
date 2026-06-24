@@ -1451,6 +1451,53 @@ const getQueueStats = async (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// @route   PATCH /api/admin/transaction/:id/fees
+// @desc    Admin: update a transaction's stored platform fee breakdown
+// @access  Private/Admin
+// ─────────────────────────────────────────────
+const updateTransactionFees = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { commission_fee, escrow_fee, platform_fee, vendor_payout } = req.body;
+
+    const transaction = await Transaction.findById(id);
+    if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+
+    const existing = transaction.metadata?.platform_fee_breakdown || {};
+    const updated = {
+      ...existing,
+      commission_fee: commission_fee !== undefined ? Number(commission_fee) : existing.commission_fee,
+      escrow_fee: escrow_fee !== undefined ? Number(escrow_fee) : existing.escrow_fee,
+      platform_fee: platform_fee !== undefined ? Number(platform_fee) : existing.platform_fee,
+      vendor_payout: vendor_payout !== undefined ? Number(vendor_payout) : existing.vendor_payout,
+    };
+
+    transaction.metadata = { ...transaction.metadata, platform_fee_breakdown: updated };
+
+    // If this is the platform revenue transaction, update its amount to match
+    if (transaction.gateway === 'platform' && transaction.type === 'payment' && updated.platform_fee !== undefined) {
+      transaction.amount = Number(updated.platform_fee);
+    }
+
+    await transaction.save();
+
+    // Also sync vendor payout transaction (if present for the same order)
+    if (transaction.order_id) {
+      const vendorTx = await Transaction.findOne({ order_id: transaction.order_id, type: 'payout' });
+      if (vendorTx && updated.vendor_payout !== undefined) {
+        vendorTx.amount = Number(updated.vendor_payout);
+        vendorTx.metadata = { ...vendorTx.metadata, platform_fee_breakdown: updated };
+        await vendorTx.save();
+      }
+    }
+
+    res.status(200).json({ success: true, message: 'Transaction fee breakdown updated.', data: { transaction } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getHomepageLayout,
   updateBanners,
@@ -1463,6 +1510,7 @@ module.exports = {
   resolveReport,
   getSettings,
   updateSettings,
+  updateTransactionFees,
   getAllOrders,
   updateOrderAdmin,
   getPendingVendors,

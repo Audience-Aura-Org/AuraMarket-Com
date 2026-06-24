@@ -497,16 +497,28 @@ const deleteMessage = async (req, res, next) => {
         return res.status(403).json({ success: false, message: 'Only the sender can delete a message for everyone.' });
       }
 
-      message.text = 'This message was deleted';
+      // Preserve original content in a dedicated section so frontends can
+      // display a standard "deleted message" notice while keeping an audit
+      // copy for admins or for debugging (similar to WhatsApp behaviour).
+      message.deleted_content = {
+        text: message.text,
+        product_reference: message.product_reference,
+        image_url: message.image_url,
+        metadata: message.metadata,
+      };
+      // Clear visible content so clients render the "deleted" placeholder
+      message.text = '';
       message.product_reference = null;
       message.image_url = null;
+      message.metadata = null;
       message.deleted_everyone = true;
       await message.save();
 
       const io = req.app.get('io');
       if (io) {
-        io.to(message.sender_id.toString()).emit('message_deleted', { messageId, deletedFor: 'everyone', text: 'This message was deleted' });
-        io.to(message.receiver_id.toString()).emit('message_deleted', { messageId, deletedFor: 'everyone', text: 'This message was deleted' });
+        // Emit a small payload — clients should request the message if needed.
+        io.to(message.sender_id.toString()).emit('message_deleted', { messageId, deletedFor: 'everyone' });
+        io.to(message.receiver_id.toString()).emit('message_deleted', { messageId, deletedFor: 'everyone' });
       }
     } else {
       const userObjectId = new mongoose.Types.ObjectId(req.user._id);

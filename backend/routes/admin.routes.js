@@ -48,6 +48,7 @@ const {
   bulkDeleteProducts,
   getAllTransactions,
   updateTransactionStatus,
+  updateTransactionFees,
   fulfillOrderFromTransaction,
   syncWithEversend,
   syncGatewayTransactions,
@@ -127,6 +128,7 @@ router.get('/queues', getQueueStats);
 router.get('/transactions', getAllTransactions);
 router.patch('/transactions/:id', updateTransactionStatus); // Legacy alias to prevent 404 during deployment
 router.patch('/transactions/manual-fix/:id', updateTransactionStatus);
+router.patch('/transactions/:id/fees', updateTransactionFees);
 router.post('/transactions/sync-eversend', syncWithEversend);
 router.post('/transactions/sync-gateways', syncGatewayTransactions);
 router.post('/transactions/:transactionId/fulfill', fulfillOrderFromTransaction);
