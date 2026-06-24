@@ -163,20 +163,24 @@ html[data-font-size="xl"] {
   font-display: swap;
 }
 
-/* Font Family Presets */
-html[data-font="default"] {
+/* Font Family Presets — apply to html + body so body font-family does not override */
+html[data-font="default"],
+html[data-font="default"] body {
   font-family: 'Poppins', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
-html[data-font="serif"] {
+html[data-font="serif"],
+html[data-font="serif"] body {
   font-family: 'Lora', Georgia, serif;
 }
 
-html[data-font="mono"] {
+html[data-font="mono"],
+html[data-font="mono"] body {
   font-family: 'JetBrains Mono', monospace;
 }
 
-html[data-font="dyslexic"] {
+html[data-font="dyslexic"],
+html[data-font="dyslexic"] body {
   font-family: 'OpenDyslexic', sans-serif;
 }
 
@@ -221,7 +225,7 @@ html[data-font="dyslexic"] {
 }
 
 body {
-  font-family: var(--font-display);
+  font-family: inherit;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   min-height: 100%;

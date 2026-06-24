@@ -1,6 +1,5 @@
 'use client';
 
-import { Capacitor } from '@capacitor/core';
 import { useUploadQueue } from '@/context/UploadQueueContext';
 
 /**
@@ -10,10 +9,9 @@ import { useUploadQueue } from '@/context/UploadQueueContext';
  */
 export default function FloatingUploadBadge() {
   const { jobs } = useUploadQueue();
-  const isNativeApp = Capacitor?.isNativePlatform?.() === true;
   const activeJobs = jobs.filter((j) => j.status === 'active');
 
-  if (isNativeApp || activeJobs.length === 0) return null;
+  if (activeJobs.length === 0) return null;
 
   const job = activeJobs[0];
   const progress = job.progress || 0;

@@ -28,12 +28,7 @@ import { TABS } from './constants';
 import AccountHeader from './AccountHeader';
 import AccountSidebar from './AccountSidebar';
 import { useLanguage } from '@/context/LanguageContext';
-import {
-  setFontSize as applyFontSize,
-  getFontSize,
-  resetFontSettings,
-  FONT_SIZES,
-} from '@/utils/fontSettings';
+import TypographySettings from '@/components/settings/TypographySettings';
 
 const normalizePickupAddress = (pickup = {}, fallback = {}) => ({
   city: pickup.city || fallback.city || '',
@@ -63,14 +58,6 @@ export default function AccountPageClient() {
   const [activeTab, setActiveTab] = useState('general');
   const [viewingOrderId, setViewingOrderId] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Typography settings state
-  const [currentFontSize, setCurrentFontSize] = useState('md');
-  // Initialize typography from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCurrentFontSize(getFontSize());
-    }
-  }, []);
   const canUseBanner = ['vendor', 'logistics'].includes(user?.role);
 
   useEffect(() => {
@@ -483,45 +470,7 @@ export default function AccountPageClient() {
                           icon={Mail}
                         />
 
-                        {/* ── Font Size ── */}
-                        <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-4 md:p-5">
-                          <div className="mb-4 flex items-center gap-3">
-                            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                              <span className="text-base font-bold leading-none select-none">Aa</span>
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Text Size</p>
-                              <p className="text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">Adjust the app-wide font size</p>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-4 gap-2">
-                            {[
-                              { key: 'sm',  label: 'Small',       aSize: 'text-[12px]' },
-                              { key: 'md',  label: 'Medium',      aSize: 'text-[15px]' },
-                              { key: 'lg',  label: 'Large',       aSize: 'text-[18px]' },
-                              { key: 'xl',  label: 'Extra Large', aSize: 'text-[21px]' },
-                            ].map(({ key, label, aSize }) => (
-                              <button
-                                key={key}
-                                id={`font-size-${key}`}
-                                onClick={() => { applyFontSize(key); setCurrentFontSize(key); }}
-                                className={`relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border py-3 px-1 transition-all duration-200 ${
-                                  currentFontSize === key
-                                    ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm shadow-[var(--accent)]/10'
-                                    : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)]'
-                                }`}
-                                aria-label={`Font size ${label}`}
-                                aria-pressed={currentFontSize === key}
-                              >
-                                {key === 'md' && (
-                                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-[var(--accent)] px-1.5 py-px text-[7px] font-bold text-white tracking-wide uppercase whitespace-nowrap">Default</span>
-                                )}
-                                <span className={`font-bold leading-none ${aSize}`}>A</span>
-                                <span className="text-[9px] font-semibold tracking-wide opacity-70 leading-none">{label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <TypographySettings />
 
                         {/* ── Language ── */}
                         <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-4 md:p-5">

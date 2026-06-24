@@ -30,32 +30,26 @@ const DEFAULT_SETTINGS = {
  * @param {string} size - One of 'sm', 'md', 'lg', 'xl'
  */
 export function setFontSize(size) {
+  if (typeof window === 'undefined') return;
   if (!Object.values(FONT_SIZES).includes(size)) {
     console.warn(`Invalid font size: ${size}. Using default 'md'.`);
     size = FONT_SIZES.md;
   }
-  
+
   document.documentElement.setAttribute('data-font-size', size);
   localStorage.setItem('auradime-font-size', size);
-  
-  // Dispatch custom event for other components to listen to
   window.dispatchEvent(new CustomEvent('fontsizechange', { detail: { size } }));
 }
 
-/**
- * Set font family preset
- * @param {string} family - One of 'default', 'serif', 'mono', 'dyslexic'
- */
 export function setFontFamily(family) {
+  if (typeof window === 'undefined') return;
   if (!Object.values(FONT_FAMILIES).includes(family)) {
     console.warn(`Invalid font family: ${family}. Using default.`);
     family = FONT_FAMILIES.default;
   }
-  
+
   document.documentElement.setAttribute('data-font', family);
   localStorage.setItem('auradime-font', family);
-  
-  // Dispatch custom event for other components to listen to
   window.dispatchEvent(new CustomEvent('fontfamilychange', { detail: { family } }));
 }
 
@@ -92,23 +86,20 @@ export function resetFontSettings() {
  * Restores saved preferences from localStorage
  */
 export function initFontSettings() {
-  // Restore font size
+  if (typeof window === 'undefined') return;
   const savedSize = localStorage.getItem('auradime-font-size');
   if (savedSize && Object.values(FONT_SIZES).includes(savedSize)) {
     setFontSize(savedSize);
   } else {
     setFontSize(FONT_SIZES.md);
   }
-  
-  // Restore font family
+
   const savedFamily = localStorage.getItem('auradime-font');
   if (savedFamily && Object.values(FONT_FAMILIES).includes(savedFamily)) {
     setFontFamily(savedFamily);
   } else {
     setFontFamily(FONT_FAMILIES.default);
   }
-  
-  console.log('Font settings initialized');
 }
 
 /**

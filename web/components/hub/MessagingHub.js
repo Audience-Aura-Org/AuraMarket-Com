@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1525,33 +1525,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                             </button>
                           )}
 
-                          {activeMenuMsgId === msg._id && (
-                            <>
-                              <div className="fixed inset-0 z-[45] cursor-default bg-transparent" onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(null); }} />
-                              <div
-                                className={`absolute z-50 min-w-[130px] rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1 shadow-lg ring-1 ring-black/5 ${isOwn ? 'right-1 top-6' : 'left-1 top-6'}`}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteMessage(msg._id, 'me')}
-                                  className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11.5px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
-                                >
-                                  <Trash2 className="size-3 text-[var(--text-secondary)]" /> Delete for me
-                                </button>
-                                {isOwn && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteMessage(msg._id, 'everyone')}
-                                    className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11.5px] font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                                  >
-                                    <Trash2 className="size-3 text-red-500" /> Delete for everyone
-                                  </button>
-                                )}
-                              </div>
-                            </>
-                          )}
-
                           {storyReplyMeta(msg) && (
                             <button
                               type="button"
@@ -1629,6 +1602,39 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                             )}
                           </div>
                         </motion.div>
+
+                        {activeMenuMsgId === msg._id && (
+                          <>
+                            <div className="fixed inset-0 z-[45] cursor-default bg-transparent" onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(null); }} />
+                            <div
+                              className={`fixed z-50 min-w-[130px] rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1 shadow-lg ring-1 ring-black/5`}
+                              style={{
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                left: isOwn ? 'auto' : '20px',
+                                right: isOwn ? '20px' : 'auto'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteMessage(msg._id, 'me')}
+                                className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11.5px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                              >
+                                <Trash2 className="size-3 text-[var(--text-secondary)]" /> Delete for me
+                              </button>
+                              {isOwn && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteMessage(msg._id, 'everyone')}
+                                  className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-left text-[11.5px] font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                >
+                                  <Trash2 className="size-3 text-red-500" /> Delete for everyone
+                                </button>
+                              )}
+                            </div>
+                          </>
+                        )}
 
                         {msg.status === 'failed' && (
                           <button

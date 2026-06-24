@@ -26,10 +26,7 @@ const PWAInit = dynamic(() => import('@/components/PWAInit'), { ssr: false });
 const MobileKeyboardRecovery = dynamic(() => import('@/components/MobileKeyboardRecovery'), { ssr: false });
 const NativeBackButtonHandler = dynamic(() => import('@/components/NativeBackButtonHandler'), { ssr: false });
 
-// Font settings panel
-const FontSettingsPanel = dynamic(() => import('@/components/settings/FontSettingsPanel'), { ssr: false });
-
-// Navigation & footer — visible but non-critical for first paint
+// Font settings initialize on app load via Providers
 const BottomNav = dynamic(() => import('@/components/layout/BottomNav'), { ssr: false });
 const Footer = dynamic(() => import('@/components/layout/Footer'), { ssr: false });
 const FloatingUploadBadge = dynamic(() => import('@/components/ui/FloatingUploadBadge'), { ssr: false });
@@ -144,8 +141,6 @@ export default function Providers({ children }) {
           {/* Floating upload progress ring — persists across navigation */}
           <FloatingUploadBadge />
 
-          {/* Font settings panel — available on all pages */}
-          <FontSettingsPanel />
 
           {/* Global chat overlay — deferred, heavy */}
           {!isAuthRoute && <GlobalChatOverlay />}

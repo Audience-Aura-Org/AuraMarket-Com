@@ -52,8 +52,13 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
+    <html lang="en" data-scroll-behavior="smooth" data-font-size="md" data-font="default" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('auradime-font-size')||'md';var f=localStorage.getItem('auradime-font')||'default';document.documentElement.setAttribute('data-font-size',s);document.documentElement.setAttribute('data-font',f);}catch(e){}})();`,
+          }}
+        />
         {/* Viewport: resizes chat content when the virtual keyboard opens in PWA/WebView */}
         <meta
           name="viewport"
