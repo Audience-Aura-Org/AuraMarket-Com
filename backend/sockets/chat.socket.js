@@ -159,16 +159,15 @@ const mapChatSockets = (server) => {
     }
     userSockets.get(socket.userId).add(socket.id);
 
-    if (isFirstSocket) {
-      // Mark as online in DB
-      const lastSeen = new Date();
-      User.findByIdAndUpdate(socket.userId, { is_online: true, last_seen: lastSeen }).catch(e => console.error(e));
-      // Broadcast online status to others
-      io.emit('user_presence', { userId: socket.userId, isOnline: true, lastSeen: lastSeen.toISOString() });
-    }
-
     const userRoom = socket.userId.toString();
     socket.join(userRoom);
+
+    if (isFirstSocket) {
+      // Mark as online in DB after joining the user's room so presence checks see this socket.
+      const lastSeen = new Date();
+      User.findByIdAndUpdate(socket.userId, { is_online: true, last_seen: lastSeen }).catch(e => console.error(e));
+      io.emit('user_presence', { userId: socket.userId, isOnline: true, lastSeen: lastSeen.toISOString() });
+    }
 
     Message.find({ receiver_id: socket.userId, delivered_status: false })
       .select('sender_id')
@@ -346,12 +345,14 @@ const mapChatSockets = (server) => {
             // Re-check: user might have reconnected during grace period
             const currentSet = userSockets.get(socket.userId);
             if (currentSet && currentSet.size > 0) return;
-            
+
+            const stillOnline = await roomHasSockets(io, socket.userId);
+            if (stillOnline) return;
+
             userSockets.delete(socket.userId);
-            // Mark as offline in DB
+            // Mark as offline in DB only after checking the shared Socket.IO room.
             const lastSeen = new Date();
             await User.findByIdAndUpdate(socket.userId, { is_online: false, last_seen: lastSeen }).catch(e => console.error(e));
-            // Broadcast offline status
             io.emit('user_presence', { userId: socket.userId, isOnline: false, lastSeen: lastSeen.toISOString() });
             console.log(`🔌 User marked offline: ${socket.userId}`);
           }, 3000);

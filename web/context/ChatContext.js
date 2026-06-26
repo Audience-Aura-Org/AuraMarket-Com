@@ -592,7 +592,8 @@ function chatReducer(state, action) {
     case 'PRESENCE_UPDATE': {
       const userId = action.userId?.toString();
       if (!userId) return state;
-      const onlineUsersMap = { ...state.onlineUsersMap, [userId]: Boolean(action.isOnline) };
+      const isOnline = action.isOnline === true || action.isOnline === 'true';
+      const onlineUsersMap = { ...state.onlineUsersMap, [userId]: isOnline };
       const lastSeen = action.lastSeen || action.last_seen;
       const conversation = state.conversationsById[userId];
       return {
@@ -606,7 +607,7 @@ function chatReducer(state, action) {
                 partner: mergeParticipantData(
                   conversation.partner,
                   { _id: userId, last_seen: lastSeen, lastSeen },
-                  Boolean(action.isOnline)
+                  isOnline
                 ),
               },
             }
@@ -658,6 +659,7 @@ export function ChatProvider({ children }) {
   const [state, dispatch] = useReducer(chatReducer, initialState);
   const stateRef = useRef(state);
   const syncInFlightRef = useRef(false);
+  const typingExpiryTimersRef = useRef({});
   const lastInboxSyncAtRef = useRef(0);
   const inboxRateLimitedUntilRef = useRef(0);
   const { user } = useAuthStore();
@@ -775,8 +777,28 @@ export function ChatProvider({ children }) {
       dispatch({ type: 'MESSAGE_DELIVERY_ACK', partnerId, messageId, deliveredAt: at });
     };
 
-    const onTyping = ({ userId }) => dispatch({ type: 'TYPING_UPDATE', userId, isTyping: true });
-    const onStoppedTyping = ({ userId }) => dispatch({ type: 'TYPING_UPDATE', userId, isTyping: false });
+    const clearTypingExpiry = (userId) => {
+      const key = userId?.toString?.();
+      if (!key || !typingExpiryTimersRef.current[key]) return;
+      clearTimeout(typingExpiryTimersRef.current[key]);
+      delete typingExpiryTimersRef.current[key];
+    };
+    const onTyping = ({ userId }) => {
+      const key = userId?.toString?.();
+      if (!key || key === stateRef.current.currentUserId) return;
+      clearTypingExpiry(key);
+      dispatch({ type: 'TYPING_UPDATE', userId: key, isTyping: true });
+      typingExpiryTimersRef.current[key] = setTimeout(() => {
+        delete typingExpiryTimersRef.current[key];
+        dispatch({ type: 'TYPING_UPDATE', userId: key, isTyping: false });
+      }, 3500);
+    };
+    const onStoppedTyping = ({ userId }) => {
+      const key = userId?.toString?.();
+      if (!key) return;
+      clearTypingExpiry(key);
+      dispatch({ type: 'TYPING_UPDATE', userId: key, isTyping: false });
+    };
     const onPresence = ({ userId, isOnline, online, lastSeen, last_seen }) =>
       dispatch({ type: 'PRESENCE_UPDATE', userId, isOnline: isOnline ?? online, lastSeen: lastSeen || last_seen });
     const onDeleted = (payload) => dispatch({ type: 'DELETE_MESSAGE', ...payload });
@@ -797,6 +819,8 @@ export function ChatProvider({ children }) {
     Object.entries(eventMap).forEach(([event, handler]) => socketService.on(event, handler));
     return () => {
       Object.entries(eventMap).forEach(([event, handler]) => socketService.off(event, handler));
+      Object.values(typingExpiryTimersRef.current).forEach(clearTimeout);
+      typingExpiryTimersRef.current = {};
     };
   }, [user?._id]);
 

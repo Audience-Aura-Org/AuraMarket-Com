@@ -85,6 +85,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
   const [viewingStatuses, setViewingStatuses] = useState(null);
   const [selectedStoryId, setSelectedStoryId] = useState(null);
   const [showCreator, setShowCreator] = useState(false);
+  const [viewedStoryIds, setViewedStoryIds] = useState([]);
   const sharedStoryIdRef = useRef(null);
 
   // 1. Force blur on mount to dismiss any keyboards from previous screens
@@ -167,12 +168,23 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
     return () => window.removeEventListener('online', fetchFollowedStatuses);
   }, [fetchFollowedStatuses]);
 
+  const markStoryViewed = useCallback((storyId) => {
+    if (!storyId) return;
+    setViewedStoryIds((current) => current.includes(storyId) ? current : [...current, storyId]);
+    setFollowedStatuses((current) => {
+      const next = markStatusViewed(current, storyId);
+      writeTopStatusCache(next);
+      return next;
+    });
+    setViewingStatuses((current) => current ? markStatusViewed(current, storyId) : current);
+  }, []);
+
   const openStatusSequence = useCallback((items, storyId) => {
     if (!Array.isArray(items) || items.length === 0 || !storyId) return;
-    setFollowedStatuses((current) => markStatusViewed(current, storyId));
-    setViewingStatuses(items);
+    markStoryViewed(storyId);
+    setViewingStatuses(markStatusViewed(items, storyId));
     setSelectedStoryId(storyId);
-  }, []);
+  }, [markStoryViewed]);
 
   const handleTabChange = (id) => {
     const tab = TABS.find(t => t.id === id);
@@ -257,7 +269,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
                   />
                 </div>
               )}
-              <StatusTabGrid onSelectStatus={(items, storyId) => {
+              <StatusTabGrid viewedStoryIds={viewedStoryIds} onSelectStatus={(items, storyId) => {
                 openStatusSequence(items, storyId);
               }} />
             </motion.div>
@@ -285,7 +297,8 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
               onClose={() => {
                 setViewingStatuses(null);
                 setSelectedStoryId(null);
-              }} 
+              }}
+              onStoryViewed={(storyId) => markStoryViewed(storyId)}
             />
           )}
           {showCreator && (

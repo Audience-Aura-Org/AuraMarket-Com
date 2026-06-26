@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -60,7 +60,7 @@ const getChatViewportMetrics = () => {
   // address bar collapses.
   const keyboardOpen = Boolean(viewport && visualHeight < layoutHeight * 0.75);
 
-  // ── zoom is now reset to 1 on chat-open, so we never divide by it ──
+  // -- zoom is now reset to 1 on chat-open, so we never divide by it --
   // Keeping the read here for diagnostics / future use, but NOT dividing.
   const targetHeight = keyboardOpen
     ? visualHeight          // shrunk to visible area above keyboard
@@ -207,6 +207,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [isTyping, setIsTyping] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const typingTimeoutRef = useRef(null);
+  const typingPartnerIdRef = useRef(null);
   const fileInputRef = useRef(null);
   const inputValueRef = useRef('');
   const activePartnerIdRef = useRef(activePartnerId);
@@ -264,6 +265,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const initialDataKey = toId(initialData) || '';
 
   useEffect(() => {
+    const previousPartnerId = activePartnerIdRef.current?.toString?.();
+    if (previousPartnerId && previousPartnerId !== activePartnerId?.toString?.()) {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+      if (typingPartnerIdRef.current) {
+        socketService.emit('typing_stop', { receiver_id: typingPartnerIdRef.current });
+      }
+      typingPartnerIdRef.current = null;
+      setIsTyping(false);
+    }
     activePartnerIdRef.current = activePartnerId;
   }, [activePartnerId]);
 
@@ -853,17 +864,35 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const handleTyping = (val) => {
     inputValueRef.current = val;
     setInput(val);
-    if (!activePartnerId) return;
+    const targetPartnerId = activePartnerId?.toString?.();
+    if (!targetPartnerId) return;
 
-    if (!isTyping) {
+    if (!val.trim()) {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+      if (typingPartnerIdRef.current) {
+        socketService.emit('typing_stop', { receiver_id: typingPartnerIdRef.current });
+      }
+      typingPartnerIdRef.current = null;
+      setIsTyping(false);
+      return;
+    }
+
+    if (!isTyping || typingPartnerIdRef.current !== targetPartnerId) {
+      if (typingPartnerIdRef.current && typingPartnerIdRef.current !== targetPartnerId) {
+        socketService.emit('typing_stop', { receiver_id: typingPartnerIdRef.current });
+      }
       setIsTyping(true);
-      socketService.emit('typing_start', { receiver_id: activePartnerId });
+      typingPartnerIdRef.current = targetPartnerId;
+      socketService.emit('typing_start', { receiver_id: targetPartnerId });
     }
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
+      const partnerId = typingPartnerIdRef.current;
       setIsTyping(false);
-      socketService.emit('typing_stop', { receiver_id: activePartnerId });
+      typingPartnerIdRef.current = null;
+      if (partnerId) socketService.emit('typing_stop', { receiver_id: partnerId });
     }, 2000);
   };
 
@@ -929,8 +958,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const sentDraftKey = draftKey;
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    const typingPartnerId = typingPartnerIdRef.current || activePartnerId?.toString?.();
     setIsTyping(false);
-    socketService.emit('typing_stop', { receiver_id: activePartnerId });
+    typingPartnerIdRef.current = null;
+    if (typingPartnerId) socketService.emit('typing_stop', { receiver_id: typingPartnerId });
 
     setPendingSendCount(count => count + 1);
     const sendStamp = Date.now();
@@ -1335,7 +1366,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       className={outerClass}
     >
 
-      {/* ── HEADER ───────────────────────────────────────────────── */}
+      {/* -- HEADER ------------------------------------------------- */}
       {renderFloatingMenu()}
 
       <AnimatePresence mode="wait">
@@ -1484,7 +1515,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         )}
       </AnimatePresence>
 
-      {/* ── PRODUCT CONTEXT ──────────────────────────────────────── */}
+      {/* -- PRODUCT CONTEXT ---------------------------------------- */}
       {activePartnerId && product && (
         <div className="shrink-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2 sm:px-4">
           <div className="flex items-center gap-3">
@@ -1503,7 +1534,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         </div>
       )}
 
-      {/* ── SCROLLABLE BODY (inbox list OR chat messages) ────────── */}
+      {/* -- SCROLLABLE BODY (inbox list OR chat messages) ---------- */}
       <div
         ref={scrollRef}
         onScroll={handleScroll}
@@ -1515,7 +1546,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         ].join(' ')}
       >
         {!activePartnerId ? (
-          /* ─ Inbox list ─ */
+          /* - Inbox list - */
           <div className="p-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:p-3">
             <div className="space-y-px overflow-hidden rounded-xl bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)]">
               {filteredInbox.length === 0 ? (
@@ -1574,7 +1605,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             </div>
           </div>
         ) : (
-          /* ─ Messages ─ */
+          /* - Messages - */
           <div className="mx-auto w-full max-w-4xl space-y-0.5 px-2 pb-4 pt-2 sm:space-y-1 sm:px-4 sm:pb-6">
             {messages.length === 0 && loading && hasSeedPartnerData ? null : messages.length === 0 ? (
               <div className="flex min-h-[42dvh] flex-col items-center justify-center px-8 py-16 text-center">
@@ -1764,7 +1795,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         )}
       </div>
 
-      {/* ── COMPOSER (only in an active chat) ───────────────────── */}
+      {/* -- COMPOSER (only in an active chat) --------------------- */}
       {activePartnerId && (
         <div
           data-chat-composer

@@ -182,7 +182,7 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unvie
 const CATEGORIES = STATUS_FILTER_CATEGORIES;
 
 // â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export default function StatusTabGrid({ onSelectStatus }) {
+export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [] }) {
   const { user }                   = useAuthStore();
   const [followedStatuses, setFollowedStatuses] = useState([]);
   const [globalStatuses,   setGlobalStatuses]   = useState([]);
@@ -191,6 +191,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
   const [activeTab,        setActiveTab]         = useState('inner');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const searchRef = useRef(null);
+  const viewedStoryKey = viewedStoryIds.join('|');
 
   const fetch = useCallback(async () => {
     try {
@@ -233,6 +234,12 @@ export default function StatusTabGrid({ onSelectStatus }) {
     );
     return selectedCategory === 'All' ? pool : pool.filter(s => s.category?.toLowerCase() === selectedCategory.toLowerCase());
   }, [globalStatuses, followedStatuses, search, user, selectedCategory]);
+
+  useEffect(() => {
+    if (!viewedStoryIds.length) return;
+    setFollowedStatuses((items) => viewedStoryIds.reduce((acc, storyId) => markStatusViewed(acc, storyId), items));
+    setGlobalStatuses((items) => viewedStoryIds.reduce((acc, storyId) => markStatusViewed(acc, storyId), items));
+  }, [viewedStoryKey]);
 
   const activePool = activeTab === 'inner' ? clientFilteredFollowed : clientFilteredGlobal;
 

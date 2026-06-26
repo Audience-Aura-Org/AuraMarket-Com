@@ -387,7 +387,7 @@ const getEndingSoonInfo = (story) => {
 };
 
 // ─── StatusViewer ─────────────────────────────────────────────────────────────
-export default function StatusViewer({ initialStatuses, initialStoryId, onClose }) {
+export default function StatusViewer({ initialStatuses, initialStoryId, onClose, onStoryViewed }) {
   const router = useRouter();
 
   const vendorGroups = useMemo(() => {
@@ -477,11 +477,12 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     cleanupVideoPreloads(keepVideoUrls);
   }, [story?._id, story?.content_url, initialStatuses]);
 
-  // Register view
+  // Register view and immediately reflect it in parent lists.
   useEffect(() => {
     if (!story?._id) return;
+    onStoryViewed?.(story._id, story);
     api.post(`/statuses/${story._id}/view`).catch(() => {});
-  }, [story?._id]);
+  }, [story?._id, onStoryViewed]);
 
   const dismissKeyboard = useCallback(() => {
     if (typeof document !== 'undefined') {
