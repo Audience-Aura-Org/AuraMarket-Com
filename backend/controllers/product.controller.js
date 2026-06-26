@@ -41,7 +41,7 @@ const PRODUCT_DETAIL_VENDOR_POPULATE = {
   path: 'vendor_id',
   select: 'store_name verified user_id store',
   populate: [
-    { path: 'store', select: 'logo' },
+    { path: 'store', select: 'logo delivery_time minimum_order_amount' },
     { path: 'user_id', select: 'avatar branding' }
   ]
 };
@@ -240,7 +240,7 @@ const getProducts = async (req, res, next) => {
       path: 'vendor_id',
       select: 'store_name rating verified user_id average_response_time',
       populate: [
-        { path: 'store', select: 'logo' },
+        { path: 'store', select: 'logo delivery_time minimum_order_amount' },
         { path: 'user_id', select: 'avatar branding' }
       ]
     });
@@ -507,7 +507,7 @@ const getRecommendedProducts = async (req, res, next) => {
         path: 'vendor_id',
         select: 'store_name rating verified user_id average_response_time',
         populate: [
-          { path: 'store', select: 'logo' },
+          { path: 'store', select: 'logo delivery_time minimum_order_amount' },
           { path: 'user_id', select: 'avatar branding' }
         ]
       })
@@ -567,7 +567,7 @@ const getRelatedProducts = async (req, res, next) => {
         path: 'vendor_id',
         select: 'store_name rating verified user_id average_response_time',
         populate: [
-          { path: 'store', select: 'logo' },
+          { path: 'store', select: 'logo delivery_time minimum_order_amount' },
           { path: 'user_id', select: 'avatar branding' }
         ]
       })
@@ -659,7 +659,7 @@ const getHubFeed = async (req, res, next) => {
           path: 'vendor_id',
           select: 'store_name rating verified pickup_address user_id average_response_time',
           populate: [
-            { path: 'store', select: 'logo' },
+            { path: 'store', select: 'logo delivery_time minimum_order_amount' },
             { path: 'user_id', select: 'avatar branding' }
           ]
         })
@@ -683,7 +683,7 @@ const getHubFeed = async (req, res, next) => {
         path: 'vendor_id',
         select: 'store_name rating verified pickup_address user_id average_response_time',
         populate: [
-          { path: 'store', select: 'logo' },
+          { path: 'store', select: 'logo delivery_time minimum_order_amount' },
           { path: 'user_id', select: 'avatar branding' }
         ]
       })

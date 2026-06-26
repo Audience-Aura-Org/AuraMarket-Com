@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   ShoppingCart, Star, Plus, ShieldCheck, 
   MessageSquare, Eye, Heart, 
-  UserPlus, UserCheck, Compass, Check
+  UserPlus, UserCheck, Compass, Check, Clock
 } from 'lucide-react';
 import { trackAction, trackWishlist } from '@/services/tracking';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -38,6 +38,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
   const productId = _id || id;
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;
   const vendorId = vendor_id?._id || vendor_id;
+  const deliveryTime = vendor_id?.store?.delivery_time;
   
   const { user } = useAuthStore();
   const { isFollowing, toggleFollow, loading: followLoading } = useFollow(vendorId);
@@ -223,6 +224,9 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
                 </div>
                 <div className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-70">
                    <span className="flex items-center gap-1"><ShoppingCart className="size-3.5 text-emerald-500" /> {t('product.soldCount', '{count} sold', { count: product.purchase_count || 0 })}</span>
+                  {deliveryTime && (
+                     <span className="flex items-center gap-1"><Clock className="size-3.5 text-[var(--accent)]" /> Delivered in {deliveryTime}</span>
+                   )}
                 </div>
               </div>
             </div>
@@ -342,6 +346,12 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
               </div>
             </div>
           </div>
+          {deliveryTime && (
+                <div className="flex items-center gap-1 text-[10px] font-semibold text-[var(--text-secondary)] opacity-70">
+                  <Clock className="size-3 text-[var(--accent)]" />
+                  <span className="truncate">Delivered in {deliveryTime}</span>
+                </div>
+              )}
           {/* 3 equal-size action buttons — Add to Cart is primary */}
           <div className="grid grid-cols-3 items-center gap-1 md:gap-1.5 mt-auto">
             {/* Add to Cart — PRIMARY */}

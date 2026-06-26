@@ -7,12 +7,22 @@ const Dispute = require('../models/Dispute.model');
 const Order = require('../models/Order.model');
 const User = require('../models/User.model');
 const Vendor = require('../models/Vendor.model');
+const Store = require('../models/Store.model');
 const Escrow = require('../models/Escrow.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const mongoose = require('mongoose');
 const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
-const { calculatePlatformFees, describeFee } = require('../utils/platformFees');
+const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../utils/platformFees');
+
+const getEffectivePlatformSettings = async (vendorId, session) => {
+  const platformSettings = await PlatformSettings.getSettings(session);
+  const store = await Store.findOne({ vendor_id: vendorId }).select('commission_rate').session(session);
+  return {
+    platformSettings,
+    effectiveSettings: applyCommissionOverride(platformSettings, store?.commission_rate),
+  };
+};
 
 // @route   POST /api/disputes
 // @desc    Customer raises a dispute for an order
@@ -159,19 +169,19 @@ const resolveDispute = async (req, res, next) => {
       if (escrow && escrow.status === 'held') {
         const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
         const vendorUser = await User.findById(vendorAccount.user_id).session(session);
-        const settings = await PlatformSettings.getSettings(session);
-        const { platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, settings, {
+        const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(escrow.vendor_id, session);
+        const { platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, effectiveSettings, {
           includeEscrowFee: true
         });
-        const feeDescription = describeFee(settings, { includeEscrowFee: true });
+        const feeDescription = describeFee(effectiveSettings, { includeEscrowFee: true });
 
         vendorUser.wallet_balance += vendorPayout;
         await vendorUser.save({ session });
 
         // Update Platform Earnings only when a platform fee is actually collected.
         if (platformFee > 0) {
-          settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
-          await settings.save({ session });
+          platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
+          await platformSettings.save({ session });
         }
 
         // Update/Create Vendor Payout Transaction

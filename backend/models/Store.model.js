@@ -36,6 +36,23 @@ const StoreSchema = new mongoose.Schema(
         trim: true,
       },
     ],
+    commission_rate: {
+      type: Number,
+      default: null,
+      min: [0, 'Commission rate cannot be below 0'],
+      max: [100, 'Commission rate cannot exceed 100'],
+    },
+    delivery_time: {
+      type: String,
+      trim: true,
+      maxlength: [80, 'Delivery time cannot exceed 80 characters'],
+      default: null,
+    },
+    minimum_order_amount: {
+      type: Number,
+      default: null,
+      min: [0, 'Minimum order amount cannot be below 0'],
+    },
     is_active: {
       type: Boolean,
       default: true,

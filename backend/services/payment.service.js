@@ -7,11 +7,21 @@ const Escrow = require('../models/Escrow.model');
 const Order = require('../models/Order.model');
 const User = require('../models/User.model');
 const Vendor = require('../models/Vendor.model');
+const Store = require('../models/Store.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const { sendNotification } = require('../utils/notifier');
 const { syncShipmentsToOrderStatus } = require('./orderSync.service');
-const { calculatePlatformFees, describeFee } = require('../utils/platformFees');
+const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../utils/platformFees');
+
+const getEffectivePlatformSettings = async (vendorId, session) => {
+  const platformSettings = await PlatformSettings.getSettings(session);
+  const store = await Store.findOne({ vendor_id: vendorId }).select('commission_rate').session(session);
+  return {
+    platformSettings,
+    effectiveSettings: applyCommissionOverride(platformSettings, store?.commission_rate),
+  };
+};
 
 /**
  * Internal helper to release held escrow funds to a vendor.
@@ -28,19 +38,21 @@ const releaseFundsInternal = async (orderId, session, app = null) => {
   const vendorUser = await User.findById(vendorAccount.user_id).session(session);
 
   // 1. Calculate Commission
-  const settings = await PlatformSettings.getSettings(session);
-  const { platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, settings, {
+  const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(escrow.vendor_id, session);
+  const { platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, effectiveSettings, {
     includeEscrowFee: true
   });
-  const feeDescription = describeFee(settings, { includeEscrowFee: true });
+  const feeDescription = describeFee(effectiveSettings, { includeEscrowFee: true });
 
   // 2. Transfer Funds
   vendorUser.wallet_balance += vendorPayout;
   await vendorUser.save({ session });
 
   // 3. Update Platform Earnings
-  settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
-  await settings.save({ session });
+  if (platformFee > 0) {
+    platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
+    await platformSettings.save({ session });
+  }
 
   // 4. Update Transaction Logs
   await Transaction.findOneAndUpdate(
@@ -55,15 +67,17 @@ const releaseFundsInternal = async (orderId, session, app = null) => {
 
   // 5. Log Platform Revenue (Linked to Admin)
   // We'll create a system reference here
-  await Transaction.create([{
-    user_id: vendorUser._id, // Just linking for trace, though it's platform revenue
-    type: 'payment', 
-    amount: platformFee,
-    reference: `REV-AUTO-${Date.now()}`,
-    status: 'completed',
-    description: `Platform Commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
-    order_id: order._id,
-  }], { session, ordered: true });
+  if (platformFee > 0) {
+    await Transaction.create([{
+      user_id: vendorUser._id, // Just linking for trace, though it's platform revenue
+      type: 'payment',
+      amount: platformFee,
+      reference: `REV-AUTO-${Date.now()}`,
+      status: 'completed',
+      description: `Platform Commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
+      order_id: order._id,
+    }], { session, ordered: true });
+  }
 
   // 6. Update Escrow status
   escrow.status = 'released';

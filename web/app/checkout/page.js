@@ -46,7 +46,7 @@ const mergeCheckoutItems = (items = []) => {
 };
 
 const VENDOR_MANAGED_LOGISTICS_ID = 'vendor_managed';
-const MOBILE_MONEY_COLLECTION_FEE_XAF = 5;
+const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
 const isMobileMoneyPayment = (method) => ['payunit', 'eversend'].includes(method);
 const normalizeZoneName = (value) => String(value || '').trim();
 const getZoneName = (zone) => {
@@ -106,6 +106,7 @@ function CheckoutContent() {
   const [deliveryQuartier, setDeliveryQuartier] = useState('');
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [removingItemKey, setRemovingItemKey] = useState(null);
+  const [minimumWarningsDismissed, setMinimumWarningsDismissed] = useState(false);
   const [eversendCheckout, setEversendCheckout] = useState({
     active: false,
     reference: null,
@@ -362,6 +363,7 @@ function CheckoutContent() {
               product_id: p._id,
               vendor_id: p.vendor_id?._id || p.vendor_id,
               vendor_name: p.vendor_id?.store_name || 'Aura Merchant Node',
+              vendor_minimum_order_amount: p.vendor_id?.store?.minimum_order_amount ?? null,
               name: p.name,
               price: priced.price,
               compare_at_price: priced.compare_at_price,
@@ -384,6 +386,7 @@ function CheckoutContent() {
                 product_id: i.product?._id || i.product,
                 vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id,
                 vendor_name: i.product?.vendor_id?.store_name || i.product?.vendor_id?.user_id?.name || 'Aura Merchant Node',
+                vendor_minimum_order_amount: i.product?.vendor_id?.store?.minimum_order_amount ?? null,
                 name: i.product?.name,
                 price: priced.price,
                 compare_at_price: priced.compare_at_price,
@@ -446,6 +449,14 @@ function CheckoutContent() {
       toast.error('Minimum amount for Eversend is 500 XAF');
       return;
     }
+    const minimumErrors = vendorMinimumErrors;
+    if (minimumErrors.length > 0) {
+      setMinimumWarningsDismissed(false);
+      const first = minimumErrors[0];
+      toast.error(`Your order from ${first.name} must be at least ${first.minimum.toLocaleString()} XAF.`);
+      return;
+    }
+
     if (!deliveryQuartier) {
       toast.error('Please select your delivery zone.');
       return;
@@ -685,7 +696,31 @@ function CheckoutContent() {
   ]);
 
   const { subtotal, deliveryFee: finalDeliveryFee, collectionFee, totalAmount } = summary;
-  const checkoutBlocked = !deliveryQuartier || (!isVendorManagedDelivery && !formData.logistics_company_id);
+  const vendorMinimumErrors = useMemo(() => {
+    const grouped = new Map();
+
+    matrixItems.forEach((item) => {
+      const vendorId = item.vendor_id?._id || item.vendor_id || item.product?.vendor_id?._id || item.product?.vendor_id;
+      if (!vendorId) return;
+
+      const existing = grouped.get(vendorId) || {
+        id: vendorId,
+        name: item.vendor_name || item.vendor_id?.store_name || item.product?.vendor_id?.store_name || 'Merchant Enterprise',
+        subtotal: 0,
+        minimum: null,
+      };
+
+      existing.subtotal += Number(item.price || item.product_id?.price || item.product?.price || 0) * Number(item.quantity || 1);
+      const rawMinimum = item.vendor_minimum_order_amount ?? item.vendor_id?.store?.minimum_order_amount ?? item.product?.vendor_id?.store?.minimum_order_amount;
+      const minimum = Number(rawMinimum);
+      if (Number.isFinite(minimum) && minimum > 0) existing.minimum = minimum;
+      grouped.set(vendorId, existing);
+    });
+
+    return Array.from(grouped.values()).filter((entry) => entry.minimum && entry.subtotal < entry.minimum);
+  }, [matrixItems]);
+
+  const checkoutBlocked = !deliveryQuartier || (!isVendorManagedDelivery && !formData.logistics_company_id) || vendorMinimumErrors.length > 0;
 
   const vendorTracking = matrixItems.reduce((acc, item) => {
      const vId = item.vendor_id?._id || item.vendor_id || item.product?.vendor_id;
@@ -1363,6 +1398,29 @@ function CheckoutContent() {
                   })}
                </div>
                
+
+                {step === 2 && vendorMinimumErrors.length > 0 && !minimumWarningsDismissed && (
+                  <div className="mb-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-3 text-amber-700 dark:text-amber-300">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                      <div className="min-w-0 flex-1 space-y-2">
+                        {vendorMinimumErrors.map((entry) => (
+                          <p key={entry.id} className="text-[11px] font-semibold leading-snug">
+                            Your order from {entry.name} must be at least {entry.minimum.toLocaleString()} XAF. Please add more items from this store or remove their products to continue.
+                          </p>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setMinimumWarningsDismissed(true)}
+                        className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-amber-500/20 text-amber-700 transition hover:bg-amber-500/10 dark:text-amber-300"
+                        aria-label="Dismiss minimum order warning"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
                <div className="space-y-4 py-5 border-t border-[var(--glass-border)]">
                    <div className="flex justify-between items-center text-[11px] font-semibold text-[var(--text-secondary)] lg:text-[12px]">
                       <span className="opacity-55">Cart Subtotal</span>
@@ -1392,7 +1450,7 @@ function CheckoutContent() {
                       <div className="space-y-2 pt-3 border-t border-[var(--glass-border)]/20">
                          <div className="flex items-center justify-between">
                            <p className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--text-secondary)] opacity-55 tracking-tight flex items-center gap-2">
-                             Collection Fee
+                             Mobile Money Fee
                            </p>
                            <p className="text-[11px] lg:text-[12px] font-mono  font-semibold text-[var(--text-secondary)]">{collectionFee.toLocaleString()} XAF</p>
                          </div>

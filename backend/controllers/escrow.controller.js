@@ -9,6 +9,7 @@ const Escrow = require('../models/Escrow.model');
 const Order = require('../models/Order.model');
 const User = require('../models/User.model');
 const Vendor = require('../models/Vendor.model');
+const Store = require('../models/Store.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
@@ -21,12 +22,21 @@ const {
 } = require('../services/orderSync.service');
 const Cart = require('../models/Cart.model');
 const { sendNotification } = require('../utils/notifier');
-const { calculatePlatformFees, describeFee } = require('../utils/platformFees');
+const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../utils/platformFees');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 
 const generateTxRef = () => `AURA-ESCROW-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 const AUTO_RELEASE_WINDOW_MS = 6 * 60 * 60 * 1000;
+
+const getEffectivePlatformSettings = async (vendorId, session) => {
+  const platformSettings = await PlatformSettings.getSettings(session);
+  const store = await Store.findOne({ vendor_id: vendorId }).select('commission_rate').session(session);
+  return {
+    platformSettings,
+    effectiveSettings: applyCommissionOverride(platformSettings, store?.commission_rate),
+  };
+};
 
 const appendShipmentActivity = (orderId, status, note, updatedBy, session = null) =>
   Shipment.updateMany(
@@ -83,12 +93,12 @@ const holdFunds = async (req, res, next) => {
 
     const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
       ? order.subtotal
-      : order.total_amount;
-    const settings = await PlatformSettings.getSettings(session);
-    const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(vendorBaseAmount, settings, {
+      : order.subtotal + (order.shipping_fee || 0);
+    const { effectiveSettings } = await getEffectivePlatformSettings(order.vendor_id, session);
+    const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(vendorBaseAmount, effectiveSettings, {
       includeEscrowFee: true
     });
-    const feeDescription = describeFee(settings, { includeEscrowFee: true });
+    const feeDescription = describeFee(effectiveSettings, { includeEscrowFee: true });
     const platformFeeBreakdown = {
       base_amount: vendorBaseAmount,
       commission_fee: commissionFee,
@@ -191,11 +201,11 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
   const vendorUser = await User.findById(vendorAccount.user_id).session(session);
 
-  const settings = await PlatformSettings.getSettings(session);
-  const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, settings, {
+  const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(escrow.vendor_id, session);
+  const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, effectiveSettings, {
     includeEscrowFee: true
   });
-  const feeDescription = describeFee(settings, { includeEscrowFee: true });
+  const feeDescription = describeFee(effectiveSettings, { includeEscrowFee: true });
   const platformFeeBreakdown = {
     base_amount: escrow.amount,
     commission_fee: commissionFee,
@@ -209,8 +219,8 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   await vendorUser.save({ session });
 
   if (platformFee > 0) {
-    settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
-    await settings.save({ session });
+    platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
+    await platformSettings.save({ session });
   }
 
   // Update Vendor Payout Transaction

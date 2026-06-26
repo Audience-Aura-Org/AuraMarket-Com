@@ -13,6 +13,7 @@ import { ChatProvider } from '@/context/ChatContext';
 import dynamic from 'next/dynamic';
 import SplashScreen from '@/components/layout/SplashScreen';
 import { useAuthStore } from '@/hooks/useAuth';
+import { initFontSettings } from '@/utils/fontSettings';
 
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
@@ -40,6 +41,10 @@ export default function Providers({ children }) {
                           normalizedPath.startsWith('/logistics') ||
                           normalizedPath === '/subscribe';
   const [showSplash, setShowSplash] = useState(!isDashboardRoute);
+
+  useEffect(() => {
+    initFontSettings();
+  }, []);
 
   useEffect(() => {
     if (isDashboardRoute) {

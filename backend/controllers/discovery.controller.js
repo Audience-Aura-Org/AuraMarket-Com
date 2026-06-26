@@ -116,7 +116,7 @@ const getTopVendors = async (req, res, next) => {
   try {
     const vendors = await Vendor.find()
       .select('store_name rating verified description average_response_time')
-      .populate('store', 'logo banner categories')
+      .populate('store', 'logo banner categories delivery_time')
       .sort({ rating: -1 })
       .limit(10);
 

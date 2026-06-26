@@ -13,10 +13,29 @@ const Escrow = require('../models/Escrow.model');
 const Order = require('../models/Order.model');
 const Product = require('../models/Product.model');
 const User = require('../models/User.model');
+const PlatformSettings = require('../models/PlatformSettings.model');
 const mongoose = require('mongoose');
 const Follow = require('../models/Follow.model');
 const { escapeRegExp } = require('../middleware/security.middleware');
 
+const normalizeNullableXafAmount = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) {
+    const error = new Error('Minimum order amount must be a non-negative XAF amount.');
+    error.statusCode = 400;
+    throw error;
+  }
+  return Math.round(num);
+};
+
+const normalizeNullableText = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const text = String(value).trim();
+  return text || null;
+};
 const normalizePickupAddress = (incoming = {}, previous = {}) => {
   const description =
     incoming.address_description ??
@@ -170,12 +189,18 @@ const getVendorProfile = async (req, res, next) => {
       { $group: { _id: null, totalHeld: { $sum: '$amount' } } }
     ]);
     const escrowBalance = escrowStats.length > 0 ? escrowStats[0].totalHeld : 0;
+    const platformSettings = await PlatformSettings.getSettings();
+    const storeCommissionRate = vendor.store?.commission_rate;
+    const effectiveCommissionRate = storeCommissionRate !== undefined && storeCommissionRate !== null
+      ? Number(storeCommissionRate)
+      : Number(platformSettings.commission_value ?? platformSettings.commission_rate ?? 0);
 
     res.status(200).json({
       success: true,
       data: { 
         vendor,
-        escrow_balance: escrowBalance 
+        escrow_balance: escrowBalance,
+        effective_commission_rate: effectiveCommissionRate,
       },
     });
   } catch (error) {
@@ -192,12 +217,18 @@ const updateStore = async (req, res, next) => {
   try {
     const vendor = req.vendor;
 
-    const allowedUpdates = ['banner', 'logo', 'categories'];
+    const allowedUpdates = ['banner', 'logo', 'categories', 'delivery_time', 'minimum_order_amount'];
     const updateData = {};
 
     allowedUpdates.forEach((field) => {
       if (req.body[field] !== undefined) {
-        updateData[field] = req.body[field];
+        if (field === 'minimum_order_amount') {
+          updateData[field] = normalizeNullableXafAmount(req.body[field]);
+        } else if (field === 'delivery_time') {
+          updateData[field] = normalizeNullableText(req.body[field]);
+        } else {
+          updateData[field] = req.body[field];
+        }
       }
     });
 
@@ -293,7 +324,7 @@ const getPublicStores = async (req, res, next) => {
     // Used for store directories and discovery feeds
     const stores = await Vendor.find(query)
       .select('store_name rating verified description user_id follower_count createdAt')
-      .populate('store', 'logo banner categories') // only fetch visible assets
+      .populate('store', 'logo banner categories delivery_time minimum_order_amount') // only fetch visible assets
       .populate('user_id', 'branding avatar is_online last_seen') // fetch user-level branding for fallbacks
       .skip(startIndex)
       .limit(limit)

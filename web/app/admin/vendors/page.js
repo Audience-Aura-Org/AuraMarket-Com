@@ -29,7 +29,7 @@ export default function AdminVendorsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [mounted, setMounted] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
-  const [mediaForm, setMediaForm] = useState({ logo: '', banner: '' });
+  const [mediaForm, setMediaForm] = useState({ logo: '', banner: '', commission_rate: '', delivery_time: '', minimum_order_amount: '' });
   const [mediaSaving, setMediaSaving] = useState(false);
   const [mediaUploading, setMediaUploading] = useState(null);
   const itemsPerPage = 12;
@@ -76,17 +76,27 @@ export default function AdminVendorsPage() {
     ''
   );
 
+  const getEditableVendorLogo = (vendor) => (
+    vendor?.store?.logo ||
+    vendor?.user_id?.branding?.logo ||
+    vendor?.user_id?.avatar ||
+    ''
+  );
+
   const openMediaEditor = (vendor) => {
     setEditingVendor(vendor);
     setMediaForm({
-      logo: getVendorLogo(vendor),
+      logo: getEditableVendorLogo(vendor),
       banner: getVendorBanner(vendor),
+      commission_rate: vendor?.store?.commission_rate ?? '',
+      delivery_time: vendor?.store?.delivery_time || '',
+      minimum_order_amount: vendor?.store?.minimum_order_amount ?? '',
     });
   };
 
   const closeMediaEditor = () => {
     setEditingVendor(null);
-    setMediaForm({ logo: '', banner: '' });
+    setMediaForm({ logo: '', banner: '', commission_rate: '', delivery_time: '', minimum_order_amount: '' });
     setMediaUploading(null);
   };
 
@@ -110,17 +120,32 @@ export default function AdminVendorsPage() {
     if (!editingVendor) return;
     setMediaSaving(true);
     try {
-      const res = await api.patch(`/admin/vendors/${editingVendor._id}/media`, mediaForm);
-      const updatedVendor = res.data?.data?.vendor;
+      const mediaPayload = { logo: mediaForm.logo, banner: mediaForm.banner };
+      const mediaChanged =
+        mediaPayload.logo !== getEditableVendorLogo(editingVendor) ||
+        mediaPayload.banner !== getVendorBanner(editingVendor);
+
+      let updatedVendor = null;
+      if (mediaChanged) {
+        const mediaRes = await api.patch(`/admin/vendors/${editingVendor._id}/media`, mediaPayload);
+        updatedVendor = mediaRes.data?.data?.vendor || null;
+      }
+
+      const res = await api.patch(`/admin/vendors/${editingVendor._id}/store-settings`, {
+        commission_rate: mediaForm.commission_rate,
+        delivery_time: mediaForm.delivery_time,
+        minimum_order_amount: mediaForm.minimum_order_amount,
+      });
+      updatedVendor = res.data?.data?.vendor || updatedVendor;
       if (res.data?.success && updatedVendor) {
         setVendors((prev) => prev.map((vendor) => vendor._id === updatedVendor._id ? updatedVendor : vendor));
-        toast.success('Vendor media updated.');
+        toast.success('Vendor store settings updated.');
         closeMediaEditor();
       } else {
-        toast.error(res.data?.message || 'Could not update vendor media');
+        toast.error(res.data?.message || 'Could not update vendor settings');
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Could not update vendor media');
+      toast.error(err.response?.data?.message || 'Could not update vendor settings');
     } finally {
       setMediaSaving(false);
     }
@@ -311,9 +336,9 @@ export default function AdminVendorsPage() {
           <div className="flex h-[100dvh] w-full flex-col bg-[var(--bg-primary)]">
             <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--glass-border)] px-4 py-4 md:px-8">
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">Vendor media</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--accent)]">Vendor settings</p>
                 <h3 className="truncate text-xl font-bold text-[var(--text-primary)]">{editingVendor.store_name}</h3>
-                <p className="text-xs font-semibold text-[var(--text-secondary)]">Update the logo and banner used across storefronts, stories, chat, and discovery.</p>
+                <p className="text-xs font-semibold text-[var(--text-secondary)]">Update store media, commission override, delivery time, and minimum order rules.</p>
               </div>
               <button
                 type="button"
@@ -344,6 +369,26 @@ export default function AdminVendorsPage() {
                 </div>
 
                 <div className="space-y-4 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm md:p-6">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    {[
+                      { field: 'commission_rate', label: 'Commission override (%)', hint: 'Blank uses platform default.', type: 'number' },
+                      { field: 'delivery_time', label: 'Delivery time', hint: 'Shown on product cards.', type: 'text' },
+                      { field: 'minimum_order_amount', label: 'Minimum order (XAF)', hint: 'Blank disables store minimum.', type: 'number' },
+                    ].map((item) => (
+                      <div key={item.field} className="space-y-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-3">
+                        <label className="text-xs font-bold text-[var(--text-primary)]">{item.label}</label>
+                        <p className="text-[11px] font-semibold text-[var(--text-secondary)]">{item.hint}</p>
+                        <input
+                          type={item.type}
+                          value={mediaForm[item.field]}
+                          onChange={(event) => setMediaForm((prev) => ({ ...prev, [item.field]: event.target.value }))}
+                          placeholder={item.label}
+                          className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-base font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
                   {[
                     { field: 'logo', label: 'Store logo', hint: 'Square image recommended.' },
                     { field: 'banner', label: 'Store banner', hint: 'Wide landscape image recommended.' },
@@ -393,7 +438,7 @@ export default function AdminVendorsPage() {
                 className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-6 text-xs font-bold text-white shadow-lg shadow-[var(--accent)]/20 disabled:opacity-60"
               >
                 {mediaSaving ? <Loader2 className="size-4 animate-spin" /> : <Pencil className="size-4" />}
-                Save media
+                Save settings
               </button>
             </div>
           </div>
