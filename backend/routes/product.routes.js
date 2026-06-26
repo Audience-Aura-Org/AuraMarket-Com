@@ -1,6 +1,6 @@
 /**
  * routes/product.routes.js
- * Aura Market — Product Routes
+ * Auradime — Product Routes
  *
  * Public:
  *   GET    /api/products
@@ -34,22 +34,26 @@ const {
   getHubFeed
 } = require('../controllers/product.controller');
 
-const { protect, restrictTo, loadVendor } = require('../middleware/auth.middleware');
+const { protect, restrictTo, loadVendor, protectOptional, loadVendorOptional } = require('../middleware/auth.middleware');
+const { requireActiveSubscription } = require('../middleware/subscription.middleware');
 
 // ── Public Routes ─────────────────────────────
 router.get('/', getProducts);
-router.get('/hub', protect, getHubFeed); // Added hub feed route
+router.get('/hub', protect, getHubFeed);
 router.get('/recommendations', protect, getRecommendedProducts);
 router.get('/history', protect, getRecentlyViewed);
-router.get('/:id', getProductById);
+
+// protectOptional + loadVendorOptional: allows an owning vendor to see their
+// own pending/archived product from the edit form without blocking public buyers.
+router.get('/:id', protectOptional, loadVendorOptional, getProductById);
 router.get('/:id/related', getRelatedProducts);
 router.post('/:id/view', protect, trackProductView);
 router.post('/:id/watch', protect, watchProduct);
 
 // ── Vendor Routes ─────────────────────────────
-router.post('/', protect, restrictTo('vendor'), loadVendor, upload.array('images', 5), createProduct);
-router.patch('/:id', protect, restrictTo('vendor'), loadVendor, upload.array('images', 5), updateProduct);
-router.delete('/:id', protect, restrictTo('vendor'), loadVendor, deleteProduct);
+router.post('/', protect, restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, upload.array('images', 5), createProduct);
+router.patch('/:id', protect, restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, upload.array('images', 5), updateProduct);
+router.delete('/:id', protect, restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, deleteProduct);
 
 // ── Admin Routes ──────────────────────────────
 router.patch('/:id/feature', protect, restrictTo('admin'), toggleFeaturedStatus);

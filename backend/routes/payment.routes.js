@@ -13,41 +13,48 @@ const {
   eversendInitialize,
   eversendVerify,
   eversendRecheck,
+  eversendRecover,
   eversendWebhook,
   eversendGetBeneficiaries,
   eversendCreateBeneficiary,
   eversendDeleteBeneficiary,
   eversendGetTransactions,
   eversendPayoutBeneficiary,
-  // MeSomb
-  mesombInitialize,
-  mesombWebhook,
-  mesombVerify,
+  failCheckoutPayment,
+  payunitInitialize,
+  payunitVerify,
+  payunitRecheck,
+  payunitWebhook,
 } = require('../controllers/payment.controller');
 
 // ── Webhooks — PUBLIC (must come BEFORE protect middleware) ──────────────────
 router.post('/webhook', handleWebhook);
-router.post('/mesomb/webhook', mesombWebhook);
+router.post('/eversend/webhook', eversendWebhook);
+router.post('/payunit/webhook', payunitWebhook);
 
 // ── Protected routes ─────────────────────────────────────────────────────────
 router.use(protect);
 
 // Gateway Registry — checkout UI reads this to know which methods are available
 router.get('/gateways', listGateways);
+router.post('/checkout/failed', failCheckoutPayment);
 
 // Paystack
 router.post('/initialize', initializePayment);
 router.get('/verify/:reference', verifyPayment);
 
-// MeSomb
-router.post('/mesomb/initialize', mesombInitialize);
-router.get('/mesomb/verify/:reference', mesombVerify);
+// Eversend
+router.post('/payunit/initialize', payunitInitialize);
+router.get('/payunit/verify/:reference', payunitVerify);
+router.get('/payunit/recheck/:reference', payunitRecheck);
 
 // Eversend
 router.get('/eversend/wallets', eversendGetWallets);
 router.post('/eversend/initialize', eversendInitialize);
 router.get('/eversend/verify/:reference', eversendVerify);
 router.get('/eversend/recheck/:reference', eversendRecheck);
+// Admin: manually recover a payment the gateway confirmed but our DB missed
+router.post('/eversend/recover/:reference', eversendRecover);
 
 // Beneficiaries
 router.get('/eversend/beneficiaries', eversendGetBeneficiaries);

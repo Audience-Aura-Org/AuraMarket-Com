@@ -1,6 +1,6 @@
 /**
  * models/Status.model.js
- * Aura Market — Vendor Stories (Status)
+ * Auradime — Vendor Stories (Status)
  * 
  * Temporary updates (24h) posted by vendors to drive engagement.
  */
@@ -22,6 +22,29 @@ const StatusSchema = new mongoose.Schema(
     },
     content_url: {
       type: String, // URL to media
+    },
+    thumbnail_url: {
+      type: String, // Lightweight poster image for video/status previews
+    },
+    segment_start: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    segment_end: {
+      type: Number,
+      default: null,
+      min: 0
+    },
+    segment_index: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    segment_count: {
+      type: Number,
+      default: 1,
+      min: 1
     },
     text_content: {
       type: String, // For text-type statuses
@@ -84,5 +107,8 @@ StatusSchema.pre('save', function() {
 
 // Index for finding active statuses quickly
 StatusSchema.index({ expires_at: 1, vendor_id: 1 });
+StatusSchema.index({ expires_at: 1, createdAt: -1 });
+StatusSchema.index({ category: 1, expires_at: 1, createdAt: -1 });
+StatusSchema.index({ vendor_id: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Status', StatusSchema);

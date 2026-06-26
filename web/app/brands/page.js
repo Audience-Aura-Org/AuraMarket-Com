@@ -27,7 +27,7 @@ export default function VerifiedBrandsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 transition-all duration-300">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 transition-all duration-300 pt-20 md:pt-12">
       <div className="max-w-5xl mx-auto space-y-12">
         
         {/* Slim Header */}
@@ -82,7 +82,7 @@ export default function VerifiedBrandsPage() {
                           <div className="flex items-center gap-3">
                              <div className="flex items-center gap-1 text-[var(--accent)]">
                                 <Star className="size-3 fill-[var(--accent)]" />
-                                <span className="text-[11px] lg:text-[12px]  font-semibold">{vendor.rating || '5.0'}</span>
+                                <span className="text-[11px] lg:text-[12px]  font-semibold">{Number(vendor.rating || 0) > 0 ? Number(vendor.rating).toFixed(1) : 'New'}</span>
                              </div>
                              <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 tracking-tight whitespace-nowrap">Node 0x_{vendor._id.slice(-4).toUpperCase()}</span>
                           </div>

@@ -7,7 +7,14 @@ import { useAuthStore } from '@/hooks/useAuth';
 export default function OnboardingWatcher() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, hasHydrated, fetchFollowedVendors, followedVendorIds } = useAuthStore();
+  const { user, isAuthenticated, hasHydrated, authChecked, loading, fetchMe, fetchFollowedVendors, followedVendorIds } = useAuthStore();
+
+  useEffect(() => {
+    const skipAuthProbePrefixes = ['/login', '/signup', '/register', '/auth', '/onboarding'];
+    const shouldSkipAuthProbe = pathname === '/' || skipAuthProbePrefixes.some((prefix) => pathname?.startsWith(prefix));
+    if (!hasHydrated || authChecked || loading || shouldSkipAuthProbe) return;
+    fetchMe();
+  }, [authChecked, fetchMe, hasHydrated, loading, pathname]);
  
   // Pre-fetch followed list as soon as authenticated to avoid flicker
   useEffect(() => {
@@ -18,12 +25,12 @@ export default function OnboardingWatcher() {
 
   useEffect(() => {
     // Wait for persisted auth state to hydrate before redirecting.
-    if (!hasHydrated) return;
+    if (!hasHydrated || loading) return;
 
     const role = user?.role?.toLowerCase();
     
     // 0. Skip for onboarding/auth pages to prevent redirect loops
-    const SKIP_PREFIXES = ['/onboarding', '/login', '/register', '/auth'];
+    const SKIP_PREFIXES = ['/onboarding', '/login', '/signup', '/register', '/auth'];
     if (SKIP_PREFIXES.some(p => pathname.startsWith(p))) return;
 
     const protectedPrefixes = [
@@ -52,11 +59,11 @@ export default function OnboardingWatcher() {
         return;
       }
       
-      // 3.2. Onboarding check — ONLY for customers
-      // Professional roles are exempt from customer calibration
-      if (role === 'customer' && !user.onboarded && sessionStorage.getItem('onboarding_skipped') !== 'true') {
-        console.warn('[Watcher] Customer not onboarded, redirecting to /onboarding');
-        router.push('/onboarding');
+      // 3.2. Onboarding check — for customers and vendors
+      // Ensures they complete their profile before accessing protected features
+      if ((role === 'customer' || role === 'vendor') && !user.onboarded && sessionStorage.getItem('onboarding_skipped') !== 'true') {
+        console.warn('[Watcher] User not onboarded, redirecting to /onboarding');
+        router.replace('/onboarding');
         return;
       }
     }
@@ -78,7 +85,7 @@ export default function OnboardingWatcher() {
       router.replace('/');
       return;
     }
-  }, [user, isAuthenticated, hasHydrated, pathname, router]);
+  }, [user, isAuthenticated, hasHydrated, loading, pathname, router]);
 
   return null;
 }

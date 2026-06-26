@@ -1,6 +1,6 @@
 /**
  * models/Vendor.model.js
- * Aura Market — Vendor Profile
+ * Auradime — Vendor Profile
  *
  * Links directly to the User model. Holds vendor-specific metrics
  * like verification status, overall rating, and subscription details.
@@ -39,8 +39,8 @@ const VendorSchema = new mongoose.Schema(
     },
     subscription_plan: {
       type: String,
-      enum: ['free', 'premium', 'elite'],
-      default: 'free',
+      trim: true,
+      default: null,
     },
     total_sales: {
       type: Number,
@@ -65,6 +65,7 @@ const VendorSchema = new mongoose.Schema(
     },
     pickup_address: {
       street: String,
+      address_description: String,
       city: String,
       region: String,
       quartier: String, // Neighborhood for routing
@@ -94,5 +95,8 @@ VendorSchema.virtual('store', {
 // Ensure virtuals are included when converting to JSON/Object
 VendorSchema.set('toObject', { virtuals: true });
 VendorSchema.set('toJSON', { virtuals: true });
+VendorSchema.index({ store_name: 'text', description: 'text' });
+VendorSchema.index({ verified: 1, is_onboarded: 1, createdAt: -1 });
+VendorSchema.index({ rating: -1, follower_count: -1 });
 
 module.exports = mongoose.model('Vendor', VendorSchema);

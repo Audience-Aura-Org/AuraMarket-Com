@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/RefundRequest.model.js
- * Aura Market — Refund Flow management
+ * Auradime — Refund Flow management
  */
 const RefundRequestSchema = new mongoose.Schema(
   {

@@ -1,8 +1,8 @@
 /**
  * services/payment/gateway.registry.js
- * Aura Market — Payment Gateway Registry
+ * Auradime — Payment Gateway Registry
  *
- * Active gateways: Wallet, Eversend, MeSomb
+ * Active gateways: PayUnit, Wallet, Eversend
  *
  * To add a new gateway:
  *   1. Create `gateways/<name>.gateway.js` implementing the GatewayInterface
@@ -25,15 +25,15 @@
  */
 
 const walletGateway   = require('./gateways/wallet.gateway');
+const payunitGateway  = require('./gateways/payunit.gateway');
 const eversendGateway = require('./gateways/eversend.gateway');
-const mesombGateway   = require('./gateways/mesomb.gateway');
 // Uncomment to re-enable:
 // const paystackGateway  = require('./gateways/paystack.gateway');
 
 /** Ordered gateway list — first = shown first in checkout UI */
 const GATEWAYS = [
+  payunitGateway,   // Primary Cameroon mobile money gateway
   walletGateway,    // Instant balance deduction, no external redirect
-  mesombGateway,    // MTN MoMo + Orange Money (Cameroon, XAF)
   eversendGateway,  // Multi-country mobile money (XAF, NGN, KES, UGX…)
   // paystackGateway,
   // require('./gateways/flutterwave.gateway'),

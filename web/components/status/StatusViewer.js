@@ -4,31 +4,44 @@ import { motion } from 'framer-motion';
 import {
   X, Heart, ShoppingBag,
   Volume2, VolumeX,
-  Eye, Send, Share2, Pause, Play, Loader2
+  Eye, Send, Share2, Pause, Play, Loader2, Clock
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
-import BlurUpImage from '@/components/common/BlurUpImage';
+import { toast } from 'react-hot-toast';
 
 const STORY_DURATION = 5000;
-const VIDEO_PRELOAD_AHEAD = 4;
-const VIDEO_WAIT_TIMEOUT_MS = 8000;
+const VIDEO_PRELOAD_AHEAD = 2;
+const VIDEO_WAIT_TIMEOUT_MS = 6000;
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
 const preloadCache = new Set();
 const videoPreloadMap = new Map();
-function preloadMedia(url, type) {
+function preloadMedia(url, type, { eager = false } = {}) {
   if (!url || preloadCache.has(url)) return;
   preloadCache.add(url);
   if (type === 'video') {
+    const existing = videoPreloadMap.get(url);
+    if (existing) {
+      if (eager && existing.preload !== 'metadata') {
+        existing.preload = 'metadata';
+        existing.load();
+      }
+      return;
+    }
     const v = document.createElement('video');
-    v.preload = 'metadata';
+    v.preload = eager ? 'metadata' : 'none';
     v.src = url;
     v.muted = true;
+    v.playsInline = true;
     v.load();
     videoPreloadMap.set(url, v);
+
+    // Avoid <link rel="preload" for story videos. It can download large files
+    // before a shopper opens them, which increases S3 bandwidth cost.
   } else {
     const img = new Image();
+    img.fetchPriority = eager ? 'high' : 'auto';
     img.src = url;
   }
 }
@@ -42,18 +55,6 @@ function cleanupVideoPreloads(keepUrls = []) {
     preloadCache.delete(url);
   }
 }
-
-// ─── Cloudinary poster helper ────────────────────────────────────────────────
-const getVideoPoster = (src) => {
-  if (!src || !src.includes('res.cloudinary.com')) return null;
-  try {
-    return src
-      .replace('/video/upload/', '/video/upload/e_blur:800,q_auto:low,f_jpg/')
-      .replace(/\.[^/.]+$/, '.jpg');
-  } catch {
-    return null;
-  }
-};
 
 // Global cache for loaded videos to prevent re-shimmering
 const loadedVideos = new Set();
@@ -75,87 +76,85 @@ function addCacheBust(url) {
 }
 
 // ─── StoryVideo ──────────────────────────────────────────────────────────────
-const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnded, onProgress }) {
+const StoryVideo = memo(function StoryVideo({
+  src,
+  poster,
+  muted,
+  active,
+  paused,
+  onEnded,
+  onProgress,
+  segmentStart = 0,
+  segmentEnd = null,
+}) {
   const ref = useRef(null);
   const [playbackSrc, setPlaybackSrc] = useState(src);
-  const [poster, setPoster]       = useState(() => getVideoPoster(src));
   const [videoReady, setVideoReady] = useState(() => loadedVideos.has(src));
   const [isWaiting, setIsWaiting]   = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [didRetryUrl, setDidRetryUrl] = useState(false);
   const [didRetryCacheBust, setDidRetryCacheBust] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const waitTimeoutRef = useRef(null);
+  const endedSegmentRef = useRef(false);
+  const safeSegmentStart = Math.max(0, Number(segmentStart) || 0);
+  const safeSegmentEnd = Number.isFinite(Number(segmentEnd)) && Number(segmentEnd) > safeSegmentStart
+    ? Number(segmentEnd)
+    : null;
 
   useEffect(() => {
     setPlaybackSrc(src);
     setDidRetryUrl(false);
     setDidRetryCacheBust(false);
-    setVideoReady(loadedVideos.has(src));
-    setIsWaiting(false);
+    setReloadToken(0);
+    const alreadyLoaded = loadedVideos.has(src);
+    setVideoReady(alreadyLoaded);
+    setIsWaiting(!alreadyLoaded);
     setHasStarted(false);
-  }, [src]);
+    endedSegmentRef.current = false;
+  }, [src, safeSegmentStart, safeSegmentEnd]);
 
-  // Poster extraction (only needed for non-Cloudinary)
-  useEffect(() => {
-    if (loadedVideos.has(src)) {
-      setVideoReady(true);
-      return;
+  const seekToSegmentStart = useCallback((force = false) => {
+    const v = ref.current;
+    if (!v || !Number.isFinite(v.duration)) return;
+    const target = Math.min(safeSegmentStart, Math.max(v.duration - 0.05, 0));
+    const beforeSegment = v.currentTime < target - 0.2;
+    const afterSegment = safeSegmentEnd && v.currentTime >= safeSegmentEnd - 0.05;
+    if (force || beforeSegment || afterSegment) {
+      v.currentTime = target;
     }
-    const instant = getVideoPoster(src);
-    if (instant) { 
-      setPoster(instant); 
-      setVideoReady(false); 
-      return; 
+  }, [safeSegmentStart, safeSegmentEnd]);
+
+  const attemptPlay = useCallback(() => {
+    const v = ref.current;
+    if (!v || !active || paused) return;
+    if (!hasStarted) seekToSegmentStart(true);
+    const play = v.play();
+    if (play?.catch) {
+      play.catch(err => {
+        console.warn('[Video] Playback blocked or failed:', err.message);
+        setIsWaiting(true);
+      });
     }
-
-    setPoster(null);
-    setVideoReady(false);
-    if (!src) return;
-
-    let cancelled = false;
-    const probe = document.createElement('video');
-    probe.setAttribute('crossOrigin', 'anonymous');
-    probe.muted   = true;
-    probe.preload = 'metadata';
-    probe.src     = src;
-
-    probe.addEventListener('loadedmetadata', () => {
-      if (cancelled) return;
-      try { probe.currentTime = Math.min(0.5, (probe.duration || 5) * 0.1); } catch {}
-    }, { once: true });
-
-    probe.addEventListener('seeked', () => {
-      if (cancelled) return;
-      try {
-        const w = Math.min(probe.videoWidth, 640);
-        const h = Math.round(w * (probe.videoHeight / (probe.videoWidth || 1)));
-        const c = document.createElement('canvas');
-        c.width = w; c.height = h;
-        c.getContext('2d').drawImage(probe, 0, 0, w, h);
-        if (!cancelled) setPoster(c.toDataURL('image/jpeg', 0.35));
-      } catch {}
-    }, { once: true });
-
-    probe.load();
-    return () => { cancelled = true; probe.src = ''; };
-  }, [src]);
+  }, [active, paused, hasStarted, seekToSegmentStart]);
 
   // Play / pause
   useEffect(() => {
     const v = ref.current;
     if (!v) return;
     if (active && !paused) {
-      v.play().catch(err => {
-        console.warn('[Video] Playback blocked or failed:', err.message);
-      });
+      if (v.readyState < 2) setIsWaiting(true);
+      if (v.currentSrc !== playbackSrc && v.readyState < 2) v.load();
+      attemptPlay();
     } else {
       v.pause();
       if (!active) {
-        v.currentTime = 0;
+        seekToSegmentStart(true);
         setHasStarted(false);
+        endedSegmentRef.current = false;
       }
     }
-  }, [active, paused]);
+  }, [active, paused, playbackSrc, reloadToken, attemptPlay, seekToSegmentStart]);
 
   useEffect(() => {
     if (!active || paused || !isWaiting) {
@@ -166,8 +165,15 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       return;
     }
     waitTimeoutRef.current = setTimeout(() => {
-      console.warn('[Video] Wait timeout reached, skipping story:', src);
-      onEnded();
+      console.warn('[Video] Wait timeout reached, reloading story video:', src);
+      const v = ref.current;
+      if (!didRetryCacheBust) {
+        setDidRetryCacheBust(true);
+        setPlaybackSrc(addCacheBust(playbackSrc || src));
+      } else {
+        v?.load();
+        setReloadToken(t => t + 1);
+      }
     }, VIDEO_WAIT_TIMEOUT_MS);
     return () => {
       if (waitTimeoutRef.current) {
@@ -175,7 +181,7 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         waitTimeoutRef.current = null;
       }
     };
-  }, [active, paused, isWaiting, src, onEnded]);
+  }, [active, paused, isWaiting, src, playbackSrc, didRetryCacheBust]);
 
   // Mute
   useEffect(() => {
@@ -186,9 +192,11 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
   const handleReady = useCallback(() => {
     if (src) loadedVideos.add(src);
     if (playbackSrc) loadedVideos.add(playbackSrc);
+    if (active && !hasStarted) seekToSegmentStart(true);
     setVideoReady(true);
     setIsWaiting(false);
-  }, [src, playbackSrc]);
+    attemptPlay();
+  }, [src, playbackSrc, active, hasStarted, seekToSegmentStart, attemptPlay]);
 
   const handleError = useCallback((e) => {
     const mediaErrorCode = e?.currentTarget?.error?.code;
@@ -221,17 +229,11 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
       {/* Poster / Loading Layer */}
       <div className={`absolute inset-0 z-10 transition-opacity duration-300 ${videoReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         {poster ? (
-          <div className="relative w-full h-full">
-            <img src={poster} alt="" className="w-full h-full object-cover blur-2xl scale-110" aria-hidden="true" />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-               <Loader2 className="size-10 text-white/60 animate-spin" />
-            </div>
-          </div>
-        ) : (
-          <div className="w-full h-full bg-black flex items-center justify-center">
-            <Loader2 className="size-10 text-white/20 animate-spin" />
-          </div>
-        )}
+          <img src={poster} alt="" className="absolute inset-0 size-full object-cover" />
+        ) : null}
+        <div className="relative z-10 w-full h-full bg-black/25 flex items-center justify-center">
+          <Loader2 className="size-10 text-white/20 animate-spin" />
+        </div>
       </div>
 
       {/* Buffering Indicator (During playback) */}
@@ -247,9 +249,10 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         src={playbackSrc}
         playsInline
         webkit-playsinline="true"
-        muted={true}
-        crossOrigin="anonymous"
-        preload="auto"
+        muted={muted}
+        autoPlay={active && !paused}
+        poster={poster || undefined}
+        preload={active ? 'auto' : 'metadata'}
         className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${videoReady ? 'opacity-100' : 'opacity-0'}`}
         onCanPlay={handleReady}
         onPlaying={handleReady}
@@ -262,12 +265,34 @@ const StoryVideo = memo(function StoryVideo({ src, muted, active, paused, onEnde
         onStalled={() => setIsWaiting(true)}
         onWaiting={() => setIsWaiting(true)}
         onLoadedData={handleReady}
-        onLoadedMetadata={handleReady}
+        onLoadedMetadata={() => {
+          seekToSegmentStart(true);
+          if (active) {
+            handleReady();
+            attemptPlay();
+          }
+        }}
         onError={handleError}
         onEnded={onEnded}
         onTimeUpdate={(e) => {
           if (!hasStarted || paused || isWaiting) return;
-          onProgress(e);
+          const video = e.currentTarget;
+          const segmentDuration = safeSegmentEnd
+            ? safeSegmentEnd - safeSegmentStart
+            : Math.max((video.duration || 0) - safeSegmentStart, 0);
+          const elapsed = Math.max(0, video.currentTime - safeSegmentStart);
+          if (safeSegmentEnd && video.currentTime >= safeSegmentEnd - 0.05) {
+            if (!endedSegmentRef.current) {
+              endedSegmentRef.current = true;
+              video.pause();
+              onProgress?.(1);
+              onEnded();
+            }
+            return;
+          }
+          if (segmentDuration > 0) {
+            onProgress?.(Math.min(elapsed / segmentDuration, 1));
+          }
         }}
       />
     </div>
@@ -343,6 +368,24 @@ const ProgressBar = forwardRef(function ProgressBar(
   );
 });
 
+// Helper to calculate time remaining until status expiration
+const getEndingSoonInfo = (story) => {
+  if (!story) return null;
+  const expiresTime = story.expires_at 
+    ? new Date(story.expires_at).getTime() 
+    : new Date(story.createdAt).getTime() + 24 * 60 * 60 * 1000;
+  const msLeft = expiresTime - Date.now();
+  const hrsLeft = msLeft / (1000 * 60 * 60);
+  if (hrsLeft > 0 && hrsLeft <= 12) {
+    if (hrsLeft < 1) {
+      const mins = Math.max(1, Math.floor(msLeft / (1000 * 60)));
+      return `${mins}m left`;
+    }
+    return `${Math.round(hrsLeft)}h left`;
+  }
+  return null;
+};
+
 // ─── StatusViewer ─────────────────────────────────────────────────────────────
 export default function StatusViewer({ initialStatuses, initialStoryId, onClose }) {
   const router = useRouter();
@@ -378,7 +421,13 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   const [storyIdx,   setStoryIdx]   = useState(initialPos.sIdx);
   const [paused,     setPaused]     = useState(false);
   const [liked,      setLiked]      = useState(false);
-  const [muted,      setMuted]      = useState(true);
+  const [muted,      setMuted]      = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('aura_stories_muted');
+      return stored === null ? true : stored === 'true';
+    }
+    return true;
+  });
   const [replyText,  setReplyText]  = useState('');
   const [isReplying, setIsReplying] = useState(false);
 
@@ -400,18 +449,29 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     const globalIdx = initialStatuses.findIndex((s) => s._id === story._id);
     if (globalIdx === -1) return;
 
-    const keepVideoUrls = [story.content_url];
+    const keepVideoUrls = [story.type === 'video' ? story.content_url : null];
     const prev = initialStatuses[globalIdx - 1];
     if (prev) {
-      preloadMedia(prev.content_url, prev.type);
-      if (prev.type === 'video') keepVideoUrls.push(prev.content_url);
+      if (prev.type === 'video') {
+        preloadMedia(prev.thumbnail_url, 'image');
+        keepVideoUrls.push(prev.content_url);
+        preloadMedia(prev.content_url, 'video');
+      } else {
+        preloadMedia(prev.content_url, prev.type);
+      }
     }
 
     for (let i = globalIdx + 1; i <= globalIdx + VIDEO_PRELOAD_AHEAD; i++) {
       const nextStory = initialStatuses[i];
       if (!nextStory) break;
-      preloadMedia(nextStory.content_url, nextStory.type);
-      if (nextStory.type === 'video') keepVideoUrls.push(nextStory.content_url);
+      const eager = i <= globalIdx + 2;
+      if (nextStory.type === 'video') {
+        preloadMedia(nextStory.thumbnail_url, 'image', { eager: true });
+        keepVideoUrls.push(nextStory.content_url);
+        preloadMedia(nextStory.content_url, 'video', { eager });
+      } else {
+        preloadMedia(nextStory.content_url, nextStory.type, { eager });
+      }
     }
 
     cleanupVideoPreloads(keepVideoUrls);
@@ -422,6 +482,20 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     if (!story?._id) return;
     api.post(`/statuses/${story._id}/view`).catch(() => {});
   }, [story?._id]);
+
+  const dismissKeyboard = useCallback(() => {
+    if (typeof document !== 'undefined') {
+      const activeEl = document.activeElement;
+      if (activeEl && typeof activeEl.blur === 'function') {
+        activeEl.blur();
+      }
+    }
+  }, []);
+
+  const handleClose = useCallback(() => {
+    dismissKeyboard();
+    onClose();
+  }, [onClose, dismissKeyboard]);
 
   const resetStoryState = useCallback(() => {
     setLiked(false);
@@ -436,23 +510,25 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     transitionUnlockRef.current = setTimeout(() => {
       transitionLockRef.current = false;
       transitionUnlockRef.current = null;
-    }, 220);
+    }, 140);
   }, []);
 
   const goNext = useCallback(() => {
     if (transitionLockRef.current) return;
+    dismissKeyboard();
     lockTransition();
     if (storyIdx < totalInGroup - 1) {
       setStoryIdx(s => s + 1); resetStoryState();
     } else if (vendorIdx < totalVendors - 1) {
       setVendorIdx(v => v + 1); setStoryIdx(0); resetStoryState();
     } else {
-      onClose();
+      handleClose();
     }
-  }, [storyIdx, totalInGroup, vendorIdx, totalVendors, onClose, resetStoryState, lockTransition]);
+  }, [storyIdx, totalInGroup, vendorIdx, totalVendors, handleClose, resetStoryState, lockTransition, dismissKeyboard]);
 
   const goPrev = useCallback(() => {
     if (transitionLockRef.current) return;
+    dismissKeyboard();
     lockTransition();
     if (storyIdx > 0) {
       setStoryIdx(s => s - 1); resetStoryState();
@@ -462,13 +538,11 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       setStoryIdx(prevGroup.stories.length - 1);
       resetStoryState();
     }
-  }, [storyIdx, vendorIdx, vendorGroups, resetStoryState, lockTransition]);
+  }, [storyIdx, vendorIdx, vendorGroups, resetStoryState, lockTransition, dismissKeyboard]);
 
-  const handleVideoProgress = useCallback((e) => {
-    const { currentTime, duration } = e.target;
-    if (duration && duration > 0 && videoBarRef.current) {
-      const progress = Math.min(currentTime / duration, 1);
-      videoBarRef.current.style.transform = `scaleX(${progress})`;
+  const handleVideoProgress = useCallback((progress) => {
+    if (typeof progress === 'number' && videoBarRef.current) {
+      videoBarRef.current.style.transform = `scaleX(${Math.min(Math.max(progress, 0), 1)})`;
     }
   }, []);
 
@@ -488,31 +562,94 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
   };
 
   const handleViewProduct = useCallback(() => {
-    if (!story?.linked_product?._id) return;
-    onClose();
-    router.push(`/products/${story.linked_product._id}`);
-  }, [story, onClose, router]);
+    const productId = story?.linked_product?._id || story?.linked_product;
+    if (!productId) return;
+    handleClose();
+    router.push(`/products?id=${encodeURIComponent(productId)}`);
+  }, [story, handleClose, router]);
+
+  const handleVendorClick = useCallback((e, vendorId) => {
+    e.stopPropagation();
+    handleClose();
+    router.push(`/stores?id=${encodeURIComponent(vendorId)}`);
+  }, [handleClose, router]);
 
   const toggleLike = useCallback(() => {
     setLiked(l => !l);
     api.post(`/statuses/${story._id}/react`).catch(() => {});
   }, [story?._id]);
 
+  const handleShareStory = useCallback(async (e) => {
+    e.stopPropagation();
+    if (!story) return;
+
+    const vendorName = story.vendor_id?.store_name || 'Auradime';
+    const storyUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/discovery?tab=status&story=${encodeURIComponent(story._id)}`
+      : '';
+    const shareText = story.caption || story.text_content || `View ${vendorName}'s story on Auradime`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${vendorName} story`,
+          text: shareText,
+          url: storyUrl,
+        });
+        toast.success('Story link ready to share.');
+        return;
+      }
+
+      await navigator.clipboard?.writeText(storyUrl || shareText);
+      toast.success('Story link copied.');
+    } catch (error) {
+      if (error?.name !== 'AbortError') {
+        try {
+          await navigator.clipboard?.writeText(storyUrl || shareText);
+          toast.success('Story link copied.');
+        } catch {}
+      }
+    }
+  }, [story]);
+
+  const toggleMuted = useCallback((e) => {
+    e.stopPropagation();
+    setMuted(m => {
+      const newMuted = !m;
+      localStorage.setItem('aura_stories_muted', String(newMuted));
+      return newMuted;
+    });
+  }, []);
+
+  const togglePaused = useCallback((e) => {
+    e.stopPropagation();
+    setPaused((current) => !current);
+  }, []);
+
   const handleSendReply = useCallback(() => {
     if (!replyText.trim()) return;
     const recipientUserId = story?.vendor_id?.user_id?._id || story?.vendor_id?.user_id;
     if (!recipientUserId) return;
     const text = replyText.trim();
+    dismissKeyboard();
     setReplyText('');
     setIsReplying(false);
     api.post('/chat', {
       receiver_id: recipientUserId,
       text,
-      metadata: { type: 'story_reply', storyId: story._id, storyPreview: story.type === 'text' ? story.text_content : story.content_url }
+      metadata: {
+        type: 'story_reply',
+        storyId: story._id,
+        storyType: story.type,
+        storyPreview: story.type === 'text' ? story.text_content : story.content_url,
+        storyThumbnail: story.thumbnail_url || '',
+        storyCaption: story.caption || '',
+        storyCategory: story.category || '',
+      }
     }).catch(() => {});
     window.dispatchEvent(new CustomEvent('aura_vendor_reply', { detail: story }));
     setPaused(false);
-  }, [replyText, story]);
+  }, [replyText, story, dismissKeyboard]);
 
   const onPointerDown = useCallback((e) => {
     if (isReplying) return;
@@ -524,10 +661,18 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
     if (isReplying) return;
     clearTimeout(holdTimer.current);
     const duration = Date.now() - touchStart.current.t;
-    const distY    = e.clientY - touchStart.current.y;
+    const distY = e.clientY - touchStart.current.y;
+    const distX = e.clientX - touchStart.current.x;
     if (paused) { setPaused(false); return; }
-    if (distY > 120 && duration < 400) { onClose(); return; }
-  }, [isReplying, paused, onClose]);
+    if (distY > 100 && duration < 450 && Math.abs(distY) > Math.abs(distX)) {
+      handleClose();
+      return;
+    }
+    if (duration < 400 && Math.abs(distX) > 56 && Math.abs(distX) > Math.abs(distY) * 1.15) {
+      if (distX < 0) goNext();
+      else goPrev();
+    }
+  }, [isReplying, paused, handleClose, goNext, goPrev]);
 
   if (!story) return null;
 
@@ -539,7 +684,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      onClick={onClose}
+      onClick={handleClose}
       className="fixed inset-0 z-[1000] bg-black flex items-center justify-center overflow-hidden"
     >
       <div
@@ -551,38 +696,88 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
       >
         {/* Media Layer */}
         <div className="absolute inset-0 z-10">
-          {isVideo ? (
-            <StoryVideo
-              key={story._id}
-              src={story.content_url}
-              muted={muted}
-              active={true}
-              paused={paused || isReplying}
-              onEnded={goNext}
-              onProgress={handleVideoProgress}
-            />
-          ) : story.type === 'image' ? (
-            <BlurUpImage
-              key={story._id}
-              src={story.content_url}
-              alt=""
-              priority="high"
-              className="absolute inset-0 w-full h-full"
-              objectFit="cover"
-            />
-          ) : (
-            <div
-              className="absolute inset-0 flex items-center justify-center p-12 text-center"
-              style={{ background: 'linear-gradient(165deg,#050505 0%,#150824 100%)' }}
-            >
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[350px] rounded-full bg-[var(--accent)]/12 blur-[100px]" />
+          {currentGroup.stories.map((s, idx) => {
+            const isActive = idx === storyIdx;
+            const isNeighbor = Math.abs(idx - storyIdx) <= 1;
+            if (!isActive && !isNeighbor) return null;
+            const isVid = s.type === 'video';
+            const isImg = s.type === 'image';
+            
+            return (
+              <div
+                key={s._id}
+                className={`absolute inset-0 transition-all duration-500 ease-out transform ${
+                  isActive 
+                    ? 'translate-x-0 opacity-100 z-10 pointer-events-auto' 
+                    : idx < storyIdx
+                      ? '-translate-x-full opacity-0 z-0 pointer-events-none'
+                      : 'translate-x-full opacity-0 z-0 pointer-events-none'
+                }`}
+              >
+                {isVid ? (
+                  <StoryVideo
+                    src={s.content_url}
+                    poster={s.thumbnail_url}
+                    muted={muted}
+                    active={isActive}
+                    paused={!isActive || paused || isReplying}
+                    onEnded={goNext}
+                    onProgress={isActive ? handleVideoProgress : undefined}
+                    segmentStart={s.segment_start || 0}
+                    segmentEnd={s.segment_end || null}
+                  />
+                ) : isImg ? (
+                  <img
+                    src={s.content_url}
+                    alt=""
+                    fetchPriority={isActive ? 'high' : 'low'}
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="absolute inset-0 flex items-center justify-center p-12 text-center"
+                    style={{ background: 'linear-gradient(165deg,#050505 0%,#150824 100%)' }}
+                  >
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-[350px] rounded-full bg-[var(--accent)]/12 blur-[100px]" />
+                    </div>
+                    <p className="relative z-10 text-3xl  font-bold text-white leading-tight drop-shadow-2xl">
+                      {s.text_content}
+                    </p>
+                  </div>
+                )}
+
+                {/* Floating Interactive Shopping Sticker */}
+                {isActive && s.linked_product && (s.linked_product.name || typeof s.linked_product === 'object') && (
+                  <motion.button
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', delay: 0.4, stiffness: 200, damping: 15 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewProduct();
+                    }}
+                    style={{
+                      left: s.sticker_x !== undefined ? `${s.sticker_x}%` : '30%',
+                      top: s.sticker_y !== undefined ? `${s.sticker_y}%` : '50%',
+                    }}
+                    aria-label="View linked product"
+                    className="absolute z-30 pointer-events-auto transform -translate-x-1/2 -translate-y-1/2 size-14 rounded-full bg-black/55 p-1.5 backdrop-blur border border-white/25 text-white shadow-2xl hover:scale-105 active:scale-95 transition-transform"
+                  >
+                    <span className="absolute -right-0.5 -top-0.5 flex size-4">
+                      <span className="absolute inline-flex size-full animate-ping rounded-full bg-[var(--accent)] opacity-75" />
+                      <span className="relative inline-flex size-4 rounded-full border border-white/30 bg-[var(--accent)]" />
+                    </span>
+                    {vendorLogo
+                      ? <img src={vendorLogo} alt="" className="size-full rounded-full object-cover ring-1 ring-white/20" />
+                      : <img src="/icon-512.png" alt="" className="size-full rounded-full object-cover ring-1 ring-white/20" />
+                    }
+                  </motion.button>
+                )}
               </div>
-              <p className="relative z-10 text-3xl  font-bold text-white leading-tight drop-shadow-2xl">
-                {story.text_content}
-              </p>
-            </div>
-          )}
+            );
+          })}
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/85 pointer-events-none z-20" />
         </div>
 
@@ -605,8 +800,14 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
           className={`absolute inset-x-4 z-50 flex items-center justify-between transition-all duration-200 pointer-events-none ${(paused || isReplying) ? 'opacity-0 -translate-y-1' : 'opacity-100 translate-y-0'}`}
           style={{ top: 'calc(max(env(safe-area-inset-top, 0px), 14px) + 14px)' }}
         >
-          <div className="flex items-center gap-3">
-            <div className="size-11 rounded-full p-[2px] bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-500 shadow-lg shrink-0">
+          <div 
+            onClick={(e) => {
+              const vId = story.vendor_id?._id || story.vendor_id;
+              if (vId) handleVendorClick(e, vId);
+            }}
+            className="flex items-center gap-3 pointer-events-auto cursor-pointer group"
+          >
+            <div className="size-11 rounded-full p-[2px] bg-gradient-to-tr from-[var(--accent)] via-purple-500 to-pink-500 shadow-lg shrink-0 transition-transform group-hover:scale-105">
               <div className="size-full rounded-full overflow-hidden border-2 border-black bg-black">
                 {vendorLogo
                   ? <img src={vendorLogo} alt={storeName} className="size-full object-cover" />
@@ -616,31 +817,50 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <p className="text-[14px]  font-bold text-white tracking-tight drop-shadow">{storeName}</p>
+                <p className="text-[14px]  font-bold text-white tracking-tight drop-shadow group-hover:underline">{storeName}</p>
                 <span className="text-[10px] lg:text-[12px] text-white/50  font-semibold">{ago(story.createdAt)}</span>
               </div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]">{story.category || 'General'}</span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]">{story.category || 'Moment'}</span>
+                {(() => {
+                  const endingSoon = getEndingSoonInfo(story);
+                  if (!endingSoon) return null;
+                  return (
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/25 border border-red-500/30 text-red-400 text-[10px] font-bold uppercase tracking-wider animate-pulse">
+                      <Clock className="size-3" />
+                      <span>{endingSoon}</span>
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-2 pointer-events-auto">
-            {paused && (
+            {paused && !isVideo && (
               <div className="size-9 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
                 <Pause className="size-4 text-white" />
               </div>
             )}
             {isVideo && (
               <button
-                onClick={e => { e.stopPropagation(); setMuted(m => !m); }}
-                className="size-9 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white"
+                onClick={togglePaused}
+                className="size-9 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white cursor-pointer"
+                aria-label={paused ? 'Play video' : 'Pause video'}
+              >
+                {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
+              </button>
+            )}
+            {isVideo && (
+              <button
+                onClick={toggleMuted}
+                className="size-9 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white cursor-pointer"
               >
                 {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
               </button>
             )}
             <button
-              onClick={e => { e.stopPropagation(); onClose(); }}
+              onClick={e => { e.stopPropagation(); handleClose(); }}
               className="size-9 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center text-white"
             >
               <X className="size-4.5" />
@@ -735,7 +955,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose 
               </button>
 
               <button
-                onClick={e => e.stopPropagation()}
+                onClick={handleShareStory}
                 className="size-12 rounded-full bg-white/10 border border-white/15 backdrop-blur-xl flex items-center justify-center text-white shadow-lg"
               >
                 <Share2 className="size-5" />

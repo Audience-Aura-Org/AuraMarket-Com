@@ -1,6 +1,6 @@
 /**
  * models/Escrow.model.js
- * Aura Market — Escrow Tracking Schema
+ * Auradime — Escrow Tracking Schema
  *
  * Provides a secure holding pen for transaction funds.
  * Funds sit securely in Escrow until the 'delivered' condition is explicitly met.
@@ -49,6 +49,14 @@ const EscrowSchema = new mongoose.Schema(
       default: false,
       // Set to true when the logistics firm's shipping_fee has been credited.
       // Prevents double-payment if both modifyShipmentStatus and releaseFunds run.
+    },
+    delivered_at: {
+      type: Date,
+      default: null,
+    },
+    auto_release_at: {
+      type: Date,
+      default: null,
     },
     release_date: {
       type: Date,

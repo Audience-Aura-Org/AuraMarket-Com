@@ -1,6 +1,6 @@
 /**
  * server.js
- * Aura Market — Main Express Server Entry Point
+ * Auradime — Main Express Server Entry Point
  *
  * Responsibilities:
  *  - Load and validate environment variables
@@ -16,6 +16,12 @@
 // ─────────────────────────────────────────────
 const { validateEnv, PORT, WEB_CLIENT_URL, NODE_ENV } = require('./config/env');
 validateEnv();
+
+// Quiet AWS SDK v3 runtime noise while EC2 nodes are upgraded.
+// Keep Node >= 22 as the real production fix.
+if (!process.env.AWS_SDK_JS_SUPPRESS_MAINTENANCE_MODE_MESSAGE) {
+  process.env.AWS_SDK_JS_SUPPRESS_MAINTENANCE_MODE_MESSAGE = '1';
+}
 
 // ─────────────────────────────────────────────
 // 2. Core imports
@@ -38,6 +44,7 @@ const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
 const { apiLimiter, strictLimiter } = require('./middleware/rateLimiter');
 const setLocale = require('./middleware/locale.middleware');
+const { createCorsOptions, sanitizeInput, securityHeaders } = require('./middleware/security.middleware');
 
 // ─────────────────────────────────────────────
 // 5. Connect to MongoDB
@@ -54,50 +61,23 @@ verifyConnection();
 const app = express();
 app.set('trust proxy', 1); // 🔥 ESSENTIAL: Render/Proxy identity mapping
 const server = http.createServer(app);
+const serverPort = Number(PORT);
 
 // Initialize Socket.io Chat Events
 const mapChatSockets = require('./sockets/chat.socket');
 const io = mapChatSockets(server);
 app.set('io', io);
 
+const { startEscrowAutoReleaseWorker } = require('./services/escrowAutoRelease.service');
+startEscrowAutoReleaseWorker(app);
+const { drainQueues } = require('./services/jobQueue.service');
+const { getRedisStatus, closeRedis } = require('./config/redis');
+
 // ─────────────────────────────────────────────
 // 7. Express Middleware
 // ─────────────────────────────────────────────
-const os = require('os');
-
-// Get all local network IPs for development
-const getLocalIPs = () => {
-  const interfaces = os.networkInterfaces();
-  const ips = [];
-  for (const [, addrs] of Object.entries(interfaces)) {
-    for (const addr of addrs) {
-      if (addr.family === 'IPv4' && !addr.internal) {
-        ips.push(addr.address);
-      }
-    }
-  }
-  return ips;
-};
-
-const localIPs = getLocalIPs();
-const corsOrigins = [
-  'https://space.audienceaura.org',
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  process.env.WEB_CLIENT_URL,
-];
-
-// Add all local network IPs to CORS for development
-for (const ip of localIPs) {
-  corsOrigins.push(`http://${ip}:3000`);
-  corsOrigins.push(`http://${ip}:5000`);
-}
-
-app.use(cors({
-  origin: corsOrigins.filter(Boolean),
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-}));
+app.use(securityHeaders);
+app.use(cors(createCorsOptions()));
 
 app.use(compression()); // Gzip all API responses
 // ── Eversend Webhook (Raw Body Requirement) ───────────────────────────
@@ -108,6 +88,13 @@ app.post('/api/payments/eversend/webhook', express.raw({ type: 'application/json
 
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));
+app.use((req, res, next) => {
+  if (/^\/api(\/v1)?\/payments\/.*webhook/.test(req.path)) {
+    return next();
+  }
+
+  return sanitizeInput(req, res, next);
+});
 
 // Apply general rate limit to all requests
 app.use('/api', apiLimiter);
@@ -121,15 +108,16 @@ app.use(setLocale);
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
-    message: '🚀 Aura Market API is running',
+    message: '🚀 Auradime API is running',
     environment: NODE_ENV,
+    redis: getRedisStatus(),
     timestamp: new Date().toISOString(),
   });
 });
 
 // Root Welcome Route
 app.get('/', (req, res) => {
-  res.send('<h1>Welcome to the Aura Market API!</h1><p>Visit <a href="/api/health">/api/health</a> to check system status.</p>');
+  res.send('<h1>Welcome to the Aura Dime API!</h1><p>Visit <a href="/api/health">/api/health</a> to check system status.</p>');
 });
 
 // Serve static uploads
@@ -151,7 +139,19 @@ app.use(errorHandler);
 // ─────────────────────────────────────────────
 // 11. Start Server
 // ─────────────────────────────────────────────
-server.listen(PORT, '0.0.0.0', () => {
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\nPort ${serverPort} is already in use.`);
+    console.error('Stop the existing backend process or start this app with a different PORT value.');
+    console.error('Linux/macOS: lsof -i :5000 && kill <PID>');
+    console.error('Windows: netstat -ano | findstr :5000 then Stop-Process -Id <PID>\n');
+    process.exit(1);
+  }
+
+  throw err;
+});
+
+server.listen(serverPort, '0.0.0.0', () => {
   const os = require('os');
   const interfaces = os.networkInterfaces();
   let ipAddress = 'localhost';
@@ -165,10 +165,10 @@ server.listen(PORT, '0.0.0.0', () => {
     }
   }
   
-  console.log(`\n🚀 Aura Market server running in ${NODE_ENV} mode on port ${PORT}`);
-  console.log(`   Access locally: http://localhost:${PORT}/api/health`);
-  console.log(`   Access from other devices: http://${ipAddress}:${PORT}/api/health`);
-  console.log(`   All interfaces: http://0.0.0.0:${PORT}/api/health\n`);
+  console.log(`\n🚀 Auradime server running in ${NODE_ENV} mode on port ${serverPort}`);
+  console.log(`   Access locally: http://localhost:${serverPort}/api/health`);
+  console.log(`   Access from other devices: http://${ipAddress}:${serverPort}/api/health`);
+  console.log(`   All interfaces: http://0.0.0.0:${serverPort}/api/health\n`);
 });
 
 // Increase server timeouts for large file uploads (100MB videos)
@@ -184,5 +184,24 @@ process.on('unhandledRejection', (err) => {
   server.close(() => process.exit(1));
 });
 
+const gracefulShutdown = (signal) => {
+  console.log(`\n${signal} received. Draining HTTP and socket connections...`);
+  io.close(async () => {
+    await drainQueues({ timeoutMs: 10000 });
+    await closeRedis();
+    server.close(() => {
+      console.log('✅ Server drained cleanly.');
+      process.exit(0);
+    });
+  });
+
+  setTimeout(() => {
+    console.error('Forced shutdown after timeout.');
+    process.exit(1);
+  }, 15000).unref();
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
 module.exports = app;
- 

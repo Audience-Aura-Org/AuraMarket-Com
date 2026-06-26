@@ -5,12 +5,12 @@
 ### Single File Upload
 
 **Endpoint:** `POST /api/upload/single`
-**Base URL:** `http://13.51.198.119:5000` (AWS Backend)
+**Base URL:** `http://13.61.104.192:5000` (AWS Backend)
 **Authentication:** Required (JWT Bearer Token)
 
 **cURL Example:**
 ```bash
-curl -X POST http://13.51.198.119:5000/api/upload/single \
+curl -X POST http://13.61.104.192:5000/api/upload/single \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -F "image=@path/to/image.jpg" \
   -F "type=products"
@@ -40,7 +40,7 @@ curl -X POST http://13.51.198.119:5000/api/upload/single \
 
 **cURL Example:**
 ```bash
-curl -X POST http://13.51.198.119:5000/api/upload/multiple \
+curl -X POST http://13.61.104.192:5000/api/upload/multiple \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -F "images=@image1.jpg" \
   -F "images=@image2.jpg" \
@@ -148,7 +148,7 @@ async function uploadImage(file, token, type = 'products') {
   formData.append('image', file);
   formData.append('type', type);
 
-  const response = await fetch('http://13.51.198.119:5000/api/upload/single', {
+  const response = await fetch('http://13.61.104.192:5000/api/upload/single', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -176,7 +176,7 @@ async function uploadImages(files, token, type = 'products') {
   });
   formData.append('type', type);
 
-  const response = await fetch('http://13.51.198.119:5000/api/upload/multiple', {
+  const response = await fetch('http://13.61.104.192:5000/api/upload/multiple', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`
@@ -217,7 +217,7 @@ export default function ImageUpload() {
 
     try {
       const response = await fetch(
-        'http://13.51.198.119:5000/api/upload/single',
+        'http://13.61.104.192:5000/api/upload/single',
         {
           method: 'POST',
           headers: {
@@ -262,7 +262,7 @@ export default function ImageUpload() {
 
 ### Single Upload Request
 ```
-POST http://13.51.198.119:5000/api/upload/single
+POST http://13.61.104.192:5000/api/upload/single
 
 Headers:
 - Authorization: Bearer YOUR_TOKEN
@@ -275,7 +275,7 @@ Body (form-data):
 
 ### Multiple Upload Request
 ```
-POST http://13.51.198.119:5000/api/upload/multiple
+POST http://13.61.104.192:5000/api/upload/multiple
 
 Headers:
 - Authorization: Bearer YOUR_TOKEN

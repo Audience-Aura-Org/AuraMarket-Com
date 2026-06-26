@@ -1,6 +1,6 @@
 /**
  * models/Message.model.js
- * Aura Market — Chat Message Schema
+ * Auradime — Chat Message Schema
  *
  * Stores private messages between users (Customers & Vendors/Logistics).
  * Supports standard text and optional Product Card references to enhance the
@@ -37,6 +37,14 @@ const MessageSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // Updated to true when recipient opens the chat tab natively
     },
+    delivered_status: {
+      type: Boolean,
+      default: false, // Updated when the recipient has an active socket/device session
+    },
+    delivered_at: {
+      type: Date,
+      default: null,
+    },
     image_url: {
       type: String,
       default: null,
@@ -44,6 +52,16 @@ const MessageSchema = new mongoose.Schema(
     metadata: {
       type: mongoose.Schema.Types.Mixed,
       default: null,
+    },
+    deleted_for: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      }
+    ],
+    deleted_everyone: {
+      type: Boolean,
+      default: false,
     },
   },
   {

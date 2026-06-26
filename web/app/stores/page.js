@@ -2,15 +2,21 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Store, Star, ArrowRight, ShieldCheck, Users, Search, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '@/services/api';
 import { vendorService } from '@/services/vendor';
 import Pagination from '@/components/common/Pagination';
+import StorePageClient from './[id]/StorePageClient';
+import { useSearchParams } from 'next/navigation';
+import { useLanguage } from '@/context/LanguageContext';
 
-export default function StoresDirectoryPage() {
+function StoresDirectoryContent() {
+  const { t } = useLanguage();
+  const searchParams = useSearchParams();
+  const storeId = searchParams?.get('id');
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -48,9 +54,10 @@ export default function StoresDirectoryPage() {
   };
 
   if (!mounted) return null;
+  if (storeId) return <StorePageClient storeId={storeId} />;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 relative overflow-x-hidden pb-40 transition-colors duration-500">
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 relative overflow-x-hidden pb-40 transition-colors duration-500 md:pt-0">
       {/* Background Ambience */}
       <div className="fixed top-[-10%] right-[-10%] w-[600px] h-[600px] bg-[var(--accent)]/10 rounded-full blur-[140px] pointer-events-none"></div>
       <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-[var(--accent-light)]/5 rounded-full blur-[100px] pointer-events-none"></div>
@@ -70,8 +77,8 @@ export default function StoresDirectoryPage() {
                 type="text" 
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
-                placeholder="Search stores..." 
-                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-12 pr-4 text-sm font-medium text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 focus:outline-none focus:border-[var(--accent)]/50 transition-all shadow-sm"
+                placeholder={t('store.searchPlaceholder', 'Search stores...')}
+                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-12 pr-4 !text-base placeholder:!text-base font-medium text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 focus:outline-none focus:border-[var(--accent)]/50 transition-all shadow-sm"
               />
             </div>
             <motion.button 
@@ -84,13 +91,7 @@ export default function StoresDirectoryPage() {
           </div>
         </motion.div>
 
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[1,2,3,4,5,6,7,8].map(i => (
-              <div key={i} className="h-80 rounded-[40px] bg-[var(--bg-primary)] animate-pulse border border-[var(--glass-border)]"></div>
-            ))}
-          </div>
-        ) : filteredStores.length === 0 ? (
+        {filteredStores.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -100,8 +101,10 @@ export default function StoresDirectoryPage() {
                <Store className="size-8 text-[var(--accent)]/60" />
              </div>
              <div>
-               <h2 className="text-2xl  font-bold text-[var(--text-primary)]/70">No stores found</h2>
-               <p className="text-[var(--text-secondary)] font-medium mt-2 text-sm">Try adjusting your search criteria.</p>
+               <h2 className="text-2xl  font-bold text-[var(--text-primary)]/70">{loading ? t('store.syncing', 'Stores syncing') : t('store.noneFound', 'No stores found')}</h2>
+               <p className="text-[var(--text-secondary)] font-medium mt-2 text-sm">
+                 {loading ? t('store.syncingDetail', 'Stores appear here as soon as the latest directory arrives.') : t('store.searchEmptyDetail', 'Try adjusting your search criteria.')}
+               </p>
              </div>
           </motion.div>
         ) : (
@@ -121,7 +124,7 @@ export default function StoresDirectoryPage() {
                 whileHover={{ y: -8 }}
               >
                 <Link 
-                  href={`/stores/${s._id}`}
+                  href={`/stores?id=${encodeURIComponent(s._id)}`}
                   className="group relative rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden transition-all duration-300 hover:shadow-2xl hover:shadow-[var(--accent)]/15 glass-panel h-full flex flex-col"
                 >
                   {/* Banner Background */}
@@ -156,19 +159,20 @@ export default function StoresDirectoryPage() {
                       </div>
                       
                       <div className="flex items-center justify-center gap-1 px-3 py-1 rounded-full bg-[var(--accent)]/15 border border-[var(--accent)]/30 text-[var(--accent)] text-xs  font-bold w-fit mx-auto">
-                        <Star className="size-3 fill-current" /> <span>{s.rating || '4.9'}</span>
+                        <Star className="size-3 fill-current" />
+                        {Number(s.rating || 0) > 0 && <span>{Number(s.rating).toFixed(1)}</span>}
                       </div>
 
-                      <p className="text-[var(--text-secondary)] text-xs font-medium line-clamp-2 leading-relaxed h-8 flex-1">
-                        {s.description || 'Verified merchant providing quality products.'}
+                      <p translate={s.description ? 'no' : undefined} className="text-[var(--text-secondary)] text-xs font-medium line-clamp-2 leading-relaxed h-8 flex-1">
+                        {s.description || t('store.verifiedMerchantFallback', 'Verified merchant providing quality products.')}
                       </p>
                     </div>
 
                     <div className="mt-auto pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
                       <div className="flex flex-col items-start">
-                         <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]/50 tracking-tight">Status</span>
+                         <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]/50 tracking-tight">{t('common.status', 'Status')}</span>
                          <span className="text-[11px] lg:text-[12px]  font-semibold text-emerald-500 flex items-center gap-1.5">
-                            <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></div> Active
+                            <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></div> {t('common.active', 'Active')}
                          </span>
                       </div>
                       
@@ -198,3 +202,12 @@ export default function StoresDirectoryPage() {
     </div>
   );
 }
+
+export default function StoresDirectoryPage() {
+  return (
+    <Suspense fallback={null}>
+      <StoresDirectoryContent />
+    </Suspense>
+  );
+}
+

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +13,7 @@ import api from '@/services/api';
 import { useNotifications } from '@/hooks/useNotifications';
 import { notificationService } from '@/services/notifications';
 import Pagination from '@/components/common/Pagination';
+import { normalizeAppRoute } from '@/lib/navigation';
 
 // Mapped to the backend enum
 const ICON_MAP = {
@@ -97,7 +98,7 @@ export default function NotificationsPage() {
   const currentNotifications = notifications.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] pb-32 transition-colors duration-500">
+    <div className="min-h-screen bg-[var(--bg-secondary)] pb-32 transition-colors duration-500 md:pt-0">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-[var(--bg-secondary)]/80 backdrop-blur-3xl px-6 py-4 flex items-center justify-between border-b border-[var(--glass-border)] transition-all">
         <button onClick={() => router.back()} className="size-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-primary)] hover:border-[var(--accent)]/50 transition-all shadow-sm">
@@ -142,7 +143,7 @@ export default function NotificationsPage() {
                   key={n._id}
                   onClick={() => {
                     if (!n.is_read) markRead(n._id);
-                    if (n.metadata?.link) router.push(n.metadata.link);
+                    if (n.metadata?.link) router.push(normalizeAppRoute(n.metadata.link));
                   }}
                   className={`p-4 rounded-2xl border transition-all duration-300 flex items-center gap-4 relative group cursor-pointer glass-panel ${
                     !n.is_read 
@@ -211,3 +212,4 @@ export default function NotificationsPage() {
     </div>
   );
 }
+

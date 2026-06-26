@@ -26,7 +26,7 @@ All file upload infrastructure components have been successfully configured, tes
 ```
 Frontend (Vercel)
     ↓
-Backend Express API (AWS EC2: 13.51.198.119:5000)
+Backend Express API (AWS EC2: 13.61.104.192:5000)
     ↓
 Multer Memory Storage (in-memory buffer)
     ↓
@@ -39,8 +39,7 @@ Public S3 URLs returned to frontend
 
 ### Storage Priority
 1. **Primary:** AWS S3 (persistent, production-ready)
-2. **Fallback:** Cloudinary (if S3 disabled)
-3. **Fallback:** Local disk (if S3 and Cloudinary disabled)
+2. **Fallback:** Local disk (if S3 disabled)
 
 ---
 
@@ -107,7 +106,7 @@ AWS_S3_ENABLED=true
 - **POST `/api/upload/single`** - Single file upload
   - Input: `multipart/form-data` with `image` field, optional `type` field
   - Output: `{ success, data: { url, filename, mimetype, size, method } }`
-  - Method field shows: "S3" | "Cloudinary" | "Local"
+  - Method field shows: "S3" | "External" | "Local"
 
 - **POST `/api/upload/multiple`** - Batch upload (max 5 files)
   - Input: `multipart/form-data` with `images` array field
@@ -228,8 +227,7 @@ All files are:
 
 ### Fallback Strategy ✅
 - Primary: S3 (production persistent storage)
-- Secondary: Cloudinary (cloud backup)
-- Tertiary: Local disk (emergency fallback)
+- Secondary: Local disk (development/emergency fallback)
 - Each method returns proper public URL
 
 ---
@@ -242,7 +240,7 @@ All files are:
 
 ### Branched Deployment
 - **Branch:** `aura-import-main`
-- **Remote:** GitHub (Audience-Aura-Org/AuraMarket-Com)
+- **Remote:** GitHub (Audience-Aura-Org/Auradime-Com)
 - **Status:** ✅ All commits successfully pushed
 
 ---
@@ -277,7 +275,7 @@ The Next.js frontend on Vercel can now:
 
 ### Backend API Endpoints (AWS EC2)
 ```
-Base URL: http://13.51.198.119:5000
+Base URL: http://13.61.104.192:5000
 Upload Single: POST /api/upload/single
 Upload Multiple: POST /api/upload/multiple
 ```

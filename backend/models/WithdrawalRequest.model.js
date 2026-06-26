@@ -1,12 +1,12 @@
 /**
  * models/WithdrawalRequest.model.js
- * Aura Market — Withdrawal Request Schema
+ * Auradime — Withdrawal Request Schema
  *
  * Tracks all withdrawal requests from users and vendors.
- * Status flow: pending → approved (Eversend called) → failed | completed
- *              pending → rejected (no Eversend call)
+ * Status flow: pending → approved (gateway called) → failed | completed
+ *              pending → rejected (no gateway call)
  *
- * Balance is NEVER deducted until Eversend confirms success.
+ * Balance is reserved when a request is submitted and restored if rejected/failed.
  */
 
 const mongoose = require('mongoose');
@@ -46,7 +46,7 @@ const WithdrawalRequestSchema = new mongoose.Schema(
     amount: {
       type: Number,
       required: true,
-      min: [1000, 'Minimum withdrawal is 1,000 XAF'],
+      min: [500, 'Minimum withdrawal is 500 XAF'],
     },
     currency: {
       type: String,
@@ -73,7 +73,8 @@ const WithdrawalRequestSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ── Eversend Linkage ─────────────────────────
+    // ── Payout Gateway Linkage ───────────────────
+    payoutGateway: { type: String, enum: ['eversend', 'payunit', 'manual'], default: null },
     eversendTransactionId: { type: String, default: null },
     eversendQuotationToken: { type: String, default: null, select: false },
     eversendStatus: { type: String, default: null },

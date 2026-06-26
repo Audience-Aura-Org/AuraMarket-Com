@@ -17,9 +17,9 @@ const seedInteractions = async () => {
     console.log("Connected to MongoDB for seeding interactions...");
 
     // 1. Find participants
-    const customer = await User.findOne({ email: 'customer1@auramarket.com' });
-    const vendorUser = await User.findOne({ email: 'vendor1@auramarket.com' });
-    const logisticsUser = await User.findOne({ email: 'logistics1@auramarket.com' });
+    const customer = await User.findOne({ email: 'customer1@auradime.com' });
+    const vendorUser = await User.findOne({ email: 'vendor1@auradime.com' });
+    const logisticsUser = await User.findOne({ email: 'logistics1@auradime.com' });
 
     if (!customer || !vendorUser || !logisticsUser) {
       console.error("Missing seed users. Run seed.js first.");
@@ -35,7 +35,7 @@ const seedInteractions = async () => {
         logistics = await LogisticsCompany.create({
             user_id: logisticsUser._id,
             company_name: 'Logistics Alpha',
-            contact_email: 'logistics1@auramarket.com',
+            contact_email: 'logistics1@auradime.com',
             contact_phone: '+237600000001',
             service_regions: ['Douala', 'Yaounde'],
             is_verified: true,

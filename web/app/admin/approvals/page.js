@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { 
   Check, X, Eye, ShieldCheck, Loader2, 
   Package, Building2, User, FileText, AlertCircle, 
-  RefreshCw, Database, Zap, Activity, Clock, ExternalLink
+  RefreshCw, Database, Clock, Download, ExternalLink
 } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
@@ -15,12 +15,14 @@ import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export default function AdminApprovals() {
-  const [activeTab, setActiveTab] = useState('Vendors');
+  const [activeTab, setActiveTab] = useState('Verifications');
   const [mounted, setMounted] = useState(false);
   const [vendors, setVendors] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actioning, setActioning] = useState(null);
+  const [selectedKyc, setSelectedKyc] = useState(null);
+  const [kycStatusFilter, setKycStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -28,13 +30,13 @@ export default function AdminApprovals() {
     setMounted(true);
     fetchData();
     setCurrentPage(1);
-  }, [activeTab]);
+  }, [activeTab, kycStatusFilter]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      if (activeTab === 'Vendors') {
-        const res = await api.get('/admin/vendors/pending');
+      if (activeTab === 'Verifications') {
+        const res = await api.get('/admin/kyc/pending', { params: { status: kycStatusFilter } });
         if (res.data?.success) setVendors(res.data.data.submissions || []);
       } else {
         const res = await api.get('/admin/products/pending');
@@ -57,7 +59,9 @@ export default function AdminApprovals() {
       });
       if (res.data.success) {
         toast.success(`Vendor ${status} successfully`);
-        setVendors(prev => prev.filter(v => v._id !== kycId));
+        const updatedKyc = res.data.data?.kyc;
+        setVendors(prev => prev.map(v => v._id === kycId ? { ...v, ...(updatedKyc || {}), status } : v));
+        setSelectedKyc((current) => current?._id === kycId ? { ...current, ...(updatedKyc || {}), status } : current);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Verification shift failed');
@@ -81,9 +85,22 @@ export default function AdminApprovals() {
     }
   };
 
-  const currentData = activeTab === 'Vendors' ? vendors : products;
+  const downloadDocument = (url, filename) => {
+    if (!url) return toast.error('No submitted document available');
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename || 'kyc-document';
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  const currentData = activeTab === 'Verifications' ? vendors : products;
   const totalPages = Math.ceil(currentData.length / itemsPerPage);
   const pagedData = currentData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const documentLabel = (value) => value?.replace(/_/g, ' ') || 'Identity document';
 
   if (!mounted) return null;
 
@@ -106,7 +123,7 @@ export default function AdminApprovals() {
 
         <div className="flex items-center gap-4">
            <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
-              {['Vendors', 'Products'].map(tab => (
+              {['Verifications', 'Products'].map(tab => (
                 <button 
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -116,6 +133,20 @@ export default function AdminApprovals() {
                 </button>
               ))}
            </div>
+
+           {activeTab === 'Verifications' && (
+             <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
+                {['all', 'pending', 'approved', 'rejected'].map(status => (
+                  <button
+                    key={status}
+                    onClick={() => setKycStatusFilter(status)}
+                    className={`px-3 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-semibold tracking-tight transition-all capitalize ${kycStatusFilter === status ? 'bg-amber-500 text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                  >
+                    {status}
+                  </button>
+                ))}
+             </div>
+           )}
 
            <button onClick={fetchData} className="size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] flex items-center justify-center transition-all shadow-sm active:scale-95">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -127,7 +158,7 @@ export default function AdminApprovals() {
          {/* Live Stats */}
          <div className="grid grid-cols-4 gap-6">
             {[
-               { label: 'Pending Vendors', value: vendors.length, icon: Building2, color: 'var(--accent)', sub: 'KYC_QUEUE' },
+               { label: kycStatusFilter === 'all' ? 'Verification Records' : `${kycStatusFilter} Verifications`, value: vendors.length, icon: Building2, color: 'var(--accent)', sub: 'KYC_QUEUE' },
                { label: 'Pending Assets', value: products.length, icon: Package, color: '#6366f1', sub: 'PRODUCT_GATE' },
                { label: 'Wait Latency', value: '4.2h', icon: Clock, color: '#10b981', sub: 'SYNC_SPEED' },
                { label: 'Risk Profile', value: 'Minimal', icon: AlertCircle, color: '#fbbf24', sub: 'SAFETY_INDEX' }
@@ -180,7 +211,7 @@ export default function AdminApprovals() {
                           </tr>
                        </thead>
                        <tbody className="divide-y divide-[var(--glass-border)]/50">
-                          {activeTab === 'Vendors' ? pagedData.map(v => (
+                          {activeTab === 'Verifications' ? pagedData.map(v => (
                              <tr key={v._id} className="group hover:bg-[var(--accent)]/5 transition-all">
                                 <td className="px-10 py-6">
                                    <div className="flex items-center gap-4">
@@ -196,29 +227,58 @@ export default function AdminApprovals() {
                                 <td className="px-6 py-6">
                                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] capitalize">{v.user_id?.email}</p>
                                    <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 mt-1 capitalize flex items-center gap-1.5">
-                                      <FileText className="w-3 h-3" /> {v.id_type?.replace(/_/g, ' ') || 'IDENTITY_VERIF'}
+                                      <FileText className="w-3 h-3" /> {v.document_type?.replace(/_/g, ' ') || 'IDENTITY_VERIF'}
+                                   </p>
+                                   <p className="text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-30 mt-1 font-mono">
+                                      {v.document_number || 'NO_DOCUMENT_NUMBER'}
                                    </p>
                                 </td>
                                 <td className="px-6 py-6">
-                                   <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 text-[10px] lg:text-[12px]  font-semibold tracking-widest border border-amber-500/20 capitalize">
-                                      Pending Sync
+                                   <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-widest border capitalize ${
+                                      v.status === 'approved'
+                                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                                        : v.status === 'rejected'
+                                          ? 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                                          : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                                   }`}>
+                                      {v.status === 'approved' ? 'Approved' : v.status === 'rejected' ? 'Rejected' : 'Pending Sync'}
                                    </span>
                                 </td>
                                 <td className="px-10 py-6 text-right">
                                    <div className="flex items-center justify-end gap-2">
-                                      <button className="size-9 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] transition-all flex items-center justify-center shadow-sm">
+                                      <button
+                                         onClick={() => setSelectedKyc(v)}
+                                         className="size-9 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] transition-all flex items-center justify-center shadow-sm"
+                                         title="View submitted information and documents"
+                                      >
                                          <Eye className="w-4 h-4" />
                                       </button>
+                                      <button
+                                         onClick={() => downloadDocument(v.document_front_url, `${v.user_id?.name || 'user'}-kyc-front`)}
+                                         className="size-9 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] transition-all flex items-center justify-center shadow-sm"
+                                         title="Download submitted document"
+                                      >
+                                         <Download className="w-4 h-4" />
+                                      </button>
+                                      {v.document_back_url && (
+                                         <button
+                                            onClick={() => downloadDocument(v.document_back_url, `${v.user_id?.name || 'user'}-kyc-back`)}
+                                            className="size-9 rounded-xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] transition-all flex items-center justify-center shadow-sm"
+                                            title="Download back document"
+                                         >
+                                            <Download className="w-4 h-4" />
+                                         </button>
+                                      )}
                                       <button 
                                          onClick={() => handleReviewKYC(v._id, 'rejected')}
-                                         disabled={actioning === v._id}
+                                         disabled={actioning === v._id || v.status === 'rejected'}
                                          className="size-9 rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"
                                       >
                                          <X className="w-5 h-5" />
                                       </button>
                                       <button 
                                          onClick={() => handleReviewKYC(v._id, 'approved')}
-                                         disabled={actioning === v._id}
+                                         disabled={actioning === v._id || v.status === 'approved'}
                                          className="size-9 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-[var(--accent)]/20"
                                       >
                                          {actioning === v._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-5 h-5" />}
@@ -285,6 +345,155 @@ export default function AdminApprovals() {
                />
             </div>
          </div>
+      </div>
+
+      <AnimatePresence>
+        {selectedKyc && (
+          <motion.div
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 p-4 backdrop-blur-xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl"
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            >
+              <div className="flex items-center justify-between border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-6">
+                <div className="flex min-w-0 items-center gap-4">
+                  <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--accent)]">
+                    {selectedKyc.user_id?.avatar ? (
+                      <img src={selectedKyc.user_id.avatar} className="size-full object-cover" alt="" />
+                    ) : (
+                      <User className="size-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-base font-bold tracking-tight text-[var(--text-primary)]">
+                      {selectedKyc.vendor_id?.store_name || selectedKyc.user_id?.name || 'Verification submission'}
+                    </p>
+                    <p className="mt-1 truncate text-[11px] font-semibold text-[var(--text-secondary)] opacity-60">
+                      {selectedKyc.user_id?.email || 'No email provided'} · #{selectedKyc._id?.slice(-6).toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedKyc(null)}
+                  className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)] active:scale-95"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+
+              <div className="max-h-[calc(90vh-6rem)] overflow-y-auto p-6 md:p-8">
+                <div className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+                  <div className="space-y-4">
+                    <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-5">
+                      <p className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-50">Submitted information</p>
+                      <InfoRow label="Ident Node" value={selectedKyc.vendor_id?.store_name || selectedKyc.user_id?.name || 'Unknown'} />
+                      <InfoRow label="Email" value={selectedKyc.user_id?.email || 'Not provided'} />
+                      <InfoRow label="Legal name" value={selectedKyc.full_name || selectedKyc.user_id?.name || 'Not provided'} />
+                      <InfoRow label="Document type" value={documentLabel(selectedKyc.document_type)} />
+                      <InfoRow label="Document number" value={selectedKyc.document_number || 'Not provided'} />
+                      <InfoRow label="Protocol state" value={selectedKyc.status || 'pending'} />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => handleReviewKYC(selectedKyc._id, 'rejected')}
+                        disabled={actioning === selectedKyc._id}
+                        className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 text-[11px] font-bold text-rose-500 transition-all hover:bg-rose-500 hover:text-white disabled:opacity-50"
+                      >
+                        <X className="size-4" />
+                        {selectedKyc.status === 'rejected' ? 'Rejected' : 'Reject'}
+                      </button>
+                      <button
+                        onClick={() => handleReviewKYC(selectedKyc._id, 'approved')}
+                        disabled={actioning === selectedKyc._id}
+                        className="flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 text-[11px] font-bold text-white shadow-lg shadow-[var(--accent)]/20 transition-all hover:brightness-110 disabled:opacity-50"
+                      >
+                        {actioning === selectedKyc._id ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                        {selectedKyc.status === 'approved' ? 'Approved' : 'Approve'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <DocumentPanel
+                      title="Front document"
+                      url={selectedKyc.document_front_url}
+                      filename={`${selectedKyc.user_id?.name || 'user'}-kyc-front`}
+                      onDownload={downloadDocument}
+                    />
+                    <DocumentPanel
+                      title="Back document"
+                      url={selectedKyc.document_back_url}
+                      filename={`${selectedKyc.user_id?.name || 'user'}-kyc-back`}
+                      onDownload={downloadDocument}
+                    />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-[var(--glass-border)]/60 py-3 last:border-b-0">
+      <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-45">{label}</span>
+      <span className="max-w-[60%] text-right text-[11px] font-bold capitalize tracking-tight text-[var(--text-primary)]">{value}</span>
+    </div>
+  );
+}
+
+function DocumentPanel({ title, url, filename, onDownload }) {
+  const isPdf = /\.pdf($|\?)/i.test(url || '');
+
+  return (
+    <div className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--glass-border)] p-4">
+        <p className="text-[11px] font-bold tracking-tight text-[var(--text-primary)]">{title}</p>
+        {url && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onDownload(url, filename)}
+              className="flex size-8 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-all hover:text-[var(--accent)]"
+              title="Download document"
+            >
+              <Download className="size-3.5" />
+            </button>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex size-8 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-all hover:text-[var(--accent)]"
+              title="Open document"
+            >
+              <ExternalLink className="size-3.5" />
+            </a>
+          </div>
+        )}
+      </div>
+      <div className="flex aspect-[4/3] items-center justify-center bg-[var(--bg-primary)]/60">
+        {!url ? (
+          <div className="px-6 text-center">
+            <FileText className="mx-auto mb-3 size-8 text-[var(--text-secondary)] opacity-25" />
+            <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-50">No document submitted</p>
+          </div>
+        ) : isPdf ? (
+          <iframe src={url} title={title} className="h-full w-full" />
+        ) : (
+          <img src={url} alt={title} className="h-full w-full object-contain" />
+        )}
       </div>
     </div>
   );

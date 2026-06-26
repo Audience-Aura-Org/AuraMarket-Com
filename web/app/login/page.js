@@ -1,47 +1,26 @@
 "use client";
 
-import Link from 'next/link';
 import UnifiedAuth from '@/components/auth/UnifiedAuth';
+import AuthLanguageHeader from '@/components/auth/AuthLanguageHeader';
 
 export default function LoginPage() {
   return (
-    <div className="bg-[var(--bg-secondary)] text-[var(--text-primary)] min-h-screen relative overflow-x-hidden flex flex-col transition-colors duration-500">
-      {/* Dynamic Background Elements */}
+    <div className="relative isolate flex min-h-screen flex-col overflow-x-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500">
       <div className="fixed inset-0 -z-10 bg-[var(--bg-secondary)] opacity-10 pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[var(--accent)]/10 via-transparent to-[var(--accent-light)]/10" />
+        <div className="absolute left-0 top-0 h-full w-full bg-gradient-to-br from-[var(--accent)]/10 via-transparent to-[var(--accent-light)]/10" />
       </div>
-      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[var(--accent)]/10 rounded-full blur-[120px] -z-10 animate-pulse pointer-events-none"></div>
-      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--accent)]/10 rounded-full blur-[120px] -z-10 animation-delay-2000 pointer-events-none"></div>
+      <div className="fixed left-[-10%] top-[-10%] -z-10 size-[40%] animate-pulse rounded-full bg-[var(--accent)]/10 blur-[120px] pointer-events-none" />
+      <div className="fixed bottom-[-10%] right-[-10%] -z-10 size-[40%] rounded-full bg-[var(--accent)]/10 blur-[120px] animation-delay-2000 pointer-events-none" />
 
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 lg:px-12 py-6 bg-transparent">
-        <Link href="/" className="flex items-center gap-3 group">
-          <img
-            src="/icon-512.png"
-            alt="Aura Market"
-            className="h-10 w-auto object-contain group-hover:scale-110 transition-transform"
-          />
-          <h1 className="text-xl  font-bold tracking-tighter text-[var(--text-primary)]">
-            Aura<span className="text-[var(--accent)]">Market</span>
-          </h1>
-        </Link>
-      </header>
-      
-      {/* Unified Auth Hub */}
-      <main className="flex-1 flex items-center justify-center p-6 relative z-10">
-        <UnifiedAuth />
-      </main>
+      <AuthLanguageHeader />
 
-      {/* Simplified Footer */}
-      <footer className="px-6 py-8 border-t border-[var(--glass-border)]/10 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-6">
-          <Link href="/terms" className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">Terms</Link>
-          <Link href="/privacy" className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">Privacy</Link>
+      <div className="h-[calc(4.5rem+env(safe-area-inset-top,0px))] shrink-0" aria-hidden="true" />
+
+      <main className="relative z-10 flex flex-1 items-center justify-center px-6 pb-6 pt-2">
+        <div className="flex w-full flex-col items-center gap-6">
+          <UnifiedAuth />
         </div>
-        <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">
-          {/* Identity Metadata Removed */}
-        </p>
-      </footer>
+      </main>
     </div>
   );
 }

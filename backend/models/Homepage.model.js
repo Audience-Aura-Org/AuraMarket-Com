@@ -1,6 +1,6 @@
 /**
  * models/Homepage.model.js
- * Aura Market — Homepage Configurations
+ * Auradime — Homepage Configurations
  *
  * Stores dynamic layouts directly controllable by Administrators.
  * e.g., Top hero banners, explicit ordering of "Featured Products".
@@ -17,7 +17,7 @@ const HomepageSchema = new mongoose.Schema(
     },
     hero_banners: [
       {
-        image_url: { type: String, required: true }, // Cloudinary link
+        image_url: { type: String, required: true },
         link_to: { type: String }, // e.g., "/categories/electronics" or "/stores/123"
         is_active: { type: Boolean, default: true },
         display_order: { type: Number, default: 0 },

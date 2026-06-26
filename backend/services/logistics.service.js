@@ -1,6 +1,6 @@
 /**
  * services/logistics.service.js
- * Aura Market — Logistics Module Service
+ * Auradime — Logistics Module Service
  *
  * Handles tracking generation, firm filtering, and automated shipment splitting.
  */
@@ -10,6 +10,7 @@ const LogisticsCompany = require('../models/LogisticsCompany.model');
 const Vendor = require('../models/Vendor.model');
 const Order = require('../models/Order.model');
 const mongoose = require('mongoose');
+const { escapeRegExp } = require('../middleware/security.middleware');
 
 /**
  * Generates a unique tracking code in the format AURA-XXXXXX
@@ -38,14 +39,14 @@ const getCompatibleFirms = async (quartier, vendorIds) => {
 
   // 2. Find information about the target zone (case-insensitive)
   const LogisticZone = require('../models/LogisticZone.model');
-  const targetZone = await LogisticZone.findOne({ name: new RegExp(`^${quartier}$`, 'i') }).populate('parent_id');
+  const targetZone = await LogisticZone.findOne({ name: new RegExp(`^${escapeRegExp(quartier)}$`, 'i') }).populate('parent_id');
   const districtName = targetZone?.parent_id?.name;
 
   // 3. Find firms that:
   // - Are verified
   // - Have a price defined for the specific quartier OR its parent district (case-insensitive)
-  const quartierPattern  = new RegExp(`^${quartier}$`, 'i');
-  const districtPattern  = districtName ? new RegExp(`^${districtName}$`, 'i') : null;
+  const quartierPattern  = new RegExp(`^${escapeRegExp(quartier)}$`, 'i');
+  const districtPattern  = districtName ? new RegExp(`^${escapeRegExp(districtName)}$`, 'i') : null;
 
   const query = {
     is_verified: true,
@@ -65,15 +66,7 @@ const getCompatibleFirms = async (quartier, vendorIds) => {
     query.$or.push({ supported_pickup_regions: { $size: 0 } });
   }
 
-  let firms = await LogisticsCompany.find(query).populate('user_id', 'name email avatar branding');
-  
-  // FALLBACK: If no strictly compatible firms found, return all verified firms 
-  // to prevent checkout blockage.
-  if (firms.length === 0) {
-    firms = await LogisticsCompany.find({ is_verified: true }).populate('user_id', 'name email avatar branding');
-  }
-
-  return firms;
+  return LogisticsCompany.find(query).populate('user_id', 'name email avatar branding');
 };
 
 /**
@@ -87,7 +80,7 @@ const calculateShipmentFees = async (vendors, quartier, logisticsId) => {
   
   if (!quartierPrice) {
     const LogisticZone = require('../models/LogisticZone.model');
-    const targetZone = await LogisticZone.findOne({ name: new RegExp(`^${quartier}$`, 'i') }).populate('parent_id');
+    const targetZone = await LogisticZone.findOne({ name: new RegExp(`^${escapeRegExp(quartier)}$`, 'i') }).populate('parent_id');
     const districtName = targetZone?.parent_id?.name;
     if (districtName) {
       quartierPrice = firm.quartier_prices.find(p => p.quartier.toLowerCase() === districtName.toLowerCase());

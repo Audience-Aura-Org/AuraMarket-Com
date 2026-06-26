@@ -1,7 +1,8 @@
 {
-  "name": "Aura Market",
+  "name": "Auradime",
   "short_name": "Aura",
-  "description": "Premium Multi-Vendor Platform with Liquid-Glass Aesthetics.",
+  "description": "Shop quality digital and physical products from trusted sellers in Cameroon and Africa.",
+  "id": "/",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a050a",
@@ -27,14 +28,14 @@
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Aura Market — Premium Shopping"
+      "label": "Auradime — Premium Shopping"
     },
     {
       "src": "/icon-512.png?v=8",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Aura Market — Mobile Experience"
+      "label": "Auradime — Mobile Experience"
     }
   ],
   "orientation": "portrait"

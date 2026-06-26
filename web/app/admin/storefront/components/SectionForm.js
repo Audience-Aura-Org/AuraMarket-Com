@@ -1,14 +1,18 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
-import { 
+import {
   X, Save, Plus, Trash2, Image, List, 
   Settings, Clock, Upload, Search, 
   Check, ChevronDown, Package, ExternalLink, Store
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function SectionForm({ section, onClose, onSuccess }) {
+  const { t } = useLanguage();
   const isEdit = !!section;
   const [formData, setFormData] = useState({
     type: 'hero',
@@ -45,6 +49,11 @@ export default function SectionForm({ section, onClose, onSuccess }) {
   const [vendorSearch, setVendorSearch] = useState('');
   const [activeVendorDropdown, setActiveVendorDropdown] = useState(null);
   const [itemVendorResults, setItemVendorResults] = useState([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (section) {
@@ -55,8 +64,11 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         image_url: item.image_url || '',
         link_to: item.link_to || '',
         cta_text: item.cta_text || '',
+        product_name: item.product_name || (typeof item.product_id === 'object' ? item.product_id?.name || '' : ''),
         product_id: item.product_id ? (typeof item.product_id === 'object' ? item.product_id._id : item.product_id) : '',
+        category_id: item.category_id ? (typeof item.category_id === 'object' ? item.category_id._id : item.category_id) : '',
         category_name: item.category_name || '',
+        vendor_name: item.vendor_name || (typeof item.vendor_id === 'object' ? item.vendor_id?.store_name || '' : ''),
         vendor_id: item.vendor_id ? (typeof item.vendor_id === 'object' ? item.vendor_id._id : item.vendor_id) : ''
       }));
 
@@ -148,7 +160,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         updateDataItem(index, 'image_url', res.data.url);
       }
     } catch (err) {
-      alert('Upload failed');
+      toast.error('Upload failed');
     } finally {
       setUploadingIndex(null);
     }
@@ -173,11 +185,15 @@ export default function SectionForm({ section, onClose, onSuccess }) {
           if (cleaned.product_id && typeof cleaned.product_id === 'object') {
             cleaned.product_id = cleaned.product_id._id;
           }
+          if (cleaned.category_id && typeof cleaned.category_id === 'object') {
+            cleaned.category_id = cleaned.category_id._id;
+          }
           if (cleaned.vendor_id && typeof cleaned.vendor_id === 'object') {
             cleaned.vendor_id = cleaned.vendor_id._id;
           }
 
           if (!cleaned.product_id || (typeof cleaned.product_id === 'string' && cleaned.product_id.trim() === '')) delete cleaned.product_id;
+          if (!cleaned.category_id || (typeof cleaned.category_id === 'string' && cleaned.category_id.trim() === '')) delete cleaned.category_id;
           if (!cleaned.vendor_id || (typeof cleaned.vendor_id === 'string' && cleaned.vendor_id.trim() === '')) delete cleaned.vendor_id;
           return cleaned;
         })
@@ -189,11 +205,12 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         await api.post('/homepage/admin/sections', sanitizedPayload);
       }
       
+      toast.success(isEdit ? 'Section updated.' : 'Section published.');
       onSuccess();
     } catch (err) {
       console.error('Save Error:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Check your data fields and try again.';
-      alert(`Error saving section: ${errorMessage}`);
+      toast.error(`Error saving section: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -202,7 +219,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
   const addDataItem = () => {
     setFormData(prev => ({
       ...prev,
-      data: [...prev.data, { headline: '', subtext: '', image_url: '', link_to: '', cta_text: '', product_id: '', category_name: '', vendor_id: '' }]
+      data: [...prev.data, { headline: '', subtext: '', image_url: '', link_to: '', cta_text: '', product_name: '', product_id: '', category_id: '', category_name: '', vendor_name: '', vendor_id: '' }]
     }));
   };
 
@@ -214,54 +231,66 @@ export default function SectionForm({ section, onClose, onSuccess }) {
   };
 
   const updateDataItem = (index, field, value) => {
-    const newData = [...formData.data];
-    newData[index][field] = value;
-    setFormData(prev => ({ ...prev, data: newData }));
+    setFormData(prev => ({
+      ...prev,
+      data: prev.data.map((item, i) => (
+        i === index ? { ...item, [field]: value } : item
+      ))
+    }));
+  };
+
+  const updateDataItemFields = (index, fields) => {
+    setFormData(prev => ({
+      ...prev,
+      data: prev.data.map((item, i) => (
+        i === index ? { ...item, ...fields } : item
+      ))
+    }));
   };
 
   const filteredCategories = categories.filter(cat => 
     cat.name.toLowerCase().includes(categorySearch.toLowerCase())
   );
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-12">
-      <div className="absolute inset-0 bg-[#0a050a]/90 backdrop-blur-xl" onClick={onClose} />
+  const editorOverlay = (
+    <div className="fixed inset-0 z-[9999] flex items-stretch justify-stretch p-0">
+      <div className="absolute inset-0 bg-black/55 backdrop-blur-md" onClick={onClose} />
       
-      <div className="relative w-full max-w-5xl max-h-full bg-[var(--bg-primary)] rounded-[3rem] border border-[var(--glass-border)] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-300">
+      <div className="relative flex h-[100dvh] w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-[var(--bg-primary)] shadow-2xl animate-in fade-in duration-200">
         {/* Product Lookup Overlay */}
         {showProductLookup && (
-          <div className="absolute inset-0 z-[60] bg-[var(--bg-secondary)]/95 backdrop-blur-md p-10 flex flex-col items-center">
-            <button onClick={() => setShowProductLookup(false)} className="absolute top-8 right-8 p-4 hover:bg-white/10 rounded-full transition-all">
-              <X className="w-8 h-8" />
+          <div className="absolute inset-0 z-[60] flex flex-col bg-[var(--bg-secondary)]/95 p-4 backdrop-blur-md sm:p-6">
+            <button onClick={() => setShowProductLookup(false)} className="absolute right-4 top-4 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 transition-all hover:text-[var(--accent)]">
+              <X className="size-5" />
             </button>
-            <div className="w-full max-w-2xl space-y-6 mt-10">
-              <div className="text-center space-y-2">
-                <h3 className="text-3xl  font-bold text-[var(--text-primary)]">Product Lookup</h3>
-                <p className="text-[var(--text-secondary)] font-medium">Search for products to copy their unique IDs.</p>
+            <div className="mx-auto mt-10 w-full max-w-4xl space-y-4">
+              <div className="space-y-1">
+                <h3 className="text-xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-2xl">{t('products.productLookup', 'Product Lookup')}</h3>
+                <p className="text-xs font-medium text-[var(--text-secondary)]">{t('products.lookupHelp', 'Search products and copy their unique IDs.')}</p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-2">
                 <input 
                   autoFocus
-                  placeholder="Search by name, brand, or category..."
-                  className="flex-1 bg-[var(--bg-primary)] border border-[var(--glass-border)] px-6 py-4 rounded-2xl  font-bold focus:border-[var(--accent)] outline-none"
+                  placeholder={t('products.searchByNameBrandCategory', 'Search by name, brand, or category...')}
+                  className="h-12 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 !text-base font-semibold outline-none placeholder:!text-base focus:border-[var(--accent)]"
                   value={productSearchQuery}
                   onChange={(e) => setProductSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && searchProducts()}
                 />
                 <button 
                   onClick={searchProducts}
-                  className="bg-[var(--accent)] text-white px-8 rounded-2xl  font-bold flex items-center gap-2"
+                  className="flex h-12 items-center gap-2 rounded-xl bg-[var(--accent)] px-5 font-semibold text-white"
                 >
                   <Search className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="max-h-[50vh] overflow-y-auto space-y-3 no-scrollbar pr-2">
+              <div className="max-h-[calc(100dvh-210px)] space-y-3 overflow-y-auto pr-1 no-scrollbar">
                 {productSearchResults.map(product => (
                   <div key={product._id} className="glass-panel p-4 rounded-2xl border border-[var(--glass-border)] flex items-center justify-between group">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
-                        <img src={product.images?.[0] || '/placeholder.png'} className="w-full h-full object-cover" />
+                      <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
+                        <img src={product.images?.[0]?.url || product.images?.[0] || '/placeholder.png'} className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <h4 className=" font-bold text-[var(--text-primary)]">{product.name}</h4>
@@ -274,17 +303,19 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                     <button 
                       onClick={() => {
                         navigator.clipboard.writeText(product._id);
-                        alert('Product ID Copied!');
+                        toast.success(t('products.idCopied', 'Product ID copied'));
                         setShowProductLookup(false);
                       }}
-                      className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-2"
+                      className="flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-2 text-[11px] font-semibold tracking-tight text-[var(--text-primary)] transition-all hover:bg-[var(--accent)] hover:text-white lg:text-[12px]"
                     >
-                      <Package className="w-3.5 h-3.5" /> Select ID
+                      <Package className="w-3.5 h-3.5" /> {t('products.selectId', 'Select ID')}
                     </button>
                   </div>
                 ))}
                 {!isSearchingProducts && productSearchResults.length === 0 && productSearchQuery && (
-                  <div className="text-center py-10 opacity-40">No products found for "{productSearchQuery}"</div>
+                  <div className="text-center py-10 opacity-40">
+                    {t('products.noProductsFoundFor', 'No products found for "{query}"', { query: productSearchQuery })}
+                  </div>
                 )}
                 {isSearchingProducts && (
                   <div className="flex justify-center py-10">
@@ -297,104 +328,113 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         )}
 
         {/* Header */}
-        <div className="p-8 border-b border-[var(--glass-border)] flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="text-3xl  font-bold text-[var(--text-primary)]">
+        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3 sm:px-6">
+          <div className="min-w-0 space-y-1">
+            <h2 className="truncate text-lg font-semibold tracking-tight text-[var(--text-primary)] sm:text-2xl">
               {isEdit ? 'Edit Section' : 'Create Section'}
             </h2>
-            <p className="text-sm text-[var(--text-secondary)] font-medium tracking-tight">
-              Configuring storefront layout block
+            <p className="text-[11px] font-medium text-[var(--text-secondary)] sm:text-xs">
+              Configure the storefront block and its content.
             </p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex shrink-0 items-center gap-2">
             <button 
               type="button"
               onClick={() => setShowProductLookup(true)}
-              className="bg-[var(--accent)]/10 text-[var(--accent)] px-4 py-2.5 rounded-xl  font-semibold flex items-center gap-2 text-[10px] lg:text-[12px] tracking-tight border border-[var(--accent)]/30 hover:bg-[var(--accent)]/20 transition-all"
+              className="hidden items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 py-2 text-[11px] font-semibold text-[var(--accent)] transition-all hover:bg-[var(--accent)]/20 sm:flex"
             >
-              <Package className="w-4 h-4" /> Product ID Lookup
+              <Package className="size-4" /> {t('products.productLookup', 'Product Lookup')}
             </button>
-            <button onClick={onClose} className="p-3 hover:bg-white/5 rounded-full transition-colors">
-              <X className="w-8 h-8 opacity-40 hover:opacity-100" />
+            <button onClick={onClose} className="flex size-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] transition-colors hover:text-[var(--accent)]">
+              <X className="size-5" />
             </button>
           </div>
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 space-y-12 no-scrollbar">
+        <form onSubmit={handleSubmit} className="flex-1 space-y-6 overflow-y-auto bg-[var(--bg-secondary)]/35 p-3 no-scrollbar sm:p-5 lg:p-6">
           {/* Basic Config */}
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm md:grid-cols-2 sm:p-5">
             <div className="space-y-2">
-              <label className="text-xs  font-bold tracking-tight opacity-40 ml-1">Section Type</label>
+              <label className="ml-1 text-[11px] font-semibold text-[var(--text-secondary)]">Section Type</label>
               <div className="relative">
                 <select 
                   value={formData.type}
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value, data: [] }))}
-                  className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-6 py-4 rounded-2xl  font-bold text-white focus:border-[var(--accent)] outline-none appearance-none cursor-pointer"
+                  className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
                 >
-                  <option value="hero" className="bg-[#120a12]">Hero Banner Carousel</option>
-                  <option value="categories" className="bg-[#120a12]">Category Horizontal List</option>
-                  <option value="featured_products" className="bg-[#120a12]">Featured Products Grid</option>
-                  <option value="trending" className="bg-[#120a12]">Trending Products</option>
-                  <option value="promo_banner" className="bg-[#120a12]">Promo Large Banner</option>
-                  <option value="stores" className="bg-[#120a12]">Vendor Highlights</option>
-                  <option value="collection" className="bg-[#120a12]">Product Collection</option>
-                  <option value="recommendations" className="bg-[#120a12]">Personalization Block</option>
+                  <option value="hero" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Hero Banner Carousel</option>
+                  <option value="categories" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Category Horizontal List</option>
+                  <option value="featured_products" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Featured Products Grid</option>
+                  <option value="trending" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Trending Products</option>
+                  <option value="promo_banner" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Promo Large Banner</option>
+                  <option value="stores" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Vendor Highlights</option>
+                  <option value="collection" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Product Collection</option>
+                  <option value="recommendations" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Personalization Block</option>
                 </select>
                 <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-5 h-5 opacity-20 pointer-events-none" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs  font-bold tracking-tight opacity-40 ml-1">Display Title</label>
+              <label className="ml-1 text-[11px] font-semibold text-[var(--text-secondary)]">Display Title</label>
               <input 
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="e.g. Best Sellers"
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-6 py-4 rounded-2xl  font-bold text-[var(--text-primary)] focus:border-[var(--accent)] outline-none"
+                className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
               />
             </div>
           </div>
 
           {/* Section Specific Data Items */}
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl  font-bold text-[var(--text-primary)] flex items-center gap-3">
-                <List className="w-6 h-6 text-[var(--accent)]" /> 
-                Section Content Items
+          <div className="space-y-3">
+            <div className="flex items-center justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm">
+              <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+                <List className="size-4 text-[var(--accent)]" />
+                Content items
               </h3>
               <button 
                 type="button"
                 onClick={addDataItem}
-                className="text-xs  font-bold tracking-tight text-[var(--accent)] flex items-center gap-2 hover:opacity-80"
+                className="flex items-center gap-2 rounded-xl bg-[var(--accent)] px-3 py-2 text-[11px] font-semibold text-white transition active:scale-[0.98]"
               >
-                <Plus className="w-4 h-4" /> Add Item
+                <Plus className="size-4" /> Add item
               </button>
             </div>
 
-            <div className="grid gap-6">
+            <div className="grid gap-3">
               {formData.data.map((item, i) => (
-                <div key={i} className="glass-panel p-6 rounded-3xl border border-[var(--glass-border)] relative group/item">
+                <div key={i} className="group/item relative rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
                   <button 
                     type="button"
                     onClick={() => removeDataItem(i)}
-                    className="absolute -top-3 -right-3 w-10 h-10 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity shadow-lg z-20"
+                    className="absolute right-3 top-3 z-20 flex size-9 items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-500 transition hover:bg-rose-500 hover:text-white"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="size-4" />
                   </button>
 
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="mb-4 flex items-center gap-2 pr-12">
+                    <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-1 text-[10px] font-semibold text-[var(--text-secondary)]">
+                      Item {i + 1}
+                    </span>
+                    <span className="truncate text-[11px] font-medium text-[var(--text-secondary)]">
+                      {item.headline || item.category_name || item.product_name || item.vendor_name || 'New content item'}
+                    </span>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
                     {(['hero', 'promo_banner', 'categories'].includes(formData.type)) && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Image URL / Upload</label>
+                         <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Image URL / Upload</label>
                          <div className="flex gap-2">
                            <input 
                              value={item.image_url}
                              onChange={(e) => updateDataItem(i, 'image_url', e.target.value)}
-                             className="flex-1 bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm"
-                             placeholder="Cloudinary or external URL"
+                             className="h-11 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
+                             placeholder="Image URL"
                            />
-                           <label className="cursor-pointer bg-[var(--accent)]/10 text-[var(--accent)] p-3 rounded-xl border border-[var(--accent)]/20 hover:bg-[var(--accent)]/20 transition-all flex items-center justify-center min-w-[50px]">
+                           <label className="flex min-w-[46px] cursor-pointer items-center justify-center rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 p-3 text-[var(--accent)] transition-all hover:bg-[var(--accent)]/20">
                               {uploadingIndex === i ? (
                                 <div className="w-5 h-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
                               ) : (
@@ -408,33 +448,44 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                               />
                            </label>
                          </div>
+                         {item.image_url && (
+                           <div className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-2">
+                             <div className="size-16 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-primary)]">
+                               <img src={item.image_url} alt="Section image preview" className="size-full object-cover" />
+                             </div>
+                             <div className="min-w-0">
+                               <p className="text-[11px] font-semibold text-[var(--text-primary)]">Image preview</p>
+                               <p className="truncate text-[10px] font-medium text-[var(--text-secondary)]">{item.image_url}</p>
+                             </div>
+                           </div>
+                         )}
                       </div>
                     )}
 
                     {(['hero', 'promo_banner'].includes(formData.type)) && (
                       <>
                         <div className="space-y-2">
-                          <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Headline</label>
+                          <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Headline</label>
                           <input 
                             value={item.headline}
                             onChange={(e) => updateDataItem(i, 'headline', e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm"
+                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Subtext</label>
+                          <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Subtext</label>
                           <input 
                             value={item.subtext}
                             onChange={(e) => updateDataItem(i, 'subtext', e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm"
+                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
                           />
                         </div>
                         <div className="space-y-2 md:col-span-2">
-                          <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">CTA Button Text (Optional)</label>
+                          <label className="text-[11px] font-semibold text-[var(--text-secondary)]">CTA Button Text (Optional)</label>
                           <input 
                             value={item.cta_text}
                             onChange={(e) => updateDataItem(i, 'cta_text', e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm"
+                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
                             placeholder="e.g. Shop Now, Explore, Get Started"
                           />
                         </div>
@@ -443,11 +494,11 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(['featured_products', 'collection', 'trending'].includes(formData.type)) && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Search & Select Product</label>
+                         <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Search & Select Product</label>
                          <div className="relative" ref={activeProductDropdown === i ? dropdownRef : null}>
                             <div className="relative">
                                <input 
-                                 value={activeProductDropdown === i ? productSearch : (typeof item.product_id === 'object' ? item.product_id?.name : (item.product_name || item.product_id || ''))}
+                                 value={activeProductDropdown === i ? productSearch : (item.product_name || (typeof item.product_id === 'object' ? item.product_id?.name : ''))}
                                  onChange={(e) => {
                                    setActiveProductDropdown(i);
                                    handleItemProductSearch(e.target.value);
@@ -457,14 +508,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                    setProductSearch('');
                                    setItemProductResults([]);
                                  }}
-                                 className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm pr-10"
+                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)]"
                                  placeholder="Search products by name..."
                                />
                                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-20" />
                             </div>
 
                             {activeProductDropdown === i && itemProductResults.length > 0 && (
-                               <div className="absolute top-full left-0 right-0 mt-2 bg-[#120a12] border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] p-2 space-y-1 animate-in fade-in slide-in-from-top-2 overflow-hidden">
+                               <div className="absolute top-full left-0 right-0 mt-2 z-[100] space-y-1 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-[0_20px_50px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2">
                                   <div className="max-h-60 overflow-y-auto no-scrollbar">
                                      {itemProductResults.map(p => (
                                        <div 
@@ -477,14 +528,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                            setFormData(prev => ({ ...prev, data: newData }));
                                            setActiveProductDropdown(null);
                                          }}
-                                         className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 group"
+                                         className="group flex cursor-pointer items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors hover:border-[var(--glass-border)] hover:bg-[var(--bg-secondary)]"
                                        >
-                                         <div className="w-10 h-10 rounded-lg bg-white/5 flex-shrink-0 border border-white/10 overflow-hidden">
+                                         <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
                                             <img src={p.images?.[0]?.url || p.images?.[0]} className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform" />
                                          </div>
                                          <div className="min-w-0">
-                                            <p className="text-sm  font-bold text-white truncate">{p.name}</p>
-                                            <p className="text-[10px] lg:text-[12px] text-white/40 font-mono truncate">{p._id}</p>
+                                            <p className="truncate text-sm font-bold text-[var(--text-primary)]">{p.name}</p>
+                                            <p className="truncate font-mono text-[10px] text-[var(--text-secondary)] lg:text-[12px]">{p._id}</p>
                                          </div>
                                        </div>
                                      ))}
@@ -492,10 +543,12 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                </div>
                             )}
                          </div>
-                         {item.product_id && typeof item.product_id !== 'object' && (
+                         {item.product_id && (
                            <div className="px-4 py-1.5 bg-[var(--accent)]/5 rounded-lg border border-[var(--accent)]/10 inline-flex items-center gap-2">
                              <Package className="w-3 h-3 text-[var(--accent)]" />
-                             <span className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)]">ID: {item.product_id}</span>
+                             <span className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)]">
+                               Selected product: {item.product_name || (typeof item.product_id === 'object' ? item.product_id?.name : '') || 'Product selected'}
+                             </span>
                            </div>
                          )}
                       </div>
@@ -503,29 +556,29 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(['categories'].includes(formData.type)) && (
                       <div className="space-y-2">
-                         <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Category Selection</label>
+                         <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Category Selection</label>
                          <div className="relative" ref={activeCategoryDropdown === i ? dropdownRef : null}>
                             <div 
                               onClick={() => {
                                 setActiveCategoryDropdown(activeCategoryDropdown === i ? null : i);
                                 setCategorySearch('');
                               }}
-                              className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm flex items-center justify-between cursor-pointer hover:border-white/20 transition-all"
+                              className="flex h-11 w-full cursor-pointer items-center justify-between rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base transition-all hover:border-[var(--accent)]/40"
                             >
-                              <span className={item.category_name ? 'text-white' : 'opacity-40'}>
+                              <span className={item.category_name ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}>
                                 {item.category_name || 'Select Category'}
                               </span>
                               <ChevronDown className="w-4 h-4 opacity-40" />
                             </div>
 
                             {activeCategoryDropdown === i && (
-                               <div className="absolute top-full left-0 right-0 mt-2 bg-[#120a12] border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] p-2 space-y-2 animate-in fade-in slide-in-from-top-2">
+                               <div className="absolute top-full left-0 right-0 mt-2 z-[100] space-y-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-[0_20px_50px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2">
                                   <div className="relative">
                                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40" />
                                       <input 
                                         autoFocus
                                         placeholder="Filter categories..."
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs outline-none focus:border-[var(--accent)] text-white  font-bold"
+                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 !text-base font-bold text-[var(--text-primary)] outline-none placeholder:!text-base placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
                                         value={categorySearch}
                                         onChange={(e) => setCategorySearch(e.target.value)}
                                       />
@@ -535,10 +588,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                        <div 
                                          key={cat._id}
                                          onClick={() => {
-                                           updateDataItem(i, 'category_name', cat.name);
+                                           updateDataItemFields(i, {
+                                             category_name: cat.name,
+                                             category_id: cat._id,
+                                             link_to: `/shop?category=${encodeURIComponent(cat.name)}&categoryId=${encodeURIComponent(cat._id)}`
+                                           });
                                            setActiveCategoryDropdown(null);
                                          }}
-                                         className={`flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer transition-all border border-transparent ${item.category_name === cat.name ? 'bg-[var(--accent)] text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'}`}
+                                         className={`flex cursor-pointer items-center justify-between rounded-xl border border-transparent px-4 py-3 transition-all ${item.category_name === cat.name ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}`}
                                        >
                                          <span className="text-xs  font-bold">{cat.name}</span>
                                          {item.category_name === cat.name && <Check className="w-4 h-4" />}
@@ -555,13 +612,13 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                     )}
 
                      <div className="space-y-2">
-                        <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Link Destination</label>
+                        <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Link Destination</label>
                         <div className="relative" ref={activeLinkDropdown === i ? dropdownRef : null}>
                            <div className="flex gap-2">
                               <input 
                                 value={item.link_to}
                                 onChange={(e) => updateDataItem(i, 'link_to', e.target.value)}
-                                className="flex-1 bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm"
+                                className="h-11 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
                                 placeholder="/categories/tech"
                               />
                               <button 
@@ -570,7 +627,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                   setActiveLinkDropdown(activeLinkDropdown === i ? null : i);
                                   setCategorySearch('');
                                 }}
-                                className="bg-white/5 border border-white/10 p-3 rounded-xl hover:bg-white/10 transition-all text-[var(--accent)]"
+                                className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-3 text-[var(--accent)] transition-all hover:bg-[var(--accent)]/10"
                                 title="Pick from Categories"
                               >
                                 <List className="w-5 h-5" />
@@ -578,13 +635,13 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                            </div>
 
                            {activeLinkDropdown === i && (
-                               <div className="absolute top-full left-0 right-0 mt-2 bg-[#120a12] border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] p-2 space-y-2 animate-in fade-in slide-in-from-top-2">
+                               <div className="absolute top-full left-0 right-0 mt-2 z-[100] space-y-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-[0_20px_50px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2">
                                   <div className="relative">
-                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-40 text-white" />
+                                     <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-secondary)] opacity-60" />
                                       <input 
                                         autoFocus
                                         placeholder="Search category to link..."
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs outline-none focus:border-[var(--accent)] text-white  font-bold"
+                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 !text-base font-bold text-[var(--text-primary)] outline-none placeholder:!text-base placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
                                         value={categorySearch}
                                         onChange={(e) => setCategorySearch(e.target.value)}
                                       />
@@ -595,7 +652,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                          updateDataItem(i, 'link_to', '/shop');
                                          setActiveLinkDropdown(null);
                                        }}
-                                       className="flex items-center px-4 py-3 rounded-xl cursor-pointer hover:bg-white/10 text-xs text-[var(--accent)]  font-bold tracking-tight transition-all"
+                                       className="flex cursor-pointer items-center rounded-xl px-4 py-3 text-xs font-bold tracking-tight text-[var(--accent)] transition-all hover:bg-[var(--accent)]/10"
                                      >
                                         [ Generic Shop Page ]
                                      </div>
@@ -603,10 +660,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                        <div 
                                          key={cat._id}
                                          onClick={() => {
-                                           updateDataItem(i, 'link_to', `/shop?category=${encodeURIComponent(cat.name)}`);
+                                           updateDataItemFields(i, {
+                                             link_to: `/shop?category=${encodeURIComponent(cat.name)}&categoryId=${encodeURIComponent(cat._id)}`,
+                                             category_name: cat.name,
+                                             category_id: cat._id
+                                           });
                                            setActiveLinkDropdown(null);
                                          }}
-                                         className="flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer hover:bg-white/10 text-white/70 hover:text-white transition-all border border-transparent"
+                                         className="flex cursor-pointer items-center justify-between rounded-xl border border-transparent px-4 py-3 text-[var(--text-primary)] transition-all hover:bg-[var(--bg-secondary)]"
                                        >
                                          <span className="text-xs  font-bold">{cat.name}</span>
                                          <ExternalLink className="w-3.5 h-3.5 opacity-20" />
@@ -620,11 +681,11 @@ export default function SectionForm({ section, onClose, onSuccess }) {
 
                     {(formData.type === 'stores') && (
                       <div className="space-y-2 md:col-span-2">
-                         <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Search & Select Vendor</label>
+                         <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Search & Select Vendor</label>
                          <div className="relative" ref={activeVendorDropdown === i ? dropdownRef : null}>
                             <div className="relative">
                                <input 
-                                 value={activeVendorDropdown === i ? vendorSearch : (typeof item.vendor_id === 'object' ? item.vendor_id?.store_name : (item.vendor_name || item.vendor_id || ''))}
+                                 value={activeVendorDropdown === i ? vendorSearch : (item.vendor_name || (typeof item.vendor_id === 'object' ? item.vendor_id?.store_name : ''))}
                                  onChange={(e) => {
                                    setActiveVendorDropdown(i);
                                    handleItemVendorSearch(e.target.value);
@@ -634,14 +695,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                    setVendorSearch('');
                                    setItemVendorResults([]);
                                  }}
-                                 className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-sm pr-10"
+                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)]"
                                  placeholder="Search vendors by store name..."
                                />
                                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-20" />
                             </div>
 
                             {activeVendorDropdown === i && itemVendorResults.length > 0 && (
-                               <div className="absolute top-full left-0 right-0 mt-2 bg-[#120a12] border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[100] p-2 space-y-1 animate-in fade-in slide-in-from-top-2 overflow-hidden">
+                               <div className="absolute top-full left-0 right-0 mt-2 z-[100] space-y-1 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-[0_20px_50px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2">
                                   <div className="max-h-60 overflow-y-auto no-scrollbar">
                                      {itemVendorResults.map(v => (
                                        <div 
@@ -653,14 +714,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                            setFormData(prev => ({ ...prev, data: newData }));
                                            setActiveVendorDropdown(null);
                                          }}
-                                         className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors border border-transparent hover:border-white/10 group"
+                                         className="group flex cursor-pointer items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors hover:border-[var(--glass-border)] hover:bg-[var(--bg-secondary)]"
                                        >
-                                         <div className="w-10 h-10 rounded-lg bg-white/5 flex-shrink-0 border border-white/10 overflow-hidden">
+                                         <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
                                             <img src={v.store?.logo || `https://api.dicebear.com/7.x/initials/svg?seed=${v.store_name}&backgroundColor=var(--accent)`} className="w-full h-full object-cover rounded-lg group-hover:scale-110 transition-transform" />
                                          </div>
                                          <div className="min-w-0">
-                                            <p className="text-sm  font-bold text-white truncate">{v.store_name}</p>
-                                            <p className="text-[10px] lg:text-[12px] text-white/40 font-mono truncate">{v._id}</p>
+                                            <p className="truncate text-sm font-bold text-[var(--text-primary)]">{v.store_name}</p>
+                                            <p className="truncate font-mono text-[10px] text-[var(--text-secondary)] lg:text-[12px]">{v._id}</p>
                                          </div>
                                        </div>
                                      ))}
@@ -668,10 +729,12 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                </div>
                             )}
                          </div>
-                         {item.vendor_id && typeof item.vendor_id !== 'object' && (
+                         {item.vendor_id && (
                            <div className="px-4 py-1.5 bg-[var(--accent)]/5 rounded-lg border border-[var(--accent)]/10 inline-flex items-center gap-2">
                              <Store className="w-3 h-3 text-[var(--accent)]" />
-                             <span className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)]">ID: {item.vendor_id}</span>
+                             <span className="text-[11px] lg:text-[12px]  font-semibold  text-[var(--accent)]">
+                               Selected vendor: {item.vendor_name || (typeof item.vendor_id === 'object' ? item.vendor_id?.store_name : '') || 'Vendor selected'}
+                             </span>
                            </div>
                          )}
                       </div>
@@ -681,36 +744,36 @@ export default function SectionForm({ section, onClose, onSuccess }) {
               ))}
 
               {formData.data.length === 0 && (
-                <div className="p-12 border-2 border-dashed border-[var(--glass-border)] rounded-[3rem] text-center opacity-40">
-                  <Package className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                  <p className=" font-bold">No items added to this section yet.</p>
+                <div className="rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-primary)] p-10 text-center">
+                  <Package className="mx-auto mb-3 size-9 text-[var(--text-secondary)] opacity-40" />
+                  <p className="text-sm font-semibold text-[var(--text-secondary)]">No items added to this section yet.</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Configuration & Scheduling */}
-          <div className="grid md:grid-cols-2 gap-12 pt-8 border-t border-[var(--glass-border)] pb-10">
-             <div className="space-y-6">
-                <h4 className=" font-semibold flex items-center gap-2 tracking-tight  text-[10px] lg:text-[12px] text-[var(--accent)]">
-                   <Settings className="w-4 h-4" /> Layout Config
+          <div className="grid gap-3 border-t border-[var(--glass-border)] pt-4 pb-4 md:grid-cols-2">
+             <div className="space-y-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm">
+                <h4 className="flex items-center gap-2 text-[11px] font-semibold text-[var(--accent)]">
+                   <Settings className="size-4" /> Layout Config
                 </h4>
-                <div className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
-                   <span className="text-sm  font-semibold opacity-60 tracking-tight text-[10px] lg:text-[12px]">Layout Mode</span>
+                <div className="flex items-center justify-between rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
+                   <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Layout Mode</span>
                    <select 
                      value={formData.config?.layout || 'grid'}
                      onChange={(e) => setFormData(prev => ({ ...prev, config: { ...prev.config, layout: e.target.value } }))}
-                     className="bg-transparent  font-bold text-sm outline-none cursor-pointer"
+                     className="cursor-pointer bg-transparent text-sm font-semibold outline-none"
                    >
                      <option value="grid">Grid Layout</option>
                      <option value="carousel">Horizontal Carousel</option>
                    </select>
                 </div>
                 
-                <div className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
+                <div className="flex items-center justify-between rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
                    <div className="space-y-0.5">
-                      <span className="text-sm  font-semibold opacity-60 tracking-tight text-[10px] lg:text-[12px]">Status</span>
-                      <p className="text-[10px] lg:text-[12px] opacity-40 font-medium">Visible on Storefront</p>
+                      <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Status</span>
+                      <p className="text-[10px] font-medium text-[var(--text-secondary)]">Visible on storefront</p>
                    </div>
                    <label className="relative inline-flex items-center cursor-pointer">
                       <input 
@@ -724,10 +787,10 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 </div>
 
                 {formData.type === 'hero' && (
-                  <div className="flex items-center justify-between p-5 bg-white/5 rounded-3xl border border-white/5">
+                  <div className="flex items-center justify-between rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
                     <div className="space-y-0.5">
-                       <span className="text-sm  font-semibold opacity-60 tracking-tight text-[10px] lg:text-[12px]">Autoplay</span>
-                       <p className="text-[10px] lg:text-[12px] opacity-40 font-medium">Slide through banners</p>
+                       <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Autoplay</span>
+                       <p className="text-[10px] font-medium text-[var(--text-secondary)]">Slide through banners</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                         <input 
@@ -742,27 +805,27 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 )}
              </div>
 
-             <div className="space-y-6">
-                <h4 className=" font-semibold flex items-center gap-2 tracking-tight  text-[10px] lg:text-[12px] text-blue-400">
-                   <Clock className="w-4 h-4" /> Scheduling
+             <div className="space-y-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm">
+                <h4 className="flex items-center gap-2 text-[11px] font-semibold text-blue-500">
+                   <Clock className="size-4" /> Scheduling
                 </h4>
                 <div className="grid gap-4">
                    <div className="space-y-2">
-                      <label className="text-[11px] lg:text-[12px]  font-semibold  opacity-40 ml-1">Starts (Optional)</label>
+                      <label className="ml-1 text-[11px] font-semibold text-[var(--text-secondary)]">Starts (Optional)</label>
                       <input 
                         type="datetime-local" 
                         value={formData.scheduled_start}
                         onChange={(e) => setFormData(prev => ({ ...prev, scheduled_start: e.target.value }))}
-                        className="w-full bg-white/5 border border-white/10 px-5 py-4 rounded-2xl text-sm outline-none focus:border-blue-500/50 transition-all  font-bold" 
+                        className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-sm font-semibold outline-none transition-all focus:border-blue-500/50" 
                       />
                    </div>
                    <div className="space-y-2">
-                      <label className="text-[11px] lg:text-[12px]  font-semibold  opacity-40 ml-1">Ends (Optional)</label>
+                      <label className="ml-1 text-[11px] font-semibold text-[var(--text-secondary)]">Ends (Optional)</label>
                       <input 
                         type="datetime-local" 
                         value={formData.scheduled_end}
                         onChange={(e) => setFormData(prev => ({ ...prev, scheduled_end: e.target.value }))}
-                        className="w-full bg-white/5 border border-white/10 px-5 py-4 rounded-2xl text-sm outline-none focus:border-blue-500/50 transition-all  font-bold" 
+                        className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-sm font-semibold outline-none transition-all focus:border-blue-500/50" 
                       />
                    </div>
                 </div>
@@ -771,14 +834,14 @@ export default function SectionForm({ section, onClose, onSuccess }) {
         </form>
 
         {/* Footer */}
-        <div className="p-8 border-t border-[var(--glass-border)] flex items-center justify-end gap-4 bg-[var(--bg-secondary)] relative z-30">
-          <button onClick={onClose} className="px-8 py-4 rounded-2xl  font-bold opacity-60 hover:opacity-100 transition-all text-xs tracking-tight">
+        <div className="relative z-30 flex shrink-0 flex-col-reverse gap-2 border-t border-[var(--glass-border)] bg-[var(--bg-primary)] p-3 sm:flex-row sm:items-center sm:justify-end sm:p-4">
+          <button onClick={onClose} className="h-11 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-5 text-[12px] font-semibold text-[var(--text-secondary)] transition-all hover:text-[var(--text-primary)]">
             Cancel
           </button>
           <button 
             disabled={loading}
             onClick={handleSubmit} 
-            className="bg-[var(--accent)] text-white px-12 py-4 rounded-2xl  font-bold shadow-2xl shadow-[var(--accent)]/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 text-xs  tracking-[0.2em]"
+            className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-6 text-[12px] font-semibold text-white shadow-lg shadow-[var(--accent)]/20 transition-all active:scale-[0.98] disabled:opacity-60"
           >
             {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-5 h-5" />}
             {isEdit ? 'Update Section' : 'Publish Section'}
@@ -787,4 +850,6 @@ export default function SectionForm({ section, onClose, onSuccess }) {
       </div>
     </div>
   );
+
+  return mounted ? createPortal(editorOverlay, document.body) : null;
 }

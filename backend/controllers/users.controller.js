@@ -6,6 +6,9 @@ const Follow = require('../models/Follow.model');
 const getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id).populate('liked_categories').lean();
+    if (user) {
+      user.kyc = await KYC.findOne({ user_id: req.user._id }).sort('-updatedAt').lean();
+    }
     res.status(200).json({ success: true, data: { user } });
   } catch (error) {
     next(error);
@@ -29,6 +32,7 @@ const updateMe = async (req, res, next) => {
     }
     if (req.body?.name !== undefined) updates.name = req.body.name;
     if (req.body?.phone !== undefined) updates.phone = req.body.phone;
+    if (req.body?.preferred_language !== undefined) updates.preferred_language = req.body.preferred_language;
     if (req.body?.avatar !== undefined) {
         updates.avatar = req.body.avatar || null;
         // If avatar is explicitly sent, also sync logo

@@ -12,6 +12,55 @@ import {
 // ── Number formatter (Cameroon locale) ───────────────────────────────────────
 export const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
 
+export const formatAdminDate = (iso) => {
+  if (!iso) return { dateLabel: '—', timeLabel: '', shortDate: '—' };
+  const d = new Date(iso);
+  return {
+    dateLabel: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    shortDate: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+    timeLabel: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+  };
+};
+
+const GATEWAY_BRANDS = {
+  payunit: {
+    label: 'PayUnit',
+    short: 'PU',
+    className: 'bg-emerald-600/15 text-emerald-700 dark:text-emerald-300',
+  },
+  eversend: {
+    label: 'Eversend',
+    short: 'EV',
+    className: 'bg-violet-600/15 text-violet-700 dark:text-violet-300',
+  },
+  momo: {
+    label: 'Mobile Money',
+    short: 'MM',
+    className: 'bg-amber-500/20 text-amber-800 dark:text-amber-200',
+  },
+  mtn: {
+    label: 'MTN MoMo',
+    short: 'MTN',
+    className: 'bg-yellow-500/25 text-yellow-900 dark:text-yellow-100',
+  },
+  orange: {
+    label: 'Orange Money',
+    short: 'OM',
+    className: 'bg-orange-500/20 text-orange-800 dark:text-orange-200',
+  },
+  paystack: { label: 'Paystack', short: 'PS', className: 'bg-blue-600/15 text-blue-700' },
+  wallet: { label: 'Wallet', short: 'W', className: 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]' },
+  manual: { label: 'Manual', short: 'M', className: 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]' },
+  bank: { label: 'Bank', short: 'BK', className: 'bg-slate-500/15 text-slate-600' },
+};
+
+export const getGatewayBrand = (key) => {
+  const k = String(key || '').toLowerCase();
+  if (k.includes('momo') || k === 'mtn') return GATEWAY_BRANDS.momo;
+  if (k.includes('orange')) return GATEWAY_BRANDS.orange;
+  return GATEWAY_BRANDS[k] || { label: k || '—', short: (k || '?').slice(0, 2).toUpperCase(), className: 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]' };
+};
+
 // ── Transaction Status Config ─────────────────────────────────────────────────
 export const STATUS_CONFIG = {
   completed:        { label: 'Completed',  color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: CheckCircle2 },
@@ -46,6 +95,7 @@ export const TYPE_CONFIG = {
 export const METHOD_ICON = {
   momo:     Phone,
   bank:     Building2,
+  payunit:  Phone,
   eversend: Tag,
 };
 

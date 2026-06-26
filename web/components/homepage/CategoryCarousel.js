@@ -1,45 +1,59 @@
 "use client";
 import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function CategoryCarousel({ title, data }) {
+  const { t, label } = useLanguage();
   if (!data?.length) return null;
 
+  const categoryHref = (cat) => {
+    const params = new URLSearchParams();
+    const rawCategoryId = cat.category_id || cat._id;
+    const categoryId = rawCategoryId && typeof rawCategoryId === 'object' ? rawCategoryId._id : rawCategoryId;
+    if (cat.category_name) params.set('category', cat.category_name);
+    if (categoryId) params.set('categoryId', categoryId);
+    return `/shop${params.toString() ? `?${params.toString()}` : ''}`;
+  };
+
   return (
-    <section className="py-4 px-6 max-w-7xl mx-auto">
-      <div className="flex items-end justify-between mb-6">
-        <div>
-          <h2 className="text-xl md:text-3xl  font-bold text-[var(--text-primary)] tracking-tight">
-            {title || "Shop by Category"}
+    <section className="w-full py-3 sm:py-4 lg:py-5">
+      <div className="mb-3 flex items-end justify-between gap-3 px-3 sm:px-4 md:mb-4 md:px-1">
+        <div className="min-w-0">
+          <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-xl md:text-2xl">
+            {title ? label(title) : t('overtime.shopByCategory', 'Shop by Category')}
           </h2>
-          <div className="h-1 w-12 md:w-20 bg-[var(--accent)] mt-1 md:mt-2 rounded-full" />
         </div>
-        <Link href="/overtime" className="text-[var(--accent)] text-xs md:text-base  font-bold flex items-center gap-1 md:gap-2 hover:translate-x-1 transition-transform group shrink-0">
-          Browse All <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+        <Link
+          href="/shop"
+          className="group inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 font-[var(--font-poppins)] text-[11px] font-semibold text-[var(--accent)] transition hover:border-[var(--accent)]/45 hover:bg-[var(--accent)] hover:text-white active:scale-[0.98] sm:h-10 sm:px-4 sm:text-[12px]"
+        >
+          <span>{t('overtime.browse', 'Browse')}</span>
+          <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5 sm:size-4" />
         </Link>
       </div>
 
-      <div className="flex gap-4 md:gap-6 overflow-x-auto no-scrollbar pb-6 snap-x snap-mandatory">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-0 pb-4 snap-x snap-mandatory md:gap-4 md:px-1 md:pb-5">
         {data.map((cat, i) => (
           <Link 
             key={i} 
-            href={`/shop?category=${cat.category_name}`}
-            className="flex-shrink-0 w-32 md:w-48 snap-start group"
+            href={categoryHref(cat)}
+            className="group w-[38vw] max-w-[168px] flex-shrink-0 snap-start sm:w-[24vw] md:w-[178px] lg:w-[190px]"
           >
-            <div className="relative aspect-square rounded-[1.5rem] md:rounded-[2.rem] overflow-hidden bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm group-hover:shadow-xl group-hover:border-[var(--accent)]/30 transition-all duration-500">
+            <div className="relative aspect-square overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm transition-all duration-300 group-hover:border-[var(--accent)]/30 group-hover:shadow-lg">
               <img 
                 src={cat.image_url || 'https://via.placeholder.com/200'} 
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                className="size-full object-cover transition-transform duration-500 group-hover:scale-105" 
                 alt={cat.category_name}
               />
               <div className="absolute inset-x-0 bottom-0 p-3 md:p-4 bg-gradient-to-t from-black/60 to-transparent">
-                <span className="text-white  font-semibold text-center block text-[10px] lg:text-[12px] md:text-sm truncate whitespace-nowrap px-1 md:px-2 tracking-tight">
-                  {cat.category_name}
+                <span className="block truncate px-1 text-center font-[var(--font-poppins)] text-[11px] font-semibold tracking-normal text-white md:px-2 md:text-[12px]">
+                  {label(cat.category_name)}
                 </span>
               </div>
             </div>
-            <p className="mt-3 text-center  font-semibold text-[var(--text-primary)] opacity-80 group-hover:opacity-100 transition-opacity truncate whitespace-nowrap px-1 md:px-2 text-[11px] lg:text-[12px] md:text-base">
-              {cat.category_name}
+            <p className="mt-2 truncate px-1 text-center font-[var(--font-poppins)] text-[11px] font-semibold tracking-normal text-[var(--text-primary)] opacity-80 transition-opacity group-hover:opacity-100 md:px-2 md:text-[12px]">
+              {label(cat.category_name)}
             </p>
           </Link>
         ))}

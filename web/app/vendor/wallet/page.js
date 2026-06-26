@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
 
-const MIN_WITHDRAW = 1000;
+const MIN_WITHDRAW = 500;
 import WithdrawModal from '@/components/wallet/WithdrawModal';
 import StatCard from '@/components/layout/StatCard';
 
@@ -50,7 +50,7 @@ function ReceiptModal({ tx, onClose }) {
           <div className="size-16 rounded-3xl bg-slate-100 flex items-center justify-center mb-4 text-slate-400">
              <Wallet className="size-8" />
           </div>
-          <h3 className="text-xl  font-bold tracking-tight">Aura Market</h3>
+          <h3 className="text-xl  font-bold tracking-tight">Aura Dime</h3>
           <p className="text-[11px] lg:text-[12px]  font-semibold text-slate-400 tracking-tight">Official Transaction Receipt</p>
         </div>
 
@@ -87,7 +87,7 @@ function ReceiptModal({ tx, onClose }) {
 // ── Main Page ──
 
 export default function VendorWalletPage() {
-  const { user } = useAuthStore();
+  const { user, setWalletBalance } = useAuthStore();
   const router = useRouter();
   const [balance, setBalance]       = useState(0);
   const [escrow, setEscrow]         = useState(0);
@@ -121,7 +121,9 @@ export default function VendorWalletPage() {
         api.get('/withdrawals/mine'),
       ]);
       if (balRes.data.success) {
-        setBalance(balRes.data.data.balance || 0);
+        const nextBalance = balRes.data.data.balance || 0;
+        setBalance(nextBalance);
+        setWalletBalance(nextBalance);
         setEscrow(balRes.data.data.pending_escrow || 0);
       }
       if (txRes.data.success) setTxs(txRes.data.data.transactions || []);
@@ -130,7 +132,7 @@ export default function VendorWalletPage() {
     } catch (e) {
       console.error('Wallet Load Error:', e);
     } finally { setLoading(false); }
-  }, []);
+  }, [setWalletBalance]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -144,6 +146,10 @@ export default function VendorWalletPage() {
   const totalOut = transactions
     .filter(t => t.type === 'withdrawal' && t.status === 'completed')
     .reduce((s, t) => s + t.amount, 0);
+  const completedWithdrawn = withdrawalRequests
+    .filter((wr) => ['completed', 'paid', 'successful'].includes(String(wr.status || '').toLowerCase()))
+    .reduce((sum, wr) => sum + Number(wr.amount || 0), 0);
+  const withdrawnTotal = completedWithdrawn || totalOut;
 
   return (
     <>
@@ -159,10 +165,10 @@ export default function VendorWalletPage() {
                <Wallet className="w-5 h-5 md:w-6 md:h-6" />
             </div>
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor <span className="text-[var(--accent)]">Vault</span></h2>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor Wallet</h2>
               <div className="flex items-center gap-2 mt-0.5">
                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Secured System</p>
+                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Secure Account</p>
               </div>
             </div>
           </div>
@@ -173,7 +179,7 @@ export default function VendorWalletPage() {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
            <div className="hidden md:flex items-center gap-3 pr-6 border-r border-[var(--glass-border)]/30">
-              <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-40">Status: Nominal</p>
+              <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-40">Status: Store Active</p>
            </div>
            <button onClick={load} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -185,9 +191,9 @@ export default function VendorWalletPage() {
         {/* KPI Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
           <StatCard label="Available" value={`${fmt(balance)}`} icon="account_balance_wallet" color="emerald" sub="XAF Ready" />
-          <StatCard label="In Escrow" value={`${fmt(escrow)}`} icon="lock_clock" color="amber" sub="Pipeline" />
-          <StatCard label="Total Earned" value={`${fmt(totalEarned)}`} icon="trending_up" color="fuchsia" sub="Gross" />
-          <StatCard label="Withdrawn" value={`${fmt(totalOut)}`} icon="arrow_outward" color="blue" sub="Total" />
+          <StatCard label="In Escrow" value={`${fmt(escrow)}`} icon="lock_clock" color="amber" sub="Pending Delivery" />
+          <StatCard label="Total Earned" value={`${fmt(totalEarned)}`} icon="trending_up" color="fuchsia" sub="Total earned" />
+          <StatCard label="Withdrawn" value={`${fmt(withdrawnTotal)}`} icon="arrow_outward" color="blue" sub="Successful payouts" />
         </div>
 
         {/* Actions */}
@@ -201,11 +207,11 @@ export default function VendorWalletPage() {
         <div className="space-y-6">
            <div className="flex items-center gap-6 border-b border-[var(--glass-border)]">
               <button onClick={() => setTab('history')} className={`pb-4 text-xs  font-bold tracking-tight relative ${tab === 'history' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
-                 <div className="flex items-center gap-2"><History className="size-4" /> Settlement History</div>
+                 <div className="flex items-center gap-2"><History className="size-4" /> Transaction History</div>
                  {tab === 'history' && <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />}
               </button>
               <button onClick={() => setTab('escrow')} className={`pb-4 text-xs  font-bold tracking-tight relative ${tab === 'escrow' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
-                 <div className="flex items-center gap-2"><Lock className="size-4" /> Escrow Pipeline {escrowTxs.length > 0 && <span className="size-2 rounded-full bg-amber-500 animate-pulse" />}</div>
+                 <div className="flex items-center gap-2"><Lock className="size-4" /> Held in Escrow {escrowTxs.length > 0 && <span className="size-2 rounded-full bg-amber-500 animate-pulse" />}</div>
                  {tab === 'escrow' && <motion.div layoutId="tab-line" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />}
               </button>
               <button onClick={() => setTab('withdrawals')} className={`pb-4 text-xs  font-bold tracking-tight relative ${tab === 'withdrawals' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
@@ -241,10 +247,10 @@ export default function VendorWalletPage() {
                  <div className="space-y-4">
                     <div className="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex items-center gap-4">
                        <Shield className="size-5 text-amber-500" />
-                       <p className="text-[11px] lg:text-[12px]  font-semibold text-amber-600/70  leading-relaxed tracking-tight">Funds are held in escrow until order delivery is confirmed by the buyer.</p>
+                       <p className="text-[11px] lg:text-[12px]  font-semibold text-amber-600/70  leading-relaxed tracking-tight">Funds are being held safely until the customer confirms they have received their order.</p>
                     </div>
                     {escrowTxs.length === 0 ? (
-                      <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No funds currently in pipeline</div>
+                      <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No funds currently held in reserve</div>
                     ) : escrowTxs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(tx => (
                       <div key={tx._id} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4">
                          <div className="size-11 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500"><Clock className="size-5" /></div>

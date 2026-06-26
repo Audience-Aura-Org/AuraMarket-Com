@@ -25,7 +25,7 @@ const faqs = [
     icon: Store,
     questions: [
       { q: "How do I become a verified artisan?", a: "Navigate to the 'Become a Vendor' page to submit your application. Our team reviews all applications within 48 hours." },
-      { q: "What are the marketplace fees?", a: "Aura Market charges a flat 5% commission on all successful sales, with zero listing fees." }
+      { q: "What are the marketplace fees?", a: "Auradime charges a flat 5% commission on all successful sales, with zero listing fees." }
     ]
   },
   {
@@ -47,7 +47,7 @@ export default function HelpCenter() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] overflow-hidden">
+    <div className="min-h-screen bg-[var(--bg-secondary)] overflow-hidden md:pt-0">
       {/* Hero Section */}
       <div className="relative pt-32 pb-20 px-6 lg:px-20 bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[var(--accent)]/10 blur-[100px] pointer-events-none rounded-full" />
@@ -70,7 +70,7 @@ export default function HelpCenter() {
                 placeholder="Search articles, topics, or keywords..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="flex-1 bg-transparent border-none outline-none px-4 py-3 text-[var(--text-primary)] font-medium"
+                className="flex-1 bg-transparent border-none outline-none px-4 py-3 !text-base placeholder:!text-base text-[var(--text-primary)] font-medium"
               />
               <button className="bg-[var(--accent)] text-white px-6 py-3 rounded-xl  font-bold hover:shadow-lg shadow-[var(--accent)]/20 transition-all tracking-normal text-xs">
                 Search
@@ -136,3 +136,4 @@ export default function HelpCenter() {
     </div>
   );
 }
+

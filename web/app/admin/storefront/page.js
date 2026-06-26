@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 export const dynamic = 'force-dynamic';
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
-import { 
+import {
   Layout, Plus, GripVertical, Settings2, Trash2, 
   CheckCircle2, XCircle, ChevronUp, 
   ChevronDown, Grid, Package, Store, Tag, 
@@ -11,6 +11,7 @@ import {
   Clock, ArrowRight, Layers, Sparkles, Activity
 } from 'lucide-react';
 import SectionForm from './components/SectionForm';
+import { toast } from 'react-hot-toast';
 
 export default function StorefrontBuilder() {
   const [sections, setSections] = useState([]);
@@ -39,8 +40,9 @@ export default function StorefrontBuilder() {
     try {
       await api.patch(`/homepage/admin/sections/${id}`, { is_active: !currentStatus });
       fetchSections();
+      toast.success('Section status updated');
     } catch (err) {
-      alert('Failed to update status');
+      toast.error('Failed to update status');
     }
   };
 
@@ -49,8 +51,9 @@ export default function StorefrontBuilder() {
     try {
       await api.delete(`/homepage/admin/sections/${id}`);
       fetchSections();
+      toast.success('Section deleted');
     } catch (err) {
-      alert('Failed to delete section');
+      toast.error('Failed to delete section');
     }
   };
 
@@ -68,13 +71,13 @@ export default function StorefrontBuilder() {
     try {
       await api.patch('/homepage/admin/sections/reorder', { orders });
     } catch (err) {
-      alert('Failed to reorder');
+      toast.error('Failed to reorder');
       fetchSections();
     }
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-6 md:py-12 px-4 md:px-12 lg:px-20 selection:bg-[var(--accent)] selection:text-white transition-all duration-300 font-[var(--font-poppins)]">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-6 md:py-12 px-4 md:px-12 lg:px-20 selection:bg-[var(--accent)] selection:text-white transition-all duration-300 font-[var(--font-poppins)] md:pt-6" style={{ paddingTop: 'calc\(56px\ \+\ env\(safe-area-inset-top,\ 0px\)\)' }}>
       <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-16">
         
         {/* Dynamic Header */}
@@ -286,3 +289,4 @@ export default function StorefrontBuilder() {
     </div>
   );
 }
+

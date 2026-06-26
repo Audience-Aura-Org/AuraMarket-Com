@@ -1,6 +1,6 @@
 /**
  * scripts/ensure_indexes.js
- * Aura Market — Database Indexing Optimization
+ * Auradime — Database Indexing Optimization
  */
 const mongoose = require('mongoose');
 require('dotenv').config();

@@ -48,12 +48,7 @@ export default function VendorRatingsPage() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const currentReviews = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const avgRating = reviews.length > 0 
-    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) 
-    : 0;
-
   const fiveStars = reviews.filter(r => r.rating === 5).length;
-  const fourStars = reviews.filter(r => r.rating === 4).length;
   const threeStars = reviews.filter(r => r.rating === 3).length;
   const twoStars = reviews.filter(r => r.rating === 2).length;
   const oneStar = reviews.filter(r => r.rating === 1).length;
@@ -61,7 +56,7 @@ export default function VendorRatingsPage() {
   if (user?.role !== 'vendor') return null;
 
   return (
-    <div className="w-full min-h-screen max-w-[1600px] mx-auto">
+    <div className="flex min-h-0 flex-1 flex-col bg-[var(--bg-primary)]">
         
       <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
         <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
@@ -99,16 +94,14 @@ export default function VendorRatingsPage() {
         </div>
       </header>
 
-        <div className="px-4 md:px-8 py-8">
+        <div className="p-4 md:p-10 space-y-8 pb-40">
           
           {/* Reputation Matrix */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6 mb-12">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
             <StatCard label="Active" value={String(reviews.filter(r => new Date(r.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length)} icon="bolt" color="fuchsia" sub="RECENT_FEED" />
             <StatCard label="Attention" value={String(threeStars + twoStars + oneStar)} icon="warning" color="rose" sub="LOW_SCORES" />
             <StatCard label="Resolved" value={String(fiveStars)} icon="check_circle" color="emerald" sub="TOP_TIER" />
             <StatCard label="Closed" value={String(reviews.length)} icon="inventory_2" color="slate" sub="TOTAL_REVIEWS" />
-            <StatCard label="Rate" value={`${((Number(avgRating) / 5) * 100).toFixed(0)}%`} icon="verified_user" color="amber" sub="AVG_SENTIMENT" />
-            <StatCard label="Yield" value={avgRating} icon="star" color="indigo" sub="REP_SCORE" />
           </div>
 
 

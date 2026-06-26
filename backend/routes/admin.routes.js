@@ -1,6 +1,6 @@
 /**
  * routes/admin.routes.js
- * Aura Market — Dedicated Admin Maps
+ * Auradime — Dedicated Admin Maps
  *
  * Public access strictly for pulling layouts. Secure access mapped exclusively
  * to the Platform Administrators managing UI Banners and verification states explicitly.
@@ -26,11 +26,14 @@ const {
   getPendingVendors,
   getPendingProducts,
   reviewProduct,
+  updateProductAdmin,
   getAllUsers,
   updateUserStatus,
   updateUserAdmin,
   getAllVendors,
   updateVendorStatus,
+  updateVendorMedia,
+  updateVendorStoreSettings,
   fetchAdminShipments,
   updateAdminShipment,
   getAdminLogisticsFirms,
@@ -45,8 +48,11 @@ const {
   bulkDeleteUsers,
   bulkDeleteProducts,
   getAllTransactions,
+  updateTransactionStatus,
   fulfillOrderFromTransaction,
-  syncWithEversend
+  syncWithEversend,
+  syncGatewayTransactions,
+  getQueueStats
 } = require('../controllers/admin.controller');
 
 const { getAuditLogs } = require('../controllers/audit.controller');
@@ -115,9 +121,15 @@ router.get('/notifications/email-logs', getEmailLogs);
 // Audit Logging
 router.get('/audit', getAuditLogs);
 
+// Queue Monitoring
+router.get('/queues', getQueueStats);
+
 // Global Transactions Monitoring
 router.get('/transactions', getAllTransactions);
+router.patch('/transactions/:id', updateTransactionStatus); // Legacy alias to prevent 404 during deployment
+router.patch('/transactions/manual-fix/:id', updateTransactionStatus);
 router.post('/transactions/sync-eversend', syncWithEversend);
+router.post('/transactions/sync-gateways', syncGatewayTransactions);
 router.post('/transactions/:transactionId/fulfill', fulfillOrderFromTransaction);
 
 // Queue Moderation
@@ -135,8 +147,11 @@ router.patch('/users/:id/status', updateUserStatus);
 router.patch('/users/:id', updateUserAdmin);
 router.delete('/users/:id', deleteUser);
 router.get('/vendors', getAllVendors);
+router.patch('/vendors/:id/media', updateVendorMedia);
+router.patch('/vendors/:id/store-settings', updateVendorStoreSettings);
 router.patch('/vendors/:id/status', updateVendorStatus);
 router.get('/products', getAllProducts);
+router.patch('/products/:id', updateProductAdmin);
 router.post('/users/bulk-delete', bulkDeleteUsers);
 router.post('/products/bulk-delete', bulkDeleteProducts);
 

@@ -1,22 +1,20 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { 
-  Package, ChevronLeft, Calendar, MapPin, 
-  ShoppingBag, ShieldCheck, Truck, CheckCircle2, 
-  AlertTriangle, MessageSquare, ExternalLink, ArrowRight,
-  Info, Loader2, Wallet, XCircle, Star, Box, 
-  CreditCard, Receipt, Clock, ArrowUpRight, Share2, 
-  Printer, Eye, CornerDownRight, Scale, Phone, Store, Sparkles,
-  Activity, Layers, Fingerprint, Navigation, History, Signal, Zap, User
+import {
+  Package, ChevronLeft, MapPin,
+  ShoppingBag, ShieldCheck, Truck, CheckCircle2,
+  AlertTriangle, Loader2, XCircle, Star,
+  CreditCard, Clock, Share2,
+  Printer, Scale, Phone, Layers,
+  Fingerprint, History, Zap, User
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import socketService from '@/services/socket';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { formatVariantLabel } from '@/utils/variants';
 
 export default function SingleOrderView({ orderId, onBack }) {
   const [order, setOrder] = useState(null);
@@ -28,9 +26,10 @@ export default function SingleOrderView({ orderId, onBack }) {
   const [disputeLoading, setDisputeLoading] = useState(false);
 
   const [reviewModal, setReviewModal] = useState(false);
-  const [reviewData, setReviewData] = useState({ rating: 5, comment: '', product_id: null });
+  const [reviewData, setReviewData] = useState({ rating: 5, comment: '', product_id: null, order_id: null, product_name: '' });
   const [reviewLoading, setReviewLoading] = useState(false);
-  
+  const [statusUpdating, setStatusUpdating] = useState(null);
+
   const { user } = useAuthStore();
 
   const fetchOrderManifest = async () => {
@@ -51,24 +50,48 @@ export default function SingleOrderView({ orderId, onBack }) {
   const handleDownloadInvoice = async () => {
     const toastId = toast.loading('Generating invoice PDF...');
     try {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('aura_token') : null;
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      const response = await fetch(`${baseUrl}/orders/${orderId}/invoice`, {
-        headers: { Authorization: token ? `Bearer ${token}` : '' }
-      });
-      if (!response.ok) throw new Error('Invoice generation failed');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const response = await api.get(`/orders/${orderId}/invoice`, { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `invoice-${orderId}.pdf`;
+      a.target = '_blank';
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1500);
       toast.success('Invoice downloaded!', { id: toastId });
     } catch (err) {
       toast.error('Failed to download invoice.', { id: toastId });
+    }
+  };
+
+  const handleShareInvoice = async () => {
+    const toastId = toast.loading('Preparing invoice...');
+    try {
+      const response = await api.get(`/orders/${orderId}/invoice`, { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const file = new File([blob], `invoice-${orderId}.pdf`, { type: 'application/pdf' });
+
+      if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+        await navigator.share({
+          title: `Auradime invoice #${orderId.slice(-8).toUpperCase()}`,
+          text: 'Auradime order invoice',
+          files: [file],
+        });
+        toast.success('Invoice ready to share.', { id: toastId });
+        return;
+      }
+
+      await navigator.clipboard?.writeText(window.location.href);
+      toast.success('Order link copied.', { id: toastId });
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        toast.dismiss(toastId);
+        return;
+      }
+      toast.error('Failed to share invoice.', { id: toastId });
     }
   };
 
@@ -78,17 +101,23 @@ export default function SingleOrderView({ orderId, onBack }) {
 
   useEffect(() => {
     if (!orderId || !user?._id) return;
-    const handleUpdate = (notif) => {
-      if (notif.metadata?.order_id?.toString() === orderId.toString()) {
+    const handleUpdate = (payload) => {
+      const metaOrderId = payload?.metadata?.order_id?.toString();
+      if (metaOrderId && metaOrderId === orderId.toString()) {
         fetchOrderManifest();
-        toast.success(`Logistics update: ${notif.title || 'Manifest synced'}`, {
+        const label = payload?.title || 'Order updated';
+        toast.success(label, {
           icon: '⚡',
           style: { borderRadius: '12px', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--accent)', fontSize: '11px', fontWeight: 'bold' }
         });
       }
     };
     socketService.on('notification', handleUpdate);
-    return () => socketService.off('notification', handleUpdate);
+    socketService.on('order_update', handleUpdate);
+    return () => {
+      socketService.off('notification', handleUpdate);
+      socketService.off('order_update', handleUpdate);
+    };
   }, [orderId, user?._id]);
 
   const handleRaiseDispute = async (e) => {
@@ -108,13 +137,43 @@ export default function SingleOrderView({ orderId, onBack }) {
     }
   };
 
+  const applyManifestPayload = (data) => {
+    if (!data) return;
+    if (data.order) setOrder(data.order);
+    if (data.shipments) setShipments(data.shipments);
+    if (data.escrow !== undefined) setEscrow(data.escrow);
+  };
+
+  const getOrderItemProductId = (item) => item?.product_id?._id || item?.product_id || item?.product?._id || item?.product || null;
+
+  const openItemReview = (item) => {
+    const productId = getOrderItemProductId(item);
+    if (!productId) {
+      toast.error('Product detail is missing for this order item.');
+      return;
+    }
+    setReviewData({
+      rating: 5,
+      comment: '',
+      product_id: productId,
+      order_id: order?._id || orderId,
+      product_name: item?.name || item?.product_id?.name || 'Ordered item',
+    });
+    setReviewModal(true);
+  };
+
   const handleConfirmDelivery = async () => {
     if (!confirm("Confirm asset arrival? This releases escrowed funds to the vendor node.")) return;
     try {
       const res = await api.post(`/escrow/release/${orderId}`);
       if (res.data.success) {
         toast.success("Funds released. Order finalized.");
-        fetchOrderManifest();
+        if (res.data.data) applyManifestPayload(res.data.data);
+        else fetchOrderManifest();
+        // Prompt for review if there are products
+        if (order.products?.length > 0) {
+          openItemReview(order.products[0]);
+        }
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Release vector blocked.");
@@ -122,15 +181,22 @@ export default function SingleOrderView({ orderId, onBack }) {
   };
 
   const handleUpdateStatus = async (newStatus) => {
+    if (statusUpdating) return;
+    setStatusUpdating(newStatus);
     const toastId = toast.loading(`Updating protocol to ${newStatus.toUpperCase()}...`);
     try {
       const res = await api.patch(`/orders/${orderId}/status`, { order_status: newStatus });
       if (res.data.success) {
-        toast.success(`Protocol updated: ${newStatus.toUpperCase()}`, { id: toastId });
-        fetchOrderManifest();
+        const synced = res.data.data?.order?.order_status || newStatus;
+        toast.success(`Protocol updated: ${synced.toUpperCase()}`, { id: toastId });
+        if (res.data.data) applyManifestPayload(res.data.data);
+        else fetchOrderManifest();
       }
     } catch (err) {
+      if (err.response?.data?.data) applyManifestPayload(err.response.data.data);
       toast.error(err.response?.data?.message || "Protocol update failed.", { id: toastId });
+    } finally {
+      setStatusUpdating(null);
     }
   };
 
@@ -140,11 +206,34 @@ export default function SingleOrderView({ orderId, onBack }) {
     try {
       const res = await api.post(`/escrow/confirm-delivery/${orderId}`);
       if (res.data.success) {
-        toast.success("Delivery confirmed. Awaiting customer release.", { id: toastId });
-        fetchOrderManifest();
+        toast.success(res.data.message || "Delivery confirmed. Awaiting customer release.", { id: toastId });
+        if (res.data.data) applyManifestPayload(res.data.data);
+        else fetchOrderManifest();
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Delivery confirmation failed.", { id: toastId });
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    const paid = order?.payment_status === 'paid';
+    const message = paid
+      ? 'Cancel this order and refund the payment to your Auradime wallet? This is only available within 30 minutes before fulfilment starts.'
+      : 'Cancel this unpaid order and stop pending payment attempts?';
+    if (!confirm(message)) return;
+
+    const toastId = toast.loading(paid ? 'Cancelling and refunding order...' : 'Cancelling order...');
+    try {
+      const res = await api.post(`/orders/${orderId}/cancel`, {
+        reason: paid ? 'Customer cancelled within 30-minute refund window.' : 'Customer cancelled unpaid checkout.',
+      });
+      if (res.data.success) {
+        toast.success(res.data.message || 'Order cancelled.', { id: toastId });
+        if (res.data.data) applyManifestPayload(res.data.data);
+        else fetchOrderManifest();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Order cancellation failed.', { id: toastId });
     }
   };
 
@@ -152,7 +241,12 @@ export default function SingleOrderView({ orderId, onBack }) {
     e.preventDefault();
     setReviewLoading(true);
     try {
-      const res = await api.post('/reviews', { order_id: orderId, product_id: reviewData.product_id, rating: reviewData.rating, comment: reviewData.comment });
+      const res = await api.post('/reviews', {
+        order_id: reviewData.order_id || orderId,
+        product_id: reviewData.product_id,
+        rating: reviewData.rating,
+        comment: reviewData.comment,
+      });
       if (res.data.success) {
         toast.success("Feedback broadcasted to Aura network.");
         setReviewModal(false);
@@ -165,16 +259,24 @@ export default function SingleOrderView({ orderId, onBack }) {
   };
 
   if (loading) return (
-    <div className="py-20 flex flex-col items-center justify-center">
-      <div className="size-12 border-2 border-[var(--accent)]/10 border-t-[var(--accent)] rounded-full animate-spin" />
+    <div className="font-order-detail flex min-h-[40vh] flex-col items-center justify-center gap-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 px-4 py-14 sm:rounded-3xl sm:px-6 sm:py-16">
+      <div className="size-11 rounded-full border-2 border-[var(--accent)]/20 border-t-[var(--accent)] animate-spin" />
+      <p className="text-[11px] font-semibold tracking-wide text-[var(--text-secondary)]">Loading order…</p>
     </div>
   );
 
   if (!order) return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-       <AlertTriangle className="size-12 text-red-500 mb-4 opacity-20" />
-       <h1 className="text-2xl  font-bold tracking-tighter mb-2">Manifest lost</h1>
-       <button onClick={onBack} className="px-10 py-3 bg-[var(--accent)] text-white rounded-full text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-xl shadow-[var(--accent)]/20 transition-all">Return to ledger</button>
+    <div className="font-order-detail flex flex-col items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-6 py-16 text-center sm:rounded-3xl sm:px-8 sm:py-20">
+      <AlertTriangle className="mb-4 size-11 text-amber-500/80" />
+      <h1 className="mb-2 text-xl font-bold tracking-tight text-[var(--text-primary)]">Order not found</h1>
+      <p className="mb-6 max-w-sm text-[12px] text-[var(--text-secondary)]">We couldn&apos;t load this order. It may have been removed or you may not have access.</p>
+      <button
+        type="button"
+        onClick={onBack}
+        className="rounded-full bg-[var(--accent)] px-8 py-2.5 text-[11px] font-semibold tracking-tight text-white shadow-lg shadow-[var(--accent)]/25 transition hover:opacity-95"
+      >
+        Back to orders
+      </button>
     </div>
   );
 
@@ -190,344 +292,804 @@ export default function SingleOrderView({ orderId, onBack }) {
     }
 
     switch (orderStatus?.toLowerCase()) {
-      case 'completed': 
-      case 'delivered': return { color: 'emerald', label: 'Success', icon: CheckCircle2, step: 4 };
+      case 'completed':
+      case 'delivered': return { color: 'emerald', label: 'Delivered', icon: CheckCircle2, step: 4 };
+      case 'refunded': return { color: 'emerald', label: 'Refunded to wallet', icon: CheckCircle2, step: 0 };
+      case 'refund_pending': return { color: 'amber', label: 'Refund pending', icon: Clock, step: 0 };
       case 'shipped': return { color: 'blue', label: 'In transit', icon: Truck, step: 3 };
       case 'processing': return { color: 'amber', label: 'Processing', icon: Clock, step: 2 };
-      case 'placed': return { color: 'indigo', label: 'Initiated', icon: Package, step: 1 };
+      case 'placed': return { color: 'indigo', label: 'Placed', icon: Package, step: 1 };
       case 'cancelled':
-      case 'refunded': return { color: 'rose', label: 'Terminated', icon: XCircle, step: 0 };
+        return { color: 'rose', label: 'Cancelled', icon: XCircle, step: 0 };
       default: return { color: 'indigo', label: orderStatus ? orderStatus.charAt(0).toUpperCase() + orderStatus.slice(1) : 'Unknown', icon: Package, step: 1 };
     }
   };
 
-  const shipment = shipments[0];
+  const shipment =
+    Array.isArray(shipments) && shipments.length > 0
+      ? [...shipments].sort(
+          (a, b) =>
+            new Date(b?.createdAt || b?.created_at || 0) -
+            new Date(a?.createdAt || a?.created_at || 0)
+        )[0]
+      : null;
+  const shipmentLogs = shipment?.shipment_logs || [];
+  const orderActivity = [
+    {
+      status: 'placed',
+      timestamp: order.createdAt,
+      note: 'Order placed.',
+    },
+    order.payment_status === 'paid' && {
+      status: 'paid',
+      timestamp: order.paid_at || order.payment_confirmed_at || order.updatedAt || order.createdAt,
+      note: 'Payment confirmed.',
+    },
+    ['processing', 'shipped', 'delivered', 'completed', 'cancelled', 'refunded', 'refund_pending'].includes(order.order_status) && {
+      status: order.order_status,
+      timestamp: order.delivered_at || order.shipped_at || order.updatedAt || order.createdAt,
+      note:
+        order.order_status === 'shipped'
+          ? 'Vendor marked this order as shipped.'
+          : order.order_status === 'delivered'
+            ? 'Order marked as delivered.'
+            : order.order_status === 'completed'
+              ? 'Order completed.'
+              : order.order_status === 'cancelled'
+                ? 'Order cancelled.'
+                : order.order_status === 'refunded'
+                  ? 'Order refunded.'
+                  : order.order_status === 'refund_pending'
+                    ? 'Refund is pending.'
+                    : 'Order moved into processing.',
+    },
+  ].filter(Boolean);
+  const activityEntries = [
+    ...shipmentLogs.map((log) => ({
+      status: log.status,
+      timestamp: log.timestamp || log.createdAt || shipment?.updatedAt || shipment?.createdAt,
+      note: log.note,
+      _id: log._id,
+      source: 'shipment',
+    })),
+    ...orderActivity.map((log, idx) => ({ ...log, _id: `order-${idx}`, source: 'order' })),
+  ]
+    .filter((log) => log.timestamp)
+    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+  const shipmentStatusNorm = (shipment?.status || '').toLowerCase();
   const status = getStatusConfig(order.order_status, shipment?.status);
   const isVendor = user?.role === 'vendor' || user?._id === order?.vendor_id?._id || user?._id === order?.vendor_id;
-  const isLogisticsOrder = !!(order.shipping_method === 'logistics_partner' || order.logistics_company_id);
-  const carrierLaunched = shipment && ['picked_up', 'in_transit', 'delivered', 'failed'].includes(shipment.status);
+  /** Match backend `orderUsesLogistics`: partner flag on order OR an actual logistics shipment ticket */
+  const isLogisticsOrder = !!(
+    order.shipping_method === 'logistics_partner' ||
+    order.logistics_company_id ||
+    shipment?.logistics_id
+  );
+  /** Courier has taken over movement — vendor manual ship is blocked / irrelevant */
+  const carrierLaunched =
+    !!shipment &&
+    ['picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed'].includes(shipmentStatusNorm);
   const assignmentTime = shipment?.createdAt || order?.createdAt;
-  const hoursSinceAssignment = assignmentTime ? (new Date() - new Date(assignmentTime)) / (1000 * 60 * 60) : 0;
-  const isProtectedByGracePeriod = isLogisticsOrder && hoursSinceAssignment < 6 && !carrierLaunched;
+  const hoursSinceAssignment = assignmentTime ? (Date.now() - new Date(assignmentTime).getTime()) / (1000 * 60 * 60) : 0;
+  const graceHoursRemaining = Math.max(0, 6 - hoursSinceAssignment);
+  const logisticsGraceActive = isLogisticsOrder && hoursSinceAssignment < 6 && !carrierLaunched;
+  const isProtectedByGracePeriod = logisticsGraceActive && order.order_status === 'processing';
   const customer = order.customer_id;
+  const escrowStatus = escrow?.status || null;
+  const paymentIsSettled = order.payment_status === 'paid' || order.payment_method === 'pay_on_delivery';
+  const isEscrowOrder = !!(
+    escrow ||
+    order.escrow_enabled ||
+    order.payment_method === 'escrow'
+  );
+  const escrowCanRelease = paymentIsSettled && isEscrowOrder && (!escrowStatus || escrowStatus === 'held' || escrowStatus === 'pending_release');
+  const vendorCanMarkDelivered =
+    isVendor &&
+    order.order_status === 'shipped';
+  const vendorCanRequestEscrowRelease =
+    isVendor &&
+    escrowCanRelease &&
+    !vendorCanMarkDelivered &&
+    (order.order_status === 'delivered' || order.order_status === 'completed' || shipmentStatusNorm === 'delivered');
+  const autoReleaseAt = escrow?.auto_release_at ? new Date(escrow.auto_release_at) : null;
+  const autoReleaseLabel = autoReleaseAt && Number.isFinite(autoReleaseAt.getTime())
+    ? autoReleaseAt.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    : null;
+  const orderAgeMs = order?.createdAt ? Date.now() - new Date(order.createdAt).getTime() : Number.POSITIVE_INFINITY;
+  const cancellationWindowOpen = orderAgeMs <= 30 * 60 * 1000;
+  const customerCanCancel =
+    !isVendor &&
+    ['placed', 'processing'].includes(order.order_status) &&
+    (
+      order.payment_status === 'pending' ||
+      (order.payment_status === 'paid' && cancellationWindowOpen)
+    ) &&
+    !['picked_up', 'in_transit', 'out_for_delivery', 'delivered'].includes(shipmentStatusNorm);
 
   const STEPS = [
     { label: 'Ordered', icon: ShoppingBag },
     { label: 'Verified', icon: ShieldCheck },
     { label: 'Transit', icon: Truck },
-    { label: 'Success', icon: CheckCircle2 }
+    { label: 'Delivered', icon: CheckCircle2 }
   ];
 
+  const toneMap = {
+    emerald: {
+      pill: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/25',
+      glow: 'shadow-emerald-500/10',
+      headline: 'text-emerald-600 dark:text-emerald-400'
+    },
+    blue: {
+      pill: 'bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/25',
+      glow: 'shadow-sky-500/10',
+      headline: 'text-sky-600 dark:text-sky-400'
+    },
+    amber: {
+      pill: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/25',
+      glow: 'shadow-amber-500/10',
+      headline: 'text-amber-700 dark:text-amber-400'
+    },
+    indigo: {
+      pill: 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/25',
+      glow: 'shadow-indigo-500/10',
+      headline: 'text-indigo-600 dark:text-indigo-400'
+    },
+    rose: {
+      pill: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/25',
+      glow: 'shadow-rose-500/10',
+      headline: 'text-rose-600 dark:text-rose-400'
+    }
+  };
+
+  const tone = toneMap[status.color] || toneMap.indigo;
+
+  const progressPct =
+    status.step <= 0 ? 0 : Math.min(100, Math.max(0, ((status.step - 1) / (STEPS.length - 1)) * 100));
+
+  const sectionTitle = (text) => (
+    <div className="mb-4 flex items-center gap-2">
+      <span className="h-4 w-0.5 rounded-full bg-[var(--accent)]" aria-hidden />
+      <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)] opacity-80">
+        {text}
+      </h3>
+    </div>
+  );
+
+  const cardBase = 'rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 backdrop-blur-sm shadow-sm';
+  const paymentMeta = (() => {
+    const method = order.payment_method;
+    const statusValue = order.payment_status;
+
+    if (statusValue === 'refunded' || order.order_status === 'refunded') {
+      return {
+        label: 'Refunded',
+        detail: 'Refunded to wallet',
+        classes: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      };
+    }
+
+    if (order.payment_method === 'pay_on_delivery') {
+      return {
+        label: 'Pay on delivery',
+        detail: 'Due on delivery',
+        classes: 'border-sky-500/25 bg-sky-500/10 text-sky-600 dark:text-sky-400',
+      };
+    }
+    if (statusValue === 'paid') {
+      return {
+        label: 'Paid',
+        detail: 'Paid',
+        classes: 'border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+      };
+    }
+    if (statusValue === 'failed') {
+      return {
+        label: 'Payment failed',
+        detail: 'Payment failed',
+        classes: 'border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+      };
+    }
+
+    if (method === 'wallet') {
+      return {
+        label: 'Awaiting wallet payment',
+        detail: 'Awaiting wallet payment',
+        classes: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      };
+    }
+
+    if (method === 'escrow') {
+      return {
+        label: 'Awaiting escrow payment',
+        detail: 'Awaiting escrow payment',
+        classes: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+      };
+    }
+
+    return {
+      label: 'Awaiting payment',
+      detail: 'Awaiting payment',
+      classes: 'border-amber-500/25 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    };
+  })();
+
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="mb-8">
-        <button onClick={onBack} className="flex items-center gap-2 group w-fit mb-4">
-           <div className="size-7 rounded-lg bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:text-white transition-all">
-              <ChevronLeft className="size-3" />
-           </div>
-           <span className="text-[10px] lg:text-[12px] font-semibold tracking-widest capitalize opacity-40 group-hover:opacity-100 transition-opacity">Back</span>
-        </button>
+    <div className="font-order-detail flex w-full min-w-0 flex-1 flex-col gap-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-0 sm:gap-8 sm:pb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* Top bar */}
+      <header className="flex flex-col gap-5 border-b border-[var(--glass-border)] pb-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:pb-6">
+        <div className="min-w-0 space-y-3 sm:space-y-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="group inline-flex min-h-[44px] items-center gap-2 rounded-xl py-2 text-[11px] font-semibold text-[var(--text-secondary)] transition active:opacity-80 sm:min-h-0 sm:py-1.5 sm:hover:text-[var(--text-primary)]"
+          >
+            <span className="flex size-10 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] transition group-active:border-[var(--accent)]/40 group-active:text-[var(--accent)] sm:size-8 sm:group-hover:border-[var(--accent)]/40 sm:group-hover:text-[var(--accent)]">
+              <ChevronLeft className="size-4" />
+            </span>
+            Back to orders
+          </button>
 
-        <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-4">
-          <h1 className="text-2xl xs:text-3xl font-black tracking-tighter leading-tight">
-            Order <span className="text-[var(--accent)]">Manifest</span>
-          </h1>
-
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 xs:pb-0">
-            <button
-              onClick={handleDownloadInvoice}
-              className="size-9 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all group shrink-0"
-            >
-              <Printer className="size-3.5" />
-            </button>
-            <button
-              className="size-9 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all group shrink-0"
-            >
-              <Share2 className="size-3.5" />
-            </button>
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] shadow-sm shrink-0">
-              <Fingerprint className="size-3.5 text-[var(--accent)] shrink-0" />
-              <code className="text-[10px] font-mono font-bold tracking-widest text-[var(--accent)]">#{order._id.slice(-8).toUpperCase()}</code>
-              <div className="flex items-center gap-1">
-                <div className="size-1 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-tighter">Live</span>
-              </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-secondary)] opacity-60">
+              Order detail
+            </p>
+            <h1 className="mt-1 truncate text-2xl font-bold tracking-tighter text-[var(--text-primary)] sm:text-3xl md:text-4xl">
+              #{order._id.slice(-8).toUpperCase()}
+            </h1>
+            <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--text-secondary)] sm:text-[11px]">
+              <Clock className="size-3.5 shrink-0 opacity-60" />
+              <span className="break-all">{new Date(order.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
+            </p>
+            <div className={`mt-3 inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] ${paymentMeta.classes}`}>
+              <CreditCard className="size-3.5 shrink-0" />
+              <span className="truncate">{paymentMeta.label}</span>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="mb-6">          <div className="glass-panel p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 relative overflow-hidden shadow-2xl group/panel backdrop-blur-3xl">
-            <div className="absolute top-0 right-0 p-8 opacity-[0.05] pointer-events-none">
-               <Navigation className="size-48 lg:size-64 text-[var(--accent)]" />
-            </div>
-
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12 relative z-10">
-               <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                     <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-black tracking-widest uppercase flex items-center gap-2 shadow-lg shadow-emerald-500/5">
-                        <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" /> Telemetry Active
-                     </div>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <p className="text-[10px] lg:text-[11px] font-black text-[var(--text-secondary)] opacity-30 tracking-[0.2em] uppercase">Manifest Status</p>
-                    <h2 className="text-4xl md:text-6xl font-black tracking-tight text-[var(--text-primary)] leading-none">{status.label}</h2>
-                  </div>
-               </div>
-
-               <div className="flex flex-wrap items-center gap-2 md:gap-3 lg:mb-1">
-                  {isVendor && order.order_status === 'placed' && (
-                    <button onClick={() => handleUpdateStatus('processing')} className="px-6 py-3 bg-[var(--accent)] text-white rounded-xl font-black text-[11px] tracking-widest uppercase shadow-xl shadow-[var(--accent)]/30 hover:-translate-y-1 transition-all flex items-center gap-2">
-                       <Zap className="size-4" /> Start Processing
-                    </button>
-                  )}
-
-                  {isVendor && order.order_status === 'processing' && (!isLogisticsOrder || !carrierLaunched) && (
-                    <button onClick={() => handleUpdateStatus('shipped')} disabled={isProtectedByGracePeriod} className={`px-6 py-3 rounded-xl font-black text-[11px] tracking-widest uppercase transition-all flex items-center gap-2 ${isProtectedByGracePeriod ? 'bg-white/5 text-white/20 border border-white/5 cursor-not-allowed' : 'bg-white text-black hover:bg-[var(--accent)] hover:text-white shadow-xl'}`}>
-                       <Truck className="size-4" /> {isProtectedByGracePeriod ? 'Awaiting Carrier' : 'Mark Shipped'}
-                    </button>
-                  )}
-
-                  <button onClick={() => setDisputeModal(true)} className="px-6 py-3 bg-rose-500/5 text-rose-500 border border-rose-500/10 rounded-xl font-black text-[11px] tracking-widest uppercase hover:bg-rose-500 hover:text-white transition-all flex items-center gap-2">
-                     <Scale className="size-4" /> Intervention
-                  </button>
-               </div>
-            </div>
-
-            <div className="relative pt-12 pb-2 px-4 relative z-10">
-               {/* Connecting Movement Line */}
-               <div className="absolute top-[3.75rem] left-8 right-8 h-[1px] bg-white/5 rounded-full overflow-hidden hidden xs:block">
-                  <div 
-                     className="h-full bg-[var(--accent)] shadow-[0_0_15px_rgba(var(--accent-rgb),0.6)] transition-all duration-1000 ease-out" 
-                     style={{ width: `${((status.step - 1) / (STEPS.length - 1)) * 100}%` }}
-                  />
-               </div>
-
-               <div className="relative flex justify-between max-w-4xl mx-auto gap-2">
-                  {STEPS.map((s, idx) => {
-                     const isActive = status.step > idx;
-                     const isCurrent = status.step === idx + 1;
-                     return (
-                       <div key={idx} className="flex flex-col items-center gap-5 relative z-10 group">
-                          <div className={`size-11 md:size-14 rounded-2xl flex items-center justify-center border transition-all duration-500 ${
-                             isActive ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-[0_0_20px_rgba(var(--accent-rgb),0.4)]' : 
-                             isCurrent ? 'bg-[var(--bg-primary)] border-[var(--accent)] text-[var(--accent)] scale-110 shadow-[0_0_25px_rgba(var(--accent-rgb),0.2)]' :
-                             'bg-zinc-900 border-zinc-800 text-zinc-600'
-                          }`}>
-                             <s.icon className={`size-5 md:size-6 ${isActive ? 'scale-110 drop-shadow-[0_0_5px_white]' : ''}`} />
-                          </div>
-                          <span className={`text-[10px] md:text-[11px] font-black tracking-[0.15em] uppercase transition-colors duration-500 ${isActive || isCurrent ? 'text-[var(--text-primary)]' : 'text-zinc-600'}`}>
-                             {s.label}
-                          </span>
-                       </div>
-                     );
-                  })}
-               </div>
-            </div>  </div>
+        <div className="grid min-w-0 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end sm:gap-2">
+          <button
+            type="button"
+            onClick={handleDownloadInvoice}
+            className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[11px] font-semibold text-[var(--text-primary)] transition active:bg-[var(--accent)]/15 sm:min-h-10 sm:flex-initial sm:px-3.5 sm:hover:border-[var(--accent)]/35 sm:hover:bg-[var(--accent)]/10"
+          >
+            <Printer className="size-3.5 opacity-70" />
+            Invoice
+          </button>
+          <button
+            type="button"
+            onClick={handleShareInvoice}
+            className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[11px] font-semibold text-[var(--text-primary)] transition active:bg-[var(--accent)]/15 sm:min-h-10 sm:flex-initial sm:px-3.5 sm:hover:border-[var(--accent)]/35 sm:hover:bg-[var(--accent)]/10"
+          >
+            <Share2 className="size-3.5 opacity-70" />
+            Share
+          </button>
+          <div
+            className={`col-span-2 hidden min-h-10 items-center justify-center gap-2 rounded-xl border px-3.5 sm:col-span-1 sm:inline-flex ${tone.pill}`}
+          >
+            <Fingerprint className="size-3.5 shrink-0 opacity-80" />
+            <span className="font-mono text-[11px] font-bold tracking-wide">REF · {order._id.slice(-8).toUpperCase()}</span>
           </div>
-      </div>
+        </div>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-         <div className="lg:col-span-8 space-y-8">
-            <div className="space-y-4">
-               <div className="flex items-center gap-2 px-1">
-                  <div className="h-2.5 w-[2px] bg-[var(--accent)]" />
-                  <h3 className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.2em] text-[var(--text-secondary)] capitalize opacity-40">Operational Logs</h3>
-               </div>
+      {/* Status + actions */}
+      <section className={`relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-gradient-to-br from-[var(--bg-secondary)]/80 to-[var(--bg-primary)]/40 p-4 shadow-lg sm:rounded-3xl sm:p-6 md:p-8 ${tone.glow}`}>
+        <div className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-[var(--accent)]/[0.06] blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,var(--glass-border)_1px,transparent_0)] [background-size:20px_20px] opacity-[0.35]" />
 
-               <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-6 md:p-8 rounded-3xl shadow-sm space-y-6">
-                  {shipment && shipment.shipment_logs?.length > 0 ? (
-                    <div className="space-y-4">
-                      {shipment.shipment_logs.slice().reverse().map((log, lIdx) => (
-                         <div key={log._id} className="relative pl-6 border-l border-[var(--glass-border)] pb-4 last:pb-0 group">
-                            <div className="absolute left-[-5px] top-0 size-2.5 rounded-full bg-[var(--bg-primary)] border-2 border-[var(--accent)] group-first:bg-[var(--accent)]" />
-                            <div className="space-y-1">
-                               <div className="flex items-center justify-between gap-4">
-                                  <h4 className="text-[10px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] capitalize">
-                                     {log.status.replace('_', ' ')}
-                                  </h4>
-                                  <span className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-30 capitalize font-mono">
-                                     {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(log.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                                  </span>
-                               </div>
-                               {log.note && <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-50 leading-relaxed">{log.note}</p>}
-                            </div>
-                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6 opacity-20">
-                       <History className="size-8 mx-auto mb-3" />
-                       <h4 className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.1em] capitalize">Sync Pending</h4>
-                    </div>
-                  )}
-               </div>
+        <div className="relative flex flex-col gap-6 sm:gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 space-y-3 sm:space-y-4">
+            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider ${tone.pill}`}>
+              <span className={`size-1.5 rounded-full ${status.color === 'emerald' ? 'bg-emerald-500' : status.color === 'blue' ? 'bg-sky-500' : status.color === 'amber' ? 'bg-amber-500' : status.color === 'rose' ? 'bg-rose-500' : 'bg-indigo-500'} animate-pulse`} />
+              Current status
             </div>
-
-            <div className="space-y-4">
-               <div className="flex items-center gap-2 px-1">
-                  <div className="h-2.5 w-[2px] bg-[var(--accent)]" />
-                  <h3 className="text-[10px] lg:text-[12px] font-semibold tracking-[0.2em] text-[var(--text-secondary)] capitalize opacity-40">Manifested Assets</h3>
-               </div>
-
-               <div className="overflow-x-auto pb-3 -mx-1 px-1" style={{ WebkitOverflowScrolling: 'touch' }}>
-                 <div className="flex gap-3" style={{ minWidth: 'max-content' }}>
-                   {order.products.map((item, idx) => (
-                     <div
-                       key={item._id || idx}
-                       className="group relative w-[270px] shrink-0 overflow-hidden bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-3 rounded-2xl flex items-center gap-3 hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all"
-                     >
-                       <div className="relative size-12 rounded-xl overflow-hidden border border-[var(--glass-border)] shadow-sm shrink-0">
-                         <img src={item.image || '/placeholder.png'} className="size-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500" alt="" />
-                       </div>
-
-                       <div className="flex-1 min-w-0">
-                         <h3 className="text-[11px] font-bold tracking-tight capitalize truncate leading-tight">{item.name}</h3>
-                         <div className="flex items-center gap-2 mt-0.5">
-                           <span className="text-[10px] font-bold text-[var(--accent)] font-mono">{(item.price || 0).toLocaleString()} XAF</span>
-                           <span className="text-[var(--text-secondary)] opacity-30">·</span>
-                           <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">×{item.quantity}</span>
-                         </div>
-                       </div>
-
-                       <div className="flex flex-col gap-1.5 shrink-0">
-                         {order.order_status === 'completed' && !isVendor && (
-                           <button
-                             onClick={() => { setReviewData({ ...reviewData, product_id: item.product_id?._id || item.product_id }); setReviewModal(true); }}
-                             className="px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white text-[9px] font-bold tracking-wider shadow-md shadow-[var(--accent)]/10 hover:scale-105 transition-all whitespace-nowrap"
-                           >Review</button>
-                         )}
-                         <button className="px-3 py-1.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] text-[9px] font-bold tracking-wider hover:text-[var(--text-primary)] transition-colors whitespace-nowrap">Verify</button>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-               </div>
+            <div>
+              <p className={`text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${tone.headline}`}>{status.label}</p>
+              <p className="mt-2 max-w-xl text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-90 sm:text-[12px]">
+                Track fulfillment, carrier updates, and settlement from this workspace.
+              </p>
+              <div className={`mt-4 inline-flex max-w-full items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold tracking-tight ${paymentMeta.classes}`}>
+                <CreditCard className="size-4 shrink-0" />
+                <span className="truncate">{paymentMeta.detail}</span>
+              </div>
             </div>
-         </div>
+          </div>
 
-         <div className="lg:col-span-4 space-y-8">
-            <div className="glass-panel p-6 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 backdrop-blur-3xl shadow-sm space-y-4 relative overflow-hidden">
-               <h3 className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.2em] flex items-center gap-2 capitalize text-[var(--text-secondary)] opacity-40"><User className="size-3 text-[var(--accent)]" /> Client</h3>
-               <div className="flex items-center gap-3">
-                  <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20 text-[var(--accent)]  font-black text-sm capitalize">
-                     {customer?.name?.[0] || 'C'}
+          <div className="flex w-full flex-col gap-2 xs:flex-row xs:flex-wrap sm:w-auto sm:gap-2 lg:max-w-md lg:justify-end">
+            {isVendor && order.order_status === 'placed' && logisticsGraceActive && (
+              <div className="flex w-full flex-col gap-2 xs:flex-row xs:flex-wrap xs:items-stretch">
+                <div className="inline-flex min-h-[48px] w-full flex-1 items-center gap-2 rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-[11px] font-medium leading-snug text-[var(--text-primary)] xs:min-h-0 sm:py-2.5">
+                  <Clock className="size-4 shrink-0 text-sky-600 dark:text-sky-400" />
+                  <span>
+                    Logistics priority window — manual &ldquo;Mark shipped&rdquo; unlocks in{' '}
+                    <strong className="font-semibold tabular-nums">
+                      {graceHoursRemaining >= 1
+                        ? `${Math.ceil(graceHoursRemaining)}h`
+                        : `${Math.max(1, Math.ceil(graceHoursRemaining * 60))}m`}
+                    </strong>
+                    . Acknowledge prep below if you&apos;re getting the order ready.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleUpdateStatus('processing')}
+                  disabled={!!statusUpdating}
+                  className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-primary)] shadow-sm transition active:border-[var(--accent)]/40 disabled:cursor-wait disabled:opacity-60 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:border-[var(--accent)]/40"
+                >
+                  {statusUpdating === 'processing' ? <Loader2 className="size-4 animate-spin" /> : <Package className="size-4" />} Acknowledge prep
+                </button>
+              </div>
+            )}
+            {isVendor && order.order_status === 'placed' && !logisticsGraceActive && (
+              <button
+                type="button"
+                onClick={() => handleUpdateStatus('processing')}
+                disabled={!!statusUpdating}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-[var(--accent)]/25 transition active:opacity-90 disabled:cursor-wait disabled:opacity-60 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
+              >
+                {statusUpdating === 'processing' ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />} Start processing
+              </button>
+            )}
+            {isVendor && order.order_status === 'processing' && (!isLogisticsOrder || !carrierLaunched) && (
+              <button
+                type="button"
+                onClick={() => handleUpdateStatus('shipped')}
+                disabled={isProtectedByGracePeriod || !!statusUpdating}
+                className={`inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-[11px] font-semibold uppercase tracking-wide transition xs:w-auto sm:min-h-[44px] sm:py-2.5 ${
+                  isProtectedByGracePeriod || statusUpdating
+                    ? 'cursor-not-allowed border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] opacity-50'
+                    : 'border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm active:border-[var(--accent)]/40 sm:hover:border-[var(--accent)]/40'
+                }`}
+              >
+                {statusUpdating === 'shipped' ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />} {isProtectedByGracePeriod ? 'Awaiting carrier' : 'Mark shipped'}
+              </button>
+            )}
+            {/* CUSTOMER / ADMIN ACTION: release held escrow, even for older orders already marked finalized. */}
+            {!isVendor && escrowCanRelease && (
+              <button
+                type="button"
+                onClick={handleConfirmDelivery}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-emerald-500/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
+              >
+                <CheckCircle2 className="size-4" /> Release escrow
+              </button>
+            )}
+
+            {/* VENDOR ACTION: confirm delivery/request customer escrow release, regardless of finalized order status. */}
+            {isVendor && vendorCanRequestEscrowRelease && (
+              <button
+                type="button"
+                onClick={handleVendorConfirmDelivery}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-emerald-500/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
+              >
+                <ShieldCheck className="size-4" /> Request escrow release
+              </button>
+            )}
+
+            {/* VENDOR ACTION: Mark Delivered (For self-managed/non-logistics shipments) */}
+            {vendorCanMarkDelivered && (
+              <button
+                type="button"
+                onClick={handleVendorConfirmDelivery}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-[var(--accent)]/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
+              >
+                <Package className="size-4" /> Mark as delivered
+              </button>
+            )}
+
+            {customerCanCancel && (
+              <button
+                type="button"
+                onClick={handleCancelOrder}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-amber-700 transition active:bg-amber-500 active:text-white xs:w-auto sm:min-h-[44px] sm:py-2.5 dark:text-amber-300 sm:hover:bg-amber-500 sm:hover:text-white"
+              >
+                <XCircle className="size-4" /> {order.payment_status === 'paid' ? 'Cancel & refund' : 'Cancel order'}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setDisputeModal(true)}
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-rose-600 transition active:bg-rose-500 active:text-white xs:w-auto sm:min-h-[44px] sm:py-2.5 dark:text-rose-400 sm:hover:bg-rose-500 sm:hover:text-white"
+            >
+              <Scale className="size-4" /> Open dispute
+            </button>
+          </div>
+        </div>
+
+        {/* Stepper */}
+        <div className="relative mt-7 border-t border-[var(--glass-border)] pt-6 sm:mt-10 sm:pt-10">
+          <div className="absolute left-4 right-4 top-[2.25rem] hidden h-px bg-[var(--glass-border)] sm:block" />
+          <div
+            className="absolute left-4 top-[2.25rem] hidden h-px bg-[var(--accent)] transition-all duration-700 sm:block"
+            style={{ width: `calc(${progressPct}% - 2rem)` }}
+          />
+
+          <div className="relative sm:hidden">
+            <div className="absolute left-[12.5%] right-[12.5%] top-[1.125rem] h-1 rounded-full bg-[var(--glass-border)]/70" />
+            <div
+              className="absolute left-[12.5%] top-[1.125rem] h-1 rounded-full bg-[var(--accent)] transition-all duration-700"
+              style={{ width: `${progressPct * 0.75}%` }}
+            />
+            <div className="relative grid grid-cols-4 gap-1">
+              {STEPS.map((s, idx) => {
+                const isActive = status.step > idx;
+                const isCurrent = status.step === idx + 1;
+                return (
+                  <div key={s.label} className="flex min-w-0 flex-col items-center gap-2 text-center">
+                    <div
+                      className={`relative z-10 flex size-9 items-center justify-center rounded-xl border transition-all duration-300 ${
+                        isActive
+                          ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/30'
+                          : isCurrent
+                            ? 'border-[var(--accent)] bg-[var(--bg-primary)] text-[var(--accent)] ring-2 ring-[var(--accent)]/25'
+                            : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-60'
+                      }`}
+                    >
+                      <s.icon className="size-4" />
+                    </div>
+                    <span
+                      className={`block w-full truncate text-[9px] font-semibold uppercase leading-none tracking-normal ${
+                        isActive || isCurrent ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-50'
+                      }`}
+                    >
+                      {s.label}
+                    </span>
                   </div>
-                  <div className="min-w-0">
-                     <h4 className="text-[12px]  font-semibold tracking-tight truncate capitalize leading-none">{customer?.name || 'CONSIGNEE'}</h4>
-                     <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 truncate capitalize tracking-tighter mt-1">{customer?.email || 'Offline'}</p>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="relative hidden sm:flex sm:justify-between sm:gap-2 md:gap-4">
+            {STEPS.map((s, idx) => {
+              const isActive = status.step > idx;
+              const isCurrent = status.step === idx + 1;
+              return (
+                <div key={s.label} className="flex min-w-0 flex-col items-center gap-2 text-center sm:gap-3 sm:flex-1">
+                  <div
+                    className={`relative z-10 flex size-12 items-center justify-center rounded-2xl border transition-all duration-300 ${
+                      isActive
+                        ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/30'
+                        : isCurrent
+                          ? 'border-[var(--accent)] bg-[var(--bg-primary)] text-[var(--accent)] ring-2 ring-[var(--accent)]/25'
+                          : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-60'
+                    }`}
+                  >
+                    <s.icon className="size-5" />
                   </div>
-               </div>
-               <div className="flex items-center gap-2 p-3 rounded-xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
-                  <Phone className="size-3 text-[var(--accent)]" />
-                  <span className="text-[10px] lg:text-[12px]  font-semibold font-mono tracking-widest text-[var(--text-primary)]">{order.shipping_address?.phone || customer?.phone || 'NO_DATA'}</span>
-               </div>
-            </div>
+                  <span
+                    className={`max-w-[5.5rem] text-[9px] font-semibold uppercase leading-tight tracking-[0.12em] xs:max-w-none xs:text-[10px] ${
+                      isActive || isCurrent ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-50'
+                    }`}
+                  >
+                    {s.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-            <div className="glass-panel p-6 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 backdrop-blur-2xl shadow-sm space-y-4">
-               <h3 className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.2em] flex items-center gap-2 capitalize text-[var(--text-secondary)] opacity-40"><Truck className="size-3 text-[var(--accent)]" /> Carrier</h3>
-               {shipment && (shipment.logistics_id || shipment.logistics_company_id) ? (
-                 <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] space-y-1">
-                       <h4 className="text-[10px] lg:text-[12px]  font-semibold tracking-widest capitalize">{(shipment.logistics_id?.company_name || shipment.logistics_company_id?.company_name || 'FIRM').slice(0, 20)}</h4>
-                       <div className="flex items-center gap-2 text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40"><Phone className="size-2.5" /> {shipment.logistics_id?.contact_phone || 'SYNCING'}</div>
-                    </div>
-                    <div className="p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-between gap-3">
-                       <code className="text-[10px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-[0.1em]">{shipment.tracking_code || 'TC_PENDING'}</code>
-                       <button onClick={() => { if(shipment.tracking_code) { navigator.clipboard.writeText(shipment.tracking_code); toast.success("Copied"); } }} className="size-5 text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all flex items-center justify-center"><Layers className="size-2.5" /></button>
-                    </div>
-                 </div>
-               ) : (
-                 <div className="text-center py-4 bg-[var(--bg-primary)]/20 rounded-xl border border-dashed border-[var(--glass-border)] opacity-30">
-                    <p className="text-[10px] lg:text-[12px]  font-semibold capitalize tracking-[0.2em]">ROUTING_PENDING</p>
-                 </div>
-               )}
-            </div>
-
-            <div className="glass-panel p-6 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 backdrop-blur-2xl shadow-sm space-y-4">
-               <h3 className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.2em] flex items-center gap-2 capitalize text-[var(--text-secondary)] opacity-40"><CreditCard className="size-3 text-[var(--accent)]" /> Settlement</h3>
-               <div className="space-y-2 pb-4 border-b border-[var(--glass-border)]">
-                  <div className="flex justify-between items-center text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize"><span>Assets</span><span className="font-mono">{(order.total_amount - (order.shipping_fee || 0)).toLocaleString()}</span></div>
-                  <div className="flex justify-between items-center text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize"><span>Shipping</span><span className="font-mono">{(order.shipping_fee || 0).toLocaleString()}</span></div>
-               </div>
-               <div className="flex justify-between items-center">
-                  <span className="text-[10px] lg:text-[12px]  font-semibold text-[var(--accent)]">Total</span>
-                  <h2 className="text-xl  font-black text-[var(--text-primary)] font-mono">{order.total_amount.toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-30">XAF</span></h2>
-               </div>
-               <div className="p-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] space-y-2 shadow-inner">
-                  <div className="flex items-center gap-2"><ShieldCheck className="size-2.5 text-emerald-500" /><p className="text-[10px] lg:text-[12px]  font-semibold text-emerald-500 capitalize">Escrow Synced</p></div>
-                  <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden"><div className="h-full bg-emerald-500 w-full" /></div>
-               </div>
-            </div>
-
-            <div className="glass-panel p-6 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 backdrop-blur-xl shadow-sm space-y-4">
-               <h3 className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.2em] flex items-center gap-2 capitalize text-[var(--text-secondary)] opacity-40"><MapPin className="size-3 text-[var(--accent)]" /> Destination</h3>
-               <div className="space-y-4">
-                  <div className="space-y-2 bg-[var(--bg-secondary)]/50 p-4 rounded-xl border border-[var(--glass-border)]/30">
-                     <h4 className="text-sm font-semibold capitalize tracking-tight text-[var(--text-primary)] mb-1">{order.shipping_address?.full_name || customer?.name || 'RECIPIENT'}</h4>
-                     <div className="flex flex-col gap-1.5 text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)]">
-                        <div className="flex items-start gap-2">
-                           <MapPin className="size-3 text-[var(--accent)] mt-0.5 shrink-0" />
-                           <span className="leading-relaxed opacity-90">
-                              {[
-                                 order.shipping_address?.street || order.shipping_address?.address,
-                                 order.shipping_address?.quartier,
-                                 order.shipping_address?.city,
-                                 order.shipping_address?.region,
-                                 order.shipping_address?.zipCode || order.shipping_address?.zip
-                              ].filter(Boolean).join(', ') || 'DELIVERY_PROTOCOL_ACTIVE'}
-                           </span>
+      <div className="grid w-full min-w-0 flex-1 grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-12 lg:items-stretch lg:gap-10">
+        <div className="order-2 flex min-h-0 flex-col space-y-8 sm:space-y-10 lg:order-1 lg:col-span-8">
+          <div>
+            {sectionTitle('Shipment activity')}
+            <div className={`${cardBase} overflow-hidden`}>
+              <div className="flex items-center justify-between border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 px-4 py-3 sm:px-5">
+                <p className="text-[12px] font-semibold text-[var(--text-primary)]">Sales History</p>
+                <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
+                  {activityEntries.length} updates
+                </span>
+              </div>
+              <div className="p-4 sm:p-5 md:p-6">
+              {activityEntries.length > 0 ? (
+                <ul className="space-y-2">
+                  {activityEntries.slice().reverse().map((log, lIdx) => (
+                    <li key={log._id || lIdx} className="relative rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3.5 sm:p-4">
+                      <div className="absolute left-0 top-0 h-full w-1 rounded-l-xl bg-[var(--accent)]/40" />
+                      <div className="min-w-0 space-y-1.5 pl-2">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                          <h4 className="text-[12px] font-semibold capitalize text-[var(--text-primary)]">
+                            {String(log.status || 'update').replace('_', ' ')}
+                          </h4>
+                          <time className="font-mono text-[10px] text-[var(--text-secondary)] opacity-75 sm:whitespace-nowrap">
+                            {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ·{' '}
+                            {new Date(log.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </time>
                         </div>
-                        <div className="flex items-center gap-2 mt-1">
-                           <Phone className="size-3 text-[var(--accent)] opacity-70 shrink-0" />
-                           <span className="font-mono tracking-widest opacity-90">{order.shipping_address?.phone || customer?.phone || 'NO_CONTACT_DATA'}</span>
-                        </div>
-                     </div>
-                  </div>
-
-                  {order.delivery_description && (
-                     <div className="pt-3 border-t border-[var(--glass-border)] space-y-1.5">
-                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-[0.2em]">LOGISTICS_PROTOCOL</p>
-                        <p className="text-[10px] lg:text-[12px] font-medium text-indigo-400 leading-relaxed italic bg-indigo-500/5 p-3 rounded-xl border border-indigo-500/10">
-                           "{order.delivery_description}"
-                        </p>
-                     </div>
-                  )}
-               </div>
+                        {log.note ? (
+                          <p className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-90">{log.note}</p>
+                        ) : (
+                          <p className="text-[11px] text-[var(--text-secondary)] opacity-65">No extra note for this update.</p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="flex flex-col items-center py-10 text-center">
+                  <History className="mb-3 size-9 text-[var(--text-secondary)] opacity-25" />
+                  <p className="text-[12px] font-medium text-[var(--text-secondary)] opacity-60">No carrier updates yet</p>
+                </div>
+              )}
+              </div>
             </div>
-         </div>
+          </div>
+
+          <div>
+            {sectionTitle('Line items')}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {order.products.map((item, idx) => {
+                const variantLabel = formatVariantLabel(item.variant);
+                return (
+                <div
+                  key={item._id || idx}
+                  className={`${cardBase} flex gap-3 p-3 transition active:border-[var(--accent)]/25 sm:p-4 sm:hover:border-[var(--accent)]/25`}
+                >
+                  <div className="relative size-[52px] shrink-0 overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] sm:size-14">
+                    <img
+                      src={item.image || '/placeholder.png'}
+                      className="size-full object-cover"
+                      alt=""
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-[12px] font-semibold leading-snug text-[var(--text-primary)]">{item.name}</h3>
+                    {variantLabel && (
+                      <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--accent)]/80">{variantLabel}</p>
+                    )}
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-medium text-[var(--text-secondary)]">
+                      <span className="font-mono text-[var(--accent)]">{(item.price || 0).toLocaleString()} XAF</span>
+                      {item.sale_price && item.regular_price && (
+                        <span className="line-through opacity-60">{(item.regular_price || 0).toLocaleString()} XAF</span>
+                      )}
+                      <span className="opacity-40">·</span>
+                      <span>Qty {item.quantity}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {order.order_status === 'completed' && !isVendor && (
+                        <button
+                          type="button"
+                          onClick={() => openItemReview(item)}
+                          className="min-h-10 rounded-lg bg-[var(--accent)] px-4 py-2 text-[10px] font-semibold text-white shadow-sm transition active:opacity-90 sm:hover:opacity-95"
+                        >
+                          Review
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => openItemReview(item)}
+                        className="min-h-10 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-2 text-[10px] font-semibold text-[var(--text-secondary)] transition active:bg-[var(--bg-primary)] sm:hover:text-[var(--text-primary)]"
+                      >
+                        Verify
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <aside className="order-1 flex min-h-0 flex-col space-y-4 sm:space-y-6 lg:order-2 lg:col-span-4 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-10rem)] lg:overflow-y-auto lg:self-start">
+          <div className={`${cardBase} p-4 sm:p-5`}>
+            <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] opacity-80">
+              <User className="size-3.5 text-[var(--accent)]" /> Customer
+            </h3>
+            <div className="flex items-center gap-3">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 text-sm font-bold text-[var(--accent)]">
+                {customer?.name?.[0] || 'C'}
+              </div>
+              <div className="min-w-0">
+                <h4 className="truncate text-[13px] font-semibold text-[var(--text-primary)]">{customer?.name || 'Customer'}</h4>
+                <p className="truncate text-[11px] text-[var(--text-secondary)] opacity-70">{customer?.email || '—'}</p>
+              </div>
+            </div>
+            {(order.shipping_address?.phone || customer?.phone) ? (
+              <a
+                href={`tel:${String(order.shipping_address?.phone || customer?.phone).replace(/\s/g, '')}`}
+                className="mt-4 flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3 py-2.5 transition active:bg-[var(--accent)]/10 sm:min-h-0"
+              >
+                <Phone className="size-3.5 shrink-0 text-[var(--accent)]" />
+                <span className="font-mono text-[11px] tracking-wide text-[var(--text-primary)]">
+                  {order.shipping_address?.phone || customer?.phone}
+                </span>
+              </a>
+            ) : (
+              <div className="mt-4 flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3 py-2.5 opacity-60 sm:min-h-0">
+                <Phone className="size-3.5 shrink-0 text-[var(--accent)]" />
+                <span className="font-mono text-[11px] tracking-wide text-[var(--text-primary)]">—</span>
+              </div>
+            )}
+          </div>
+
+          <div className={`${cardBase} p-4 sm:p-5`}>
+            <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] opacity-80">
+              <Truck className="size-3.5 text-[var(--accent)]" /> Carrier
+            </h3>
+            {shipment && (shipment.logistics_id || shipment.logistics_company_id) ? (
+              <div className="space-y-4">
+                <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-4">
+                  <h4 className="text-[12px] font-semibold capitalize text-[var(--text-primary)]">
+                    {(shipment.logistics_id?.company_name || shipment.logistics_company_id?.company_name || 'Carrier').slice(0, 24)}
+                  </h4>
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-[var(--text-secondary)] opacity-80">
+                    <Phone className="size-3 opacity-60" />
+                    {shipment.logistics_id?.contact_phone || '—'}
+                  </div>
+                </div>
+                <div className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-[var(--glass-border)] px-3 py-2 sm:min-h-0">
+                  <code className="min-w-0 truncate font-mono text-[11px] font-semibold text-[var(--accent)]">
+                    {shipment.tracking_code || 'Pending'}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (shipment.tracking_code) {
+                        navigator.clipboard.writeText(shipment.tracking_code);
+                        toast.success('Copied');
+                      }
+                    }}
+                    className="flex size-11 shrink-0 items-center justify-center rounded-lg text-[var(--text-secondary)] transition active:bg-[var(--bg-secondary)] active:text-[var(--accent)] sm:size-9 sm:hover:text-[var(--accent)]"
+                    aria-label="Copy tracking code"
+                  >
+                    <Layers className="size-4" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-4 py-6 text-center">
+                <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60">No carrier assigned yet</p>
+              </div>
+            )}
+          </div>
+
+          <div className={`${cardBase} p-4 sm:p-5`}>
+            <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] opacity-80">
+              <CreditCard className="size-3.5 text-[var(--accent)]" /> Settlement
+            </h3>
+            <div className="space-y-2 border-b border-[var(--glass-border)] pb-4 text-[11px]">
+              <div className="flex justify-between gap-4 font-medium text-[var(--text-secondary)] opacity-80">
+                <span>Subtotal</span>
+                <span className="font-mono">{(order.total_amount - (order.shipping_fee || 0)).toLocaleString()} XAF</span>
+              </div>
+              <div className="flex justify-between gap-4 font-medium text-[var(--text-secondary)] opacity-80">
+                <span>Shipping</span>
+                <span className="font-mono">{(order.shipping_fee || 0).toLocaleString()} XAF</span>
+              </div>
+            </div>
+            <div className="mt-4 flex items-end justify-between gap-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">Total</span>
+              <p className="text-xl font-bold tabular-nums tracking-tight text-[var(--text-primary)]">
+                {order.total_amount.toLocaleString()} <span className="text-[11px] font-medium opacity-40">XAF</span>
+              </p>
+            </div>
+            <div className="mt-4 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-3">
+              <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <ShieldCheck className="size-3.5" />
+                {escrowStatus === 'released' ? 'Escrow released' : 'Escrow tracked'}
+              </div>
+              {escrowCanRelease && (
+                <p className="mt-2 text-[10px] font-medium leading-relaxed text-[var(--text-secondary)] opacity-70">
+                  Auto-release runs 6 hours after delivery if no dispute is opened
+                  {autoReleaseLabel ? `: ${autoReleaseLabel}` : '.'}
+                </p>
+              )}
+              <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[var(--bg-secondary)]">
+                <div className="h-full w-full rounded-full bg-emerald-500" />
+              </div>
+            </div>
+          </div>
+
+          <div className={`${cardBase} p-4 sm:p-5`}>
+            <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] opacity-80">
+              <MapPin className="size-3.5 text-[var(--accent)]" /> Ship to
+            </h3>
+            <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-3 sm:p-4">
+              <h4 className="text-[13px] font-semibold text-[var(--text-primary)]">
+                {order.shipping_address?.full_name || customer?.name || 'Recipient'}
+              </h4>
+              <div className="mt-3 flex flex-col gap-2 text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                <div className="flex gap-2">
+                  <MapPin className="mt-0.5 size-3.5 shrink-0 text-[var(--accent)] opacity-80" />
+                  <span>
+                    {[
+                      order.shipping_address?.street || order.shipping_address?.address,
+                      order.shipping_address?.quartier,
+                      order.shipping_address?.city,
+                      order.shipping_address?.region,
+                      order.shipping_address?.zipCode || order.shipping_address?.zip
+                    ]
+                      .filter(Boolean)
+                      .join(', ') || 'Address on file'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 font-mono">
+                  <Phone className="size-3.5 shrink-0 text-[var(--accent)] opacity-70" />
+                  {order.shipping_address?.phone || customer?.phone || '—'}
+                </div>
+              </div>
+            </div>
+
+            {order.delivery_description && (
+              <div className="mt-4 border-t border-[var(--glass-border)] pt-4">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] opacity-70">
+                  Delivery notes
+                </p>
+                <p className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-3 text-[11px] italic leading-relaxed text-indigo-700 dark:text-indigo-300">
+                  &ldquo;{order.delivery_description}&rdquo;
+                </p>
+              </div>
+            )}
+          </div>
+        </aside>
       </div>
 
       <AnimatePresence>
         {disputeModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDisputeModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-xl" />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-lg glass-panel rounded-[2.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] p-10 shadow-2xl">
-               <div className="space-y-8">
-                  <h2 className="text-2xl  font-bold tracking-tighter">Intervention</h2>
-                  <form onSubmit={handleRaiseDispute} className="space-y-6">
-                     <div className="space-y-3">
-                        <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] ml-3">Reason</label>
-                        <select value={disputeData.reason} onChange={e => setDisputeData({ ...disputeData, reason: e.target.value })} className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-6 py-4 text-[11px] lg:text-[12px]  font-semibold tracking-tight outline-none focus:border-[var(--accent)] transition-all">
-                           <option value="item_not_received">Asset not manifested</option>
-                           <option value="different_from_description">Registry mismatch</option>
-                           <option value="quality_issues">Structural defects</option>
-                           <option value="other">Protocol violation</option>
-                        </select>
-                     </div>
-                     <div className="space-y-3">
-                        <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] ml-3">Manifest</label>
-                        <textarea required rows={4} placeholder="Document violation..." value={disputeData.description} onChange={e => setDisputeData({ ...disputeData, description: e.target.value })} className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-xs font-medium outline-none focus:border-[var(--accent)] transition-all resize-none shadow-inner" />
-                     </div>
-                     <div className="flex gap-4">
-                        <button type="button" onClick={() => setDisputeModal(false)} className="flex-1 py-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold">Cancel</button>
-                        <button disabled={disputeLoading} className="flex-[2] py-4 rounded-xl bg-rose-500 text-white  font-semibold text-[11px] lg:text-[12px] flex items-center justify-center gap-2">
-                           {disputeLoading ? <Loader2 className="size-3 animate-spin" /> : <ShieldCheck className="size-3" />} Execute
-                        </button>
-                     </div>
-                  </form>
-               </div>
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDisputeModal(false)}
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ y: 14, scale: 0.98, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 14, scale: 0.98, opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:p-8"
+            >
+              <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Open dispute</h2>
+              <p className="mt-1 text-[12px] text-[var(--text-secondary)]">Describe the issue so our team can review.</p>
+              <form onSubmit={handleRaiseDispute} className="mt-6 space-y-5">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Reason</label>
+                  <select
+                    value={disputeData.reason}
+                    onChange={(e) => setDisputeData({ ...disputeData, reason: e.target.value })}
+                    className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] font-medium outline-none focus:border-[var(--accent)]"
+                  >
+                    <option value="item_not_received">Asset not manifested</option>
+                    <option value="item_not_as_described">Registry mismatch</option>
+                    <option value="faulty_item">Structural defects</option>
+                    <option value="other">Protocol violation</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Details</label>
+                  <textarea
+                    required
+                    rows={4}
+                    placeholder="Document violation..."
+                    value={disputeData.description}
+                    onChange={(e) => setDisputeData({ ...disputeData, description: e.target.value })}
+                    className="w-full resize-none rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] outline-none focus:border-[var(--accent)]"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setDisputeModal(false)}
+                    className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-3 text-[12px] font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={disputeLoading}
+                    className="flex-[1.4] inline-flex items-center justify-center gap-2 rounded-xl bg-rose-500 py-3 text-[12px] font-semibold text-white disabled:opacity-60"
+                  >
+                    {disputeLoading ? <Loader2 className="size-4 animate-spin" /> : <ShieldCheck className="size-4" />}
+                    Submit
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
@@ -535,34 +1097,73 @@ export default function SingleOrderView({ orderId, onBack }) {
 
       <AnimatePresence>
         {reviewModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setReviewModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-xl" />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative w-full max-w-lg glass-panel rounded-[2.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] p-10 shadow-2xl">
-               <div className="space-y-8">
-                  <h2 className="text-2xl  font-bold tracking-tighter">Feedback Loop</h2>
-                  <form onSubmit={handleSubmitReview} className="space-y-6">
-                     <div className="space-y-3">
-                        <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] ml-3">Rating</label>
-                        <div className="flex gap-2">
-                           {[1, 2, 3, 4, 5].map(s => (
-                              <button key={s} type="button" onClick={() => setReviewData({ ...reviewData, rating: s })} className={`size-12 rounded-xl border flex items-center justify-center transition-all ${reviewData.rating >= s ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
-                                 <Star className="size-5" />
-                              </button>
-                           ))}
-                        </div>
-                     </div>
-                     <div className="space-y-3">
-                        <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] ml-3">Feedback</label>
-                        <textarea required rows={4} placeholder="How was the asset?" value={reviewData.comment} onChange={e => setReviewData({ ...reviewData, comment: e.target.value })} className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 py-4 text-xs font-medium outline-none focus:border-[var(--accent)] transition-all resize-none shadow-inner" />
-                     </div>
-                     <div className="flex gap-4">
-                        <button type="button" onClick={() => setReviewModal(false)} className="flex-1 py-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold">Cancel</button>
-                        <button disabled={reviewLoading} className="flex-[2] py-4 rounded-xl bg-[var(--accent)] text-white  font-semibold text-[11px] lg:text-[12px] flex items-center justify-center gap-2">
-                           {reviewLoading ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />} Broadcast
-                        </button>
-                     </div>
-                  </form>
-               </div>
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setReviewModal(false)}
+              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ y: 14, scale: 0.98, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 14, scale: 0.98, opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl sm:p-8"
+            >
+              <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Leave a review</h2>
+              <p className="mt-1 text-[12px] text-[var(--text-secondary)]">
+                Share feedback for {reviewData.product_name || 'this product'}.
+              </p>
+              <form onSubmit={handleSubmitReview} className="mt-6 space-y-5">
+                <div className="space-y-2">
+                  <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Rating</label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setReviewData({ ...reviewData, rating: s })}
+                        className={`flex size-11 items-center justify-center rounded-xl border transition-all ${
+                          reviewData.rating >= s
+                            ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                            : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                        }`}
+                      >
+                        <Star className="size-4" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Comment</label>
+                  <textarea
+                    required
+                    rows={4}
+                    placeholder="How was the asset?"
+                    value={reviewData.comment}
+                    onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                    className="w-full resize-none rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] outline-none focus:border-[var(--accent)]"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setReviewModal(false)}
+                    className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-3 text-[12px] font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={reviewLoading}
+                    className="flex-[1.4] inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3 text-[12px] font-semibold text-white disabled:opacity-60"
+                  >
+                    {reviewLoading ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
+                    Submit
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}

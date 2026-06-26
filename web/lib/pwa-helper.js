@@ -6,7 +6,7 @@
  */
 import api from '@/services/api';
 
-const VAPID_PUBLIC_KEY = "BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ";
+const FALLBACK_VAPID_PUBLIC_KEY = "BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ";
 
 function isPushServiceUnavailable(err) {
   if (!err) return false;
@@ -31,6 +31,17 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+async function getActiveVapidPublicKey() {
+  try {
+    const res = await api.get('/push/vapid-public-key');
+    const key = res.data?.data?.publicKey || res.data?.publicKey;
+    return key || FALLBACK_VAPID_PUBLIC_KEY;
+  } catch (err) {
+    console.warn('[PWA] Could not fetch backend VAPID key; using fallback.', err?.message || err);
+    return FALLBACK_VAPID_PUBLIC_KEY;
+  }
+}
+
 /**
  * Registers the Service Worker and returns the registration.
  */
@@ -42,6 +53,26 @@ export async function registerPWA() {
   try {
     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
     console.log('🚀 Aura SW Registered:', registration.scope);
+
+    registration.update().catch(() => {});
+    registration.addEventListener?.('updatefound', () => {
+      const worker = registration.installing;
+      if (!worker) return;
+
+      worker.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          worker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+
+    if (!window.__auraSwControllerReloadBound) {
+      window.__auraSwControllerReloadBound = true;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    }
+
     // Force SW to activate immediately without waiting for tabs to close
     if (registration.waiting) {
       registration.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -58,21 +89,8 @@ export async function registerPWA() {
  * Always re-syncs the current subscription — handles stale/expired subs
  * and ensures the backend always has the latest push endpoint.
  */
-export async function subscribeToPush() {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-    return null;
-  }
-
-  let token = localStorage.getItem('aura_token');
-  if (!token) {
-    try {
-      const stored = localStorage.getItem('aura-auth-storage');
-      if (stored) token = JSON.parse(stored)?.state?.token;
-    } catch (e) { }
-  }
-
-  if (!token || token === 'undefined' || token === 'null') {
-    console.log('[PWA] No auth token — skipping push subscription');
+export async function subscribeToPush({ promptIfNeeded = true } = {}) {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
     return null;
   }
 
@@ -80,15 +98,24 @@ export async function subscribeToPush() {
     // Request permission if not yet granted
     let permission = Notification.permission;
     if (permission === 'default') {
+      if (!promptIfNeeded) {
+        console.log('[PWA] Notification permission not granted yet — waiting for user gesture.');
+        return { success: false, permission: 'default' };
+      }
       permission = await Notification.requestPermission();
     }
 
     if (permission !== 'granted') {
-      console.warn('⚠️ Push permission denied by user.');
+      if (permission === 'denied') {
+        console.log('[PWA] Push permission previously denied by user.');
+      } else {
+        console.warn('⚠️ Push permission denied by user.');
+      }
       return null;
     }
 
     const registration = await navigator.serviceWorker.ready;
+    const vapidPublicKey = await getActiveVapidPublicKey();
 
     // Always get or create subscription
     let subscription = await registration.pushManager.getSubscription();
@@ -98,7 +125,7 @@ export async function subscribeToPush() {
       try {
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
         });
       } catch (subscribeErr) {
         if (isPushServiceUnavailable(subscribeErr)) {
@@ -139,9 +166,10 @@ export async function subscribeToPush() {
 
         // 3. Re-subscribe with correct VAPID key (one retry only)
         const reg2 = await navigator.serviceWorker.ready;
+        const retryVapidPublicKey = await getActiveVapidPublicKey();
         const newSub = await reg2.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+          applicationServerKey: urlBase64ToUint8Array(retryVapidPublicKey)
         });
         await api.post('/push/subscribe', {
           subscription: newSub.toJSON(),
@@ -170,5 +198,33 @@ export async function subscribeToPush() {
 
     console.error('❌ Push Subscription Error:', err.name, err.message);
     return { success: false, error: 'UNKNOWN', message: err.message };
+  }
+}
+
+export async function unsubscribeCurrentPushEndpoint({ removeBrowserSubscription = false } = {}) {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return { success: false, unsupported: true };
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (!subscription?.endpoint) return { success: true, unchanged: true };
+
+    await api.delete('/push/unsubscribe', {
+      data: { endpoint: subscription.endpoint },
+      __skipRetry: true,
+    }).catch((error) => {
+      if (error?.response?.status !== 401) throw error;
+    });
+
+    if (removeBrowserSubscription) {
+      await subscription.unsubscribe().catch(() => {});
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.warn('[PWA] Push unsubscribe skipped:', err?.message || err);
+    return { success: false, error: err?.message || 'UNSUBSCRIBE_FAILED' };
   }
 }

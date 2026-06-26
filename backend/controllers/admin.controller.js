@@ -1,6 +1,6 @@
 /**
  * controllers/admin.controller.js
- * Aura Market — Supreme Administrative Commands
+ * Auradime — Supreme Administrative Commands
  * Exclusively executes tasks reserved for native platform managers.
  * Includes layout mapping, user bans, and broad dispute settlements natively.
  */
@@ -8,6 +8,7 @@
 const Homepage = require('../models/Homepage.model');
 const Product = require('../models/Product.model');
 const Vendor = require('../models/Vendor.model');
+const Store = require('../models/Store.model');
 const User = require('../models/User.model');
 const Order = require('../models/Order.model');
 const Escrow = require('../models/Escrow.model');
@@ -21,7 +22,12 @@ const Transaction = require('../models/Transaction.model');
 const EmailLog = require('../models/EmailLog.model');
 const { sendNotification } = require('../utils/notifier');
 const logisticsService = require('../services/logistics.service');
+const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
 const templates = require('../utils/emailTemplates');
+const { escapeRegExp } = require('../middleware/security.middleware');
+const cache = require('../utils/cache');
+const { normalizeFeeType, toNonNegativeNumber } = require('../utils/platformFees');
+const { clearApiCache } = require('../middleware/cache.middleware');
 
 // ─────────────────────────────────────────────
 // @route   GET /api/admin/notifications/email-logs
@@ -34,9 +40,10 @@ const getEmailLogs = async (req, res, next) => {
     const query = {};
     if (status && status !== 'all') query.status = status;
     if (search) {
+      const safeSearch = escapeRegExp(search);
       query.$or = [
-        { recipient_email: new RegExp(search, 'i') },
-        { subject: new RegExp(search, 'i') }
+        { recipient_email: new RegExp(safeSearch, 'i') },
+        { subject: new RegExp(safeSearch, 'i') }
       ];
     }
 
@@ -68,7 +75,7 @@ const getHomepageLayout = async (req, res, next) => {
   try {
     let layout = await Homepage.findOne({ version: 'v1' }).populate({
       path: 'featured_products.product_id',
-      select: 'name price images rating vendor_id',
+      select: 'name price compare_at_price images rating vendor_id',
       populate: { path: 'vendor_id', select: 'store_name' },
     });
 
@@ -94,6 +101,76 @@ const updateBanners = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+const asMoney = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : 0;
+};
+
+const getFeeBreakdown = (tx = {}) => {
+  const metadata = tx.metadata || {};
+  const breakdown = metadata.platform_fee_breakdown || metadata.fee_breakdown || {};
+  return {
+    commission: asMoney(breakdown.commission_fee ?? breakdown.commission ?? metadata.commission_fee),
+    escrow: asMoney(breakdown.escrow_fee ?? breakdown.escrow ?? metadata.escrow_fee),
+    collection: asMoney(metadata.collection_fee ?? metadata.collectionFee),
+    subscription: asMoney(metadata.subscription_fee ?? metadata.subscriptionFee),
+  };
+};
+
+const buildAdminEarningsSummary = async () => {
+  const revenueTransactions = await Transaction.find({
+    status: 'completed',
+    $or: [
+      { gateway: 'platform' },
+      { 'metadata.collection_fee': { $exists: true } },
+      { 'metadata.collectionFee': { $exists: true } },
+      { 'metadata.subscription_fee': { $exists: true } },
+      { 'metadata.subscriptionFee': { $exists: true } },
+      { description: /subscription/i },
+    ],
+  })
+    .select('amount gateway description metadata createdAt')
+    .lean();
+
+  const summary = {
+    commission: 0,
+    escrow: 0,
+    collection: 0,
+    subscription: 0,
+    total: 0,
+    currency: 'XAF',
+    transaction_count: revenueTransactions.length,
+    updated_at: new Date(),
+  };
+
+  revenueTransactions.forEach((tx) => {
+    const fees = getFeeBreakdown(tx);
+    summary.collection += fees.collection;
+    summary.subscription += fees.subscription;
+
+    const hasSplit = fees.commission > 0 || fees.escrow > 0;
+    if (hasSplit) {
+      summary.commission += fees.commission;
+      summary.escrow += fees.escrow;
+      return;
+    }
+
+    if (tx.gateway === 'platform') {
+      const description = String(tx.description || '');
+      if (/escrow/i.test(description) && !/commission/i.test(description)) {
+        summary.escrow += asMoney(tx.amount);
+      } else if (/subscription/i.test(description)) {
+        summary.subscription += asMoney(tx.amount);
+      } else {
+        summary.commission += asMoney(tx.amount);
+      }
+    }
+  });
+
+  summary.total = summary.commission + summary.escrow + summary.collection + summary.subscription;
+  return summary;
 };
 
 const setFeaturedProducts = async (req, res, next) => {
@@ -139,11 +216,13 @@ const getPlatformAnalytics = async (req, res, next) => {
     ]);
     const totalRevenue = revenueStats.length > 0 ? revenueStats[0].totalRevenue : 0;
     const pendingKYC = await KYC.countDocuments({ status: 'pending' });
-    const escrowStats = await Escrow.aggregate([
-      { $match: { status: 'held' } },
-      { $group: { _id: null, totalHeldFunds: { $sum: '$amount' } } }
+    const escrowAgg = await Escrow.aggregate([
+      { $group: { _id: '$status', total: { $sum: '$amount' } } }
     ]);
-    const totalHeldFunds = escrowStats.length > 0 ? escrowStats[0].totalHeldFunds : 0;
+    const totalHeldFunds = escrowAgg.find(s => s._id === 'held')?.total || 0;
+    const totalReleasedFunds = escrowAgg.find(s => s._id === 'released')?.total || 0;
+    const totalDisputedFunds = escrowAgg.find(s => s._id === 'disputed')?.total || 0;
+    const adminEarnings = await buildAdminEarningsSummary();
 
     // Presence Metrics
     const onlineUsers = await User.countDocuments({ is_online: true });
@@ -165,7 +244,12 @@ const getPlatformAnalytics = async (req, res, next) => {
           pending_products: pendingProducts,
           orders: totalOrders,
           revenue: totalRevenue,
+          admin_earnings: adminEarnings,
+          admin_revenue: adminEarnings.total,
           escrow_vault: totalHeldFunds,
+          escrow_held: totalHeldFunds,
+          escrow_released: totalReleasedFunds,
+          escrow_disputed: totalDisputedFunds,
           failed_transactions: await Transaction.countDocuments({ status: 'failed' }),
           delivered_orders: await Order.countDocuments({ order_status: 'delivered' }),
           active_orders: await Order.countDocuments({ order_status: { $in: ['placed', 'processing', 'shipped'] } })
@@ -179,7 +263,12 @@ const getPlatformAnalytics = async (req, res, next) => {
 
 const getPendingKYC = async (req, res, next) => {
   try {
-    const submissions = await KYC.find({ status: 'pending' }).populate('user_id', 'name email').populate('vendor_id', 'store_name');
+    const { status } = req.query;
+    const query = status && status !== 'all' ? { status } : {};
+    const submissions = await KYC.find(query)
+      .populate('user_id', 'name email avatar role verification_status')
+      .populate('vendor_id', 'store_name')
+      .sort('-createdAt');
     res.status(200).json({ success: true, count: submissions.length, data: { submissions } });
   } catch (error) {
     next(error);
@@ -244,12 +333,35 @@ const getSettings = async (req, res, next) => {
 
 const updateSettings = async (req, res, next) => {
   try {
-    const { commission_rate, withdrawal_fee, min_withdrawal_amount } = req.body;
+    const {
+      commission_rate,
+      commission_type,
+      commission_value,
+      escrow_fee_type,
+      escrow_fee_value,
+      withdrawal_fee,
+      min_withdrawal_amount
+    } = req.body;
     const settings = await PlatformSettings.getSettings();
-    if (commission_rate !== undefined) settings.commission_rate = commission_rate;
+
+    if (commission_type !== undefined) settings.commission_type = normalizeFeeType(commission_type);
+    if (commission_value !== undefined) {
+      settings.commission_value = toNonNegativeNumber(commission_value);
+      settings.commission_rate = settings.commission_type === 'percentage' ? settings.commission_value : 0;
+    }
+    if (commission_rate !== undefined) {
+      settings.commission_rate = toNonNegativeNumber(commission_rate);
+      if (commission_value === undefined) {
+        settings.commission_type = 'percentage';
+        settings.commission_value = settings.commission_rate;
+      }
+    }
+    if (escrow_fee_type !== undefined) settings.escrow_fee_type = normalizeFeeType(escrow_fee_type);
+    if (escrow_fee_value !== undefined) settings.escrow_fee_value = toNonNegativeNumber(escrow_fee_value);
     if (withdrawal_fee !== undefined) settings.withdrawal_fee = withdrawal_fee;
     if (min_withdrawal_amount !== undefined) settings.min_withdrawal_amount = min_withdrawal_amount;
     await settings.save();
+    await clearApiCache();
     res.status(200).json({ success: true, message: 'Settings updated successfully.', data: { settings } });
   } catch (error) {
     next(error);
@@ -261,11 +373,14 @@ const getAllOrders = async (req, res, next) => {
     const { status, search, page = 1, limit = 30 } = req.query;
     const query = { 
       $or: [
-        { payment_status: 'paid' },
+        { payment_status: { $in: ['paid', 'failed'] } },
         { payment_method: 'pay_on_delivery' }
       ]
     }; 
-    if (status && status !== 'all') query.order_status = status;
+    if (status && status !== 'all') {
+      if (status === 'failed') query.payment_status = 'failed';
+      else query.order_status = status;
+    }
     const orders = await Order.find(query).populate('customer_id', 'name email phone avatar').populate('logistics_company_id', 'company_name contact_phone').populate({ path: 'vendor_id', select: 'store_name user_id', populate: { path: 'user_id', select: 'name email phone avatar' } }).populate('products.product_id', 'name price images').sort('-createdAt').skip((page - 1) * limit).limit(Number(limit));
     const total = await Order.countDocuments(query);
     res.status(200).json({ success: true, count: orders.length, total, data: { orders } });
@@ -285,6 +400,17 @@ const updateOrderAdmin = async (req, res, next) => {
     if (shipping_method) order.shipping_method = shipping_method;
     if (typeof logistics_company_id !== 'undefined') order.logistics_company_id = logistics_company_id || null;
     await order.save();
+
+    if (order_status) {
+      await syncShipmentsToOrderStatus(order, order_status, {
+        updatedBy: req.user._id,
+        note: `Admin updated order status to ${order_status}.`,
+      });
+      notifyOrderStatusChange(req.app, order, order_status, {
+        message: `An admin updated Order #${order._id.toString().slice(-6).toUpperCase()} to ${order_status.replace(/_/g, ' ')}.`,
+      });
+    }
+
     if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
       let shipment = await Shipment.findOne({ order_id: order._id });
       if (!shipment) {
@@ -355,11 +481,93 @@ const getPendingProducts = async (req, res, next) => {
 const reviewProduct = async (req, res, next) => {
   try {
     const { status } = req.body;
+    const allowedStatuses = ['active', 'pending', 'archived', 'suspended', 'draft'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid product status.' });
+    }
+
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
-    product.status = status === 'active' ? 'active' : 'archived';
+    product.status = status;
     await product.save();
-    res.status(200).json({ success: true, message: `Product outcome synced.`, data: { product } });
+    cache.clear();
+    const populated = await Product.findById(product._id).populate('vendor_id', 'store_name');
+    res.status(200).json({ success: true, message: `Product status updated to ${status}.`, data: { product: populated } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateProductAdmin = async (req, res, next) => {
+  try {
+    const allowedUpdates = [
+      'name',
+      'description',
+      'price',
+      'compare_at_price',
+      'stock',
+      'category',
+      'status',
+      'featured',
+      'specifications',
+      'long_description',
+    ];
+    const updateData = {};
+    allowedUpdates.forEach((field) => {
+      if (req.body[field] !== undefined) updateData[field] = req.body[field];
+    });
+
+    if (updateData.compare_at_price === '' || updateData.compare_at_price === null) {
+      updateData.compare_at_price = null;
+    } else if (updateData.compare_at_price !== undefined) {
+      const nextPrice = updateData.price !== undefined ? Number(updateData.price) : undefined;
+      const compareAt = Number(updateData.compare_at_price);
+      const product = await Product.findById(req.params.id).select('price');
+      const sellingPrice = nextPrice !== undefined ? nextPrice : Number(product?.price || 0);
+      if (!Number.isFinite(compareAt) || compareAt <= 0 || compareAt <= sellingPrice) {
+        return res.status(400).json({ success: false, message: 'Compare-at price must be greater than the selling price.' });
+      }
+      updateData.compare_at_price = compareAt;
+    }
+    updateData.sale_price = null;
+    updateData.on_sale = false;
+    if (updateData.price !== undefined) {
+      updateData.price = Number(updateData.price);
+      if (!Number.isFinite(updateData.price) || updateData.price < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid product price.' });
+      }
+    }
+    if (updateData.stock !== undefined) {
+      updateData.stock = Number(updateData.stock);
+      if (!Number.isFinite(updateData.stock) || updateData.stock < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid product stock.' });
+      }
+    }
+    if (updateData.featured !== undefined) updateData.featured = Boolean(updateData.featured);
+
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
+
+    Object.assign(product, updateData);
+
+    if (
+      updateData.price !== undefined &&
+      product.has_variants &&
+      Array.isArray(product.sku_variants) &&
+      product.sku_variants.length > 0 &&
+      req.body.sku_variants === undefined
+    ) {
+      product.sku_variants.forEach((variant) => {
+        variant.price = updateData.price;
+      });
+      product.markModified('sku_variants');
+    }
+
+    await product.save();
+    const populated = await Product.findById(product._id).populate('vendor_id', 'store_name');
+
+    cache.clear();
+    res.status(200).json({ success: true, message: 'Product updated.', data: { product: populated } });
   } catch (error) {
     next(error);
   }
@@ -370,7 +578,10 @@ const getAllUsers = async (req, res, next) => {
     const { role, search, status } = req.query;
     const query = {};
     if (role) query.role = role;
-    if (search) query.$or = [{ name: new RegExp(search, 'i') }, { email: new RegExp(search, 'i') }];
+    if (search) {
+      const safeSearch = escapeRegExp(search);
+      query.$or = [{ name: new RegExp(safeSearch, 'i') }, { email: new RegExp(safeSearch, 'i') }];
+    }
     if (status) query.verification_status = status;
     const users = await User.find(query).select('-password').sort('-createdAt');
     res.status(200).json({ success: true, count: users.length, data: { users } });
@@ -379,26 +590,131 @@ const getAllUsers = async (req, res, next) => {
   }
 };
 
+const normalizeNullablePercentage = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0 || num > 100) {
+    const error = new Error('Commission rate must be between 0 and 100.');
+    error.statusCode = 400;
+    throw error;
+  }
+  return num;
+};
+
+const normalizeNullableXafAmount = (value, fieldName = 'Amount') => {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) {
+    const error = new Error(`${fieldName} must be a non-negative XAF amount.`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return Math.round(num);
+};
+
+const normalizeNullableText = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const text = String(value).trim();
+  return text || null;
+};
 const getAllVendors = async (req, res, next) => {
   try {
     const { status, search } = req.query;
     const query = {};
     if (status === 'verified') query.verified = true;
     if (status === 'unverified') query.verified = false;
-    const vendors = await Vendor.find(query).populate('user_id', 'name email avatar verification_status branding').sort('-createdAt');
+    const vendors = await Vendor.find(query)
+      .populate('user_id', 'name email avatar verification_status branding')
+      .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount')
+      .sort('-createdAt');
     res.status(200).json({ success: true, count: vendors.length, data: { vendors } });
   } catch (error) {
     next(error);
   }
 };
 
+const updateVendorMedia = async (req, res, next) => {
+  try {
+    const { logo, banner } = req.body;
+    const vendor = await Vendor.findById(req.params.id);
+    if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found.' });
+
+    const updates = {};
+    if (typeof logo === 'string') updates.logo = logo.trim() || null;
+    if (typeof banner === 'string') updates.banner = banner.trim() || null;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: 'Provide a logo or banner URL.' });
+    }
+
+    await Store.findOneAndUpdate(
+      { vendor_id: vendor._id },
+      { $set: updates },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+    );
+
+    const brandingUpdates = {};
+    if (Object.prototype.hasOwnProperty.call(updates, 'logo')) brandingUpdates['branding.logo'] = updates.logo;
+    if (Object.prototype.hasOwnProperty.call(updates, 'banner')) brandingUpdates['branding.banner'] = updates.banner;
+    if (Object.keys(brandingUpdates).length > 0) {
+      await User.findByIdAndUpdate(vendor.user_id, { $set: brandingUpdates });
+    }
+    await clearApiCache();
+
+    const populated = await Vendor.findById(vendor._id)
+      .populate('user_id', 'name email avatar verification_status branding')
+      .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount');
+
+    res.status(200).json({ success: true, message: 'Vendor media updated.', data: { vendor: populated } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateVendorStoreSettings = async (req, res, next) => {
+  try {
+    const vendor = await Vendor.findById(req.params.id);
+    if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found.' });
+
+    const updates = {};
+    const commissionRate = normalizeNullablePercentage(req.body.commission_rate);
+    const minimumOrderAmount = normalizeNullableXafAmount(req.body.minimum_order_amount, 'Minimum order amount');
+    const deliveryTime = normalizeNullableText(req.body.delivery_time);
+
+    if (commissionRate !== undefined) updates.commission_rate = commissionRate;
+    if (minimumOrderAmount !== undefined) updates.minimum_order_amount = minimumOrderAmount;
+    if (deliveryTime !== undefined) updates.delivery_time = deliveryTime;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: 'Provide at least one store setting to update.' });
+    }
+
+    await Store.findOneAndUpdate(
+      { vendor_id: vendor._id },
+      { $set: updates, $setOnInsert: { vendor_id: vendor._id } },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, runValidators: true }
+    );
+    await clearApiCache();
+
+    const populated = await Vendor.findById(vendor._id)
+      .populate('user_id', 'name email avatar verification_status branding')
+      .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount');
+
+    res.status(200).json({ success: true, message: 'Vendor store settings updated.', data: { vendor: populated } });
+  } catch (error) {
+    next(error);
+  }
+};
 const getAllProducts = async (req, res, next) => {
   try {
     const { status, search, vendor } = req.query;
     const query = {};
     if (status) query.status = status;
     if (vendor) query.vendor_id = vendor;
-    if (search) query.name = new RegExp(search, 'i');
+    if (search) query.name = new RegExp(escapeRegExp(search), 'i');
     const products = await Product.find(query).populate('vendor_id', 'store_name').sort('-createdAt');
     res.status(200).json({ success: true, count: products.length, data: { products } });
   } catch (error) {
@@ -672,7 +988,7 @@ const getAdvancedAnalytics = async (req, res, next) => {
 const updateUserAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, email, role, verification_status, password, phone } = req.body;
+    const { name, email, role, verification_status, phone } = req.body;
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
@@ -685,11 +1001,20 @@ const updateUserAdmin = async (req, res, next) => {
 
     if (name) user.name = name;
     if (role) user.role = role;
+    const previousVerificationStatus = user.verification_status;
     if (verification_status) user.verification_status = verification_status;
-    if (password) user.password = password; // Hashing middleware attached to `User.save()`
     if (typeof phone !== 'undefined') user.phone = phone;
 
     await user.save();
+
+    if (verification_status === 'held' && previousVerificationStatus !== 'held') {
+      await sendNotification(req.app, user._id, {
+        title: 'Verification Required',
+        message: 'An administrator has requested account verification. You can view your account, but actions are paused until verification is approved.',
+        type: 'security',
+        metadata: { link: '/profile?tab=kyc' },
+      }).catch(() => {});
+    }
 
     // Cascading business profile synchronization
     if (user.role === 'logistics') {
@@ -735,6 +1060,8 @@ const deleteUser = async (req, res, next) => {
       await LogisticsCompany.findOneAndDelete({ user_id: user._id });
     }
 
+    req.app.get('io')?.to(user._id.toString()).emit('account_deleted', { reason: 'admin_deleted' });
+
     // Finally delete the user
     await User.findByIdAndDelete(id);
 
@@ -773,6 +1100,13 @@ const bulkDeleteUsers = async (req, res, next) => {
       } else if (user.role === 'logistics') {
         await LogisticsCompany.findOneAndDelete({ user_id: user._id });
       }
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      filteredIds.forEach((userId) => {
+        io.to(userId.toString()).emit('account_deleted', { reason: 'admin_deleted' });
+      });
     }
 
     await User.deleteMany({ _id: { $in: filteredIds } });
@@ -815,31 +1149,50 @@ const getAllTransactions = async (req, res, next) => {
     if (gateway && gateway !== 'all') query.gateway = gateway;
     
     if (search) {
+      const safeSearch = escapeRegExp(search);
       query.$or = [
-        { reference: new RegExp(search, 'i') },
-        { gateway_transaction_id: new RegExp(search, 'i') },
-        { description: new RegExp(search, 'i') }
+        { reference: new RegExp(safeSearch, 'i') },
+        { gateway_transaction_id: new RegExp(safeSearch, 'i') },
+        { description: new RegExp(safeSearch, 'i') }
       ];
     }
 
+    const orderContextPopulate = {
+      path: 'order_id',
+      select: 'customer_id vendor_id products subtotal shipping_fee total_amount payment_method payment_status shipping_method shipping_address tracking_number order_status logistics_company_id createdAt',
+      populate: [
+        {
+          path: 'vendor_id',
+          select: 'store_name user_id rating branding logo logo_url',
+          populate: {
+            path: 'user_id',
+            select: 'name email avatar phone'
+          }
+        },
+        {
+          path: 'customer_id',
+          select: 'name email avatar role phone'
+        },
+        {
+          path: 'products.product_id',
+          select: 'name price images'
+        },
+        {
+          path: 'logistics_company_id',
+          select: 'company_name contact_email contact_phone service_regions vehicle_types'
+        }
+      ]
+    };
+
+    const ordersContextPopulate = {
+      ...orderContextPopulate,
+      path: 'order_ids'
+    };
+
     const transactions = await Transaction.find(query)
-      .populate('user_id', 'name email avatar role')
-      .populate({
-        path: 'order_id',
-        select: 'vendor_id',
-        populate: {
-          path: 'vendor_id',
-          select: 'store_name branding'
-        }
-      })
-      .populate({
-        path: 'order_ids',
-        select: 'vendor_id',
-        populate: {
-          path: 'vendor_id',
-          select: 'store_name branding'
-        }
-      })
+      .populate('user_id', 'name email avatar role phone wallet_balance')
+      .populate(orderContextPopulate)
+      .populate(ordersContextPopulate)
       .sort('-createdAt')
       .skip((page - 1) * limit)
       .limit(Number(limit));
@@ -878,49 +1231,127 @@ const fulfillOrderFromTransaction = async (req, res, next) => {
   }
 };
 
+const importEversendTransactions = async (req) => {
+  const eversend = require('../services/eversend.service');
+  const result = await eversend.getTransactions({ limit: 20 });
+  const remoteTxs = result?.data?.transactions || [];
+  let importedCount = 0;
+
+  for (const rt of remoteTxs) {
+    const isPlatformTx = rt.transactionRef && (rt.transactionRef.startsWith('AURA') || rt.transactionRef.startsWith('TEST'));
+    if (!isPlatformTx) continue;
+
+    const exists = await Transaction.findOne({
+      $or: [{ gateway_transaction_id: rt.transactionId }, { reference: rt.transactionRef }],
+    });
+
+    if (!exists && rt.transactionId) {
+      await Transaction.create({
+        user_id: req.user?._id,
+        type: rt.type === 'collection' ? 'deposit' : 'withdrawal',
+        amount: parseFloat(rt.amount),
+        currency: rt.currency,
+        reference: rt.transactionRef || `IMP-${rt.transactionId}`,
+        gateway_transaction_id: rt.transactionId,
+        status: rt.status === 'successful' ? 'completed' : rt.status === 'failed' ? 'failed' : 'pending',
+        gateway: 'eversend',
+        description: `Imported via Gateway Sync: ${rt.type} (${rt.status})`,
+        gateway_response: rt,
+      });
+      importedCount++;
+    }
+  }
+
+  return importedCount;
+};
+
+const reconcileEversendTransactions = async (app) => {
+  const mongoose = require('mongoose');
+  const eversend = require('../services/eversend.service');
+  const { settleOrdersInSession } = require('./payment.controller');
+
+  const pending = await Transaction.find({
+    gateway: 'eversend',
+    status: { $in: ['pending', 'processing'] },
+  })
+    .limit(40)
+    .sort('-createdAt');
+
+  let updated = 0;
+  for (const transaction of pending) {
+    const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
+    if (ageSeconds < 40) continue;
+
+    try {
+      const lookupFn = transaction.gateway_transaction_id
+        ? () => eversend.getTransactionStatus(transaction.gateway_transaction_id)
+        : () => eversend.getCollectionByRef(transaction.reference);
+
+      const raw = await lookupFn();
+      const data = raw?.data || raw;
+      const status = (data?.status || '').toUpperCase();
+
+      if (status === 'SUCCESSFUL' || status === 'COMPLETED') {
+        if (transaction.status === 'completed') continue;
+        const user = await User.findById(transaction.user_id);
+        if (!user) continue;
+
+        const sess = await mongoose.startSession();
+        sess.startTransaction();
+        try {
+          transaction.status = 'completed';
+          transaction.gateway_response = data;
+          if (data?.transactionId && !transaction.gateway_transaction_id) {
+            transaction.gateway_transaction_id = data.transactionId;
+          }
+          await transaction.save({ session: sess });
+
+          if (transaction.order_ids?.length > 0) {
+            await settleOrdersInSession(
+              transaction.user_id,
+              transaction.order_ids,
+              app,
+              sess,
+              true,
+              process.env.WEB_CLIENT_URL || '',
+              'eversend'
+            );
+          } else {
+            await User.findByIdAndUpdate(
+              transaction.user_id,
+              { $inc: { wallet_balance: transaction.amount } },
+              { session: sess }
+            );
+          }
+          await sess.commitTransaction();
+          updated++;
+        } catch (e) {
+          await sess.abortTransaction();
+          console.error('[syncGateways] Eversend settlement error:', e.message);
+        } finally {
+          sess.endSession();
+        }
+      } else if (status === 'FAILED' && transaction.status !== 'failed') {
+        transaction.status = 'failed';
+        transaction.gateway_response = data;
+        await transaction.save();
+        updated++;
+      }
+    } catch (err) {
+      console.error('[syncGateways] Eversend verify error:', transaction.reference, err.message);
+    }
+  }
+
+  return updated;
+};
+
 const syncWithEversend = async (req, res, next) => {
   try {
-    const eversend = require('../services/eversend.service');
-    
-    // Fetch latest 20 transactions from Eversend using the service (handles auth & refresh)
-    const result = await eversend.getTransactions({ limit: 20 });
-    const remoteTxs = result?.data?.transactions || [];
-    
-    let importedCount = 0;
-    for (const rt of remoteTxs) {
-      // Only sync transactions that were initiated by our platform (identified by AURA or TEST prefix)
-      const isPlatformTx = rt.transactionRef && (rt.transactionRef.startsWith('AURA') || rt.transactionRef.startsWith('TEST'));
-      if (!isPlatformTx) continue;
-
-      const exists = await Transaction.findOne({ 
-        $or: [
-          { gateway_transaction_id: rt.transactionId },
-          { reference: rt.transactionRef }
-        ]
-      });
-      
-      if (!exists && rt.transactionId) {
-        // Create an "Imported" transaction record
-        await Transaction.create({
-          user_id: req.user?._id, // Assign to current admin as importer
-          type: rt.type === 'collection' ? 'deposit' : 'withdrawal',
-          amount: parseFloat(rt.amount),
-          currency: rt.currency,
-          reference: rt.transactionRef || `IMP-${rt.transactionId}`,
-          gateway_transaction_id: rt.transactionId,
-          status: rt.status === 'successful' ? 'completed' : rt.status === 'failed' ? 'failed' : 'pending',
-          gateway: 'eversend',
-          description: `Imported via Gateway Sync: ${rt.type} (${rt.status})`,
-          gateway_response: rt
-        });
-        importedCount++;
-      }
-    }
-
-    res.status(200).json({ 
-      success: true, 
+    const importedCount = await importEversendTransactions(req);
+    res.status(200).json({
+      success: true,
       message: `Gateway reconciliation complete. ${importedCount} new records discovered and imported.`,
-      importedCount
+      importedCount,
     });
   } catch (error) {
     const errData = error.response?.data;
@@ -950,6 +1381,140 @@ const syncWithEversend = async (req, res, next) => {
   }
 };
 
+const syncGatewayTransactions = async (req, res, next) => {
+  try {
+    const eversendImported = await importEversendTransactions(req);
+    const eversendUpdated = await reconcileEversendTransactions(req.app);
+
+    res.status(200).json({
+      success: true,
+      message: `Gateways synced — Eversend: ${eversendImported} imported, ${eversendUpdated} updated.`,
+      eversendImported,
+      eversendUpdated,
+    });
+  } catch (error) {
+    const errData = error.response?.data;
+    const errStatus = error.response?.status;
+    const errMessage = errData?.message || error.message;
+
+    console.error('Sync Gateways Error:', errStatus, errData || error.message);
+
+    if (errStatus === 401 && errMessage?.toLowerCase().includes('invalid request origin')) {
+      return res.status(503).json({
+        success: false,
+        message:
+          'Eversend API access denied: whitelist this server IP in your Eversend developer settings.',
+        code: 'EVERSEND_IP_NOT_WHITELISTED',
+      });
+    }
+
+    if (errStatus === 401) {
+      return res.status(503).json({
+        success: false,
+        message: 'Eversend authentication failed. Check EVERSEND_CLIENT_ID and EVERSEND_CLIENT_SECRET.',
+        code: 'EVERSEND_AUTH_FAILED',
+      });
+    }
+
+    next(error);
+  }
+};
+
+const updateTransactionStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status, admin_note } = req.body;
+    
+    const transaction = await Transaction.findById(id);
+    if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+
+    // If marking as completed and it wasn't already completed
+    if (status === 'completed' && transaction.status !== 'completed') {
+      const user = await User.findById(transaction.user_id);
+      if (!user) return res.status(404).json({ success: false, message: 'User mapping failed: recipient account not found.' });
+
+      // Handle cascading effects based on transaction type
+      if (transaction.type === 'deposit') {
+        // A deposit is either a pure top-up OR a checkout funding source
+        const isCheckout = transaction.order_ids && transaction.order_ids.length > 0;
+        
+        if (isCheckout) {
+          // Checkout funding — settle the associated orders
+          const { settleOrders } = require('../services/payment/settle.service');
+          const mongoose = require('mongoose');
+          const session = await mongoose.startSession();
+          session.startTransaction();
+          try {
+            await settleOrders(user._id, transaction.order_ids, session, req.app, true, '', transaction.gateway || 'admin_manual');
+            
+            transaction.status = 'completed';
+            if (admin_note) {
+              transaction.metadata = { ...transaction.metadata, admin_confirm_note: admin_note, manually_confirmed_by: req.user._id };
+            }
+            await transaction.save({ session });
+            await session.commitTransaction();
+          } catch (e) {
+            await session.abortTransaction();
+            console.error('[updateTransactionStatus] Settlement Error:', e.message);
+            return res.status(500).json({ success: false, message: `Status update failed during order settlement: ${e.message}` });
+          } finally {
+            session.endSession();
+          }
+        } else {
+          // Pure wallet top-up
+          user.wallet_balance += transaction.amount;
+          await user.save();
+          
+          transaction.status = 'completed';
+          if (admin_note) {
+            transaction.metadata = { ...transaction.metadata, admin_confirm_note: admin_note, manually_confirmed_by: req.user._id };
+          }
+          await transaction.save();
+
+          // Notify User
+          await sendNotification(req.app, user._id, {
+            title: '💰 Wallet Credited (Manual)',
+            message: `An administrator has manually confirmed your deposit of ${transaction.amount.toLocaleString()} ${transaction.currency || 'XAF'}.`,
+            type: 'wallet_update',
+            sendEmail: true
+          });
+        }
+      } else if (transaction.type === 'withdrawal') {
+        // Withdrawal: status update only (funds were already deducted on request creation)
+        transaction.status = 'completed';
+        if (admin_note) {
+          transaction.metadata = { ...transaction.metadata, admin_confirm_note: admin_note, manually_processed_by: req.user._id };
+        }
+        await transaction.save();
+      } else {
+        // Other types (refund, payment, payout)
+        transaction.status = status;
+        await transaction.save();
+      }
+    } else {
+      // Just update status normally (e.g. marking as failed or pending)
+      transaction.status = status;
+      if (admin_note) {
+        transaction.metadata = { ...transaction.metadata, admin_note, updated_by: req.user._id };
+      }
+      await transaction.save();
+    }
+
+    res.status(200).json({ success: true, message: `Transaction ${transaction.reference} shifted to ${status}.`, data: { transaction } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getQueueStats = async (req, res, next) => {
+  try {
+    const { getQueueStats: readQueueStats } = require('../services/jobQueue.service');
+    res.status(200).json({ success: true, data: { queues: readQueueStats() } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getHomepageLayout,
   updateBanners,
@@ -967,12 +1532,15 @@ module.exports = {
   getPendingVendors,
   getPendingProducts,
   reviewProduct,
+  updateProductAdmin,
   getAllUsers,
   getAllVendors,
   getAllProducts,
   updateUserStatus,
   updateUserAdmin,
   updateVendorStatus,
+  updateVendorMedia,
+  updateVendorStoreSettings,
   fetchAdminShipments,
   updateAdminShipment,
   getAdminLogisticsFirms,
@@ -986,6 +1554,9 @@ module.exports = {
   bulkDeleteUsers,
   bulkDeleteProducts,
   getAllTransactions,
+  updateTransactionStatus,
+  getQueueStats,
   fulfillOrderFromTransaction,
   syncWithEversend,
+  syncGatewayTransactions,
 };

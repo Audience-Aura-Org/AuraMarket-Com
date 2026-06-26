@@ -28,7 +28,7 @@ const {
 } = require('../utils/emailTemplates');
 
 async function sendAllEmails() {
-  console.log('📧 Sending ALL Aura Market Email Templates...\n');
+  console.log('📧 Sending ALL Auradime Email Templates...\n');
   console.log(`   To: ${TEST_EMAIL}\n`);
 
   // Create transporter
@@ -90,7 +90,7 @@ async function sendAllEmails() {
       name: 'Password Reset',
       template: passwordReset({ 
         user: mockUser, 
-        resetLink: 'https://auramarket.com/reset-password?token=abc123xyz' 
+        resetLink: 'https://auradime.com/reset-password?token=abc123xyz' 
       })
     },
     {
@@ -152,7 +152,7 @@ async function sendAllEmails() {
       
       try {
         const info = await transporter.sendMail({
-          from: `"${EMAIL_FROM_NAME || 'Aura Market'}" <${EMAIL_USER}>`,
+          from: `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${EMAIL_USER}>`,
           to: TEST_EMAIL,
           subject: email.template.subject,
           text: email.template.text,

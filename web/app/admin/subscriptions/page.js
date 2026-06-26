@@ -2,237 +2,796 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
-import { 
-  CreditCard, TrendingUp, TrendingDown, Clock, Users,
-  MoreVertical, Plus, Filter, ChevronLeft, ChevronRight,
-  RefreshCw, Search
+import { useEffect, useMemo, useState } from 'react';
+import {
+  BadgeCheck,
+  CalendarClock,
+  CheckCircle2,
+  CreditCard,
+  Edit3,
+  Eye,
+  EyeOff,
+  Loader2,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  ToggleLeft,
+  ToggleRight,
+  Users,
+  WalletCards,
+  XCircle,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '@/services/api';
-import Pagination from '@/components/common/Pagination';
-import StatCard from '@/components/layout/StatCard';
+import { useLanguage } from '@/context/LanguageContext';
 
-const mockSubs = [
-  { vendor: 'Nova Boutique', id: '#VND-8821', plan: 'Premium', renewal: 'Oct 24, 2027', billing: 'Yearly Billing', payment: 'paid', createdAt: '2023-10-24' },
-  { vendor: 'Luxe Interior', id: '#VND-4102', plan: 'Pro', renewal: 'Nov 02, 2027', billing: 'Monthly Billing', payment: 'pending', createdAt: '2023-11-02' },
-  { vendor: 'Base Apparel', id: '#VND-1055', plan: 'Basic', renewal: 'Oct 20, 2027', billing: 'Monthly Billing', payment: 'overdue', createdAt: '2023-10-20' },
-  { vendor: 'Glow Cosmetics', id: '#VND-9922', plan: 'Premium', renewal: 'Dec 15, 2027', billing: 'Yearly Billing', payment: 'paid', createdAt: '2023-12-15' },
-  { vendor: 'Zenith Tech', id: '#VND-3341', plan: 'Pro', renewal: 'Oct 30, 2027', billing: 'Monthly Billing', payment: 'paid', createdAt: '2023-10-30' },
-];
+const ROLE_OPTIONS = ['customer', 'vendor', 'logistics'];
+const STATUS_OPTIONS = ['all', 'active', 'pending', 'grace', 'limited', 'cancelled', 'refunded'];
 
-const PLAN_BADGE = {
-  Premium: 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20',
-  Pro: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
-  Basic: 'bg-slate-500/10 text-[var(--text-secondary)] border-slate-500/20',
+const defaultPlan = {
+  name: '',
+  description: '',
+  price: 500,
+  currency: 'XAF',
+  billing_cycle: 'one_time',
+  duration_days: '',
+  contact_required: false,
+  roles: ['vendor'],
+  features: '',
+  is_active: true,
 };
 
-const PAYMENT_DOT = {
-  paid: 'bg-emerald-500',
-  pending: 'bg-amber-500',
-  overdue: 'bg-red-500',
+const fieldClass = 'h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)]';
+
+const money = (value, currency = 'XAF') => `${Number(value || 0).toLocaleString()} ${currency}`;
+const shortDate = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 export default function AdminSubscriptionsPage() {
-  const [subs, setSubs] = useState([]);
+  const { t, label } = useLanguage();
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [saving, setSaving] = useState(false);
+  const [overview, setOverview] = useState({ plans: [], subscriptions: [], requirements: {}, grace_days: {}, stats: {} });
+  const [planForm, setPlanForm] = useState(defaultPlan);
+  const [editingPlanId, setEditingPlanId] = useState(null);
+  const [manualActivation, setManualActivation] = useState({ user_id: '', plan_id: '', role: 'vendor', started_at: '', expires_at: '' });
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [query, setQuery] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/subscriptions/admin/overview', { skipClientCache: true });
+      setOverview(res.data.data || {});
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.adminLoadFailed', 'Could not load subscriptions.'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get('/subscriptions');
-        if (res.data.success) setSubs(res.data.data.subscriptions || []);
-        else setSubs(mockSubs);
-      } catch {
-        setSubs(mockSubs);
-      } finally { setLoading(false); }
-    };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const totalPages = Math.ceil(subs.length / itemsPerPage);
-  const currentSubs = subs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const plans = overview.plans || [];
+  const subscriptions = overview.subscriptions || [];
+  const stats = overview.stats || {};
+  const activePlansCount = plans.filter((plan) => plan.is_active).length;
+
+  const filteredSubscriptions = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return subscriptions.filter((sub) => {
+      const matchesStatus = statusFilter === 'all' || sub.status === statusFilter;
+      const matchesRole = roleFilter === 'all' || sub.role === roleFilter;
+      const user = sub.user_id || {};
+      const plan = sub.plan_id || {};
+      const haystack = [
+        user.name,
+        user.email,
+        user.phone,
+        plan.name,
+        sub.role,
+        sub.status,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return matchesStatus && matchesRole && (!needle || haystack.includes(needle));
+    });
+  }, [query, roleFilter, statusFilter, subscriptions]);
+
+  const saveRequirementSettings = async (requirements, graceDays = overview.grace_days || {}) => {
+    setOverview((current) => ({ ...current, requirements, grace_days: graceDays }));
+    try {
+      const res = await api.patch('/subscriptions/admin/requirements', { requirements, grace_days: graceDays });
+      setOverview((current) => ({
+        ...current,
+        requirements: res.data?.data?.requirements || requirements,
+        grace_days: res.data?.data?.grace_days || graceDays,
+      }));
+      toast.success(t('subscription.requirementsSaved', 'Subscription requirements saved.'));
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
+      load();
+    }
+  };
+
+  const toggleRequirement = async (role) => {
+    const next = {
+      ...(overview.requirements || {}),
+      [role]: !overview.requirements?.[role],
+      admin: false,
+    };
+    await saveRequirementSettings(next);
+  };
+
+  const updateGraceDays = async (role, value) => {
+    const graceDays = {
+      ...(overview.grace_days || {}),
+      [role]: Math.max(0, Number(value || 0)),
+      admin: 0,
+    };
+    await saveRequirementSettings(overview.requirements || {}, graceDays);
+  };
+
+  const editPlan = (plan) => {
+    setEditingPlanId(plan._id);
+    setPlanForm({
+      name: plan.name || '',
+      description: plan.description || '',
+      price: plan.price || 0,
+      currency: plan.currency || 'XAF',
+      billing_cycle: plan.billing_cycle || 'one_time',
+      duration_days: plan.duration_days ?? '',
+      contact_required: Boolean(plan.contact_required),
+      roles: plan.roles || ['vendor'],
+      features: (plan.features || []).join('\n'),
+      is_active: plan.is_active !== false,
+    });
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => document.getElementById('plan-studio')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+  };
+
+  const resetForm = () => {
+    setEditingPlanId(null);
+    setPlanForm(defaultPlan);
+  };
+
+  const savePlan = async () => {
+    if (!planForm.name.trim()) {
+      toast.error(t('subscription.planNameRequired', 'Plan name is required.'));
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        ...planForm,
+        price: Number(planForm.price || 0),
+        duration_days: planForm.duration_days === '' ? null : Number(planForm.duration_days || 0),
+        contact_required: Boolean(planForm.contact_required),
+        features: String(planForm.features || '').split('\n').map((line) => line.trim()).filter(Boolean),
+      };
+      if (editingPlanId) {
+        await api.patch(`/subscriptions/admin/plans/${editingPlanId}`, payload);
+      } else {
+        await api.post('/subscriptions/admin/plans', payload);
+      }
+      toast.success(t('subscription.planSaved', 'Plan saved.'));
+      resetForm();
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const togglePlanStatus = async (plan) => {
+    try {
+      await api.patch(`/subscriptions/admin/plans/${plan._id}`, {
+        is_active: !plan.is_active,
+      });
+      toast.success(t('subscription.planSaved', 'Plan saved.'));
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
+    }
+  };
+
+  const updateSubscription = async (id, action) => {
+    try {
+      await api.patch(`/subscriptions/admin/subscriptions/${id}`, { action });
+      toast.success(t('subscription.subscriptionUpdated', 'Subscription updated.'));
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
+    }
+  };
+
+  const activateManual = async () => {
+    if (!manualActivation.user_id || !manualActivation.plan_id) {
+      toast.error(t('subscription.manualRequired', 'User ID and plan are required.'));
+      return;
+    }
+    try {
+      await api.post('/subscriptions/admin/subscriptions/activate', manualActivation);
+      toast.success(t('subscription.subscriptionUpdated', 'Subscription updated.'));
+      setManualActivation({ user_id: '', plan_id: '', role: 'vendor', started_at: '', expires_at: '' });
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not save changes.'));
+    }
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500">
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[var(--accent)]/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
-
-      <main className="flex-1 flex flex-col overflow-hidden relative z-10 w-full">
-        <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
-          <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
-            <div className="flex items-center gap-4">
-              <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
-                 <CreditCard className="w-5 h-5 md:w-6 md:h-6" />
+    <div className="min-h-screen bg-[var(--bg-secondary)] p-4 pb-28 text-[var(--text-primary)] sm:p-6 lg:p-8 md:pt-4" style={{ paddingTop: 'calc\(56px\ \+\ env\(safe-area-inset-top,\ 0px\)\)' }}>
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5">
+        <header className="overflow-hidden rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
+          <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                <CreditCard className="size-6" />
               </div>
-              <div>
-                <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Recurrent <span className="text-[var(--accent)]">Revenue</span></h2>
-                <div className="flex items-center gap-2 mt-0.5">
-                   <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                   <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">System Live</p>
-                </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--accent)]">
+                  {t('nav.subscriptions', 'Subscriptions')}
+                </p>
+                <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+                  {t('subscription.adminTitle', 'Subscription Control')}
+                </h1>
+                <p className="mt-1 max-w-2xl text-sm font-medium leading-relaxed text-[var(--text-secondary)]">
+                  {t('subscription.adminSubtitle', 'Manage role gates, packages, subscribers, and subscription revenue.')}
+                </p>
               </div>
             </div>
-            <button className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
-               <RefreshCw className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-3 w-full md:w-auto">
-             <div className="relative group flex-1 md:flex-none md:w-80">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20" />
-                <input 
-                  type="text" 
-                  placeholder="Search vendors, plans..." 
-                  className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-[11px] lg:text-[12px] font-semibold outline-none focus:border-[var(--accent)] transition-all"
-                />
-             </div>
-             <button className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
-                <RefreshCw className="w-4 h-4" />
-             </button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={resetForm}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] px-4 text-sm font-bold text-[var(--text-secondary)] transition active:scale-95"
+              >
+                <Plus className="size-4" />
+                {t('subscription.newPlan', 'New plan')}
+              </button>
+              <button
+                type="button"
+                onClick={load}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 text-sm font-bold text-white transition active:scale-95"
+              >
+                <RefreshCw className="size-4" />
+                {t('common.refresh', 'Refresh')}
+              </button>
+            </div>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto w-full">
-          <div className="p-10 space-y-8 w-full">
-            <div>
-              <h2 className="text-3xl  font-bold text-[var(--text-primary)] tracking-tight">Subscription Management</h2>
-              <p className="text-[var(--text-secondary)] mt-1  font-bold">Real-time overview of your vendor ecosystem and recurring revenue.</p>
-            </div>
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Stat icon={Users} tone="accent" label={t('subscription.activeSubscribers', 'Active subscribers')} value={stats.active || 0} detail={`${stats.pending || 0} ${t('subscription.pending', 'pending payments')}`} />
+          <Stat icon={WalletCards} tone="emerald" label={t('subscription.revenue', 'Subscription revenue')} value={money(stats.revenue)} detail={`${stats.completed_payments || 0} completed payments`} />
+          <Stat icon={Sparkles} tone="amber" label={t('subscription.activePlans', 'Active plans')} value={activePlansCount} detail={`${plans.length} total packages`} />
+          <Stat icon={ShieldCheck} tone="blue" label={t('subscription.graceUsers', 'Grace users')} value={stats.grace || 0} detail={`${stats.limited || 0} ${t('subscription.limitedUsers', 'limited users')}`} />
+        </section>
 
-            {/* Stats matrix */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              <StatCard label="Active" value="1,284" sub="vs. 1,141 last month" pct="+12.5%" icon={Users} color="fuchsia" />
-              <StatCard label="MRR" value="$45,200" sub="vs. $41,750 last month" pct="+8.2%" icon={CreditCard} color="blue" />
-              <StatCard label="Churn Risk" value="48" sub="Next 7 days" pct="Due" icon={Clock} color="amber" />
-            </div>
-
-            {/* Table */}
-            <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-3xl overflow-hidden glass-panel shadow-sm">
-              <div className="p-6 border-b border-[var(--glass-border)] flex flex-wrap items-center justify-between gap-4 bg-[var(--bg-primary)]/50">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-xl  font-bold text-[var(--text-primary)]">Vendor Subscription Overview</h2>
-                  <span className="bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold tracking-tight px-2.5 py-0.5 rounded-full border border-[var(--accent)]/20 ">Live Data</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-secondary)]/50 rounded-xl border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all ">
-                    <Filter className="w-4 h-4" /> Filter
-                  </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 transition-all text-white ">
-                    Add Subscription
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-                {loading ? [...Array(6)].map((_, i) => (
-                  <div key={i} className="h-48 bg-white/5 rounded-3xl animate-pulse border border-[var(--glass-border)]" />
-                )) : currentSubs.map((s, i) => (
-                  <div key={i} className="group glass-panel rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-6 flex flex-col space-y-4 hover:border-[var(--accent)]/30 transition-all shadow-sm hover:shadow-xl">
-                    <div className="flex items-start justify-between">
-                       <div className="flex items-center gap-3">
-                          <div className="size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center font-bold text-[var(--accent)] text-lg shrink-0">
-                             {s.vendor[0]}
-                          </div>
-                          <div className="min-w-0">
-                             <p className="text-sm font-bold text-[var(--text-primary)] truncate">{s.vendor}</p>
-                             <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 uppercase tracking-tight">{s.id}</p>
-                          </div>
-                       </div>
-                       <button className="size-8 rounded-lg flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--accent)]/10 transition-all border border-transparent hover:border-[var(--glass-border)]">
-                          <MoreVertical className="size-4" />
-                       </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                       <div className="p-3 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
-                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-1 opacity-30">Plan Tier</p>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-tight border ${PLAN_BADGE[s.plan]}`}>
-                             {s.plan}
-                          </span>
-                       </div>
-                       <div className="p-3 rounded-2xl bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]">
-                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] mb-1 opacity-30">Status</p>
-                          <div className="flex items-center gap-1.5">
-                             <span className={`w-1.5 h-1.5 rounded-full ${PAYMENT_DOT[s.payment]} shadow-sm`} />
-                             <span className="text-[10px] font-bold text-[var(--text-primary)] uppercase">{s.payment}</span>
-                          </div>
-                       </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-[var(--glass-border)]/50 flex items-center justify-between">
-                       <div>
-                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] opacity-30">Renewal Cycle</p>
-                          <p className="text-xs font-bold text-[var(--text-primary)]">{s.renewal}</p>
-                       </div>
-                       <div className="text-right">
-                          <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.1em] opacity-30">Billing</p>
-                          <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">{s.billing}</p>
-                       </div>
-                    </div>
-                  </div>
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
+          <div className="space-y-5">
+            <Panel
+              title={t('subscription.roleRequirements', 'Role requirements')}
+              description={t('subscription.roleRequirementsDetail', 'Admin is never gated. Toggle only roles that should pay before using role tools.')}
+            >
+              <div className="grid gap-3 md:grid-cols-3">
+                {ROLE_OPTIONS.map((role) => (
+                  <RoleGateCard
+                    key={role}
+                    role={role}
+                    enabled={Boolean(overview.requirements?.[role])}
+                    graceDays={overview.grace_days?.[role] ?? 0}
+                    onToggle={() => toggleRequirement(role)}
+                    onGraceChange={(value) => setOverview((current) => ({
+                      ...current,
+                      grace_days: {
+                        ...(current.grace_days || {}),
+                        [role]: value,
+                      },
+                    }))}
+                    onGraceBlur={(value) => updateGraceDays(role, value)}
+                    t={t}
+                    label={label}
+                  />
                 ))}
               </div>
+            </Panel>
 
-              <div className="p-6 border-t border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
-                <Pagination 
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
+            <Panel
+              title={t('subscription.plans', 'Plans')}
+              description="Create packages, hide inactive offers, and edit pricing without touching code."
+              action={
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] px-3 text-xs font-bold text-[var(--text-secondary)]"
+                >
+                  <Plus className="size-4" />
+                  {t('subscription.newPlan', 'New plan')}
+                </button>
+              }
+            >
+              {loading ? (
+                <LoadingBlock />
+              ) : plans.length ? (
+                <div className="grid gap-3 lg:grid-cols-2">
+                  {plans.map((plan) => (
+                    <PlanCard
+                      key={plan._id}
+                      plan={plan}
+                      onEdit={() => editPlan(plan)}
+                      onToggle={() => togglePlanStatus(plan)}
+                      t={t}
+                      label={label}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState title="No packages yet" detail="Create your first subscription package from the plan studio." />
+              )}
+            </Panel>
+          </div>
+
+          <div className="space-y-5">
+            <PlanStudio
+              id="plan-studio"
+              planForm={planForm}
+              setPlanForm={setPlanForm}
+              editingPlanId={editingPlanId}
+              resetForm={resetForm}
+              savePlan={savePlan}
+              saving={saving}
+              t={t}
+              label={label}
+            />
+
+            <ManualActivationPanel
+              manualActivation={manualActivation}
+              setManualActivation={setManualActivation}
+              plans={plans}
+              activateManual={activateManual}
+              t={t}
+              label={label}
+            />
+          </div>
+        </section>
+
+        <Panel
+          title={t('subscription.subscribers', 'Subscribers')}
+          description={t('subscription.subscribersDetail', 'Recent subscription history and payment status.')}
+          action={
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <div className="relative min-w-0 sm:w-72">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-secondary)]" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t('common.search', 'Search')}
+                  className="h-10 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-9 pr-3 !text-base font-semibold outline-none focus:border-[var(--accent)]"
                 />
               </div>
+              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="h-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base font-semibold outline-none">
+                <option value="all">{t('common.allRoles', 'All roles')}</option>
+                {ROLE_OPTIONS.map((role) => <option key={role} value={role}>{label(role)}</option>)}
+              </select>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base font-semibold outline-none">
+                {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status === 'all' ? t('common.all', 'All') : label(status)}</option>)}
+              </select>
             </div>
+          }
+        >
+          {loading ? (
+            <LoadingBlock />
+          ) : (
+            <SubscriberTable
+              subscriptions={filteredSubscriptions}
+              updateSubscription={updateSubscription}
+              t={t}
+              label={label}
+            />
+          )}
+        </Panel>
+      </div>
+    </div>
+  );
+}
 
-            {/* Plan Distribution + Churn */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20">
-              <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-3xl p-8 glass-panel">
-                <h3 className="text-lg  font-bold tracking-tight text-[var(--text-primary)] mb-6 ">Plan Tier Distribution</h3>
-                <div className="space-y-5">
-                  <TierBar label="Premium" pct="42%" color="fuchsia" />
-                  <TierBar label="Pro" pct="35%" color="blue" />
-                  <TierBar label="Basic" pct="23%" color="slate" />
-                </div>
-              </div>
-              <div className="bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-3xl p-8 flex items-center gap-6 glass-panel">
-                <div className="flex-1">
-                   <h3 className="text-lg  font-bold tracking-tight text-[var(--text-primary)] mb-2 ">Churn Prediction</h3>
-                   <p className="text-sm text-[var(--text-secondary)] mb-6  font-bold">Based on payment delays and account activity in the last 30 days.</p>
-                   <div className="flex items-end gap-2">
-                      <span className="text-4xl  font-bold text-[var(--text-primary)] tracking-tighter">2.4%</span>
-                      <span className="text-emerald-600 text-[11px] lg:text-[12px]  font-semibold mb-2 flex items-center gap-1 tracking-tight">
-                         <TrendingDown className="w-3 h-3" /> 0.8%
-                      </span>
-                   </div>
-                   <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] tracking-[0.2em]  font-semibold mt-1  opacity-60">Stable Outlook</p>
-                </div>
-                <div className="w-24 h-24 rounded-full border-4 border-[var(--accent)]/10 flex items-center justify-center relative flex-shrink-0">
-                  <div className="absolute inset-0 rounded-full border-4 border-[var(--accent)] border-t-transparent border-r-transparent -rotate-45 shadow-[0_0_15px_rgba(242,13,242,0.1)]" />
-                  <TrendingUp className="w-8 h-8 text-[var(--accent)] relative z-10" />
-                </div>
-              </div>
-            </div>
+function Panel({ title, description, action, children }) {
+  return (
+    <section className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold tracking-tight">{title}</h2>
+          {description && <p className="mt-1 max-w-3xl text-sm font-medium leading-relaxed text-[var(--text-secondary)]">{description}</p>}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Stat({ icon: Icon, label, value, detail, tone = 'accent' }) {
+  const tones = {
+    accent: 'bg-[var(--accent)]/10 text-[var(--accent)]',
+    emerald: 'bg-emerald-500/10 text-emerald-600',
+    amber: 'bg-amber-500/10 text-amber-600',
+    blue: 'bg-blue-500/10 text-blue-600',
+  };
+  return (
+    <div className="rounded-[24px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm">
+      <div className={`mb-4 flex size-11 items-center justify-center rounded-2xl ${tones[tone] || tones.accent}`}>
+        <Icon className="size-5" />
+      </div>
+      <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">{label}</p>
+      <p className="mt-1 text-2xl font-bold tracking-tight">{value}</p>
+      {detail && <p className="mt-1 text-xs font-semibold text-[var(--text-secondary)]">{detail}</p>}
+    </div>
+  );
+}
+
+function RoleGateCard({ role, enabled, graceDays, onToggle, onGraceChange, onGraceBlur, t, label }) {
+  return (
+    <div className={`rounded-3xl border p-4 transition ${enabled ? 'border-[var(--accent)]/30 bg-[var(--accent)]/5' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-bold capitalize">{label(role)}</p>
+          <p className="mt-1 text-xs font-medium text-[var(--text-secondary)]">
+            {enabled ? t('subscription.packageNeeded', 'Package needed') : t('subscription.access', 'access')}
+          </p>
+        </div>
+        <button type="button" onClick={onToggle} className="shrink-0" aria-label={`Toggle ${role}`}>
+          {enabled ? <ToggleRight className="size-8 text-[var(--accent)]" /> : <ToggleLeft className="size-8 text-[var(--text-secondary)]" />}
+        </button>
+      </div>
+      <label className="mt-4 block">
+        <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">
+          {t('subscription.graceDays', 'Grace days')}
+        </span>
+        <input
+          type="number"
+          min="0"
+          value={graceDays}
+          onChange={(event) => onGraceChange(event.target.value)}
+          onBlur={(event) => onGraceBlur(event.target.value)}
+          className="mt-1 h-10 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 !text-base font-bold outline-none focus:border-[var(--accent)]"
+        />
+      </label>
+    </div>
+  );
+}
+
+function PlanCard({ plan, onEdit, onToggle, t, label }) {
+  const features = plan.features || [];
+  return (
+    <article className="flex min-h-[260px] flex-col rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-bold leading-tight">{plan.name}</h3>
+            <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${plan.is_active ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-500'}`}>
+              {plan.is_active ? t('common.active', 'Active') : t('common.hidden', 'Hidden')}
+            </span>
+          </div>
+          <p className="mt-2 line-clamp-2 text-xs font-medium leading-relaxed text-[var(--text-secondary)]">{plan.description}</p>
+        </div>
+        <button onClick={onEdit} className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
+          <Edit3 className="size-4" />
+        </button>
+      </div>
+
+      <div className="mt-4 rounded-2xl bg-[var(--bg-primary)] p-3">
+        <p className="text-2xl font-bold tracking-tight">{money(plan.price, plan.currency)}</p>
+        <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-bold text-[var(--text-secondary)]">
+          <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-1">{label(plan.billing_cycle || 'one_time')}</span>
+          {Number(plan.duration_days || 0) > 0 && <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-1">{plan.duration_days} {t('subscription.days', 'days')}</span>}
+          {plan.contact_required && <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-1">{t('subscription.contactOnly', 'Contact-only package')}</span>}
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {(plan.roles || []).map((role) => (
+          <span key={role} className="rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] px-2.5 py-1 text-[10px] font-bold capitalize text-[var(--text-secondary)]">
+            {label(role)}
+          </span>
+        ))}
+      </div>
+
+      <ul className="mt-4 min-h-0 flex-1 space-y-2">
+        {features.slice(0, 4).map((feature) => (
+          <li key={feature} className="flex gap-2 text-xs font-medium leading-relaxed text-[var(--text-secondary)]">
+            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+            <span className="line-clamp-2">{feature}</span>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        onClick={onToggle}
+        className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-xs font-bold text-[var(--text-primary)] transition active:scale-95"
+      >
+        {plan.is_active ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        {plan.is_active ? t('subscription.hidePlan', 'Hide package') : t('subscription.activatePlan', 'Activate package')}
+      </button>
+    </article>
+  );
+}
+
+function PlanStudio({ id, planForm, setPlanForm, editingPlanId, resetForm, savePlan, saving, t, label }) {
+  return (
+    <Panel
+      title={editingPlanId ? t('subscription.editPlan', 'Edit plan') : t('subscription.newPlan', 'New plan')}
+      description="Use this studio to control the public package copy, price, visibility, and eligible roles."
+      action={editingPlanId && (
+        <button onClick={resetForm} className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] px-3 text-xs font-bold text-[var(--text-secondary)]">
+          <RotateCcw className="size-4" />
+          {t('common.cancel', 'Cancel')}
+        </button>
+      )}
+    >
+      <div id={id} className="grid gap-3">
+        <input className={fieldClass} placeholder={t('subscription.planName', 'Plan name')} value={planForm.name} onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })} />
+        <textarea className={`${fieldClass} min-h-24 py-3`} placeholder={t('subscription.descriptionField', 'Description')} value={planForm.description} onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })} />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <input className={fieldClass} type="number" placeholder="500" value={planForm.price} onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })} />
+          <select className={fieldClass} value={planForm.currency} onChange={(e) => setPlanForm({ ...planForm, currency: e.target.value })}>
+            <option value="XAF">XAF</option>
+          </select>
+          <select className={fieldClass} value={planForm.billing_cycle} onChange={(e) => setPlanForm({ ...planForm, billing_cycle: e.target.value })}>
+            <option value="one_time">{t('subscription.oneTime', 'One-time')}</option>
+            <option value="monthly">{t('subscription.monthly', 'Monthly')}</option>
+            <option value="yearly">{t('subscription.yearly', 'Yearly')}</option>
+          </select>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <input
+            className={fieldClass}
+            type="number"
+            min="0"
+            placeholder={t('subscription.durationDays', 'Duration days')}
+            value={planForm.duration_days}
+            onChange={(e) => setPlanForm({ ...planForm, duration_days: e.target.value })}
+          />
+          <button
+            type="button"
+            onClick={() => setPlanForm((current) => ({ ...current, contact_required: !current.contact_required }))}
+            className={`h-11 rounded-2xl border px-4 text-xs font-bold transition ${planForm.contact_required ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+          >
+            {t('subscription.contactOnly', 'Contact-only package')}
+          </button>
+        </div>
+        <div>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">{t('common.roles', 'Roles')}</p>
+          <div className="flex flex-wrap gap-2">
+            {ROLE_OPTIONS.map((role) => {
+              const checked = planForm.roles.includes(role);
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => setPlanForm((current) => ({
+                    ...current,
+                    roles: checked ? current.roles.filter((item) => item !== role) : [...current.roles, role],
+                  }))}
+                  className={`rounded-full border px-3 py-2 text-xs font-bold capitalize ${checked ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+                >
+                  {label(role)}
+                </button>
+              );
+            })}
           </div>
         </div>
-      </main>
-    </div>
+        <textarea className={`${fieldClass} min-h-28 py-3`} placeholder={t('subscription.featuresHelp', 'One feature per line')} value={planForm.features} onChange={(e) => setPlanForm({ ...planForm, features: e.target.value })} />
+        <button
+          type="button"
+          onClick={savePlan}
+          disabled={saving}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-sm font-bold text-white disabled:opacity-60"
+        >
+          {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+          {t('subscription.savePlan', 'Save plan')}
+        </button>
+      </div>
+    </Panel>
   );
 }
 
-
-
-function TierBar({ label, pct, color }) {
-  const bar = { fuchsia: 'bg-[var(--accent)]', blue: 'bg-blue-600', slate: 'bg-slate-500' };
-  const txt = { fuchsia: 'text-[var(--accent)]', blue: 'text-blue-600', slate: 'text-[var(--text-secondary)]' };
+function ManualActivationPanel({ manualActivation, setManualActivation, plans, activateManual, t, label }) {
   return (
-    <div>
-      <div className="flex justify-between text-[11px] lg:text-[12px]  font-semibold tracking-tight mb-2 ">
-        <span className="text-[var(--text-secondary)]">{label}</span>
-        <span className={txt[color]}>{pct}</span>
+    <Panel
+      title={t('subscription.manualActivation', 'Manual activation')}
+      description={t('subscription.manualActivationDetail', 'Activate a package for a user by ID when support confirms payment or grants access.')}
+    >
+      <div className="grid gap-3">
+        <input
+          className={fieldClass}
+          placeholder={t('subscription.userId', 'User ID')}
+          value={manualActivation.user_id}
+          onChange={(e) => setManualActivation({ ...manualActivation, user_id: e.target.value })}
+        />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <select
+            className={fieldClass}
+            value={manualActivation.plan_id}
+            onChange={(e) => setManualActivation({ ...manualActivation, plan_id: e.target.value })}
+          >
+            <option value="">{t('subscription.choosePlan', 'Choose plan')}</option>
+            {plans.map((plan) => (
+              <option key={plan._id} value={plan._id}>{plan.name}</option>
+            ))}
+          </select>
+          <select
+            className={fieldClass}
+            value={manualActivation.role}
+            onChange={(e) => setManualActivation({ ...manualActivation, role: e.target.value })}
+          >
+            {ROLE_OPTIONS.map((role) => (
+              <option key={role} value={role}>{label(role)}</option>
+            ))}
+          </select>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label>
+            <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">
+              {t('subscription.startDate', 'Start date')}
+            </span>
+            <input
+              className={fieldClass}
+              type="date"
+              value={manualActivation.started_at}
+              onChange={(e) => setManualActivation({ ...manualActivation, started_at: e.target.value })}
+            />
+          </label>
+          <label>
+            <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">
+              {t('subscription.expiryDate', 'Expiry date')}
+            </span>
+            <input
+              className={fieldClass}
+              type="date"
+              value={manualActivation.expires_at}
+              onChange={(e) => setManualActivation({ ...manualActivation, expires_at: e.target.value })}
+            />
+          </label>
+        </div>
+        <button
+          type="button"
+          onClick={activateManual}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[var(--accent)] bg-[var(--accent)]/10 text-sm font-bold text-[var(--accent)]"
+        >
+          <BadgeCheck className="size-4" />
+          {t('subscription.activateUser', 'Activate user')}
+        </button>
       </div>
-      <div className="h-2 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden border border-[var(--glass-border)]">
-        <div className={`h-full ${bar[color]} rounded-full shadow-[0_0_10px_rgba(0,0,0,0.1)]`} style={{ width: pct }} />
-      </div>
+    </Panel>
+  );
+}
+
+function SubscriberTable({ subscriptions, updateSubscription, t, label }) {
+  if (!subscriptions.length) {
+    return <EmptyState title={t('subscription.noSubscribers', 'No subscribers yet.')} detail="Subscriptions will appear here when users pay or when an admin activates them manually." />;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[980px] text-left text-sm">
+        <thead className="text-xs uppercase text-[var(--text-secondary)]">
+          <tr>
+            <th className="px-4 py-3">{t('common.user', 'User')}</th>
+            <th className="px-4 py-3">{t('subscription.plan', 'Plan')}</th>
+            <th className="px-4 py-3">{t('common.status', 'Status')}</th>
+            <th className="px-4 py-3">{t('common.amount', 'Amount')}</th>
+            <th className="px-4 py-3">{t('subscription.expiryDate', 'Expiry date')}</th>
+            <th className="px-4 py-3">{t('common.actions', 'Actions')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {subscriptions.map((sub) => {
+            const user = sub.user_id || {};
+            const plan = sub.plan_id || {};
+            const avatar = user.avatar || user.branding?.logo;
+            return (
+              <tr key={sub._id} className="border-t border-[var(--glass-border)] align-top">
+                <td className="px-4 py-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--accent)]/10 text-sm font-bold text-[var(--accent)]">
+                      {avatar ? <img src={avatar} alt="" className="size-full object-cover" /> : (user.name || user.email || 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-bold">{user.name || t('common.unknown', 'Unknown')}</p>
+                      <p className="truncate text-xs text-[var(--text-secondary)]">{user.email || user.phone || '-'}</p>
+                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">{label(sub.role || user.role || 'user')}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-4">
+                  <p className="font-bold">{plan.name || '-'}</p>
+                  <p className="mt-1 text-xs text-[var(--text-secondary)]">{shortDate(sub.started_at)} - {shortDate(sub.expires_at)}</p>
+                </td>
+                <td className="px-4 py-4">
+                  <StatusBadge status={sub.status} label={label} />
+                </td>
+                <td className="px-4 py-4 font-bold">{money(sub.amount_paid, sub.currency)}</td>
+                <td className="px-4 py-4">
+                  <div className="inline-flex items-center gap-2 rounded-2xl bg-[var(--bg-secondary)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">
+                    <CalendarClock className="size-4" />
+                    {shortDate(sub.expires_at)}
+                  </div>
+                </td>
+                <td className="px-4 py-4">
+                  <div className="flex flex-wrap gap-2">
+                    <ActionButton icon={CheckCircle2} label={t('common.activate', 'Activate')} onClick={() => updateSubscription(sub._id, 'activate')} />
+                    <ActionButton icon={XCircle} label={t('common.cancel', 'Cancel')} onClick={() => updateSubscription(sub._id, 'cancel')} />
+                    <ActionButton danger icon={RotateCcw} label={t('common.refund', 'Refund')} onClick={() => updateSubscription(sub._id, 'refund')} />
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
+
+function StatusBadge({ status, label }) {
+  const tone = {
+    active: 'bg-emerald-500/10 text-emerald-600',
+    pending: 'bg-amber-500/10 text-amber-600',
+    grace: 'bg-blue-500/10 text-blue-600',
+    limited: 'bg-red-500/10 text-red-500',
+    cancelled: 'bg-slate-500/10 text-slate-500',
+    refunded: 'bg-purple-500/10 text-purple-600',
+  }[status] || 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]';
+
+  return (
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold capitalize ${tone}`}>
+      {label(status || 'unknown')}
+    </span>
+  );
+}
+
+function ActionButton({ icon: Icon, label, onClick, danger = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border px-3 text-xs font-bold transition active:scale-95 ${danger ? 'border-red-500/20 text-red-500' : 'border-[var(--glass-border)] text-[var(--text-primary)]'}`}
+    >
+      <Icon className="size-3.5" />
+      {label}
+    </button>
+  );
+}
+
+function LoadingBlock() {
+  return (
+    <div className="flex h-48 items-center justify-center rounded-3xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]">
+      <Loader2 className="size-7 animate-spin text-[var(--accent)]" />
+    </div>
+  );
+}
+
+function EmptyState({ title, detail }) {
+  return (
+    <div className="rounded-3xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)] p-8 text-center">
+      <p className="text-sm font-bold text-[var(--text-primary)]">{title}</p>
+      {detail && <p className="mx-auto mt-1 max-w-md text-xs font-medium leading-relaxed text-[var(--text-secondary)]">{detail}</p>}
+    </div>
+  );
+}
+

@@ -36,6 +36,12 @@ export const orderService = {
     return res.data;
   },
 
+  // Cancel an unpaid order or a paid order inside the 30-minute cancellation window.
+  cancelOrder: async (id, data = {}) => {
+    const res = await api.post(`/orders/${id}/cancel`, data);
+    return res.data;
+  },
+
   // Approve refund (Vendor)
   approveRefund: async (id) => {
     const res = await api.patch(`/orders/${id}/approve-refund`);

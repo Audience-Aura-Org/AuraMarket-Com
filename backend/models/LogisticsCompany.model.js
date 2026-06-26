@@ -1,6 +1,6 @@
 /**
  * models/LogisticsCompany.model.js
- * Aura Market — Logistics Company Profile Schema
+ * Auradime — Logistics Company Profile Schema
  *
  * Linked directly to a User schema with the role 'logistics'. 
  * Defines the corporate profile, service regions, and general capacities.

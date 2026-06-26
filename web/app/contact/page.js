@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -39,7 +39,7 @@ export default function GeneralContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-24 px-8 md:px-20 transition-colors duration-500 overflow-hidden relative selection:bg-[var(--accent)] selection:text-white">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-24 px-8 md:px-20 transition-colors duration-500 overflow-hidden relative selection:bg-[var(--accent)] selection:text-white pt-20 md:pt-24">
       
       {/* Background Ambience */}
       <div className="absolute inset-x-0 top-0 h-[100vh] opacity-5 pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--accent) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
@@ -54,7 +54,7 @@ export default function GeneralContactPage() {
             <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.4em]">Global Communications</span>
           </div>
           <h1 className="text-6xl lg:text-8xl  font-bold text-[var(--text-primary)] tracking-tighter  leading-[0.85]">
-            Contact <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Aura</span>
+            Contact <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent)] to-indigo-600">Aura Dime</span>
           </h1>
           <p className="text-[var(--text-secondary)] max-w-2xl mx-auto font-medium text-lg lg:text-xl opacity-60 leading-relaxed">
             Synchronize with our support team for definitive resolution of platform inquiries or support requests.
@@ -117,31 +117,31 @@ export default function GeneralContactPage() {
         </div>
 
         {/* Alternative Channels */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-           <div className="glass-panel p-10 rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 space-y-6 hover:-translate-y-2 transition-all duration-500">
-              <Mail className="size-10 text-[var(--accent)]" />
-              <h3 className="text-xl  font-bold tracking-tight text-[var(--text-primary)]">Corporate Inquiry</h3>
-              <p className="text-[var(--text-secondary)] text-sm font-medium opacity-60 leading-relaxed">
-                 For partnerships, legal nodes, or regional expansion proposals. Definitive response in 24 Solar Cycles.
-              </p>
-              <a href="mailto:corporate@auramarket.global" className="block text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--accent)] hover:underline">corporate@auramarket.global</a>
-           </div>
-           
-           <div className="glass-panel p-10 rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 space-y-6 hover:-translate-y-2 transition-all duration-500">
-              <ShieldCheck className="size-10 text-emerald-500" />
-              <h3 className="text-xl  font-bold tracking-tight text-[var(--text-primary)]">Security Relay</h3>
-              <p className="text-[var(--text-secondary)] text-sm font-medium opacity-60 leading-relaxed">
-                 Report security anomalies, identity vulnerabilities, or fraudulent merchant accounts to our core defense unit.
-              </p>
-              <a href="mailto:security@auramarket.global" className="block text-[11px] lg:text-[12px]  font-semibold tracking-tight text-emerald-500 hover:underline">security@auramarket.global</a>
-           </div>
-        </div>
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="glass-panel p-10 rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 space-y-6 hover:-translate-y-2 transition-all duration-500">
+               <Mail className="size-10 text-[var(--accent)]" />
+               <h3 className="text-xl  font-bold tracking-tight text-[var(--text-primary)]">Corporate Inquiry</h3>
+               <p className="text-[var(--text-secondary)] text-sm font-medium opacity-60 leading-relaxed">
+                  For partnerships, legal nodes, or regional expansion proposals. Definitive response in 24 Solar Cycles.
+               </p>
+               <a href="mailto:hello@auradime.com" className="block text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--accent)] hover:underline">hello@auradime.com</a>
+            </div>
+            
+            <div className="glass-panel p-10 rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 space-y-6 hover:-translate-y-2 transition-all duration-500">
+               <ShieldCheck className="size-10 text-emerald-500" />
+               <h3 className="text-xl  font-bold tracking-tight text-[var(--text-primary)]">Security Relay</h3>
+               <p className="text-[var(--text-secondary)] text-sm font-medium opacity-60 leading-relaxed">
+                  Report security anomalies, identity vulnerabilities, or fraudulent merchant accounts to our core defense unit.
+               </p>
+               <a href="mailto:support@auradime.com" className="block text-[11px] lg:text-[12px]  font-semibold tracking-tight text-emerald-500 hover:underline">support@auradime.com</a>
+            </div>
+         </div>
 
-        <div className="text-center pt-20 pb-40">
-           <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
-              Aura Market Global Communications Protocol v2.5.0
-           </p>
-        </div>
+         <div className="text-center pt-20 pb-40">
+            <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.5em] text-[var(--text-secondary)]  opacity-30">
+               Auradime Global Communications Protocol v2.5.0
+            </p>
+         </div>
 
       </div>
     </div>

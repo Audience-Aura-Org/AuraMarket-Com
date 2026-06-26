@@ -42,7 +42,7 @@ export default function KYCPage() {
                <div className="space-y-4">
                   <ShieldCheck className="size-10 text-[var(--accent)]" />
                   <h1 className="text-3xl  font-bold tracking-tighter  leading-tight">KYC Port Protocol</h1>
-                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60 tracking-tight">Aura Market Partner Compliance v6.0</p>
+                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60 tracking-tight">Auradime Partner Compliance v6.0</p>
                </div>
 
                <nav className="space-y-8 mt-12">

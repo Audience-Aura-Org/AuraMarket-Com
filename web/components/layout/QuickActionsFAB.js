@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { Plus, Zap, ShoppingBag, Store, Activity, MessageCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useChat } from '@/context/ChatContext';
 
 const ACTIONS = {
   vendor: [
-    { label: 'Add Product', icon: ShoppingBag, href: '/vendor/products/new', color: 'bg-emerald-500' },
-    { label: 'Post Story', icon: Activity, href: '/vendor/stories/new', color: 'bg-purple-500' },
-    { label: 'Messages', icon: MessageCircle, href: '/messages', color: 'bg-blue-500' },
+    { label: 'Add Product', icon: ShoppingBag, href: '/vendor/products/add', color: 'bg-emerald-500' },
+    { label: 'Post Story', icon: Activity, href: '/vendor/stories', color: 'bg-purple-500' },
+    { label: 'Messages', icon: MessageCircle, href: '/chat', color: 'bg-blue-500', chatOverlay: true },
   ],
   admin: [
     { label: 'Review Users', icon: Zap, href: '/admin/users', color: 'bg-amber-500' },
@@ -22,6 +23,7 @@ const ACTIONS = {
 
 export default function QuickActionsFAB({ role }) {
   const [isOpen, setIsOpen] = useState(false);
+  const { openChat } = useChat();
   const roleActions = ACTIONS[role] || [];
 
   if (roleActions.length === 0) return null;
@@ -39,18 +41,36 @@ export default function QuickActionsFAB({ role }) {
                 exit={{ opacity: 0, scale: 0.5, y: 20 }}
                 transition={{ delay: idx * 0.05 }}
               >
-                <Link
-                  href={action.href}
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3"
-                >
-                  <span className="px-3 py-1.5 rounded-lg bg-[var(--bg-primary)]/80 backdrop-blur-xl border border-[var(--glass-border)] text-[10px] lg:text-[12px]  font-semibold capitalize tracking-[0.12em] text-[var(--text-primary)] shadow-xl">
-                    {action.label}
-                  </span>
-                  <div className={`size-12 rounded-2xl ${action.color} text-white flex items-center justify-center shadow-lg shadow-${action.color.split('-')[1]}-500/20`}>
-                    <action.icon className="size-5" />
-                  </div>
-                </Link>
+                {action.chatOverlay ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openChat(null, null, null, false);
+                      setIsOpen(false);
+                    }}
+                    className="flex items-center gap-3"
+                  >
+                    <span className="px-3 py-1.5 rounded-lg bg-[var(--bg-primary)]/80 backdrop-blur-xl border border-[var(--glass-border)] text-[10px] lg:text-[12px]  font-semibold capitalize tracking-[0.12em] text-[var(--text-primary)] shadow-xl">
+                      {action.label}
+                    </span>
+                    <div className={`size-12 rounded-2xl ${action.color} text-white flex items-center justify-center shadow-lg shadow-${action.color.split('-')[1]}-500/20`}>
+                      <action.icon className="size-5" />
+                    </div>
+                  </button>
+                ) : (
+                  <Link
+                    href={action.href}
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3"
+                  >
+                    <span className="px-3 py-1.5 rounded-lg bg-[var(--bg-primary)]/80 backdrop-blur-xl border border-[var(--glass-border)] text-[10px] lg:text-[12px]  font-semibold capitalize tracking-[0.12em] text-[var(--text-primary)] shadow-xl">
+                      {action.label}
+                    </span>
+                    <div className={`size-12 rounded-2xl ${action.color} text-white flex items-center justify-center shadow-lg shadow-${action.color.split('-')[1]}-500/20`}>
+                      <action.icon className="size-5" />
+                    </div>
+                  </Link>
+                )}
               </motion.div>
             ))}
           </div>

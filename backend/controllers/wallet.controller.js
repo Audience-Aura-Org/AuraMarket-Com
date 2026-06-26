@@ -1,6 +1,6 @@
 /**
  * controllers/wallet.controller.js
- * Aura Market — Wallet & Transaction Management
+ * Auradime — Wallet & Transaction Management
  */
 
 const User = require('../models/User.model');
@@ -16,6 +16,7 @@ const PlatformSettings = require('../models/PlatformSettings.model');
 const Message = require('../models/Message.model');
 const WithdrawalRequest = require('../models/WithdrawalRequest.model');
 const { sendNotification } = require('../utils/notifier');
+const { getCommissionValue } = require('../utils/platformFees');
 
 // Helper to generate a unique transaction reference
 const generateTxRef = () => `AURA-TX-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
@@ -62,10 +63,11 @@ const getTransactionHistory = async (req, res, next) => {
   try {
     // ── AUTO-FAIL OLD PENDING EVERSEND DEPOSITS ───────────────────────────────
     try {
-      // If a deposit is stuck in 'pending' for > 1 hour, it's likely expired or 
-      // failed at the gateway without a webhook/callback. Mark as failed.
-      const ONE_HOUR = 60 * 60 * 1000;
-      const cutoff = new Date(Date.now() - ONE_HOUR);
+      // Only auto-fail if stuck in 'pending' for > 24 hours with no gateway confirmation.
+      // Webhook confirmations can arrive late; 1 hour was too aggressive and caused
+      // valid payments (gateway received funds) to be incorrectly marked as failed.
+      const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+      const cutoff = new Date(Date.now() - TWENTY_FOUR_HOURS);
 
       await Transaction.updateMany(
         {
@@ -144,8 +146,8 @@ const requestWithdrawal = async (req, res, next) => {
     const { amount, method, details } = req.body;
     const user = await User.findById(req.user._id).session(session);
 
-    if (!amount || amount < 1000) {
-      throw new Error('Minimum withdrawal amount is 1,000 XAF.');
+    if (!amount || amount < 500) {
+      throw new Error('Minimum withdrawal amount is 500 XAF.');
     }
 
     if (user.wallet_balance < amount) {
@@ -419,7 +421,11 @@ const getPlatformFinancialStats = async (req, res, next) => {
         total_platform_revenue: settings.platform_wallet_balance || 0,
         total_escrow_held: escrowStats[0]?.total || 0,
         total_pending_withdrawals: withdrawalStats[0]?.total || 0,
-        commission_rate: settings.commission_rate
+        commission_rate: settings.commission_rate,
+        commission_type: settings.commission_type,
+        commission_value: getCommissionValue(settings),
+        escrow_fee_type: settings.escrow_fee_type,
+        escrow_fee_value: settings.escrow_fee_value
       }
     });
   } catch (error) { next(error); }

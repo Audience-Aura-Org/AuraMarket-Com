@@ -47,7 +47,7 @@ export default function EmailLogsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] pb-20">
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] pb-20 md:pt-0" style={{ paddingTop: 'calc\(56px\ \+\ env\(safe-area-inset-top,\ 0px\)\)' }}>
       {/* Header Grid */}
       <div className="p-10 lg:px-20 space-y-8">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -78,7 +78,7 @@ export default function EmailLogsPage() {
                 placeholder="Search by recipient or subject..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-14 pr-6 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-transparent focus:border-[var(--accent)]/30 outline-none text-sm  font-bold transition-all"
+                className="w-full pl-14 pr-6 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-transparent focus:border-[var(--accent)]/30 outline-none !text-base placeholder:!text-base font-bold transition-all"
               />
            </form>
            <div className="flex items-center gap-2 p-1 bg-[var(--bg-secondary)] rounded-2xl border border-[var(--glass-border)]">
@@ -214,3 +214,4 @@ export default function EmailLogsPage() {
     </div>
   );
 }
+

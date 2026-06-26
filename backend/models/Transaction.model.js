@@ -1,6 +1,6 @@
 /**
  * models/Transaction.model.js
- * Aura Market — Transaction Schema for Wallet System
+ * Auradime — Transaction Schema for Wallet System
  *
  * Tracks all financial movements within the platform affecting user wallets.
  * Types: deposit, withdrawal, payment (order), refund, escrow_release
@@ -18,7 +18,7 @@ const TransactionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['deposit', 'withdrawal', 'payment', 'refund', 'escrow_release', 'payout'],
+      enum: ['deposit', 'withdrawal', 'payment', 'refund', 'escrow_release', 'payout', 'subscription'],
       required: true,
     },
     amount: {
@@ -66,7 +66,7 @@ const TransactionSchema = new mongoose.Schema(
     },
     gateway: {
       type: String,
-      enum: ['paystack', 'eversend', 'mesomb', 'flutterwave', 'wallet', 'manual', 'platform', 'escrow'],
+      enum: ['paystack', 'eversend', 'payunit', 'flutterwave', 'wallet', 'manual', 'platform', 'escrow'],
       default: null,
     },
     currency: {
@@ -82,5 +82,10 @@ const TransactionSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+TransactionSchema.index({ user_id: 1, createdAt: -1 });
+TransactionSchema.index({ status: 1, createdAt: -1 });
+TransactionSchema.index({ gateway: 1, status: 1, createdAt: -1 });
+TransactionSchema.index({ order_id: 1, type: 1 });
 
 module.exports = mongoose.model('Transaction', TransactionSchema);

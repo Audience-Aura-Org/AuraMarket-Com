@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/KYC.model.js
- * Aura Market — Vendor Identity Verification Data
+ * Auradime — Vendor Identity Verification Data
  */
 const KYCSchema = new mongoose.Schema(
   {

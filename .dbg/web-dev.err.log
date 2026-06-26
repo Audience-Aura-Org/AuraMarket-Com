@@ -1,0 +1,831 @@
+npm warn config optional Use `--omit=optional` to exclude optional dependencies, or
+npm warn config `--include=optional` to include them.
+npm warn config
+npm warn config       Default value does install optional deps unless otherwise omitted.
+Warning: Custom Cache-Control headers detected for the following routes:
+  - /_next/static/:path*
+
+Setting a custom Cache-Control header can break Next.js development behavior.
+[browser] [Watcher] No auth found on protected route, redirecting to login /vendor/stories (components/layout/OnboardingWatcher.js:57:17)
+[browser] [API] 401 (UNAUTHORIZED) — vendor/products — SERVER_MSG: Access denied. No token provided. (services/api.js:338:19)
+Compaction failed: Failed to compact database
+
+Caused by:
+    0: Failed to merge database files for family 1
+    1: Failed to write small value block
+    2: Failed to write block data
+    3: There is not enough space on the disk. (os error 112)
+Compaction failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Persisting failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Compaction failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Persisting failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+[browser] [API] 401 (UNAUTHORIZED) — vendor/products — SERVER_MSG: Access denied. No token provided. (services/api.js:338:19)
+Compaction failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Persisting failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Compaction failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+[browser] [API] 401 (UNAUTHORIZED) — vendor/products — SERVER_MSG: Access denied. No token provided. (services/api.js:338:19)
+Persisting failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Compaction failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+[browser] [API] 401 (UNAUTHORIZED) — vendor/products — SERVER_MSG: Access denied. No token provided. (services/api.js:338:19)
+Failed to flush logs to file: Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  code: 'ENOSPC',
+  syscall: 'write'
+}
+Failed to flush logs to file: Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  code: 'ENOSPC',
+  syscall: 'write'
+}
+Failed to flush logs to file: Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  code: 'ENOSPC',
+  syscall: 'write'
+}
+Failed to flush logs to file: Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  code: 'ENOSPC',
+  syscall: 'write'
+}
+Failed to flush logs to file: Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  code: 'ENOSPC',
+  syscall: 'write'
+}
+Failed to flush logs to file: Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  code: 'ENOSPC',
+  syscall: 'write'
+}
+Failed to flush logs to file: Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  code: 'ENOSPC',
+  syscall: 'write'
+}
+Failed to flush logs to file: Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  code: 'ENOSPC',
+  syscall: 'write'
+}
+Failed to flush logs to file: Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  code: 'ENOSPC',
+  syscall: 'write'
+}
+Failed to flush logs to file: Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  code: 'ENOSPC',
+  syscall: 'write'
+}
+
+-----
+[1m[31mFATAL[39m[0mError: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  syscall: 'write',
+  code: 'ENOSPC'
+}
+⨯ uncaughtException: Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  syscall: 'write',
+  code: 'ENOSPC'
+}
+⨯ uncaughtException:  Error: ENOSPC: no space left on device, write
+    at ignore-listed frames {
+  errno: -4055,
+  syscall: 'write',
+  code: 'ENOSPC'
+}
+
+thread 'tokio-runtime-worker' (24416) panicked at crates\next-napi-bindings\src\next_api\turbopack_ctx.rs:323:51:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+
+thread 'tokio-runtime-worker' (20288) panicked at crates\next-napi-bindings\src\next_api\turbopack_ctx.rs:323:51:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+
+thread 'tokio-runtime-worker' (29292) panicked at crates\next-napi-bindings\src\next_api\turbopack_ctx.rs:323:51:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+
+thread 'tokio-runtime-worker' (16484) panicked at crates\next-napi-bindings\src\next_api\turbopack_ctx.rs:323:51:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+⨯ [Error: Panic in async function] { code: 'GenericFailure' }
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[Error: Panic in async function] { code: 'GenericFailure' }
+Error: ENOENT: no such file or directory, open 'C:\Users\Zero\Desktop\AuraMarket\web\.next\dev\routes-manifest.json'
+    at ignore-listed frames {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\Zero\\Desktop\\AuraMarket\\web\\.next\\dev\\routes-manifest.json'
+}
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+
+thread 'tokio-runtime-worker' (24416) panicked at crates\next-napi-bindings\src\next_api\turbopack_ctx.rs:323:51:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+⨯ [Error: Panic in async function] { code: 'GenericFailure' }
+
+thread 'tokio-runtime-worker' (24416) panicked at crates\next-napi-bindings\src\next_api\turbopack_ctx.rs:323:51:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+⨯ [Error: Panic in async function] { code: 'GenericFailure' }
+[Error: Panic in async function] { code: 'GenericFailure' }
+[Error: Panic in async function] { code: 'GenericFailure' }
+Error: ENOENT: no such file or directory, open 'C:\Users\Zero\Desktop\AuraMarket\web\.next\dev\routes-manifest.json'
+    at ignore-listed frames {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\Zero\\Desktop\\AuraMarket\\web\\.next\\dev\\routes-manifest.json'
+}
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./components/status/StatusManager.js:25:1
+Export default doesn't exist in target module
+  23 | import api from '@/services/api';
+  24 | import socketService from '@/services/socket';
+> 25 | import StatusCreator from './StatusCreator';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 | import MediaThumbnail from '@/components/common/MediaThumbnail';
+  27 | import { toast } from 'react-hot-toast';
+  28 |
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./components/status/StatusManager.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Client Component Browser]
+    ./app/vendor/stories/page.js [Server Component]
+
+  Client Component SSR:
+    ./components/status/StatusManager.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Client Component SSR]
+    ./app/vendor/stories/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-client] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+[browser] ./app/status-editor-test/page.js:4:1
+Export default doesn't exist in target module
+  2 |
+  3 | import { useState } from 'react';
+> 4 | import StatusCreator from '@/components/status/StatusCreator';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function StatusEditorTestPage() {
+  7 |   const [open, setOpen] = useState(true);
+
+The export default was not found in module [project]/components/status/StatusCreator.js [app-ssr] (ecmascript).
+The module has no exports at all.
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+Import traces:
+  Client Component Browser:
+    ./app/status-editor-test/page.js [Client Component Browser]
+    ./app/status-editor-test/page.js [Server Component]
+
+  Client Component SSR:
+    ./app/status-editor-test/page.js [Client Component SSR]
+    ./app/status-editor-test/page.js [Server Component] 
+Error: ENOENT: no such file or directory, open 'C:\Users\Zero\Desktop\AuraMarket\web\.next\dev\routes-manifest.json'
+    at ignore-listed frames {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\Zero\\Desktop\\AuraMarket\\web\\.next\\dev\\routes-manifest.json'
+}
+
+thread 'tokio-runtime-worker' (11224) panicked at crates\next-napi-bindings\src\next_api\turbopack_ctx.rs:323:51:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+⨯ [Error: Panic in async function] { code: 'GenericFailure' }
+[Error: Panic in async function] { code: 'GenericFailure' }
+Error: ENOENT: no such file or directory, open 'C:\Users\Zero\Desktop\AuraMarket\web\.next\dev\routes-manifest.json'
+    at ignore-listed frames {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\Zero\\Desktop\\AuraMarket\\web\\.next\\dev\\routes-manifest.json'
+}
+
+thread 'tokio-runtime-worker' (11224) panicked at crates\next-napi-bindings\src\next_api\turbopack_ctx.rs:323:51:
+called `Result::unwrap()` on an `Err` value: PoisonError { .. }
+⨯ [Error: Panic in async function] { code: 'GenericFailure' }
+[Error: Panic in async function] { code: 'GenericFailure' }
+Error: ENOENT: no such file or directory, open 'C:\Users\Zero\Desktop\AuraMarket\web\.next\dev\routes-manifest.json'
+    at ignore-listed frames {
+  errno: -4058,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: 'C:\\Users\\Zero\\Desktop\\AuraMarket\\web\\.next\\dev\\routes-manifest.json'
+}
+Persisting failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Compaction failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Persisting failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Compaction failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Persisting failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Compaction failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Persisting failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Compaction failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)
+Compaction failed: Another write batch or compaction is already active (Only a single write operations is allowed at a time)

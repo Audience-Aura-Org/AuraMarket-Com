@@ -1,6 +1,6 @@
 /**
  * controllers/order.controller.js
- * Aura Market — Order Controller
+ * Auradime — Order Controller
  *
  * Handling the creation of orders, reducing product stock natively, 
  * and routing payment status updates.
@@ -10,6 +10,7 @@
 const Order          = require('../models/Order.model');
 const Product        = require('../models/Product.model');
 const Vendor         = require('../models/Vendor.model');
+const Store          = require('../models/Store.model');
 const RefundRequest  = require('../models/RefundRequest.model');
 const Escrow         = require('../models/Escrow.model');
 const User           = require('../models/User.model');
@@ -26,9 +27,123 @@ const { sendEmail }           = require('../utils/emailService');
 const { generateInvoice }     = require('../utils/invoiceGenerator');
 const { getWebUrl }           = require('../utils/url');
 const logisticsService        = require('../services/logistics.service');
+const {
+  syncShipmentsToOrderStatus,
+  getOrderFulfillmentSnapshot,
+  notifyOrderStatusChange,
+} = require('../services/orderSync.service');
 const templates               = require('../utils/emailTemplates');
+const { markEscrowDelivered } = require('./escrow.controller');
 
+const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
+
+const normalizeNullableAmount = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : null;
+};
+
+const assertMinimumOrderAmount = async (vendorId, subtotal, session) => {
+  const store = await Store.findOne({ vendor_id: vendorId }).select('minimum_order_amount').session(session);
+  const minimum = normalizeNullableAmount(store?.minimum_order_amount);
+  if (minimum !== null && Number(subtotal || 0) < minimum) {
+    const vendor = await Vendor.findById(vendorId).select('store_name').session(session);
+    throw new Error(`Your order from ${vendor?.store_name || 'this store'} must be at least ${minimum.toLocaleString()} XAF. Please add more items from this store or remove their products to continue.`);
+  }
+};
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
+const isVendorManagedShipping = (method) => method === 'vendor_managed' || method === 'self_managed';
+const normalizePaymentMethod = (method) => {
+  if (method === 'mesomb' || method === 'mobile_money') return 'eversend';
+  return method;
+};
+
+const variantEntries = (variant) =>
+  Object.entries(variant || {}).filter(([, value]) => value !== undefined && value !== null && value !== '');
+
+const variantLabel = (variant) =>
+  variantEntries(variant).map(([key, value]) => `${key}: ${value}`).join(' / ');
+
+const findSelectedVariant = (product, selectedVariant) => {
+  const entries = variantEntries(selectedVariant);
+  if (!product?.has_variants || entries.length === 0) return null;
+  return product.sku_variants?.find((variant) =>
+    entries.every(([key, value]) => String(variant.combination?.[key] ?? '') === String(value))
+  ) || null;
+};
+
+const resolveOrderLine = (product, item) => {
+  const quantity = Number(item.quantity || 1);
+  const regularPrice = Number(product.price || 0);
+  
+  let itemPrice;
+  let salePrice = null;
+  let compare_at_price = null;
+  let itemImage = product.images?.[0]?.url || null;
+
+  if (product.has_variants) {
+    const variantMatch = findSelectedVariant(product, item.variant);
+    if (!variantMatch) {
+      throw new Error(`Please select a valid variant for ${product.name}.`);
+    }
+    if (variantMatch.stock < quantity) {
+      throw new Error(`Insufficient stock for ${product.name} (${variantLabel(item.variant)}). Available: ${variantMatch.stock}`);
+    }
+    const variantRegularPrice = Number(variantMatch.price || regularPrice);
+    const variantSalePrice = variantMatch.sale_price !== undefined && variantMatch.sale_price !== null 
+      ? Number(variantMatch.sale_price) 
+      : null;
+    
+    if (variantSalePrice && variantSalePrice > 0 && variantSalePrice < variantRegularPrice) {
+      itemPrice = variantSalePrice;
+      salePrice = variantSalePrice;
+      compare_at_price = variantRegularPrice;
+    } else {
+      itemPrice = variantRegularPrice;
+    }
+    
+    if (variantMatch.image) itemImage = variantMatch.image;
+  } else {
+    const productSalePrice = product.sale_price !== undefined && product.sale_price !== null 
+      ? Number(product.sale_price) 
+      : null;
+    
+    if (productSalePrice && productSalePrice > 0 && productSalePrice < regularPrice) {
+      itemPrice = productSalePrice;
+      salePrice = productSalePrice;
+      compare_at_price = regularPrice;
+    } else {
+      itemPrice = regularPrice;
+    }
+    
+    if (product.stock < quantity) {
+      throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
+    }
+  }
+
+  return { quantity, itemPrice, regularPrice, salePrice, compare_at_price, itemImage };
+};
+
+const restoreOrderInventory = async (order, session) => {
+  for (const item of order.products || []) {
+    const product = await Product.findById(item.product_id).session(session);
+    if (!product) continue;
+
+    const quantity = Number(item.quantity || 1);
+    product.stock = Number(product.stock || 0) + quantity;
+    product.purchase_count = Math.max(0, Number(product.purchase_count || 0) - quantity);
+
+    if (product.has_variants && item.variant) {
+      const variantMatch = findSelectedVariant(product, item.variant);
+      if (variantMatch) {
+        variantMatch.stock = Number(variantMatch.stock || 0) + quantity;
+        product.markModified('sku_variants');
+      }
+    }
+
+    await product.save({ session });
+  }
+};
 
 // ─────────────────────────────────────────────
 // @route   POST /api/orders
@@ -40,7 +155,8 @@ const createOrder = async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const { vendor_id, products, payment_method, shipping_address, shipping_method } = req.body;
+    const { vendor_id, products, shipping_address, shipping_method } = req.body;
+    const payment_method = normalizePaymentMethod(req.body.payment_method);
 
     if (!products || products.length === 0) {
       return res.status(400).json({ success: false, message: 'No order items provided.' });
@@ -63,32 +179,17 @@ const createOrder = async (req, res, next) => {
         throw new Error(`Product ${item.product_id} is unavailable.`);
       }
 
-      if (product.stock < item.quantity) {
-        throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
-      }
+      const { quantity, itemPrice, regularPrice, salePrice, compare_at_price, itemImage } = resolveOrderLine(product, item);
 
-      let itemPrice = product.price;
-      let itemImage = product.images.length > 0 ? product.images[0].url : null;
-
-      // Handle Variant Price/Stock/Image
-      if (product.has_variants && item.variant) {
-        const variantMatch = product.sku_variants.find(v => 
-          Object.entries(item.variant).every(([k, val]) => v.combination[k] === val)
-        );
+      if (product.has_variants) {
+        const variantMatch = findSelectedVariant(product, item.variant);
         if (variantMatch) {
-          if (variantMatch.stock < item.quantity) {
-             throw new Error(`Insufficient stock for ${product.name} (${Object.values(item.variant).join('/')}). Available: ${variantMatch.stock}`);
-          }
-          itemPrice = variantMatch.price;
-          if (variantMatch.image) itemImage = variantMatch.image;
-          
-          // Reduce variant stock
-          variantMatch.stock -= item.quantity;
+          variantMatch.stock -= quantity;
         }
       }
 
-      product.stock -= item.quantity;
-      product.purchase_count = (product.purchase_count || 0) + item.quantity;
+      product.stock -= quantity;
+      product.purchase_count = (product.purchase_count || 0) + quantity;
       product.markModified('sku_variants');
       await product.save({ session });
 
@@ -104,13 +205,16 @@ const createOrder = async (req, res, next) => {
       validatedProducts.push({
         product_id: product._id,
         name:       product.name,
-        quantity:   item.quantity,
+        quantity,
         price:      itemPrice,
+        regular_price: regularPrice,
+        sale_price: salePrice,
+        compare_at_price: compare_at_price,
         image:      itemImage,
         variant:    item.variant
       });
 
-      subtotal += itemPrice * item.quantity;
+      subtotal += itemPrice * quantity;
     }
 
     // 3. Handle Coupon Logic
@@ -140,27 +244,39 @@ const createOrder = async (req, res, next) => {
       escrow_enabled 
     } = req.body;
 
-    // MANDATORY LOGISTICS: Block purchase without logistics partner
-    if (shipping_method !== 'logistics_partner' || !logistics_company_id || !delivery_quartier) {
+    const normalizedShippingMethod = isVendorManagedShipping(shipping_method) ? 'vendor_managed' : 'logistics_partner';
+    const deliveryZone = delivery_quartier || shipping_address?.quartier;
+
+    if (!deliveryZone) {
       return res.status(400).json({ 
         success: false, 
-        message: 'A logistics partner and delivery zone must be selected for shipment fees.' 
+        message: 'A delivery zone must be selected for this order.' 
+      });
+    }
+
+    if (normalizedShippingMethod === 'logistics_partner' && !logistics_company_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Select a logistics partner or choose vendor-managed delivery.',
       });
     }
 
     let shipping_fee = 0;
-    if (shipping_method === 'logistics_partner' && logistics_company_id && delivery_quartier) {
-      const firms = await logisticsService.getCompatibleFirms(delivery_quartier, [vendor_id]);
+    if (normalizedShippingMethod === 'logistics_partner' && logistics_company_id && deliveryZone) {
+      const firms = await logisticsService.getCompatibleFirms(deliveryZone, [vendor_id]);
       const isCompatible = firms.some(f => f._id.toString() === logistics_company_id);
       if (!isCompatible) {
         throw new Error('Selected logistics company does not support this delivery route.');
       }
 
-      const fees = await logisticsService.calculateShipmentFees([vendor_id], delivery_quartier, logistics_company_id);
+      const fees = await logisticsService.calculateShipmentFees([vendor_id], deliveryZone, logistics_company_id);
       shipping_fee = fees.totalFee;
     }
 
-    const total_amount = subtotal + shipping_fee - discount;
+    await assertMinimumOrderAmount(vendor_id, subtotal, session);
+
+    const collection_fee = (payment_method === 'payunit' || payment_method === 'eversend') ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
+    const total_amount = subtotal + shipping_fee + collection_fee - discount;
 
     const orderData = {
       customer_id:     req.user._id,
@@ -168,17 +284,18 @@ const createOrder = async (req, res, next) => {
       products:        validatedProducts,
       subtotal,
       shipping_fee,
+      collection_fee,
       total_amount:    total_amount > 0 ? total_amount : 0,
       payment_method,
-      shipping_method,
+      shipping_method: normalizedShippingMethod,
       shipping_address: {
          ...(shipping_address || {}),
-         quartier: delivery_quartier || (shipping_address?.quartier),
+         quartier: deliveryZone,
          email:    req.user.email,
          phone:    req.user.phone
       },
       delivery_description,
-      logistics_company_id: logistics_company_id || null,
+      logistics_company_id: normalizedShippingMethod === 'logistics_partner' ? logistics_company_id : null,
       payment_status:  'pending',
       order_status:    'placed',
       escrow_enabled:  escrow_enabled !== undefined ? escrow_enabled : true,
@@ -189,11 +306,11 @@ const createOrder = async (req, res, next) => {
     // 5. Create shipment for logistics_partner orders (POD or wallet)
     let logisticsCompForNotify = null;
     if (
-      shipping_method === 'logistics_partner' &&
+      normalizedShippingMethod === 'logistics_partner' &&
       logistics_company_id &&
       ['pay_on_delivery', 'wallet'].includes(payment_method)
     ) {
-      await logisticsService.createShipmentsForOrder(createdOrder, delivery_quartier, logistics_company_id, session);
+      await logisticsService.createShipmentsForOrder(createdOrder, deliveryZone, logistics_company_id, session);
       logisticsCompForNotify = await LogisticsCompany.findById(logistics_company_id).session(session);
     }
 
@@ -255,11 +372,11 @@ const createOrder = async (req, res, next) => {
             sendNotification(req.app, logisticsCompForNotify.user_id, {
               title: 'New Shipment Assigned (POD)',
               message: `You have new delivery work for Order #${createdOrder._id.toString().slice(-6).toUpperCase()}.`,
-              type: 'system_alert',
-              metadata: { order_id: createdOrder._id, link: '/logistics/dashboard' },
+              type: 'logistics_update',
+              metadata: { order_id: createdOrder._id, link: '/logistics/manifests' },
               sendEmail: true,
               overrideEmail: logisticsCompForNotify.contact_email,
-              emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+              emailLink: `${process.env.WEB_CLIENT_URL}/logistics/manifests`,
               orderDetails: orderWithVendor,
               role: 'logistics'
             });
@@ -355,11 +472,11 @@ const payDirectly = async (req, res, next) => {
             data: {
               title: 'New Shipment Assigned',
               message: `You have new delivery work for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
-              type: 'system_alert',
-              metadata: { order_id: order._id, link: '/logistics/dashboard' },
+              type: 'logistics_update',
+              metadata: { order_id: order._id, link: '/logistics/manifests' },
               sendEmail: true,
               overrideEmail: logisticsComp.contact_email,
-              emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard`,
+              emailLink: `${process.env.WEB_CLIENT_URL}/logistics/manifests`,
               orderDetails: { ...order.toObject(), vendor_id: v },
               role: 'logistics'
             }
@@ -389,6 +506,10 @@ const getCustomerOrders = async (req, res, next) => {
       customer_id: req.user._id,
       $or: [
         { payment_status: 'paid' },
+        { payment_status: 'pending' },
+        { payment_status: 'failed' },
+        { payment_status: 'refunded' },
+        { order_status: { $in: ['cancelled', 'refunded', 'refund_pending'] } },
         { payment_method: 'pay_on_delivery' }
       ]
     })
@@ -408,14 +529,9 @@ const getCustomerOrders = async (req, res, next) => {
 
 const getVendorOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find({ 
-      vendor_id: req.vendor._id,
-      $or: [
-        { payment_status: 'paid' },
-        { payment_method: 'pay_on_delivery' }
-      ]
-    })
+    const orders = await Order.find({ vendor_id: req.vendor._id })
       .populate('customer_id', 'name email phone avatar')
+      .populate('products.product_id', 'name price images')
       .populate({
         path: 'vendor_id',
         select: 'store_name user_id',
@@ -464,7 +580,7 @@ const getOrderById = async (req, res, next) => {
         }
       });
 
-    const escrow = await Escrow.findOne({ order_id: order._id }).select('status vendor_confirmed customer_confirmed');
+    const escrow = await Escrow.findOne({ order_id: order._id }).select('status vendor_confirmed customer_confirmed delivered_at auto_release_at release_date');
 
     res.status(200).json({ success: true, data: { order, shipments, escrow } });
   } catch (error) { next(error); }
@@ -484,7 +600,22 @@ const updateOrderStatus = async (req, res, next) => {
     }
 
     // ── GUARD: First to Launch Wins (Authority Handover) ──
-    if (req.user.role === 'vendor' && order.shipping_method === 'logistics_partner') {
+    // Applies to every logistics-backed order (single checkout or cart-split / "group" orders are separate Order docs each).
+    const orderUsesLogistics =
+      order.shipping_method === 'logistics_partner' || !!order.logistics_company_id;
+
+    if (order_status && order.order_status === order_status) {
+      await session.abortTransaction();
+      session.endSession();
+      const snapshot = await getOrderFulfillmentSnapshot(order._id);
+      return res.status(200).json({
+        success: true,
+        message: 'Order already has this status.',
+        data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+      });
+    }
+
+    if (req.user.role === 'vendor' && orderUsesLogistics) {
       const Shipment = require('../models/Shipment.model');
       const activeShipment = await Shipment.findOne({ 
         order_id: order._id, 
@@ -544,15 +675,41 @@ const updateOrderStatus = async (req, res, next) => {
 
     if (order_status) order.order_status = order_status;
     if (tracking_number) order.tracking_number = tracking_number;
+
+    if (order_status === 'delivered') {
+      const escrow = await Escrow.findOne({ order_id: order._id, status: { $in: ['held', 'pending_release'] } }).session(session);
+      if (escrow) {
+        escrow.vendor_confirmed = true;
+        markEscrowDelivered(escrow);
+        await escrow.save({ session });
+      }
+    }
+
     await order.save({ session });
 
-    // ── SYNC: If cancelled, mark shipments as cancelled too ──
-    if (order_status === 'cancelled') {
-      const Shipment = require('../models/Shipment.model');
-      await Shipment.updateMany(
-        { order_id: order._id },
-        { $set: { status: 'cancelled' } }
-      ).session(session);
+    // ── SYNC: Align shipment tickets with order status everywhere ──
+    if (order_status) {
+      await syncShipmentsToOrderStatus(order, order_status, {
+        session,
+        updatedBy: req.user._id,
+        note: `Order status updated to ${order_status} by ${req.user.role}.`,
+      });
+      if (order_status === 'shipped') {
+        await Shipment.updateMany(
+          { order_id: order._id },
+          {
+            $push: {
+              shipment_logs: {
+                status: 'shipped',
+                updated_by: req.user._id,
+                timestamp: new Date(),
+                note: 'Vendor marked the product as shipped.',
+              },
+            },
+          },
+          { session }
+        );
+      }
     }
 
     // ── NOTE: Fund release is handled either by logistics.controller (on delivery) 
@@ -585,11 +742,176 @@ const updateOrderStatus = async (req, res, next) => {
       orderDetails: order.toObject()
     });
 
-    res.status(200).json({ success: true, message: 'Order status updated.', data: { order } });
+    notifyOrderStatusChange(req.app, order, order_status, {
+      roles: ['vendor'],
+      vendorMessage: `Order #${order._id.toString().slice(-6).toUpperCase()} is now ${(order_status || 'updated').replace(/_/g, ' ')}.`,
+    });
+
+    const snapshot = await getOrderFulfillmentSnapshot(order._id);
+    res.status(200).json({
+      success: true,
+      message: 'Order status updated.',
+      data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+    });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
     next(error);
+  }
+};
+
+const cancelOrder = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { reason = 'Customer cancelled order.' } = req.body || {};
+    const order = await Order.findById(req.params.id).session(session);
+    if (!order) throw new Error('Order not found.');
+    if (order.customer_id.toString() !== req.user._id.toString()) {
+      throw new Error('You can only cancel your own order.');
+    }
+    if (['cancelled', 'refunded', 'completed', 'delivered'].includes(order.order_status)) {
+      throw new Error(`Order is already ${order.order_status}.`);
+    }
+    if (['shipped', 'delivered', 'completed'].includes(order.order_status)) {
+      throw new Error('This order has already moved into fulfilment and cannot be cancelled here.');
+    }
+
+    const paidCancellation = order.payment_status === 'paid';
+    const pendingCancellation = order.payment_status === 'pending';
+    if (!paidCancellation && !pendingCancellation) {
+      throw new Error(`Cannot cancel an order with payment status ${order.payment_status}.`);
+    }
+
+    if (paidCancellation) {
+      const ageMs = Date.now() - new Date(order.createdAt).getTime();
+      const thirtyMinutesMs = 30 * 60 * 1000;
+      if (ageMs > thirtyMinutesMs) {
+        throw new Error('Paid orders can only be cancelled within 30 minutes of checkout.');
+      }
+    }
+
+    const activeShipment = await Shipment.findOne({
+      order_id: order._id,
+      status: { $in: ['picked_up', 'in_transit', 'out_for_delivery', 'delivered'] },
+    }).session(session);
+    if (activeShipment) {
+      throw new Error('The shipment has already started. Please open a dispute or refund request instead.');
+    }
+
+    await restoreOrderInventory(order, session);
+
+    const escrow = await Escrow.findOne({ order_id: order._id }).session(session);
+    if (escrow && ['held', 'pending_release'].includes(escrow.status)) {
+      escrow.status = 'refunded';
+      escrow.refund_reason = reason;
+      await escrow.save({ session });
+    }
+
+    const cancelledAt = new Date();
+
+    const pendingPayoutFilter = { order_id: order._id, type: 'payout', status: 'pending' };
+    await Transaction.updateMany(
+      { ...pendingPayoutFilter, metadata: null },
+      { $set: { metadata: {} } },
+      { session }
+    );
+    await Transaction.updateMany(
+      pendingPayoutFilter,
+      {
+        $set: {
+          status: 'rejected',
+          'metadata.cancelled_at': cancelledAt,
+          'metadata.cancel_reason': reason,
+        },
+      },
+      { session }
+    );
+
+    if (paidCancellation) {
+      await User.findByIdAndUpdate(
+        order.customer_id,
+        { $inc: { wallet_balance: Number(order.total_amount || 0) } },
+        { session }
+      );
+
+      await Transaction.create([{
+        user_id: order.customer_id,
+        type: 'refund',
+        amount: Number(order.total_amount || 0),
+        reference: `REF-CANCEL-${Date.now()}-${order._id.toString().slice(-6).toUpperCase()}`,
+        status: 'completed',
+        gateway: 'wallet',
+        description: `30-minute cancellation refund for Order #${order._id.toString().slice(-6).toUpperCase()}`,
+        order_id: order._id,
+        metadata: {
+          cancellation_reason: reason,
+          refunded_to: 'customer_wallet',
+        },
+      }], { session, ordered: true });
+    }
+
+    order.order_status = paidCancellation ? 'refunded' : 'cancelled';
+    order.payment_status = paidCancellation ? 'refunded' : 'failed';
+    await order.save({ session });
+
+    await syncShipmentsToOrderStatus(order, order.order_status, {
+      session,
+      updatedBy: req.user._id,
+      note: reason,
+    });
+
+    const pendingCheckoutFilter = {
+      user_id: order.customer_id,
+      order_ids: order._id,
+      gateway: 'eversend',
+      status: 'pending',
+    };
+    await Transaction.updateMany(
+      { ...pendingCheckoutFilter, metadata: null },
+      { $set: { metadata: {} } },
+      { session }
+    );
+    await Transaction.updateMany(
+      pendingCheckoutFilter,
+      {
+        $set: {
+          status: 'rejected',
+          'metadata.cancelled_at': cancelledAt,
+          'metadata.cancel_reason': reason,
+        },
+      },
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    setImmediate(() => {
+      sendNotification(req.app, order.customer_id, {
+        title: paidCancellation ? 'Order Cancelled & Refunded' : 'Order Cancelled',
+        message: paidCancellation
+          ? `${Number(order.total_amount || 0).toLocaleString()} XAF has been returned to your wallet.`
+          : `Order #${order._id.toString().slice(-6).toUpperCase()} was cancelled before payment.`,
+        type: 'order_status',
+        metadata: { order_id: order._id, link: `/orders/${order._id}` },
+        sendEmail: true,
+        emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`,
+        role: 'customer',
+      }).catch(console.error);
+    });
+
+    const snapshot = await getOrderFulfillmentSnapshot(order._id);
+    res.status(200).json({
+      success: true,
+      message: paidCancellation ? 'Order cancelled and refunded to wallet.' : 'Order cancelled.',
+      data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    res.status(400).json({ success: false, message: error.message });
   }
 };
 
@@ -652,6 +974,12 @@ const approveRefund = async (req, res, next) => {
     order.payment_status = 'refunded';
     await order.save({ session });
 
+    await syncShipmentsToOrderStatus(order, 'refunded', {
+      session,
+      updatedBy: req.user._id,
+      note: 'Refund approved; shipments cancelled.',
+    });
+
     await session.commitTransaction();
     session.endSession();
 
@@ -679,9 +1007,21 @@ const approveRefund = async (req, res, next) => {
 
 const getInvoice = async (req, res, next) => {
   try {
-    const order = await Order.findById(req.params.id).populate('customer_id', 'name email');
+    const order = await Order.findById(req.params.id)
+      .populate('customer_id', 'name email phone')
+      .populate('vendor_id', 'store_name');
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+
     generateInvoice(order, (pdfBuffer) => {
-      res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename=invoice-${order._id}.pdf` });
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename=invoice-${order._id}.pdf`,
+        'Content-Length': pdfBuffer.length,
+        'Cache-Control': 'private, no-store',
+      });
       res.send(pdfBuffer);
     });
   } catch (error) { next(error); }
@@ -719,39 +1059,40 @@ const createOrdersFromCart = async (req, res, next) => {
     const createdOrderIds = [];
     const { 
       shipping_address, 
-      payment_method, 
+      payment_method: rawPaymentMethod, 
+      shipping_method,
       logistics_company_id, 
       delivery_quartier, 
-      delivery_description 
+      delivery_description,
+      escrow_enabled
     } = req.body;
+    const payment_method = normalizePaymentMethod(rawPaymentMethod);
 
-    // MANDATORY LOGISTICS: Block purchase without logistics partner
-    if (!logistics_company_id || !delivery_quartier) {
-       throw new Error('A logistics partner and delivery zone must be selected for all items in your cart.');
+    const normalizedShippingMethod = isVendorManagedShipping(shipping_method) ? 'vendor_managed' : 'logistics_partner';
+    const deliveryZone = delivery_quartier || shipping_address?.quartier;
+
+    if (!deliveryZone) {
+       throw new Error('A delivery zone must be selected for all items in your cart.');
+    }
+
+    if (normalizedShippingMethod === 'logistics_partner' && !logistics_company_id) {
+       throw new Error('Select a logistics partner or choose vendor-managed delivery.');
     }
 
     for (const [vendorId, items] of Object.entries(itemsByVendor)) {
       let subtotal = 0;
       const orderProducts = items.map(it => {
-        let itemPrice = it.product.price;
-        let itemImage = it.product.images?.[0]?.url;
+        const { quantity, itemPrice, regularPrice, salePrice, compare_at_price, itemImage } = resolveOrderLine(it.product, it);
 
-        if (it.product.has_variants && it.variant) {
-          const variantMatch = it.product.sku_variants.find(v => 
-            Object.entries(it.variant).every(([k, val]) => v.combination[k] === val)
-          );
-          if (variantMatch) {
-            itemPrice = variantMatch.price;
-            if (variantMatch.image) itemImage = variantMatch.image;
-          }
-        }
-
-        subtotal += itemPrice * it.quantity;
+        subtotal += itemPrice * quantity;
         return { 
           product_id: it.product._id, 
           name: it.product.name, 
-          quantity: it.quantity, 
+          quantity,
           price: itemPrice, 
+          regular_price: regularPrice,
+          sale_price: salePrice,
+          compare_at_price: compare_at_price,
           image: itemImage,
           variant: it.variant
         };
@@ -761,24 +1102,28 @@ const createOrdersFromCart = async (req, res, next) => {
         // Find product to update stock
         const p = await Product.findById(it.product._id).session(session);
         if (p) {
-          if (p.has_variants && it.variant) {
-            const vMatch = p.sku_variants.find(v => 
-              Object.entries(it.variant).every(([k, val]) => v.combination[k] === val)
-            );
-            if (vMatch) vMatch.stock -= it.quantity;
+          const quantity = Number(it.quantity || 1);
+          if (p.has_variants) {
+            const vMatch = findSelectedVariant(p, it.variant);
+            if (!vMatch) throw new Error(`Please select a valid variant for ${p.name}.`);
+            vMatch.stock -= quantity;
             p.markModified('sku_variants');
           }
-          p.stock -= it.quantity;
-          p.purchase_count = (p.purchase_count || 0) + it.quantity;
+          p.stock -= quantity;
+          p.purchase_count = (p.purchase_count || 0) + quantity;
           await p.save({ session });
         }
       }
 
       let shippingFee = 0;
-      if (logistics_company_id && delivery_quartier) {
-          const fees = await logisticsService.calculateShipmentFees([vendorId], delivery_quartier, logistics_company_id);
+      if (normalizedShippingMethod === 'logistics_partner' && logistics_company_id && deliveryZone) {
+          const fees = await logisticsService.calculateShipmentFees([vendorId], deliveryZone, logistics_company_id);
           shippingFee = fees.totalFee;
       }
+
+      await assertMinimumOrderAmount(vendorId, subtotal, session);
+
+      const collectionFee = (payment_method === 'payunit' || payment_method === 'eversend') ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
 
       const [newOrder] = await Order.create([{
         customer_id: req.user._id,
@@ -786,25 +1131,28 @@ const createOrdersFromCart = async (req, res, next) => {
         products: orderProducts,
         subtotal,
         shipping_fee: shippingFee,
-        total_amount: subtotal + shippingFee,
+        collection_fee: collectionFee,
+        total_amount: subtotal + shippingFee + collectionFee,
         payment_method,
-        shipping_method: 'logistics_partner',
-        logistics_company_id: logistics_company_id,
-        shipping_address: { ...shipping_address, email: req.user.email, phone: req.user.phone },
+        shipping_method: normalizedShippingMethod,
+        logistics_company_id: normalizedShippingMethod === 'logistics_partner' ? logistics_company_id : null,
+        shipping_address: { ...shipping_address, quartier: deliveryZone, email: req.user.email, phone: req.user.phone },
         delivery_description,
         payment_status: 'pending',
-        order_status: 'placed'
+        order_status: 'placed',
+        escrow_enabled: escrow_enabled !== undefined ? escrow_enabled : true,
       }], { session, ordered: true });
 
       createdOrderIds.push(newOrder._id);
 
-      if (['pay_on_delivery', 'wallet'].includes(payment_method) && logistics_company_id) {
-        await logisticsService.createShipmentsForOrder(newOrder, delivery_quartier, logistics_company_id, session);
+      if (['pay_on_delivery', 'wallet'].includes(payment_method) && normalizedShippingMethod === 'logistics_partner' && logistics_company_id) {
+        await logisticsService.createShipmentsForOrder(newOrder, deliveryZone, logistics_company_id, session);
       }
     }
 
-    // Only clear the cart if we processed the cart, and it's Pay on Delivery (no separate payment step)
-    if (!req.body.items && payment_method === 'pay_on_delivery') {
+    // Once cart items become order records, clear the server cart for every checkout method.
+    // External payments keep retry state on the created orders, not by resubmitting stale cart lines.
+    if (!req.body.items) {
        const cart = await Cart.findOne({ user_id: req.user._id }).session(session);
        if (cart) {
           cart.items = [];
@@ -829,7 +1177,7 @@ const createOrdersFromCart = async (req, res, next) => {
             type: 'order_status',
             sendEmail: true,
             orderDetails: orderForEmail,
-            emailLink: `${webUrl}/vendor/orders/${o._id}`,
+            emailLink: `${webUrl}/vendor/orders?orderId=${o._id}`,
             webUrl: webUrl
           });
 
@@ -864,11 +1212,11 @@ const createOrdersFromCart = async (req, res, next) => {
               sendNotification(req.app, logisticsComp.user_id, {
                 title: 'New Shipment Assigned (Bulk POD)',
                 message: `Order #${o._id.toString().slice(-6).toUpperCase()} is ready for processing.`,
-                type: 'system_alert',
-                metadata: { order_id: o._id, link: '/logistics/dashboard' },
+                type: 'logistics_update',
+                metadata: { order_id: o._id, link: '/logistics/manifests' },
                 sendEmail: true,
                 overrideEmail: logisticsComp.contact_email,
-                emailLink: `${webUrl}/logistics/dashboard`,
+                emailLink: `${webUrl}/logistics/manifests`,
                 orderDetails: orderForEmail,
                 role: 'logistics',
                 webUrl: webUrl
@@ -893,6 +1241,7 @@ module.exports = {
   getVendorOrders,
   getOrderById,
   updateOrderStatus,
+  cancelOrder,
   requestRefund,
   approveRefund,
   getInvoice,

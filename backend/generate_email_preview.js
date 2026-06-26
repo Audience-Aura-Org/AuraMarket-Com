@@ -22,7 +22,7 @@ function generateAllPreviews() {
 
   const emailPayloads = [
     { name: 'Welcome Email', ...templates.welcomeEmail({ user: mockUser }) },
-    { name: 'Password Reset', ...templates.passwordReset({ user: mockUser, resetLink: 'https://aura-market-com.vercel.app/reset-password?token=123' }) },
+    { name: 'Password Reset', ...templates.passwordReset({ user: mockUser, resetLink: 'https://auradime.com/reset-password?token=123' }) },
     { name: 'Order Placed (Customer)', ...templates.orderPlaced({ order: mockOrder, customer: mockUser, qrCode: mockQrCode }) },
     { name: 'Payment Confirmed (Customer)', ...templates.paymentConfirmed({ order: mockOrder, customer: mockUser, qrCode: mockQrCode }) },
     { name: 'Shipment Status (Customer)', ...templates.shipmentStatusChanged({ shipment: mockShipment, order: mockOrder, recipient: mockUser, status: 'in_transit' }) },
@@ -48,7 +48,7 @@ function generateAllPreviews() {
         </style>
       </head>
       <body>
-        <h1>Aura Market — All Email Templates</h1>
+        <h1>Auradime — All Email Templates</h1>
         <p>Because the local network is blocking outbound SMTP traffic, all templates have been rendered below for instant preview.</p>
   `;
 

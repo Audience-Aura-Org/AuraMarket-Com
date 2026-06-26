@@ -13,7 +13,7 @@ const COLLECTIONS = [
 
 export default function CollectionsPage() {
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 transition-all duration-300">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 transition-all duration-300 pt-20 md:pt-12">
       <div className="max-w-4xl mx-auto space-y-12">
         
         {/* Header Section (Slim) */}
@@ -34,7 +34,7 @@ export default function CollectionsPage() {
                  <input 
                    type="text" 
                    placeholder="Search sectors..." 
-                   className="w-full h-10 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-xs focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5 transition-all outline-none"
+                   className="w-full h-10 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 !text-base placeholder:!text-base focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5 transition-all outline-none"
                  />
               </div>
            </div>
@@ -74,7 +74,7 @@ export default function CollectionsPage() {
         {/* Global Registry Footer */}
         <div className="pt-12 text-center opacity-30">
            <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.5em] text-[var(--text-secondary)] ">
-              Aura Market Operational Sectors // Unified Hub v4.2
+              Auradime Operational Sectors // Unified Hub v4.2
            </p>
         </div>
 

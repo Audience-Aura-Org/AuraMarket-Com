@@ -19,11 +19,11 @@ const {
 } = require('../utils/emailTemplates');
 
 async function testEmail() {
-  console.log('📧 Testing Aura Market Email Templates...\n');
+  console.log('📧 Testing Auradime Email Templates...\n');
   console.log('SMTP Config:');
   console.log(`  Host: ${EMAIL_HOST}`);
   console.log(`  Port: ${EMAIL_PORT}`);
-  console.log(`  From: ${EMAIL_FROM_NAME || 'Aura Market'}`);
+  console.log(`  From: ${EMAIL_FROM_NAME || 'Auradime'}`);
   console.log(`  To: ${TEST_EMAIL}\n`);
 
   // Create transporter
@@ -64,7 +64,7 @@ async function testEmail() {
     console.log(`   Subject: ${emailData.subject}`);
     
     const info = await transporter.sendMail({
-      from: `"${EMAIL_FROM_NAME || 'Aura Market'}" <${EMAIL_USER}>`,
+      from: `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${EMAIL_USER}>`,
       to: TEST_EMAIL,
       subject: emailData.subject,
       text: emailData.text,
@@ -77,7 +77,7 @@ async function testEmail() {
     console.log(`\n⏱️  Check your inbox at ${TEST_EMAIL}`);
     console.log('   (May take a few moments to arrive, check spam folder too)\n');
     console.log('📋 Email Preview:');
-    console.log('   - Gradient magenta header with Aura Market logo');
+    console.log('   - Gradient magenta header with Auradime logo');
     console.log('   - Order details card with product list');
     console.log('   - Magenta CTA button');
     console.log('   - Professional footer');

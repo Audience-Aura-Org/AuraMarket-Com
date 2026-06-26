@@ -1,6 +1,6 @@
 /**
  * routes/vendor.routes.js
- * Aura Market — Vendor Routes
+ * Auradime — Vendor Routes
  *
  * Public:
  *   GET    /api/vendors
@@ -42,6 +42,7 @@ const {
 } = require('../controllers/review.controller');
 
 const { protect, restrictTo, loadVendor } = require('../middleware/auth.middleware');
+const { requireActiveSubscription } = require('../middleware/subscription.middleware');
 
 // ── Public Routes ─────────────────────────────
 router.get('/', getPublicStores);
@@ -60,6 +61,8 @@ router.use(restrictTo('vendor'));
 
 // Onboarding must happen BEFORE loadVendor check
 router.post('/onboard', onboardVendor);
+
+router.use(requireActiveSubscription('vendor'));
 
 // Universal Vendor Data loader
 router.use(loadVendor);

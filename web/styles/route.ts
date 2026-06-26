@@ -13,7 +13,7 @@ export async function POST(req: Request) {
             to: email,
             subject: subject,
             html: `<div style="font-family: sans-serif; padding: 20px;">
-              <h2>AuraMarket Notification</h2>
+              <h2>Auradime Notification</h2>
               <p>${message}</p>
             </div>`,
         });

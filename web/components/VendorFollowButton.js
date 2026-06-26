@@ -2,6 +2,7 @@
 
 import { useFollow } from '@/hooks/useFollow';
 import { Check } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 /**
  * VendorFollowButton
@@ -10,6 +11,7 @@ import { Check } from 'lucide-react';
  */
 export default function VendorFollowButton({ vendorId, className = "" }) {
   const { isFollowing, toggleFollow, loading } = useFollow(vendorId);
+  const { t } = useLanguage();
   
   if (!vendorId) return null;
 
@@ -29,9 +31,9 @@ export default function VendorFollowButton({ vendorId, className = "" }) {
       {isFollowing ? (
         <>
           <Check className="size-3" />
-          Following
+          {t('vendor.following', 'Following')}
         </>
-      ) : '+ Follow'}
+      ) : t('vendor.follow', '+ Follow')}
     </button>
   );
 }

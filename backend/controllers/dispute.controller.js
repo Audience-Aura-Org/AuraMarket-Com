@@ -1,16 +1,28 @@
 /**
  * controllers/dispute.controller.js
- * Aura Market — Dispute Resolution Controller
+ * Auradime — Dispute Resolution Controller
  */
 
 const Dispute = require('../models/Dispute.model');
 const Order = require('../models/Order.model');
 const User = require('../models/User.model');
 const Vendor = require('../models/Vendor.model');
+const Store = require('../models/Store.model');
 const Escrow = require('../models/Escrow.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const mongoose = require('mongoose');
+const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
+const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../utils/platformFees');
+
+const getEffectivePlatformSettings = async (vendorId, session) => {
+  const platformSettings = await PlatformSettings.getSettings(session);
+  const store = await Store.findOne({ vendor_id: vendorId }).select('commission_rate').session(session);
+  return {
+    platformSettings,
+    effectiveSettings: applyCommissionOverride(platformSettings, store?.commission_rate),
+  };
+};
 
 // @route   POST /api/disputes
 // @desc    Customer raises a dispute for an order
@@ -47,6 +59,10 @@ const createDispute = async (req, res, next) => {
     order.order_status = 'refund_pending';
     await order.save();
 
+    notifyOrderStatusChange(req.app, order, 'refund_pending', {
+      message: `A dispute has been opened for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
+    });
+
     // Notify Vendor
     const vendor = await Vendor.findById(order.vendor_id);
     if (vendor) {
@@ -74,7 +90,7 @@ const getAdminDisputes = async (req, res, next) => {
   try {
     const disputes = await Dispute.find()
       .populate('order_id')
-      .populate('initiator_id', 'name email avatar')
+      .populate('initiator_id', 'name email avatar verification_status')
       .sort('-createdAt');
 
     res.status(200).json({ success: true, data: { disputes } });
@@ -140,6 +156,12 @@ const resolveDispute = async (req, res, next) => {
         await escrow.save({ session });
       }
 
+      await syncShipmentsToOrderStatus(order, 'refunded', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Dispute resolved: full refund.',
+      });
+
     } else if (resolution_type === 'release_payment') {
       // Release funds to vendor from escrow
       order.order_status = 'completed';
@@ -147,17 +169,20 @@ const resolveDispute = async (req, res, next) => {
       if (escrow && escrow.status === 'held') {
         const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
         const vendorUser = await User.findById(vendorAccount.user_id).session(session);
-        const settings = await PlatformSettings.getSettings();
-        
-        const platformFee = (escrow.amount * settings.commission_rate) / 100;
-        const vendorPayout = escrow.amount - platformFee;
+        const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(escrow.vendor_id, session);
+        const { platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, effectiveSettings, {
+          includeEscrowFee: true
+        });
+        const feeDescription = describeFee(effectiveSettings, { includeEscrowFee: true });
 
         vendorUser.wallet_balance += vendorPayout;
         await vendorUser.save({ session });
 
-        // Update Platform Earnings
-        settings.platform_wallet_balance += platformFee;
-        await settings.save({ session });
+        // Update Platform Earnings only when a platform fee is actually collected.
+        if (platformFee > 0) {
+          platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
+          await platformSettings.save({ session });
+        }
 
         // Update/Create Vendor Payout Transaction
         await Transaction.findOneAndUpdate(
@@ -165,7 +190,7 @@ const resolveDispute = async (req, res, next) => {
           { 
             status: 'completed', 
             amount: vendorPayout, 
-            description: `Admin Dispute Release (Fee ${settings.commission_rate}% deducted).` 
+            description: `Admin Dispute Release (${feeDescription} deducted).`
           },
           { session, returnDocument: 'after', upsert: true }
         );
@@ -174,6 +199,12 @@ const resolveDispute = async (req, res, next) => {
         escrow.release_date = new Date();
         await escrow.save({ session });
       }
+
+      await syncShipmentsToOrderStatus(order, 'completed', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Dispute resolved: payment released to vendor.',
+      });
     }
 
     const { logAction } = require('./audit.controller');
@@ -195,6 +226,10 @@ const resolveDispute = async (req, res, next) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    notifyOrderStatusChange(req.app, order, order.order_status, {
+      message: `Dispute resolved: ${resolution_type.replace(/_/g, ' ')}.`,
+    });
 
     res.status(200).json({
       success: true,
@@ -239,7 +274,7 @@ const getVendorDisputes = async (req, res, next) => {
     // Then find any disputes tied to those orders
     const disputes = await Dispute.find({ order_id: { $in: orderIds } })
       .populate('order_id')
-      .populate('initiator_id', 'name email avatar')
+      .populate('initiator_id', 'name email avatar verification_status')
       .sort('-createdAt');
 
     res.status(200).json({ success: true, count: disputes.length, data: { disputes } });

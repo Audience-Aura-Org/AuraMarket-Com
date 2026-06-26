@@ -23,7 +23,7 @@ async function testAllEmails() {
 
   const emailPayloads = [
     templates.welcomeEmail({ user: mockUser }),
-    templates.passwordReset({ user: mockUser, resetLink: 'https://aura-market-com.vercel.app/reset-password?token=123' }),
+    templates.passwordReset({ user: mockUser, resetLink: 'https://auradime.com/reset-password?token=123' }),
     templates.orderPlaced({ order: mockOrder, customer: mockUser, qrCode: mockQrCode }),
     templates.paymentConfirmed({ order: mockOrder, customer: mockUser, qrCode: mockQrCode }),
     templates.shipmentStatusChanged({ shipment: mockShipment, order: mockOrder, recipient: mockUser, status: 'in_transit' }),

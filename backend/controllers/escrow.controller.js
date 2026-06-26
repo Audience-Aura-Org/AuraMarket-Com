@@ -1,6 +1,6 @@
 /**
  * controllers/escrow.controller.js
- * Aura Market — Escrow Service & Management Controller
+ * Auradime — Escrow Service & Management Controller
  *
  * Customer pays → funds HELD → Vendor ships → Delivery confirmed → funds RELEASED.
  */
@@ -9,17 +9,57 @@ const Escrow = require('../models/Escrow.model');
 const Order = require('../models/Order.model');
 const User = require('../models/User.model');
 const Vendor = require('../models/Vendor.model');
+const Store = require('../models/Store.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const Shipment = require('../models/Shipment.model');
 const logisticsService = require('../services/logistics.service');
+const {
+  syncShipmentsToOrderStatus,
+  getOrderFulfillmentSnapshot,
+  notifyOrderStatusChange,
+} = require('../services/orderSync.service');
 const Cart = require('../models/Cart.model');
 const { sendNotification } = require('../utils/notifier');
+const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../utils/platformFees');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 
 const generateTxRef = () => `AURA-ESCROW-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
+const AUTO_RELEASE_WINDOW_MS = 6 * 60 * 60 * 1000;
+
+const getEffectivePlatformSettings = async (vendorId, session) => {
+  const platformSettings = await PlatformSettings.getSettings(session);
+  const store = await Store.findOne({ vendor_id: vendorId }).select('commission_rate').session(session);
+  return {
+    platformSettings,
+    effectiveSettings: applyCommissionOverride(platformSettings, store?.commission_rate),
+  };
+};
+
+const appendShipmentActivity = (orderId, status, note, updatedBy, session = null) =>
+  Shipment.updateMany(
+    { order_id: orderId },
+    {
+      $push: {
+        shipment_logs: {
+          status,
+          updated_by: updatedBy,
+          timestamp: new Date(),
+          note,
+        },
+      },
+    },
+    session ? { session } : undefined
+  );
+
+const markEscrowDelivered = (escrow, deliveredAt = new Date()) => {
+  if (!escrow.delivered_at) escrow.delivered_at = deliveredAt;
+  if (!escrow.auto_release_at) {
+    escrow.auto_release_at = new Date(escrow.delivered_at.getTime() + AUTO_RELEASE_WINDOW_MS);
+  }
+};
 
 // ─────────────────────────────────────────────
 // @route   POST /api/escrow/hold
@@ -53,7 +93,19 @@ const holdFunds = async (req, res, next) => {
 
     const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
       ? order.subtotal
-      : order.total_amount;
+      : order.subtotal + (order.shipping_fee || 0);
+    const { effectiveSettings } = await getEffectivePlatformSettings(order.vendor_id, session);
+    const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(vendorBaseAmount, effectiveSettings, {
+      includeEscrowFee: true
+    });
+    const feeDescription = describeFee(effectiveSettings, { includeEscrowFee: true });
+    const platformFeeBreakdown = {
+      base_amount: vendorBaseAmount,
+      commission_fee: commissionFee,
+      escrow_fee: escrowFee,
+      platform_fee: platformFee,
+      vendor_payout: vendorPayout,
+    };
 
     await Transaction.create([{
       user_id: user._id,
@@ -67,12 +119,13 @@ const holdFunds = async (req, res, next) => {
     }, {
       user_id: vendorAccount.user_id,
       type: 'payout',
-      amount: vendorBaseAmount,
+      amount: vendorPayout,
       reference: `IN-${generateTxRef()}`,
       status: 'pending',
       gateway: 'escrow',
-      description: `Incoming Payment Held (Order #${order._id.toString().slice(-6).toUpperCase()})`,
+      description: `Incoming Payment Held (Order #${order._id.toString().slice(-6).toUpperCase()}, ${feeDescription})`,
       order_id: order._id,
+      metadata: { platform_fee_breakdown: platformFeeBreakdown },
     }], { session, ordered: true });
 
     // 4. Create the Escrow Vault log
@@ -148,16 +201,27 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
   const vendorUser = await User.findById(vendorAccount.user_id).session(session);
 
-  const settings = await PlatformSettings.getSettings();
-  const platformFee = (escrow.amount * settings.commission_rate) / 100;
-  const vendorPayout = escrow.amount - platformFee;
+  const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(escrow.vendor_id, session);
+  const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, effectiveSettings, {
+    includeEscrowFee: true
+  });
+  const feeDescription = describeFee(effectiveSettings, { includeEscrowFee: true });
+  const platformFeeBreakdown = {
+    base_amount: escrow.amount,
+    commission_fee: commissionFee,
+    escrow_fee: escrowFee,
+    platform_fee: platformFee,
+    vendor_payout: vendorPayout,
+  };
 
   // Transfer vendor funds
   vendorUser.wallet_balance += vendorPayout;
   await vendorUser.save({ session });
 
-  settings.platform_wallet_balance += platformFee;
-  await settings.save({ session });
+  if (platformFee > 0) {
+    platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
+    await platformSettings.save({ session });
+  }
 
   // Update Vendor Payout Transaction
   await Transaction.findOneAndUpdate(
@@ -165,22 +229,26 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
     {
       status: 'completed',
       amount: vendorPayout,
-      description: `Escrow Released (Fee ${settings.commission_rate}% deducted).`
+      description: `${req.autoRelease ? 'Escrow Auto-Released' : 'Escrow Released'} (${feeDescription} deducted).`,
+      metadata: { platform_fee_breakdown: platformFeeBreakdown }
     },
     { session }
   );
 
-  // Log Platform Revenue
-  await Transaction.create([{
-    user_id: req.user._id,
-    type: 'payment',
-    amount: platformFee,
-    reference: `REV-${generateTxRef()}`,
-    status: 'completed',
-    gateway: 'platform',
-    description: `Platform Commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
-    order_id: order._id,
-  }], { session, ordered: true });
+  // Log Platform Revenue only when there is an actual platform fee.
+  if (platformFee > 0) {
+    await Transaction.create([{
+      user_id: req.user._id,
+      type: 'payment',
+      amount: platformFee,
+      reference: `REV-${generateTxRef()}`,
+      status: 'completed',
+      gateway: 'platform',
+      description: `${req.autoRelease ? 'Auto-released platform commission' : 'Platform Commission'} from Order #${order._id.toString().slice(-6).toUpperCase()}`,
+      order_id: order._id,
+      metadata: { platform_fee_breakdown: platformFeeBreakdown },
+    }], { session, ordered: true });
+  }
 
   escrow.status = 'released';
   escrow.release_date = new Date();
@@ -189,21 +257,18 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   order.order_status = 'completed';
   await order.save({ session });
 
-  // ── SYNC SHIPMENT STATUS: If customer confirms, logistics node must be updated ──
-  await Shipment.updateMany(
-    { order_id: order._id, status: { $ne: 'delivered' } },
-    { 
-      $set: { status: 'delivered' },
-      $push: {
-        shipment_logs: {
-          status: 'delivered',
-          updated_by: req.user._id,
-          timestamp: new Date(),
-          note: 'Delivery confirmed by customer via Escrow Handshake. Shipment closed.'
-        }
-      }
-    }
-  ).session(session);
+  await syncShipmentsToOrderStatus(order, 'completed', {
+    session,
+    updatedBy: req.user._id,
+    note: 'Delivery confirmed by customer via Escrow Handshake. Shipment closed.',
+  });
+  await appendShipmentActivity(
+    order._id,
+    'completed',
+    'Customer released escrow funds. Order settlement completed.',
+    req.user._id,
+    session
+  );
 
   // ── FALLBACK: Credit logistics fee if not already settled by logistics controller ──
   // (Covers edge case where logistics controller didn't fire or escrow.logistics_settled wasn't set)
@@ -241,8 +306,8 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
 
   // Notify Vendor of payout
   sendNotification(req.app, vendorUser._id, {
-    title: 'Funds Released',
-    message: `Customer confirmed delivery. ${vendorPayout.toLocaleString()} XAF has been released to your wallet for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
+    title: req.autoRelease ? 'Escrow Auto-Released' : 'Funds Released',
+    message: `${req.autoRelease ? 'The 6-hour dispute window closed.' : 'Customer confirmed delivery.'} ${vendorPayout.toLocaleString()} XAF has been released to your wallet for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
     type: 'wallet_update',
     metadata: { order_id: order._id },
     role: 'vendor'
@@ -250,8 +315,10 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
 
   // Notify Customer
   sendNotification(req.app, order.customer_id, {
-    title: 'Order Finalized',
-    message: `Your order #${order._id.toString().slice(-6).toUpperCase()} has been completed and funds released to the vendor.`,
+    title: req.autoRelease ? 'Escrow Auto-Released' : 'Order Finalized',
+    message: req.autoRelease
+      ? `The 6-hour dispute window for order #${order._id.toString().slice(-6).toUpperCase()} closed with no active dispute, so escrow was released to the vendor.`
+      : `Your order #${order._id.toString().slice(-6).toUpperCase()} has been completed and funds released to the vendor.`,
     type: 'order_status',
     sendEmail: true,
     orderDetails: orderWithVendor,
@@ -274,18 +341,35 @@ const releaseFunds = async (req, res, next) => {
     if (!order) throw new Error('Order not found.');
 
     const escrow = await Escrow.findOne({ order_id: orderId }).session(session);
+    const paymentIsSettled = order.payment_status === 'paid' || order.payment_method === 'pay_on_delivery';
 
     // ── CASE: Admin Override ────────────────────────────────────────────────
     if (req.user.role === 'admin') {
+      if (escrow && order.payment_status !== 'paid') {
+        throw new Error('Escrow cannot be released because this order payment is not paid.');
+      }
       if (escrow) {
         await finalizeEscrowPayout(escrow, order, req, session);
       } else {
         order.order_status = 'completed';
         await order.save({ session });
+        await syncShipmentsToOrderStatus(order, 'completed', {
+          session,
+          updatedBy: req.user._id,
+          note: 'Admin override: order completed.',
+        });
       }
       await session.commitTransaction();
       session.endSession();
-      return res.status(200).json({ success: true, message: 'Admin override: Protocol finalized.' });
+      notifyOrderStatusChange(req.app, order, 'completed', {
+        message: 'An admin finalized this order.',
+      });
+      const snapshot = await getOrderFulfillmentSnapshot(orderId);
+      return res.status(200).json({
+        success: true,
+        message: 'Admin override: Protocol finalized.',
+        data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+      });
     }
 
     // ── CASE: Non-Escrow Order ──────────────────────────────────────────────
@@ -293,14 +377,60 @@ const releaseFunds = async (req, res, next) => {
       if (order.customer_id.toString() !== req.user._id.toString()) {
         throw new Error('Not authorized to release this order.');
       }
+      if (!paymentIsSettled) {
+        throw new Error('This order cannot be completed because payment is not settled.');
+      }
       order.order_status = 'completed';
       await order.save({ session });
+      await syncShipmentsToOrderStatus(order, 'completed', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Customer confirmed receipt (non-escrow).',
+      });
       await session.commitTransaction();
       session.endSession();
-      return res.status(200).json({ success: true, message: 'Order marked as completed.' });
+      notifyOrderStatusChange(req.app, order, 'completed');
+      const snapshot = await getOrderFulfillmentSnapshot(orderId);
+      return res.status(200).json({
+        success: true,
+        message: 'Order marked as completed.',
+        data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+      });
     }
 
-    if (escrow.status === 'released') throw new Error('Escrow funds are already released.');
+    if (escrow.status === 'released') {
+      escrow.vendor_confirmed = true;
+      if (!orderFinalized || order.order_status !== 'completed') {
+        order.order_status = 'completed';
+      }
+
+      await escrow.save({ session });
+      await order.save({ session });
+      await appendShipmentActivity(
+        order._id,
+        'completed',
+        'Vendor confirmed delivery after escrow had already been released. Order marked complete for record keeping.',
+        req.user._id,
+        session
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      notifyOrderStatusChange(req.app, order, 'completed', {
+        message: `Order #${order._id.toString().slice(-6).toUpperCase()} is complete. Escrow was already released.`,
+      });
+
+      const snapshot = await getOrderFulfillmentSnapshot(orderId);
+      return res.status(200).json({
+        success: true,
+        message: 'Order completed. Escrow funds had already been released.',
+        data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+      });
+    }
+    if (order.payment_status !== 'paid') {
+      throw new Error('Escrow cannot be released because this order payment is not paid.');
+    }
 
     // ── CASE: Customer Confirmation ──────────────────────────────────────────
     if (escrow.buyer_id.toString() !== req.user._id.toString()) {
@@ -309,13 +439,21 @@ const releaseFunds = async (req, res, next) => {
 
     escrow.customer_confirmed = true;
     await finalizeEscrowPayout(escrow, order, req, session);
-    
+
     await session.commitTransaction();
     session.endSession();
 
-    return res.status(200).json({ 
-      success: true, 
-      message: 'Escrow released successfully. Funds are now available in the vendor node.' 
+    notifyOrderStatusChange(req.app, order, 'completed', {
+      message: 'Your order is complete and funds have been released to the vendor.',
+      vendorMessage: `Customer confirmed receipt. Funds released for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
+    });
+
+    const snapshot = await getOrderFulfillmentSnapshot(orderId);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Escrow released successfully. Funds are now available in the vendor node.',
+      data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
     });
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
@@ -339,8 +477,28 @@ const vendorConfirmRelease = async (req, res, next) => {
     const order = await Order.findById(orderId).session(session);
     if (!order) throw new Error('Order not found.');
 
-    // ── GUARD: Logistics-managed orders — vendor cannot confirm delivery ──
-    if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
+    const vendorRecord = await Vendor.findOne({ user_id: req.user._id }).session(session);
+    if (!vendorRecord || order.vendor_id.toString() !== vendorRecord._id.toString()) {
+      throw new Error('Not authorized to confirm delivery for this order.');
+    }
+
+    const escrow = await Escrow.findOne({ order_id: orderId }).session(session);
+    if (order.payment_status !== 'paid' && order.payment_method !== 'pay_on_delivery') {
+      throw new Error('Delivery cannot be confirmed until payment is settled.');
+    }
+    const latestShipment = await Shipment.findOne({ order_id: orderId }).sort('-createdAt').session(session);
+    const shipmentDelivered = latestShipment?.status === 'delivered';
+    const orderFinalized = ['delivered', 'completed'].includes(order.order_status);
+
+    // Logistics orders are carrier-confirmed during transit, but old/finalized escrow
+    // orders still need a vendor-visible release prompt if funds remain held.
+    if (
+      order.shipping_method === 'logistics_partner' &&
+      order.logistics_company_id &&
+      !shipmentDelivered &&
+      !orderFinalized &&
+      order.order_status !== 'shipped'
+    ) {
       await session.abortTransaction();
       session.endSession();
       return res.status(403).json({
@@ -349,19 +507,19 @@ const vendorConfirmRelease = async (req, res, next) => {
       });
     }
 
-    const vendorRecord = await Vendor.findOne({ user_id: req.user._id }).session(session);
-    if (!vendorRecord || order.vendor_id.toString() !== vendorRecord._id.toString()) {
-      throw new Error('Not authorized to confirm delivery for this order.');
-    }
-
-    const escrow = await Escrow.findOne({ order_id: orderId }).session(session);
-
     // ── CASE: Non-Escrow Order ──────────────────────────────────────────────
     if (!escrow) {
       order.order_status = 'delivered';
       await order.save({ session });
+      await syncShipmentsToOrderStatus(order, 'delivered', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Vendor marked order as delivered.',
+      });
       await session.commitTransaction();
       session.endSession();
+
+      notifyOrderStatusChange(req.app, order, 'delivered');
 
       // Notify Customer
       sendNotification(req.app, order.customer_id, {
@@ -372,20 +530,73 @@ const vendorConfirmRelease = async (req, res, next) => {
         role: 'customer'
       });
 
-      return res.status(200).json({ success: true, message: 'Delivery confirmed and order status updated.' });
+      const snapshot = await getOrderFulfillmentSnapshot(orderId);
+      return res.status(200).json({
+        success: true,
+        message: 'Delivery confirmed and order status updated.',
+        data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+      });
     }
 
-    if (escrow.status === 'released') throw new Error('Escrow funds are already released.');
+    if (escrow.status === 'released') {
+      escrow.vendor_confirmed = true;
+      markEscrowDelivered(escrow);
+      if (order.order_status !== 'completed') order.order_status = 'completed';
+
+      await escrow.save({ session });
+      await order.save({ session });
+      await syncShipmentsToOrderStatus(order, 'completed', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Vendor confirmed delivery after escrow was already released. Shipment closed for records.',
+      });
+      await appendShipmentActivity(
+        order._id,
+        'completed',
+        'Vendor confirmed delivery after escrow had already been released. Order marked complete for record keeping.',
+        req.user._id,
+        session
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      notifyOrderStatusChange(req.app, order, 'completed', {
+        message: `Order #${order._id.toString().slice(-6).toUpperCase()} is complete. Escrow was already released.`,
+      });
+
+      const snapshot = await getOrderFulfillmentSnapshot(orderId);
+      return res.status(200).json({
+        success: true,
+        message: 'Order completed. Escrow funds had already been released.',
+        data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
+      });
+    }
 
     // ── CASE: Escrow Confirmation ───────────────────────────────────────────
     escrow.vendor_confirmed = true;
-    order.order_status = 'delivered';
-    
+    markEscrowDelivered(escrow);
+    if (!orderFinalized) order.order_status = 'delivered';
+
     await escrow.save({ session });
     await order.save({ session });
-    
+
+    if (!orderFinalized) {
+      await syncShipmentsToOrderStatus(order, 'delivered', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Vendor marked order as delivered. Awaiting customer confirmation.',
+      });
+    }
+
     await session.commitTransaction();
     session.endSession();
+
+    if (!orderFinalized) {
+      notifyOrderStatusChange(req.app, order, 'delivered', {
+        message: `The vendor marked Order #${order._id.toString().slice(-6).toUpperCase()} as delivered. Please confirm receipt.`,
+      });
+    }
 
     // Notify Customer to prompt them for the final release click
     sendNotification(req.app, escrow.buyer_id, {
@@ -396,9 +607,12 @@ const vendorConfirmRelease = async (req, res, next) => {
       role: 'customer'
     });
 
+    const snapshot = await getOrderFulfillmentSnapshot(orderId);
+
     return res.status(200).json({ 
       success: true, 
-      message: 'Delivery confirmed. Awaiting customer to release escrowed funds.' 
+      message: 'Delivery confirmed. Awaiting customer to release escrowed funds.',
+      data: { order: snapshot.order, shipments: snapshot.shipments, escrow: snapshot.escrow },
     });
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
@@ -459,8 +673,18 @@ const refundFunds = async (req, res, next) => {
     order.order_status = 'cancelled';
     await order.save({ session });
 
+    await syncShipmentsToOrderStatus(order, 'cancelled', {
+      session,
+      updatedBy: req.user._id,
+      note: 'Escrow refunded; shipments cancelled.',
+    });
+
     await session.commitTransaction();
     session.endSession();
+
+    notifyOrderStatusChange(req.app, order, 'cancelled', {
+      message: `Order #${order._id.toString().slice(-6).toUpperCase()} was cancelled and refunded.`,
+    });
 
     res.status(200).json({
       success: true,
@@ -586,4 +810,7 @@ module.exports = {
   denyEscrow,
   refundFunds,
   getEscrowLogs,
+  finalizeEscrowPayout,
+  markEscrowDelivered,
+  AUTO_RELEASE_WINDOW_MS,
 };

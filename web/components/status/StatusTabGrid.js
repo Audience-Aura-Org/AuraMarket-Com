@@ -1,15 +1,36 @@
 "use client";
 import { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
-import { 
-  Heart, Flame, Play, Search, X, Eye, 
-  Clock, ShoppingBag, 
-  Plus, Users, Globe, Sparkles, ChevronRight
+import {
+  Flame, Play, Search, X,
+  Clock, ShoppingBag,
+  Users, Globe,
+  Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import BlurUpImage from '@/components/common/BlurUpImage';
 import MediaThumbnail from '@/components/common/MediaThumbnail';
 import { useAuthStore } from '@/hooks/useAuth';
+import { STATUS_FILTER_CATEGORIES } from '@/constants/statusCategories';
+import { buildStatusSequences, getStatusVendorId, markStatusViewed } from '@/components/status/statusSequences';
+
+const warmStoryMedia = (story, eager = false) => {
+  if (!story?.content_url) return;
+  const previewUrl = story.type === 'video' ? story.thumbnail_url : story.content_url;
+  if (previewUrl) {
+    const img = new Image();
+    img.fetchPriority = eager ? 'high' : 'auto';
+    img.src = previewUrl;
+    return;
+  }
+  if (story.type === 'video') {
+    const video = document.createElement('video');
+    video.preload = 'none';
+    video.muted = true;
+    video.playsInline = true;
+    video.src = story.content_url;
+  }
+};
 
 // â”€â”€â”€ Utils â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ago = d => {
@@ -22,7 +43,7 @@ const ago = d => {
 const hoursLeft = exp => Math.max(0, (new Date(exp) - Date.now()) / 3600000);
 
 // â”€â”€â”€ Story Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 'auto', onClick, className = '' }) {
+const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unviewedCount = 0, rank, isNew, priority = 'auto', onClick, className = '' }) {
   const v       = status.vendor_id;
   const logo    = v?.user_id?.branding?.logo || v?.user_id?.avatar;
   const name    = v?.store_name || 'Store';
@@ -35,22 +56,48 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
     <motion.button
       whileTap={{ scale: 0.96 }}
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-[1.5rem] shadow-xl cursor-pointer ${className}`}
+      className={`group relative overflow-visible cursor-pointer transition-all duration-300 ${className}`}
     >
+      {/* 3D Overlapping Card Deck Effect for Grouped Statuses */}
+      {statusesCount > 1 && (
+        <>
+          {/* Deepest stack layer */}
+          <div className="absolute inset-0 translate-x-2.5 translate-y-2.5 scale-[0.93] rounded-[1.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] opacity-30 shadow-md -z-20 transition-transform duration-300 group-hover:translate-x-3.5 group-hover:translate-y-3.5" />
+          {/* Middle stack layer */}
+          <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 scale-[0.96] rounded-[1.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] opacity-60 shadow-lg -z-10 transition-transform duration-300 group-hover:translate-x-2 group-hover:translate-y-2" />
+        </>
+      )}
+
+      {/* Main Card Container */}
+      <div className={`relative w-full h-full overflow-hidden rounded-[1.5rem] shadow-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 transition-all duration-300 ${
+        isNew 
+          ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg-secondary)]' 
+          : 'opacity-75 hover:opacity-100'
+      }`}>
+      {statusesCount > 1 && (
+        <div className="absolute inset-x-3 top-3 z-30 flex gap-1">
+          {Array.from({ length: statusesCount }).map((_, i) => (
+            <span
+              key={i}
+              className={`h-1 flex-1 rounded-full shadow-sm ${i < unviewedCount ? 'bg-[var(--accent)]' : 'bg-white/35'}`}
+            />
+          ))}
+        </div>
+      )}
       {/* Media */}
       <div className="absolute inset-0">
         {!isText ? (
           <>
-            <MediaThumbnail src={status.content_url} alt={name} priority={priority}
+            <MediaThumbnail src={status.content_url} poster={status.thumbnail_url} alt={name} priority={priority}
               className="w-full h-full"
               objectFit="cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
           </>
         ) : (
-          <div className="size-full flex items-center justify-center p-4 text-center overflow-hidden"
+          <div className="size-full flex items-center justify-center p-5 text-center overflow-hidden"
             style={{ background: 'linear-gradient(160deg, #090909 0%, #1a1a1a 100%)' }}>
             <div className="absolute -top-10 -left-10 size-24 bg-[var(--accent)] blur-[50px] opacity-20 rounded-full animate-pulse" />
-            <p className="relative z-10 text-[11px] lg:text-[12px]  font-semibold text-white/90 leading-relaxed line-clamp-5">
+            <p className="relative z-10 text-[12px] lg:text-sm font-semibold text-white/90 leading-relaxed line-clamp-5">
               {status.text_content}
             </p>
           </div>
@@ -65,44 +112,47 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
       )}
 
       {/* Info overlay â€” always visible (not hover-only) */}
-      <div className="absolute inset-x-0 bottom-0 p-2.5 z-20">
-        <div className="bg-black/50 backdrop-blur-md border border-white/10 rounded-xl p-2 space-y-1.5">
-          <div className="flex items-center gap-1.5">
-            <div className="size-5 rounded-full border border-white/20 overflow-hidden bg-black/40 shrink-0">
+      <div className="absolute inset-x-0 bottom-0 p-3 z-20">
+        <div className="bg-black/55 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 space-y-2 shadow-lg">
+          <div className="flex items-center gap-2">
+            <div className="size-8 rounded-full border border-white/20 overflow-hidden bg-black/40 shrink-0">
               {logo ? (
                 <BlurUpImage src={logo} alt={name} priority="low" className="size-full" objectFit="cover" />
               ) : (
-                <div className="size-full flex items-center justify-center text-[10px] lg:text-[12px]  font-semibold text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
+                <div className="size-full flex items-center justify-center text-xs font-semibold text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
                   {name[0]}
                 </div>
               )}
             </div>
-            <p className="text-[11px] lg:text-[12px]  font-semibold text-white truncate flex-1">{name}</p>
-            {isNew && (
-              <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white text-[10px] lg:text-[12px]  font-semibold shrink-0">
-                <Sparkles className="size-2" /> New
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-[11px] lg:text-[12px]  font-semibold text-white/60">
-                <Heart className="size-2 text-red-400 fill-red-400/20" />
-                <span>{status.likes_count || 0}</span>
-              </div>
-              <div className="flex items-center gap-1 text-[11px] lg:text-[12px]  font-semibold text-white/60">
-                <Eye className="size-2 text-blue-400" />
-                <span>{status.views_count || 0}</span>
-              </div>
+            <div className="min-w-0 flex-1 text-left">
+              <p className="text-xs lg:text-sm font-semibold text-white truncate">{name}</p>
+              <p className="text-[10px] lg:text-[11px] font-semibold text-white/45">{ago(status.createdAt)}</p>
             </div>
-            <span className="text-[10px] lg:text-[12px]  font-semibold text-white/30">{ago(status.createdAt)}</span>
+            <div className="flex items-center gap-1 shrink-0">
+              {statusesCount > 1 && (
+                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 backdrop-blur border border-white/10 text-white text-[10px] font-bold shadow-sm" title="Grouped updates">
+                  <Layers className="size-3 text-[var(--accent)]" /> {statusesCount}
+                </div>
+              )}
+              {isNew && (
+                <div className="px-2 py-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-semibold">
+                  {unviewedCount > 1 ? `${unviewedCount} new` : 'New'}
+                </div>
+              )}
+              {!isNew && (
+                <div className="px-2 py-1 rounded-full bg-white/15 border border-white/10 text-white/70 text-[10px] font-semibold">
+                  Viewed
+                </div>
+              )}
+            </div>
           </div>
 
           {status.linked_product && (
-            <div className="flex items-center gap-1.5 px-1.5 py-1 rounded-lg bg-[var(--accent)]/15 border border-[var(--accent)]/20 text-[10px] lg:text-[12px]  font-semibold text-[var(--accent)]">
-              <ShoppingBag className="size-2.5 shrink-0" />
-              <span className="truncate">{status.linked_product.name}</span>
+            <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-2">
+              <div className="flex items-center gap-1.5 min-w-0 text-[10px] lg:text-[11px] font-semibold text-white/70">
+                <ShoppingBag className="size-3 shrink-0 text-[var(--accent)]" />
+                <span className="truncate">{status.linked_product.name}</span>
+              </div>
             </div>
           )}
         </div>
@@ -124,18 +174,18 @@ const PremiumCard = memo(function PremiumCard({ status, rank, isNew, priority = 
           </div>
         </div>
       )}
+      </div>
     </motion.button>
   );
 });
 
-const CATEGORIES = ['All', 'Fashion', 'Electronics', 'Lifestyle', 'Tech', 'Art', 'Beauty', 'General'];
+const CATEGORIES = STATUS_FILTER_CATEGORIES;
 
 // â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function StatusTabGrid({ onSelectStatus }) {
   const { user }                   = useAuthStore();
   const [followedStatuses, setFollowedStatuses] = useState([]);
   const [globalStatuses,   setGlobalStatuses]   = useState([]);
-  const [loading,          setLoading]          = useState(true);
   const [search,           setSearch]           = useState('');
   const [showSearch,       setShowSearch]        = useState(false);
   const [activeTab,        setActiveTab]         = useState('inner');
@@ -143,9 +193,8 @@ export default function StatusTabGrid({ onSelectStatus }) {
   const searchRef = useRef(null);
 
   const fetch = useCallback(async () => {
-    setLoading(true);
     try {
-      const params = { sort: 'trending', limit: 50, category: selectedCategory === 'All' ? undefined : selectedCategory };
+      const params = { sort: 'new', limit: 50, category: selectedCategory === 'All' ? undefined : selectedCategory };
       const [globalRes, followedRes] = await Promise.all([
         api.get('/statuses', { params: { ...params, mode: 'global' } }),
         user ? api.get('/statuses', { params: { ...params, mode: 'followed' } }) : Promise.resolve({ data: { data: [] } })
@@ -154,12 +203,15 @@ export default function StatusTabGrid({ onSelectStatus }) {
       if (followedRes.data.success) setFollowedStatuses(followedRes.data.data || []);
     } catch (e) {
       console.error('[StatusHub] Fetch error:', e);
-    } finally {
-      setLoading(false);
     }
   }, [user, selectedCategory]);
 
   useEffect(() => { fetch(); }, [fetch]);
+
+  useEffect(() => {
+    window.addEventListener('online', fetch);
+    return () => window.removeEventListener('online', fetch);
+  }, [fetch]);
 
   useEffect(() => {
     if (showSearch) setTimeout(() => searchRef.current?.focus(), 100);
@@ -174,9 +226,9 @@ export default function StatusTabGrid({ onSelectStatus }) {
   }, [followedStatuses, search, selectedCategory]);
 
   const clientFilteredGlobal = useMemo(() => {
-    const followedIds = new Set(followedStatuses.map(s => s.vendor_id?._id));
+    const followedIds = new Set(followedStatuses.map((s) => getStatusVendorId(s)));
     const pool = globalStatuses.filter(s =>
-      (!user || !followedIds.has(s.vendor_id?._id)) &&
+      (!user || !followedIds.has(getStatusVendorId(s))) &&
       (!search.trim() || [s.vendor_id?.store_name, s.caption, s.text_content].some(t => t?.toLowerCase().includes(search.toLowerCase())))
     );
     return selectedCategory === 'All' ? pool : pool.filter(s => s.category?.toLowerCase() === selectedCategory.toLowerCase());
@@ -184,12 +236,33 @@ export default function StatusTabGrid({ onSelectStatus }) {
 
   const activePool = activeTab === 'inner' ? clientFilteredFollowed : clientFilteredGlobal;
 
-  const handleOpen = (status, pool) => {
-    pool.slice(0, 10).forEach(s => { if (s.content_url) new Image().src = s.content_url; });
-    onSelectStatus(pool, status._id);
-  };
+  const groupedPool = useMemo(() => {
+    return buildStatusSequences(activePool)
+      .map((group) => {
+        const representative = group.latestStory;
+        if (!representative) return null;
 
-  if (loading && !globalStatuses.length && !followedStatuses.length) return <Skeleton />;
+        return {
+          ...representative,
+          statusesCount: group.items.length,
+          unviewedCount: group.unviewedCount,
+          isNew: group.hasUnviewed,
+          vendorStatuses: group.items,
+          latestStory: group.latestStory,
+          firstUnviewed: group.firstUnviewed,
+        };
+      })
+      .filter(Boolean);
+  }, [activePool]);
+
+  const handleOpen = (status, pool) => {
+    const startStory = status.firstUnviewed || status.latestStory || status;
+    const startId = startStory?._id;
+    pool.slice(0, 6).forEach((s) => warmStoryMedia(s, s._id === startId));
+    setFollowedStatuses((items) => markStatusViewed(items, startId));
+    setGlobalStatuses((items) => markStatusViewed(items, startId));
+    onSelectStatus(pool, startId);
+  };
 
   return (
     <div className="bg-[var(--bg-secondary)] min-h-screen pb-32 w-full">
@@ -201,7 +274,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <h2 className="text-2xl  font-bold tracking-tighter text-[var(--text-primary)] leading-none">
-                Aura Story
+                Story
               </h2>
               {/* Active Now badge */}
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
@@ -239,7 +312,7 @@ export default function StatusTabGrid({ onSelectStatus }) {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search stories, vendors..."
-                  className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-2.5 px-4 text-[12px] font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]/40 transition-all placeholder:text-[var(--text-secondary)]/30"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-2.5 px-4 !text-base placeholder:!text-base font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]/40 transition-all placeholder:text-[var(--text-secondary)]/30"
                 />
               </motion.div>
             )}
@@ -276,8 +349,8 @@ export default function StatusTabGrid({ onSelectStatus }) {
         </div>
       </div>
 
-      {/* â”€â”€ Grid â”€â”€ */}
-      <div className="w-full px-3 pt-4">
+      {/* ─── Grid ─── */}
+      <div className="w-full px-2 pt-4 sm:px-3 lg:px-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -286,31 +359,36 @@ export default function StatusTabGrid({ onSelectStatus }) {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
           >
-            {activePool.length > 0 ? (
+            {groupedPool.length > 0 ? (
               activeTab === 'inner' ? (
-                /* Inner circle â€” regular 2-col grid */
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 md:gap-3">
-                  {activePool.map((s, i) => (
+                /* Inner circle — regular 2-col grid */
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+                  {groupedPool.map((s, i) => (
                     <PremiumCard
-                      key={s._id}
+                      key={s.vendor_id?._id || s._id}
                       status={s}
-                      isNew={i < 3}
+                      statusesCount={s.statusesCount}
+                      unviewedCount={s.unviewedCount}
+                      isNew={s.isNew}
                       priority={i < 4 ? 'high' : 'auto'}
-                      className="aspect-[3/4]"
+                      className="aspect-[4/5]"
                       onClick={() => handleOpen(s, activePool)}
                     />
                   ))}
                 </div>
               ) : (
-                /* Global pulse â€” masonry columns */
-                <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-2.5 md:gap-3 space-y-2.5 md:space-y-3">
-                  {activePool.map((s, i) => (
+                /* Global pulse — masonry columns */
+                <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-3 md:gap-4 space-y-3 md:space-y-4">
+                  {groupedPool.map((s, i) => (
                     <PremiumCard
-                      key={s._id}
+                      key={s.vendor_id?._id || s._id}
                       status={s}
+                      statusesCount={s.statusesCount}
+                      unviewedCount={s.unviewedCount}
                       rank={i < 10 ? i + 1 : null}
+                      isNew={s.isNew}
                       priority={i < 6 ? 'high' : 'auto'}
-                      className={`w-full break-inside-avoid ${i % 3 === 0 ? 'aspect-[3/4]' : 'aspect-square'}`}
+                      className={`w-full break-inside-avoid ${i % 3 === 0 ? 'aspect-[4/5]' : 'aspect-[5/6]'}`}
                       onClick={() => handleOpen(s, activePool)}
                     />
                   ))}
@@ -331,23 +409,6 @@ export default function StatusTabGrid({ onSelectStatus }) {
             )}
           </motion.div>
         </AnimatePresence>
-      </div>
-    </div>
-  );
-}
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-function Skeleton() {
-  return (
-    <div className="bg-[var(--bg-secondary)] min-h-screen p-3 pt-6 space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="w-36 h-7 bg-white/5 animate-pulse rounded-xl" />
-        <div className="w-24 h-7 bg-white/5 animate-pulse rounded-xl" />
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="aspect-[3/4] rounded-[1.5rem] bg-white/5 animate-pulse border border-white/5" />
-        ))}
       </div>
     </div>
   );

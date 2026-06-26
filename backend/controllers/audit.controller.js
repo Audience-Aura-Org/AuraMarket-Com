@@ -1,6 +1,6 @@
 /**
  * controllers/audit.controller.js
- * Aura Market — System Audit Log Management
+ * Auradime — System Audit Log Management
  */
 
 const AuditLog = require('../models/AuditLog.model');

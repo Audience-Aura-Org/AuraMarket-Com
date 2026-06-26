@@ -1,34 +1,135 @@
 import { io } from 'socket.io-client';
+import { Capacitor } from '@capacitor/core';
+import { getStoredAuthToken } from './authStorage';
+
+const stripApiPath = (url = '') => url.replace(/\/api(\/v1)?\/?$/, '').replace(/\/$/, '');
+
+const isSocketDebugEnabled = () => process.env.NEXT_PUBLIC_SOCKET_DEBUG === 'true';
+const debugLog = (...args) => {
+  if (isSocketDebugEnabled()) console.debug(...args);
+};
+const debugWarn = (...args) => {
+  if (isSocketDebugEnabled()) console.warn(...args);
+};
+
+const isLocalHost = (hostname = '') => (
+  hostname === 'localhost' ||
+  hostname === '127.0.0.1' ||
+  hostname === '10.0.2.2' ||
+  hostname.endsWith('.localhost') ||
+  hostname.startsWith('192.168.') ||
+  hostname.startsWith('10.') ||
+  hostname.startsWith('172.16.') ||
+  hostname.startsWith('172.17.') ||
+  hostname.startsWith('172.18.') ||
+  hostname.startsWith('172.19.') ||
+  hostname.startsWith('172.20.') ||
+  hostname.startsWith('172.21.') ||
+  hostname.startsWith('172.22.') ||
+  hostname.startsWith('172.23.') ||
+  hostname.startsWith('172.24.') ||
+  hostname.startsWith('172.25.') ||
+  hostname.startsWith('172.26.') ||
+  hostname.startsWith('172.27.') ||
+  hostname.startsWith('172.28.') ||
+  hostname.startsWith('172.29.') ||
+  hostname.startsWith('172.30.') ||
+  hostname.startsWith('172.31.')
+);
+
+const normalizeSocketURL = (candidate, source = 'socket config') => {
+  if (!candidate) return null;
+
+  const raw = stripApiPath(candidate);
+
+  if (typeof window === 'undefined') {
+    return raw;
+  }
+
+  try {
+    const url = new URL(raw, window.location.origin);
+    const pageIsSecure = window.location.protocol === 'https:';
+    const socketIsInsecure = url.protocol === 'http:' || url.protocol === 'ws:';
+
+    if (pageIsSecure && socketIsInsecure && !isLocalHost(url.hostname)) {
+      console.error(
+        `[SocketService] Refusing insecure ${source} "${raw}" from HTTPS production. ` +
+        'Set NEXT_PUBLIC_SOCKET_URL to an HTTPS/WSS Socket.IO origin, for example https://api.yourdomain.com.'
+      );
+      return null;
+    }
+
+    return url.origin;
+  } catch (error) {
+    console.error(`[SocketService] Invalid ${source}:`, candidate, error);
+    return null;
+  }
+};
 
 const getSocketURL = () => {
   // 1. Priority: Explicitly defined socket URL
-  if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
+  const explicitSocketURL = normalizeSocketURL(process.env.NEXT_PUBLIC_SOCKET_URL, 'NEXT_PUBLIC_SOCKET_URL');
+  if (explicitSocketURL) return explicitSocketURL;
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const origin = window.location.origin || '';
+    
+    // Detect Capacitor or mobile webview environment where hostname is 'localhost'
+    const isCapacitor = Capacitor.isNativePlatform() ||
+                       origin.startsWith('capacitor://') || 
+                       (hostname === 'localhost' && (window.Capacitor || window.cordova || /Android|iPhone|iPad/i.test(navigator.userAgent)));
+
+    // For mobile native apps, DO NOT use localhost:5000 since the backend is on the PC/Cloud.
+    // Derive from process.env.NEXT_PUBLIC_API_URL (which has the developer's PC IP or production domain)
+    if (isCapacitor && process.env.NEXT_PUBLIC_API_URL) {
+      debugLog('[SocketService] Mobile container detected. Deriving socket server from API URL.');
+      const capacitorSocketURL = normalizeSocketURL(process.env.NEXT_PUBLIC_API_URL, 'NEXT_PUBLIC_API_URL');
+      if (capacitorSocketURL) return capacitorSocketURL;
+    }
+
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5000';
+    }
+    if (hostname === '10.0.2.2') {
+      return 'http://10.0.2.2:5000';
+    }
+    const isIP = /^[0-9.]+$/.test(hostname);
+    if (isIP && window.location.protocol !== 'https:') {
+      return `http://${hostname}:5000`;
+    }
+  }
 
   // 2. Derive from API URL if available (most reliable for production)
   // Example: "https://aura-backend.herokuapp.com/api/v1" -> "https://aura-backend.herokuapp.com"
   if (process.env.NEXT_PUBLIC_API_URL) {
-    // Robustly strip /api/v1 or just /api from the end
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/api(\/v1)?\/?$/, '');
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      const isWindowLocal = hostname.includes('localhost') || hostname.includes('127.0.0.1') || /^[0-9.]+$/.test(hostname);
+      if (!isWindowLocal && process.env.NEXT_PUBLIC_API_URL.includes('192.168.')) {
+        return normalizeSocketURL(window.location.origin, 'window origin');
+      }
+    }
+    const apiSocketURL = normalizeSocketURL(process.env.NEXT_PUBLIC_API_URL, 'NEXT_PUBLIC_API_URL');
+    if (apiSocketURL) return apiSocketURL;
   }
 
-  // 3. Browser-side fallbacks
-  if (typeof window !== 'undefined') {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isLocal) {
-      return 'http://localhost:5000';
-    }
-    
-    // On Vercel, window.location.origin is NOT a socket server.
-    // If we've reached here on HTTPS, we're likely missing the API URL env var.
-    if (window.location.protocol === 'https:') {
-      console.warn('[Socket] NEXT_PUBLIC_API_URL is missing. Socket may fail.');
-    }
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    console.error(
+      '[SocketService] No secure Socket.IO URL is configured for production. ' +
+      'Set NEXT_PUBLIC_SOCKET_URL to the HTTPS/WSS origin that serves /socket.io.'
+    );
+    return null;
   }
-  
+
   return 'http://localhost:5000';
 };
 
 const SOCKET_URL = getSocketURL();
+
+if (typeof window !== 'undefined') {
+  console.log('[SocketService] Socket URL configured:', SOCKET_URL);
+}
 
 class SocketService {
   socket = null;
@@ -37,53 +138,118 @@ class SocketService {
   callbackCounter = 0;
   connectionAttempts = 0;
   lastError = null;
+  warnedUnavailable = false;
 
-  connect(userId) {
-    if (this.socket && this.socket.connected) {
-      console.log('⚡ Socket already connected, skipping reconnect');
+  async connect(userId, authToken = null) {
+    if (!SOCKET_URL) {
+      this.lastError = 'Missing secure production socket URL. Set NEXT_PUBLIC_SOCKET_URL to an HTTPS/WSS Socket.IO origin.';
+      if (!this.warnedUnavailable) {
+        console.error(`[SocketService] ${this.lastError}`);
+        this.warnedUnavailable = true;
+      }
       return;
     }
 
-    if (this.socket && !this.socket.connected) {
-      console.log('⚡ Socket exists but disconnected, attempting reconnect...');
-      this.socket.connect();
+    // Use provided token or fetch from storage
+    let token = authToken;
+    if (!token) {
+      token = await getStoredAuthToken();
+      debugLog(`[SocketService] Token fetched from storage: ${token ? 'yes' : 'no'}`);
+    } else {
+      debugLog(`[SocketService] Using provided token`);
+    }
+    
+    if (!token) {
+      const reason = 'Auth token missing for socket connection. Delaying until valid credentials are available.';
+      console.warn(`[SocketService] ⚠️ ${reason}`);
+      console.warn(`[SocketService] authToken param: ${authToken ? 'yes' : 'no'}`);
+      this.lastError = reason;
+      this.warnedUnavailable = true;
+      return;
+    }
+    console.log(`[SocketService] ✅ Auth token available (${token.substring(0, 10)}...)`);
+
+    if (this.socket) {
+      if (this.socket.currentUserId === userId) {
+        if (this.socket.connected) {
+          debugLog('[SocketService] Already connected, skipping reconnect.');
+          return;
+        }
+        debugLog('[SocketService] Socket exists but disconnected, attempting reconnect.');
+        this.socket.connect();
+        return;
+      }
+
+      debugLog('[SocketService] User changed, reconnecting with new credentials.');
+      this.socket.currentUserId = userId;
+      this.socket.disconnect().connect();
       return;
     }
 
     this.connectionAttempts++;
-    console.log(`⚡ [Attempt ${this.connectionAttempts}] Connecting to WebSocket at: ${SOCKET_URL}`);
-    console.log(`   Auth Token: ${(typeof window !== 'undefined' ? localStorage.getItem('aura_token') : 'N/A')?.substring(0, 20)}...`);
+    debugLog(`[SocketService] Connecting. Attempt: ${this.connectionAttempts}`);
 
+    const connectStartTime = performance.now();
     this.socket = io(SOCKET_URL, {
-      auth: { 
-        userId, 
-        token: (typeof window !== 'undefined' ? localStorage.getItem('aura_token') : null) 
+      query: {
+        userId: userId || this.socket?.currentUserId,
       },
-      // Start with polling, then upgrade to websocket for maximum compatibility
-      // Polling is more reliable on networks with strict firewalls or reverse proxies
-      transports: ['polling', 'websocket'],
+      auth: (cb) => {
+        // Backend requires BOTH userId and token in auth object for JWT verification
+        const authPayload = {
+          userId: this.socket?.currentUserId || userId,
+          token: token || null,
+        };
+        
+        if (token) {
+          debugLog(`[SocketService] Sending auth: userId + token`);
+        } else {
+          console.warn(`[SocketService] ⚠️ Sending auth without token - backend JWT verification will fail`);
+        }
+        
+        cb(authPayload);
+      },
+      // Prioritize WebSocket for instant message delivery; fall back to polling if WS fails
+      transports: ['websocket', 'polling'],
       reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 10000,
-      randomizationFactor: 0.5,
+      // Faster reconnect attempts to recover lost mobile connections sooner
+      reconnectionDelay: 500,
+      reconnectionDelayMax: 3000,
+      randomizationFactor: 0.25,
+      // Ping frequently to detect dead peers sooner (milliseconds)
+      pingInterval: 10000,
+      pingTimeout: 5000,
       upgrade: true,
       path: '/socket.io',
-      withCredentials: true,
-      // Advanced: Help with debugging connection issues
+      withCredentials: true, // Send cookies automatically
       transportOptions: {
         polling: {
           extraHeaders: {
-            'X-Client': 'AuraMarket-Web'
+            'X-Client': 'Auradime-Web',
+            'X-User-Id': userId || ''
           }
         }
       }
     });
+    this.connectStartTime = connectStartTime;
+    this.socket.currentUserId = userId;
 
     this.socket.on('connect', () => {
       try {
         const transport = this.socket.io?.engine?.transport?.name || 'unknown';
-        console.log(`✅ Connected to Aura Socket (${this.socket.id}) | Transport: ${transport} | Attempts: ${this.connectionAttempts}`);
+        const connectTime = this.connectStartTime ? (performance.now() - this.connectStartTime).toFixed(0) : '?';
+        console.log(`✅ [SocketService] Connected in ${connectTime}ms via ${transport}. Attempts: ${this.connectionAttempts}`);
+        debugLog(`[SocketService] Connected. Transport: ${transport}. Attempts: ${this.connectionAttempts}`);
+        
+        // Log transport details for debugging
+        if (transport === 'websocket') {
+          debugLog('[SocketService] Using WebSocket transport.');
+        } else if (transport === 'polling') {
+          debugWarn('[SocketService] Using polling transport fallback.');
+        }
+        
         this.lastError = null;
+        this.warnedUnavailable = false;
         this.connectionAttempts = 0; // Reset on successful connect
         
         // Attach listeners that haven't been attached yet (bulletproof)
@@ -142,7 +308,7 @@ class SocketService {
         });
 
         if (reattached > 0) {
-          console.log(`✅ Reattached ${reattached} listeners after reconnect`);
+          debugLog(`[SocketService] Reattached ${reattached} listeners after reconnect.`);
         }
       } catch (connectErr) {
         console.error('[SocketService] Critical error in connect handler:', connectErr);
@@ -152,10 +318,21 @@ class SocketService {
     this.socket.on('connect_error', (err) => {
       try {
         const errorMsg = err?.message || err?.toString?.() || 'Unknown error';
-        console.warn(`⚠️ Socket Connect Error (Attempt ${this.connectionAttempts}): ${errorMsg}`);
-        console.warn(`   URL: ${SOCKET_URL}`);
-        console.warn(`   This is usually temporary. Retrying...`);
-        console.warn(`   Full error:`, err);
+        console.error(`❌ [SocketService] Connect error (attempt ${this.connectionAttempts}): ${errorMsg}`);
+        console.error(`   Socket URL: ${SOCKET_URL}`);
+        console.error(`   Full error:`, err);
+        
+        // Provide specific guidance based on error type
+        if (errorMsg.includes('xhr poll error') || errorMsg.includes('ERR_NAME_NOT_RESOLVED') || errorMsg.includes('ECONNREFUSED')) {
+          console.error('[SocketService] ⚠️ Backend socket server is unreachable or offline.');
+          console.error('[SocketService] → Check if backend is running at', SOCKET_URL);
+        } else if (errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
+          console.error('[SocketService] ⚠️ CORS or auth middleware rejected the connection.');
+        } else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+          console.error('[SocketService] ⚠️ Auth token invalid, expired, or missing.');
+        }
+        
+        debugWarn('[SocketService] Retrying with exponential backoff.');
         this.lastError = errorMsg;
       } catch (e) {
         console.error('[SocketService] Error in connect_error handler:', e);
@@ -175,19 +352,7 @@ class SocketService {
 
     this.socket.on('disconnect', (reason) => {
       try {
-        console.warn(`🔌 Socket disconnected | Reason: ${reason}`);
-        // Mark all listeners as not attached so they're re-attached on reconnect
-        if (this.listeners instanceof Map) {
-          this.listeners.forEach((eventMap) => {
-            if (eventMap instanceof Map) {
-              for (const [callbackId, entry] of eventMap.entries()) {
-                if (entry && typeof entry === 'object') {
-                  eventMap.set(callbackId, { ...entry, attached: false });
-                }
-              }
-            }
-          });
-        }
+        debugWarn(`[SocketService] Disconnected. Reason: ${reason}`);
       } catch (e) {
         console.error('[SocketService] Error in disconnect handler:', e);
       }
@@ -196,13 +361,14 @@ class SocketService {
 
   disconnect() {
     if (this.socket) {
-      console.log('🔌 Disconnecting socket');
+      debugLog('[SocketService] Disconnecting socket.');
       this.socket.disconnect();
       this.socket = null;
     }
     this.listeners.clear();
     this.connectionAttempts = 0;
     this.lastError = null;
+    this.warnedUnavailable = false;
   }
 
   isConnected() {
@@ -258,13 +424,12 @@ class SocketService {
           };
           this.socket.on(event, safeCb);
           eventMap.set(callbackId, { callback, attached: true, wrapper: safeCb });
-          // console.log(`✅ Listener attached for event: "${event}"`);
         } catch (attachErr) {
           console.error(`[SocketService] Failed to attach listener for event "${event}":`, attachErr);
           eventMap.set(callbackId, { callback, attached: false });
         }
       } else {
-        console.log(`⏳ Event "${event}" queued - will attach on socket connect`);
+        debugLog(`[SocketService] Event "${event}" queued until socket connects.`);
       }
     } catch (e) {
       console.error('[SocketService] Error in on() method:', e);
@@ -310,7 +475,6 @@ class SocketService {
                 }
               }
               eventMap.delete(id);
-              // console.log(`✅ Listener removed for event: "${event}"`);
               break;
             }
           } catch (e) {
@@ -337,7 +501,6 @@ class SocketService {
           }
         }
         this.listeners.delete(event);
-        // console.log(`✅ All listeners removed for event: "${event}"`);
       }
     } catch (e) {
       console.error('[SocketService] Error in off() method:', e);
@@ -347,11 +510,11 @@ class SocketService {
   emit(event, data) {
     try {
       if (!this.socket) {
-        console.warn(`⚠️ Cannot emit "${event}" - socket not initialized`);
+        debugWarn(`⚠️ Cannot emit "${event}" - socket not initialized`);
         return;
       }
       if (!this.socket.connected) {
-        console.warn(`⚠️ Cannot emit "${event}" - socket not connected (status: ${this.socket.disconnected ? 'disconnected' : 'connecting'})`);
+        debugWarn(`⚠️ Cannot emit "${event}" - socket not connected (will retry on reconnect)`);
         return;
       }
       this.socket.emit(event, data);

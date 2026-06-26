@@ -1,6 +1,6 @@
 /**
  * controllers/product.controller.js
- * Aura Market — Product Management Controller
+ * Auradime — Product Management Controller
  *
  * Handles CRUD operations for products + public discovery/search endpoints.
  */
@@ -13,6 +13,118 @@ const Category = require('../models/Category.model');
 const { sendNotification } = require('../utils/notifier');
 const cache = require('../utils/cache');
 const { normalizeUserMedia, normalizeMediaUrl } = require('../utils/media');
+
+const PRODUCT_DETAIL_SELECT = [
+  '_id',
+  'vendor_id',
+  'name',
+  'description',
+  'price',
+  'sale_price',
+  'images',
+  'category',
+  'tags',
+  'stock',
+  'featured',
+  'status',
+  'rating',
+  'specifications',
+  'long_description',
+  'has_variants',
+  'variant_types',
+  'sku_variants',
+  'createdAt',
+  'updatedAt',
+].join(' ');
+
+const PRODUCT_DETAIL_VENDOR_POPULATE = {
+  path: 'vendor_id',
+  select: 'store_name verified user_id store',
+  populate: [
+    { path: 'store', select: 'logo delivery_time minimum_order_amount' },
+    { path: 'user_id', select: 'avatar branding' }
+  ]
+};
+
+const normalizePricing = (data = {}, existingProduct = null) => {
+  const price = data.price !== undefined ? Number(data.price) : Number(existingProduct?.price || 0);
+  const rawSalePrice = data.sale_price;
+
+  // Deprecated fields clean up
+  data.compare_at_price = null;
+
+  if (rawSalePrice === '' || rawSalePrice === null || rawSalePrice === undefined) {
+    data.sale_price = null;
+  } else {
+    const salePrice = Number(rawSalePrice);
+    if (!Number.isFinite(salePrice) || salePrice <= 0) {
+      const error = new Error('Sale price must be a valid positive amount.');
+      error.statusCode = 400;
+      throw error;
+    }
+    if (!Number.isFinite(price) || price <= 0 || salePrice >= price) {
+      const error = new Error('Sale price must be less than the regular price.');
+      error.statusCode = 400;
+      throw error;
+    }
+    data.sale_price = salePrice;
+  }
+
+  // Normalize SKU variants pricing if present
+  if (data.sku_variants && Array.isArray(data.sku_variants)) {
+    data.sku_variants.forEach(variant => {
+      if (variant.price !== undefined && variant.price !== '') {
+        variant.price = Number(variant.price);
+      }
+      if (variant.sale_price === '' || variant.sale_price === undefined || variant.sale_price === null) {
+        variant.sale_price = null;
+      } else {
+        variant.sale_price = Number(variant.sale_price);
+        if (variant.sale_price >= variant.price) {
+          const error = new Error('Variant sale price must be less than the variant regular price.');
+          error.statusCode = 400;
+          throw error;
+        }
+      }
+    });
+  }
+};
+
+const resolveCategoryNames = async ({ categoryId, categoryName, includeDescendants = true }) => {
+  const hasCategoryId = categoryId && /^[a-f\d]{24}$/i.test(String(categoryId));
+  const hasCategoryName = categoryName && typeof categoryName === 'string';
+  if (!hasCategoryId && !hasCategoryName) return null;
+
+  const targetCategory = hasCategoryId
+    ? await Category.findById(categoryId).lean()
+    : await Category.findOne({ name: categoryName }).lean();
+
+  if (!targetCategory) {
+    return hasCategoryName ? [categoryName] : [];
+  }
+
+  if (!includeDescendants) return [targetCategory.name];
+
+  const allCategories = await Category.find({ is_active: { $ne: false } }).select('_id parent_id name').lean();
+  const validCategoryNames = [targetCategory.name];
+  const toCheck = [targetCategory._id.toString()];
+
+  for (let index = 0; index < toCheck.length; index += 1) {
+    const parentId = toCheck[index];
+    allCategories.forEach((cat) => {
+      if (
+        cat.parent_id &&
+        cat.parent_id.toString() === parentId &&
+        !validCategoryNames.includes(cat.name)
+      ) {
+        validCategoryNames.push(cat.name);
+        toCheck.push(cat._id.toString());
+      }
+    });
+  }
+
+  return validCategoryNames;
+};
 
 // ─────────────────────────────────────────────
 // @route   POST /api/products
@@ -49,6 +161,7 @@ const createProduct = async (req, res, next) => {
     }
     if (req.body.has_variants === 'true') productData.has_variants = true;
     if (req.body.has_variants === 'false') productData.has_variants = false;
+    normalizePricing(productData);
 
     const product = await Product.create(productData);
 
@@ -92,7 +205,7 @@ const getProducts = async (req, res, next) => {
 
     let query;
     const reqQuery = { ...req.query };
-    const removeFields = ['select', 'sort', 'page', 'limit', 'search', 'minPrice', 'maxPrice'];
+    const removeFields = ['select', 'sort', 'page', 'limit', 'search', 'minPrice', 'maxPrice', 'categoryId'];
     removeFields.forEach((param) => delete reqQuery[param]);
 
     let queryStr = JSON.stringify(reqQuery);
@@ -108,26 +221,16 @@ const getProducts = async (req, res, next) => {
       parsedQuery.price = priceQuery;
     }
 
-    if (parsedQuery.category && typeof parsedQuery.category === 'string') {
-      const targetCategoryName = parsedQuery.category;
-      const targetCategory = await Category.findOne({ name: targetCategoryName });
-      
-      if (targetCategory) {
-        const allCategories = await Category.find();
-        let validCategoryNames = [targetCategoryName];
-        let toCheck = [targetCategory._id.toString()];
-        let foundNew = true;
-        while (foundNew) {
-           foundNew = false;
-           for(let i=0; i < allCategories.length; i++) {
-              if (allCategories[i].parent_id && toCheck.includes(allCategories[i].parent_id.toString()) && !validCategoryNames.includes(allCategories[i].name)) {
-                 validCategoryNames.push(allCategories[i].name);
-                 toCheck.push(allCategories[i]._id.toString());
-                 foundNew = true;
-              }
-           }
-        }
-        parsedQuery.category = { $in: validCategoryNames };
+    const categoryNames = await resolveCategoryNames({
+      categoryId: req.query.categoryId,
+      categoryName: parsedQuery.category,
+      includeDescendants: true,
+    });
+    if (categoryNames) {
+      if (categoryNames.length) {
+        parsedQuery.category = { $in: categoryNames };
+      } else {
+        parsedQuery.category = '__NO_MATCH__';
       }
     }
 
@@ -137,7 +240,7 @@ const getProducts = async (req, res, next) => {
       path: 'vendor_id',
       select: 'store_name rating verified user_id average_response_time',
       populate: [
-        { path: 'store', select: 'logo' },
+        { path: 'store', select: 'logo delivery_time minimum_order_amount' },
         { path: 'user_id', select: 'avatar branding' }
       ]
     });
@@ -194,16 +297,23 @@ const getProducts = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getProductById = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id).populate({
-      path: 'vendor_id',
-      select: 'store_name description rating verified user_id average_response_time',
-      populate: [
-        { path: 'store', select: 'banner logo expected_shipping_time' },
-        { path: 'user_id', select: 'avatar branding' }
-      ]
-    });
+    const product = await Product.findById(req.params.id)
+      .select(PRODUCT_DETAIL_SELECT)
+      .populate(PRODUCT_DETAIL_VENDOR_POPULATE)
+      .lean();
 
-    if (!product || product.status !== 'active') {
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found.' });
+    }
+
+    // Allow the owning vendor to fetch their own product regardless of status
+    // (needed so the edit form can load pending/archived products).
+    const isOwningVendor =
+      req.vendor &&
+      product.vendor_id &&
+      product.vendor_id._id.toString() === req.vendor._id.toString();
+
+    if (product.status !== 'active' && !isOwningVendor) {
       return res.status(404).json({ success: false, message: 'Product not found.' });
     }
 
@@ -211,7 +321,6 @@ const getProductById = async (req, res, next) => {
     if (prodObj.vendor_id && prodObj.vendor_id.user_id) normalizeUserMedia(prodObj.vendor_id.user_id);
     if (prodObj.vendor_id && prodObj.vendor_id.store) {
       if (prodObj.vendor_id.store.logo) prodObj.vendor_id.store.logo = normalizeMediaUrl(prodObj.vendor_id.store.logo);
-      if (prodObj.vendor_id.store.banner) prodObj.vendor_id.store.banner = normalizeMediaUrl(prodObj.vendor_id.store.banner);
     }
 
     res.status(200).json({ success: true, data: { product: prodObj } });
@@ -263,6 +372,7 @@ const updateProduct = async (req, res, next) => {
     }
     if (req.body.has_variants === 'true') updateData.has_variants = true;
     if (req.body.has_variants === 'false') updateData.has_variants = false;
+    normalizePricing(updateData, product);
 
     delete updateData.featured;
     delete updateData.existing_images;
@@ -272,7 +382,22 @@ const updateProduct = async (req, res, next) => {
     const oldStock = product.stock;
     const newStock = updateData.stock !== undefined ? Number(updateData.stock) : oldStock;
 
-    product = await Product.findByIdAndUpdate(req.params.id, { $set: updateData }, { returnDocument: 'after', runValidators: true });
+    product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true }
+    );
+
+    // ── Invalidate server-side cache ───────────────────────────────────
+    // Wipe all `products_*` keys so the next fetch returns the updated
+    // sale_price, on_sale flag, and any other changed fields.
+    try {
+      for (const key of cache.keys()) {
+        if (key.startsWith('products_')) await cache.delete(key);
+      }
+    } catch (_cacheErr) {
+      // Non-fatal — stale entries expire on their own TTL
+    }
 
     const vendor = req.vendor;
     const { notifyFollowers } = require('../utils/notifier');
@@ -382,7 +507,7 @@ const getRecommendedProducts = async (req, res, next) => {
         path: 'vendor_id',
         select: 'store_name rating verified user_id average_response_time',
         populate: [
-          { path: 'store', select: 'logo' },
+          { path: 'store', select: 'logo delivery_time minimum_order_amount' },
           { path: 'user_id', select: 'avatar branding' }
         ]
       })
@@ -442,7 +567,7 @@ const getRelatedProducts = async (req, res, next) => {
         path: 'vendor_id',
         select: 'store_name rating verified user_id average_response_time',
         populate: [
-          { path: 'store', select: 'logo' },
+          { path: 'store', select: 'logo delivery_time minimum_order_amount' },
           { path: 'user_id', select: 'avatar branding' }
         ]
       })
@@ -502,19 +627,13 @@ const getHubFeed = async (req, res, next) => {
       }
     }
     
-    if (req.query.category) {
-      const targetCategoryName = req.query.category;
-      const targetCategory = await Category.findOne({ name: targetCategoryName }).lean();
-      
-      if (targetCategory) {
-        // Optimized category search: just get immediate subcategories for performance
-        const subCategories = await Category.find({ 
-          $or: [{ _id: targetCategory._id }, { parent_id: targetCategory._id }] 
-        }).select('name').lean();
-        query.category = { $in: subCategories.map(c => c.name) };
-      } else {
-        query.category = targetCategoryName;
-      }
+    if (req.query.category || req.query.categoryId) {
+      const categoryNames = await resolveCategoryNames({
+        categoryId: req.query.categoryId,
+        categoryName: req.query.category,
+        includeDescendants: true,
+      });
+      query.category = categoryNames?.length ? { $in: categoryNames } : '__NO_MATCH__';
     } else if (categoryIds.length > 0 && !isFollowedOnly) {
       // Only apply generic liked_categories if NOT viewing followed-only feed
       query.category = { $in: categoryIds };
@@ -540,7 +659,7 @@ const getHubFeed = async (req, res, next) => {
           path: 'vendor_id',
           select: 'store_name rating verified pickup_address user_id average_response_time',
           populate: [
-            { path: 'store', select: 'logo' },
+            { path: 'store', select: 'logo delivery_time minimum_order_amount' },
             { path: 'user_id', select: 'avatar branding' }
           ]
         })
@@ -564,7 +683,7 @@ const getHubFeed = async (req, res, next) => {
         path: 'vendor_id',
         select: 'store_name rating verified pickup_address user_id average_response_time',
         populate: [
-          { path: 'store', select: 'logo' },
+          { path: 'store', select: 'logo delivery_time minimum_order_amount' },
           { path: 'user_id', select: 'avatar branding' }
         ]
       })

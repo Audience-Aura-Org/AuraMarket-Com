@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "832825906744",
+    "project_id": "auradime",
+    "storage_bucket": "auradime.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:832825906744:android:85667583fb9b810b6678cd",
+        "android_client_info": {
+          "package_name": "com.auradime.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDnFe8-Q2mvQ0xnclpSAGMHn2YZIHv_tKs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

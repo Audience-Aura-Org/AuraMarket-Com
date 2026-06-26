@@ -22,6 +22,7 @@ const BlurUpImage = forwardRef(({
   className = '',
   imgClassName = '',
   priority = 'auto',
+  loading,
   style,
   objectFit = 'cover',
   draggable = false,
@@ -42,6 +43,7 @@ const BlurUpImage = forwardRef(({
   if (!src) return null;
 
   const fitClass = objectFit === 'contain' ? 'object-contain' : 'object-cover';
+  const imageLoading = loading || (priority === 'high' ? 'eager' : 'lazy');
 
   return (
     <div className={`relative overflow-hidden ${className}`} style={style}>
@@ -52,6 +54,7 @@ const BlurUpImage = forwardRef(({
         aria-hidden="true"
         draggable={false}
         fetchPriority={priority}
+        loading={imageLoading}
         decoding="async"
         className={`absolute inset-0 w-full h-full ${fitClass} transition-opacity duration-700`}
         style={{
@@ -69,6 +72,7 @@ const BlurUpImage = forwardRef(({
         alt={alt}
         draggable={draggable}
         fetchPriority={priority}
+        loading={imageLoading}
         decoding="async"
         className={`relative w-full h-full ${fitClass} transition-opacity duration-500 ${
           sharp ? 'opacity-100' : 'opacity-0'

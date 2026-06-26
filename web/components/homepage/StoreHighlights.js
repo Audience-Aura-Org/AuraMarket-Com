@@ -1,12 +1,14 @@
 "use client";
 import Link from 'next/link';
-import { BadgeCheck, Users, ArrowUpRight, Check } from 'lucide-react';
+import { BadgeCheck, Users, ArrowUpRight, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useEffect } from 'react';
 import VendorFollowButton from '@/components/VendorFollowButton';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function StoreHighlights({ title, data }) {
   const { followedVendorIds, fetchFollowedVendors, isAuthenticated } = useAuthStore();
+  const { t, label } = useLanguage();
 
   useEffect(() => {
     if (isAuthenticated) fetchFollowedVendors();
@@ -22,30 +24,32 @@ export default function StoreHighlights({ title, data }) {
   };
 
   return (
-    <section className="py-6 w-full">
-      <div className="flex flex-col md:flex-row items-baseline justify-between mb-8 px-4 md:px-6 gap-3">
-        <div className="space-y-1 text-left">
-          <h2 className="text-xl md:text-2xl  font-bold text-[var(--text-primary)] tracking-tight">
-            {title || "Top Rated Vendors"}
+    <section className="w-full py-3 sm:py-4 lg:py-5">
+      <div className="mb-3 flex items-end justify-between gap-3 px-3 sm:px-4 md:mb-4 md:px-1">
+        <div className="min-w-0 space-y-1 text-left">
+          <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-xl md:text-2xl">
+            {title ? label(title) : t('overtime.topRatedVendors', 'Top Rated Vendors')}
           </h2>
-          <div className="h-1 w-12 md:w-20 bg-[var(--accent)] rounded-full" />
         </div>
-        <Link href="/discovery?tab=vendors" className="flex items-center gap-2 group cursor-pointer">
-           <div className="h-0.5 w-12 bg-[var(--accent)] rounded-full transition-all group-hover:w-16" />
-           <span className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] text-[var(--accent)]">View All Vendors</span>
+        <Link
+          href="/discovery?tab=vendors"
+          className="group inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-full border border-[var(--accent)]/25 bg-[var(--accent)]/10 px-3 font-[var(--font-poppins)] text-[11px] font-semibold text-[var(--accent)] transition hover:border-[var(--accent)]/45 hover:bg-[var(--accent)] hover:text-white active:scale-[0.98] sm:h-10 sm:px-4 sm:text-[12px]"
+        >
+           <span>{t('nav.vendors', 'Vendors')}</span>
+           <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5 sm:size-4" />
         </Link>
       </div>
 
-      <div className="flex gap-6 md:gap-8 px-4 md:px-6 overflow-x-auto no-scrollbar pb-10 snap-x snap-mandatory">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar px-0 pb-5 snap-x snap-mandatory md:gap-4 md:px-1 md:pb-6">
         {data.map((item, i) => {
           const vendor = item.vendor_id;
           if (!vendor) return null;
           const store = vendor.store;
 
           return (
-            <div key={i} className="flex-shrink-0 w-[280px] md:w-[360px] snap-start group relative bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] rounded-[2.5rem] overflow-hidden hover:border-[var(--accent)]/30 transition-all duration-500">
+            <div key={i} className="group relative w-[82vw] max-w-[340px] flex-shrink-0 snap-start overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm transition-all duration-300 hover:border-[var(--accent)]/30 hover:shadow-lg sm:w-[48vw] md:w-[340px]">
               {/* Cover Banner */}
-              <div className="h-32 w-full overflow-hidden relative">
+              <div className="relative h-28 w-full overflow-hidden sm:h-32">
                 <img 
                   src={store?.banner || vendor.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000'} 
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
@@ -55,9 +59,9 @@ export default function StoreHighlights({ title, data }) {
               </div>
 
               {/* Logo & Content */}
-              <div className="px-6 pb-6 -mt-10 relative">
+              <div className="relative -mt-9 px-4 pb-5 sm:px-5 sm:pb-6">
                 <div className="relative group/logo inline-block">
-                   <div className="w-20 h-20 rounded-2xl border-4 border-[var(--bg-secondary)] overflow-hidden shadow-xl bg-white">
+                   <div className="size-[72px] overflow-hidden rounded-2xl border-4 border-[var(--bg-secondary)] bg-white shadow-xl sm:size-20">
                     <img 
                       src={store?.logo || vendor.user_id?.branding?.logo || vendor.user_id?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(vendor.store_name)}&background=random`} 
                       className="w-full h-full object-cover" 
@@ -74,31 +78,33 @@ export default function StoreHighlights({ title, data }) {
                 <div className="mt-4 space-y-4">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0">
-                      <h3 className=" font-bold text-lg text-[var(--text-primary)] leading-tight truncate">
+                      <h3 translate="no" className="truncate font-[var(--font-poppins)] text-base font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-lg">
                         {vendor.store_name}
                       </h3>
                       <div className="flex items-center gap-2 mt-1 opacity-60">
                          <StarIcon />
-                         <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">{vendor.rating ? vendor.rating.toFixed(1) : '5.0'} Rating</span>
+                         {Number(vendor.rating || 0) > 0 && (
+                           <span className="font-[var(--font-poppins)] text-[11px] font-semibold tracking-normal">{Number(vendor.rating).toFixed(1)}</span>
+                         )}
                       </div>
                     </div>
-                    <Link href={`/stores/${vendor._id}`} className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all shrink-0">
+                    <Link href={`/stores?id=${encodeURIComponent(vendor._id)}`} className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)] hover:text-white transition-all shrink-0">
                       <ArrowUpRight className="w-5 h-5" />
                     </Link>
                   </div>
 
-                  <p className="text-[13px] text-[var(--text-secondary)] line-clamp-2 min-h-[2.5rem] font-medium leading-relaxed">
-                    {vendor.description || "Discover premium products from this elite curator."}
+                  <p translate={vendor.description ? 'no' : undefined} className="line-clamp-2 min-h-[2.5rem] font-[var(--font-poppins)] text-[12px] font-medium leading-relaxed text-[var(--text-secondary)] sm:text-[13px]">
+                    {vendor.description || t('overtime.vendorFallback', 'Discover premium products from this trusted seller.')}
                   </p>
 
                   <div className="pt-2 flex items-center gap-3">
                     <VendorFollowButton 
                       vendorId={vendor._id} 
-                      className="!h-10 !text-[10px] lg:text-[12px] flex-1"
+                      className="!h-10 flex-1 !text-[10px] lg:text-[12px]"
                     />
                     <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
                       <Users className="w-3.5 h-3.5 opacity-40 text-[var(--accent)]" />
-                      <span className="text-[11px] lg:text-[12px]  font-semibold opacity-80">{formatCount(vendor.follower_count)}</span>
+                      <span className="font-[var(--font-poppins)] text-[11px] font-semibold opacity-80 lg:text-[12px]">{formatCount(vendor.follower_count)}</span>
                     </div>
                   </div>
                 </div>

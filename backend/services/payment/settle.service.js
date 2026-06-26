@@ -1,6 +1,6 @@
 /**
  * services/payment/settle.service.js
- * Aura Market — Order Settlement Engine
+ * Auradime — Order Settlement Engine
  *
  * Single source of truth for all vendor payout/escrow/platform-fee accounting.
  * Replaces duplicate logic previously in:
@@ -15,6 +15,7 @@
 const mongoose = require('mongoose');
 const User = require('../../models/User.model');
 const Vendor = require('../../models/Vendor.model');
+const Store = require('../../models/Store.model');
 const Escrow = require('../../models/Escrow.model');
 const Transaction = require('../../models/Transaction.model');
 const Order = require('../../models/Order.model');
@@ -24,8 +25,17 @@ const Shipment = require('../../models/Shipment.model');
 const PlatformSettings = require('../../models/PlatformSettings.model');
 const logisticsService = require('../logistics.service');
 const { sendNotification } = require('../../utils/notifier');
+const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../../utils/platformFees');
 const crypto = require('crypto');
 
+const getEffectivePlatformSettings = async (vendorId, session) => {
+  const platformSettings = await PlatformSettings.getSettings(session);
+  const store = await Store.findOne({ vendor_id: vendorId }).select('commission_rate').session(session);
+  return {
+    platformSettings,
+    effectiveSettings: applyCommissionOverride(platformSettings, store?.commission_rate),
+  };
+};
 const genRef = (prefix = 'SETTLE') =>
   `${prefix}-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 
@@ -74,17 +84,27 @@ const creditLogistics = async (order, session) => {
  * @param {number} [overrideAmount] - Override the base amount (e.g. already-computed vendorBase)
  */
 const handleVendorPayout = async (order, session, overrideAmount = null) => {
-  const settings = await PlatformSettings.getSettings();
+  const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(order.vendor_id, session);
 
-  // Vendor base = subtotal only when logistics partner handles shipping (fee goes to logistics firm)
+  // Vendor base excludes payment collection fees. Logistics shipping is paid separately to the carrier.
   const vendorBaseAmount = overrideAmount ?? (
     (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
       ? order.subtotal
-      : order.total_amount
+      : order.subtotal + (order.shipping_fee || 0)
   );
 
-  const platformFee = (vendorBaseAmount * settings.commission_rate) / 100;
-  const vendorPayout = vendorBaseAmount - platformFee;
+  const isEscrowPayout = !!order.escrow_enabled;
+  const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(vendorBaseAmount, effectiveSettings, {
+    includeEscrowFee: isEscrowPayout
+  });
+  const feeDescription = describeFee(effectiveSettings, { includeEscrowFee: isEscrowPayout });
+  const platformFeeBreakdown = {
+    base_amount: vendorBaseAmount,
+    commission_fee: commissionFee,
+    escrow_fee: escrowFee,
+    platform_fee: platformFee,
+    vendor_payout: vendorPayout,
+  };
 
   if (order.escrow_enabled) {
     // ── ESCROW PATH: hold funds, create pending payout tx ────────────────
@@ -103,9 +123,10 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
       amount: vendorPayout,
       reference: genRef('PAYOUT-PEND'),
       status: 'pending',
-      description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow)`,
+      description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow, ${feeDescription})`,
       order_id: order._id,
       gateway: 'escrow',
+      metadata: { platform_fee_breakdown: platformFeeBreakdown },
     }], { session, ordered: true });
 
   } else {
@@ -116,10 +137,10 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
     vendorUser.wallet_balance += vendorPayout;
     await vendorUser.save({ session });
 
-    settings.platform_wallet_balance += platformFee;
-    await settings.save({ session });
+    platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
+    await platformSettings.save({ session });
 
-    await Transaction.create([{
+    const transactionEntries = [{
       user_id: vendorUser._id,
       type: 'payout',
       amount: vendorPayout,
@@ -128,16 +149,24 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
       description: `Direct payout for Order #${order._id.toString().slice(-6).toUpperCase()} (No Escrow)`,
       order_id: order._id,
       gateway: 'wallet',
-    }, {
-      user_id: vendorUser._id,
-      type: 'payment',
-      amount: platformFee,
-      reference: genRef('REV'),
-      status: 'completed',
-      description: `Platform commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
-      order_id: order._id,
-      gateway: 'platform',
-    }], { session, ordered: true });
+      metadata: { platform_fee_breakdown: platformFeeBreakdown },
+    }];
+
+    if (platformFee > 0) {
+      transactionEntries.push({
+        user_id: vendorUser._id,
+        type: 'payment',
+        amount: platformFee,
+        reference: genRef('REV'),
+        status: 'completed',
+        description: `Platform commission from Order #${order._id.toString().slice(-6).toUpperCase()}`,
+        order_id: order._id,
+        gateway: 'platform',
+        metadata: { platform_fee_breakdown: platformFeeBreakdown },
+      });
+    }
+
+    await Transaction.create(transactionEntries, { session, ordered: true });
 
     // NOTE: Logistics company is NO LONGER credited here. 
     // They are credited in logistics.controller.js ONLY after successful delivery.
@@ -212,6 +241,10 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
 
     setImmediate(async () => {
       try {
+        const shipmentDoc = await Shipment.findOne({ order_id: order._id }).lean();
+        if (shipmentDoc) orderObj.shipment = shipmentDoc;
+        orderObj.customer_name = user.name;
+
         if (vendor) {
           await sendNotification(app, vendor.user_id, {
             title: 'Order Paid & Confirmed',
@@ -237,14 +270,21 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
         if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
           const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
           if (logisticsFirm) {
+            const logisticsOrderDetails = {
+              ...orderObj,
+              logistics_name: logisticsFirm.company_name,
+            };
             await sendNotification(app, logisticsFirm.user_id, {
               title: 'New Shipment Assigned',
               message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
-              type: 'system_alert',
-              metadata: { order_id: order._id, link: '/logistics/dashboard' },
+              type: 'logistics_update',
+              metadata: { order_id: order._id, link: '/logistics/manifests', status: shipmentDoc?.status || 'assigned' },
               sendEmail: true,
               role: 'logistics',
               webUrl,
+              orderDetails: logisticsOrderDetails,
+              emailLink: `${webUrl}/logistics/manifests`,
+              overrideEmail: logisticsFirm.contact_email,
             });
           }
         }
@@ -274,7 +314,29 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
 
   for (const orderId of orderIds) {
     const order = await Order.findById(orderId).session(session);
-    if (!order || order.payment_status !== 'pending') continue;
+    if (!order) continue;
+
+    // Handle already paid orders (e.g., from a duplicate or delayed successful attempt)
+    if (order.payment_status !== 'pending') {
+      if (skipBalanceDeduct) {
+        // Since we aren't deducting from balance, these are 'new' funds from a gateway.
+        // If the order is already paid, credit these funds to the user's wallet so they aren't lost.
+        user.wallet_balance += order.total_amount;
+        await user.save({ session });
+        
+        await Transaction.create([{
+          user_id: user._id,
+          type: 'deposit',
+          amount: order.total_amount,
+          reference: genRef('ADJ'),
+          status: 'completed',
+          gateway: paymentGateway,
+          description: `Wallet credit (Order #${order._id.toString().slice(-6).toUpperCase()} already paid)`,
+          order_id: order._id,
+        }], { session, ordered: true });
+      }
+      continue;
+    }
 
     if (!skipBalanceDeduct && user.wallet_balance < order.total_amount) {
       throw new Error(`Insufficient wallet balance for order #${orderId.toString().slice(-4)}.`);
@@ -320,6 +382,10 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
 
       setImmediate(async () => {
         try {
+          const shipmentDoc = await Shipment.findOne({ order_id: order._id }).lean();
+          if (shipmentDoc) orderObj.shipment = shipmentDoc;
+          orderObj.customer_name = userSnap.name;
+
           if (vendor) {
             await sendNotification(app, vendor.user_id, {
               title: 'Order Paid & Confirmed',
@@ -339,11 +405,21 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
           if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
             const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
             if (logisticsFirm) {
+              const logisticsOrderDetails = {
+                ...orderObj,
+                logistics_name: logisticsFirm.company_name,
+              };
               await sendNotification(app, logisticsFirm.user_id, {
                 title: 'New Shipment Assigned',
                 message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
-                type: 'system_alert', sendEmail: true, role: 'logistics', webUrl,
-                metadata: { order_id: order._id, link: '/logistics/dashboard' },
+                type: 'logistics_update',
+                sendEmail: true,
+                role: 'logistics',
+                webUrl,
+                metadata: { order_id: order._id, link: '/logistics/manifests', status: shipmentDoc?.status || 'assigned' },
+                orderDetails: logisticsOrderDetails,
+                emailLink: `${webUrl}/logistics/manifests`,
+                overrideEmail: logisticsFirm.contact_email,
               });
             }
           }

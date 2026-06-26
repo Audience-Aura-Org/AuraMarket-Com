@@ -1,6 +1,6 @@
 /**
  * routes/homepage.routes.js
- * Aura Market — Homepage & Storefront Builder Routes
+ * Auradime — Homepage & Storefront Builder Routes
  */
 
 const express = require('express');

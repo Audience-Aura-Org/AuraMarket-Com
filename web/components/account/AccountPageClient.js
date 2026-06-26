@@ -6,7 +6,8 @@ import {
   Store, ShieldAlert, Database, BarChart3,
   Mail, MapPin, Camera, ExternalLink, RefreshCw, Search,
   Truck, LayoutGrid, ShoppingBag, Activity,
-  Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock, Star
+  Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock, Star, Globe2,
+  Smartphone, Download, Monitor, Apple, Type, Check
 } from 'lucide-react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -17,18 +18,43 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import Pagination from '@/components/common/Pagination';
-import StatusManager from '@/components/status/StatusManager';
 import SingleOrderView from '@/components/account/SingleOrderView';
+import OrdersTab from '@/components/account/OrdersTab';
+import dynamic from 'next/dynamic';
+
+const ProductCard = dynamic(() => import('@/components/ProductCard'), { ssr: false });
 
 import { TABS } from './constants';
 import AccountHeader from './AccountHeader';
 import AccountSidebar from './AccountSidebar';
+import { useLanguage } from '@/context/LanguageContext';
+import { setFontSize, getFontSize, resetFontSettings, FONT_SIZES } from '@/utils/fontSettings';
+
+const normalizePickupAddress = (pickup = {}, fallback = {}) => ({
+  city: pickup.city || fallback.city || '',
+  quartier: pickup.quartier || fallback.quartier || '',
+  address_description:
+    pickup.address_description ||
+    pickup.street ||
+    fallback.address_description ||
+    fallback.street ||
+    '',
+});
+
+const normalizeKycPayload = (kyc = {}) => ({
+  full_name: kyc.full_name || '',
+  id_type: kyc.id_type || kyc.document_type || 'national_id',
+  id_number: kyc.id_number || kyc.document_number || '',
+  file_url_front: kyc.file_url_front || kyc.document_front_url || '',
+  file_url_back: kyc.file_url_back || kyc.document_back_url || '',
+});
 
 export default function AccountPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, logout, updateUser } = useAuthStore();
+  const { user, deleteAccount, updateUser } = useAuthStore();
   const { theme, toggleTheme } = useTheme();
+  const { language, languages, setLanguage, t } = useLanguage();
   const [activeTab, setActiveTab] = useState('general');
   const [viewingOrderId, setViewingOrderId] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -58,7 +84,7 @@ export default function AccountPageClient() {
   };
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  const itemsPerPage = 24;
   
   useEffect(() => {
     setCurrentPage(1);
@@ -75,7 +101,9 @@ export default function AccountPageClient() {
     description: '',
     logo: user?.branding?.logo || '',
     banner: user?.branding?.banner || '',
-    pickup_address: { city: '', quartier: '', address_description: '' }
+    pickup_address: { city: '', quartier: '', address_description: '' },
+    delivery_time: '',
+    minimum_order_amount: ''
   });
 
   const [userData, setUserData] = useState({ 
@@ -100,14 +128,16 @@ export default function AccountPageClient() {
   const [kycStatus, setKycStatus] = useState(null);
   const [kycLoading, setKycLoading] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
+  const effectiveKycStatus = kycStatus || user?.kyc?.status || user?.verification_status;
+  const isKycApproved = effectiveKycStatus === 'approved' || effectiveKycStatus === 'verified';
+  const isKycRejected = effectiveKycStatus === 'rejected' || effectiveKycStatus === 'denied';
+  const isKycPending = effectiveKycStatus === 'pending';
 
-  const [passphraseData, setPassphraseData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
-  const [passphraseStatus, setPassphraseStatus] = useState('');
-  const [passphraseLoading, setPassphraseLoading] = useState(false);
-
-  const [orders, setOrders] = useState([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [orderView, setOrderView] = useState(user?.role === 'vendor' ? 'sales' : 'purchases');
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleteStatus, setDeleteStatus] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const deleteConfirmationWord = language === 'fr' ? 'SUPPRIMER' : 'DELETE';
+  const [currentFontSize, setCurrentFontSize] = useState(FONT_SIZES.md);
 
   const [followedVendors, setFollowedVendors] = useState([]);
   const [networkLoading, setNetworkLoading] = useState(false);
@@ -115,28 +145,23 @@ export default function AccountPageClient() {
   const [audience, setAudience] = useState([]);
   const [audienceLoading, setAudienceLoading] = useState(false);
 
-  const fetchOrders = useCallback(async () => {
-     if (!user) return;
-     setOrdersLoading(true);
-     try {
-       const endpoint = orderView === 'sales' ? '/orders/vendor-orders' : '/orders/my-orders';
-       const res = await api.get(endpoint);
-       if (res.data.success) {
-          const sortedOrders = (res.data.data.orders || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-          setOrders(sortedOrders);
-       }
-     } catch (err) {
-       console.error("Orders fetch failed", err);
-     } finally {
-       setOrdersLoading(false);
-     }
-  }, [user, orderView]);
+  const [wishlist, setWishlist] = useState([]);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   useEffect(() => {
-    if (activeTab === 'orders') fetchOrders();
     if (activeTab === 'network') fetchNetwork();
     if (activeTab === 'audience') fetchAudience();
-  }, [activeTab, fetchOrders]);
+    if (activeTab === 'wishlist') fetchWishlist();
+  }, [activeTab]);
+
+  const fetchWishlist = async () => {
+    setWishlistLoading(true);
+    try {
+      const res = await api.get('/wishlist');
+      if (res.data.success) setWishlist(res.data.data.wishlist?.products || []);
+    } catch (err) { console.error(err); }
+    finally { setWishlistLoading(false); }
+  };
 
   const fetchNetwork = async () => {
     setNetworkLoading(true);
@@ -148,6 +173,11 @@ export default function AccountPageClient() {
   };
 
   const fetchAudience = async () => {
+    // Only vendors with a completed profile have a Vendor document — skip for un-onboarded users
+    if (user?.role !== 'vendor' || !user?.onboarded) {
+      setAudienceLoading(false);
+      return;
+    }
     setAudienceLoading(true);
     try {
       const vRes = await api.get('/vendors/me');
@@ -177,7 +207,33 @@ export default function AccountPageClient() {
     });
     if (user.kyc) {
       setKycStatus(user.kyc.status);
-      setKycData(d => ({ ...d, ...user.kyc }));
+      setKycData(d => ({ ...d, ...normalizeKycPayload(user.kyc) }));
+    } else if (user.verification_status) {
+      setKycStatus(user.verification_status);
+    }
+
+    // Only fetch vendor profile when the Vendor document is guaranteed to exist
+    if (user.role === 'vendor' && user.onboarded) {
+      api.get('/vendors/me').then(res => {
+        if (res.data.success) {
+          const v = res.data.data.vendor;
+          const s = v.store || {};
+          const pickupAddress = normalizePickupAddress(v.pickup_address, user.onboarding_location);
+          setStoreData({
+            store_name: v.store_name || '',
+            description: v.description || '',
+            logo: s.logo || v.logo || user.branding?.logo || '',
+            banner: s.banner || v.banner || user.branding?.banner || '',
+            pickup_address: pickupAddress,
+            delivery_time: s.delivery_time || '',
+            minimum_order_amount: s.minimum_order_amount ?? ''
+          });
+          setProfileBranding((p) => ({
+            logo: s.logo || v.logo || p.logo,
+            banner: s.banner || v.banner || p.banner,
+          }));
+        }
+      }).catch(() => {});
     }
   }, [user]);
 
@@ -199,42 +255,81 @@ export default function AccountPageClient() {
     }
   };
 
-  const handleChangePassphrase = async () => {
-    if (passphraseData.newPassword !== passphraseData.confirmPassword) {
-      setPassphraseStatus('New passwords do not match.');
-      return;
-    }
-    if (passphraseData.newPassword.length < 6) {
-      setPassphraseStatus('Password must be at least 6 characters.');
-      return;
-    }
-    setPassphraseLoading(true);
-    setPassphraseStatus('Updating passphrase...');
+  useEffect(() => {
+    setCurrentFontSize(getFontSize());
+    const handleFontSizeChange = (event) => setCurrentFontSize(event.detail.size);
+    window.addEventListener('fontsizechange', handleFontSizeChange);
+    return () => window.removeEventListener('fontsizechange', handleFontSizeChange);
+  }, []);
+
+  const fontSizeOptions = [
+    { value: FONT_SIZES.sm, label: 'S', helper: 'Small', size: '14px' },
+    { value: FONT_SIZES.md, label: 'M', helper: 'Medium', size: '16px', badge: 'Default' },
+    { value: FONT_SIZES.lg, label: 'L', helper: 'Large', size: '18px' },
+    { value: FONT_SIZES.xl, label: 'XL', helper: 'Extra Large', size: '20px' },
+  ];
+
+  const handleFontSizeChange = (size) => {
+    setFontSize(size);
+    setCurrentFontSize(size);
+  };
+
+  const handleFontReset = () => {
+    resetFontSettings();
+    setCurrentFontSize(FONT_SIZES.md);
+  };
+
+  const handleLanguageChange = async (nextLanguage) => {
+    const shouldReload = nextLanguage !== language;
+    setLanguage(nextLanguage, { reload: shouldReload });
+    updateUser({ preferred_language: nextLanguage });
+    setBrandingStatus(t('settings.languageSaved'));
+
     try {
-      const res = await api.patch('/auth/change-password', {
-        currentPassword: passphraseData.currentPassword,
-        newPassword: passphraseData.newPassword
-      });
-      if (res.data?.success) {
-        setPassphraseStatus('Passphrase updated successfully.');
-        setPassphraseData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      const res = await api.patch('/users/me', { preferred_language: nextLanguage });
+      if (res.data?.success && res.data?.data?.user) {
+        updateUser(res.data.data.user);
       }
     } catch (err) {
-      setPassphraseStatus(err.response?.data?.error || 'Failed to update passphrase.');
+      console.error(err);
+      setBrandingStatus(t('settings.languageFailed'));
     } finally {
-      setPassphraseLoading(false);
-      setTimeout(() => setPassphraseStatus(''), 3000);
+      setTimeout(() => setBrandingStatus(''), 2500);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    setDeleteStatus('');
+    const result = await deleteAccount(deleteConfirm);
+    if (result.success) {
+      router.replace('/login');
+      return;
+    }
+    setDeleteStatus(result.message || 'Account deletion failed.');
+    setDeleteLoading(false);
   };
 
   const handleUpdateStore = async () => {
     setLoading(true);
     try {
+      const pickupAddress = normalizePickupAddress(storeData.pickup_address);
       await api.patch('/vendors/profile', {
         store_name: storeData.store_name,
         description: storeData.description,
-        pickup_address: storeData.pickup_address
+        pickup_address: pickupAddress
       });
+      const storeRes = await api.patch('/vendors/store', {
+        delivery_time: storeData.delivery_time,
+        minimum_order_amount: storeData.minimum_order_amount,
+      });
+      const updatedStore = storeRes.data?.data?.store;
+      setStoreData((p) => ({
+        ...p,
+        pickup_address: pickupAddress,
+        delivery_time: updatedStore?.delivery_time || '',
+        minimum_order_amount: updatedStore?.minimum_order_amount ?? '',
+      }));
       setSaveStatus('Store updated successfully.');
       setTimeout(() => setSaveStatus(''), 3000);
     } catch (err) {
@@ -248,8 +343,9 @@ export default function AccountPageClient() {
   const handleUpdateBranding = async (overrides = {}) => {
     setBrandingStatus('Updating branding...');
     try {
-      const logo = overrides.logo || profileBranding.logo;
-      const banner = overrides.banner || profileBranding.banner;
+      const nextBranding = { ...profileBranding, ...overrides };
+      const logo = nextBranding.logo || storeData.logo || '';
+      const banner = nextBranding.banner || storeData.banner || '';
 
       const brandingPayload = canUseBanner ? { logo, banner } : { logo };
       
@@ -257,12 +353,14 @@ export default function AccountPageClient() {
 
       if (user?.role === 'vendor') {
         await api.patch('/vendors/store', { logo, banner });
+        setStoreData((p) => ({ ...p, logo, banner }));
       }
       if (user?.role === 'logistics') {
         await api.patch('/logistics/profile', { logo, banner });
       }
 
       if (res.data?.success && res.data?.data?.user) updateUser(res.data.data.user);
+      setProfileBranding({ logo, banner });
       setBrandingStatus('Branding updated successfully.');
       setTimeout(() => setBrandingStatus(''), 2500);
     } catch (err) {
@@ -309,8 +407,11 @@ export default function AccountPageClient() {
     try {
       const res = await api.post('/users/kyc', kycData);
       if (res.data?.success) {
-        updateUser(res.data.data.user);
-        setKycStatus(res.data.data.user.kyc.status);
+        const nextKyc = res.data.data.kyc;
+        const nextUser = { ...res.data.data.user, kyc: nextKyc };
+        updateUser(nextUser);
+        setKycStatus(nextKyc?.status || nextUser.verification_status || 'pending');
+        if (nextKyc) setKycData((current) => ({ ...current, ...normalizeKycPayload(nextKyc) }));
         setBrandingStatus('KYC submitted successfully.');
       } else {
         setBrandingStatus('Submission failed.');
@@ -324,10 +425,10 @@ export default function AccountPageClient() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)]">
-      <AccountHeader title="Account Settings" />
+    <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] pb-[calc(5rem+env(safe-area-inset-bottom,0px))]">
+      <AccountHeader title={t('settings.title')} />
 
-      <div className="max-w-[90%] mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="w-full px-1.5 sm:px-2 lg:px-3 py-2 grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-3">
         <AccountSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
         <div className="lg:col-span-3">
@@ -338,12 +439,12 @@ export default function AccountPageClient() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="space-y-6"
+              className="space-y-3"
             >
               {activeTab === 'general' && (
-                <div className="space-y-6">
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-8 shadow-xl w-full">
-                    <div className="flex flex-col md:flex-row items-center md:items-center gap-6 md:gap-8">
+                <div className="space-y-3">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl w-full">
+                    <div className="flex flex-col md:flex-row items-center md:items-center gap-3 md:gap-4">
                       <div className="relative group shrink-0">
                         <div className="size-28 md:size-32 rounded-full border-4 border-[var(--bg-secondary)] bg-[var(--bg-secondary)] overflow-hidden shadow-xl relative z-10 flex items-center justify-center text-4xl  font-bold text-[var(--accent)]">
                           {profileBranding.logo ? (
@@ -374,26 +475,26 @@ export default function AccountPageClient() {
                     </div>
                   </div>
 
-                  <div className="space-y-6 md:space-y-8">
-                    <div className="flex items-center gap-6 px-4 md:px-6">
-                      <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Identity Parameters</h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 px-1 md:px-2">
+                      <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">{t('settings.identity')}</h3>
                       <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                     </div>
 
-                    <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                       <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                       
-                      <div className="relative z-10 space-y-6 md:space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="relative z-10 space-y-3 md:space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                           <FormField
-                            label="Full Name"
+                            label={t('settings.fullName')}
                             value={userData.name}
                             onChange={(v) => setUserData({ ...userData, name: v })}
                             icon={User}
                             placeholder="Your name"
                           />
                           <FormField
-                            label="Phone Number"
+                            label={t('settings.phoneNumber')}
                             value={userData.phone}
                             onChange={(v) => setUserData({ ...userData, phone: v })}
                             icon={Phone}
@@ -402,49 +503,186 @@ export default function AccountPageClient() {
                         </div>
 
                         <FormField
-                          label="Email"
+                          label={t('settings.email')}
                           value={user?.email}
                           disabled={true}
                           icon={Mail}
                         />
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <FormSelect
-                            label="City"
-                            value={userData.onboarding_location.city}
-                            onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, city: v, quartier: ''}})}
-                            options={zones.filter(z => z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
-                            icon={MapPin}
-                            placeholder="Select city"
-                          />
-                          <FormSelect
-                            label="Quartier"
-                            value={userData.onboarding_location.quartier}
-                            onChange={(v) => setUserData({...userData, onboarding_location: {...userData.onboarding_location, quartier: v}})}
-                            options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === userData.onboarding_location.city).map(z => ({ label: z.name, value: z.name }))}
-                            icon={MapPin}
-                            placeholder="Select quartier"
-                            disabled={!userData.onboarding_location.city}
-                          />
+                        <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-4 md:p-5">
+                          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                                <Type className="size-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Typography</p>
+                                <p className="text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">Font size applies across the app. Default font is Poppins.</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleFontReset}
+                              className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:border-[var(--accent)]/40 hover:text-[var(--accent)]"
+                            >
+                              <RefreshCw className="size-3.5" />
+                              Reset
+                            </button>
+                          </div>
+
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">Font Size</p>
+                            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                              {fontSizeOptions.map((option) => {
+                                const selected = currentFontSize === option.value;
+                                return (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => handleFontSizeChange(option.value)}
+                                    className={`relative flex min-h-[58px] flex-col items-center justify-center rounded-2xl border px-3 py-2 text-center transition ${
+                                      selected
+                                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm shadow-[var(--accent)]/10'
+                                        : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/60 text-[var(--text-secondary)] hover:border-[var(--accent)]/35 hover:text-[var(--accent)]'
+                                    }`}
+                                    aria-pressed={selected}
+                                  >
+                                    {option.badge && selected && (
+                                      <span className="absolute -top-2 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">
+                                        {option.badge}
+                                      </span>
+                                    )}
+                                    <span className="flex items-center gap-1 text-[15px] font-black leading-none">
+                                      {selected && <Check className="size-3" />}
+                                      {option.label}
+                                    </span>
+                                    <span className="mt-1 text-[9px] font-bold leading-none opacity-70">{option.helper}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div className="grid grid-cols-4 px-1 text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">
+                              {fontSizeOptions.map((option) => (
+                                <span key={option.value} className="text-center">{option.size}</span>
+                              ))}
+                            </div>
+                          </div>
                         </div>
 
-                        <FormField
-                          label="Address Description"
-                          value={userData.onboarding_location.address_description}
-                          onChange={(v) => setUserData({ ...userData, onboarding_location: {...userData.onboarding_location, address_description: v} })}
-                          icon={MapPin}
-                          placeholder="Additional address details..."
-                          textarea={true}
-                        />
+                        <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-4 md:p-5">
+                          <div className="mb-3 flex items-center gap-3">
+                            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                              <Globe2 className="size-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">{t('settings.language')}</p>
+                              <p className="text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">{t('settings.languageHelp')}</p>
+                            </div>
+                          </div>
+                          <select
+                            value={language}
+                            onChange={(event) => handleLanguageChange(event.target.value)}
+                            className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 md:text-sm"
+                          >
+                            {languages.map((item) => (
+                              <option key={item.code} value={item.code}>
+                                {item.nativeLabel}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* ── Delivery / Home Address — customer & logistics only ── */}
+                        {(user?.role === 'customer' || user?.role === 'logistics') && (
+                          <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-4 md:p-5 space-y-4">
+                            <div className="flex items-center gap-3 mb-1">
+                              <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                                <MapPin className="size-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">
+                                  {user?.role === 'logistics' ? 'Home / Base Address' : 'Delivery Address'}
+                                </p>
+                                <p className="text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">
+                                  {user?.role === 'logistics'
+                                    ? 'Your base location used for wallet payments and zone matching.'
+                                    : 'Your default delivery location for wallet-based checkout.'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <FormSelect
+                                label="City"
+                                value={userData.onboarding_location.city}
+                                onChange={(v) =>
+                                  setUserData({
+                                    ...userData,
+                                    onboarding_location: {
+                                      ...userData.onboarding_location,
+                                      city: v,
+                                      quartier: '',
+                                    },
+                                  })
+                                }
+                                options={zones
+                                  .filter((z) => z.type === 'region')
+                                  .map((z) => ({ label: z.name, value: z.name }))}
+                                icon={MapPin}
+                                placeholder="Select city"
+                              />
+                              <FormSelect
+                                label="Quartier"
+                                value={userData.onboarding_location.quartier}
+                                onChange={(v) =>
+                                  setUserData({
+                                    ...userData,
+                                    onboarding_location: {
+                                      ...userData.onboarding_location,
+                                      quartier: v,
+                                    },
+                                  })
+                                }
+                                options={zones
+                                  .filter(
+                                    (z) =>
+                                      z.type === 'quartier' &&
+                                      z.parent_id?.name === userData.onboarding_location.city,
+                                  )
+                                  .map((z) => ({ label: z.name, value: z.name }))}
+                                icon={MapPin}
+                                placeholder="Select quartier"
+                                disabled={!userData.onboarding_location.city}
+                              />
+                            </div>
+
+                            <FormField
+                              label="Street / Landmark"
+                              value={userData.onboarding_location.address_description}
+                              onChange={(v) =>
+                                setUserData({
+                                  ...userData,
+                                  onboarding_location: {
+                                    ...userData.onboarding_location,
+                                    address_description: v,
+                                  },
+                                })
+                              }
+                              icon={MapPin}
+                              placeholder="Building, gate, landmark, or street name…"
+                              textarea={true}
+                            />
+                          </div>
+                        )}
 
                         <button
                           onClick={handleUpdateProfile}
                           disabled={profileSaving}
-                          className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                          className="relative w-full flex items-center justify-center p-3 md:p-4 rounded-2xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                         >
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                           <span className="relative z-10 text-[11px] lg:text-[12px] md:text-xs  font-semibold tracking-tight transition-colors">
-                            {profileSaving ? 'Synchronizing state...' : 'Save identity configuration'}
+                            {profileSaving ? t('settings.saving') : t('settings.saveIdentity')}
                           </span>
                         </button>
                       </div>
@@ -454,144 +692,37 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'orders' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Order Manifest</h3>
-                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
-                  </div>
-
-                  <div className="relative z-10">
-                    {viewingOrderId ? (
-                      <div className="animate-in fade-in duration-700">
-                        <SingleOrderView orderId={viewingOrderId} onBack={handleBackToLedger} />
-                      </div>
-                    ) : (
-                      <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
-                        <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
-                        
-                        <div className="flex flex-wrap items-center gap-2 mb-8 overflow-x-auto no-scrollbar pb-2">
-                          {user?.role === 'vendor' && (
-                            <div className="flex p-1 bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--glass-border)] mr-4">
-                              <button
-                                onClick={() => setOrderView('purchases')}
-                                className={`px-4 py-1.5 rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-all ${orderView === 'purchases' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
-                              >
-                                Purchases
-                              </button>
-                              <button
-                                onClick={() => setOrderView('sales')}
-                                className={`px-4 py-1.5 rounded-xl text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-all ${orderView === 'sales' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
-                              >
-                                Sales
-                              </button>
-                            </div>
-                          )}
-                          
-                          {['all', 'placed', 'processing', 'shipped', 'completed', 'cancelled'].map(f => (
-                            <button 
-                              key={f}
-                              onClick={() => {}}
-                              className="px-4 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[10px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all capitalize"
-                            >
-                              {f === 'all' ? 'Universal' : f}
-                            </button>
-                          ))}
-                        </div>
-
-                        {ordersLoading ? (
-                          <div className="flex flex-col items-center justify-center py-20 gap-4">
-                            <div className="size-10 border-2 border-[var(--accent)]/10 border-t-[var(--accent)] rounded-full animate-spin" />
-                            
-                          </div>
-                        ) : orders.length === 0 ? (
-                          <div className="py-20 flex flex-col items-center justify-center text-center glass-panel rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30">
-                            <ShoppingBag className="w-12 h-12 text-[var(--accent)] opacity-40 mx-auto mb-4" />
-                            <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)]">No manifest records found</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {orders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((order) => {
-                              const firstItem = order.products?.[0] || order.items?.[0];
-                              const imageUrl = firstItem?.image || firstItem?.product?.image || (Array.isArray(firstItem?.product?.images) ? firstItem.product.images[0] : firstItem?.product?.images) || '/logo-white-main.png';
-                              const title = firstItem?.name || firstItem?.product?.name || `Order #${order._id.substring(0, 8)}`;
-                              
-                              const getStatusColor = (s) => {
-                                switch(s) {
-                                  case 'completed': return 'emerald';
-                                  case 'shipped': return 'blue';
-                                  case 'cancelled': return 'rose';
-                                  default: return 'amber';
-                                }
-                              };
-                              const sColor = getStatusColor(order.order_status);
-
-                              return (
-                                <button 
-                                  key={order._id} 
-                                  onClick={() => handleViewOrder(order._id)}
-                                  className="block w-full text-left group"
-                                >
-                                  <div className="relative overflow-hidden bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-2xl p-5 hover:bg-[var(--bg-secondary)]/50 hover:border-[var(--accent)]/30 transition-all duration-300">
-                                    <div className={`absolute left-0 top-0 w-1 h-full bg-${sColor}-500 opacity-20 group-hover:opacity-100 transition-opacity`} />
-                                    
-                                    <div className="flex items-center gap-5">
-                                      <div className="size-14 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden shrink-0 shadow-sm">
-                                        <img src={imageUrl} alt="" className="size-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <span className={`px-2 py-0.5 rounded-full text-[10px] lg:text-[12px]  font-semibold tracking-tight bg-${sColor}-500/10 text-${sColor}-500 border border-${sColor}-500/20 capitalize`}>
-                                            {order.shipment && ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'].includes(order.shipment.status) 
-                                              ? order.shipment.status.replace('_', ' ') 
-                                              : order.order_status || 'pending'}
-                                          </span>
-                                          <span className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40">#{order._id.slice(-8).toUpperCase()}</span>
-                                        </div>
-                                        <h4 className="text-[11px] lg:text-[12px]  font-semibold truncate group-hover:text-[var(--accent)] transition-colors">{title}</h4>
-                                      </div>
-                                      <div className="text-right shrink-0">
-                                        <div className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)]">{(order.total_amount || 0).toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-40">XAF</span></div>
-                                        <div className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40">{new Date(order.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                            <div className="pt-4">
-                              <Pagination
-                                currentPage={currentPage}
-                                totalPages={Math.ceil(orders.length / itemsPerPage)}
-                                onPageChange={setCurrentPage}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                <div className="min-w-0">
+                  {viewingOrderId ? (
+                    <div className="animate-in fade-in duration-300">
+                      <SingleOrderView orderId={viewingOrderId} onBack={handleBackToLedger} />
+                    </div>
+                  ) : (
+                    <OrdersTab user={user} onViewOrder={handleViewOrder} />
+                  )}
                 </div>
               )}
 
               {activeTab === 'security' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Security Matrix</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10 space-y-4">
-                      <div className="w-full p-5 md:p-6 bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group space-y-6">
+                      {false && (
+                      <div className="hidden">
                         <div className="flex items-center gap-4 border-b border-[var(--glass-border)] pb-4">
                           <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
                             <Lock className="size-5 text-[var(--accent)]" />
                           </div>
                           <div className="text-left">
                             <p className="text-sm  font-bold tracking-tight text-[var(--text-primary)]">Change Passphrase</p>
-                            <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60">Update your account authentication layer</p>
+                            <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60">Legacy password controls are disabled.</p>
                           </div>
                         </div>
 
@@ -638,35 +769,59 @@ export default function AccountPageClient() {
                           ) : 'Update passphrase'}
                         </button>
                       </div>
+                      )}
 
-                      <button className="w-full flex items-center justify-between p-5 md:p-6 bg-[var(--bg-secondary)]/30 hover:bg-[var(--accent)]/10 hover:border-[var(--accent)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group">
+                      <div className="w-full flex items-center justify-between p-5 md:p-6 bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2rem] transition-all group">
                         <div className="flex items-center gap-4">
                           <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
-                            <RefreshCw className="size-5 text-[var(--accent)]" />
+                            <ShieldCheck className="size-5 text-[var(--accent)]" />
                           </div>
                           <div className="text-left">
-                            <p className="text-sm  font-bold tracking-tight text-[var(--text-primary)]">Active Device Sessions</p>
-                            <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60">Monitor and revoke concurrent access points</p>
+                            <p className="text-sm  font-bold tracking-tight text-[var(--text-primary)]">Passwordless Session</p>
+                            <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60">Your account uses email OTP verification. New devices verify again; this device stays trusted.</p>
                           </div>
                         </div>
-                        <ChevronRight className="size-5 text-[var(--text-secondary)] group-hover:text-[var(--accent)] group-hover:translate-x-1 transition-all" />
-                      </button>
+                      </div>
+
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'close-account' && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
+                    <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-semibold tracking-tighter text-rose-500 shadow-sm">Close Account</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-rose-500/20 to-transparent" />
+                  </div>
+
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-rose-500/20 bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
+                    <div className="absolute -top-32 -right-32 size-64 bg-rose-500/5 rounded-full blur-[80px] pointer-events-none" />
+                    <div className="relative z-10">
+                      <DeleteAccountPanel
+                        deleteConfirm={deleteConfirm}
+                        setDeleteConfirm={setDeleteConfirm}
+                        deleteStatus={deleteStatus}
+                        deleteLoading={deleteLoading}
+                        confirmationWord={deleteConfirmationWord}
+                        onDelete={handleDeleteAccount}
+                      />
                     </div>
                   </div>
                 </div>
               )}
 
               {activeTab === 'store' && user?.role === 'vendor' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Storefront Architecture</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
-                    <div className="relative z-10 space-y-6 md:space-y-8">
+                    <div className="relative z-10 space-y-3 md:space-y-4">
                       <FormField
                         label="Store Name"
                         value={storeData.store_name}
@@ -683,14 +838,51 @@ export default function AccountPageClient() {
                         placeholder="Describe your store..."
                         textarea={true}
                       />
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                        <FormField
+                          label="Estimated Delivery Time"
+                          value={storeData.delivery_time}
+                          onChange={(v) => setStoreData({ ...storeData, delivery_time: v })}
+                          icon={Clock}
+                          placeholder="1-3 days, Same day, Within 24 hours..."
+                        />
+                        <FormField
+                          label="Minimum Order Amount (XAF)"
+                          type="number"
+                          value={storeData.minimum_order_amount}
+                          onChange={(v) => setStoreData({ ...storeData, minimum_order_amount: v })}
+                          icon={ShoppingBag}
+                          placeholder="Leave blank for no minimum"
+                        />
+                      </div>
 
-                      <div className="space-y-6">
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                        <BrandingUploadCard
+                          title="Store Logo"
+                          description="Shown on products, chats, vendor cards, and your storefront profile."
+                          image={profileBranding.logo || storeData.logo}
+                          field="logo"
+                          uploading={brandingUploading === 'logo'}
+                          onUpload={handleBrandingFileUpload}
+                        />
+                        <BrandingUploadCard
+                          title="Store Banner"
+                          description="Shown as the wide storefront header and marketplace cover image."
+                          image={profileBranding.banner || storeData.banner}
+                          field="banner"
+                          uploading={brandingUploading === 'banner'}
+                          onUpload={handleBrandingFileUpload}
+                          wide
+                        />
+                      </div>
+
+                      <div className="space-y-3">
                         <div className="flex items-center gap-4">
                           <MapPin className="size-4 text-[var(--accent)]" />
-                          <h4 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)]">Pickup Address Configuration</h4>
+                          <h4 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)]">Store Pickup Address Configuration</h4>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                           <FormSelect
                             label="City"
                             value={storeData.pickup_address.city}
@@ -711,11 +903,11 @@ export default function AccountPageClient() {
                         </div>
 
                         <FormField
-                          label="Pickup Address Description"
+                          label="Store Pickup Address Description"
                           value={storeData.pickup_address.address_description}
                           onChange={(v) => setStoreData({ ...storeData, pickup_address: { ...storeData.pickup_address, address_description: v } })}
                           icon={MapPin}
-                          placeholder="Specific address details..."
+                          placeholder="Describe the exact store pickup point, landmark, building, floor, or gate..."
                           textarea={true}
                         />
                       </div>
@@ -723,7 +915,7 @@ export default function AccountPageClient() {
                       <button
                         onClick={handleUpdateStore}
                         disabled={loading}
-                        className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                        className="relative w-full flex items-center justify-center p-3 md:p-4 rounded-2xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                       >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                         <div className="relative z-10 flex items-center gap-3">
@@ -739,39 +931,100 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'kyc' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Identity Validation</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10">
-                      {kycStatus === 'approved' ? (
+                      {isKycApproved ? (
                         <div className="flex flex-col items-center justify-center text-center p-12 bg-emerald-500/5 border border-emerald-500/20 rounded-[2rem]">
                           <div className="size-20 rounded-full bg-emerald-500/10 flex items-center justify-center mb-6 border border-emerald-500/20">
                             <ShieldCheck className="size-10 text-emerald-500" />
                           </div>
-                          <h4 className="text-xl  font-bold tracking-tight text-emerald-500 mb-2">Verified Identity</h4>
-                          <p className="text-sm text-emerald-500/60 font-medium max-w-xs">Your identity matrix has been fully synchronized and validated.</p>
+                          <h4 className="text-xl font-bold tracking-tight text-emerald-500 mb-2">Verification successful</h4>
+                          <p className="text-sm text-emerald-500/70 font-medium max-w-xs">Your identity has been verified successfully. The verified icon can now display on your account and store surfaces.</p>
+                        </div>
+                      ) : isKycRejected ? (
+                        <div className="space-y-8">
+                          <div className="flex items-center gap-5 p-6 bg-rose-500/5 border border-rose-500/20 rounded-[2rem]">
+                            <div className="size-12 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0 border border-rose-500/20">
+                              <ShieldAlert className="size-6 text-rose-500" />
+                            </div>
+                            <div>
+                              <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-rose-500">Verification denied</p>
+                              <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 mt-1">Your submitted document was denied. Update the details below and submit again for review.</p>
+                            </div>
+                          </div>
+
+                          <FormField
+                            label="Legal Full Name"
+                            value={kycData.full_name}
+                            onChange={(v) => setKycData({...kycData, full_name: v})}
+                            icon={User}
+                            placeholder="Your full name"
+                          />
+
+                          <div>
+                            <label className="block text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)] mb-2 px-1">Credential Type</label>
+                            <select
+                              value={kycData.id_type}
+                              onChange={(e) => setKycData({...kycData, id_type: e.target.value})}
+                              className="w-full bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] rounded-[1.5rem] px-5 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all text-[var(--text-primary)]"
+                            >
+                              <option value="national_id">National Identification</option>
+                              <option value="passport">Passport</option>
+                              <option value="drivers_license">Driver License</option>
+                              <option value="utility_bill">Utility Bill</option>
+                            </select>
+                          </div>
+
+                          <FormField
+                            label="Document Number"
+                            value={kycData.id_number}
+                            onChange={(v) => setKycData({...kycData, id_number: v})}
+                            icon={Database}
+                            placeholder="ID number"
+                          />
+
+                                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                            <KycUploadCard title="Front Document" image={kycData.file_url_front} field="kyc_front" uploading={brandingUploading === 'kyc_front'} onUpload={handleBrandingFileUpload} />
+                            <KycUploadCard title="Back Document" image={kycData.file_url_back} field="kyc_back" uploading={brandingUploading === 'kyc_back'} onUpload={handleBrandingFileUpload} />
+                          </div>
+
+                          <button
+                            onClick={handleKYCSubmit}
+                            disabled={kycLoading}
+                            className="relative w-full flex items-center justify-center p-3 md:p-4 rounded-2xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                          >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
+                            <div className="relative z-10 flex items-center gap-3">
+                              {kycLoading && <RefreshCw className="size-4 animate-spin" />}
+                              <span className="text-[11px] lg:text-[12px] md:text-xs font-semibold tracking-tight transition-colors">
+                                {kycLoading ? 'Submitting credentials...' : 'Resubmit verification'}
+                              </span>
+                            </div>
+                          </button>
                         </div>
                       ) : (
                         <div className="space-y-8">
-                          {kycStatus === 'pending' && (
+                          {isKycPending && (
                             <div className="flex items-center gap-5 p-6 bg-amber-500/5 border border-amber-500/20 rounded-[2rem]">
                               <div className="size-12 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20">
                                 <Clock className="size-6 text-amber-500 animate-pulse" />
                               </div>
                               <div>
-                                <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-amber-500">Validation in Progress</p>
-                                <p className="text-sm text-amber-500/60 font-medium">Our node controllers are reviewing your credentials.</p>
+                                <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-amber-500">Verification pending</p>
+                                <p className="text-sm text-amber-500/60 font-medium">Your documents are under review. We will update this page once a decision is made.</p>
                               </div>
                             </div>
                           )}
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                             <FormField
                               label="Legal Full Name"
                               value={kycData.full_name}
@@ -802,13 +1055,13 @@ export default function AccountPageClient() {
                             placeholder="Your ID number"
                           />
 
-                          <div className="space-y-6">
+                          <div className="space-y-3">
                             <div className="flex items-center gap-4">
                               <Camera className="size-4 text-[var(--accent)]" />
                               <h4 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)]">Biometric Scans</h4>
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                               <div className="space-y-3">
                                 <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)] opacity-50 px-1">Primary Face (Front)</p>
                                 <label className="relative group block w-full aspect-video border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] cursor-pointer hover:border-[var(--accent)]/50 transition-all overflow-hidden bg-[var(--bg-secondary)]/30">
@@ -843,8 +1096,8 @@ export default function AccountPageClient() {
 
                           <button
                             onClick={handleKYCSubmit}
-                            disabled={kycLoading || kycStatus === 'pending'}
-                            className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                            disabled={kycLoading || isKycPending}
+                            className="relative w-full flex items-center justify-center p-3 md:p-4 rounded-2xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                           >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                             <div className="relative z-10 flex items-center gap-3">
@@ -862,13 +1115,13 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'network' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Followed Vendors</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10">
@@ -883,11 +1136,11 @@ export default function AccountPageClient() {
                         </div>
                       ) : (
                         <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                           {followedVendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(vendor => (
                             <Link 
                               key={vendor._id} 
-                              href={`/stores/${vendor.vendor_id?._id || ''}`} 
+                              href={`/stores?id=${encodeURIComponent(vendor.vendor_id?._id || '')}`} 
                               className="group relative rounded-[2.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-[var(--accent)]/10 hover:-translate-y-2 glass-panel"
                             >
                               <div className="absolute top-0 left-0 w-full h-24 overflow-hidden">
@@ -917,7 +1170,8 @@ export default function AccountPageClient() {
                                   </div>
                                   
                                   <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold tracking-tight w-fit mx-auto ">
-                                    <Star className="size-2.5 fill-current" /> {vendor.vendor_id?.rating || '4.9'}
+                                    <Star className="size-2.5 fill-current" />
+                                    {Number(vendor.vendor_id?.rating || 0) > 0 && Number(vendor.vendor_id.rating).toFixed(1)}
                                   </div>
 
                                   <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-60  tracking-tighter">
@@ -942,7 +1196,7 @@ export default function AccountPageClient() {
                           ))}
                         </div>
                         {followedVendors.length > itemsPerPage && (
-                          <div className="mt-8 flex justify-center">
+                          <div className="mt-4 flex justify-center">
                             <Pagination
                               currentPage={currentPage}
                               totalPages={Math.ceil(followedVendors.length / itemsPerPage)}
@@ -958,13 +1212,13 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'audience' && user?.role === 'vendor' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Store Audience</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10">
@@ -995,7 +1249,7 @@ export default function AccountPageClient() {
                           ))}
                         </div>
                         {audience.length > itemsPerPage && (
-                          <div className="mt-8 flex justify-center">
+                          <div className="mt-4 flex justify-center">
                             <Pagination
                               currentPage={currentPage}
                               totalPages={Math.ceil(audience.length / itemsPerPage)}
@@ -1010,24 +1264,14 @@ export default function AccountPageClient() {
                 </div>
               )}
 
-              {activeTab === 'statuses' && (user?.role === 'vendor' || user?.role === 'admin') && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
-                    <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Story Management</h3>
-                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
-                  </div>
-                  <StatusManager />
-                </div>
-              )}
-
               {activeTab === 'notifications' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Signal Parameters</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10 space-y-4">
@@ -1037,11 +1281,141 @@ export default function AccountPageClient() {
                   </div>
                 </div>
               )}
+
+              {activeTab === 'install' && <InstallAppTab />}
+
+              {activeTab === 'wishlist' && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
+                    <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Saved Items</h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                  </div>
+
+                  <div className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)] md:rounded-[3rem]">
+                    <div className="px-4 md:px-8 lg:px-12 py-6">
+                      {wishlistLoading ? (
+                        <div className="flex items-center justify-center py-16">
+                          <RefreshCw className="size-8 text-[var(--accent)] animate-spin" />
+                        </div>
+                      ) : wishlist.length === 0 ? (
+                        <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-12 text-center shadow-inner">
+                          <Heart className="mx-auto mb-4 size-12 text-[var(--accent)] opacity-40" />
+                          <p className="text-[11px] font-semibold tracking-tight text-[var(--text-secondary)] lg:text-[12px]">Your wishlist is empty</p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {wishlist.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((product) => (
+                              <ProductCard key={product._id} product={product} layout="grid" />
+                            ))}
+                          </div>
+                          {wishlist.length > itemsPerPage && (
+                            <div className="mt-4 flex justify-center">
+                              <Pagination
+                                currentPage={currentPage}
+                                totalPages={Math.ceil(wishlist.length / itemsPerPage)}
+                                onPageChange={setCurrentPage}
+                              />
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
     </div>
+  );
+}
+
+function DeleteAccountPanel({ deleteConfirm, setDeleteConfirm, deleteStatus, deleteLoading, confirmationWord, onDelete }) {
+  const isConfirmed = deleteConfirm.trim().toUpperCase() === confirmationWord;
+
+  return (
+    <div className="w-full p-5 md:p-6 bg-rose-500/5 border border-rose-500/20 rounded-[2rem] transition-all space-y-5">
+      <div className="flex items-center gap-4">
+        <div className="size-10 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
+          <ShieldAlert className="size-5 text-rose-500" />
+        </div>
+        <div className="text-left">
+          <p className="text-sm font-bold tracking-tight text-rose-500">Close Account</p>
+          <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-70">
+            Deletes your profile, tokens, carts, messages, listings, follows, notifications, and account-linked records. This cannot be undone.
+          </p>
+        </div>
+      </div>
+
+      <input
+        value={deleteConfirm}
+        onChange={(e) => setDeleteConfirm(e.target.value.toUpperCase())}
+        placeholder={`Type ${confirmationWord} to confirm`}
+        className="w-full bg-[var(--bg-primary)]/70 border border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-rose-500/30"
+      />
+
+      {deleteStatus && (
+        <div className="text-[11px] font-semibold text-center px-4 py-2 rounded-lg bg-rose-500/10 text-rose-500">
+          {deleteStatus}
+        </div>
+      )}
+
+      <button
+        onClick={onDelete}
+        disabled={deleteLoading || !isConfirmed}
+        className="w-full py-3 md:py-4 rounded-full font-bold text-xs tracking-tight bg-rose-600 text-white hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20"
+      >
+        {deleteLoading ? (
+          <div className="size-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+        ) : 'Close account permanently'}
+      </button>
+    </div>
+  );
+}
+
+function BrandingUploadCard({ title, description, image, field, uploading, onUpload, wide = false }) {
+  return (
+    <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-5 space-y-4">
+      <div className={`${wide ? 'aspect-[2.4/1]' : 'aspect-square max-w-44'} w-full rounded-2xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-primary)]/70 overflow-hidden flex items-center justify-center shadow-inner`}>
+        {image ? (
+          <img src={image} className="size-full object-cover" alt="" />
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-[var(--text-secondary)] opacity-35">
+            <Camera className="size-8" />
+            <span className="text-[11px] font-bold tracking-tight">No {field}</span>
+          </div>
+        )}
+      </div>
+      <div className="space-y-1">
+        <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">{title}</p>
+        <p className="text-[11px] font-semibold leading-relaxed text-[var(--text-secondary)] opacity-60">{description}</p>
+      </div>
+      <label className="block">
+        <input type="file" accept="image/*" className="hidden" onChange={(e) => onUpload(field, e.target.files?.[0])} />
+        <div className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[11px] font-bold tracking-tight text-[var(--text-primary)] transition-all hover:border-[var(--accent)]/50 hover:text-[var(--accent)]">
+          {uploading ? <RefreshCw className="size-3.5 animate-spin" /> : <Camera className="size-3.5" />}
+          {uploading ? 'Uploading...' : `Upload ${title}`}
+        </div>
+      </label>
+    </div>
+  );
+}
+
+function KycUploadCard({ title, image, field, uploading, onUpload }) {
+  return (
+    <label className="group relative aspect-video rounded-[2rem] border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 overflow-hidden cursor-pointer flex items-center justify-center hover:border-[var(--accent)]/50 transition-all shadow-inner">
+      {image ? (
+        <img src={image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
+      ) : (
+        <div className="text-center p-6">
+          {uploading ? <RefreshCw className="size-8 mx-auto mb-3 text-[var(--accent)] animate-spin" /> : <Camera className="size-8 mx-auto mb-3 text-[var(--accent)] opacity-40" />}
+          <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)]">{uploading ? 'Uploading...' : title}</p>
+        </div>
+      )}
+      <input type="file" accept="image/*" className="hidden" onChange={(e) => onUpload(field, e.target.files?.[0])} />
+    </label>
   );
 }
 
@@ -1100,6 +1474,190 @@ function NotificationToggle({ label, icon: Icon, active }) {
       </div>
       <div className={`w-12 h-6 rounded-full transition-colors relative ${active ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}>
         <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--text-primary)] transition-transform ${active ? 'left-[26px]' : 'left-0.5'}`} />
+      </div>
+    </div>
+  );
+}
+
+function InstallAppTab() {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isReady, setIsReady] = useState(false);
+  const [activePlatform, setActivePlatform] = useState('android'); // 'android' | 'ios' | 'desktop'
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsReady(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      setIsReady(false);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setIsReady(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 px-1 md:px-2">
+        <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-semibold tracking-tighter text-[var(--accent)] shadow-sm">
+          App Installation Portal
+        </h3>
+        <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+      </div>
+
+      <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
+        <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">
+          <div className="w-full md:w-2/5 flex flex-col items-center justify-center p-6 bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] rounded-[2.5rem] text-center">
+            <div className="size-20 rounded-3xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center mb-4 text-[var(--accent)]">
+              <Smartphone className="size-10" />
+            </div>
+            <h4 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">Auradime Mobile</h4>
+            <p className="text-xs text-[var(--text-secondary)] opacity-70 mt-2 max-w-xs">
+              Install the official app for the fastest shopping, instant notifications, and smooth animations.
+            </p>
+            <div className="mt-6 w-full space-y-3">
+              <a
+                href="/downloads/Auradime.apk"
+                download
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[var(--accent)] text-white font-bold text-xs tracking-wide shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-[0.98] transition-all"
+              >
+                <Download className="size-4" />
+                Download Android APK
+              </a>
+              {isReady && (
+                <button
+                  onClick={handleInstallClick}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] text-[var(--text-primary)] font-bold text-xs tracking-wide hover:bg-[var(--bg-primary)] active:scale-[0.98] transition-all"
+                >
+                  <Smartphone className="size-4" />
+                  Install Web App (PWA)
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="w-full md:w-3/5 space-y-6">
+            <div>
+              <h5 className="text-sm font-bold tracking-tight text-[var(--text-primary)] mb-4">Installation Guide</h5>
+              <div className="flex gap-2 p-1 bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-2xl">
+                {['android', 'ios', 'desktop'].map((plat) => (
+                  <button
+                    key={plat}
+                    onClick={() => setActivePlatform(plat)}
+                    className={`flex-1 py-2 text-center text-xs font-bold rounded-xl transition-all capitalize ${
+                      activePlatform === plat
+                        ? 'bg-[var(--accent)] text-white shadow-md'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {plat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {activePlatform === 'android' && (
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Tap the <strong className="text-[var(--text-primary)]">Download Android APK</strong> button to download the install file.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Open the downloaded <code className="bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded text-[var(--text-primary)]">Auradime.apk</code> file from your notifications or files app.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      If prompted, enable installation from <strong className="text-[var(--text-primary)]">Unknown Sources</strong> in your settings.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">4</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Alternatively, click the <strong className="text-[var(--text-primary)]">Install Web App</strong> button if you prefer a lighter, browser-based app.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {activePlatform === 'ios' && (
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Make sure you are using <strong className="text-[var(--text-primary)]">Safari browser</strong> to install.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Tap the <strong className="text-[var(--text-primary)]">Share</strong> button at the bottom navigation bar of Safari.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Scroll down and tap <strong className="text-[var(--text-primary)]">Add to Home Screen</strong>.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">4</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Tap <strong className="text-[var(--text-primary)]">Add</strong> in the top-right corner to launch Aura from your home screen.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {activePlatform === 'desktop' && (
+                <div className="space-y-3">
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">1</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Using Chrome or Edge on desktop, look at the right side of the address bar.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">2</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Click the <strong className="text-[var(--text-primary)]">Install</strong> icon (looks like a monitor with an arrow, or a plus sign).
+                    </p>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <div className="size-6 shrink-0 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center text-xs font-bold mt-0.5">3</div>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      Confirm by clicking <strong className="text-[var(--text-primary)]">Install</strong> in the browser prompt.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

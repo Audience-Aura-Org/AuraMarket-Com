@@ -2,7 +2,7 @@ const Notification = require('../models/Notification.model');
 
 /**
  * controllers/notification.controller.js
- * Aura Market — User Notifications
+ * Auradime — User Notifications
  */
 
 // @route   GET /api/notifications

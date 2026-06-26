@@ -1,17 +1,18 @@
 /**
  * controllers/withdrawal.controller.js
- * Aura Market — Withdrawal Request System (Eversend Payout)
+ * Auradime — Withdrawal Request System (Eversend Payout)
  *
  * Flow:
  *   1. User/Vendor submits → status: "pending" (Immediate balance deduction & Pending Transaction)
- *   2. Admin approves → Eversend 2-step payout → Status completed
+ *   2. Admin approves → selected payout gateway → Status completed/approved
  *   3. Admin rejects → status: "rejected" (Refund balance, Status failed)
- *   4. Admin rechecks → sync Eversend status, refund if failed.
+ *   4. Admin rechecks → sync gateway status, refund if failed.
  */
 
 const mongoose = require('mongoose');
 const User = require('../models/User.model');
 const Vendor = require('../models/Vendor.model');
+require('../models/Store.model');
 const WithdrawalRequest = require('../models/WithdrawalRequest.model');
 const Transaction = require('../models/Transaction.model');
 const eversend = require('../services/eversend.service');
@@ -19,6 +20,108 @@ const { sendNotification } = require('../utils/notifier');
 const crypto = require('crypto');
 
 const generateTxRef = () => `AURA-WD-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
+const VALID_WITHDRAWAL_METHODS = ['momo', 'bank'];
+const VALID_PAYOUT_GATEWAYS = ['payunit', 'eversend'];
+const PAYUNIT_CASHOUT_MIN_XAF = 5000;
+
+const getWithdrawalDestination = (wr) => {
+  const d = wr.recipientDetails || {};
+  return d.phoneNumber || d.accountNumber || d.eversendTag || d.beneficiaryId || 'recipient';
+};
+
+const getMesombTxId = (response) => response?.transaction?.pk || response?.pk || response?.id || response?.transactionId || null;
+
+const getGatewayFailureMessage = (error, fallback = 'Gateway rejected the payout.') => {
+  const raw = error?.response?.data || error?.data || error?.transaction || error;
+  const code = raw?.code || raw?.error?.code || raw?.type || raw?.status || null;
+  const message = raw?.message || raw?.error?.message || error?.message || fallback;
+  return code ? `${message} (${code})` : message;
+};
+
+const firstMediaUrl = (...values) => {
+  for (const value of values) {
+    if (!value) continue;
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'object') {
+      const nested = firstMediaUrl(value.url, value.secure_url, value.src, value.path);
+      if (nested) return nested;
+    }
+  }
+  return null;
+};
+
+const buildRequesterProfiles = async (withdrawals) => {
+  const userIds = withdrawals
+    .map((wr) => wr.requestedBy?._id || wr.requestedBy)
+    .filter(Boolean)
+    .map((id) => id.toString());
+
+  const vendors = await Vendor.find({ user_id: { $in: userIds } })
+    .populate('store')
+    .lean({ virtuals: true });
+
+  const vendorByUserId = new Map(vendors.map((vendor) => [vendor.user_id?.toString(), vendor]));
+
+  return withdrawals.map((wrDoc) => {
+    const wr = wrDoc.toObject ? wrDoc.toObject({ virtuals: true }) : wrDoc;
+    const person = wr.requestedBy || {};
+    const vendor = vendorByUserId.get((person._id || wr.requestedBy || '').toString()) || null;
+    const store = vendor?.store || null;
+    const branding = person.branding || {};
+
+    const recipientName = wr.recipientDetails?.firstName && wr.recipientDetails?.lastName
+      ? `${wr.recipientDetails.firstName} ${wr.recipientDetails.lastName}`
+      : null;
+
+    const displayName =
+      store?.store_name ||
+      vendor?.store_name ||
+      branding.store_name ||
+      branding.storeName ||
+      person.store_name ||
+      person.storeName ||
+      person.name ||
+      recipientName ||
+      person.email ||
+      `${wr.role || person.role || 'User'} account`;
+
+    const avatar = firstMediaUrl(
+      person.avatar,
+      branding.logo,
+      branding.logo_url,
+      branding.logoUrl,
+      branding.avatar,
+      branding.avatar_url,
+      branding.avatarUrl
+    );
+    const logo = firstMediaUrl(
+      store?.logo,
+      vendor?.logo,
+      avatar,
+      branding.image,
+      branding.image_url,
+      branding.imageUrl
+    );
+
+    return {
+      ...wr,
+      requesterProfile: {
+        name: displayName,
+        accountName: person.name || displayName,
+        storeName: vendor?.store_name || null,
+        logo,
+        avatar,
+        image: logo || avatar,
+        banner: store?.banner || branding.banner || null,
+        email: person.email || null,
+        phone: person.phone || vendor?.phone || wr.recipientDetails?.phoneNumber || null,
+        role: person.role || wr.role,
+        vendorId: vendor?._id || null,
+        userId: person._id || wr.requestedBy || null,
+      },
+    };
+  });
+};
 
 // ── 1. SUBMIT WITHDRAWAL REQUEST ─────────────────────────────────────────────
 // @route  POST /api/withdrawals
@@ -32,16 +135,16 @@ const submitWithdrawal = async (req, res) => {
     const userId = req.user._id;
     const userRole = req.user.role;
 
-    if (!['momo', 'bank', 'eversend'].includes(withdrawalMethod)) {
+    if (!VALID_WITHDRAWAL_METHODS.includes(withdrawalMethod)) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ success: false, message: 'Invalid withdrawal method. Choose momo, bank, or eversend.' });
+      return res.status(400).json({ success: false, message: 'Invalid withdrawal method. Choose mobile wallet or bank transfer.' });
     }
 
-    if (!amount || amount < 1000) {
+    if (!amount || amount < 500) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ success: false, message: 'Minimum withdrawal amount is 1,000 XAF.' });
+      return res.status(400).json({ success: false, message: 'Minimum withdrawal amount is 500 XAF.' });
     }
 
     const { firstName, lastName, country } = recipientDetails || {};
@@ -61,12 +164,6 @@ const submitWithdrawal = async (req, res) => {
       session.endSession();
       return res.status(400).json({ success: false, message: 'Bank code and account number are required for bank withdrawal.' });
     }
-    if (withdrawalMethod === 'eversend' && !recipientDetails?.eversendTag && !recipientDetails?.beneficiaryId) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ success: false, message: 'Eversend tag or Beneficiary ID is required.' });
-    }
-
     const user = await User.findById(userId).session(session);
     if (!user.is_active) {
       await session.abortTransaction();
@@ -100,19 +197,18 @@ const submitWithdrawal = async (req, res) => {
     }
 
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const recentRequest = await WithdrawalRequest.findOne({
+    const successfulWithdrawalsToday = await WithdrawalRequest.countDocuments({
       requestedBy: userId,
       createdAt: { $gte: oneDayAgo },
-      status: { $in: ['approved', 'completed', 'failed', 'processing_error'] },
+      status: { $in: ['approved', 'completed'] },
     }).session(session);
     
-    if (recentRequest) {
+    if (successfulWithdrawalsToday >= 2) {
       await session.abortTransaction();
       session.endSession();
-      const nextAllowed = new Date(recentRequest.createdAt.getTime() + 24 * 60 * 60 * 1000);
       return res.status(429).json({
         success: false,
-        message: `You can only submit one withdrawal per 24 hours. You may submit again after ${nextAllowed.toLocaleString()}.`,
+        message: 'You can only complete 2 successful withdrawals per 24 hours. Please try again later.',
       });
     }
 
@@ -129,6 +225,7 @@ const submitWithdrawal = async (req, res) => {
       amount,
       currency,
       withdrawalMethod,
+      payoutGateway: null,
       recipientDetails: {
         phoneNumber:   recipientDetails.phoneNumber   || null,
         bankCode:      recipientDetails.bankCode      || null,
@@ -152,7 +249,7 @@ const submitWithdrawal = async (req, res) => {
       reference: generateTxRef(),
       status: 'pending',
       description: `Withdrawal via ${withdrawalMethod.toUpperCase()} to ${recipientDetails.phoneNumber || recipientDetails.accountNumber || recipientDetails.eversendTag || recipientDetails.beneficiaryId}`,
-      gateway: 'eversend',
+      gateway: 'manual',
       currency: currency,
       metadata: { withdrawal_request_id: withdrawalRequest._id },
     }], { session, ordered: true });
@@ -168,8 +265,12 @@ const submitWithdrawal = async (req, res) => {
           sendNotification(req.app, admin._id, {
             title: '💸 New Withdrawal Request',
             message: `${user.name || 'A user'} (${role}) has requested a withdrawal of ${amount.toLocaleString()} ${currency} via ${withdrawalMethod.toUpperCase()}.`,
-            type: 'admin_alert',
-            metadata: { withdrawal_id: withdrawalRequest._id, link: '/admin/withdrawals' },
+            type: 'system_alert',
+            metadata: {
+              target_id: withdrawalRequest._id,
+              withdrawal_id: withdrawalRequest._id,
+              link: '/admin/withdrawals',
+            },
             sendEmail: false,
           })
         ));
@@ -239,12 +340,13 @@ const adminGetAllWithdrawals = async (req, res) => {
 
     const total = await WithdrawalRequest.countDocuments(query);
     const pendingCount = await WithdrawalRequest.countDocuments({ status: 'pending' });
-    const withdrawals = await WithdrawalRequest.find(query)
-      .populate('requestedBy', 'name email phone avatar role')
+    const withdrawalDocs = await WithdrawalRequest.find(query)
+      .populate('requestedBy', 'name email phone avatar role branding store_name storeName')
       .populate('reviewedBy', 'name email')
       .sort('-createdAt')
       .skip((page - 1) * limit)
       .limit(Number(limit));
+    const withdrawals = await buildRequesterProfiles(withdrawalDocs);
 
     return res.status(200).json({
       success: true,
@@ -262,6 +364,7 @@ const adminApproveWithdrawal = async (req, res) => {
   session.startTransaction();
 
   try {
+    const requestedGateway = req.body?.payoutGateway || req.body?.gateway || null;
     const wr = await WithdrawalRequest.findById(req.params.id).session(session);
 
     if (!wr) {
@@ -276,54 +379,138 @@ const adminApproveWithdrawal = async (req, res) => {
     }
 
     const user = await User.findById(wr.requestedBy).session(session);
+    if (!user) {
+      wr.status = 'failed';
+      wr.failureReason = 'Withdrawal owner no longer exists. No payout was sent.';
+      wr.reviewedBy = req.user._id;
+      wr.reviewedAt = new Date();
+      await wr.save({ session });
 
-    let quotationToken;
-    try {
-      const quotation = await eversend.getPayoutQuotation(
-        wr.amount,
-        wr.currency,
-        wr.currency,
-        wr.recipientDetails.country,
-        wr.withdrawalMethod
+      await Transaction.updateOne(
+        { "metadata.withdrawal_request_id": wr._id },
+        { status: 'failed' },
+        { session }
       );
-      
-      const balanceAfter = quotation?.data?.quotation?.sourceCurrencyBalanceAfter;
-      if (balanceAfter !== undefined && balanceAfter < 0) {
-        throw new Error(`Insufficient funds in Eversend ${wr.currency} wallet.`);
-      }
-      
-      quotationToken = quotation?.data?.token || quotation?.token;
-      if (!quotationToken) throw new Error('No quotation token returned from Eversend.');
-    } catch (quotErr) {
-      await session.abortTransaction();
+
+      await session.commitTransaction();
       session.endSession();
-      console.error('[adminApproveWithdrawal] Quotation failed:', quotErr.message);
-      return res.status(502).json({
+      return res.status(410).json({
         success: false,
-        message: `Eversend quotation failed: ${quotErr.response?.data?.message || quotErr.message}. Please try again.`,
+        message: 'Withdrawal owner no longer exists. Request marked as failed and no payout was sent.',
+        data: { withdrawal: wr },
       });
     }
 
-    let payoutResult;
+    const payoutGateway = requestedGateway || wr.payoutGateway || 'payunit';
+    if (!VALID_PAYOUT_GATEWAYS.includes(payoutGateway)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: 'Choose PayUnit or Eversend as the payout gateway.' });
+    }
+
+    if (payoutGateway === 'payunit') {
+      if (String(wr.currency || 'XAF').toUpperCase() === 'XAF' && Number(wr.amount || 0) < PAYUNIT_CASHOUT_MIN_XAF) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: `PayUnit cashout requires at least ${PAYUNIT_CASHOUT_MIN_XAF.toLocaleString()} XAF. Approve this request with Eversend or process it manually outside PayUnit.`,
+        });
+      }
+
+      const manualRef = `PAYUNIT-CASHOUT-${wr._id}`;
+      wr.status = 'approved';
+      wr.payoutGateway = 'payunit';
+      wr.eversendTransactionId = manualRef;
+      wr.eversendStatus = 'MANUAL_CASHOUT_REQUIRED';
+      wr.reviewedBy = req.user._id;
+      wr.reviewedAt = new Date();
+      wr.failureReason = null;
+      await wr.save({ session });
+
+      await Transaction.updateOne(
+        { "metadata.withdrawal_request_id": wr._id },
+        {
+          status: 'pending',
+          gateway: 'payunit',
+          gateway_transaction_id: manualRef,
+          gateway_response: {
+            mode: 'manual_cashout_required',
+            minimum_xaf: PAYUNIT_CASHOUT_MIN_XAF,
+            destination: getWithdrawalDestination(wr),
+            instructions: 'Create and confirm the cashout from the PayUnit dashboard, then mark this withdrawal completed after PayUnit confirms settlement.',
+          },
+          description: `Withdrawal approved for PayUnit cashout to ${getWithdrawalDestination(wr)}`,
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      setImmediate(async () => {
+        try {
+          await sendNotification(req.app, wr.requestedBy, {
+            title: 'Withdrawal Approved',
+            message: `Your withdrawal of ${wr.amount.toLocaleString()} ${wr.currency} has been approved and is awaiting PayUnit cashout confirmation.`,
+            type: 'wallet_update',
+            metadata: { withdrawal_id: wr._id, link: '/wallet' },
+            sendEmail: true,
+          });
+        } catch (e) { console.error(e.message); }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Withdrawal approved for PayUnit. Complete the cashout in the PayUnit dashboard.',
+        data: { withdrawal: wr, payoutGateway, payoutTransactionId: manualRef, manual: true },
+      });
+    }
+
+    let payoutResult = null;
+    let payoutTxId = null;
+    let payoutStatus = 'pending';
+    let quotationToken = null;
     const { recipientDetails } = wr;
     const txRef = wr._id.toString();
 
     try {
-      if (wr.withdrawalMethod === 'momo') {
+      const eversendMethod = wr.withdrawalMethod;
+      const quotation = await eversend.getPayoutQuotation(
+        wr.amount,
+        wr.currency,
+        wr.currency,
+        recipientDetails.country,
+        eversendMethod
+      );
+        
+      const balanceAfter = quotation?.data?.quotation?.sourceCurrencyBalanceAfter;
+      if (balanceAfter !== undefined && balanceAfter < 0) {
+        throw new Error(`Insufficient funds in Eversend ${wr.currency} wallet.`);
+      }
+        
+      quotationToken = quotation?.data?.token || quotation?.token;
+      if (!quotationToken) throw new Error('No quotation token returned from Eversend.');
+
+      if (eversendMethod === 'momo') {
         payoutResult = await eversend.executeMomoPayout(quotationToken, recipientDetails.phoneNumber, recipientDetails.firstName, recipientDetails.lastName, recipientDetails.country, txRef);
-      } else if (wr.withdrawalMethod === 'bank') {
+      } else if (eversendMethod === 'bank') {
         payoutResult = await eversend.executeBankPayout(quotationToken, recipientDetails.bankCode, recipientDetails.accountNumber, recipientDetails.firstName, recipientDetails.lastName, recipientDetails.country, txRef);
-      } else if (wr.withdrawalMethod === 'eversend') {
+      } else if (eversendMethod === 'eversend') {
         if (recipientDetails.beneficiaryId) {
           payoutResult = await eversend.executeBeneficiaryPayout(quotationToken, recipientDetails.beneficiaryId, txRef);
         } else {
           payoutResult = await eversend.executeEversendPayout(quotationToken, recipientDetails.eversendTag, txRef);
         }
+      } else {
+        throw new Error('Eversend cannot process this withdrawal method.');
       }
+      payoutTxId = payoutResult?.data?.transactionId || payoutResult?.transactionId;
+      payoutStatus = payoutResult?.data?.status || payoutResult?.status || 'pending';
     } catch (payoutErr) {
       // Payout failed — refund user
       wr.status = 'failed';
-      wr.failureReason = payoutErr.response?.data?.message || payoutErr.message;
+      wr.failureReason = getGatewayFailureMessage(payoutErr, payoutErr.message);
       wr.reviewedBy = req.user._id;
       wr.reviewedAt = new Date();
       wr.balanceDeducted = false;
@@ -359,13 +546,11 @@ const adminApproveWithdrawal = async (req, res) => {
       });
     }
 
-    const eversendTxId = payoutResult?.data?.transactionId || payoutResult?.transactionId;
-    const eversendStatus = payoutResult?.data?.status || payoutResult?.status || 'pending';
-
     wr.status = 'approved';
-    wr.eversendTransactionId = eversendTxId;
+    wr.payoutGateway = payoutGateway;
+    wr.eversendTransactionId = payoutTxId;
     wr.eversendQuotationToken = quotationToken;
-    wr.eversendStatus = eversendStatus;
+    wr.eversendStatus = payoutStatus;
     wr.reviewedBy = req.user._id;
     wr.reviewedAt = new Date();
     await wr.save({ session });
@@ -373,7 +558,13 @@ const adminApproveWithdrawal = async (req, res) => {
     // Update Transaction status
     await Transaction.updateOne(
       { "metadata.withdrawal_request_id": wr._id },
-      { status: 'completed', gateway_transaction_id: eversendTxId },
+      {
+        status: wr.status === 'completed' ? 'completed' : 'pending',
+        gateway: payoutGateway,
+        gateway_transaction_id: payoutTxId || txRef,
+        gateway_response: payoutResult,
+        description: `Withdrawal via ${payoutGateway.toUpperCase()} to ${getWithdrawalDestination(wr)}`,
+      },
       { session }
     );
 
@@ -383,8 +574,8 @@ const adminApproveWithdrawal = async (req, res) => {
     setImmediate(async () => {
       try {
         await sendNotification(req.app, wr.requestedBy, {
-          title: 'Withdrawal Approved — Processing',
-          message: `Your withdrawal of ${wr.amount.toLocaleString()} ${wr.currency} has been approved and is being processed. Eversend Ref: ${eversendTxId || wr._id}.`,
+          title: wr.status === 'completed' ? 'Withdrawal Successful' : 'Withdrawal Approved — Processing',
+          message: `Your withdrawal of ${wr.amount.toLocaleString()} ${wr.currency} has been approved via Eversend. Reference: ${payoutTxId || wr._id}.`,
           type: 'wallet_update',
           metadata: { withdrawal_id: wr._id, link: '/wallet' },
           sendEmail: true,
@@ -395,7 +586,7 @@ const adminApproveWithdrawal = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Withdrawal approved. Payout sent to Eversend.',
-      data: { withdrawal: wr, eversendTransactionId: eversendTxId },
+      data: { withdrawal: wr, payoutGateway, payoutTransactionId: payoutTxId },
     });
   } catch (err) {
     await session.abortTransaction();
@@ -493,26 +684,48 @@ const adminRecheckWithdrawal = async (req, res) => {
       session.endSession();
       return res.status(404).json({ success: false, message: 'Withdrawal request not found.' });
     }
-    if (!wr.eversendTransactionId) {
+    const payoutGateway = wr.payoutGateway || (wr.eversendTransactionId ? 'eversend' : null);
+    if (!payoutGateway) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: 'No supported payout gateway is attached to this withdrawal.',
+      });
+    }
+
+    const gatewayTxId = wr.eversendTransactionId;
+
+    if (payoutGateway === 'payunit') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(200).json({
+        success: true,
+        message: 'PayUnit withdrawals are cashout-dashboard controlled. Confirm the cashout in PayUnit, then update the withdrawal from the admin payout queue.',
+        data: { withdrawal: wr, payoutGateway, gatewayStatus: wr.eversendStatus || 'MANUAL_CASHOUT_REQUIRED' },
+      });
+    }
+
+    if (!gatewayTxId) {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ success: false, message: 'No Eversend transaction ID on this record. Cannot recheck.' });
     }
 
     let txData;
+    let normalizedStatus;
     try {
-      const result = await eversend.getTransactionStatus(wr.eversendTransactionId);
+      const result = await eversend.getTransactionStatus(gatewayTxId);
       txData = result?.data || result;
+      normalizedStatus = (txData?.status || '').toUpperCase();
+      wr.eversendStatus = normalizedStatus;
     } catch (e) {
       await session.abortTransaction();
       session.endSession();
       return res.status(502).json({ success: false, message: `Eversend status check failed: ${e.message}` });
     }
 
-    const eversendStatus = (txData?.status || '').toUpperCase();
-    wr.eversendStatus = eversendStatus;
-
-    if (eversendStatus === 'SUCCESSFUL') {
+    if (normalizedStatus === 'SUCCESSFUL') {
       wr.status = 'completed';
       await wr.save({ session });
       
@@ -540,10 +753,10 @@ const adminRecheckWithdrawal = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: 'Withdrawal confirmed successful by Eversend.',
-        data: { withdrawal: wr, eversendStatus }
+        data: { withdrawal: wr, payoutGateway, gatewayStatus: normalizedStatus }
       });
 
-    } else if (eversendStatus === 'FAILED') {
+    } else if (normalizedStatus === 'FAILED') {
       if (wr.balanceDeducted) {
         const user = await User.findById(wr.requestedBy).session(session);
         user.wallet_balance += wr.amount;
@@ -551,7 +764,7 @@ const adminRecheckWithdrawal = async (req, res) => {
         wr.balanceDeducted = false;
       }
       wr.status = 'failed';
-      wr.failureReason = txData?.reason || 'Eversend reported this payout as failed.';
+      wr.failureReason = txData?.reason || txData?.message || 'Eversend reported this payout as failed.';
       await wr.save({ session });
       
       await Transaction.updateOne(
@@ -566,7 +779,7 @@ const adminRecheckWithdrawal = async (req, res) => {
       setImmediate(async () => {
         try {
           await sendNotification(req.app, wr.requestedBy, {
-            title: '❌ Withdrawal Failed',
+            title: 'Withdrawal Failed',
             message: `Your withdrawal payout failed on Eversend. Your balance has been restored. Reference: ${wr._id}.`,
             type: 'wallet_update',
             metadata: { withdrawal_id: wr._id, link: '/wallet' },
@@ -578,7 +791,7 @@ const adminRecheckWithdrawal = async (req, res) => {
       return res.status(200).json({
         success: true,
         message: 'Withdrawal marked as failed. Balance restored.',
-        data: { withdrawal: wr, eversendStatus }
+        data: { withdrawal: wr, payoutGateway, gatewayStatus: normalizedStatus }
       });
 
     } else {
@@ -588,8 +801,8 @@ const adminRecheckWithdrawal = async (req, res) => {
 
       return res.status(200).json({
         success: true,
-        message: `Withdrawal is still ${eversendStatus || 'PENDING'} on Eversend. Try again later.`,
-        data: { withdrawal: wr, eversendStatus }
+        message: `Withdrawal is still ${normalizedStatus || 'PENDING'} on Eversend. Try again later.`,
+        data: { withdrawal: wr, payoutGateway, gatewayStatus: normalizedStatus }
       });
     }
   } catch (err) {
@@ -600,6 +813,79 @@ const adminRecheckWithdrawal = async (req, res) => {
   }
 };
 
+const adminCompleteManualWithdrawal = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const wr = await WithdrawalRequest.findById(req.params.id).session(session);
+    if (!wr) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ success: false, message: 'Withdrawal request not found.' });
+    }
+
+    if (wr.payoutGateway !== 'payunit') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: 'Manual completion is only available for PayUnit cashout withdrawals.' });
+    }
+
+    if (wr.status !== 'approved') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: `Cannot complete a withdrawal with status: ${wr.status}.` });
+    }
+
+    wr.status = 'completed';
+    wr.eversendStatus = 'SUCCESSFUL';
+    wr.reviewedBy = req.user._id;
+    wr.reviewedAt = new Date();
+    await wr.save({ session });
+
+    await Transaction.updateOne(
+      { "metadata.withdrawal_request_id": wr._id },
+      {
+        status: 'completed',
+        gateway: 'payunit',
+        gateway_response: {
+          mode: 'manual_cashout_confirmed',
+          confirmed_by: req.user._id,
+          confirmed_at: new Date(),
+          note: req.body?.note || null,
+        },
+      },
+      { session }
+    );
+
+    await session.commitTransaction();
+    session.endSession();
+
+    setImmediate(async () => {
+      try {
+        await sendNotification(req.app, wr.requestedBy, {
+          title: 'Withdrawal Successful',
+          message: `Your withdrawal of ${wr.amount.toLocaleString()} ${wr.currency} has been completed.`,
+          type: 'wallet_update',
+          metadata: { withdrawal_id: wr._id, link: '/wallet' },
+          sendEmail: true,
+        });
+      } catch (e) { console.error(e.message); }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'PayUnit withdrawal marked completed.',
+      data: { withdrawal: wr, payoutGateway: 'payunit', gatewayStatus: 'SUCCESSFUL' },
+    });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('[adminCompleteManualWithdrawal]', err);
+    return res.status(500).json({ success: false, message: 'Server error during manual completion.' });
+  }
+};
+
 module.exports = {
   submitWithdrawal,
   getMyWithdrawals,
@@ -607,4 +893,5 @@ module.exports = {
   adminApproveWithdrawal,
   adminRejectWithdrawal,
   adminRecheckWithdrawal,
+  adminCompleteManualWithdrawal,
 };

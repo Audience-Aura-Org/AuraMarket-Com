@@ -1,6 +1,6 @@
 /**
  * routes/escrow.routes.js
- * Aura Market — Escrow Control Routes
+ * Auradime — Escrow Control Routes
  *
  * Secure pipelines managing the middleman Vault logic between
  * Customer payments and Vendor payouts. Explicit role partitions.

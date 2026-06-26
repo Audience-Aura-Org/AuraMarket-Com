@@ -7,6 +7,7 @@ import api from '@/services/api';
 import { ArrowRight, Plus, Minus, Trash2, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import cartStore from '@/services/cartStore';
+import { formatVariantLabel } from '@/utils/variants';
 
 export default function CartSidebar() {
   const { user } = useAuthStore();
@@ -140,7 +141,21 @@ export default function CartSidebar() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <h4 className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] truncate leading-tight ">{it.name}</h4>
-                    <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)]">{(it.price * it.quantity).toLocaleString()} XAF</span>
+                    {it.variant && (
+                      <p className="text-[9px] font-semibold text-[var(--accent)]/85 truncate leading-tight mt-0.5">
+                        {formatVariantLabel(it.variant)}
+                      </p>
+                    )}
+                    <div className="flex items-baseline gap-1.5 mt-1 flex-wrap">
+                      <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] font-mono">
+                        {(it.price * it.quantity).toLocaleString()} XAF
+                      </span>
+                      {it.compare_at_price && Number(it.compare_at_price) > Number(it.price) && (
+                        <span className="text-[9px] text-[var(--text-secondary)] line-through font-mono opacity-50">
+                          {(Number(it.compare_at_price) * it.quantity).toLocaleString()} XAF
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {/* Remove */}
                   <button

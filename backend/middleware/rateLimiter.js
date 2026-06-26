@@ -1,12 +1,32 @@
 const rateLimit = require('express-rate-limit');
+const { RedisStore } = require('rate-limit-redis');
+const { getRedis, redisFeatures } = require('../config/redis');
+
+const intEnv = (name, fallback) => {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+};
+
+const redisStore = (prefix) => {
+  if (!redisFeatures.rateLimit) return undefined;
+  const redis = getRedis();
+  if (!redis) return undefined;
+
+  return new RedisStore({
+    prefix,
+    sendCommand: (...args) => redis.call(...args),
+  });
+};
 
 /**
  * General API Limiter
  * Applied to all routes to prevent broad abuse.
  */
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1200, // Limit each IP to 1200 requests per windowMs (Higher for development/browsing)
+  store: redisStore('auradime:rl:api:'),
+  passOnStoreError: true,
+  windowMs: intEnv('API_RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000),
+  max: intEnv('API_RATE_LIMIT_MAX', 1200),
   message: {
     success: false,
     message: 'Too many requests from this IP, please try again after 15 minutes'
@@ -20,8 +40,10 @@ const apiLimiter = rateLimit({
  * Prevents brute force on login/register and rapid wallet operations.
  */
 const strictLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // Reduced to 15 minutes for development flexibility
-  max: 300, // Significantly increased from 10 to 300 for developer node testing
+  store: redisStore('auradime:rl:strict:'),
+  passOnStoreError: true,
+  windowMs: intEnv('STRICT_RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000),
+  max: intEnv('STRICT_RATE_LIMIT_MAX', 120),
   message: {
     success: false,
     message: 'Security Alert: Temporary rate limit reached. Please wait a few moments.'
@@ -35,8 +57,10 @@ const strictLimiter = rateLimit({
  * Allows a much larger burst for endpoints intended to be publicly scraped/browsed.
  */
 const publicLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // Allow larger number of requests for public endpoints
+  store: redisStore('auradime:rl:public:'),
+  passOnStoreError: true,
+  windowMs: intEnv('PUBLIC_RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000),
+  max: intEnv('PUBLIC_RATE_LIMIT_MAX', 1000),
   message: {
     success: false,
     message: 'Too many requests to public endpoint. Please try again shortly.'

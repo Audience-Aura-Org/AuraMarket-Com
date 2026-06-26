@@ -1,12 +1,17 @@
 /**
  * models/Order.model.js
- * Aura Market — Order Schema
+ * Auradime — Order Schema
  *
  * Tracks the transaction between a Customer and a Vendor.
  * Includes items purchased, pricing breakdown, shipping state, and payment method mapping.
  */
 
 const mongoose = require('mongoose');
+
+const LEGACY_PAYMENT_METHOD_MAP = {
+  mesomb: 'eversend',
+  mobile_money: 'eversend',
+};
 
 const OrderItemSchema = new mongoose.Schema({
   product_id: {
@@ -16,7 +21,10 @@ const OrderItemSchema = new mongoose.Schema({
   },
   name: { type: String, required: true },
   quantity: { type: Number, required: true, min: 1 },
-  price: { type: Number, required: true }, // price locked at time of purchase
+  price: { type: Number, required: true }, // price locked at time of purchase (effective price)
+  regular_price: { type: Number, required: true }, // product's regular price
+  sale_price: { type: Number, default: null }, // product's sale price (if applicable and used)
+  compare_at_price: { type: Number, default: null }, // product's compare at price (if applicable and used)
   image: { type: String },
   variant: { type: mongoose.Schema.Types.Mixed, default: null }
 });
@@ -44,13 +52,17 @@ const OrderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    collection_fee: {
+      type: Number,
+      default: 0,
+    },
     total_amount: {
       type: Number,
       required: true,
     },
     payment_method: {
       type: String,
-      enum: ['wallet', 'escrow', 'direct_card', 'pay_on_delivery', 'eversend', 'mesomb'],
+      enum: ['wallet', 'escrow', 'direct_card', 'pay_on_delivery', 'eversend', 'payunit'],
       required: true,
     },
     payment_status: {
@@ -123,8 +135,18 @@ OrderSchema.virtual('shipment', {
   justOne: true
 });
 
+OrderSchema.pre('validate', function normalizeLegacyPaymentMethod() {
+  if (this.payment_method && LEGACY_PAYMENT_METHOD_MAP[this.payment_method]) {
+    this.payment_method = LEGACY_PAYMENT_METHOD_MAP[this.payment_method];
+  }
+});
+
 // Optional: Indexing primarily used queries
 OrderSchema.index({ customer_id: 1, createdAt: -1 });
 OrderSchema.index({ vendor_id: 1, order_status: 1 });
+OrderSchema.index({ vendor_id: 1, createdAt: -1 });
+OrderSchema.index({ vendor_id: 1, payment_status: 1, createdAt: -1 });
+OrderSchema.index({ customer_id: 1, payment_status: 1, createdAt: -1 });
+OrderSchema.index({ order_status: 1, payment_status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', OrderSchema);

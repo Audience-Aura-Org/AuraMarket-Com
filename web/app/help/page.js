@@ -46,14 +46,14 @@ export default function HelpHubPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 transition-all duration-300">
+    <div className="min-h-screen bg-[var(--bg-secondary)] py-12 px-6 md:px-12 transition-all duration-300 pt-20 md:pt-12">
       <div className="max-w-4xl mx-auto space-y-12">
         
         {/* Slim Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
            <div className="space-y-2">
               <h1 className="text-4xl  font-bold text-[var(--text-primary)] tracking-tight">Help <span className="text-[var(--accent)]">Hub</span></h1>
-              <p className="text-xs font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">Aura Support Matrix v2.0</p>
+              <p className="text-xs font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">Auradime Support Matrix v2.0</p>
            </div>
            
            <div className="relative group w-full md:w-80">
@@ -61,7 +61,7 @@ export default function HelpHubPage() {
               <input 
                 type="text" 
                 placeholder="Search resources..." 
-                className="w-full h-12 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-4 text-sm focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5 transition-all outline-none"
+                className="w-full h-12 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-4 !text-base placeholder:!text-base focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5 transition-all outline-none"
               />
            </div>
         </div>
@@ -120,7 +120,7 @@ export default function HelpHubPage() {
                       Start Transmission <Zap className="size-3 fill-white" />
                    </button>
                  )}
-                 <a href="mailto:support@auramarket.global" className="size-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:bg-white/10 transition-all">
+                 <a href="mailto:support@auradime.com" className="size-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:bg-white/10 transition-all">
                     <Mail className="size-5" />
                  </a>
               </div>
@@ -151,7 +151,7 @@ export default function HelpHubPage() {
         {/* Slim Legal Footnote */}
         <div className="pt-12 text-center">
            <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-20 tracking-[0.3em] ">
-              Operated via Aura Global Systems Node // Douala, CM
+              Operated via Auradime Global Systems Node // Douala, CM
            </p>
         </div>
 

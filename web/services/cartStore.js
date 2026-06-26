@@ -1,6 +1,6 @@
 /**
  * services/cartStore.js
- * Aura Market — Centralized Cart State Manager
+ * Auradime — Centralized Cart State Manager
  *
  * A lightweight, event-driven cart store that acts as the single source
  * of truth for cart data across all components (TopNav, CartSidebar,
@@ -16,6 +16,7 @@
  */
 
 import api from './api';
+import { applyVariantPricing } from '../utils/variants';
 
 // ── Internal State ────────────────────────────────────────────────────────────
 
@@ -30,17 +31,23 @@ let _sidebarOpen = true;    // Default open on desktop per user preference
 
 function parseItems(raw) {
   if (!Array.isArray(raw)) return [];
-  return raw.map(i => ({
-    id: i._id || (i.product?._id || i.product),
-    productId: i.product?._id || i.product,
-    name: i.product?.name || 'Product',
-    price: i.product?.price || 0,
-    quantity: i.quantity || 1,
-    image: i.product?.images?.[0]?.url || i.product?.images?.[0] || '',
-    vendor_name: i.product?.vendor_id?.store_name || 'Vendor',
-    vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id || null,
-    raw: i,
-  }));
+  return raw.map(i => {
+    const priced = applyVariantPricing(i.product || {}, i.variant);
+    const key = i.variant ? `${i.product?._id || i.product}::${JSON.stringify(i.variant)}` : (i.product?._id || i.product);
+    return {
+      id: i._id || key,
+      productId: i.product?._id || i.product,
+      name: i.product?.name || 'Product',
+      price: priced.price,
+      compare_at_price: priced.compare_at_price,
+      quantity: i.quantity || 1,
+      image: priced.image || '',
+      variant: i.variant || null,
+      vendor_name: i.product?.vendor_id?.store_name || 'Vendor',
+      vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id || null,
+      raw: i,
+    };
+  });
 }
 
 function notify() {
@@ -216,18 +223,26 @@ export const cartStore = {
    * This provides the 'Liquid' feel before the server responds.
    */
   addItem(product, quantity = 1) {
+    const priced = applyVariantPricing(product, product.variant);
+    const baseId = product._id || product.id;
+    const key = product.variant ? `${baseId}::${JSON.stringify(product.variant)}` : baseId;
     const newItem = {
-      id: product._id || product.id,
-      productId: product._id || product.id,
+      id: key,
+      productId: baseId,
       name: product.name,
-      price: product.price,
+      price: priced.price,
+      compare_at_price: priced.compare_at_price,
+      variant: product.variant || null,
       quantity,
-      image: product.images?.[0]?.url || product.images?.[0] || '',
+      image: priced.image || '',
       vendor_name: product.vendor_id?.store_name || 'Vendor',
       vendor_id: product.vendor_id?._id || product.vendor_id || null,
     };
 
-    const existingIndex = _items.findIndex(it => it.id === newItem.id);
+    const existingIndex = _items.findIndex(it => 
+      it.productId === newItem.productId && 
+      JSON.stringify(it.variant || null) === JSON.stringify(newItem.variant || null)
+    );
     if (existingIndex !== -1) {
       // Immutable update — new array + new item object
       _items = _items.map((it, i) =>

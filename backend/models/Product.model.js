@@ -1,6 +1,6 @@
 /**
  * models/Product.model.js
- * Aura Market — Product Schema
+ * Auradime — Product Schema
  *
  * Defines the structure for products sold by vendors. Includes details like
  * pricing, stock levels, categories, images, and a featured flag for admin control.
@@ -32,10 +32,24 @@ const ProductSchema = new mongoose.Schema(
       required: [true, 'Product price is required'],
       min: [0, 'Price cannot be negative'],
     },
+    compare_at_price: {
+      type: Number,
+      default: null,
+      min: [0, 'Compare-at price cannot be negative'],
+    },
+    sale_price: {
+      type: Number,
+      default: null,
+      min: [0, 'Sale price cannot be negative'],
+    },
+    on_sale: {
+      type: Boolean,
+      default: false,
+    },
     images: [
       {
         url: { type: String, required: true },
-        alt: { type: String }, // Cloudinary URLs
+        alt: { type: String },
       },
     ],
     category: {
@@ -63,7 +77,7 @@ const ProductSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'draft', 'archived', 'pending'],
+      enum: ['active', 'draft', 'archived', 'pending', 'suspended'],
       default: 'active',
     },
     rating: {
@@ -119,8 +133,27 @@ const ProductSchema = new mongoose.Schema(
     sku_variants: [
       {
         combination: mongoose.Schema.Types.Mixed, // e.g., { "Size": "M", "Color": "Red" }
-        price: Number,
-        stock: Number,
+        price: {
+          type: Number,
+          required: [true, 'Variant price is required'],
+          min: [0, 'Variant price cannot be negative']
+        },
+        sale_price: {
+          type: Number,
+          default: null,
+          min: [0, 'Variant sale price cannot be negative']
+        },
+        compare_at_price: {
+          type: Number,
+          default: null,
+          min: [0, 'Variant compare-at price cannot be negative']
+        },
+        stock: {
+          type: Number,
+          required: [true, 'Variant stock is required'],
+          min: [0, 'Variant stock cannot be negative'],
+          default: 0
+        },
         sku: String,
         image: String
       }
@@ -135,5 +168,9 @@ const ProductSchema = new mongoose.Schema(
 ProductSchema.index({ name: 'text', description: 'text', tags: 'text' });
 // Index for filtering
 ProductSchema.index({ vendor_id: 1, status: 1 });
+ProductSchema.index({ status: 1, featured: -1, updatedAt: -1 });
+ProductSchema.index({ status: 1, category: 1, updatedAt: -1 });
+ProductSchema.index({ vendor_id: 1, status: 1, updatedAt: -1 });
+ProductSchema.index({ status: 1, purchase_count: -1, view_count: -1 });
 
 module.exports = mongoose.model('Product', ProductSchema);

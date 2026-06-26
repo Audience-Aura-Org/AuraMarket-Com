@@ -1,25 +1,28 @@
 /**
  * utils/emailTemplates.js
- * Aura Market — Premium Email Templates
+ * Auradime — Premium Email Templates
  * Professional design with logo, clean aesthetic, minimal colors
  */
 
-const WEB_URL = process.env.WEB_CLIENT_URL || 'https://aura-market-com.vercel.app/';
-const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://aura-market-com.vercel.app/icon-512.png';
-const SUPPORT_EMAIL = process.env.EMAIL_USER || 'info@audienceaura.org';
+const WEB_URL = process.env.WEB_CLIENT_URL || 'https://auradime.com/';
+const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://auradime.com/icon-512.png';
+const SUPPORT_EMAIL = process.env.EMAIL_USER || 'support@auradime.com';
 
-// App brand colors — vibrant, light, modern
+// Auradime — brand aligned with app & PDF invoice (full-width email layout)
 const COLORS = {
+  bgOuter:      '#f4f5f7',
   bgPrimary:    '#ffffff',
-  bgSecondary:  '#fafafa',
-  border:       '#f0f0f0',
-  textPrimary:  '#1a1a2e',
-  textSecondary:'#64748b',
-  accent:       '#e91e8c',   // Vibrant pink-magenta
-  accentLight:  '#fce4f3',   // Very light pink tint
-  accentDark:   '#c0176e',   // Hover / darker
-  gradient:     'linear-gradient(135deg, #e91e8c 0%, #9b19f5 100%)',
-  footerBg:     '#1e1b2e',   // Deep navy-purple (not pitch black)
+  bgSecondary:  '#f8fafc',
+  border:       '#e5e7eb',
+  textPrimary:  '#111827',
+  textSecondary: '#4b5563',
+  textMuted:    '#6b7280',
+  accent:       '#5B21B6', // dark purple primary accent
+  accentDark:   '#4C1D95', // deeper purple
+  accentSoft:   '#F3E8FF', // light purple background
+  gradient:     '#5B21B6', // use primary accent for gradient
+  footerBg:     '#f8fafc',
+  stripe:       '#5B21B6',
 };
 /* ─── Premium Email Wrapper ─── */
 const wrap = (title, heading, body) => `
@@ -31,33 +34,47 @@ const wrap = (title, heading, body) => `
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="x-apple-disable-message-reformatting" />
   <title>${title}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body, #bodyTable { margin: 0 !important; padding: 0 !important; width: 100% !important; background: #ffffff; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, Arial, sans-serif; color: ${COLORS.textPrimary}; -webkit-font-smoothing: antialiased; }
+    body, #bodyTable { margin: 0 !important; padding: 0 !important; width: 100% !important; background: ${COLORS.bgOuter}; font-family: 'Poppins', Arial, Helvetica, sans-serif !important; color: ${COLORS.textPrimary}; -webkit-font-smoothing: antialiased; }
+    table, td, p, a, span, div, h1, h2, h3, h4, h5, h6, strong, em, th, button { font-family: 'Poppins', Arial, Helvetica, sans-serif !important; }
     img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; display: block; }
     table { border-collapse: collapse !important; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     td { padding: 0; }
     a { color: ${COLORS.accent}; }
 
-    .header-td  { padding: 22px 28px; background: ${COLORS.gradient}; }
-    .logo-img   { height: 32px; width: 32px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.25); }
-    .header-title { color: #ffffff; font-size: 16px; font-weight: 700; letter-spacing: -0.5px; margin: 0; font-family: 'Poppins', Arial, sans-serif; }
+    .header-band { background: ${COLORS.gradient}; padding: 0; }
+    .header-inner { padding: 5px 14px 6px; }
+    @media only screen and (min-width: 600px) {
+      .header-inner { padding: 7px 20px 8px !important; }
+    }
+    .logo-img { height: 36px; width: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
+    .header-title { color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 0; margin: 0; line-height: 1.05; }
+    .header-sub { color: rgba(255,255,255,0.88); font-size: 8px; margin: 2px 0 0; font-weight: 500; }
 
-    .content-td { padding: 28px 28px 8px; background: ${COLORS.bgPrimary}; }
-    .content-td h2 { font-size: 20px; color: ${COLORS.textPrimary}; margin-bottom: 10px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.2; font-family: 'Poppins', Arial, sans-serif; }
-    .content-td p  { font-size: 14px; color: ${COLORS.textSecondary}; margin-bottom: 14px; line-height: 1.7; font-family: 'Poppins', Arial, sans-serif; }
+    .accent-stripe { height: 2px; background: ${COLORS.stripe}; font-size: 0; line-height: 0; }
+
+    .content-shell { width: 100% !important; max-width: 100% !important; background: ${COLORS.bgPrimary}; }
+    .content-td { padding: 28px 20px 20px; background: ${COLORS.bgPrimary}; }
+    @media only screen and (min-width: 600px) {
+      .content-td { padding: 36px 48px 28px !important; }
+    }
+    .content-td h2 { font-size: 21px; color: ${COLORS.textPrimary}; margin: 0 0 10px; font-weight: 700; letter-spacing: -0.4px; line-height: 1.22; }
+    .content-td p  { font-size: 13px; color: ${COLORS.textSecondary}; margin: 0 0 14px; line-height: 1.6; }
     .content-td strong { color: ${COLORS.textPrimary}; font-weight: 600; }
 
-    .card { background: ${COLORS.accentLight}; border: 1px solid rgba(233,30,140,0.12); border-radius: 12px; padding: 4px 16px; margin: 18px 0; }
-    .card-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; }
-    .card-row:not(:last-child) { border-bottom: 1px solid rgba(233,30,140,0.08); }
-    .card-label { color: ${COLORS.textSecondary}; font-weight: 500; font-size: 13px; }
-    .card-value { color: ${COLORS.textPrimary}; font-weight: 600; font-size: 13px; text-align: right; }
+    .card { background: ${COLORS.accentSoft}; border: 1px solid #e9d5ff; border-radius: 14px; padding: 6px 18px; margin: 20px 0; }
+    .card-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; }
+    .card-row:not(:last-child) { border-bottom: 1px solid #f3e8ff; }
+    .card-divider { height: 1px; background: #f3e8ff; margin: 0; }
+    .card-label { color: ${COLORS.textSecondary}; font-weight: 500; font-size: 12px; }
+    .card-value { color: ${COLORS.textPrimary}; font-weight: 600; font-size: 12px; text-align: right; }
 
-    .role-badge { font-size: 11px; font-weight: 600; color: ${COLORS.accent}; background: ${COLORS.accentLight}; padding: 2px 8px; border-radius: 20px; }
+    .role-badge { font-size: 10px; font-weight: 600; color: ${COLORS.accent}; background: ${COLORS.accentSoft}; padding: 2px 8px; border-radius: 20px; }
 
-    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 600; }
     .badge-placed    { background: #e0f2fe; color: #0369a1; }
     .badge-processing{ background: #fef9c3; color: #854d0e; }
     .badge-shipped   { background: #e0e7ff; color: #4338ca; }
@@ -67,73 +84,77 @@ const wrap = (title, heading, body) => `
     .badge-refunded  { background: #f3e8ff; color: #7e22ce; }
     .badge-failed    { background: #fee2e2; color: #991b1b; }
 
-    .btn { display: inline-block; background: ${COLORS.gradient}; color: #ffffff !important; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 13px; margin: 16px 0; border: none; text-align: center; box-shadow: 0 4px 14px rgba(233,30,140,0.3); font-family: 'Poppins', Arial, sans-serif; }
+    .btn { display: inline-block; background: ${COLORS.accent}; color: #ffffff !important; text-decoration: none; padding: 13px 28px; border-radius: 12px; font-weight: 600; font-size: 13px; margin: 16px 0; border: none; text-align: center; box-shadow: 0 6px 20px rgba(91, 33, 182, 0.22); font-family: 'Poppins', Arial, Helvetica, sans-serif !important; }
 
-    .table-products { width: 100%; margin: 18px 0; border-collapse: collapse; font-size: 13px; border: 1px solid ${COLORS.border}; border-radius: 10px; overflow: hidden; }
+    .table-products { width: 100% !important; max-width: 100%; margin: 18px 0; border-collapse: collapse; font-size: 13px; border: 1px solid ${COLORS.border}; border-radius: 12px; overflow: hidden; }
     .table-products thead { background: #fafafa; }
-    .table-products th { padding: 10px 14px; text-align: left; font-weight: 600; color: ${COLORS.textSecondary}; font-size: 12px; border-bottom: 1px solid ${COLORS.border}; }
-    .table-products td { padding: 10px 14px; border-bottom: 1px solid ${COLORS.border}; color: ${COLORS.textPrimary}; font-size: 13px; }
+    .table-products th { padding: 11px 14px; text-align: left; font-weight: 600; color: ${COLORS.textSecondary}; font-size: 11px; border-bottom: 1px solid ${COLORS.border}; }
+    .table-products td { padding: 11px 14px; border-bottom: 1px solid ${COLORS.border}; color: ${COLORS.textPrimary}; font-size: 13px; }
     .table-products td.number { text-align: center; }
     .table-products td.amount { text-align: right; font-weight: 600; color: ${COLORS.accent}; }
     .table-products tbody tr:last-child td { border-bottom: none; }
 
-    .footer-td { padding: 28px 24px; text-align: center; background: ${COLORS.footerBg}; }
-    .footer-td p { font-size: 12px; color: rgba(255,255,255,0.45); margin: 5px 0; font-family: 'Poppins', Arial, sans-serif; }
-    .footer-td a { color: rgba(255,255,255,0.75); text-decoration: none; font-weight: 500; }
-    .footer-brand { font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 10px !important; letter-spacing: -0.5px; }
+    .footer-td { padding: 32px 24px; text-align: center; background: ${COLORS.footerBg}; border-top: 1px solid ${COLORS.border}; }
+    .footer-td p { font-size: 11px; color: ${COLORS.textMuted}; margin: 5px 0; font-family: 'Poppins', Arial, Helvetica, sans-serif !important; }
+    .footer-td a { color: ${COLORS.accent}; text-decoration: none; font-weight: 600; }
+    .footer-brand { font-size: 13px; font-weight: 700; color: ${COLORS.textPrimary}; margin-bottom: 8px !important; letter-spacing: -0.3px; }
 
-    .highlight { background: ${COLORS.accentLight}; border-left: 3px solid ${COLORS.accent}; padding: 12px 16px; margin: 18px 0; border-radius: 0 10px 10px 0; }
-    .highlight p { margin: 0; font-size: 13px; color: ${COLORS.textPrimary}; font-weight: 500; }
+    .highlight { background: ${COLORS.accentSoft}; border-left: 4px solid ${COLORS.accent}; padding: 13px 16px; margin: 18px 0; border-radius: 0 12px 12px 0; }
+    .highlight p { margin: 0; font-size: 12px; color: ${COLORS.textPrimary}; font-weight: 500; }
 
-    .qr-container { text-align: center; margin: 18px 0; padding: 16px; border: 1.5px dashed rgba(233,30,140,0.2); border-radius: 12px; background: #fafafa; }
+    .qr-container { text-align: center; margin: 20px 0; padding: 18px; border: 1.5px dashed #e9d5ff; border-radius: 14px; background: ${COLORS.bgSecondary}; }
     .qr-image { width: 100px; height: 100px; margin: 0 auto 8px; border-radius: 8px; }
-    .qr-text { font-size: 11px; color: ${COLORS.textSecondary}; font-weight: 500; max-width: 200px; margin: 0 auto; }
+    .qr-text { font-size: 10px; color: ${COLORS.textSecondary}; font-weight: 500; max-width: 200px; margin: 0 auto; }
 
     @media only screen and (max-width: 600px) {
-      .content-td { padding: 20px 16px 8px !important; }
-      .header-td  { padding: 18px 16px !important; }
-      .footer-td  { padding: 20px 16px !important; }
-      .card-row   { flex-direction: column; align-items: flex-start; gap: 2px; }
+      .content-td { padding: 22px 16px 16px !important; }
+      .header-inner { padding: 7px 14px 8px !important; }
+      .footer-td  { padding: 22px 16px !important; }
+      .card-row   { flex-direction: column; align-items: flex-start; gap: 4px; }
       .card-value { text-align: left !important; }
-      .btn        { display: block !important; text-align: center !important; }
+      .btn        { display: block !important; text-align: center !important; width: 100% !important; box-sizing: border-box !important; }
       table[width="100%"] { max-width: 100% !important; width: 100% !important; }
     }
   </style>
 </head>
-<body style="margin:0;padding:0;background:#ffffff;">
-  <table id="bodyTable" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0;padding:0;width:100%;background:#ffffff;">
+<body style="margin:0;padding:0;background:${COLORS.bgOuter};font-family:'Poppins',Arial,Helvetica,sans-serif !important;">
+  <table id="bodyTable" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:0;padding:0;width:100%;background:${COLORS.bgOuter};font-family:'Poppins',Arial,Helvetica,sans-serif !important;">
     <tr>
-      <td align="center" valign="top">
-        <!-- Outer wrapper: full-bleed on mobile, max-width on desktop -->
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:680px;margin:0 auto;background:#ffffff;">
-          <!-- HEADER -->
+      <td align="center" valign="top" style="padding:0;">
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%;max-width:100%;margin:0;background:${COLORS.bgPrimary};">
           <tr>
-            <td class="header-td">
-              <table cellpadding="0" cellspacing="0" border="0">
+            <td class="header-band" style="padding:0;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation">
                 <tr>
-                  <td style="padding-right:12px;vertical-align:middle;">
-                    <img src="${LOGO_URL}" alt="Aura" class="logo-img" width="32" height="32" />
-                  </td>
-                  <td style="vertical-align:middle;">
-                    <p class="header-title">Aura Market</p>
+                  <td class="header-inner">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%;">
+                      <tr>
+                        <td style="width:44px;vertical-align:middle;">
+                          <img src="${LOGO_URL}" alt="Auradime" class="logo-img" width="36" height="36" style="height:36px;width:36px;border-radius:10px;border:1px solid rgba(255,255,255,0.35);box-shadow:0 3px 8px rgba(0,0,0,0.12);" />
+                        </td>
+                        <td style="vertical-align:middle;padding-left:10px;">
+                          <p class="header-title">Aura Dime</p>
+                          <p class="header-sub">Commerce &bull; logistics &bull; fulfilment</p>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>
+              <div class="accent-stripe" style="height:2px;background:${COLORS.stripe};font-size:0;line-height:0;">&nbsp;</div>
             </td>
           </tr>
-          <!-- CONTENT -->
           <tr>
-            <td class="content-td">
+            <td class="content-td content-shell">
               <h2>${heading}</h2>
               ${body}
             </td>
           </tr>
-          <!-- FOOTER -->
           <tr>
             <td class="footer-td">
-              <p class="footer-brand">Aura Market</p>
+              <p class="footer-brand">Aura Dime</p>
               <p>Questions? <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
-              <p>© ${new Date().getFullYear()} Aura Market • Audience Aura Org</p>
+              <p>&copy; ${new Date().getFullYear()} Auradime &bull; Audience Aura Org</p>
             </td>
           </tr>
         </table>
@@ -146,10 +167,10 @@ const wrap = (title, heading, body) => `
 /* ─── Welcome / Sign Up (new template) ─── */
 const welcomeEmail = ({ user, webUrl }) => {
   const baseUrl = webUrl || WEB_URL;
-  const subject = '🎉 Welcome to Aura Market';
+  const subject = '🎉 Welcome to Auradime';
   const body = `
     <p>Hi <strong>${user.name || 'there'}</strong>,</p>
-    <p>Welcome to Aura Market! Your account is active and ready for use.</p>
+    <p>Welcome to Auradime! Your account is active and ready for use.</p>
     
     <div class="card">
       <div class="card-row">
@@ -164,8 +185,8 @@ const welcomeEmail = ({ user, webUrl }) => {
     
     ${user.role === 'vendor' ? `<a href="${baseUrl}/vendor/dashboard" class="btn">Go to Dashboard</a>` : `<a href="${baseUrl}/discovery" class="btn">Start Shopping</a>`}
   `;
-  const html = wrap(subject, 'Welcome to Aura', body);
-  return { subject, html, text: `Welcome to Aura Market, ${user.name}!` };
+  const html = wrap(subject, 'Welcome to Auradime', body);
+  return { subject, html, text: `Welcome to Auradime, ${user.name}!` };
 };
 
 /* ─── Password Reset ─── */
@@ -178,11 +199,117 @@ const passwordReset = ({ user, resetLink, webUrl }) => {
     
     <a href="${resetLink}" class="btn">Reset Password</a>
     
-    <p style="font-size: 11px; color: #888888; margin-top: 20px;">If you didn't request this, please ignore this email.</p>
+    <p style="font-size: 10px; color: #888888; margin-top: 18px;">If you didn't request this, please ignore this email.</p>
   `;
   const html = wrap(subject, 'Reset Your Password', body);
   return { subject, html, text: `Reset your password: ${resetLink}` };
 };
+
+const otpEmail = ({ otp, email, expiresMinutes = 10 }) => {
+  const subject = 'Your Auradime verification code';
+  const body = `
+    <p>Use this code to verify <strong>${email}</strong> and continue into Auradime.</p>
+
+    <div style="background:${COLORS.accentSoft};border:1px solid #e9d5ff;border-radius:14px;margin:20px 0;padding:22px;text-align:center;">
+      <div style="font-size:30px;font-weight:800;letter-spacing:7px;color:${COLORS.accentDark};font-family:'Poppins',Arial,sans-serif;">${otp}</div>
+      <p style="font-size:12px;color:${COLORS.textMuted};margin:9px 0 0;">Expires in ${expiresMinutes} minutes</p>
+    </div>
+
+    <p>If you did not request this code, you can safely ignore this email.</p>
+  `;
+  const html = wrap(subject, 'Verify your email', body);
+  return { subject, html, text: `Your Auradime verification code is ${otp}. It expires in ${expiresMinutes} minutes.` };
+};
+
+/* ─── Shared order / logistics helpers ─── */
+const orderRef = (order) => {
+  if (!order?._id) return 'N/A';
+  return order._id.toString().slice(-6).toUpperCase();
+};
+
+const productCount = (products = []) =>
+  (products || []).reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+
+const formatAddress = (address = {}) => {
+  if (!address || typeof address !== 'object') return 'Not provided';
+  const parts = [
+    address.name,
+    address.street,
+    address.quartier,
+    address.city,
+    address.region,
+    address.phone,
+  ].filter(Boolean);
+  return parts.join(', ') || 'Not provided';
+};
+
+const resolveVendorName = (order = {}) => {
+  if (typeof order.vendor_name === 'string' && order.vendor_name) return order.vendor_name;
+  if (typeof order.vendor_id === 'object' && order.vendor_id?.store_name) return order.vendor_id.store_name;
+  return 'Vendor';
+};
+
+const resolveCustomerName = (order = {}, fallback = 'Valued Customer') => {
+  if (typeof order.customer_name === 'string' && order.customer_name) return order.customer_name;
+  if (order.shipping_address?.name) return order.shipping_address.name;
+  return fallback;
+};
+
+const resolveTrackingCode = (shipment, order) =>
+  shipment?.tracking_code ||
+  order?.tracking_number ||
+  order?.tracking_code ||
+  `ORD-${orderRef(order)}`;
+
+const resolveLogisticsName = (shipment = {}, order = {}) => {
+  if (typeof order.logistics_name === 'string' && order.logistics_name) return order.logistics_name;
+  if (typeof shipment?.logistics_id === 'object' && shipment.logistics_id?.company_name) {
+    return shipment.logistics_id.company_name;
+  }
+  return null;
+};
+
+const orderSummaryCard = ({
+  order,
+  status,
+  extraRows = [],
+  includeProducts = false,
+}) => {
+  const ref = orderRef(order);
+  const rows = [
+    `<div class="card-row"><span class="card-label">Order Ref</span><span class="card-value">#${ref}</span></div>`,
+    status
+      ? `<div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge(status)}</span></div>`
+      : '',
+    `<div class="card-row"><span class="card-label">Items</span><span class="card-value">${productCount(order.products || [])} item(s)</span></div>`,
+    `<div class="card-row"><span class="card-label">Total</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>`,
+    ...extraRows,
+  ].filter(Boolean).join('');
+
+  return `
+    <div class="card">${rows}</div>
+    ${includeProducts ? formatProducts(order.products || []) : ''}
+  `;
+};
+
+const logisticsRouteCard = ({ order, shipment }) => {
+  const pickup = shipment?.pickup_address || order.vendor_id?.pickup_address || order.pickup_address;
+  const delivery = shipment?.delivery_address || order.shipping_address;
+  const tracking = resolveTrackingCode(shipment, order);
+
+  return `
+    <div class="card">
+      <div class="card-row"><span class="card-label">Tracking</span><span class="card-value">${tracking}</span></div>
+      <div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(order)}</span></div>
+      <div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>
+      <div class="card-row"><span class="card-label">Pickup</span><span class="card-value" style="text-align:right;">${formatAddress(pickup)}</span></div>
+      <div class="card-row"><span class="card-label">Delivery</span><span class="card-value" style="text-align:right;">${formatAddress(delivery)}</span></div>
+    </div>
+  `;
+};
+
+const dashboardButton = (href, label = 'View Details') =>
+  href ? `<div style="text-align: center; margin-top: 32px;"><a href="${href}" class="btn">${label}</a></div>` : '';
 
 /* ─── Product Helper ─── */
 const formatProducts = (products = []) => {
@@ -242,52 +369,70 @@ const qrSection = (qrCode) => {
 /* ─── ORDER PLACED (Customer) ─── */
 const orderPlaced = ({ order, customer, qrCode, webUrl }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
+  const ref = orderRef(order);
   const subject = `✅ Order Confirmed — #${ref}`;
   const body = `
-    <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
-    <p>Your order has been confirmed and is being prepared.</p>
+    <p>Hi <strong>${customer?.name || resolveCustomerName(order)}</strong>,</p>
+    <p>Your order has been confirmed and is being prepared by <strong>${resolveVendorName(order)}</strong>.</p>
     
-    <div class="card">
-      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
-      <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge('placed')}</span></div>
-      <div class="card-row"><span class="card-label">Total</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
-    </div>
+    ${orderSummaryCard({
+      order,
+      status: order.order_status || 'placed',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Delivery To</span><span class="card-value" style="text-align:right;">${formatAddress(order.shipping_address)}</span></div>`,
+      ],
+      includeProducts: true,
+    })}
     
     ${qrSection(qrCode)}
-    ${formatProducts(order.products || [])}
-    
-    <a href="${baseUrl}/orders" class="btn">View Order</a>
+    ${dashboardButton(`${baseUrl}/orders/${order._id}`, 'Track Order')}
   `;
   const html = wrap(subject, 'Order Confirmed', body);
-  return { subject, html, text: `Order #${ref} confirmed. Total: XAF ${(order.total_amount || 0).toLocaleString()}.` };
+  return {
+    subject,
+    html,
+    text: `Order #${ref} confirmed with ${productCount(order.products || [])} item(s). Total: XAF ${(order.total_amount || 0).toLocaleString()}. Vendor: ${resolveVendorName(order)}.`,
+  };
 };
 
 /* ─── PAYMENT CONFIRMED (Customer) ─── */
 const paymentConfirmed = ({ order, customer, qrCode, webUrl }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
+  const ref = orderRef(order);
   const subject = `💳 Payment Confirmed — #${ref}`;
   const body = `
-    <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
-    <p>Payment received. Your order is now in processing.</p>
+    <p>Hi <strong>${customer?.name || resolveCustomerName(order)}</strong>,</p>
+    <p>Payment received for your order from <strong>${resolveVendorName(order)}</strong>. Fulfillment is now in progress.</p>
     
-    <div class="card">
-      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
-      <div class="card-row"><span class="card-label">Amount</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
-    </div>
+    ${orderSummaryCard({
+      order,
+      status: order.order_status || 'processing',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Payment</span><span class="card-value">${badge(order.payment_status || 'paid')}</span></div>`,
+      ],
+      includeProducts: true,
+    })}
     
-    <a href="${baseUrl}/orders" class="btn">Track Order</a>
+    ${qrSection(qrCode)}
+    ${dashboardButton(`${baseUrl}/orders/${order._id}`, 'Track Order')}
   `;
   const html = wrap(subject, 'Payment Received', body);
-  return { subject, html, text: `Payment confirmed for Order #${ref}.` };
+  return {
+    subject,
+    html,
+    text: `Payment confirmed for Order #${ref}. ${productCount(order.products || [])} item(s), total XAF ${(order.total_amount || 0).toLocaleString()}.`,
+  };
 };
 
 /* ─── SHIPMENT STATUS CHANGED (Customer) ─── */
-const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl }) => {
+const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl, dashboardLink }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
-  const track = shipment.tracking_code;
+  const ref = orderRef(order);
+  const track = resolveTrackingCode(shipment, order);
+  const normalizedStatus = status || shipment?.status || order?.order_status || 'updated';
+  const logisticsName = resolveLogisticsName(shipment, order);
   
   const messages = {
     'picked_up': 'Your order has been picked up and is on its way to you!',
@@ -295,23 +440,35 @@ const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl }) =
     'out_for_delivery': 'Your delivery is out for delivery. Expect it soon!',
     'delivered': 'Your order has been delivered. Thank you for shopping!',
     'failed': 'We had trouble delivering your order. We\'ll attempt again shortly.',
+    'assigned': 'A carrier has been assigned to your order.',
+    'pending': 'Your shipment is awaiting pickup.',
   };
   
-  const msg = messages[status] || `Your shipment status has been updated to: ${status}.`;
-  const subject = `📦 Delivery Update — ${status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`;
+  const msg = messages[normalizedStatus] || `Your shipment status has been updated to: ${normalizedStatus.replace(/_/g, ' ')}.`;
+  const subject = `📦 Delivery Update — ${normalizedStatus.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`;
   const body = `
-    <p>Hi <strong>${recipient.name || 'there'}</strong>,</p>
+    <p>Hi <strong>${recipient?.name || resolveCustomerName(order)}</strong>,</p>
     <p>${msg}</p>
     
     <div class="card">
-      <div class="card-row"><span class="card-label">Track</span><span class="card-value">${track}</span></div>
-      <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge(status)}</span></div>
+      <div class="card-row"><span class="card-label">Order Ref</span><span class="card-value">#${ref}</span></div>
+      <div class="card-row"><span class="card-label">Tracking</span><span class="card-value">${track}</span></div>
+      <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge(normalizedStatus)}</span></div>
+      <div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>
+      ${logisticsName ? `<div class="card-row"><span class="card-label">Carrier</span><span class="card-value">${logisticsName}</span></div>` : ''}
+      <div class="card-row"><span class="card-label">Items</span><span class="card-value">${productCount(order.products || [])} item(s)</span></div>
+      <div class="card-row"><span class="card-label">Delivery To</span><span class="card-value" style="text-align:right;">${formatAddress(shipment?.delivery_address || order.shipping_address)}</span></div>
     </div>
     
-    <a href="${baseUrl}/orders" class="btn">View Details</a>
+    ${formatProducts(order.products || [])}
+    ${dashboardButton(dashboardLink || `${baseUrl}/orders/${order._id}`, 'Track Shipment')}
   `;
   const html = wrap(subject, 'Shipment Update', body);
-  return { subject, html, text: `Shipment ${track} is now ${status}.` };
+  return {
+    subject,
+    html,
+    text: `Order #${ref} / ${track} is now ${normalizedStatus}. ${productCount(order.products || [])} item(s) for ${resolveCustomerName(order)}.`,
+  };
 };
 
 /* ─── REFUND APPROVED (Customer) ─── */
@@ -356,45 +513,139 @@ const orderCompleted = ({ order, vendor, webUrl }) => {
 /* ─── NEW ORDER FOR VENDOR ─── */
 const newOrderForVendor = ({ order, vendor, webUrl }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
+  const ref = orderRef(order);
   const subject = `🛒 New Order Received — #${ref}`;
   const body = `
-    <p>Hi <strong>${vendor.store_name || 'there'}</strong>,</p>
-    <p>You have a new order! Please prepare it for shipment.</p>
+    <p>Hi <strong>${vendor?.store_name || resolveVendorName(order)}</strong>,</p>
+    <p>You have a new order from <strong>${resolveCustomerName(order)}</strong>. Please prepare it for shipment.</p>
     
-    <div class="card">
-      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
-      <div class="card-row"><span class="card-label">Total</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
-    </div>
+    ${orderSummaryCard({
+      order,
+      status: order.order_status || 'placed',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Phone</span><span class="card-value">${order.shipping_address?.phone || 'Not provided'}</span></div>`,
+        `<div class="card-row"><span class="card-label">Delivery To</span><span class="card-value" style="text-align:right;">${formatAddress(order.shipping_address)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Payment</span><span class="card-value">${badge(order.payment_status || 'pending')}</span></div>`,
+      ],
+      includeProducts: true,
+    })}
     
-    ${formatProducts(order.products || [])}
-    <a href="${baseUrl}/vendor/orders" class="btn">Manage Order</a>
+    ${dashboardButton(`${baseUrl}/vendor/orders?orderId=${order._id}`, 'Manage Order')}
   `;
   const html = wrap(subject, 'New Order', body);
-  return { subject, html, text: `New order #${ref} received.` };
+  return {
+    subject,
+    html,
+    text: `New order #${ref} from ${resolveCustomerName(order)}. ${productCount(order.products || [])} item(s), total XAF ${(order.total_amount || 0).toLocaleString()}.`,
+  };
 };
 
 /* ─── SHIPMENT ASSIGNED (Logistics) ─── */
-const shipmentAssigned = ({ shipment, order, logistics, firm, webUrl }) => {
+const shipmentAssigned = ({ shipment, order, logistics, firm, webUrl, dashboardLink }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
-  const track = shipment?.tracking_code || `ORD-${ref}`;
+  const ref = orderRef(order);
+  const track = resolveTrackingCode(shipment, order);
   const subject = `📦 New Shipment Assigned — ${track}`;
   const firmInfo = logistics || firm || {};
   
   const body = `
     <p>Hi <strong>${firmInfo.company_name || 'Partner'}</strong>,</p>
-    <p>A new delivery assignment is ready for pickup.</p>
+    <p>A new delivery assignment is ready for pickup from <strong>${resolveVendorName(order)}</strong>.</p>
     
-    <div class="card">
-      <div class="card-row"><span class="card-label">Track</span><span class="card-value">${track}</span></div>
-      <div class="card-row"><span class="card-label">Fee</span><span class="card-value">XAF ${(shipment?.price || order.shipping_fee || 0).toLocaleString()}</span></div>
-    </div>
-    
-    <a href="${baseUrl}/logistics/shipments" class="btn">View Assignment</a>
+    ${orderSummaryCard({
+      order,
+      status: shipment?.status || order.order_status || 'assigned',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Tracking</span><span class="card-value">${track}</span></div>`,
+        `<div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Delivery Fee</span><span class="card-value">XAF ${(shipment?.price || order.shipping_fee || 0).toLocaleString()}</span></div>`,
+      ],
+    })}
+
+    ${logisticsRouteCard({ order, shipment })}
+    ${formatProducts(order.products || [])}
+    ${dashboardButton(dashboardLink || `${baseUrl}/logistics/manifests`, 'View Assignment')}
   `;
   const html = wrap(subject, 'New Assignment', body);
-  return { subject, html, text: `Shipment ${track} assigned.` };
+  return {
+    subject,
+    html,
+    text: `Shipment ${track} assigned for Order #${ref}. Customer: ${resolveCustomerName(order)}. Pickup from ${resolveVendorName(order)}.`,
+  };
+};
+
+/* ─── SHIPMENT CLOSED (Logistics) ─── */
+const logisticsShipmentClosed = ({ order, shipment, logistics, webUrl, dashboardLink, message }) => {
+  const baseUrl = webUrl || WEB_URL;
+  const ref = orderRef(order);
+  const track = resolveTrackingCode(shipment, order);
+  const subject = `✅ Shipment Closed — ${track}`;
+  const firmInfo = logistics || {};
+
+  const body = `
+    <p>Hi <strong>${firmInfo.company_name || 'Partner'}</strong>,</p>
+    <p>${message || `Shipment for Order #${ref} has been confirmed delivered and settled.`}</p>
+
+    ${orderSummaryCard({
+      order,
+      status: 'delivered',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Tracking</span><span class="card-value">${track}</span></div>`,
+        `<div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>`,
+      ],
+    })}
+
+    ${dashboardButton(dashboardLink || `${baseUrl}/logistics/manifests`, 'View Manifests')}
+  `;
+  const html = wrap(subject, 'Shipment Closed', body);
+  return {
+    subject,
+    html,
+    text: `Shipment ${track} for Order #${ref} is closed. Customer: ${resolveCustomerName(order)}.`,
+  };
+};
+
+/* ─── DELIVERY CONFIRMATION (Customer) ─── */
+const deliveryConfirmationRequest = ({ order, customer, webUrl, dashboardLink, message }) => {
+  const baseUrl = webUrl || WEB_URL;
+  const ref = orderRef(order);
+  const subject = `📬 Confirm Delivery — Order #${ref}`;
+  const body = `
+    <p>Hi <strong>${customer?.name || resolveCustomerName(order)}</strong>,</p>
+    <p>${message || `Order #${ref} was delivered. Please confirm receipt to release funds to the vendor.`}</p>
+
+    ${orderSummaryCard({
+      order,
+      status: 'delivered',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Items</span><span class="card-value">${productCount(order.products || [])} item(s)</span></div>`,
+      ],
+      includeProducts: true,
+    })}
+
+    ${dashboardButton(dashboardLink || `${baseUrl}/orders/${order._id}`, 'Confirm Delivery')}
+  `;
+  const html = wrap(subject, 'Confirm Delivery', body);
+  return {
+    subject,
+    html,
+    text: `Order #${ref} was delivered. Confirm receipt for ${resolveVendorName(order)}.`,
+  };
+};
+
+/* ─── Generic fallback for order/logistics alerts ─── */
+const orderNotificationFallback = ({ title, message, link, webUrl, order }) => {
+  const baseUrl = webUrl || WEB_URL;
+  const body = `
+    <p>${message || 'You have a new update on Auradime.'}</p>
+    ${order ? orderSummaryCard({ order, status: order.order_status || 'updated' }) : ''}
+    ${dashboardButton(link || baseUrl, 'View Details')}
+  `;
+  const html = wrap(title || 'Auradime Update', title || 'Notification', body);
+  return { subject: title || 'Auradime Update', html, text: message || title || 'Auradime update' };
 };
 
 /* ─── REFUND REQUESTED (Vendor) ─── */
@@ -435,28 +686,38 @@ const refundRequested = ({ order, vendor, reason, webUrl }) => {
 /* ─── ORDER STATUS UPDATED (Customer) ─── */
 const orderStatusUpdated = ({ order, customer, qrCode, webUrl }) => {
   const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
+  const ref = orderRef(order);
   const subject = `📋 Order Update — #${ref}`;
   const status = order.order_status || 'updated';
   
   const body = `
-    <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
-    <p>Order status updated to <strong>${status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</strong>.</p>
+    <p>Hi <strong>${customer?.name || resolveCustomerName(order)}</strong>,</p>
+    <p>Order status updated to <strong>${status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</strong> for your purchase from <strong>${resolveVendorName(order)}</strong>.</p>
     
-    <div class="card">
-      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
-      <div class="card-row"><span class="card-label">Status</span><span class="card-value">${badge(status)}</span></div>
-    </div>
+    ${orderSummaryCard({
+      order,
+      status,
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Delivery To</span><span class="card-value" style="text-align:right;">${formatAddress(order.shipping_address)}</span></div>`,
+      ],
+      includeProducts: true,
+    })}
     
     ${qrSection(qrCode)}
-    <a href="${baseUrl}/orders" class="btn">View Details</a>
+    ${dashboardButton(`${baseUrl}/orders/${order._id}`, 'View Order')}
   `;
   const html = wrap(subject, 'Order Update', body);
-  return { subject, html, text: `Order #${ref} status updated to ${status}.` };
+  return {
+    subject,
+    html,
+    text: `Order #${ref} status updated to ${status}. ${productCount(order.products || [])} item(s) from ${resolveVendorName(order)}.`,
+  };
 };
 
 module.exports = {
   welcomeEmail,
+  otpEmail,
   passwordReset,
   orderPlaced,
   paymentConfirmed,
@@ -465,7 +726,13 @@ module.exports = {
   orderCompleted,
   newOrderForVendor,
   shipmentAssigned,
+  logisticsShipmentClosed,
+  deliveryConfirmationRequest,
+  orderNotificationFallback,
   refundRequested,
   orderStatusUpdated,
   wrap,
+  orderRef,
+  resolveCustomerName,
+  resolveVendorName,
 };

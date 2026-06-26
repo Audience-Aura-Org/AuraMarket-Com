@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/Coupon.model.js
- * Aura Market — Promo & Discount Codes
+ * Auradime — Promo & Discount Codes
  */
 const CouponSchema = new mongoose.Schema(
   {

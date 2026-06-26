@@ -1,6 +1,6 @@
 /**
  * services/payment/gateways/paystack.gateway.js
- * Aura Market — Paystack Card/Bank Gateway
+ * Auradime — Paystack Card/Bank Gateway
  *
  * Card payments via Paystack redirect. Used for wallet top-ups.
  * Conforms to the GatewayInterface.

@@ -11,9 +11,12 @@ import api from '@/services/api';
 import { useRouter } from 'next/navigation';
 import { cartStore } from '@/services/cartStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import { useChat } from '@/context/ChatContext';
+import { formatVariantLabel } from '@/utils/variants';
 
 export default function CartPage() {
   const router = useRouter();
+  const { openChat } = useChat();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [couponCode, setCouponCode] = useState('');
@@ -110,7 +113,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500 font-poppins">
+    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 overflow-x-hidden transition-colors duration-500 font-poppins md:pt-0">
       <div className="fixed top-[-10%] right-[-10%] w-[600px] h-[600px] bg-[var(--accent)]/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-[var(--accent-light)]/5 rounded-full blur-[100px] pointer-events-none"></div>
 
@@ -144,19 +147,48 @@ export default function CartPage() {
                     <div className="flex justify-between items-start mb-1 gap-2">
                        <h3 className="text-sm sm:text-lg  font-bold text-[var(--text-primary)] leading-tight group-hover:text-[var(--accent)] transition-colors line-clamp-2">{item.name}</h3>
                        <div className="flex gap-2">
-                         <Link href={`/messages?vendorId=${encodeURIComponent(item.vendor_id || '')}&productId=${encodeURIComponent(item.id || '')}`} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm" title="Message vendor">
+                         <button
+                           type="button"
+                           onClick={() => {
+                             const pid = item.id || item.productId;
+                             const productRef =
+                               pid != null
+                                 ? {
+                                     _id: pid,
+                                     name: item.name,
+                                     price: item.price,
+                                     images: item.image ? [{ url: item.image }] : [],
+                                   }
+                                 : null;
+                             openChat(item.vendor_id || null, productRef, null, false);
+                           }}
+                           className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm"
+                           title="Message vendor"
+                         >
                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
                              <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v7.5A2.25 2.25 0 0 1 19.5 16.5h-7.818a.75.75 0 0 0-.53.22l-3.53 3.53A.75.75 0 0 1 6 19.5v-3a.75.75 0 0 0-.75-.75H4.5A2.25 2.25 0 0 1 2.25 13.5v-7.5A2.25 2.25 0 0 1 4.5 3.75h15A2.25 2.25 0 0 1 21.75 6.75Z" />
                            </svg>
-                         </Link>
+                         </button>
                          <button onClick={() => removeCartItem(item.id)} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm hover:border-red-500/30"><Trash2 className="w-4 h-4" /></button>
                        </div>
                     </div>
-                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-3">Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span></p>
+                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-2">Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span></p>
+                    {item.variant && (
+                      <p className="text-[10px] font-semibold text-[var(--accent)]/85 mb-3 leading-relaxed">
+                        {formatVariantLabel(item.variant)}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xl sm:text-2xl  font-bold text-[var(--text-primary)] font-mono">{item.price.toLocaleString()} XAF</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl sm:text-2xl  font-bold text-[var(--text-primary)] font-mono">{item.price.toLocaleString()} XAF</span>
+                      {item.compare_at_price && Number(item.compare_at_price) > Number(item.price) && (
+                        <span className="text-xs font-semibold text-[var(--text-secondary)] line-through font-mono opacity-50">
+                          {Number(item.compare_at_price).toLocaleString()} XAF
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-3 bg-[var(--bg-secondary)] p-1.5 px-3 rounded-xl border border-[var(--glass-border)] shadow-inner">
                       <button onClick={() => updateCartQty(item.id, -1)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><Minus className="w-4 h-4" /></button>
                       <span className=" font-bold text-base w-5 text-center">{item.quantity}</span>
@@ -260,3 +292,4 @@ export default function CartPage() {
     </div>
   );
 }
+

@@ -1,20 +1,84 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #f20df2;
-  --color-background-dark: #120812;
-  --color-background-light: #f8f5f8;
-  --color-accent: var(--accent);
-  --color-accent-light: var(--accent-light);
-  --color-bg-primary: var(--bg-primary);
-  --color-text-primary: var(--text-primary);
-  --color-card-bg: var(--card-bg);
-  --font-display: var(--font-poppins);
-  --font-sans: var(--font-poppins);
-  --font-quicksand: var(--font-quicksand);
+  --color-primary: #ffabf3;
+  --color-primary-container: #ff00ff;
+  --color-primary-fixed: #ffd7f5;
+  --color-primary-fixed-dim: #ffabf3;
+  --color-on-primary: #5b005b;
+  --color-on-primary-container: #510051;
+  --color-on-primary-fixed: #380038;
+  --color-on-primary-fixed-variant: #810081;
+  --color-inverse-primary: #a900a9;
+  
+  --color-secondary: #d3fbff;
+  --color-secondary-container: #00eefc;
+  --color-secondary-fixed: #7df4ff;
+  --color-secondary-fixed-dim: #00dbe9;
+  --color-on-secondary: #00363a;
+  --color-on-secondary-container: #00686f;
+  --color-on-secondary-fixed: #002022;
+  --color-on-secondary-fixed-variant: #004f54;
+  
+  --color-tertiary: #bfd043;
+  --color-tertiary-container: #8a9a00;
+  --color-tertiary-fixed: #daed5c;
+  --color-tertiary-fixed-dim: #bfd043;
+  --color-on-tertiary: #2d3400;
+  --color-on-tertiary-container: #282d00;
+  --color-on-tertiary-fixed: #1a1e00;
+  --color-on-tertiary-fixed-variant: #434b00;
+  
+  --color-surface: #131315;
+  --color-surface-dim: #131315;
+  --color-surface-bright: #39393b;
+  --color-surface-midnight: #0A0A0C;
+  --color-surface-charcoal: #121214;
+  --color-surface-container: #201f21;
+  --color-surface-container-low: #1c1b1d;
+  --color-surface-container-lowest: #0e0e10;
+  --color-surface-container-high: #2a2a2c;
+  --color-surface-container-highest: #353437;
+  --color-surface-variant: #353437;
+  --color-surface-tint: #ffabf3;
+  
+  --color-background: #131315;
+  --color-on-background: #e5e1e4;
+  --color-on-surface: #e5e1e4;
+  --color-on-surface-variant: #dcbed4;
+  --color-inverse-surface: #e5e1e4;
+  --color-inverse-on-surface: #313032;
+  
+  --color-outline: #a4899d;
+  --color-outline-variant: #564052;
+  
+  --color-error: #ffb4ab;
+  --color-error-container: #93000a;
+  --color-on-error: #690005;
+  --color-on-error-container: #ffdad6;
+  
+  --color-glass-fill: rgba(255, 255, 255, 0.04);
+  --color-glass-border: rgba(255, 255, 255, 0.12);
+  --color-required-red: #FF4D4D;
+  --color-optional-gray: #8E8E93;
+  
+  --color-accent: #ff00ff;
+  --color-accent-light: #ffabf3;
+  
+  --font-display: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-body-md: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-headline-lg: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-label-sm: "JetBrains Mono", ui-monospace, monospace;
+  --font-display-lg: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-quicksand: "Quicksand", "Poppins", sans-serif;
 }
 
 :root {
+  --font-poppins: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-quicksand: "Quicksand", "Poppins", sans-serif;
+  --font-order: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --bg-primary: #ffffff;
   --bg-secondary: #f8fafc;
   --nav-bg: rgba(10, 5, 15, 0.95);
@@ -23,37 +87,80 @@
   --component-bg: rgba(15, 23, 42, 0.04);
   --text-primary: #0f172a;
   --text-secondary: #64748b;
-  --accent: #f20df2;
-  --accent-light: #f472b6;
-  --accent-glow: rgba(242, 13, 242, 0.05);
+  --accent: #ff00ff;
+  --accent-light: #ffabf3;
+  --accent-glow: rgba(255, 0, 255, 0.15);
   --glass-bg: rgba(255, 255, 255, 0.75);
   --glass-border: rgba(15, 23, 42, 0.08);
-  --accent-rgb: 242, 13, 242;
+  --accent-rgb: 255, 0, 255;
   --card-bg: #ffffff;
+  --aura-font-size-base: 16px;
+  --aura-font-family: var(--font-display);
+  /* Default top nav heights; pages may override these variables */
+  --top-nav-height: calc(55px + env(safe-area-inset-top, 0px));
+  --top-nav-height-lg: calc(73px + env(safe-area-inset-top, 0px));
+}
+
+
+html[data-font-size="sm"] { --aura-font-size-base: 14px; --aura-font-scale: 0.875; }
+html[data-font-size="md"] { --aura-font-size-base: 16px; --aura-font-scale: 1; }
+html[data-font-size="lg"] { --aura-font-size-base: 18px; --aura-font-scale: 1.125; }
+html[data-font-size="xl"] { --aura-font-size-base: 20px; --aura-font-scale: 1.25; }
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+html[data-font="default"] { --aura-font-family: var(--font-display); }
+html[data-font="serif"] { --aura-font-family: 'Lora', Georgia, serif; }
+html[data-font="mono"] { --aura-font-family: 'JetBrains Mono', ui-monospace, monospace; }
+html[data-font="dyslexic"] { --aura-font-family: 'OpenDyslexic', var(--font-display); }
+
+html[data-font-size] body {
+  font-size: var(--aura-font-size-base, 16px);
+}
+
+html[data-font-size] :where(.font-size-preview, [data-font-size-preview]) {
+  font-size: calc(1rem * var(--aura-font-scale, 1));
 }
 
 .dark {
-  --bg-primary: #0a050a;
-  --bg-secondary: #120812;
+  --bg-primary: #0A0A0C;
+  --bg-secondary: #0A0A0C;
   --nav-bg: rgba(255, 255, 255, 0.9);
   --nav-text: #0a051b;
-  --nav-border: rgba(15, 23, 42, 0.06);
+  --nav-border: rgba(255, 255, 255, 0.08);
   --component-bg: rgba(255, 255, 255, 0.04);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --accent: #f20df2;
-  --accent-light: #f472b6;
-  --accent-glow: rgba(242, 13, 242, 0.15);
+  --text-primary: #e5e1e4;
+  --text-secondary: #dcbed4;
+  --accent: #ff00ff;
+  --accent-light: #ffabf3;
+  --accent-glow: rgba(255, 0, 255, 0.15);
   --glass-bg: rgba(255, 255, 255, 0.04);
   --glass-border: rgba(255, 255, 255, 0.12);
-  --accent-rgb: 242, 13, 242;
+  --accent-rgb: 255, 0, 255;
   --card-bg: rgba(255, 255, 255, 0.03);
+  --aura-font-family: var(--font-display);
 }
 
 /* Rest of the file remains as before but ensuring no italics */
 html {
-  font-size: 16px;
+  font-size: var(--aura-font-size-base, 16px);
   zoom: 0.7;
+  min-height: 100%;
+  height: 100%;
   -webkit-text-size-adjust: 100%;
   transition: background-color 0.3s ease, color 0.3s ease;
   scroll-behavior: smooth;
@@ -61,10 +168,52 @@ html {
   touch-action: pan-y;
 }
 
+/* Desktop readability — 16px base with fixed 0.7 zoom */
+@media (min-width: 1024px) {
+  html {
+    font-size: var(--aura-font-size-base, 16px);
+  }
+
+  body {
+    line-height: 1.45;
+    font-weight: 400;
+  }
+
+  /* Fixed px micro-type stays tiny at 0.7 zoom — lift to readable minimums */
+  :where([class*="text-[10px]"]) {
+    font-size: 0.75rem !important;
+    line-height: 1.35;
+  }
+  :where([class*="text-[11px]"]) {
+    font-size: 0.8125rem !important;
+    line-height: 1.4;
+  }
+  :where([class*="text-[12px]"]) {
+    font-size: 0.875rem !important;
+    line-height: 1.45;
+  }
+  .text-xs {
+    font-size: 0.8125rem !important;
+    line-height: 1.45;
+  }
+  .text-sm {
+    font-size: 0.9375rem !important;
+    line-height: 1.5;
+  }
+}
+
+@media (min-width: 1280px) {
+  html {
+    font-size: var(--aura-font-size-base, 16px);
+  }
+}
+
 body {
-  font-family: var(--font-display);
+  font-family: var(--aura-font-family, var(--font-display));
   background-color: var(--bg-secondary);
   color: var(--text-primary);
+  min-height: 100%;
+  height: 100%;
   min-height: 100vh;
   width: 100%;
   margin: 0;
@@ -77,11 +226,82 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html.ios-keyboard-recovering,
+html.ios-keyboard-recovering body {
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+
+html.chat-open,
+html.chat-open body {
+  height: 100% !important;
+  min-height: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+html.chat-open #chat-root {
+  position: fixed !important;
+  top: var(--chat-shell-offset-top, 0) !important;
+  left: 0 !important;
+  width: 100% !important;
+  /* JS sets --chat-shell-height when the keyboard is open; otherwise dvh/svh. */
+  height: var(--chat-shell-height, 100dvh) !important;
+  height: var(--chat-shell-height, 100svh) !important;
+  max-height: var(--chat-shell-height, 100svh) !important;
+  overflow: hidden !important;
+}
+
+/* ── Chat zoom isolation ─────────────────────────────────────────
+   Global zoom (0.7 / 0.8) stays active everywhere EXCEPT inside
+   the chat shell. chat-open resets zoom to 1 so that dvh/svh
+   units and visualViewport values are not scaled by the browser
+   before JS reads them. No other pages are affected.
+──────────────────────────────────────────────────────────────── */
+html.chat-open {
+  zoom: 1 !important;
+}
+
+h1:not(.font-quicksand),
+h2:not(.font-quicksand),
+h3:not(.font-quicksand),
+h4:not(.font-quicksand),
+h5:not(.font-quicksand),
+h6:not(.font-quicksand) {
+  font-family: var(--aura-font-family, var(--font-poppins));
+}
+
 h1,h2,h3,h4,h5,h6 {
-  font-family: var(--font-quicksand);
   text-wrap: balance;
   letter-spacing: -0.02em;
   font-style: normal !important;
+}
+
+.font-quicksand {
+  font-family: var(--font-quicksand) !important;
+}
+
+/* ── Global Case Suppression for Dashboards ── */
+.admin-no-uppercase .uppercase,
+.admin-no-uppercase [class*="tracking-"],
+.admin-no-uppercase h1,
+.admin-no-uppercase h2,
+.admin-no-uppercase h3,
+.admin-no-uppercase h4,
+.admin-no-uppercase button {
+  text-transform: capitalize !important;
+  letter-spacing: normal !important;
+  line-height: 1.4 !important;
+  text-wrap: pretty !important;
+}
+
+.admin-no-uppercase p,
+.admin-no-uppercase span {
+  text-transform: none !important;
+  letter-spacing: normal !important;
 }
 
 i, em { font-style: normal !important; }
@@ -90,35 +310,157 @@ i, em { font-style: normal !important; }
 
 @media (max-width: 640px) {
   html { 
-    font-size: 14px; 
+    font-size: var(--aura-font-size-base, 14px);
     zoom: 0.8;
   }
-  input, textarea, select { font-size: 16px !important; }
+  input, textarea, select {
+    font-size: 16px !important;
+    /* Prevent iOS/Android zoom on focus */
+    touch-action: manipulation;
+  }
   p { line-height: 1.45; }
   button, a { word-break: normal; }
 }
 
+/* ── Prevent page zoom on input focus (mobile) ── */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+body:has(.checkout-page) input,
+body:has(.checkout-page) textarea,
+body:has(.checkout-page) select {
+  font-size: 16px !important;
+}
+
 @layer utilities {
-  .text-fluid-xs { font-size: clamp(0.6rem, 2vw, 0.75rem); }
-  .text-fluid-sm { font-size: clamp(0.8rem, 2.5vw, 0.875rem); }
-  .text-fluid-base { font-size: clamp(0.9rem, 3vw, 1rem); }
-  .text-fluid-lg { font-size: clamp(1rem, 4vw, 1.125rem); }
-  .text-fluid-xl { font-size: clamp(1.25rem, 5vw, 1.5rem); }
-  .text-fluid-2xl { font-size: clamp(1.5rem, 6vw, 1.875rem); }
-  .p-fluid { padding: clamp(1rem, 5vw, 2.5rem); }
-  .gap-fluid { gap: clamp(0.5rem, 3vw, 1.5rem); }
+  .text-fluid-xs { font-size: clamp(0.6rem, 1vw, 0.8rem); }
+  .text-fluid-sm { font-size: clamp(0.8rem, 1.5vw, 0.95rem); }
+  .text-fluid-base { font-size: clamp(0.9rem, 2vw, 1.1rem); }
+  .text-fluid-lg { font-size: clamp(1rem, 2.5vw, 1.3rem); }
+  .text-fluid-xl { font-size: clamp(1.25rem, 3.5vw, 1.8rem); }
+  .text-fluid-2xl { font-size: clamp(1.5rem, 5vw, 2.4rem); }
+
+  @media (min-width: 1024px) {
+    .text-fluid-xs { font-size: clamp(0.75rem, 0.8vw, 0.9rem); }
+    .text-fluid-sm { font-size: clamp(0.875rem, 1.2vw, 1.05rem); }
+    .text-fluid-base { font-size: clamp(1rem, 1.6vw, 1.2rem); }
+    .text-fluid-lg { font-size: clamp(1.125rem, 2vw, 1.4rem); }
+    .text-fluid-xl { font-size: clamp(1.35rem, 2.8vw, 1.95rem); }
+    .text-fluid-2xl { font-size: clamp(1.65rem, 4vw, 2.6rem); }
+  }
+  .p-fluid { padding: clamp(1rem, 5vw, 3rem); }
+  .gap-fluid { gap: clamp(0.5rem, 3vw, 2rem); }
 }
 
 .glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+}
+
+.magenta-glow {
+  box-shadow: 0 0 15px rgba(255, 0, 255, 0.3);
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.timeline-handle {
+  width: 4px;
+  height: 24px;
+  background: #ff00ff;
+  border-radius: 2px;
+  box-shadow: 0 0 8px #ff00ff;
+  cursor: ew-resize;
+}
+
+/* Order detail / manifest — Plus Jakarta Sans (set via --font-order on <html>) */
+.font-order-detail {
+  font-family: var(--font-order), var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-optical-sizing: auto;
+}
+.font-order-detail h1,
+.font-order-detail h2,
+.font-order-detail h3,
+.font-order-detail h4 {
+  font-family: var(--font-order), var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.03em;
+  font-style: normal;
+}
+
+/* Global chat message area — theme-aware wallpaper */
+.chat-bg-pattern {
+  background-color: var(--bg-secondary);
+  background-image:
+    radial-gradient(circle at 18% 14%, color-mix(in srgb, var(--accent) 13%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 80% 82%, color-mix(in srgb, var(--accent-light) 10%, transparent) 0 1.5px, transparent 2px),
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 6%, transparent) 0 1px, transparent 1px 20px),
+    radial-gradient(ellipse 120% 80% at 10% 0%, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 70% at 92% 100%, color-mix(in srgb, var(--accent-light) 12%, transparent) 0%, transparent 50%),
+    linear-gradient(165deg, color-mix(in srgb, var(--bg-primary) 60%, transparent) 0%, transparent 42%);
+  background-size: 34px 34px, 46px 46px, 20px 20px, auto, auto, auto;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: normal, normal, soft-light, normal, normal, normal;
+}
+
+.dark .chat-bg-pattern {
+  background-image:
+    radial-gradient(circle at 18% 14%, color-mix(in srgb, var(--accent) 16%, transparent) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 80% 82%, color-mix(in srgb, var(--accent-light) 12%, transparent) 0 1.5px, transparent 2px),
+    linear-gradient(135deg, color-mix(in srgb, var(--accent) 8%, transparent) 0 1px, transparent 1px 20px),
+    radial-gradient(ellipse 120% 80% at 10% 0%, color-mix(in srgb, var(--accent) 18%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse 100% 70% at 92% 100%, color-mix(in srgb, var(--accent-light) 14%, transparent) 0%, transparent 50%),
+    linear-gradient(165deg, color-mix(in srgb, var(--bg-primary) 25%, transparent) 0%, transparent 45%);
+  background-size: 34px 34px, 46px 46px, 20px 20px, auto, auto, auto;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: normal, normal, soft-light, normal, normal, normal;
+}
+
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-primary) 16%, transparent);
+  border-radius: 10px;
+}
+
+/* Chat stability: prevent layout shifts on keyboard open/close and viewport resize */
+#chat-root {
+  contain: layout style paint;
+  will-change: height, transform;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+#chat-root [data-chat-messages] {
+  contain: layout style paint;
+  scrollbar-gutter: stable;
+  will-change: transform;
+  overflow-y: overlay;
+}
+
+#chat-root [data-chat-composer] {
+  contain: layout style paint;
+  position: relative;
+}
+
+#chat-root [data-chat-header] {
+  contain: layout style;
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 
 .notification-layer {
   position: fixed; top: 0; right: 0; padding: 1.5rem; width: 100%; max-width: 420px;

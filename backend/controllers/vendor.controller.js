@@ -1,6 +1,6 @@
 /**
  * controllers/vendor.controller.js
- * Aura Market — Vendor & Store Management Controller
+ * Auradime — Vendor & Store Management Controller
  *
  * Provides endpoints for users with 'vendor' roles to manage their profile
  * and their specialized shop representation (Store).
@@ -12,8 +12,46 @@ const KYC = require('../models/KYC.model');
 const Escrow = require('../models/Escrow.model');
 const Order = require('../models/Order.model');
 const Product = require('../models/Product.model');
+const User = require('../models/User.model');
+const PlatformSettings = require('../models/PlatformSettings.model');
 const mongoose = require('mongoose');
 const Follow = require('../models/Follow.model');
+const { escapeRegExp } = require('../middleware/security.middleware');
+
+const normalizeNullableXafAmount = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) {
+    const error = new Error('Minimum order amount must be a non-negative XAF amount.');
+    error.statusCode = 400;
+    throw error;
+  }
+  return Math.round(num);
+};
+
+const normalizeNullableText = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const text = String(value).trim();
+  return text || null;
+};
+const normalizePickupAddress = (incoming = {}, previous = {}) => {
+  const description =
+    incoming.address_description ??
+    incoming.street ??
+    previous.address_description ??
+    previous.street ??
+    '';
+
+  return {
+    city: incoming.city ?? previous.city ?? '',
+    quartier: incoming.quartier ?? previous.quartier ?? '',
+    street: description,
+    address_description: description,
+    region: incoming.region ?? previous.region ?? '',
+  };
+};
 
 // ─────────────────────────────────────────────
 // @route   POST /api/vendors/onboard
@@ -21,11 +59,13 @@ const Follow = require('../models/Follow.model');
 // @access  Private (Role: vendor)
 // ─────────────────────────────────────────────
 const onboardVendor = async (req, res, next) => {
+  console.log(`🚀 [ONBOARD] Starting onboarding for user: ${req.user?._id} (${req.user?.role})`);
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
     const { store_name, description, categories, phone, location } = req.body;
+    console.log(`📦 [ONBOARD] Payload:`, { store_name, phone, location_city: location?.city });
 
     // 1. Check if vendor profile already exists for this user (WITHIN SESSION)
     let vendor = await Vendor.findOne({ user_id: req.user._id }).session(session);
@@ -39,12 +79,7 @@ const onboardVendor = async (req, res, next) => {
       vendor.phone = phone || req.user.phone || vendor.phone || '000000000';
       
       if (location) {
-        vendor.pickup_address = {
-          city: location.city || vendor.pickup_address?.city,
-          quartier: location.quartier || vendor.pickup_address?.quartier,
-          street: location.address_description || vendor.pickup_address?.street,
-          region: vendor.pickup_address?.region
-        };
+        vendor.pickup_address = normalizePickupAddress(location, vendor.pickup_address);
       }
       
       vendor.is_onboarded = true;
@@ -72,11 +107,7 @@ const onboardVendor = async (req, res, next) => {
             store_name,
             description,
             phone: phone || req.user.phone || '000000000',
-            pickup_address: location ? {
-              city: location.city,
-              quartier: location.quartier,
-              street: location.address_description
-            } : {},
+            pickup_address: location ? normalizePickupAddress(location) : {},
             is_onboarded: true,
             onboarding_step: 'complete'
           },
@@ -102,6 +133,8 @@ const onboardVendor = async (req, res, next) => {
     const User = require('../models/User.model');
     const brandingUpdates = {};
     if (store_name) brandingUpdates['branding.store_name'] = store_name; // and more if needed
+    
+    console.log(`✅ [ONBOARD] Successfully synchronized vendor/store for user: ${req.user._id}`);
     
     await User.findByIdAndUpdate(req.user._id, { 
       onboarded: true,
@@ -156,12 +189,18 @@ const getVendorProfile = async (req, res, next) => {
       { $group: { _id: null, totalHeld: { $sum: '$amount' } } }
     ]);
     const escrowBalance = escrowStats.length > 0 ? escrowStats[0].totalHeld : 0;
+    const platformSettings = await PlatformSettings.getSettings();
+    const storeCommissionRate = vendor.store?.commission_rate;
+    const effectiveCommissionRate = storeCommissionRate !== undefined && storeCommissionRate !== null
+      ? Number(storeCommissionRate)
+      : Number(platformSettings.commission_value ?? platformSettings.commission_rate ?? 0);
 
     res.status(200).json({
       success: true,
       data: { 
         vendor,
-        escrow_balance: escrowBalance 
+        escrow_balance: escrowBalance,
+        effective_commission_rate: effectiveCommissionRate,
       },
     });
   } catch (error) {
@@ -178,24 +217,31 @@ const updateStore = async (req, res, next) => {
   try {
     const vendor = req.vendor;
 
-    const allowedUpdates = ['banner', 'logo', 'categories'];
+    const allowedUpdates = ['banner', 'logo', 'categories', 'delivery_time', 'minimum_order_amount'];
     const updateData = {};
 
     allowedUpdates.forEach((field) => {
       if (req.body[field] !== undefined) {
-        updateData[field] = req.body[field];
+        if (field === 'minimum_order_amount') {
+          updateData[field] = normalizeNullableXafAmount(req.body[field]);
+        } else if (field === 'delivery_time') {
+          updateData[field] = normalizeNullableText(req.body[field]);
+        } else {
+          updateData[field] = req.body[field];
+        }
       }
     });
 
     const store = await Store.findOneAndUpdate(
       { vendor_id: vendor._id },
-      updateData,
-      { returnDocument: 'after', runValidators: true }
+      { $set: updateData, $setOnInsert: { vendor_id: vendor._id } },
+      {
+        returnDocument: 'after',
+        runValidators: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      }
     );
-
-    if (!store) {
-      return res.status(404).json({ success: false, message: 'Store not found.' });
-    }
 
     // 🚀 SYNC: Mirror branding assets to the core User model for Chat/Notifications consistency
     const User = require('../models/User.model');
@@ -228,7 +274,9 @@ const updateVendorProfile = async (req, res, next) => {
     const updates = {};
     if (store_name !== undefined) updates.store_name = store_name;
     if (description !== undefined) updates.description = description;
-    if (pickup_address !== undefined) updates.pickup_address = pickup_address;
+    if (pickup_address !== undefined) {
+      updates.pickup_address = normalizePickupAddress(pickup_address, req.vendor.pickup_address);
+    }
 
     const vendor = await Vendor.findByIdAndUpdate(
       req.vendor._id,
@@ -265,7 +313,7 @@ const getPublicStores = async (req, res, next) => {
     let query = { is_onboarded: true };
 
     if (search) {
-      query.store_name = { $regex: search, $options: 'i' };
+      query.store_name = { $regex: escapeRegExp(search), $options: 'i' };
     }
 
     const sort = req.query.sort || '-createdAt';
@@ -276,8 +324,8 @@ const getPublicStores = async (req, res, next) => {
     // Used for store directories and discovery feeds
     const stores = await Vendor.find(query)
       .select('store_name rating verified description user_id follower_count createdAt')
-      .populate('store', 'logo banner categories') // only fetch visible assets
-      .populate('user_id', 'branding avatar') // fetch user-level branding for fallbacks
+      .populate('store', 'logo banner categories delivery_time minimum_order_amount') // only fetch visible assets
+      .populate('user_id', 'branding avatar is_online last_seen') // fetch user-level branding for fallbacks
       .skip(startIndex)
       .limit(limit)
       .sort(sort)
@@ -301,17 +349,51 @@ const getPublicStores = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getStore = async (req, res, next) => {
   try {
-    const store = await Store.findOne({ vendor_id: req.params.id })
-      .populate({
-        path: 'vendor_id',
-        select: 'store_name description rating verified user_id follower_count',
-        populate: { path: 'user_id', select: 'branding avatar' }
-      });
-
-    if (!store) {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(404).json({
         success: false,
         message: 'Store not found.',
+      });
+    }
+
+    let vendorId = req.params.id;
+    let store = await Store.findById(req.params.id)
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name description rating verified user_id follower_count',
+        populate: { path: 'user_id', select: 'branding avatar is_online last_seen' }
+      });
+
+    if (!store) {
+      store = await Store.findOne({ vendor_id: vendorId })
+      .populate({
+        path: 'vendor_id',
+        select: 'store_name description rating verified user_id follower_count',
+        populate: { path: 'user_id', select: 'branding avatar is_online last_seen' }
+      });
+    }
+
+    if (!store) {
+      const vendor = await Vendor.findOne({
+        $or: [{ _id: req.params.id }, { user_id: req.params.id }],
+      });
+
+      if (!vendor) {
+        return res.status(404).json({
+          success: false,
+          message: 'Store not found.',
+        });
+      }
+
+      vendorId = vendor._id;
+      store = await Store.findOneAndUpdate(
+        { vendor_id: vendorId },
+        { $setOnInsert: { vendor_id: vendorId, categories: [] } },
+        { returnDocument: 'after', upsert: true, runValidators: true }
+      ).populate({
+        path: 'vendor_id',
+        select: 'store_name description rating verified user_id follower_count',
+        populate: { path: 'user_id', select: 'branding avatar is_online last_seen' }
       });
     }
 
@@ -483,7 +565,7 @@ const getFollowing = async (req, res, next) => {
         path: 'vendor_id',
         select: 'store_name rating verified user_id average_response_time',
         populate: [
-          { path: 'user_id', select: 'name avatar role branding' }
+          { path: 'user_id', select: 'name avatar role branding is_online last_seen' }
         ]
       })
       .sort('-createdAt');
@@ -497,42 +579,50 @@ const getFollowing = async (req, res, next) => {
 const getVendorAnalytics = async (req, res, next) => {
   try {
     const vendorId = req.vendor._id;
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Calculate 6-month window for analytics history
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const [products, orders, escrowStats, followCount] = await Promise.all([
-      Product.find({ vendor_id: vendorId }).sort('-purchase_count').lean(),
-      Order.find({ vendor_id: vendorId }).sort('-createdAt').lean(),
+    const [products, orders, escrowStats, followCount, vendorUser] = await Promise.all([
+      Product.find({ vendor_id: vendorId, status: { $ne: 'archived' } }).sort('-purchase_count').lean(),
+      Order.find({ vendor_id: vendorId })
+        .populate('customer_id', 'name email phone avatar')
+        .populate('products.product_id', 'name price images')
+        .populate('shipment', 'status tracking_code')
+        .sort('-createdAt')
+        .lean(),
       Escrow.aggregate([
         { $match: { vendor_id: vendorId, status: 'held' } },
         { $group: { _id: null, totalHeld: { $sum: '$amount' } } }
       ]),
-      Follow.countDocuments({ vendor_id: vendorId })
+      Follow.countDocuments({ vendor_id: vendorId }),
+      User.findById(req.vendor.user_id).select('wallet_balance').lean()
     ]);
 
-    const deliveredOrders = orders.filter(o => o.order_status === 'delivered');
+    const completedOrders = orders.filter(o => ['delivered', 'completed'].includes(o.order_status));
+    const openOrders = orders.filter(o => !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status));
     const totalRevenue = orders
-      .filter(o => o.order_status !== 'cancelled')
+      .filter(o => !['cancelled', 'refunded'].includes(o.order_status) && ['paid', 'completed'].includes(o.payment_status))
       .reduce((sum, o) => sum + (o.total_amount || 0), 0);
 
     const totalViews = products.reduce((sum, p) => sum + (p.view_count || 0), 0);
-    const totalSales = deliveredOrders.length;
+    const totalSales = completedOrders.length;
     
     // Calculate conversion rate (sales / views)
     const conversionRate = totalViews > 0 ? (totalSales / totalViews) * 100 : 0;
     
-    // Generate simple histogram data for the last 30 days
+    // Aggregate monthly revenue for the last 6 months — feeds the dashboard bar chart
     const salesOverTime = await Order.aggregate([
       { 
         $match: { 
           vendor_id: vendorId, 
-          createdAt: { $gte: thirtyDaysAgo },
+          createdAt: { $gte: sixMonthsAgo },
           order_status: { $ne: 'cancelled' }
         } 
       },
       { 
         $group: { 
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, 
+          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, 
           revenue: { $sum: "$total_amount" }, 
           count: { $sum: 1 } 
         } 
@@ -547,8 +637,13 @@ const getVendorAnalytics = async (req, res, next) => {
           total_revenue: totalRevenue,
           total_sales: totalSales,
           total_products: products.length,
+          open_orders: openOrders.length,
+          processing_orders: orders.filter(o => o.order_status === 'processing').length,
+          in_stock_products: products.filter(p => Number(p.stock || 0) > 0).length,
+          out_of_stock_products: products.filter(p => Number(p.stock || 0) === 0).length,
           total_views: totalViews,
           pending_escrow: escrowStats[0]?.totalHeld || 0,
+          wallet_balance: vendorUser?.wallet_balance || 0,
           follower_count: followCount,
           conversion_rate: parseFloat(conversionRate.toFixed(2))
         },

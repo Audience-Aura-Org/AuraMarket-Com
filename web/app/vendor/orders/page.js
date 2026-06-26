@@ -22,6 +22,7 @@ import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import SingleOrderView from '@/components/account/SingleOrderView';
 import StatCard from '@/components/layout/StatCard';
+import { formatVariantLabel } from '@/utils/variants';
 
 const STATUS_CONFIG = {
   placed:         { label: 'Placed',      color: 'text-purple-600',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20',  dot: 'bg-purple-500' },
@@ -31,6 +32,13 @@ const STATUS_CONFIG = {
   cancelled:      { label: 'Cancelled',   color: 'text-red-600',     bg: 'bg-red-500/10',     border: 'border-red-500/20',     dot: 'bg-red-500' },
   refund_pending: { label: 'Refund',      color: 'text-amber-600',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   dot: 'bg-amber-500' },
   refunded:       { label: 'Refunded',    color: 'text-sky-600',     bg: 'bg-sky-500/10',     border: 'border-sky-500/20',     dot: 'bg-sky-500' },
+};
+
+const PAYMENT_STATUS = {
+  pending:  { label: 'Unpaid', color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  paid:     { label: 'Paid', color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+  failed:   { label: 'Failed', color: 'text-rose-600', bg: 'bg-rose-500/10', border: 'border-rose-500/20' },
+  refunded: { label: 'Refunded', color: 'text-sky-600', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
 };
 
 const NEXT_STATUSES = {
@@ -107,15 +115,30 @@ export default function VendorOrdersPage() {
   }, [fetchOrders]);
 
   const handleUpdateStatus = async (orderId, newStatus) => {
+     if (updatingId) return;
      setUpdatingId(orderId);
      try {
-        const res = await api.patch(`/vendors/orders/${orderId}/status`, { status: newStatus });
+        const res = await api.patch(`/orders/${orderId}/status`, { order_status: newStatus });
         if (res.data.success) {
-           setOrders(prev => prev.map(o => o._id === orderId ? { ...o, order_status: newStatus } : o));
-           toast.success(`Pipeline updated: ${newStatus.toUpperCase()}`);
+           const synced = res.data.data?.order?.order_status || newStatus;
+           setOrders(prev => prev.map(o => {
+              if (o._id !== orderId) return o;
+              return {
+                 ...o,
+                 ...(res.data.data?.order || {}),
+                 order_status: synced,
+                 shipment: res.data.data?.shipments?.[0] || o.shipment,
+              };
+           }));
+           toast.success(`Order status updated to: ${synced.toUpperCase()}`);
+           fetchOrders();
         }
      } catch (err) {
-        toast.error(err.response?.data?.message || 'Sequence update failed');
+        const serverOrder = err.response?.data?.data?.order;
+        if (serverOrder) {
+           setOrders(prev => prev.map(o => o._id === orderId ? { ...o, ...serverOrder } : o));
+        }
+        toast.error(err.response?.data?.message || 'Failed to update order status');
      } finally {
         setUpdatingId(null);
      }
@@ -124,15 +147,18 @@ export default function VendorOrdersPage() {
   const filtered = orders.filter(o => {
     const status = o.order_status || 'placed';
     const customerName = o.customer_id?.name || 'Customer';
-    const matchesTab = activeTab === 'all' || status === activeTab;
-    const matchesSearch = (o._id || '').includes(search) || customerName.toLowerCase().includes(search.toLowerCase());
+    const firstItem = o.products?.[0];
+    const productText = `${firstItem?.name || ''} ${formatVariantLabel(firstItem?.variant)}`.toLowerCase();
+    const matchesTab = activeTab === 'all' || status === activeTab || (activeTab === 'failed' && o.payment_status === 'failed');
+    const query = search.toLowerCase();
+    const matchesSearch = (o._id || '').includes(search) || customerName.toLowerCase().includes(query) || productText.includes(query);
     return matchesTab && matchesSearch;
   });
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const currentOrders = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+  const totalRevenue = orders.filter((o) => o.payment_status !== 'failed').reduce((sum, o) => sum + (o.total_amount || 0), 0);
   const pendingCount = orders.filter(o => ['placed','processing'].includes(o.order_status)).length;
   const colorMap = {
     emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', bar: 'bg-emerald-500', badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-600', glow: '#10b981', w: '70%' },
@@ -146,94 +172,89 @@ export default function VendorOrdersPage() {
     const d = new Date(o.createdAt);
     const now = new Date();
     return (now - d) < (24 * 60 * 60 * 1000); // last 24h
-  }).reduce((sum, o) => sum + (o.total_amount || 0), 0);
+  }).filter((o) => o.payment_status !== 'failed').reduce((sum, o) => sum + (o.total_amount || 0), 0);
 
-  const openOrdersCount = orders.filter(o => !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status)).length;
+  const openOrdersCount = orders.filter(o => o.payment_status !== 'failed' && !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status)).length;
 
   const stats = [
     { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} XAF`, icon: 'payments', color: 'emerald', pct: `${completedCount} done`, sub: `+${recentRevenue.toLocaleString()} recent` },
-    { label: 'Open Orders', value: String(openOrdersCount), icon: 'shopping_bag', color: 'primary', pct: `${orders.length} total`, sub: `${orders.filter(o => o.order_status === 'processing').length} processing` },
-    { label: 'Pending Payouts', value: String(pendingCount), icon: 'account_balance', color: 'purple', pct: 'Escrow Lock', sub: 'Awaiting Fulfillment' },
-    { label: 'Completed Orders', value: String(completedCount), icon: 'verified', color: 'blue', pct: 'Manifest Complete', sub: 'Archived for record' }
+    { label: 'Open Orders', value: String(openOrdersCount), icon: 'shopping_bag', color: 'primary', pct: `${orders.length} total`, sub: `${orders.filter(o => o.payment_status === 'failed').length} failed` },
+    { label: 'Pending Payouts', value: String(pendingCount), icon: 'account_balance', color: 'purple', pct: 'Held in Escrow', sub: 'Pending Delivery' },
+    { label: 'Completed Orders', value: String(completedCount), icon: 'verified', color: 'blue', pct: 'Fully Completed', sub: 'Delivered and Settled' }
   ];
 
   if (user?.role !== 'vendor' || !user.onboarded) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
-      {/* Surgical Header */}
-      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-4 md:gap-0">
-        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
-          <div className="flex items-center gap-4">
-            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
-               <ShoppingBag className="w-5 h-5 md:w-6 md:h-6" />
-            </div>
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Sales <span className="text-[var(--accent)]">Manifest</span></h2>
-              <div className="flex items-center gap-2 mt-0.5">
-                 <div className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight truncate max-w-[150px] uppercase">{user.store_name || 'STORE_ID'}</p>
+    <div className="flex min-h-0 flex-1 flex-col bg-[var(--bg-primary)]">
+      {/* Redesigned Header */}
+      <header className="relative sticky top-0 md:top-16 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-2xl">
+        {/* Accent gradient line */}
+        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
+        <div className="mx-auto max-w-[1600px] px-4 py-3 sm:px-5 md:px-8">
+          {/* Row 1 */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 md:gap-4 min-w-0">
+              <div className="size-10 md:size-11 rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0 shadow-lg shadow-[var(--accent)]/5">
+                 <ShoppingBag className="size-5" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-base md:text-lg font-bold text-[var(--text-primary)] tracking-tight font-[Poppins]">Orders</h2>
+                <div className="flex items-center gap-2 mt-0.5">
+                   <div className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
+                   <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight truncate max-w-[150px] font-[Poppins]">{user.store_name || 'STORE_ID'}</p>
+                </div>
               </div>
             </div>
+            <button onClick={fetchOrders} className="size-10 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] flex items-center justify-center hover:text-[var(--accent)] hover:border-[var(--accent)]/30 active:scale-95 transition-all">
+               <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
-          <button onClick={fetchOrders} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
-             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
-           <div className="relative flex-1 md:w-64 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
-              <input 
-                type="text"
-                placeholder="Find Reference..."
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all"
-                value={search}
-                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-              />
-           </div>
-           
-           <div className="hidden md:flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1">
-              {['all', 'placed', 'processing', 'shipped'].map(tab => (
-                <button 
-                  key={tab}
-                  onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
-                  className={`px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-semibold tracking-tight transition-all capitalize ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-40'}`}
-                >
-                  {tab}
-                </button>
-              ))}
-           </div>
-
-           <button onClick={fetchOrders} className="hidden md:flex size-11 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-           </button>
-        </div>
-
-        {/* Mobile Filter Tabs */}
-        <div className="flex md:hidden w-full overflow-x-auto no-scrollbar pb-2 pt-1 border-t border-[var(--glass-border)]/10 mt-2">
-           <div className="flex items-center gap-2 pr-4">
-              {['all', 'placed', 'processing', 'shipped', 'delivered', 'cancelled'].map(tab => (
-                <button 
-                  key={tab}
-                  onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
-                  className={`px-5 py-2.5 rounded-2xl text-[10px] font-bold tracking-[0.1em] transition-all capitalize whitespace-nowrap border ${activeTab === tab ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-60'}`}
-                >
-                  {tab}
-                </button>
-              ))}
-           </div>
+          {/* Row 2: Search + Desktop filters */}
+          <div className="mt-3 flex items-center gap-3">
+            <div className="relative flex-1 md:max-w-xs group">
+               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-30 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
+               <input
+                 type="text"
+                 placeholder="Find Reference..."
+                 className="w-full h-10 bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-xs font-medium tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/40 focus:bg-[var(--bg-secondary)] transition-all font-[Poppins]"
+                 value={search}
+                 onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+               />
+            </div>
+            <div className="hidden md:flex bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-xl p-1">
+               {['all', 'placed', 'processing', 'shipped', 'delivered', 'failed'].map(tab => (
+                 <button
+                   key={tab}
+                   onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
+                   className={`px-3.5 py-1.5 rounded-lg text-[10px] lg:text-[11px] font-semibold tracking-tight transition-all capitalize font-[Poppins] ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-50'}`}
+                 >
+                   {tab}
+                 </button>
+               ))}
+            </div>
+          </div>
+          {/* Mobile Filter Tabs */}
+          <div className="flex md:hidden w-full overflow-x-auto no-scrollbar pt-3 -mb-1">
+             <div className="flex items-center gap-2 pr-4">
+               {['all', 'placed', 'processing', 'shipped', 'delivered', 'failed', 'cancelled'].map(tab => (
+                 <button
+                   key={tab}
+                   onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
+                   className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-tight transition-all capitalize whitespace-nowrap border font-[Poppins] ${activeTab === tab ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/20' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-60'}`}
+                 >
+                   {tab}
+                 </button>
+               ))}
+             </div>
+          </div>
         </div>
       </header>
 
-      <div className={viewingOrderId ? "w-full" : "p-4 md:p-10 space-y-8 pb-40"}>
+      <div className={viewingOrderId ? "flex min-h-0 w-full flex-1 flex-col" : "p-4 md:p-10 space-y-8 pb-40"}>
          {viewingOrderId ? (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 p-4 md:p-10 pb-40">
-               <SingleOrderView 
-                  orderId={viewingOrderId} 
-                  onBack={handleBack} 
-                  isAdmin={user?.role === 'admin'}
-               />
+            <div className="flex min-h-0 flex-1 flex-col px-3 pb-28 pt-1 animate-in fade-in slide-in-from-bottom-3 duration-500 xs:px-4 sm:px-6 md:px-10 md:pb-40 md:pt-6">
+               <SingleOrderView orderId={viewingOrderId} onBack={handleBack} />
             </div>
          ) : (
             <>
@@ -252,77 +273,77 @@ export default function VendorOrdersPage() {
                   ))}
                </div>
 
-               {/* Sales Ledger */}
-               <div className="glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">
-                  <div className="p-5 md:p-8 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 flex items-center justify-between">
-                     <h3 className="text-[10px] md:text-[11px] lg:text-[12px]  font-bold text-[var(--text-primary)] tracking-[0.1em] flex items-center gap-2 md:gap-3 capitalize">
-                        <Database className="w-3.5 h-3.5 md:w-4 md:h-4 text-[var(--accent)]" /> 
-                        Store Sales Ledger
+               {/* Sales History */}
+               <section className="overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
+                  <div className="flex items-center justify-between border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 px-4 py-3 sm:px-5">
+                     <h3 className="inline-flex items-center gap-2 text-[12px] font-semibold text-[var(--text-primary)]">
+                        <Database className="size-3.5 text-[var(--accent)]" />
+                        Sales History
                      </h3>
-                     <p className="text-[9px] md:text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest hidden xs:block">Real-time Order Resolution</p>
+                     <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
+                        {filtered.length} orders
+                     </span>
                   </div>
 
-                  <div className="space-y-4">
+                  <div>
                   {loading ? (
                      <LoadingSpinner />
                   ) : currentOrders.length > 0 ? (
-                     <div className="grid grid-cols-1 gap-3 md:gap-4 p-4 md:p-10">
+                     <div className="grid grid-cols-1 gap-3 p-3 sm:gap-3.5 sm:p-4">
                         {currentOrders.map(order => {
                         const status = STATUS_CONFIG[order.order_status] || STATUS_CONFIG.placed;
+                        const payment = PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending;
                         const customer = order.customer_id;
+                        const firstItem = order.products?.[0];
+                        const variantLabel = formatVariantLabel(firstItem?.variant);
 
                         return (
                               <button 
                                  key={order._id} 
-                                 className={`group relative w-full text-left rounded-[1.5rem] md:rounded-[2.5rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col`}
+                                 className="group relative w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-left transition hover:border-[var(--accent)]/30"
                                  onClick={() => handleViewOrder(order._id)}
                               >
-                                 <div className="p-4 md:p-8 flex flex-col sm:flex-row items-start sm:items-center gap-4 md:gap-8">
-                                    <div className="flex items-center gap-4 w-full sm:w-auto">
-                                       <div className={`size-12 md:size-14 rounded-[1.25rem] md:rounded-[1.5rem] ${status.bg} ${status.color} flex items-center justify-center shrink-0 border ${status.color.replace('text-', 'border-')}/10 shadow-inner`}>
-                                          <Package className="w-5 h-5 md:w-7 md:h-7" />
+                                 <div className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                                    <div className="flex min-w-0 items-center gap-3">
+                                       <div className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${status.bg} ${status.color}`}>
+                                          <Package className="size-4.5" />
                                        </div>
-                                       <div className="sm:hidden flex-1 min-w-0">
-                                          <div className="flex items-center justify-between">
-                                             <span className="text-[11px] font-semibold text-[var(--text-primary)] tracking-tight">Order Trace</span>
-                                             <time className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-1 capitalize">
-                                                <Clock className="w-2.5 h-2.5" /> {new Date(order.createdAt).toLocaleDateString()}
-                                             </time>
-                                          </div>
-                                          <div className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-semibold tracking-widest border inline-block ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
-                                             {status.label}
-                                          </div>
-                                       </div>
-                                    </div>
-
-                                    <div className="flex-1 min-w-0 w-full sm:w-auto">
-                                       <div className="hidden sm:flex items-center justify-between mb-2">
-                                          <div className="flex items-center gap-3">
-                                             <span className="text-[11px] lg:text-[12px] md:text-[13px] font-semibold text-[var(--text-primary)] tracking-tight capitalize">Order Trace</span>
-                                             <span className={`px-3 py-1 rounded-full text-[10px] lg:text-[12px] font-semibold tracking-widest border ${status.bg} ${status.color} ${status.color.replace('text-', 'border-')}/20 capitalize`}>
+                                       <div className="min-w-0">
+                                          <div className="flex flex-wrap items-center gap-2">
+                                             <span className="text-[12px] font-semibold text-[var(--text-primary)]">Order #{order._id.slice(-8).toUpperCase()}</span>
+                                             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.bg} ${status.color} ${status.border}`}>
                                                 {status.label}
                                              </span>
+                                             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${payment.bg} ${payment.color} ${payment.border}`}>
+                                                {payment.label}
+                                             </span>
                                           </div>
-                                          <time className="text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-30 tracking-widest flex items-center gap-2 capitalize">
-                                             <Clock className="w-3 h-3" /> {new Date(order.createdAt).toLocaleDateString()}
+                                          <p className="mt-1 truncate text-[11px] text-[var(--text-secondary)]">
+                                             {customer?.name || 'Guest'} • {order.shipping_address?.quartier || 'No area'}
+                                          </p>
+                                          {firstItem && (
+                                             <p className="mt-1 truncate text-[10px] font-semibold text-[var(--text-primary)]/80">
+                                                {firstItem.name}{variantLabel ? ` - ${variantLabel}` : ''}
+                                             </p>
+                                          )}
+                                          <time className="mt-1 inline-flex items-center gap-1 text-[10px] text-[var(--text-secondary)]/70">
+                                             <Clock className="size-3" />
+                                             {new Date(order.createdAt).toLocaleDateString()}
                                           </time>
-                                       </div>
-                                       <div className="flex items-center gap-4">
-                                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60 truncate">
-                                             <span className="font-mono text-[var(--accent)] font-bold">#{order._id.slice(-8).toUpperCase()}</span>
-                                             <span className="hidden sm:inline">•</span>
-                                             <span className="truncate max-w-full sm:max-w-md">{customer?.name || 'GUEST'} → Delivery Area: {order.shipping_address?.quartier}</span>
-                                          </div>
                                        </div>
                                     </div>
 
-                                    <div className="w-full sm:w-auto flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 border-[var(--glass-border)] pt-4 sm:pt-0 shrink-0">
-                                       <p className="text-lg md:text-2xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{order.total_amount?.toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-30 ml-1">XAF</span></p>
-                                       <div className="flex items-center gap-3 sm:mt-2">
-                                          <span className="text-[9px] md:text-[10px] lg:text-[12px] font-semibold text-[var(--text-secondary)] opacity-40 capitalize tracking-widest">{order.products?.length || 1} Items</span>
-                                          <div className="size-6 rounded-lg overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm">
-                                             {customer?.avatar ? <img src={customer.avatar} className="size-full object-cover" /> : <User className="size-full p-1 opacity-20" />}
-                                          </div>
+                                    <div className="flex items-center justify-between border-t border-[var(--glass-border)] pt-2 sm:border-t-0 sm:pt-0 sm:text-right">
+                                       <div>
+                                          <p className="text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">
+                                             {order.total_amount?.toLocaleString()} <span className="text-[10px] text-[var(--text-secondary)]">XAF</span>
+                                          </p>
+                                          <p className="text-[10px] text-[var(--text-secondary)]">
+                                             {order.products?.length || 1} item{(order.products?.length || 1) > 1 ? 's' : ''}
+                                          </p>
+                                       </div>
+                                       <div className="ml-3 flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition group-hover:text-[var(--accent)]">
+                                          <ChevronRight className="size-4" />
                                        </div>
                                     </div>
                                  </div>
@@ -331,21 +352,21 @@ export default function VendorOrdersPage() {
                         })}
                      </div>
                   ) : (
-                     <div className="py-40 flex flex-col items-center justify-center opacity-20 px-10 text-center">
-                        <Database className="w-16 h-16 mb-8 text-[var(--text-secondary)]" />
-                        <p className="text-sm  font-bold tracking-[0.2em] capitalize leading-relaxed max-w-sm">No sales manifests detected in this vector.</p>
+                     <div className="px-6 py-16 text-center">
+                        <Database className="mx-auto mb-3 size-8 text-[var(--text-secondary)]/40" />
+                        <p className="text-sm font-medium text-[var(--text-secondary)]">No orders found.</p>
                      </div>
                   )}
                   </div>
 
-                  <div className="p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+                  <div className="border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 px-3 py-3 sm:px-4">
                      <Pagination 
                         currentPage={currentPage}
                         totalPages={totalPages}
                         onPageChange={setCurrentPage}
                      />
                   </div>
-               </div>
+               </section>
             </>
          )}
       </div>

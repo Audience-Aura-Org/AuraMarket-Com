@@ -1,6 +1,6 @@
 /**
  * utils/emailService.js
- * Aura Market — Dedicated Email Service (Titan SMTP)
+ * Auradime — Dedicated Email Service (Resend first, SMTP fallback)
  *
  * Wraps nodemailer with Titan SMTP credentials.
  * All email-sending across the system should go through sendEmail().
@@ -14,7 +14,11 @@ const {
   EMAIL_USER,
   EMAIL_PASS,
   EMAIL_FROM_NAME,
+  EMAIL_FROM,
+  RESEND_API_KEY,
 } = require('../config/env');
+
+const EMAIL_TIMEOUT_MS = Number(process.env.EMAIL_TIMEOUT_MS || 15000);
 
 /* ── Build the reusable transporter once ── */
 const transporter = nodemailer.createTransport({
@@ -22,18 +26,41 @@ const transporter = nodemailer.createTransport({
   port:   EMAIL_PORT   || 587,
   secure: EMAIL_SECURE || false,          // false → STARTTLS; true → TLS/465
   auth: {
-    user: EMAIL_USER || 'info@audienceaura.org',
+    user: EMAIL_USER || 'hello@auradime.com',
     pass: EMAIL_PASS,
   },
   tls: {
     rejectUnauthorized: false,            // Titan may use self-signed on dev
   },
+  connectionTimeout: EMAIL_TIMEOUT_MS,
+  greetingTimeout: EMAIL_TIMEOUT_MS,
+  socketTimeout: EMAIL_TIMEOUT_MS,
 });
+
+const fetchWithTimeout = async (url, options = {}, timeoutMs = EMAIL_TIMEOUT_MS) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(`Email provider timed out after ${Math.round(timeoutMs / 1000)}s`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+};
 
 /**
  * Verify SMTP connection on startup (logs, never throws)
  */
 const verifyConnection = async () => {
+  if (RESEND_API_KEY) {
+    console.log('✅ Resend email provider configured — emails ready.');
+    return;
+  }
+
   try {
     await transporter.verify();
     console.log('✅ Titan SMTP connection verified — emails ready.');
@@ -54,6 +81,37 @@ const verifyConnection = async () => {
  * @returns {Promise<boolean>}           - true on success, false on failure
  */
 const sendEmail = async ({ to, subject, html, text, replyTo }) => {
+  if (RESEND_API_KEY) {
+    try {
+      const response = await fetchWithTimeout('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: EMAIL_FROM || `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${EMAIL_USER || 'hello@auradime.com'}>`,
+          to: Array.isArray(to) ? to : [to],
+          subject,
+          html,
+          text: text || subject,
+          reply_to: replyTo || EMAIL_USER || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`Resend ${response.status}: ${body}`);
+      }
+
+      console.log(`📧 Email sent via Resend → ${to} | Subject: "${subject}"`);
+      return true;
+    } catch (err) {
+      console.error(`❌ Resend email failed → ${to} | ${err.message}`);
+      return false;
+    }
+  }
+
   if (!EMAIL_PASS) {
     console.warn('⚠️  EMAIL_PASS not set — skipping email send.');
     return false;
@@ -61,7 +119,7 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
 
   try {
     const info = await transporter.sendMail({
-      from:    `"${EMAIL_FROM_NAME || 'Aura Market'}" <${EMAIL_USER}>`,
+      from:    `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${EMAIL_USER}>`,
       to:      Array.isArray(to) ? to.join(', ') : to,
       subject,
       html,

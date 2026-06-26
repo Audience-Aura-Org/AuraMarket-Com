@@ -1,6 +1,6 @@
 /**
  * controllers/logistics.controller.js
- * Aura Market — Logistics Module Controller
+ * Auradime — Logistics Module Controller
  * Full email notification on shipment creation and every status change.
  */
 
@@ -10,17 +10,30 @@ const Order             = require('../models/Order.model');
 const Vendor            = require('../models/Vendor.model');
 const Escrow            = require('../models/Escrow.model');
 const User              = require('../models/User.model');
+const Store             = require('../models/Store.model');
 const Transaction       = require('../models/Transaction.model');
 const PlatformSettings  = require('../models/PlatformSettings.model');
 const LogisticZone      = require('../models/LogisticZone.model');
 const mongoose          = require('mongoose');
 
 const { sendNotification } = require('../utils/notifier');
+const { escapeRegExp } = require('../middleware/security.middleware');
 const { sendEmail }        = require('../utils/emailService');
 const logisticsService     = require('../services/logistics.service');
 const templates            = require('../utils/emailTemplates');
+const { applyCommissionOverride, calculatePlatformFees } = require('../utils/platformFees');
+const { markEscrowDelivered } = require('./escrow.controller');
 
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
+
+const getEffectivePlatformSettings = async (vendorId, session) => {
+  const platformSettings = await PlatformSettings.getSettings(session);
+  const store = await Store.findOne({ vendor_id: vendorId }).select('commission_rate').session(session);
+  return {
+    platformSettings,
+    effectiveSettings: applyCommissionOverride(platformSettings, store?.commission_rate),
+  };
+};
 
 // ─────────────────────────────────────────────
 // @route   POST /api/logistics/onboard
@@ -32,7 +45,24 @@ const onboardLogistics = async (req, res, next) => {
 
     const existingFirm = await LogisticsCompany.findOne({ user_id: req.user._id });
     if (existingFirm) {
-      return res.status(400).json({ success: false, message: 'Logistics profile already exists.' });
+      existingFirm.company_name = company_name;
+      existingFirm.contact_email = contact_email;
+      existingFirm.contact_phone = contact_phone;
+      existingFirm.service_regions = service_regions;
+      existingFirm.vehicle_types = vehicle_types;
+      await existingFirm.save();
+
+      const user = await User.findByIdAndUpdate(
+        req.user._id,
+        { onboarded: true },
+        { returnDocument: 'after' }
+      ).select('-password -password_hash -deletedAt -tokenVersion');
+
+      return res.status(200).json({
+        success: true,
+        message: 'Logistics profile updated.',
+        data: { company: existingFirm, user },
+      });
     }
 
     const company = await LogisticsCompany.create({
@@ -44,7 +74,13 @@ const onboardLogistics = async (req, res, next) => {
       vehicle_types,
     });
 
-    res.status(201).json({ success: true, message: 'Awaiting Admin verification.', data: { company } });
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { onboarded: true },
+      { returnDocument: 'after' }
+    ).select('-password -password_hash -deletedAt -tokenVersion');
+
+    res.status(201).json({ success: true, message: 'Awaiting Admin verification.', data: { company, user } });
   } catch (error) {
     next(error);
   }
@@ -57,12 +93,16 @@ const onboardLogistics = async (req, res, next) => {
 const getSearchCompatibleFirms = async (req, res, next) => {
   try {
     const { quartier, vendor_ids } = req.query;
-    if (!quartier || !vendor_ids) {
-      return res.status(400).json({ success: false, message: 'Quartier and vendor_ids required.' });
+    if (!vendor_ids) {
+      return res.status(400).json({ success: false, message: 'vendor_ids required.' });
     }
 
     const vendors = Array.isArray(vendor_ids) ? vendor_ids : vendor_ids.split(',');
-    const firms   = await logisticsService.getCompatibleFirms(quartier, vendors);
+    const firms   = quartier
+      ? await logisticsService.getCompatibleFirms(quartier, vendors)
+      : await LogisticsCompany.find({ is_verified: true })
+          .populate('user_id', 'name email avatar branding')
+          .sort('company_name');
 
     res.status(200).json({ success: true, count: firms.length, data: { firms } });
   } catch (error) {
@@ -76,10 +116,13 @@ const getSearchCompatibleFirms = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getFirmShipments = async (req, res, next) => {
   try {
-    const { status, search, page = 1, limit = 50 } = req.query;
-    
+    const { status, search, page = 1, limit = 50, sortBy = 'assignment' } = req.query;
+    const lim = Math.min(Math.max(Number(limit) || 50, 1), 100);
+    const pageNum = Math.max(Number(page) || 1, 1);
+    const skip = (pageNum - 1) * lim;
+
     let firm = await LogisticsCompany.findOne({ user_id: req.user._id });
-    
+
     // Auto-provision stub if missing for a logistics user
     if (!firm) {
       firm = await LogisticsCompany.create({
@@ -95,32 +138,142 @@ const getFirmShipments = async (req, res, next) => {
     }
 
     const query = { logistics_id: firm._id };
-    
+
     if (status && status !== 'all') {
-      query.status = status;
+      if (status === 'active') {
+        query.status = { $in: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] };
+      } else if (status === 'open') {
+        query.status = { $in: ['pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery'] };
+      } else {
+        query.status = status;
+      }
     }
-    
+
     if (search) {
-      query.tracking_code = { $regex: search, $options: 'i' };
+      query.tracking_code = { $regex: escapeRegExp(search), $options: 'i' };
     }
 
     const total = await Shipment.countDocuments(query);
 
-    const shipments = await Shipment.find(query)
-      .populate('order_id', 'total_amount products tracking_number createdAt')
-      .populate('vendor_id', 'store_name phone branding.logo')
-      .sort('-createdAt')
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit));
+    const populateOrder = {
+      path: 'order_id',
+      select: 'total_amount products tracking_number createdAt order_status shipping_fee subtotal shipping_method delivery_description shipping_address payment_status payment_method customer_id',
+      populate: {
+        path: 'customer_id',
+        select: 'name email phone',
+      },
+    };
 
-    res.status(200).json({ 
-      success: true, 
+    let shipments;
+
+    if (sortBy === 'order_placed') {
+      const pipeline = [
+        { $match: query },
+        {
+          $lookup: {
+            from: 'orders',
+            localField: 'order_id',
+            foreignField: '_id',
+            as: 'ord',
+          },
+        },
+        { $unwind: '$ord' },
+        { $sort: { 'ord.createdAt': -1 } },
+        { $skip: skip },
+        { $limit: lim },
+        { $project: { _id: 1 } },
+      ];
+      const idRows = await Shipment.aggregate(pipeline);
+      const ids = idRows.map((r) => r._id);
+      if (ids.length === 0) {
+        shipments = [];
+      } else {
+        const unordered = await Shipment.find({ _id: { $in: ids } })
+          .populate(populateOrder)
+          .populate('vendor_id', 'store_name phone branding.logo')
+          .populate('order_id.products.product_id', 'name images');
+        const map = new Map(unordered.map((s) => [s._id.toString(), s]));
+        shipments = ids.map((id) => map.get(id.toString())).filter(Boolean);
+      }
+    } else {
+      shipments = await Shipment.find(query)
+        .populate(populateOrder)
+        .populate('vendor_id', 'store_name phone branding.logo')
+        .populate('order_id.products.product_id', 'name images')
+        .sort('-createdAt')
+        .skip(skip)
+        .limit(lim);
+    }
+
+    const baseScope = { logistics_id: firm._id };
+    const [countPending, countActive, countDelivered] = await Promise.all([
+      Shipment.countDocuments({ ...baseScope, status: 'pending' }),
+      Shipment.countDocuments({
+        ...baseScope,
+        status: { $in: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] },
+      }),
+      Shipment.countDocuments({ ...baseScope, status: 'delivered' }),
+    ]);
+
+    res.status(200).json({
+      success: true,
       count: shipments.length,
       total,
-      page: Number(page),
-      pages: Math.ceil(total / Number(limit)),
-      data: { shipments } 
+      page: pageNum,
+      pages: Math.ceil(total / lim) || 1,
+      data: { shipments },
+      meta: {
+        counts: {
+          pending: countPending,
+          active: countActive,
+          delivered: countDelivered,
+        },
+        sortBy: sortBy === 'order_placed' ? 'order_placed' : 'assignment',
+      },
     });
+  } catch (error) {
+    console.error('❌ getFirmShipments error:', error.message, error.stack);
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   GET /api/logistics/shipments/:id
+// @desc    Firm (or admin) loads one assigned shipment for detail / deep links
+// ─────────────────────────────────────────────
+const getFirmShipmentById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid shipment id.' });
+    }
+
+    const populateOrder = {
+      path: 'order_id',
+      select:
+        'total_amount products tracking_number createdAt order_status shipping_fee subtotal shipping_method delivery_description shipping_address payment_status payment_method',
+      populate: {
+        path: 'products.product_id',
+        select: 'name images',
+      },
+    };
+
+    const shipment = await Shipment.findById(id)
+      .populate(populateOrder)
+      .populate('vendor_id', 'store_name phone branding.logo');
+
+    if (!shipment) {
+      return res.status(404).json({ success: false, message: 'Shipment not found.' });
+    }
+
+    if (req.user.role !== 'admin') {
+      const firm = await LogisticsCompany.findOne({ user_id: req.user._id });
+      if (!firm || shipment.logistics_id?.toString() !== firm._id.toString()) {
+        return res.status(403).json({ success: false, message: 'Access denied.' });
+      }
+    }
+
+    res.status(200).json({ success: true, data: { shipment } });
   } catch (error) {
     next(error);
   }
@@ -251,18 +404,32 @@ const modifyShipmentStatus = async (req, res, next) => {
           // ── ESCROW + LOGISTICS: Logistics fee settled above. Vendor funds remain held.
           // Order stays 'delivered'. Customer must confirm to release vendor escrow.
           escrow.vendor_confirmed = true; // logistics delivery acts as vendor confirmation
+          markEscrowDelivered(escrow, shipment.proof_of_delivery?.timestamp || new Date());
           await escrow.save({ session });
 
           console.log(`🔒 Escrow order #${order._id} delivered by logistics. Vendor funds held. Awaiting customer confirmation.`);
 
           // Notify customer to confirm arrival
-          setImmediate(() => {
+          setImmediate(async () => {
+            const customer = await User.findById(order.customer_id).select('name email').lean();
+            const deliveryTpl = templates.deliveryConfirmationRequest({
+              order: order.toObject(),
+              customer,
+              webUrl: process.env.WEB_CLIENT_URL,
+              dashboardLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`,
+              message: `Order #${order._id.toString().slice(-6).toUpperCase()} was delivered by the carrier. Please confirm receipt to release funds to the vendor.`,
+            });
+
             sendNotification(req.app, order.customer_id, {
               title: 'Your order has been delivered',
               message: `Order #${order._id.toString().slice(-6).toUpperCase()} was delivered by the carrier. Please confirm receipt to release funds to the vendor.`,
               type: 'order_status',
-              metadata: { order_id: order._id },
-              role: 'customer'
+              metadata: { order_id: order._id, link: `/orders/${order._id}`, status: 'delivered' },
+              sendEmail: true,
+              emailTemplate: deliveryTpl,
+              orderDetails: order.toObject(),
+              role: 'customer',
+              emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`,
             });
           });
 
@@ -298,16 +465,15 @@ const modifyShipmentStatus = async (req, res, next) => {
           if (vendorAccount) {
             const vendorUser = await User.findById(vendorAccount.user_id).session(session);
             if (vendorUser) {
-              const settings = await PlatformSettings.findOne();
-              const commission = settings ? (order.subtotal * settings.commission_rate) / 100 : 0;
-              const vendorPayout = order.subtotal - commission;
+              const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(order.vendor_id, session);
+              const { platformFee, vendorPayout } = calculatePlatformFees(order.subtotal, effectiveSettings);
 
               vendorUser.wallet_balance += vendorPayout;
               await vendorUser.save({ session });
 
-              if (settings) {
-                settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + commission;
-                await settings.save({ session });
+              if (platformFee > 0) {
+                platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
+                await platformSettings.save({ session });
               }
 
               await Transaction.create([{
@@ -343,12 +509,16 @@ const modifyShipmentStatus = async (req, res, next) => {
       await sendNotification(req.app, firm.user_id, {
         title: 'Shipment Successfully Closed',
         message: `Shipment for Order #${order._id.toString().slice(-6).toUpperCase()} is confirmed delivered and settled.`,
-        type: 'system_alert',
-        metadata: { order_id: order._id, shipment_id: shipment._id },
+        type: 'logistics_update',
+        metadata: { order_id: order._id, shipment_id: shipment._id, link: `/logistics/manifests?shipmentId=${shipment._id}` },
         sendEmail: true,
         overrideEmail: firm.contact_email,
-        emailLink: `${process.env.WEB_CLIENT_URL}/logistics/dashboard?shipmentId=${shipment._id}`,
-        orderDetails: order.toObject(),
+        emailLink: `${process.env.WEB_CLIENT_URL}/logistics/manifests?shipmentId=${shipment._id}`,
+        orderDetails: {
+          ...order.toObject(),
+          shipment: shipment.toObject(),
+          logistics_name: firm.company_name,
+        },
         role: 'logistics'
       });
     }
@@ -362,35 +532,62 @@ const modifyShipmentStatus = async (req, res, next) => {
 
     // Email/notify customer about shipment status change
     if (customer) {
+      const webUrl = process.env.WEB_CLIENT_URL;
+      const orderForEmail = {
+        ...order.toObject(),
+        shipment: shipment.toObject(),
+        logistics_name: firm.company_name,
+        customer_name: customer.name,
+      };
       const statusTpl = templates.shipmentStatusChanged({
         shipment,
-        order,
+        order: orderForEmail,
         recipient: customer,
         status,
+        webUrl,
+        dashboardLink: `${webUrl}/orders/${order._id}`,
       });
       await sendNotification(req.app, order.customer_id, {
         title:         `Shipment Update: ${status.replace(/_/g, ' ')}`,
         message:       statusTpl.text,
-        type:          'order_update',
-        metadata:      { shipment_id: shipment._id, order_id: order._id },
+        type:          'order_status',
+        metadata:      { shipment_id: shipment._id, order_id: order._id, link: `/orders/${order._id}`, status },
+        sendEmail:     true,
         emailTemplate: statusTpl,
+        orderDetails:  orderForEmail,
+        emailLink:     `${webUrl}/orders/${order._id}`,
+        webUrl,
+        role:          'customer'
       });
     }
 
     // If vendor is a separate entity, also notify them
     if (vendor?.user_id?._id) {
+      const webUrl = process.env.WEB_CLIENT_URL;
+      const orderForEmail = {
+        ...order.toObject(),
+        shipment: shipment.toObject(),
+        logistics_name: firm.company_name,
+      };
       const vendorStatusTpl = templates.shipmentStatusChanged({
         shipment,
-        order,
+        order: orderForEmail,
         recipient: vendor.user_id,
         status,
+        webUrl,
+        dashboardLink: `${webUrl}/vendor/orders?orderId=${order._id}`,
       });
       await sendNotification(req.app, vendor.user_id._id, {
         title:         `Shipment Update: ${status.replace(/_/g, ' ')}`,
         message:       vendorStatusTpl.text,
-        type:          'order_update',
-        metadata:      { shipment_id: shipment._id, order_id: order._id },
+        type:          'order_status',
+        metadata:      { shipment_id: shipment._id, order_id: order._id, link: '/vendor/orders', status },
+        sendEmail:     true,
         emailTemplate: vendorStatusTpl,
+        orderDetails:  orderForEmail,
+        emailLink:     `${webUrl}/vendor/orders?orderId=${order._id}`,
+        webUrl,
+        role:          'vendor'
       });
     }
 
@@ -400,9 +597,11 @@ const modifyShipmentStatus = async (req, res, next) => {
       await sendNotification(req.app, vendor.user_id._id, {
         title:         'Order Completed — Payment Released',
         message:       `Payment for Order #${order._id.toString().slice(-6).toUpperCase()} has been released to your wallet.`,
-        type:          'payment',
-        metadata:      { order_id: order._id },
+        type:          'payment_received',
+        metadata:      { order_id: order._id, link: '/wallet' },
+        sendEmail:     true,
         emailTemplate: completedTpl,
+        role:          'vendor'
       });
     }
 
@@ -536,6 +735,7 @@ const updatePricing = async (req, res, next) => {
 module.exports = {
   onboardLogistics,
   getFirmShipments,
+  getFirmShipmentById,
   getVendorShipments,
   modifyShipmentStatus,
   getSearchCompatibleFirms,

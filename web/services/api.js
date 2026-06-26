@@ -1,34 +1,188 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
+import { clearStoredAuthToken, getStoredAuthToken } from './authStorage';
 
+const stripApiPath = (url = '') => url.replace(/\/api(\/v1)?\/?$/, '').replace(/\/$/, '');
+const PRODUCTION_API_URL = 'https://api.auradime.com/api/v1';
+
+const getConfiguredApiURL = () => {
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  if (!configured) return null;
+  return configured.endsWith('/api/v1') ? configured : `${stripApiPath(configured)}/api/v1`;
+};
 
 const getBaseURL = () => {
   if (typeof window !== 'undefined') {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    if (isLocal) {
-       return process.env.NEXT_PUBLIC_API_URL || `http://localhost:5000/api/v1`;
+    const configuredApiURL = getConfiguredApiURL();
+    if (Capacitor.isNativePlatform()) {
+      if (!configuredApiURL) {
+        console.error('[API] Native build requires NEXT_PUBLIC_API_URL to point at the AWS backend.');
+      }
+      return configuredApiURL || 'https://api.auradime.com/api/v1';
+    }
+
+    if (configuredApiURL) return configuredApiURL;
+
+    const hostname = window.location.hostname;
+    
+    // Overrides for localhost, loopbacks and emulators (Direct connection)
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api/v1';
+    }
+    if (hostname === '10.0.2.2') {
+      return 'http://10.0.2.2:5000/api/v1';
     }
     
-    // In production (Vercel), ALWAYS use the Next.js Bridge (/api/v1).
-    // This bypasses protocol blocks and ensures cross-domain handshake success.
-    return '/api/v1';
+    // Dynamic fallback for Local Network Testing (Direct connection)
+    const isIP = /^[0-9.]+$/.test(hostname);
+    if (isIP) {
+      return `http://${hostname}:5000/api/v1`;
+    }
+    
+    // 🔥 CRITICAL FIX: For ALL hosted domains (Vercel, etc.), ALWAYS use the Next.js Proxy Bridge.
+    // Why? If the EC2 backend is HTTP and the Vercel frontend is HTTPS, the browser will block direct 
+    // API calls due to "Mixed Content" security policies, resulting in silent "Network Errors".
+    // The Next.js Bridge runs server-side and is immune to Mixed Content and CORS restrictions.
+    return PRODUCTION_API_URL;
   }
   
   // Server-side default
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+  return getConfiguredApiURL() || PRODUCTION_API_URL;
 };
 
 const api = axios.create({
   baseURL: getBaseURL(),
   timeout: 300000, // Increased to 5 minutes for large file uploads (100MB)
+  withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
+    // Don't set default Content-Type here - let axios auto-set based on request type
+    // (application/json for JSON, multipart/form-data for FormData)
   },
 });
+
+const isFormDataPayload = (value) => {
+  if (!value) return false;
+  if (typeof FormData !== 'undefined' && value instanceof FormData) return true;
+  if (Object.prototype.toString.call(value) === '[object FormData]') return true;
+  return typeof value.append === 'function'
+    && typeof value.entries === 'function'
+    && typeof value.get === 'function';
+};
+
+const isNativeApp = () => typeof window !== 'undefined' && Capacitor.isNativePlatform();
+const OFFLINE_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+const CLIENT_FAST_CACHE_TTL_MS = 45 * 1000;
+const OFFLINE_CACHE_PREFIX = 'aura_api_cache:';
+const clientGetInFlight = new Map();
+const OFFLINE_CACHEABLE_ROUTES = [
+  /^homepage(?:\/|$)/,
+  /^products(?:\/|$)/,
+  /^categories(?:\/|$)/,
+  /^vendors(?:\/|$)/,
+  /^statuses(?:\/|$)/,
+  /^reviews\/product(?:\/|$)/,
+];
+
+const getOfflineStorage = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const storage = window.localStorage;
+    const probe = `${OFFLINE_CACHE_PREFIX}probe`;
+    storage.setItem(probe, '1');
+    storage.removeItem(probe);
+    return storage;
+  } catch {
+    try {
+      return window.sessionStorage;
+    } catch {
+      return null;
+    }
+  }
+};
+
+const normalizeCacheUrl = (url = '') =>
+  String(url)
+    .replace(/^\/+/, '')
+    .replace(/^api\/v1\//, '')
+    .replace(/^api\//, '');
+
+const isOfflineCacheableRoute = (url = '') => {
+  const normalized = normalizeCacheUrl(url);
+  if (
+    normalized.startsWith('auth/') ||
+    normalized.startsWith('admin/') ||
+    normalized.startsWith('wallet') ||
+    normalized.startsWith('payments/') ||
+    normalized.startsWith('orders') ||
+    normalized.startsWith('cart') ||
+    normalized.startsWith('checkout') ||
+    normalized.startsWith('notifications') ||
+    normalized.startsWith('users/') ||
+    normalized.startsWith('security/')
+  ) {
+    return false;
+  }
+  if (normalized.startsWith('chat/admin')) return false;
+  return OFFLINE_CACHEABLE_ROUTES.some((route) => route.test(normalized));
+};
+
+const hashCacheScope = (value = '') => {
+  let hash = 5381;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = ((hash << 5) + hash) ^ value.charCodeAt(i);
+  }
+  return (hash >>> 0).toString(36);
+};
+
+const getAuthCacheScope = (config) => {
+  const authHeader =
+    config?.headers?.Authorization ||
+    config?.headers?.authorization ||
+    '';
+  return authHeader ? `auth:${hashCacheScope(authHeader)}` : 'public';
+};
+
+const getCacheKey = (config) => {
+  const url = config?.url || '';
+  const params = config?.params ? JSON.stringify(config.params) : '';
+  return `${OFFLINE_CACHE_PREFIX}${getAuthCacheScope(config)}:${normalizeCacheUrl(url)}:${params}`;
+};
+const canUseOfflineCache = (config) =>
+  typeof window !== 'undefined' &&
+  (config?.method || 'get').toLowerCase() === 'get' &&
+  isOfflineCacheableRoute(config?.url || '');
+
+const saveOfflineCache = (config, data) => {
+  const storage = getOfflineStorage();
+  if (!storage) return;
+  storage.setItem(getCacheKey(config), JSON.stringify({
+    cachedAt: Date.now(),
+    data,
+  }));
+};
+
+const readOfflineCache = (config) => {
+  const storage = getOfflineStorage();
+  if (!storage) return null;
+  const cached = JSON.parse(storage.getItem(getCacheKey(config)) || 'null');
+  if (!cached?.data) return null;
+  if (Date.now() - Number(cached.cachedAt || 0) > OFFLINE_CACHE_TTL_MS) {
+    storage.removeItem(getCacheKey(config));
+    return null;
+  }
+  return cached;
+};
 
 // Correctly derive origin for asset normalization
 const getApiOrigin = () => {
   if (typeof window !== 'undefined') {
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (Capacitor.isNativePlatform()) {
+      return stripApiPath(getBaseURL());
+    }
+
+    const isLocal = window.location.hostname === 'localhost' ||
+                   window.location.hostname === '127.0.0.1' ||
+                   window.location.hostname === '10.0.2.2';
     if (!isLocal) return window.location.origin;
   }
   return getBaseURL().replace(/\/api\/v1\/?$/, '');
@@ -39,8 +193,8 @@ const API_ORIGIN = getApiOrigin();
 const normalizeAssetUrls = (value) => {
   if (typeof value === 'string') {
     // 1. Handle relative paths from the new upload logic
-    if (value.startsWith('/uploads/')) {
-      return `${API_ORIGIN}${value}`;
+    if (/^\/?uploads\//i.test(value)) {
+      return `${API_ORIGIN}/${value.replace(/^\/+/, '')}`;
     }
     // 2. Fix legacy absolute URLs that might have been hardcoded to local hosts
     return value.replace(/^https?:\/\/(localhost|127\.0\.0\.1):5000/i, API_ORIGIN);
@@ -62,33 +216,40 @@ const normalizeAssetUrls = (value) => {
 };
 
 // Interceptor to attach JWT token and normalize URLs
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
   // Normalize URL to ensure it doesn't conflict with baseURL
   if (config.url?.startsWith('/')) {
     config.url = config.url.substring(1);
   }
 
   if (typeof window !== 'undefined') {
-    let token = null;
+    const language = window.localStorage.getItem('aura_language') || 'en';
+    config.headers['Accept-Language'] = language;
+    config.headers['X-Aura-Language'] = language;
 
-    // 1. Try to get token from localStorage directly to avoid circular dependency with the store
-    try {
-      const stored = localStorage.getItem('aura-auth-storage');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        token = parsed?.state?.token;
-      }
-    } catch (e) {
-      console.error('[API Interceptor] Failed to parse auth storage:', e);
-    }
-
-    // 2. Fallback to legacy key
-    if (!token) {
-      token = localStorage.getItem('aura_token');
-    }
+    const token = await getStoredAuthToken();
     
     if (token && token !== 'undefined' && token !== 'null' && token !== '') {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Mobile browsers can fail `instanceof FormData` across realms.
+    // For FormData, we must NOT set Content-Type manually — the browser/XHR
+    // must set it automatically so it can inject the correct multipart/form-data
+    // boundary. We delete both casing variants so axios doesn't call
+    // xhr.setRequestHeader('Content-Type', ...) at all, leaving the browser free.
+    // NOTE: using `= undefined` instead of `delete` leaves a phantom key that some
+    // Android WebViews serialize as `Content-Type: ` (empty), breaking multipart.
+    if (isFormDataPayload(config.data)) {
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+      // Do NOT call setContentType() here — it re-adds the key after deletion.
+      console.log('[API:Interceptor] FormData detected for:', config.url, {
+        hasContentType: false,
+        headerKeys: Object.keys(config.headers),
+      });
+    } else {
+      config.headers['Content-Type'] = 'application/json';
     }
   }
   return config;
@@ -99,23 +260,81 @@ api.interceptors.request.use((config) => {
 // -----------------------------
 const shouldRetry = (error) => {
   if (!error || !error.config) return false;
+  if (error.config.__skipRetry) return false;
   const status = error.response?.status;
-  // Retry on 429 (rate limit) or network errors
-  return status === 429 || !error.response;
+  // Do not retry 429s: retrying a rate-limited request only deepens the lockout.
+  return status !== 429 && !error.response;
 };
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
+const isInvalidStoredSession = (status, message = '') => {
+  const normalized = String(message).toLowerCase();
+  if (status === 401) {
+    return normalized.includes('user belonging to this token no longer exists') ||
+      normalized.includes('session is no longer valid') ||
+      normalized.includes('jwt expired') ||
+      normalized.includes('invalid token');
+  }
+
+  return status === 403 && normalized.includes('deactivated');
+};
+
+let lastInvalidSessionNoticeAt = 0;
+const notifyInvalidStoredSession = async (message) => {
+  if (typeof window === 'undefined') return;
+  const now = Date.now();
+  if (now - lastInvalidSessionNoticeAt < 5000) return;
+  lastInvalidSessionNoticeAt = now;
+  try {
+    await clearStoredAuthToken();
+    window.localStorage.removeItem('aura-auth-storage');
+    window.sessionStorage.removeItem('onboarding_skipped');
+  } catch {}
+  window.dispatchEvent(new CustomEvent('aura:session-invalidated', {
+    detail: { message },
+  }));
+};
+
 api.interceptors.response.use(
   (res) => {
-    if (res?.data) {
+    const responseType = res?.config?.responseType;
+    const isBinaryResponse =
+      responseType === 'blob' ||
+      responseType === 'arraybuffer' ||
+      (typeof Blob !== 'undefined' && res?.data instanceof Blob) ||
+      (typeof ArrayBuffer !== 'undefined' && res?.data instanceof ArrayBuffer);
+
+    if (res?.data && !isBinaryResponse) {
       res.data = normalizeAssetUrls(res.data);
+    }
+    if (canUseOfflineCache(res.config)) {
+      try {
+        saveOfflineCache(res.config, res.data);
+      } catch {}
     }
     return res;
   },
   async (error) => {
     const config = error.config;
     if (!config) return Promise.reject(error);
+
+    if (!error.response && canUseOfflineCache(config)) {
+      try {
+        const cached = readOfflineCache(config);
+        if (cached?.data) {
+          return {
+            data: cached.data,
+            status: 200,
+            statusText: 'OK (offline cache)',
+            headers: {},
+            config,
+            request: error.request,
+            offlineCache: true,
+          };
+        }
+      } catch {}
+    }
 
     config.__retryCount = config.__retryCount || 0;
     const MAX_RETRIES = 2; // Reduced from 4 — fail fast, don't hang
@@ -124,11 +343,24 @@ api.interceptors.response.use(
       if (error.response) {
         const status = error.response.status;
         const message = error.response.data?.message || 'Check network tab';
+        if (isInvalidStoredSession(status, message)) {
+          await notifyInvalidStoredSession(message);
+        }
+        if (status === 402 && error.response.data?.code === 'SUBSCRIPTION_REQUIRED' && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('aura:subscription-required', {
+            detail: error.response.data,
+          }));
+        }
         
         // Silence 401s for guests (it's expected on some routes like /cart)
+        const normalizedUrl = normalizeCacheUrl(config.url || '');
+        const isAuthMeProbe = normalizedUrl === 'auth/me';
+        const isExpectedOtpCooldown = status === 429 && normalizedUrl === 'auth/send-otp';
         if (status !== 401) {
-          console.warn(`[API] ${status} Error at ${config.url}: ${message}`);
-        } else {
+          if (!isExpectedOtpCooldown) {
+            console.warn(`[API] ${status} Error at ${config.url}: ${message}`);
+          }
+        } else if (!isAuthMeProbe) {
           // Note: We deliberately DO NOT wipe localStorage here anymore.
           // Random 401s (e.g. hitting a protected route before Zustand hydrates)
           // were incorrectly logging users out on refresh.
@@ -154,5 +386,56 @@ api.interceptors.response.use(
   }
 );
 
-export default api;
+const rawGet = api.get.bind(api);
 
+api.get = async (url, config = {}) => {
+  const normalizedConfig = {
+    ...config,
+    url,
+    method: 'get',
+  };
+
+  if (!config?.skipClientCache && canUseOfflineCache(normalizedConfig)) {
+    let scopedConfig = normalizedConfig;
+    if (typeof window !== 'undefined') {
+      const token = await getStoredAuthToken();
+      if (token && token !== 'undefined' && token !== 'null' && token !== '') {
+        scopedConfig = {
+          ...normalizedConfig,
+          headers: {
+            ...(normalizedConfig.headers || {}),
+            Authorization: `Bearer ${token}`,
+          },
+        };
+      }
+    }
+
+    const key = getCacheKey(scopedConfig);
+    const cached = readOfflineCache(scopedConfig);
+    if (cached?.data && Date.now() - Number(cached.cachedAt || 0) <= CLIENT_FAST_CACHE_TTL_MS) {
+      return {
+        data: cached.data,
+        status: 200,
+        statusText: 'OK (client cache)',
+        headers: {},
+        config: scopedConfig,
+        request: null,
+        clientCache: true,
+      };
+    }
+
+    if (clientGetInFlight.has(key)) {
+      return clientGetInFlight.get(key);
+    }
+
+    const request = rawGet(url, config).finally(() => {
+      clientGetInFlight.delete(key);
+    });
+    clientGetInFlight.set(key, request);
+    return request;
+  }
+
+  return rawGet(url, config);
+};
+
+export default api;

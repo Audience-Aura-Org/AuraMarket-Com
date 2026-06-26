@@ -2,19 +2,39 @@ const mongoose = require('mongoose');
 
 /**
  * models/PlatformSettings.model.js
- * Aura Market — Global Platform Configurations
+ * Auradime — Global Platform Configurations
  */
 const PlatformSettingsSchema = new mongoose.Schema(
   {
     commission_rate: {
       type: Number,
-      default: 5, // 5% by default
+      default: 5,
       min: 0,
       max: 100
     },
+    commission_type: {
+      type: String,
+      enum: ['percentage', 'amount'],
+      default: 'percentage'
+    },
+    commission_value: {
+      type: Number,
+      default: 5,
+      min: 0
+    },
+    escrow_fee_type: {
+      type: String,
+      enum: ['percentage', 'amount'],
+      default: 'percentage'
+    },
+    escrow_fee_value: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
     withdrawal_fee: {
       type: Number,
-      default: 2, // Flat $2 or equivalent
+      default: 500,
       min: 0
     },
     min_withdrawal_amount: {
@@ -25,6 +45,18 @@ const PlatformSettingsSchema = new mongoose.Schema(
     platform_wallet_balance: {
       type: Number,
       default: 0
+    },
+    subscription_required_roles: {
+      customer: { type: Boolean, default: false },
+      vendor: { type: Boolean, default: true },
+      logistics: { type: Boolean, default: false },
+      admin: { type: Boolean, default: false }
+    },
+    subscription_grace_days: {
+      customer: { type: Number, default: 0, min: 0, max: 365 },
+      vendor: { type: Number, default: 7, min: 0, max: 365 },
+      logistics: { type: Number, default: 3, min: 0, max: 365 },
+      admin: { type: Number, default: 0, min: 0, max: 365 }
     }
   },
   {
@@ -33,10 +65,14 @@ const PlatformSettingsSchema = new mongoose.Schema(
 );
 
 // We only ever want one document in this collection
-PlatformSettingsSchema.statics.getSettings = async function () {
-  let settings = await this.findOne();
+PlatformSettingsSchema.statics.getSettings = async function (session = null) {
+  let query = this.findOne();
+  if (session) query = query.session(session);
+
+  let settings = await query;
   if (!settings) {
-    settings = await this.create({});
+    const created = session ? await this.create([{}], { session }) : await this.create([{}]);
+    settings = Array.isArray(created) ? created[0] : created;
   }
   return settings;
 };

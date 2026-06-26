@@ -1,6 +1,6 @@
 /**
  * models/Shipment.model.js
- * Aura Market — Shipment Tracking Schema
+ * Auradime — Shipment Tracking Schema
  *
  * Uniquely bridges a Vendor's `Order` with a `LogisticsCompany`.
  */
@@ -93,5 +93,8 @@ const ShipmentSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+ShipmentSchema.index({ vendor_id: 1, status: 1, createdAt: -1 });
+ShipmentSchema.index({ logistics_id: 1, status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Shipment', ShipmentSchema);

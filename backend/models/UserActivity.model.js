@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 /**
  * models/UserActivity.model.js
- * Aura Market — Tracking user interactions for discovery personalization
+ * Auradime — Tracking user interactions for discovery personalization
  */
 const UserActivitySchema = new mongoose.Schema(
   {
