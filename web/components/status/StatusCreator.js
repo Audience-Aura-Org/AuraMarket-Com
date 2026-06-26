@@ -169,13 +169,8 @@ async function readVideoMetadata(file) {
     video.onloadedmetadata = done;
     video.onloadeddata = done;
     video.oncanplay = done;
-    video.onerror = () => {
-      if (!resolved) {
-        resolved = true;
-        reject(new Error('Could not read video metadata.'));
-      }
-    };
-    setTimeout(done, 2000); // 2s safety timeout
+    video.onerror = done;
+    setTimeout(done, 3500); // Android browser can delay local video metadata
   });
 
   video.preload = 'auto';
@@ -187,7 +182,7 @@ async function readVideoMetadata(file) {
   try {
     await metadataLoaded;
 
-    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : STATUS_VIDEO_MAX_SECONDS;
     const width = video.videoWidth || 0;
     const height = video.videoHeight || 0;
 

@@ -38,6 +38,42 @@ const getSupportedVideoMimeType = () => {
 const canvasToBlob = (canvas, type = 'image/jpeg', quality = 0.78) =>
   new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 
+const waitForVideoMetadata = (video, { timeout = 5000, rejectOnError = false } = {}) => (
+  new Promise((resolve, reject) => {
+    let settled = false;
+    const cleanup = () => {
+      video.onloadedmetadata = null;
+      video.onloadeddata = null;
+      video.oncanplay = null;
+      video.ondurationchange = null;
+      video.onerror = null;
+    };
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve();
+    };
+    const fail = () => {
+      if (settled) return;
+      if (video.videoWidth || Number.isFinite(video.duration) || !rejectOnError) {
+        finish();
+        return;
+      }
+      settled = true;
+      cleanup();
+      reject(new Error('Could not read video metadata.'));
+    };
+
+    video.onloadedmetadata = finish;
+    video.onloadeddata = finish;
+    video.oncanplay = finish;
+    video.ondurationchange = finish;
+    video.onerror = fail;
+    setTimeout(fail, timeout);
+  })
+);
+
 async function generateVideoThumbnail(file) {
   if (!file?.type?.startsWith('video/')) return null;
 
@@ -49,10 +85,7 @@ async function generateVideoThumbnail(file) {
   video.src = objectUrl;
 
   try {
-    await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve;
-      video.onerror = () => reject(new Error('Could not read video metadata.'));
-    });
+    await waitForVideoMetadata(video);
 
     const seekTo = Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
     await new Promise((resolve) => {
@@ -92,13 +125,10 @@ async function readVideoMetadata(file) {
   video.src = objectUrl;
 
   try {
-    await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve;
-      video.onerror = () => reject(new Error('Could not read video metadata.'));
-    });
+    await waitForVideoMetadata(video);
 
     return {
-      duration: Number.isFinite(video.duration) ? video.duration : 0,
+      duration: Number.isFinite(video.duration) && video.duration > 0 ? video.duration : STATUS_VIDEO_MAX_SECONDS,
       width: video.videoWidth || 0,
       height: video.videoHeight || 0,
       objectUrl,
@@ -150,10 +180,7 @@ async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = STATUS_V
   video.crossOrigin = 'anonymous';
 
   try {
-    await new Promise((resolve, reject) => {
-      video.onloadedmetadata = resolve;
-      video.onerror = () => reject(new Error('Could not load video for editing.'));
-    });
+    await waitForVideoMetadata(video, { rejectOnError: true });
 
     const start = Math.max(0, Math.min(trimStart, video.duration || 0));
     const end = Math.min(Math.max(start + 1, trimEnd), video.duration || start + STATUS_VIDEO_MAX_SECONDS);

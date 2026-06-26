@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
+import { getStoredAuthToken } from '@/services/authStorage';
 import CategoryPicker from '@/components/CategoryPicker';
 import { toast } from 'react-hot-toast';
 
@@ -80,6 +81,43 @@ const getProductImageUrl = (product) => {
   const image = product?.images?.[0];
   if (!image) return '';
   return typeof image === 'string' ? image : image.url || image.location || '';
+};
+
+const createProductWithFormData = async (formData) => {
+  const baseURL = String(api.defaults.baseURL || '').replace(/\/$/, '');
+  const token = await getStoredAuthToken();
+  const language = typeof window !== 'undefined'
+    ? window.localStorage.getItem('aura_language') || 'en'
+    : 'en';
+  const headers = {
+    'Accept-Language': language,
+    'X-Aura-Language': language,
+  };
+
+  if (token && token !== 'undefined' && token !== 'null' && token !== '') {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  let response;
+  try {
+    response = await fetch(`${baseURL}/products`, {
+      method: 'POST',
+      headers,
+      body: formData,
+      credentials: 'include',
+    });
+  } catch (error) {
+    throw new Error(error?.message || 'Product upload network request failed.');
+  }
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error = new Error(data?.message || data?.error || `Product upload failed (${response.status})`);
+    error.response = { status: response.status, data };
+    throw error;
+  }
+
+  return { data };
 };
 
 const getProductCreateErrorMessage = (err) => {
@@ -286,7 +324,7 @@ export default function AddProductPage() {
         formData.append('sku_variants', JSON.stringify(skuVariants));
       }
 
-      const res = await api.post('/products', formData);
+      const res = await createProductWithFormData(formData);
 
       toast.success(`"${form.name}" has been published!`, { icon: '🚀' });
       
@@ -412,7 +450,7 @@ export default function AddProductPage() {
                                 placeholder="e.g. Color"
                                 value={type.name}
                                 onChange={e => updateVariantType(tIdx, e.target.value)}
-                                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm placeholder:text-xs font-bold focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-xs sm:text-sm font-medium placeholder:text-[11px] placeholder:font-normal focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
                               />
                             </div>
                             <div className="space-y-2">
@@ -443,7 +481,7 @@ export default function AddProductPage() {
                                 <input 
                                   placeholder="Add option..."
                                   onKeyDown={e => { if(e.key === 'Enter') { addOption(tIdx, e.target.value); e.target.value = ''; } }}
-                                  className="bg-transparent border-none outline-none text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] w-24 placeholder:text-[var(--text-secondary)]/30"
+                                  className="bg-transparent border-none outline-none text-[11px] font-normal text-[var(--text-primary)] w-24 placeholder:font-normal placeholder:text-[var(--text-secondary)]/35"
                                 />
                               </div>
                             </div>
@@ -484,7 +522,7 @@ export default function AddProductPage() {
                                         type="number"
                                         value={sku.price}
                                         onChange={e => updateSKU(idx, 'price', e.target.value)}
-                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm placeholder:text-xs focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-xs sm:text-sm font-normal placeholder:text-[11px] placeholder:font-normal focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
                                       />
                                     </div>
                                   </td>
@@ -495,7 +533,7 @@ export default function AddProductPage() {
                                         value={sku.sale_price || ''}
                                         onChange={e => updateSKU(idx, 'sale_price', e.target.value)}
                                         placeholder="Optional"
-                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm placeholder:text-xs focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-xs sm:text-sm font-normal placeholder:text-[11px] placeholder:font-normal focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
                                       />
                                     </div>
                                   </td>
@@ -504,7 +542,7 @@ export default function AddProductPage() {
                                       type="number"
                                       value={sku.stock}
                                       onChange={e => updateSKU(idx, 'stock', e.target.value)}
-                                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm placeholder:text-xs focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-xs sm:text-sm font-normal placeholder:text-[11px] placeholder:font-normal focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
                                     />
                                   </td>
                                 </tr>
@@ -533,7 +571,7 @@ export default function AddProductPage() {
                       onChange={e => updateFormField('name', e.target.value)}
                       required
                       placeholder="e.g. Aura Pro Wireless Headphones"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-xs sm:text-sm font-medium text-[var(--text-primary)] placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-normal placeholder:text-[var(--text-secondary)]/35 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
                     />
                   </div>
                   <div>
@@ -544,7 +582,7 @@ export default function AddProductPage() {
                       required
                       rows={6}
                       placeholder="Describe the craftsmanship, materials, and unique qualities of your product..."
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none font-medium"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-xs sm:text-sm font-normal text-[var(--text-primary)] placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-normal placeholder:text-[var(--text-secondary)]/35 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none"
                     />
                   </div>
                   <div>
@@ -554,7 +592,7 @@ export default function AddProductPage() {
                       onChange={e => updateFormField('long_description', e.target.value)}
                       rows={8}
                       placeholder="Provide a detailed, in-depth description of your product — materials, story, dimensions, use cases, care instructions..."
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none font-medium"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-xs sm:text-sm font-normal text-[var(--text-primary)] placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-normal placeholder:text-[var(--text-secondary)]/35 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none"
                     />
                   </div>
                   <div>
@@ -564,7 +602,7 @@ export default function AddProductPage() {
                       onChange={e => updateFormField('specifications', e.target.value)}
                       rows={5}
                       placeholder="Enter specifications (one per line)..."
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none font-medium"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-xs sm:text-sm font-normal text-[var(--text-primary)] placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-normal placeholder:text-[var(--text-secondary)]/35 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none"
                     />
                   </div>
                 </div>
@@ -633,7 +671,7 @@ export default function AddProductPage() {
                       onChange={e => updateFormField('price', e.target.value)}
                       required
                       placeholder="0"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-xs sm:text-sm font-medium text-[var(--text-primary)] placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-normal placeholder:text-[var(--text-secondary)]/35 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
                     />
                   </div>
                   <div>
@@ -644,7 +682,7 @@ export default function AddProductPage() {
                       value={form.sale_price}
                       onChange={e => updateFormField('sale_price', e.target.value)}
                       placeholder="Optional sale price"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-xs sm:text-sm font-medium text-[var(--text-primary)] placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-normal placeholder:text-[var(--text-secondary)]/35 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
                     />
                     <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Optional. If provided, must be less than the regular price.</p>
                   </div>
@@ -656,7 +694,7 @@ export default function AddProductPage() {
                       onChange={e => updateFormField('stock', e.target.value)}
                       required
                       placeholder="0"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-xs sm:text-sm font-medium text-[var(--text-primary)] placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-normal placeholder:text-[var(--text-secondary)]/35 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
                     />
                   </div>
                 </div>
@@ -689,7 +727,7 @@ export default function AddProductPage() {
                         onChange={e => setTagInput(e.target.value)}
                         onKeyDown={addTag}
                         placeholder="Add tag..."
-                        className="bg-transparent border-none outline-none text-xs text-[var(--text-primary)]  font-bold min-w-[80px] focus:ring-0 px-2 placeholder:text-[var(--text-secondary)]/30"
+                        className="bg-transparent border-none outline-none text-[11px] sm:text-xs text-[var(--text-primary)] font-normal min-w-[80px] focus:ring-0 px-2 placeholder:font-normal placeholder:text-[var(--text-secondary)]/35"
                       />
                     </div>
                   </div>
