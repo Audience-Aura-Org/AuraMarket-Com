@@ -94,9 +94,46 @@
   --glass-border: rgba(15, 23, 42, 0.08);
   --accent-rgb: 255, 0, 255;
   --card-bg: #ffffff;
+  --aura-font-size-base: 16px;
+  --aura-font-family: var(--font-display);
   /* Default top nav heights; pages may override these variables */
   --top-nav-height: calc(55px + env(safe-area-inset-top, 0px));
   --top-nav-height-lg: calc(73px + env(safe-area-inset-top, 0px));
+}
+
+
+html[data-font-size="sm"] { --aura-font-size-base: 14px; --aura-font-scale: 0.875; }
+html[data-font-size="md"] { --aura-font-size-base: 16px; --aura-font-scale: 1; }
+html[data-font-size="lg"] { --aura-font-size-base: 18px; --aura-font-scale: 1.125; }
+html[data-font-size="xl"] { --aura-font-size-base: 20px; --aura-font-scale: 1.25; }
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+html[data-font="default"] { --aura-font-family: var(--font-display); }
+html[data-font="serif"] { --aura-font-family: 'Lora', Georgia, serif; }
+html[data-font="mono"] { --aura-font-family: 'JetBrains Mono', ui-monospace, monospace; }
+html[data-font="dyslexic"] { --aura-font-family: 'OpenDyslexic', var(--font-display); }
+
+html[data-font-size] body {
+  font-size: var(--aura-font-size-base, 16px);
+}
+
+html[data-font-size] :where(.font-size-preview, [data-font-size-preview]) {
+  font-size: calc(1rem * var(--aura-font-scale, 1));
 }
 
 .dark {
@@ -115,11 +152,12 @@
   --glass-border: rgba(255, 255, 255, 0.12);
   --accent-rgb: 255, 0, 255;
   --card-bg: rgba(255, 255, 255, 0.03);
+  --aura-font-family: var(--font-display);
 }
 
 /* Rest of the file remains as before but ensuring no italics */
 html {
-  font-size: 16px;
+  font-size: var(--aura-font-size-base, 16px);
   zoom: 0.7;
   min-height: 100%;
   height: 100%;
@@ -130,64 +168,10 @@ html {
   touch-action: pan-y;
 }
 
-/* Font Size Presets */
-html[data-font-size="sm"] {
-  font-size: 14px;
-}
-
-html[data-font-size="md"] {
-  font-size: 16px; /* default */
-}
-
-html[data-font-size="lg"] {
-  font-size: 18px;
-}
-
-html[data-font-size="xl"] {
-  font-size: 20px;
-}
-
-/* OpenDyslexic – loaded from CDN for the dyslexia-friendly font option */
-@font-face {
-  font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Regular.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/fonts/OpenDyslexic-Bold.otf') format('opentype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Font Family Presets — apply to html + body so body font-family does not override */
-html[data-font="default"],
-html[data-font="default"] body {
-  font-family: 'Poppins', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-}
-
-html[data-font="serif"],
-html[data-font="serif"] body {
-  font-family: 'Lora', Georgia, serif;
-}
-
-html[data-font="mono"],
-html[data-font="mono"] body {
-  font-family: 'JetBrains Mono', monospace;
-}
-
-html[data-font="dyslexic"],
-html[data-font="dyslexic"] body {
-  font-family: 'OpenDyslexic', sans-serif;
-}
-
 /* Desktop readability — 16px base with fixed 0.7 zoom */
 @media (min-width: 1024px) {
   html {
-    font-size: 16px;
+    font-size: var(--aura-font-size-base, 16px);
   }
 
   body {
@@ -220,12 +204,12 @@ html[data-font="dyslexic"] body {
 
 @media (min-width: 1280px) {
   html {
-    font-size: 16px;
+    font-size: var(--aura-font-size-base, 16px);
   }
 }
 
 body {
-  font-family: inherit;
+  font-family: var(--aura-font-family, var(--font-display));
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   min-height: 100%;
@@ -287,7 +271,7 @@ h3:not(.font-quicksand),
 h4:not(.font-quicksand),
 h5:not(.font-quicksand),
 h6:not(.font-quicksand) {
-  font-family: var(--font-poppins);
+  font-family: var(--aura-font-family, var(--font-poppins));
 }
 
 h1,h2,h3,h4,h5,h6 {
@@ -326,7 +310,7 @@ i, em { font-style: normal !important; }
 
 @media (max-width: 640px) {
   html { 
-    font-size: 14px; 
+    font-size: var(--aura-font-size-base, 14px);
     zoom: 0.8;
   }
   input, textarea, select {

@@ -10,6 +10,7 @@ const Order             = require('../models/Order.model');
 const Vendor            = require('../models/Vendor.model');
 const Escrow            = require('../models/Escrow.model');
 const User              = require('../models/User.model');
+const Store             = require('../models/Store.model');
 const Transaction       = require('../models/Transaction.model');
 const PlatformSettings  = require('../models/PlatformSettings.model');
 const LogisticZone      = require('../models/LogisticZone.model');
@@ -20,10 +21,19 @@ const { escapeRegExp } = require('../middleware/security.middleware');
 const { sendEmail }        = require('../utils/emailService');
 const logisticsService     = require('../services/logistics.service');
 const templates            = require('../utils/emailTemplates');
-const { calculatePlatformFees } = require('../utils/platformFees');
+const { applyCommissionOverride, calculatePlatformFees } = require('../utils/platformFees');
 const { markEscrowDelivered } = require('./escrow.controller');
 
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
+
+const getEffectivePlatformSettings = async (vendorId, session) => {
+  const platformSettings = await PlatformSettings.getSettings(session);
+  const store = await Store.findOne({ vendor_id: vendorId }).select('commission_rate').session(session);
+  return {
+    platformSettings,
+    effectiveSettings: applyCommissionOverride(platformSettings, store?.commission_rate),
+  };
+};
 
 // ─────────────────────────────────────────────
 // @route   POST /api/logistics/onboard
@@ -455,15 +465,15 @@ const modifyShipmentStatus = async (req, res, next) => {
           if (vendorAccount) {
             const vendorUser = await User.findById(vendorAccount.user_id).session(session);
             if (vendorUser) {
-              const settings = await PlatformSettings.getSettings(session);
-              const { platformFee, vendorPayout } = calculatePlatformFees(order.subtotal, settings);
+              const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(order.vendor_id, session);
+              const { platformFee, vendorPayout } = calculatePlatformFees(order.subtotal, effectiveSettings);
 
               vendorUser.wallet_balance += vendorPayout;
               await vendorUser.save({ session });
 
-              if (settings && platformFee > 0) {
-                settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
-                await settings.save({ session });
+              if (platformFee > 0) {
+                platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
+                await platformSettings.save({ session });
               }
 
               await Transaction.create([{

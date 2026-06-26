@@ -1,7 +1,6 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { 
@@ -193,6 +192,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [partnerBInfo, setPartnerBInfo] = useState(null);
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
+  const [floatingMenu, setFloatingMenu] = useState(null);
   const [storyViewer, setStoryViewer] = useState({ statuses: null, storyId: null });
   const [mediaPreview, setMediaPreview] = useState(null);
   const [viewportHeight, setViewportHeight] = useState(() => stableChatViewport(getChatViewportMetrics()));
@@ -842,6 +842,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           text: 'This message was deleted',
         });
         setActiveMenuMsgId(null);
+        setFloatingMenu(null);
       }
     } catch (err) {
       console.error('Delete message failed:', err);
@@ -1069,6 +1070,68 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     return meta.storyThumbnail || meta.storyPreviewUrl || meta.storyPreview || meta.content_url || null;
   };
 
+  const renderFloatingMenu = () => {
+    if (!floatingMenu) return null;
+
+    const menuStyle = {
+      top: floatingMenu.top,
+      left: floatingMenu.left,
+      zIndex: 90,
+    };
+
+    const menu = floatingMenu.type === 'chat' ? (
+      <div
+        className="absolute min-w-[206px] rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1.5 text-[var(--text-primary)] shadow-2xl ring-1 ring-black/10"
+        style={menuStyle}
+        data-chat-action-menu="header"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            closeFloatingMenu();
+            if (confirm('Delete this conversation from your inbox?')) hideConversation(activePartnerId.toString());
+          }}
+          className="flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] font-semibold text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/20"
+        >
+          <Trash2 className="size-4" />
+          Delete conversation
+        </button>
+      </div>
+    ) : (
+      <div
+        className="absolute min-w-[190px] rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1.5 text-[var(--text-primary)] shadow-2xl ring-1 ring-black/10"
+        style={menuStyle}
+        data-chat-action-menu="message"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={() => handleDeleteMessage(floatingMenu.msg._id, 'me')}
+          className="flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-secondary)]"
+        >
+          <Trash2 className="size-4 text-[var(--text-secondary)]" /> Delete for me
+        </button>
+        {floatingMenu.isOwn && (
+          <button
+            type="button"
+            onClick={() => handleDeleteMessage(floatingMenu.msg._id, 'everyone')}
+            className="flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/20"
+          >
+            <Trash2 className="size-4 text-red-500" /> Delete for everyone
+          </button>
+        )}
+      </div>
+    );
+
+    return (
+      <>
+        <div className="absolute inset-0 cursor-default bg-transparent" style={{ zIndex: 89 }} onClick={closeFloatingMenu} />
+        {menu}
+      </>
+    );
+  };
+
   const openStoryReply = async (msg) => {
     const meta = storyReplyMeta(msg);
     const storyId = meta?.storyId || meta?.statusId;
@@ -1087,12 +1150,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   const dismissOverlay = () => {
     setChatMenuOpen(false);
+    setFloatingMenu(null);
     setActiveConversation(null);
     onClose?.();
   };
 
   const goBackOrClose = () => {
     setChatMenuOpen(false);
+    setFloatingMenu(null);
     if (activePartnerId) {
       setActiveConversation(null);
     } else {
@@ -1135,6 +1200,72 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }
   };
 
+  const closeFloatingMenu = () => {
+    setChatMenuOpen(false);
+    setActiveMenuMsgId(null);
+    setFloatingMenu(null);
+  };
+
+  const clampMenuPosition = (rect, width, height = 96, align = 'right') => {
+    const root = chatRootRef.current;
+    if (!root) return { top: 0, left: 0 };
+
+    const rootRect = root.getBoundingClientRect();
+    const scaleX = root.clientWidth ? rootRect.width / root.clientWidth : 1;
+    const scaleY = root.clientHeight ? rootRect.height / root.clientHeight : 1;
+    const toLocalX = (value) => (value - rootRect.left) / Math.max(scaleX, 0.01);
+    const toLocalY = (value) => (value - rootRect.top) / Math.max(scaleY, 0.01);
+    const gutter = 8;
+    const localTop = toLocalY(rect.bottom) + 8;
+    const localAboveTop = toLocalY(rect.top) - height - 8;
+    const availableHeight = root.clientHeight || rootRect.height;
+    const availableWidth = root.clientWidth || rootRect.width;
+    const top = localTop + height <= availableHeight - gutter
+      ? localTop
+      : Math.max(gutter, localAboveTop);
+    const localLeft = align === 'left'
+      ? toLocalX(rect.left)
+      : toLocalX(rect.right) - width;
+
+    return {
+      top: Math.round(Math.max(gutter, Math.min(top, availableHeight - height - gutter))),
+      left: Math.round(Math.max(gutter, Math.min(localLeft, availableWidth - width - gutter))),
+    };
+  };
+
+  const openChatMenu = (event) => {
+    event.stopPropagation();
+    if (chatMenuOpen) {
+      closeFloatingMenu();
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    setActiveMenuMsgId(null);
+    setChatMenuOpen(true);
+    setFloatingMenu({ type: 'chat', ...clampMenuPosition(rect, 206, 52, 'right') });
+  };
+
+  const openMessageMenu = (event, msg, isOwn) => {
+    event.stopPropagation();
+    if (activeMenuMsgId === msg._id) {
+      closeFloatingMenu();
+      return;
+    }
+    const rect = event.currentTarget.getBoundingClientRect();
+    setChatMenuOpen(false);
+    setActiveMenuMsgId(msg._id);
+    setFloatingMenu({
+      type: 'message',
+      msg,
+      isOwn,
+      ...clampMenuPosition(rect, 190, isOwn ? 92 : 52, isOwn ? 'right' : 'left'),
+    });
+  };
+
+  useEffect(() => {
+    closeFloatingMenu();
+  }, [activePartnerId]);
+
   const headerSwipeProps =
     mobileLayout
       ? {
@@ -1166,7 +1297,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   const outerClass = fullPage
     ? [
-        'flex min-h-0 w-full flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation',
+        'relative flex min-h-0 w-full flex-col overflow-hidden bg-[var(--bg-secondary)] touch-manipulation',
         'max-md:w-full',
         'md:h-full md:flex-1',
       ].join(' ')
@@ -1205,6 +1336,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     >
 
       {/* ── HEADER ───────────────────────────────────────────────── */}
+      {renderFloatingMenu()}
+
       <AnimatePresence mode="wait">
         {activePartnerId ? (
           /* Chat Header */
@@ -1268,31 +1401,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 <div className="relative flex shrink-0 items-center gap-0.5">
                   <button
                     type="button"
-                    onClick={() => setChatMenuOpen(open => !open)}
+                    onClick={openChatMenu}
                     className="flex size-9 items-center justify-center rounded-full text-[var(--nav-text)]/80 transition-colors hover:bg-white/10 active:bg-white/15"
                     aria-label="Chat options"
                     aria-expanded={chatMenuOpen}
                   >
                     <MoreVertical className="size-[18px]" />
                   </button>
-                  {chatMenuOpen && (
-                    <>
-                      <div className="fixed inset-0 z-[60] bg-black/10" onClick={() => setChatMenuOpen(false)} />
-                      <div className="absolute right-0 top-10 z-[70] min-w-[200px] rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1.5 text-[var(--text-primary)] shadow-2xl ring-1 ring-black/10">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setChatMenuOpen(false);
-                            if (confirm('Delete this conversation from your inbox?')) hideConversation(activePartnerId.toString());
-                          }}
-                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-600 transition hover:bg-red-50 dark:hover:bg-red-950/20 whitespace-nowrap"
-                        >
-                          <Trash2 className="size-4" />
-                          Delete conversation
-                        </button>
-                      </div>
-                    </>
-                  )}
                   <button
                     type="button"
                     onClick={dismissOverlay}
@@ -1460,7 +1575,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           </div>
         ) : (
           /* ─ Messages ─ */
-          <div className="mx-auto w-full max-w-4xl space-y-0.5 px-1 pb-4 pt-2 sm:space-y-1 sm:px-4 sm:pb-6">
+          <div className="mx-auto w-full max-w-4xl space-y-0.5 px-2 pb-4 pt-2 sm:space-y-1 sm:px-4 sm:pb-6">
             {messages.length === 0 && loading && hasSeedPartnerData ? null : messages.length === 0 ? (
               <div className="flex min-h-[42dvh] flex-col items-center justify-center px-8 py-16 text-center">
                 <MessageCircle className="mb-4 size-12 text-[var(--text-secondary)]/70" />
@@ -1498,7 +1613,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                     )}
 
                     <div className={`flex w-full min-w-0 ${isOwn ? 'justify-end' : 'justify-start'} ${withNext ? 'mb-0.5' : 'mb-1.5 sm:mb-2.5'}`}>
-                      <div className={`flex min-w-0 max-w-[94%] flex-col gap-0.5 sm:max-w-[72%] lg:max-w-[68%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                      <div className={`flex min-w-0 max-w-[88%] flex-col gap-0.5 sm:max-w-[72%] lg:max-w-[68%] ${isOwn ? 'items-end' : 'items-start'}`}>
 
                         <motion.div
                           initial={mobileLayout ? false : { opacity: 0, scale: 0.96, y: 8 }}
@@ -1518,13 +1633,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                           {!msg.deleted_everyone && canDeleteMessage && (
                             <button
                               type="button"
-                              onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(activeMenuMsgId === msg._id ? null : msg._id); }}
-                              className={`absolute right-1 top-1 flex size-5 items-center justify-center rounded bg-black/[0.03] text-[var(--text-secondary)] transition-opacity hover:bg-black/[0.08] ${activeMenuMsgId === msg._id ? 'opacity-100' : 'opacity-40 sm:opacity-0 sm:group-hover:opacity-60'}`}
+                              onClick={(e) => openMessageMenu(e, msg, isOwn)}
+                              className={`absolute right-1 top-1 flex size-5 items-center justify-center rounded bg-black/[0.03] text-[var(--text-secondary)] transition-opacity hover:bg-black/[0.08] md:opacity-0 md:group-hover:opacity-60 ${activeMenuMsgId === msg._id ? 'opacity-100' : 'opacity-70'}`}
                               aria-label="Message options"
                             >
                               <MoreVertical className="size-3" />
                             </button>
                           )}
+
 
                           {storyReplyMeta(msg) && (
                             <button
@@ -1603,40 +1719,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                             )}
                           </div>
                         </motion.div>
-
-                        {activeMenuMsgId === msg._id && typeof document !== 'undefined' && createPortal(
-                          <>
-                            <div className="fixed inset-0 z-[9998] cursor-default bg-black/10" onClick={(e) => { e.stopPropagation(); setActiveMenuMsgId(null); }} />
-                            <div
-                              className={`fixed z-[9999] min-w-[140px] rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1.5 shadow-2xl ring-1 ring-black/10`}
-                              style={{
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                left: isOwn ? 'auto' : '16px',
-                                right: isOwn ? '16px' : 'auto'
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteMessage(msg._id, 'me')}
-                                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
-                              >
-                                <Trash2 className="size-4 text-[var(--text-secondary)]" /> Delete for me
-                              </button>
-                              {isOwn && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteMessage(msg._id, 'everyone')}
-                                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                                >
-                                  <Trash2 className="size-4 text-red-500" /> Delete for everyone
-                                </button>
-                              )}
-                            </div>
-                          </>,
-                          document.body
-                        )}
 
                         {msg.status === 'failed' && (
                           <button

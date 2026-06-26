@@ -10,6 +10,7 @@
 const Order          = require('../models/Order.model');
 const Product        = require('../models/Product.model');
 const Vendor         = require('../models/Vendor.model');
+const Store          = require('../models/Store.model');
 const RefundRequest  = require('../models/RefundRequest.model');
 const Escrow         = require('../models/Escrow.model');
 const User           = require('../models/User.model');
@@ -34,6 +35,22 @@ const {
 const templates               = require('../utils/emailTemplates');
 const { markEscrowDelivered } = require('./escrow.controller');
 
+const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
+
+const normalizeNullableAmount = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : null;
+};
+
+const assertMinimumOrderAmount = async (vendorId, subtotal, session) => {
+  const store = await Store.findOne({ vendor_id: vendorId }).select('minimum_order_amount').session(session);
+  const minimum = normalizeNullableAmount(store?.minimum_order_amount);
+  if (minimum !== null && Number(subtotal || 0) < minimum) {
+    const vendor = await Vendor.findById(vendorId).select('store_name').session(session);
+    throw new Error(`Your order from ${vendor?.store_name || 'this store'} must be at least ${minimum.toLocaleString()} XAF. Please add more items from this store or remove their products to continue.`);
+  }
+};
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
 const isVendorManagedShipping = (method) => method === 'vendor_managed' || method === 'self_managed';
 const normalizePaymentMethod = (method) => {
@@ -256,7 +273,9 @@ const createOrder = async (req, res, next) => {
       shipping_fee = fees.totalFee;
     }
 
-    const collection_fee = (payment_method === 'payunit' || payment_method === 'eversend') ? 50 : 0;
+    await assertMinimumOrderAmount(vendor_id, subtotal, session);
+
+    const collection_fee = (payment_method === 'payunit' || payment_method === 'eversend') ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
     const total_amount = subtotal + shipping_fee + collection_fee - discount;
 
     const orderData = {
@@ -1102,7 +1121,9 @@ const createOrdersFromCart = async (req, res, next) => {
           shippingFee = fees.totalFee;
       }
 
-      const collectionFee = (payment_method === 'payunit' || payment_method === 'eversend') ? 50 : 0;
+      await assertMinimumOrderAmount(vendorId, subtotal, session);
+
+      const collectionFee = (payment_method === 'payunit' || payment_method === 'eversend') ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
 
       const [newOrder] = await Order.create([{
         customer_id: req.user._id,

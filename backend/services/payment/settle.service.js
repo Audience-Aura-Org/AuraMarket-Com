@@ -15,6 +15,7 @@
 const mongoose = require('mongoose');
 const User = require('../../models/User.model');
 const Vendor = require('../../models/Vendor.model');
+const Store = require('../../models/Store.model');
 const Escrow = require('../../models/Escrow.model');
 const Transaction = require('../../models/Transaction.model');
 const Order = require('../../models/Order.model');
@@ -24,9 +25,17 @@ const Shipment = require('../../models/Shipment.model');
 const PlatformSettings = require('../../models/PlatformSettings.model');
 const logisticsService = require('../logistics.service');
 const { sendNotification } = require('../../utils/notifier');
-const { calculatePlatformFees, describeFee } = require('../../utils/platformFees');
+const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../../utils/platformFees');
 const crypto = require('crypto');
 
+const getEffectivePlatformSettings = async (vendorId, session) => {
+  const platformSettings = await PlatformSettings.getSettings(session);
+  const store = await Store.findOne({ vendor_id: vendorId }).select('commission_rate').session(session);
+  return {
+    platformSettings,
+    effectiveSettings: applyCommissionOverride(platformSettings, store?.commission_rate),
+  };
+};
 const genRef = (prefix = 'SETTLE') =>
   `${prefix}-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 
@@ -75,20 +84,20 @@ const creditLogistics = async (order, session) => {
  * @param {number} [overrideAmount] - Override the base amount (e.g. already-computed vendorBase)
  */
 const handleVendorPayout = async (order, session, overrideAmount = null) => {
-  const settings = await PlatformSettings.getSettings(session);
+  const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(order.vendor_id, session);
 
-  // Vendor base = subtotal only when logistics partner handles shipping (fee goes to logistics firm)
+  // Vendor base excludes payment collection fees. Logistics shipping is paid separately to the carrier.
   const vendorBaseAmount = overrideAmount ?? (
     (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
       ? order.subtotal
-      : order.total_amount
+      : order.subtotal + (order.shipping_fee || 0)
   );
 
   const isEscrowPayout = !!order.escrow_enabled;
-  const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(vendorBaseAmount, settings, {
+  const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(vendorBaseAmount, effectiveSettings, {
     includeEscrowFee: isEscrowPayout
   });
-  const feeDescription = describeFee(settings, { includeEscrowFee: isEscrowPayout });
+  const feeDescription = describeFee(effectiveSettings, { includeEscrowFee: isEscrowPayout });
   const platformFeeBreakdown = {
     base_amount: vendorBaseAmount,
     commission_fee: commissionFee,
@@ -128,8 +137,8 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
     vendorUser.wallet_balance += vendorPayout;
     await vendorUser.save({ session });
 
-    settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + platformFee;
-    await settings.save({ session });
+    platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
+    await platformSettings.save({ session });
 
     const transactionEntries = [{
       user_id: vendorUser._id,

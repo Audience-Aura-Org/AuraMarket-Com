@@ -7,7 +7,7 @@ import {
   Mail, MapPin, Camera, ExternalLink, RefreshCw, Search,
   Truck, LayoutGrid, ShoppingBag, Activity,
   Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock, Star, Globe2,
-  Smartphone, Download, Monitor, Apple
+  Smartphone, Download, Monitor, Apple, Type, Check
 } from 'lucide-react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -28,7 +28,7 @@ import { TABS } from './constants';
 import AccountHeader from './AccountHeader';
 import AccountSidebar from './AccountSidebar';
 import { useLanguage } from '@/context/LanguageContext';
-import TypographySettings from '@/components/settings/TypographySettings';
+import { setFontSize, getFontSize, resetFontSettings, FONT_SIZES } from '@/utils/fontSettings';
 
 const normalizePickupAddress = (pickup = {}, fallback = {}) => ({
   city: pickup.city || fallback.city || '',
@@ -101,7 +101,9 @@ export default function AccountPageClient() {
     description: '',
     logo: user?.branding?.logo || '',
     banner: user?.branding?.banner || '',
-    pickup_address: { city: '', quartier: '', address_description: '' }
+    pickup_address: { city: '', quartier: '', address_description: '' },
+    delivery_time: '',
+    minimum_order_amount: ''
   });
 
   const [userData, setUserData] = useState({ 
@@ -135,6 +137,7 @@ export default function AccountPageClient() {
   const [deleteStatus, setDeleteStatus] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const deleteConfirmationWord = language === 'fr' ? 'SUPPRIMER' : 'DELETE';
+  const [currentFontSize, setCurrentFontSize] = useState(FONT_SIZES.md);
 
   const [followedVendors, setFollowedVendors] = useState([]);
   const [networkLoading, setNetworkLoading] = useState(false);
@@ -221,7 +224,9 @@ export default function AccountPageClient() {
             description: v.description || '',
             logo: s.logo || v.logo || user.branding?.logo || '',
             banner: s.banner || v.banner || user.branding?.banner || '',
-            pickup_address: pickupAddress
+            pickup_address: pickupAddress,
+            delivery_time: s.delivery_time || '',
+            minimum_order_amount: s.minimum_order_amount ?? ''
           });
           setProfileBranding((p) => ({
             logo: s.logo || v.logo || p.logo,
@@ -248,6 +253,30 @@ export default function AccountPageClient() {
       setProfileSaving(false);
       setTimeout(() => setBrandingStatus(''), 2500);
     }
+  };
+
+  useEffect(() => {
+    setCurrentFontSize(getFontSize());
+    const handleFontSizeChange = (event) => setCurrentFontSize(event.detail.size);
+    window.addEventListener('fontsizechange', handleFontSizeChange);
+    return () => window.removeEventListener('fontsizechange', handleFontSizeChange);
+  }, []);
+
+  const fontSizeOptions = [
+    { value: FONT_SIZES.sm, label: 'S', helper: 'Small', size: '14px' },
+    { value: FONT_SIZES.md, label: 'M', helper: 'Medium', size: '16px', badge: 'Default' },
+    { value: FONT_SIZES.lg, label: 'L', helper: 'Large', size: '18px' },
+    { value: FONT_SIZES.xl, label: 'XL', helper: 'Extra Large', size: '20px' },
+  ];
+
+  const handleFontSizeChange = (size) => {
+    setFontSize(size);
+    setCurrentFontSize(size);
+  };
+
+  const handleFontReset = () => {
+    resetFontSettings();
+    setCurrentFontSize(FONT_SIZES.md);
   };
 
   const handleLanguageChange = async (nextLanguage) => {
@@ -290,7 +319,17 @@ export default function AccountPageClient() {
         description: storeData.description,
         pickup_address: pickupAddress
       });
-      setStoreData((p) => ({ ...p, pickup_address: pickupAddress }));
+      const storeRes = await api.patch('/vendors/store', {
+        delivery_time: storeData.delivery_time,
+        minimum_order_amount: storeData.minimum_order_amount,
+      });
+      const updatedStore = storeRes.data?.data?.store;
+      setStoreData((p) => ({
+        ...p,
+        pickup_address: pickupAddress,
+        delivery_time: updatedStore?.delivery_time || '',
+        minimum_order_amount: updatedStore?.minimum_order_amount ?? '',
+      }));
       setSaveStatus('Store updated successfully.');
       setTimeout(() => setSaveStatus(''), 3000);
     } catch (err) {
@@ -446,7 +485,7 @@ export default function AccountPageClient() {
                       <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                       
                       <div className="relative z-10 space-y-6 md:space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <FormField
                             label={t('settings.fullName')}
                             value={userData.name}
@@ -470,9 +509,66 @@ export default function AccountPageClient() {
                           icon={Mail}
                         />
 
-                        <TypographySettings />
+                        <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-4 md:p-5">
+                          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
+                                <Type className="size-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Typography</p>
+                                <p className="text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">Font size applies across the app. Default font is Poppins.</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleFontReset}
+                              className="inline-flex h-9 shrink-0 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[11px] font-semibold text-[var(--text-secondary)] transition hover:border-[var(--accent)]/40 hover:text-[var(--accent)]"
+                            >
+                              <RefreshCw className="size-3.5" />
+                              Reset
+                            </button>
+                          </div>
 
-                        {/* ── Language ── */}
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">Font Size</p>
+                            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                              {fontSizeOptions.map((option) => {
+                                const selected = currentFontSize === option.value;
+                                return (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => handleFontSizeChange(option.value)}
+                                    className={`relative flex min-h-[58px] flex-col items-center justify-center rounded-2xl border px-3 py-2 text-center transition ${
+                                      selected
+                                        ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm shadow-[var(--accent)]/10'
+                                        : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/60 text-[var(--text-secondary)] hover:border-[var(--accent)]/35 hover:text-[var(--accent)]'
+                                    }`}
+                                    aria-pressed={selected}
+                                  >
+                                    {option.badge && selected && (
+                                      <span className="absolute -top-2 rounded-full bg-[var(--accent)] px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">
+                                        {option.badge}
+                                      </span>
+                                    )}
+                                    <span className="flex items-center gap-1 text-[15px] font-black leading-none">
+                                      {selected && <Check className="size-3" />}
+                                      {option.label}
+                                    </span>
+                                    <span className="mt-1 text-[9px] font-bold leading-none opacity-70">{option.helper}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div className="grid grid-cols-4 px-1 text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">
+                              {fontSizeOptions.map((option) => (
+                                <span key={option.value} className="text-center">{option.size}</span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
                         <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-4 md:p-5">
                           <div className="mb-3 flex items-center gap-3">
                             <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
@@ -592,7 +688,6 @@ export default function AccountPageClient() {
                       </div>
                     </div>
                   </div>
-
                 </div>
               )}
 
@@ -743,6 +838,23 @@ export default function AccountPageClient() {
                         placeholder="Describe your store..."
                         textarea={true}
                       />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          label="Estimated Delivery Time"
+                          value={storeData.delivery_time}
+                          onChange={(v) => setStoreData({ ...storeData, delivery_time: v })}
+                          icon={Clock}
+                          placeholder="1-3 days, Same day, Within 24 hours..."
+                        />
+                        <FormField
+                          label="Minimum Order Amount (XAF)"
+                          type="number"
+                          value={storeData.minimum_order_amount}
+                          onChange={(v) => setStoreData({ ...storeData, minimum_order_amount: v })}
+                          icon={ShoppingBag}
+                          placeholder="Leave blank for no minimum"
+                        />
+                      </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <BrandingUploadCard

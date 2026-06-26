@@ -13,7 +13,7 @@ import { ChatProvider } from '@/context/ChatContext';
 import dynamic from 'next/dynamic';
 import SplashScreen from '@/components/layout/SplashScreen';
 import { useAuthStore } from '@/hooks/useAuth';
-import { Capacitor } from '@capacitor/core';
+import { initFontSettings } from '@/utils/fontSettings';
 
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
@@ -26,7 +26,7 @@ const PWAInit = dynamic(() => import('@/components/PWAInit'), { ssr: false });
 const MobileKeyboardRecovery = dynamic(() => import('@/components/MobileKeyboardRecovery'), { ssr: false });
 const NativeBackButtonHandler = dynamic(() => import('@/components/NativeBackButtonHandler'), { ssr: false });
 
-// Font settings initialize on app load via Providers
+// Navigation & footer — visible but non-critical for first paint
 const BottomNav = dynamic(() => import('@/components/layout/BottomNav'), { ssr: false });
 const Footer = dynamic(() => import('@/components/layout/Footer'), { ssr: false });
 const FloatingUploadBadge = dynamic(() => import('@/components/ui/FloatingUploadBadge'), { ssr: false });
@@ -42,14 +42,8 @@ export default function Providers({ children }) {
                           normalizedPath === '/subscribe';
   const [showSplash, setShowSplash] = useState(!isDashboardRoute);
 
-  // Initialize font settings on app load
   useEffect(() => {
-    // Dynamically import to avoid SSR issues
-    import('@/utils/fontSettings').then(({ initFontSettings }) => {
-      initFontSettings();
-    }).catch(err => {
-      console.error('Failed to initialize font settings:', err);
-    });
+    initFontSettings();
   }, []);
 
   useEffect(() => {
@@ -140,7 +134,6 @@ export default function Providers({ children }) {
 
           {/* Floating upload progress ring — persists across navigation */}
           <FloatingUploadBadge />
-
 
           {/* Global chat overlay — deferred, heavy */}
           {!isAuthRoute && <GlobalChatOverlay />}

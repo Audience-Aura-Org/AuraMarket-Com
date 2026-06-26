@@ -73,7 +73,23 @@ const describeFee = (settings = {}, { includeEscrowFee = false } = {}) => {
   return parts.length ? parts.join(' + ') : 'no platform fee';
 };
 
+const applyCommissionOverride = (settings = {}, commissionRate) => {
+  if (commissionRate === undefined || commissionRate === null || commissionRate === '') {
+    return settings;
+  }
+
+  const rate = Number(commissionRate);
+  if (!Number.isFinite(rate) || rate < 0) return settings;
+
+  const effectiveSettings = settings.toObject ? settings.toObject() : { ...settings };
+  effectiveSettings.commission_type = 'percentage';
+  effectiveSettings.commission_value = rate;
+  effectiveSettings.commission_rate = rate;
+  return effectiveSettings;
+};
+
 module.exports = {
+  applyCommissionOverride,
   calculateFee,
   calculateCommissionFee,
   calculateEscrowFee,

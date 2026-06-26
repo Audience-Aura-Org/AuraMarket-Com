@@ -590,6 +590,36 @@ const getAllUsers = async (req, res, next) => {
   }
 };
 
+const normalizeNullablePercentage = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0 || num > 100) {
+    const error = new Error('Commission rate must be between 0 and 100.');
+    error.statusCode = 400;
+    throw error;
+  }
+  return num;
+};
+
+const normalizeNullableXafAmount = (value, fieldName = 'Amount') => {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) {
+    const error = new Error(`${fieldName} must be a non-negative XAF amount.`);
+    error.statusCode = 400;
+    throw error;
+  }
+  return Math.round(num);
+};
+
+const normalizeNullableText = (value) => {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const text = String(value).trim();
+  return text || null;
+};
 const getAllVendors = async (req, res, next) => {
   try {
     const { status, search } = req.query;
@@ -598,7 +628,7 @@ const getAllVendors = async (req, res, next) => {
     if (status === 'unverified') query.verified = false;
     const vendors = await Vendor.find(query)
       .populate('user_id', 'name email avatar verification_status branding')
-      .populate('store', 'logo banner categories')
+      .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount')
       .sort('-createdAt');
     res.status(200).json({ success: true, count: vendors.length, data: { vendors } });
   } catch (error) {
@@ -636,7 +666,7 @@ const updateVendorMedia = async (req, res, next) => {
 
     const populated = await Vendor.findById(vendor._id)
       .populate('user_id', 'name email avatar verification_status branding')
-      .populate('store', 'logo banner categories');
+      .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount');
 
     res.status(200).json({ success: true, message: 'Vendor media updated.', data: { vendor: populated } });
   } catch (error) {
@@ -644,6 +674,40 @@ const updateVendorMedia = async (req, res, next) => {
   }
 };
 
+const updateVendorStoreSettings = async (req, res, next) => {
+  try {
+    const vendor = await Vendor.findById(req.params.id);
+    if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found.' });
+
+    const updates = {};
+    const commissionRate = normalizeNullablePercentage(req.body.commission_rate);
+    const minimumOrderAmount = normalizeNullableXafAmount(req.body.minimum_order_amount, 'Minimum order amount');
+    const deliveryTime = normalizeNullableText(req.body.delivery_time);
+
+    if (commissionRate !== undefined) updates.commission_rate = commissionRate;
+    if (minimumOrderAmount !== undefined) updates.minimum_order_amount = minimumOrderAmount;
+    if (deliveryTime !== undefined) updates.delivery_time = deliveryTime;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ success: false, message: 'Provide at least one store setting to update.' });
+    }
+
+    await Store.findOneAndUpdate(
+      { vendor_id: vendor._id },
+      { $set: updates, $setOnInsert: { vendor_id: vendor._id } },
+      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, runValidators: true }
+    );
+    await clearApiCache();
+
+    const populated = await Vendor.findById(vendor._id)
+      .populate('user_id', 'name email avatar verification_status branding')
+      .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount');
+
+    res.status(200).json({ success: true, message: 'Vendor store settings updated.', data: { vendor: populated } });
+  } catch (error) {
+    next(error);
+  }
+};
 const getAllProducts = async (req, res, next) => {
   try {
     const { status, search, vendor } = req.query;
@@ -1524,6 +1588,7 @@ module.exports = {
   updateUserAdmin,
   updateVendorStatus,
   updateVendorMedia,
+  updateVendorStoreSettings,
   fetchAdminShipments,
   updateAdminShipment,
   getAdminLogisticsFirms,
