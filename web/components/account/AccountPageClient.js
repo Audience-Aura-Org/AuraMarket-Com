@@ -428,7 +428,7 @@ export default function AccountPageClient() {
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] pb-[calc(5rem+env(safe-area-inset-bottom,0px))]">
       <AccountHeader title={t('settings.title')} />
 
-      <div className="max-w-[90%] mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="w-full px-1.5 sm:px-2 lg:px-3 py-2 grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-3">
         <AccountSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
         <div className="lg:col-span-3">
@@ -439,12 +439,12 @@ export default function AccountPageClient() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="space-y-6"
+              className="space-y-3"
             >
               {activeTab === 'general' && (
-                <div className="space-y-6">
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-8 shadow-xl w-full">
-                    <div className="flex flex-col md:flex-row items-center md:items-center gap-6 md:gap-8">
+                <div className="space-y-3">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl w-full">
+                    <div className="flex flex-col md:flex-row items-center md:items-center gap-3 md:gap-4">
                       <div className="relative group shrink-0">
                         <div className="size-28 md:size-32 rounded-full border-4 border-[var(--bg-secondary)] bg-[var(--bg-secondary)] overflow-hidden shadow-xl relative z-10 flex items-center justify-center text-4xl  font-bold text-[var(--accent)]">
                           {profileBranding.logo ? (
@@ -475,17 +475,17 @@ export default function AccountPageClient() {
                     </div>
                   </div>
 
-                  <div className="space-y-6 md:space-y-8">
-                    <div className="flex items-center gap-6 px-4 md:px-6">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 px-1 md:px-2">
                       <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">{t('settings.identity')}</h3>
                       <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                     </div>
 
-                    <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                    <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                       <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                       
-                      <div className="relative z-10 space-y-6 md:space-y-8">
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="relative z-10 space-y-3 md:space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                           <FormField
                             label={t('settings.fullName')}
                             value={userData.name}
@@ -678,7 +678,7 @@ export default function AccountPageClient() {
                         <button
                           onClick={handleUpdateProfile}
                           disabled={profileSaving}
-                          className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                          className="relative w-full flex items-center justify-center p-3 md:p-4 rounded-2xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                         >
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                           <span className="relative z-10 text-[11px] lg:text-[12px] md:text-xs  font-semibold tracking-tight transition-colors">
@@ -704,13 +704,13 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'security' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Security Matrix</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10 space-y-4">
@@ -789,13 +789,13 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'close-account' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-semibold tracking-tighter text-rose-500 shadow-sm">Close Account</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-rose-500/20 to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-rose-500/20 bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-rose-500/20 bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-rose-500/5 rounded-full blur-[80px] pointer-events-none" />
                     <div className="relative z-10">
                       <DeleteAccountPanel
@@ -812,16 +812,16 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'store' && user?.role === 'vendor' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Storefront Architecture</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
-                    <div className="relative z-10 space-y-6 md:space-y-8">
+                    <div className="relative z-10 space-y-3 md:space-y-4">
                       <FormField
                         label="Store Name"
                         value={storeData.store_name}
@@ -838,7 +838,7 @@ export default function AccountPageClient() {
                         placeholder="Describe your store..."
                         textarea={true}
                       />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                         <FormField
                           label="Estimated Delivery Time"
                           value={storeData.delivery_time}
@@ -856,7 +856,7 @@ export default function AccountPageClient() {
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                         <BrandingUploadCard
                           title="Store Logo"
                           description="Shown on products, chats, vendor cards, and your storefront profile."
@@ -876,13 +876,13 @@ export default function AccountPageClient() {
                         />
                       </div>
 
-                      <div className="space-y-6">
+                      <div className="space-y-3">
                         <div className="flex items-center gap-4">
                           <MapPin className="size-4 text-[var(--accent)]" />
                           <h4 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)]">Store Pickup Address Configuration</h4>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                           <FormSelect
                             label="City"
                             value={storeData.pickup_address.city}
@@ -915,7 +915,7 @@ export default function AccountPageClient() {
                       <button
                         onClick={handleUpdateStore}
                         disabled={loading}
-                        className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                        className="relative w-full flex items-center justify-center p-3 md:p-4 rounded-2xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                       >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                         <div className="relative z-10 flex items-center gap-3">
@@ -931,13 +931,13 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'kyc' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Identity Validation</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10">
@@ -991,7 +991,7 @@ export default function AccountPageClient() {
                             placeholder="ID number"
                           />
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                             <KycUploadCard title="Front Document" image={kycData.file_url_front} field="kyc_front" uploading={brandingUploading === 'kyc_front'} onUpload={handleBrandingFileUpload} />
                             <KycUploadCard title="Back Document" image={kycData.file_url_back} field="kyc_back" uploading={brandingUploading === 'kyc_back'} onUpload={handleBrandingFileUpload} />
                           </div>
@@ -999,7 +999,7 @@ export default function AccountPageClient() {
                           <button
                             onClick={handleKYCSubmit}
                             disabled={kycLoading}
-                            className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                            className="relative w-full flex items-center justify-center p-3 md:p-4 rounded-2xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                           >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                             <div className="relative z-10 flex items-center gap-3">
@@ -1024,7 +1024,7 @@ export default function AccountPageClient() {
                             </div>
                           )}
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                             <FormField
                               label="Legal Full Name"
                               value={kycData.full_name}
@@ -1055,13 +1055,13 @@ export default function AccountPageClient() {
                             placeholder="Your ID number"
                           />
 
-                          <div className="space-y-6">
+                          <div className="space-y-3">
                             <div className="flex items-center gap-4">
                               <Camera className="size-4 text-[var(--accent)]" />
                               <h4 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)]">Biometric Scans</h4>
                             </div>
                             
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                               <div className="space-y-3">
                                 <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight  text-[var(--text-secondary)] opacity-50 px-1">Primary Face (Front)</p>
                                 <label className="relative group block w-full aspect-video border-2 border-dashed border-[var(--glass-border)] rounded-[2rem] cursor-pointer hover:border-[var(--accent)]/50 transition-all overflow-hidden bg-[var(--bg-secondary)]/30">
@@ -1097,7 +1097,7 @@ export default function AccountPageClient() {
                           <button
                             onClick={handleKYCSubmit}
                             disabled={kycLoading || isKycPending}
-                            className="relative w-full flex items-center justify-center p-5 md:p-6 rounded-[2rem] bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-8"
+                            className="relative w-full flex items-center justify-center p-3 md:p-4 rounded-2xl bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] hover:bg-[var(--accent)] hover:text-white group transition-all duration-300 overflow-hidden hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed mt-4"
                           >
                             <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/0 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-500" />
                             <div className="relative z-10 flex items-center gap-3">
@@ -1115,13 +1115,13 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'network' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Followed Vendors</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10">
@@ -1136,7 +1136,7 @@ export default function AccountPageClient() {
                         </div>
                       ) : (
                         <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                           {followedVendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(vendor => (
                             <Link 
                               key={vendor._id} 
@@ -1196,7 +1196,7 @@ export default function AccountPageClient() {
                           ))}
                         </div>
                         {followedVendors.length > itemsPerPage && (
-                          <div className="mt-8 flex justify-center">
+                          <div className="mt-4 flex justify-center">
                             <Pagination
                               currentPage={currentPage}
                               totalPages={Math.ceil(followedVendors.length / itemsPerPage)}
@@ -1212,13 +1212,13 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'audience' && user?.role === 'vendor' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Store Audience</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10">
@@ -1249,7 +1249,7 @@ export default function AccountPageClient() {
                           ))}
                         </div>
                         {audience.length > itemsPerPage && (
-                          <div className="mt-8 flex justify-center">
+                          <div className="mt-4 flex justify-center">
                             <Pagination
                               currentPage={currentPage}
                               totalPages={Math.ceil(audience.length / itemsPerPage)}
@@ -1265,13 +1265,13 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'notifications' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Signal Parameters</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10 space-y-4">
@@ -1285,8 +1285,8 @@ export default function AccountPageClient() {
               {activeTab === 'install' && <InstallAppTab />}
 
               {activeTab === 'wishlist' && (
-                <div className="space-y-6 md:space-y-8">
-                  <div className="flex items-center gap-6 px-4 md:px-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 px-1 md:px-2">
                     <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tighter text-[var(--accent)] shadow-sm">Saved Items</h3>
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
@@ -1310,7 +1310,7 @@ export default function AccountPageClient() {
                             ))}
                           </div>
                           {wishlist.length > itemsPerPage && (
-                            <div className="mt-8 flex justify-center">
+                            <div className="mt-4 flex justify-center">
                               <Pagination
                                 currentPage={currentPage}
                                 totalPages={Math.ceil(wishlist.length / itemsPerPage)}
@@ -1513,15 +1513,15 @@ function InstallAppTab() {
   };
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      <div className="flex items-center gap-6 px-4 md:px-6">
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 px-1 md:px-2">
         <h3 className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-semibold tracking-tighter text-[var(--accent)] shadow-sm">
           App Installation Portal
         </h3>
         <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
       </div>
 
-      <div className="relative overflow-hidden glass-panel rounded-[2rem] md:rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-6 md:p-10 shadow-xl">
+      <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
         <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
         
         <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">
