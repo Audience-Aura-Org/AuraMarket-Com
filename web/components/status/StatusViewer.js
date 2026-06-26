@@ -308,6 +308,11 @@ const ProgressBar = forwardRef(function ProgressBar(
   const startRef = useRef(null);
   const elapsed  = useRef(0);
   const localBarRef = useRef(null);
+  const onEndRef = useRef(onEnd);
+
+  useEffect(() => {
+    onEndRef.current = onEnd;
+  }, [onEnd]);
 
   const setBarRef = useCallback((el) => {
     localBarRef.current = el;
@@ -316,28 +321,33 @@ const ProgressBar = forwardRef(function ProgressBar(
 
   const stop = useCallback(() => {
     if (timerRef.current) cancelAnimationFrame(timerRef.current);
+    timerRef.current = null;
     if (localBarRef.current && startRef.current) {
-      elapsed.current = Date.now() - startRef.current;
+      elapsed.current = performance.now() - startRef.current;
     }
   }, []);
 
   const run = useCallback(() => {
-    startRef.current = Date.now() - elapsed.current;
+    if (timerRef.current) cancelAnimationFrame(timerRef.current);
+    startRef.current = performance.now() - elapsed.current;
     const tick = () => {
       if (!localBarRef.current) return;
-      const pct = Math.min(((Date.now() - startRef.current) / STORY_DURATION) * 100, 100);
+      const pct = Math.min(((performance.now() - startRef.current) / STORY_DURATION) * 100, 100);
       localBarRef.current.style.transform = `scaleX(${pct / 100})`;
       if (pct < 100) {
         timerRef.current = requestAnimationFrame(tick);
       } else {
+        timerRef.current = null;
         elapsed.current = 0;
-        onEnd();
+        onEndRef.current?.();
       }
     };
     timerRef.current = requestAnimationFrame(tick);
-  }, [onEnd]);
+  }, []);
 
   useEffect(() => {
+    if (timerRef.current) cancelAnimationFrame(timerRef.current);
+    timerRef.current = null;
     elapsed.current = 0;
     if (localBarRef.current) localBarRef.current.style.transform = 'scaleX(0)';
     if (!isVideo && !paused && !isReplying) run();

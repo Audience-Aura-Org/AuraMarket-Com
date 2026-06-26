@@ -6,12 +6,31 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Upload, X, Plus, Package, Image as ImageIcon,
-  ArrowLeft, Star
+  ArrowLeft
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import CategoryPicker from '@/components/CategoryPicker';
 import { toast } from 'react-hot-toast';
+
+const MAX_PRODUCT_IMAGES = 5;
+
+const getCreatedProduct = (payload) => payload?.product || payload;
+
+const getProductImageUrl = (product) => {
+  const image = product?.images?.[0];
+  if (!image) return '';
+  return typeof image === 'string' ? image : image.url || image.location || '';
+};
+
+const getProductCreateErrorMessage = (err) => {
+  const code = err?.response?.data?.code;
+  const status = err?.response?.status;
+  if (status === 402 || code === 'SUBSCRIPTION_REQUIRED') {
+    return 'Please activate a vendor package before uploading products. Go to Subscribe and choose a vendor package, then try again.';
+  }
+  return err?.response?.data?.message || 'Failed to publish product. Please try again.';
+};
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -22,7 +41,7 @@ export default function AddProductPage() {
   const [tagInput, setTagInput] = useState('');
   const [form, setForm] = useState({
     name: '', description: '', price: '', sale_price: '', stock: '',
-    category: '', featured: false, specifications: '', long_description: ''
+    category: '', specifications: '', long_description: ''
   });
   const [showStoryPrompt, setShowStoryPrompt] = useState(false);
   const [createdProduct, setCreatedProduct] = useState(null);
@@ -34,13 +53,52 @@ export default function AddProductPage() {
 
 
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    files.forEach(file => {
+  const preserveMobileScroll = () => {
+    if (typeof window === 'undefined' || window.innerWidth >= 768) return;
+    const y = window.scrollY;
+    window.requestAnimationFrame(() => {
+      if (Math.abs(window.scrollY - y) > 48) window.scrollTo(0, y);
+    });
+  };
+
+  const updateFormField = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    preserveMobileScroll();
+  };
+
+  const handleImageFiles = (fileList) => {
+    const incoming = Array.from(fileList || []).filter(file => file.type?.startsWith('image/'));
+    if (incoming.length === 0) {
+      toast.error('Select image files from your gallery.');
+      return;
+    }
+
+    const room = Math.max(0, MAX_PRODUCT_IMAGES - images.length);
+    if (room === 0) {
+      toast.error('You can upload up to ' + MAX_PRODUCT_IMAGES + ' product images.');
+      return;
+    }
+
+    const selected = incoming.slice(0, room);
+    if (incoming.length > selected.length) {
+      toast.error('Only ' + MAX_PRODUCT_IMAGES + ' product images are allowed.');
+    }
+
+    selected.forEach(file => {
       const reader = new FileReader();
       reader.onload = (ev) => setImages(prev => [...prev, { url: ev.target.result, file }]);
       reader.readAsDataURL(file);
     });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleImageUpload = (e) => {
+    handleImageFiles(e.target.files);
+  };
+
+  const handleImageDrop = (e) => {
+    e.preventDefault();
+    handleImageFiles(e.dataTransfer.files);
   };
 
   const addTag = (e) => {
@@ -150,14 +208,13 @@ export default function AddProductPage() {
       toast.success(`"${form.name}" has been published!`, { icon: '🚀' });
       
       if (res.data.success) {
-        setCreatedProduct(res.data.data);
+        setCreatedProduct(getCreatedProduct(res.data.data));
         setShowStoryPrompt(true);
       } else {
         router.push('/vendor/products');
       }
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Failed to publish product. Please try again.';
-      toast.error(msg);
+      toast.error(getProductCreateErrorMessage(err), { duration: 7000 });
       console.error('Product creation error:', err);
     } finally {
       setLoading(false);
@@ -165,46 +222,46 @@ export default function AddProductPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500 md:pt-0">
-      <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[var(--accent)]/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="fixed bottom-[-10%] left-[20%] w-[400px] h-[400px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
+    <div className="min-h-screen overflow-x-hidden bg-[var(--bg-secondary)] text-[var(--text-primary)] relative transition-colors duration-500 md:pt-0">
+      <div className="fixed top-[-10%] right-[-10%] hidden w-[500px] h-[500px] bg-[var(--accent)]/10 blur-[120px] rounded-full pointer-events-none md:block" />
+      <div className="fixed bottom-[-10%] left-[20%] hidden w-[400px] h-[400px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none md:block" />
 
       <main className="flex-1 flex flex-col relative z-10 w-full">
         {/* Header */}
-        <header className="h-20 flex items-center justify-between px-10 glass-panel border-b border-[var(--glass-border)] sticky top-0 z-50 bg-[var(--bg-primary)]/80 backdrop-blur-xl text-[var(--text-primary)]">
-          <div className="flex items-center gap-4">
+        <header className="h-16 sm:h-20 flex items-center justify-between px-2 sm:px-4 lg:px-10 glass-panel border-b border-[var(--glass-border)] sticky top-0 z-50 bg-[var(--bg-primary)]/80 backdrop-blur-xl text-[var(--text-primary)]">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-4">
             <button type="button" onClick={() => router.back()} className="p-2 rounded-xl hover:bg-[var(--accent)]/5 transition-colors text-[var(--text-primary)]">
               <ArrowLeft className="w-6 h-6" />
             </button>
-            <div className="h-4 w-px bg-[var(--glass-border)]" />
-            <div>
-              <h1 className="text-xl  font-bold tracking-tight text-[var(--text-primary)]">List a Product</h1>
+            <div className="hidden h-4 w-px bg-[var(--glass-border)] sm:block" />
+            <div className="min-w-0">
+              <h1 className="truncate text-base sm:text-xl font-bold tracking-tight text-[var(--text-primary)]">List a Product</h1>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <button type="button" onClick={() => router.back()} className="px-6 py-2 rounded-xl glass-panel text-[var(--text-secondary)]  font-bold hover:bg-[var(--accent)]/5 transition-all text-sm border border-[var(--glass-border)]">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+            <button type="button" onClick={() => router.back()} className="hidden px-6 py-2 rounded-xl glass-panel text-[var(--text-secondary)] font-bold hover:bg-[var(--accent)]/5 transition-all text-sm border border-[var(--glass-border)] sm:inline-flex">
               Discard
             </button>
             <button 
               type="button"
               onClick={handleSubmit} 
               disabled={loading}
-              className="px-8 py-2 rounded-xl bg-[var(--accent)] text-white  font-bold shadow-xl shadow-[var(--accent)]/25 hover:-translate-y-0.5 transition-all text-sm disabled:opacity-50 tracking-tight"
+              className="px-3 sm:px-8 py-2 rounded-xl bg-[var(--accent)] text-white font-bold shadow-xl shadow-[var(--accent)]/25 hover:-translate-y-0.5 transition-all text-xs sm:text-sm disabled:opacity-50 tracking-tight"
             >
               {loading ? 'Publishing...' : 'Publish Product'}
             </button>
           </div>
         </header>
 
-        <div className="flex-1 p-10 w-full">
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 w-full">
+        <div className="flex-1 p-2 sm:p-4 lg:p-10 w-full">
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 sm:gap-5 lg:gap-8 w-full">
             
             {/* ── LEFT: Product Details */}
-            <div className="xl:col-span-8 space-y-8 w-full">
+            <div className="xl:col-span-8 space-y-3 sm:space-y-6 lg:space-y-8 w-full">
               
               {/* Product Type Selector */}
-              <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
-                <div className="flex items-center justify-between">
+              <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-4">
                     <div className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
                       <Package className="w-6 h-6" />
@@ -218,14 +275,14 @@ export default function AddProductPage() {
                     <button 
                       type="button"
                       onClick={() => setHasVariants(false)}
-                      className={`px-6 py-2 rounded-xl text-xs  font-bold tracking-tight transition-all ${!hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                      className={`flex-1 px-3 sm:px-6 py-2 rounded-xl text-xs font-bold tracking-tight transition-all ${!hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     >
                       Simple
                     </button>
                     <button 
                       type="button"
                       onClick={() => setHasVariants(true)}
-                      className={`px-6 py-2 rounded-xl text-xs  font-bold tracking-tight transition-all ${hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                      className={`flex-1 px-3 sm:px-6 py-2 rounded-xl text-xs font-bold tracking-tight transition-all ${hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     >
                       Variable
                     </button>
@@ -235,7 +292,7 @@ export default function AddProductPage() {
 
               {/* Variations Configuration (Only if Variable is selected) */}
               {hasVariants && (
-                <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 animate-in fade-in slide-in-from-top-4 duration-500">
+                <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 animate-in fade-in slide-in-from-top-4 duration-500">
                   <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
                     <div className="p-2 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)]"><Plus className="w-5 h-5" /></div>
                     <h2 className=" font-bold tracking-tight text-[var(--text-primary)] text-sm ">Configure Variations</h2>
@@ -244,7 +301,7 @@ export default function AddProductPage() {
                   <div className="space-y-8">
                     {/* Define Types */}
                     <div className="space-y-6">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <h3 className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] text-[var(--accent)]">1. Define Attributes (Color, Size, etc.)</h3>
                         <button 
                           type="button"
@@ -315,7 +372,7 @@ export default function AddProductPage() {
                     {skuVariants.length > 0 && (
                       <div className="space-y-6">
                         <h3 className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] text-[var(--accent)]">2. Variant Matrix (Prices & Stock)</h3>
-                        <div className="overflow-hidden border border-[var(--glass-border)] rounded-[2rem] bg-[var(--bg-primary)] shadow-xl shadow-black/5">
+                        <div className="overflow-x-auto rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-xl shadow-black/5 sm:rounded-[2rem]">
                           <table className="w-full text-left border-collapse">
                             <thead className="bg-[var(--bg-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] border-b border-[var(--glass-border)]">
                               <tr>
@@ -379,7 +436,7 @@ export default function AddProductPage() {
 
               
               {/* Basic Info */}
-              <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
+              <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
                   <div className="p-2 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)]"><Package className="w-5 h-5" /></div>
                   <h2 className=" font-bold tracking-tight text-[var(--text-primary)] text-sm ">Product Details</h2>
@@ -389,7 +446,7 @@ export default function AddProductPage() {
                     <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Product Name *</label>
                     <input 
                       value={form.name}
-                      onChange={e => setForm({...form, name: e.target.value})}
+                      onChange={e => updateFormField('name', e.target.value)}
                       required
                       placeholder="e.g. Aura Pro Wireless Headphones"
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all  font-bold"
@@ -399,7 +456,7 @@ export default function AddProductPage() {
                     <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Description *</label>
                     <textarea 
                       value={form.description}
-                      onChange={e => setForm({...form, description: e.target.value})}
+                      onChange={e => updateFormField('description', e.target.value)}
                       required
                       rows={6}
                       placeholder="Describe the craftsmanship, materials, and unique qualities of your product..."
@@ -410,7 +467,7 @@ export default function AddProductPage() {
                     <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Long Description</label>
                     <textarea 
                       value={form.long_description}
-                      onChange={e => setForm({...form, long_description: e.target.value})}
+                      onChange={e => updateFormField('long_description', e.target.value)}
                       rows={8}
                       placeholder="Provide a detailed, in-depth description of your product — materials, story, dimensions, use cases, care instructions..."
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none font-medium"
@@ -420,7 +477,7 @@ export default function AddProductPage() {
                     <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Specifications</label>
                     <textarea 
                       value={form.specifications}
-                      onChange={e => setForm({...form, specifications: e.target.value})}
+                      onChange={e => updateFormField('specifications', e.target.value)}
                       rows={5}
                       placeholder="Enter specifications (one per line)..."
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none font-medium"
@@ -430,7 +487,7 @@ export default function AddProductPage() {
               </section>
 
               {/* Media Upload */}
-              <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
+              <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
                   <div className="p-2 rounded-xl bg-[var(--accent)]/20 text-[var(--accent)]"><ImageIcon className="w-5 h-5" /></div>
                   <h2 className=" font-bold tracking-tight text-[var(--text-primary)] text-sm ">Media Assets</h2>
@@ -439,18 +496,20 @@ export default function AddProductPage() {
                 
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-[var(--glass-border)] rounded-3xl p-12 flex flex-col items-center justify-center bg-[var(--bg-secondary)]/50 hover:bg-[var(--accent)]/5 transition-all cursor-pointer group mb-6"
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleImageDrop}
+                  className="border-2 border-dashed border-[var(--glass-border)] rounded-2xl sm:rounded-3xl p-5 sm:p-8 lg:p-12 flex flex-col items-center justify-center bg-[var(--bg-secondary)]/50 hover:bg-[var(--accent)]/5 transition-all cursor-pointer group mb-4 sm:mb-6"
                 >
                   <div className="w-16 h-16 rounded-full bg-[var(--accent)]/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                     <Upload className="w-8 h-8 text-[var(--accent)]" />
                   </div>
-                  <p className=" font-bold text-[var(--text-primary)]">Drop product images here</p>
-                  <p className="text-[var(--text-secondary)] text-sm mt-1">or click to browse from device</p>
+                  <p className="font-bold text-[var(--text-primary)]">Bulk upload product gallery</p>
+                  <p className="text-center text-[var(--text-secondary)] text-sm mt-1">Select up to 5 images at once, or drop them here.</p>
                   <input ref={fileInputRef} type="file" multiple accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </div>
 
                 {images.length > 0 && (
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 sm:gap-4">
                     {images.map((img, i) => (
                       <div key={i} className="relative aspect-square rounded-2xl overflow-hidden group border border-[var(--glass-border)] shadow-sm">
                         <img src={img.url} className="w-full h-full object-cover" />
@@ -474,10 +533,10 @@ export default function AddProductPage() {
 
 
             {/* ── RIGHT: Settings Panel */}
-            <div className="xl:col-span-4 space-y-6 w-full">
+            <div className="xl:col-span-4 space-y-3 sm:space-y-6 w-full">
               
               {/* Pricing & Inventory */}
-              <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
+              <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
                   <h2 className=" font-bold tracking-tight text-[var(--text-primary)] text-sm ">Inventory</h2>
                 </div>
@@ -487,7 +546,7 @@ export default function AddProductPage() {
                     <input 
                       type="number" min="0"
                       value={form.price}
-                      onChange={e => setForm({...form, price: e.target.value})}
+                      onChange={e => updateFormField('price', e.target.value)}
                       required
                       placeholder="0"
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all  font-bold"
@@ -499,7 +558,7 @@ export default function AddProductPage() {
                       type="number"
                       min="0"
                       value={form.sale_price}
-                      onChange={e => setForm({...form, sale_price: e.target.value})}
+                      onChange={e => updateFormField('sale_price', e.target.value)}
                       placeholder="Optional sale price"
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
                     />
@@ -510,7 +569,7 @@ export default function AddProductPage() {
                     <input 
                       type="number" min="0"
                       value={form.stock}
-                      onChange={e => setForm({...form, stock: e.target.value})}
+                      onChange={e => updateFormField('stock', e.target.value)}
                       required
                       placeholder="0"
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all  font-bold"
@@ -520,7 +579,7 @@ export default function AddProductPage() {
               </section>
 
               {/* Category & Tags */}
-              <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
+              <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
                   <h2 className=" font-bold tracking-tight text-[var(--text-primary)] text-sm ">Organization</h2>
                 </div>
@@ -529,7 +588,7 @@ export default function AddProductPage() {
                     <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Category *</label>
                     <CategoryPicker
                       value={form.category}
-                      onChange={(name) => setForm({...form, category: name})}
+                      onChange={(name) => updateFormField('category', name)}
                     />
                   </div>
 
@@ -552,31 +611,6 @@ export default function AddProductPage() {
                   </div>
                 </div>
               </section>
-
-              {/* Featured Toggle */}
-              <section className="p-8 rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-fuchsia-500 to-[var(--accent)] flex items-center justify-center shadow-lg shadow-[var(--accent)]/10">
-                      <Star className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h4 className=" font-bold text-[var(--text-primary)]">Featured Item</h4>
-                      <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] tracking-tight  font-semibold ">Boost visibility</p>
-                    </div>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => setForm(f => ({...f, featured: !f.featured}))}
-                    className={`w-14 h-7 rounded-full border transition-all duration-300 relative ${form.featured ? 'bg-[var(--accent)]/20 border-[var(--accent)]/40' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)]'}`}
-                  >
-                    <div className={`absolute top-0.5 w-6 h-6 rounded-full transition-all duration-300 ${form.featured ? 'translate-x-7 bg-[var(--accent)] shadow-lg shadow-[var(--accent)]/40' : 'translate-x-0.5 bg-[var(--text-secondary)]/30'}`} />
-                  </button>
-                </div>
-                <p className="mt-4 text-xs text-[var(--text-secondary)] leading-relaxed font-medium">
-                  Featuring this product will boost it in homepage hero sections and search results.
-                </p>
-              </section>
             </div>
           </div>
         </div>
@@ -596,23 +630,36 @@ export default function AddProductPage() {
               </div>
               <h3 className="text-2xl  font-bold tracking-tight mb-2">Boost Visibility?</h3>
               <p className="text-sm text-[var(--text-secondary)] mb-8">
-                Your product is live! Vendors who share new products as **Stories** see up to 3x more engagement in the first hour.
+                Your product is live! Vendors who share new products as <span className="font-bold text-[var(--text-primary)]">Stories</span> see up to 3x more engagement in the first hour.
               </p>
               
               <div className="space-y-3">
                 <button 
                   onClick={async () => {
+                    const product = getCreatedProduct(createdProduct);
+                    const imageUrl = getProductImageUrl(product);
+                    if (!product?._id || !imageUrl) {
+                      toast.error('This product needs an image before it can be posted as a story.');
+                      return;
+                    }
+
                     try {
+                      const expiresAt = new Date();
+                      expiresAt.setDate(expiresAt.getDate() + 3);
                       await api.post('/statuses', {
                         type: 'image',
-                        content_url: createdProduct.images?.[0]?.url || createdProduct.images?.[0],
-                        linked_product: createdProduct._id,
-                        caption: `New Drop: ${createdProduct.name} 🔥`
+                        content_url: imageUrl,
+                        thumbnail_url: imageUrl,
+                        linked_product: product._id,
+                        caption: `New Drop: ${product.name}`,
+                        category: 'New Arrivals',
+                        expiry_days: 3,
+                        expires_at: expiresAt.toISOString(),
                       });
                       toast.success('Story synchronized!');
                       router.push('/vendor/products');
                     } catch (e) {
-                      toast.error('Failed to post story');
+                      toast.error(e?.response?.data?.message || 'Failed to post story');
                     }
                   }}
                   className="w-full py-4 bg-[var(--accent)] text-white  font-bold tracking-tight rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:brightness-110 transition-all"

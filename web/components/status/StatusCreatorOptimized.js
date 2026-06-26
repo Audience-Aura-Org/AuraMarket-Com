@@ -648,7 +648,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             <div className="space-y-1.5">
               <div className="flex justify-between text-[10px] font-semibold text-[var(--text-secondary)]">
                 <span>{uploadPhase}</span>
-                {uploadProgress > 0 && <span>{uploadProgress}%</span>}
               </div>
               <div className="h-1 rounded-full bg-[var(--bg-primary)] overflow-hidden">
                 <div
@@ -925,7 +924,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-semibold text-[var(--text-secondary)]">
                     <span>{uploadPhase}</span>
-                    {uploadProgress > 0 && <span>{uploadProgress}%</span>}
                   </div>
                   <div className="h-1.5 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
                     <div

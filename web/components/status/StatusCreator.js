@@ -1605,7 +1605,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 <div className="w-full max-w-[200px]">
                   <div className="flex justify-between text-[9px] font-bold text-white/50 mb-1">
                     <span>Uploading</span>
-                    <span>{uploadProgress}%</span>
                   </div>
                   <div className="h-1 rounded-full bg-white/10 overflow-hidden">
                     <div className="h-full bg-[#20c763] transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
