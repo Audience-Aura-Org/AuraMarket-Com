@@ -129,9 +129,9 @@ export default function StatusManager() {
   ];
 
   return (
-    <main className="w-full space-y-4 pb-24 font-[Poppins] text-[var(--text-primary)] sm:space-y-5 sm:pb-10">
+    <main className="w-full space-y-3 px-2 pb-32 font-[Poppins] text-[var(--text-primary)] sm:space-y-5 sm:px-0 sm:pb-10">
       <section className="overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
-        <div className="bg-[var(--bg-secondary)]/30 p-4 sm:p-5">
+        <div className="bg-[var(--bg-secondary)]/30 p-3 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <p className="inline-flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-1 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--text-secondary)]">
@@ -141,11 +141,11 @@ export default function StatusManager() {
               <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Manage vendor stories</h1>
               <p className="text-xs font-medium text-[var(--text-secondary)]">Post updates, track performance, and quickly reuse top content.</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
               <button
                 type="button"
                 onClick={fetchMyStatuses}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2 text-[11px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--accent)]"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[11px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--accent)]"
               >
                 <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -153,7 +153,7 @@ export default function StatusManager() {
               <button
                 type="button"
                 onClick={() => openCreator()}
-                className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-[11px] font-semibold text-white shadow-md shadow-[var(--accent)]/20 active:scale-95"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2.5 text-[11px] font-semibold text-white shadow-md shadow-[var(--accent)]/20 active:scale-95"
               >
                 <Plus className="size-3.5" />
                 New story
@@ -369,6 +369,17 @@ export default function StatusManager() {
           </div>
         </aside>
       </section>
+
+      <div className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom,0px)+72px)] z-40 md:hidden">
+        <button
+          type="button"
+          onClick={() => openCreator()}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-xs font-bold text-white shadow-xl shadow-[var(--accent)]/25 active:scale-[0.98]"
+        >
+          <Plus className="size-4" />
+          Publish new story
+        </button>
+      </div>
 
       {showCreator && (
         <StatusCreator

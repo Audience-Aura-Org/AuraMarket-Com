@@ -14,6 +14,65 @@ import CategoryPicker from '@/components/CategoryPicker';
 import { toast } from 'react-hot-toast';
 
 const MAX_PRODUCT_IMAGES = 5;
+const PRODUCT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const PRODUCT_IMAGE_MAX_WIDTH = 1600;
+
+const canvasToBlob = (canvas, type = 'image/webp', quality = 0.82) =>
+  new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+
+const loadImageSource = async (file) => {
+  if (typeof createImageBitmap === 'function') {
+    return createImageBitmap(file);
+  }
+
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error('Could not read selected image.'));
+      image.src = objectUrl;
+    });
+    return img;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+};
+
+const optimizeProductImage = async (file) => {
+  if (!file?.type?.startsWith('image/')) throw new Error('Select image files from your gallery.');
+  if (file.type === 'image/gif' || file.type === 'image/svg+xml') return file;
+
+  try {
+    const source = await loadImageSource(file);
+    const sourceWidth = source.width || source.videoWidth || 1;
+    const sourceHeight = source.height || source.videoHeight || 1;
+    const scale = Math.min(1, PRODUCT_IMAGE_MAX_WIDTH / Math.max(sourceWidth, 1));
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d', { alpha: false }).drawImage(source, 0, 0, width, height);
+    source.close?.();
+
+    const baseName = (file.name || 'product-image').replace(/\.[^.]+$/, '');
+    for (const quality of [0.82, 0.72, 0.62]) {
+      const blob = await canvasToBlob(canvas, 'image/webp', quality);
+      if (blob && blob.size < file.size && blob.size <= PRODUCT_IMAGE_MAX_BYTES) {
+        return new File([blob], baseName + '.webp', {
+          type: 'image/webp',
+          lastModified: Date.now(),
+        });
+      }
+    }
+
+    return file;
+  } catch (err) {
+    console.warn('[ProductUpload] Image optimization skipped:', err.message || err);
+    return file;
+  }
+};
 
 const getCreatedProduct = (payload) => payload?.product || payload;
 
@@ -29,13 +88,23 @@ const getProductCreateErrorMessage = (err) => {
   if (status === 402 || code === 'SUBSCRIPTION_REQUIRED') {
     return 'Please activate a vendor package before uploading products. Go to Subscribe and choose a vendor package, then try again.';
   }
-  return err?.response?.data?.message || 'Failed to publish product. Please try again.';
+  const message = err?.response?.data?.message || err?.response?.data?.error || '';
+  if (/file too large|limit_file_size|maximum size/i.test(message)) {
+    return 'One or more product images are too large. Choose smaller images or let the app compress them, then try again.';
+  }
+  if (!err?.response) {
+    return 'Mobile upload could not reach the server. Check your connection, keep the app open, and try again.';
+  }
+  return message || 'Failed to publish product. Please try again.';
 };
 
 export default function AddProductPage() {
   const router = useRouter();
   const fileInputRef = useRef(null);
+  const publishingRef = useRef(false);
+  const storyPostingRef = useRef(false);
   const [loading, setLoading] = useState(false);
+  const [postingStory, setPostingStory] = useState(false);
   const [images, setImages] = useState([]);
   const [tags, setTags] = useState(['Premium', 'Verified']);
   const [tagInput, setTagInput] = useState('');
@@ -66,7 +135,7 @@ export default function AddProductPage() {
     preserveMobileScroll();
   };
 
-  const handleImageFiles = (fileList) => {
+  const handleImageFiles = async (fileList) => {
     const incoming = Array.from(fileList || []).filter(file => file.type?.startsWith('image/'));
     if (incoming.length === 0) {
       toast.error('Select image files from your gallery.');
@@ -84,12 +153,24 @@ export default function AddProductPage() {
       toast.error('Only ' + MAX_PRODUCT_IMAGES + ' product images are allowed.');
     }
 
-    selected.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (ev) => setImages(prev => [...prev, { url: ev.target.result, file }]);
-      reader.readAsDataURL(file);
-    });
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    try {
+      const optimized = await Promise.all(selected.map(optimizeProductImage));
+      const tooLarge = optimized.find(file => file.size > PRODUCT_IMAGE_MAX_BYTES);
+      if (tooLarge) {
+        toast.error('One selected image is still over 5MB. Please choose a smaller image.');
+        return;
+      }
+
+      optimized.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (ev) => setImages(prev => [...prev, { url: ev.target.result, file }]);
+        reader.readAsDataURL(file);
+      });
+    } catch (err) {
+      toast.error(err.message || 'Could not prepare selected images.');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleImageUpload = (e) => {
@@ -181,6 +262,7 @@ export default function AddProductPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (publishingRef.current || loading) return;
 
     if (!form.name.trim()) return toast.error('Product name is required.');
     if (!form.price || Number(form.price) <= 0) return toast.error('Please enter a valid price.');
@@ -189,6 +271,7 @@ export default function AddProductPage() {
     if (!form.category) return toast.error('Please select a category.');
     if (images.length === 0) return toast.error('At least one product image is required.');
 
+    publishingRef.current = true;
     setLoading(true);
     try {
       const formData = new FormData();
@@ -203,7 +286,7 @@ export default function AddProductPage() {
         formData.append('sku_variants', JSON.stringify(skuVariants));
       }
 
-      const res = await api.post('/products', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const res = await api.post('/products', formData);
 
       toast.success(`"${form.name}" has been published!`, { icon: '🚀' });
       
@@ -217,6 +300,7 @@ export default function AddProductPage() {
       toast.error(getProductCreateErrorMessage(err), { duration: 7000 });
       console.error('Product creation error:', err);
     } finally {
+      publishingRef.current = false;
       setLoading(false);
     }
   };
@@ -235,7 +319,7 @@ export default function AddProductPage() {
             </button>
             <div className="hidden h-4 w-px bg-[var(--glass-border)] sm:block" />
             <div className="min-w-0">
-              <h1 className="truncate text-base sm:text-xl font-bold tracking-tight text-[var(--text-primary)]">List a Product</h1>
+              <h1 className="truncate text-base sm:text-lg font-bold tracking-tight text-[var(--text-primary)]">List a Product</h1>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-4">
@@ -267,7 +351,7 @@ export default function AddProductPage() {
                       <Package className="w-6 h-6" />
                     </div>
                     <div>
-                      <h2 className="text-lg  font-bold tracking-tight">Product Type</h2>
+                      <h2 className="text-base sm:text-lg font-bold tracking-tight">Product Type</h2>
                       <p className="text-xs text-[var(--text-secondary)] font-medium">Select how you want to manage this product's inventory</p>
                     </div>
                   </div>
@@ -328,7 +412,7 @@ export default function AddProductPage() {
                                 placeholder="e.g. Color"
                                 value={type.name}
                                 onChange={e => updateVariantType(tIdx, e.target.value)}
-                                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm  font-bold focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm placeholder:text-xs font-bold focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
                               />
                             </div>
                             <div className="space-y-2">
@@ -400,7 +484,7 @@ export default function AddProductPage() {
                                         type="number"
                                         value={sku.price}
                                         onChange={e => updateSKU(idx, 'price', e.target.value)}
-                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm placeholder:text-xs focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
                                       />
                                     </div>
                                   </td>
@@ -411,7 +495,7 @@ export default function AddProductPage() {
                                         value={sku.sale_price || ''}
                                         onChange={e => updateSKU(idx, 'sale_price', e.target.value)}
                                         placeholder="Optional"
-                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                        className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm placeholder:text-xs focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
                                       />
                                     </div>
                                   </td>
@@ -420,7 +504,7 @@ export default function AddProductPage() {
                                       type="number"
                                       value={sku.stock}
                                       onChange={e => updateSKU(idx, 'stock', e.target.value)}
-                                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-sm placeholder:text-xs focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
                                     />
                                   </td>
                                 </tr>
@@ -449,7 +533,7 @@ export default function AddProductPage() {
                       onChange={e => updateFormField('name', e.target.value)}
                       required
                       placeholder="e.g. Aura Pro Wireless Headphones"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all  font-bold"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
                     />
                   </div>
                   <div>
@@ -460,7 +544,7 @@ export default function AddProductPage() {
                       required
                       rows={6}
                       placeholder="Describe the craftsmanship, materials, and unique qualities of your product..."
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none font-medium"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none font-medium"
                     />
                   </div>
                   <div>
@@ -470,7 +554,7 @@ export default function AddProductPage() {
                       onChange={e => updateFormField('long_description', e.target.value)}
                       rows={8}
                       placeholder="Provide a detailed, in-depth description of your product — materials, story, dimensions, use cases, care instructions..."
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none font-medium"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none font-medium"
                     />
                   </div>
                   <div>
@@ -480,7 +564,7 @@ export default function AddProductPage() {
                       onChange={e => updateFormField('specifications', e.target.value)}
                       rows={5}
                       placeholder="Enter specifications (one per line)..."
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none font-medium"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-4 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all resize-none font-medium"
                     />
                   </div>
                 </div>
@@ -549,7 +633,7 @@ export default function AddProductPage() {
                       onChange={e => updateFormField('price', e.target.value)}
                       required
                       placeholder="0"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all  font-bold"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
                     />
                   </div>
                   <div>
@@ -560,7 +644,7 @@ export default function AddProductPage() {
                       value={form.sale_price}
                       onChange={e => updateFormField('sale_price', e.target.value)}
                       placeholder="Optional sale price"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
                     />
                     <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Optional. If provided, must be less than the regular price.</p>
                   </div>
@@ -572,7 +656,7 @@ export default function AddProductPage() {
                       onChange={e => updateFormField('stock', e.target.value)}
                       required
                       placeholder="0"
-                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all  font-bold"
+                      className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-sm sm:text-base text-[var(--text-primary)] placeholder:text-xs sm:placeholder:text-sm placeholder:text-[var(--text-secondary)]/30 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all font-bold"
                     />
                   </div>
                 </div>
@@ -628,7 +712,7 @@ export default function AddProductPage() {
               <div className="size-20 bg-[var(--accent)]/10 rounded-full flex items-center justify-center mx-auto mb-6">
                 <ImageIcon className="size-10 text-[var(--accent)]" />
               </div>
-              <h3 className="text-2xl  font-bold tracking-tight mb-2">Boost Visibility?</h3>
+              <h3 className="text-lg font-bold tracking-tight mb-2">Boost Visibility?</h3>
               <p className="text-sm text-[var(--text-secondary)] mb-8">
                 Your product is live! Vendors who share new products as <span className="font-bold text-[var(--text-primary)]">Stories</span> see up to 3x more engagement in the first hour.
               </p>
@@ -636,6 +720,7 @@ export default function AddProductPage() {
               <div className="space-y-3">
                 <button 
                   onClick={async () => {
+                    if (storyPostingRef.current || postingStory) return;
                     const product = getCreatedProduct(createdProduct);
                     const imageUrl = getProductImageUrl(product);
                     if (!product?._id || !imageUrl) {
@@ -643,6 +728,8 @@ export default function AddProductPage() {
                       return;
                     }
 
+                    storyPostingRef.current = true;
+                    setPostingStory(true);
                     try {
                       const expiresAt = new Date();
                       expiresAt.setDate(expiresAt.getDate() + 3);
@@ -660,11 +747,15 @@ export default function AddProductPage() {
                       router.push('/vendor/products');
                     } catch (e) {
                       toast.error(e?.response?.data?.message || 'Failed to post story');
+                    } finally {
+                      storyPostingRef.current = false;
+                      setPostingStory(false);
                     }
                   }}
-                  className="w-full py-4 bg-[var(--accent)] text-white  font-bold tracking-tight rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:brightness-110 transition-all"
+                  disabled={postingStory}
+                  className="w-full py-4 bg-[var(--accent)] text-white font-bold tracking-tight rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:brightness-110 transition-all disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Post as Story Now
+                  {postingStory ? 'Posting Story...' : 'Post as Story Now'}
                 </button>
                 <button 
                   onClick={() => router.push('/vendor/products')}
