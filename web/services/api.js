@@ -241,15 +241,24 @@ api.interceptors.request.use(async (config) => {
     // NOTE: using `= undefined` instead of `delete` leaves a phantom key that some
     // Android WebViews serialize as `Content-Type: ` (empty), breaking multipart.
     if (isFormDataPayload(config.data)) {
-      delete config.headers['Content-Type'];
-      delete config.headers['content-type'];
+      if (config.headers && typeof config.headers.delete === 'function') {
+        config.headers.delete('Content-Type');
+        config.headers.delete('content-type');
+      } else if (config.headers) {
+        delete config.headers['Content-Type'];
+        delete config.headers['content-type'];
+      }
       // Do NOT call setContentType() here — it re-adds the key after deletion.
       console.log('[API:Interceptor] FormData detected for:', config.url, {
-        hasContentType: false,
-        headerKeys: Object.keys(config.headers),
+        hasContentType: config.headers && typeof config.headers.has === 'function' ? config.headers.has('Content-Type') : false,
+        headerKeys: config.headers ? (typeof config.headers.keys === 'function' ? config.headers.keys() : Object.keys(config.headers)) : [],
       });
     } else {
-      config.headers['Content-Type'] = 'application/json';
+      if (config.headers && typeof config.headers.set === 'function') {
+        config.headers.set('Content-Type', 'application/json');
+      } else if (config.headers) {
+        config.headers['Content-Type'] = 'application/json';
+      }
     }
   }
   return config;
