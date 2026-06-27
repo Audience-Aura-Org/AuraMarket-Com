@@ -548,14 +548,20 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     const objectUrl = URL.createObjectURL(videoFile);
     const video = document.createElement('video');
     
-    // Position hidden video element so the browser's layout engine does not suspend decoding
+    // ── CRITICAL for Android WebView ────────────────────────────────────────
+    // The video element MUST be a real, visible size (at least 160×90).
+    // If it is 1×1px, Android's hardware decoder skips rendering frames and
+    // every ctx.drawImage() call produces a pure-black canvas frame.
+    // We position it off-screen via translateX(-9999px) so it's invisible
+    // to the user but still decoded at full resolution by the GPU.
     video.style.position = 'fixed';
-    video.style.bottom = '0px';
-    video.style.right = '0px';
-    video.style.width = '1px';
-    video.style.height = '1px';
-    video.style.opacity = '0.01';
+    video.style.top = '0px';
+    video.style.left = '0px';
+    video.style.width = '160px';
+    video.style.height = '90px';
+    video.style.transform = 'translateX(-9999px)';
     video.style.pointerEvents = 'none';
+    video.style.zIndex = '-1';
     document.body.appendChild(video);
 
     // Bind event listeners BEFORE setting source to prevent race conditions
@@ -571,7 +577,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       video.onloadeddata = done;
       video.oncanplay = done;
       video.onerror = done;
-      setTimeout(done, 2000); // 2 seconds safety timeout
+      setTimeout(done, 3000); // 3s safety timeout for slow Android decoders
     });
 
     video.src = objectUrl;
@@ -586,24 +592,32 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     try {
       await metadataLoaded;
       
-      // Kick the hardware decoder on mobile webviews by playing/pausing briefly
+      // Kick the hardware decoder on mobile webviews by playing/pausing briefly.
+      // This primes the GPU pipeline so subsequent seek+drawImage calls produce real frames.
       try {
-        await video.play();
+        const playPromise = video.play();
+        if (playPromise) await playPromise.catch(() => {});
         video.pause();
       } catch (_) {}
+
+      // Wait one rAF after play/pause for the GPU pipeline to flush
+      await new Promise((resolve) => requestAnimationFrame(resolve));
       
       const numFrames = 8;
-      const extracted = [];
       const canvas = document.createElement('canvas');
       canvas.width = 160;
       canvas.height = 90;
       const ctx = canvas.getContext('2d');
       
-      const isNative = Capacitor?.isNativePlatform?.();
-      const seekTimeout = isNative ? 850 : 350; // Longer seek timeout on native apps
+      const isNative = typeof Capacitor !== 'undefined' && Capacitor?.isNativePlatform?.();
+      // Native Android WebView needs more time between seek completion and drawImage
+      const seekTimeout = isNative ? 1200 : 400;
       
       for (let i = 0; i < numFrames; i++) {
-        const time = (i / (numFrames - 1)) * duration;
+        // Distribute seek times evenly; avoid t=0 which can be black on some decoders
+        const time = i === 0 ? 0.05 : (i / (numFrames - 1)) * Math.max(duration - 0.05, 0.1);
+
+        // Wait for seek to settle
         await new Promise((resolve) => {
           let resolved = false;
           const done = () => {
@@ -613,29 +627,22 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             }
           };
           const timer = setTimeout(done, seekTimeout);
-          
-          video.onseeked = () => {
-            clearTimeout(timer);
-            done();
-          };
-          video.onerror = () => {
-            clearTimeout(timer);
-            done();
-          };
-          
-          // Avoid seeking to exactly the current value to guarantee onseeked triggers
-          if (time === 0 && video.currentTime === 0) {
-            video.currentTime = 0.001;
-          } else {
-            video.currentTime = time;
-          }
+          video.onseeked = () => { clearTimeout(timer); done(); };
+          video.onerror = () => { clearTimeout(timer); done(); };
+          video.currentTime = time;
         });
+
+        // ── CRITICAL: one rAF after onseeked ────────────────────────────────
+        // Android WebView fires onseeked BEFORE the GPU has painted the new
+        // frame into the video element. Without this, drawImage captures the
+        // previous (or an all-black) frame every time.
+        await new Promise((resolve) => requestAnimationFrame(resolve));
         
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
-        extracted.push(dataUrl);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+        // Push each frame as it arrives so the filmstrip builds progressively
+        setTimelineFrames((prev) => [...prev, dataUrl]);
       }
-      setTimelineFrames(extracted);
     } catch (e) {
       console.warn("Failed to generate timeline frames", e);
     } finally {
