@@ -371,20 +371,22 @@ export default function AdminVendorsPage() {
                 <div className="space-y-4 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm md:p-6">
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     {[
-                      { field: 'commission_rate', label: 'Commission override (%)', hint: 'Blank uses platform default.', type: 'number' },
-                      { field: 'delivery_time', label: 'Delivery time', hint: 'Shown on product cards.', type: 'text' },
-                      { field: 'minimum_order_amount', label: 'Minimum order (XAF)', hint: 'Blank disables store minimum.', type: 'number' },
+                      { field: 'commission_rate', label: 'Commission override (%)', placeholder: 'e.g. 10', hint: 'Blank uses platform default.', type: 'number' },
+                      { field: 'delivery_time', label: 'Delivery time', placeholder: 'e.g. 1-2 days', hint: 'Shown on product cards.', type: 'text' },
+                      { field: 'minimum_order_amount', label: 'Minimum order (XAF)', placeholder: 'e.g. 5000', hint: 'Blank disables store minimum.', type: 'number' },
                     ].map((item) => (
-                      <div key={item.field} className="space-y-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-3">
-                        <label className="text-xs font-bold text-[var(--text-primary)]">{item.label}</label>
-                        <p className="text-[11px] font-semibold text-[var(--text-secondary)]">{item.hint}</p>
-                        <input
-                          type={item.type}
-                          value={mediaForm[item.field]}
-                          onChange={(event) => setMediaForm((prev) => ({ ...prev, [item.field]: event.target.value }))}
-                          placeholder={item.label}
-                          className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-base font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
-                        />
+                      <div key={item.field} className="flex flex-col justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-4 transition-all duration-300 hover:border-[var(--accent)]/30">
+                        <div>
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">{item.label}</label>
+                          <input
+                            type={item.type}
+                            value={mediaForm[item.field]}
+                            onChange={(event) => setMediaForm((prev) => ({ ...prev, [item.field]: event.target.value }))}
+                            placeholder={item.placeholder}
+                            className="mt-2 h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]/40 focus:border-[var(--accent)]"
+                          />
+                        </div>
+                        <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-60 leading-normal">{item.hint}</p>
                       </div>
                     ))}
                   </div>

@@ -56,6 +56,7 @@ export default function AdminDashboard() {
   }, []);
 
   const fetchStats = async () => {
+    setLoading(true);
     try {
       const res = await api.get('/admin/analytics');
       if (res.data.success) setStats(res.data.data.stats);
@@ -100,10 +101,10 @@ export default function AdminDashboard() {
         
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label={t('admin.actives', 'Actives')} value={fmt(stats?.users)} sub={t('admin.registeredAccounts', 'Registered Accounts')} icon={Users} color="blue" href="/admin/users" />
-          <StatCard label={t('admin.merchantQueue', 'Merchant Queue')} value={fmt(stats?.pending_vendors)} sub={t('admin.awaitingKyc', 'Awaiting KYC')} icon={Store} color="amber" href="/admin/vendors" />
-          <StatCard label={t('admin.assetPipeline', 'Asset Pipeline')} value={fmt(stats?.pending_products)} sub={t('admin.pendingApproval', 'Pending Approval')} icon={Package} color="primary" href="/admin/products" />
-          <StatCard label={t('admin.globalVolume', 'Global Volume')} value={`${fmt(stats?.revenue)} XAF`} sub={t('admin.grossRevenue', 'Gross Platform Revenue')} icon={TrendingUp} color="emerald" href="/admin/analytics" />
+          <StatCard label={t('admin.actives', 'Actives')} value={loading ? '—' : fmt(stats?.users)} sub={t('admin.registeredAccounts', 'Registered Accounts')} icon={Users} color="blue" href="/admin/users" />
+          <StatCard label={t('admin.merchantQueue', 'Merchant Queue')} value={loading ? '—' : fmt(stats?.pending_vendors)} sub={t('admin.awaitingKyc', 'Awaiting KYC')} icon={Store} color="amber" href="/admin/vendors" />
+          <StatCard label={t('admin.assetPipeline', 'Asset Pipeline')} value={loading ? '—' : fmt(stats?.pending_products)} sub={t('admin.pendingApproval', 'Pending Approval')} icon={Package} color="primary" href="/admin/products" />
+          <StatCard label={t('admin.globalVolume', 'Global Volume')} value={loading ? '—' : `${fmt(stats?.revenue)} XAF`} sub={t('admin.grossRevenue', 'Gross Platform Revenue')} icon={TrendingUp} color="emerald" href="/admin/analytics" />
         </div>
 
         <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm md:p-5">
@@ -130,7 +131,9 @@ export default function AdminDashboard() {
                   </div>
                   <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60">XAF</span>
                 </div>
-                <p className="truncate text-sm font-bold tabular-nums">{fmt(item.value)}</p>
+                <p className={`truncate text-sm font-bold tabular-nums transition-all ${loading ? 'animate-pulse text-[var(--text-secondary)] opacity-40' : ''}`}>
+                  {loading ? '——' : fmt(item.value)}
+                </p>
                 <p className="mt-1 text-[10px] font-bold text-[var(--text-primary)]">{item.title}</p>
                 <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-55">{item.desc}</p>
               </div>
@@ -152,10 +155,10 @@ export default function AdminDashboard() {
 
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { title: t('admin.userDirectory', 'User Directory'), desc: t('admin.authProfileControl', 'Auth & Profile Control'), count: stats?.users || 0, icon: Users, color: 'blue', href: '/admin/users' },
-                  { title: t('admin.merchantRegistry', 'Merchant Registry'), desc: t('admin.kycStoreOversight', 'KYC & Store Oversight'), count: stats?.vendors || 0, icon: Store, color: 'amber', href: '/admin/vendors' },
-                  { title: t('admin.productLedger', 'Product Ledger'), desc: t('admin.catalogModeration', 'Catalog Moderation'), count: stats?.products || 0, icon: Package, color: 'accent', href: '/admin/products' },
-                  { title: t('admin.escrowVault', 'Escrow Vault'), desc: t('admin.platformLiquidity', 'Platform Liquidity'), count: `${fmt(stats?.escrow_vault)}`, icon: ShieldCheck, color: 'emerald', href: '/admin/escrow' },
+                  { title: t('admin.userDirectory', 'User Directory'), desc: t('admin.authProfileControl', 'Auth & Profile Control'), count: loading ? '—' : fmt(stats?.users || 0), icon: Users, color: 'blue', href: '/admin/users' },
+                  { title: t('admin.merchantRegistry', 'Merchant Registry'), desc: t('admin.kycStoreOversight', 'KYC & Store Oversight'), count: loading ? '—' : fmt(stats?.vendors || 0), icon: Store, color: 'amber', href: '/admin/vendors' },
+                  { title: t('admin.productLedger', 'Product Ledger'), desc: t('admin.catalogModeration', 'Catalog Moderation'), count: loading ? '—' : fmt(stats?.products || 0), icon: Package, color: 'accent', href: '/admin/products' },
+                  { title: t('admin.escrowVault', 'Escrow Vault'), desc: t('admin.platformLiquidity', 'Active Custody'), count: loading ? '—' : `${fmt(stats?.escrow_vault)} XAF`, icon: ShieldCheck, color: 'emerald', href: '/admin/escrow' },
                 ].map((item, i) => (
                   <Link key={i} href={item.href} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group active:scale-[0.98]">
                     <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all ${COLOR_STYLES[item.color] || COLOR_STYLES.accent}`}>
@@ -182,9 +185,9 @@ export default function AdminDashboard() {
                 </div>
                 <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 md:gap-3">
                   {[
-                    { title: 'Volume', desc: 'Marketplace flow', count: `${fmt(stats?.revenue)} XAF`, icon: Activity, color: 'blue', signal: 'Flow', href: '/admin/analytics' },
-                    { title: 'KYC Queue', desc: 'Awaiting review', count: fmt(stats?.pending_vendors || 0), icon: ShieldAlert, color: 'rose', signal: 'Review', href: '/admin/approvals' },
-                    { title: 'Escrow', desc: 'Protected funds', count: `${fmt(stats?.escrow_vault || stats?.escrow_held)} XAF`, icon: ShieldCheck, color: 'emerald', signal: 'Vault', href: '/admin/escrow' },
+                    { title: 'Volume', desc: 'Marketplace flow', count: loading ? '—' : `${fmt(stats?.revenue || 0)} XAF`, icon: Activity, color: 'blue', signal: 'Flow', href: '/admin/analytics' },
+                    { title: 'KYC Queue', desc: 'Awaiting review', count: loading ? '—' : fmt(stats?.pending_vendors || 0), icon: ShieldAlert, color: 'rose', signal: 'Review', href: '/admin/approvals' },
+                    { title: 'Escrow', desc: 'Protected funds', count: loading ? '—' : `${fmt(stats?.escrow_vault || 0)} XAF`, icon: ShieldCheck, color: 'emerald', signal: 'Vault', href: '/admin/escrow' },
                     { title: 'Uptime', desc: 'API health', count: '99.98%', icon: Zap, color: 'amber', signal: 'Stable', href: '/admin/logs' },
                   ].map((item, i) => (
                     <Link key={i} href={item.href} className="relative overflow-hidden p-3 rounded-2xl bg-[var(--bg-primary)]/65 border border-[var(--glass-border)] group hover:-translate-y-0.5 hover:border-[var(--accent)]/30 hover:shadow-lg transition-all">

@@ -204,31 +204,54 @@ const toggleVendorVerified = async (req, res, next) => {
 
 const getPlatformAnalytics = async (req, res, next) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const totalVendors = await Vendor.countDocuments();
-    const totalProducts = await Product.countDocuments();
-    const activeProducts = await Product.countDocuments({ status: 'active' });
-    const pendingProducts = await Product.countDocuments({ status: 'pending' });
-    const totalOrders = await Order.countDocuments();
-    const revenueStats = await Order.aggregate([
-      { $match: { order_status: { $ne: 'cancelled' } } },
-      { $group: { _id: null, totalRevenue: { $sum: '$total_amount' } } }
+    const [
+      totalUsers,
+      totalVendors,
+      totalProducts,
+      activeProducts,
+      pendingProducts,
+      totalOrders,
+      revenueStats,
+      pendingKYC,
+      escrowAgg,
+      adminEarnings,
+      onlineUsers,
+      active24h,
+      failedTransactions,
+      deliveredOrders,
+      activeOrders
+    ] = await Promise.all([
+      User.countDocuments(),
+      Vendor.countDocuments(),
+      Product.countDocuments(),
+      Product.countDocuments({ status: 'active' }),
+      Product.countDocuments({ status: 'pending' }),
+      Order.countDocuments(),
+      Order.aggregate([
+        { $match: { order_status: { $ne: 'cancelled' } } },
+        { $group: { _id: null, totalRevenue: { $sum: '$total_amount' } } }
+      ]),
+      KYC.countDocuments({ status: 'pending' }),
+      Escrow.aggregate([
+        { $group: { _id: '$status', total: { $sum: '$amount' } } }
+      ]),
+      buildAdminEarningsSummary(),
+      User.countDocuments({ is_online: true }),
+      User.countDocuments({ 
+        last_seen: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } 
+      }),
+      Transaction.countDocuments({ status: 'failed' }),
+      Order.countDocuments({ order_status: 'delivered' }),
+      Order.countDocuments({ order_status: { $in: ['placed', 'processing', 'shipped'] } })
     ]);
+
     const totalRevenue = revenueStats.length > 0 ? revenueStats[0].totalRevenue : 0;
-    const pendingKYC = await KYC.countDocuments({ status: 'pending' });
-    const escrowAgg = await Escrow.aggregate([
-      { $group: { _id: '$status', total: { $sum: '$amount' } } }
-    ]);
     const totalHeldFunds = escrowAgg.find(s => s._id === 'held')?.total || 0;
     const totalReleasedFunds = escrowAgg.find(s => s._id === 'released')?.total || 0;
     const totalDisputedFunds = escrowAgg.find(s => s._id === 'disputed')?.total || 0;
-    const adminEarnings = await buildAdminEarningsSummary();
 
-    // Presence Metrics
-    const onlineUsers = await User.countDocuments({ is_online: true });
-    const active24h = await User.countDocuments({ 
-      last_seen: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } 
-    });
+    // Platform Liquidity / Custody total is the sum of both locked 'held' funds and 'disputed' funds
+    const activeEscrowCustody = totalHeldFunds + totalDisputedFunds;
 
     res.status(200).json({
       success: true,
@@ -246,13 +269,13 @@ const getPlatformAnalytics = async (req, res, next) => {
           revenue: totalRevenue,
           admin_earnings: adminEarnings,
           admin_revenue: adminEarnings.total,
-          escrow_vault: totalHeldFunds,
+          escrow_vault: activeEscrowCustody,
           escrow_held: totalHeldFunds,
           escrow_released: totalReleasedFunds,
           escrow_disputed: totalDisputedFunds,
-          failed_transactions: await Transaction.countDocuments({ status: 'failed' }),
-          delivered_orders: await Order.countDocuments({ order_status: 'delivered' }),
-          active_orders: await Order.countDocuments({ order_status: { $in: ['placed', 'processing', 'shipped'] } })
+          failed_transactions: failedTransactions,
+          delivered_orders: deliveredOrders,
+          active_orders: activeOrders
         }
       }
     });

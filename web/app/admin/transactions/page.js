@@ -645,13 +645,14 @@ export default function AdminTransactionsPage() {
       />
 
       <AdminFinanceBody>
-        <AdminMetricGrid
+      <AdminMetricGrid
           theme="transactions"
+          columns={4}
           metrics={[
-            { label: 'Commission', value: stats ? `${fmt(earnings.commission)}` : '…', hint: 'Product sales XAF' },
-            { label: 'Escrow fees', value: stats ? `${fmt(earnings.escrow)}` : '…', hint: 'Escrow protection XAF' },
-            { label: 'Collection fees', value: stats ? `${fmt(earnings.collection)}` : '…', hint: 'Mobile money XAF' },
-            { label: 'Subscriptions', value: stats ? `${fmt(earnings.subscription)}` : '…', hint: 'Future revenue XAF' },
+            { label: 'Commission', value: stats ? `${fmt(earnings.commission)} XAF` : '…', hint: 'Product sale fees' },
+            { label: 'Escrow fees', value: stats ? `${fmt(earnings.escrow)} XAF` : '…', hint: 'Escrow protection fee' },
+            { label: 'Collection fees', value: stats ? `${fmt(earnings.collection)} XAF` : '…', hint: 'Mobile money charges' },
+            { label: 'Subscriptions', value: stats ? `${fmt(earnings.subscription)} XAF` : '…', hint: 'Recurring plan revenue' },
           ]}
         />
 

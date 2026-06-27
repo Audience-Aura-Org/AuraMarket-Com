@@ -202,6 +202,9 @@ export default function AdminEscrow() {
   const heldTotal = stats.find(s => s._id === 'held')?.totalAmount || 0;
   const releasedTotal = stats.find(s => s._id === 'released')?.totalAmount || 0;
   const disputedTotal = stats.find(s => s._id === 'disputed')?.totalAmount || 0;
+  const custodyTotal = heldTotal + disputedTotal; // active custody = held + disputed
+
+  const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
 
   if (!mounted) return null;
 
@@ -276,23 +279,24 @@ export default function AdminEscrow() {
          </div>
 
          {/* Live Intelligence Stats */}
-         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
             {[
-               { title: 'LOCKED', desc: 'Custody Total', count: `${heldTotal.toLocaleString()} XAF`, icon: Database, color: 'blue' },
-               { title: 'RELEASED', desc: 'Settled Capital', count: `${releasedTotal.toLocaleString()} XAF`, icon: CheckCircle2, color: 'emerald' },
-               { title: 'DISPUTE', desc: 'Contested', count: `${disputedTotal.toLocaleString()} XAF`, icon: AlertCircle, color: 'rose' },
-               { title: 'REVENUE', desc: 'Gross Platform', count: analytics ? `${analytics.revenue.toLocaleString()} XAF` : '...', icon: Globe, color: 'indigo' },
+               { title: 'LOCKED', desc: 'Active Custody', count: `${fmt(custodyTotal)} XAF`, icon: Database, color: 'blue' },
+               { title: 'RELEASED', desc: 'Settled Capital', count: `${fmt(releasedTotal)} XAF`, icon: CheckCircle2, color: 'emerald' },
+               { title: 'DISPUTE', desc: 'Contested Funds', count: `${fmt(disputedTotal)} XAF`, icon: AlertCircle, color: 'rose' },
+               { title: 'ADMIN EARN', desc: 'Platform earnings', count: loading ? '…' : `${fmt(analytics?.admin_revenue || analytics?.admin_earnings?.total)} XAF`, icon: Globe, color: 'indigo' },
             ].map((item, i) => (
-               <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group backdrop-blur-xl">
-                  <div className={`size-10 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all ${STAT_COLOR_STYLES[item.color] || STAT_COLOR_STYLES.blue}`}>
-                     <item.icon className="size-4" />
+               <div key={i} className="flex flex-col gap-3 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group backdrop-blur-xl">
+                  <div className="flex items-center justify-between gap-2">
+                     <div className={`size-9 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all ${STAT_COLOR_STYLES[item.color] || STAT_COLOR_STYLES.blue}`}>
+                        <item.icon className="size-4" />
+                     </div>
+                     <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-40">XAF</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                     <p className="text-[11px] lg:text-[12px] font-semibold truncate uppercase tracking-tight">{item.title}</p>
-                     <p className="text-[10px] lg:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{item.desc}</p>
-                  </div>
-                  <div className="text-right">
-                     <p className="text-xs font-bold font-mono whitespace-nowrap">{item.count}</p>
+                  <div>
+                     <p className={`text-[13px] font-bold tabular-nums truncate transition-all ${loading && item.count === '…' ? 'animate-pulse opacity-40' : ''}`}>{item.count}</p>
+                     <p className="text-[10px] font-bold uppercase tracking-tight text-[var(--text-primary)] mt-0.5">{item.title}</p>
+                     <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-40 mt-0.5">{item.desc}</p>
                   </div>
                </div>
             ))}
