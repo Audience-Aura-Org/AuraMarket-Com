@@ -76,6 +76,8 @@ const { getRedisStatus, closeRedis } = require('./config/redis');
 // ─────────────────────────────────────────────
 // 7. Express Middleware
 // ─────────────────────────────────────────────
+// ── CORS Preflight (must be first — mobile browsers send OPTIONS before POST) ─
+app.options('*', cors(createCorsOptions()));
 app.use(securityHeaders);
 app.use(cors(createCorsOptions()));
 

@@ -146,6 +146,7 @@ const createCorsOptions = () => {
       'X-Aura-Language',
       'Origin',
     ],
+    exposedHeaders: ['Content-Length', 'X-Auradime-Cache'],
     optionsSuccessStatus: 204,
   };
 };

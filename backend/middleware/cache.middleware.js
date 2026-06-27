@@ -33,6 +33,9 @@ const cacheResponse = ({ ttlSeconds = DEFAULT_TTL_SECONDS, privateRoute = false 
       req.query?.nocache === '1' ||
       privateRoute
     ) {
+      // For non-GET requests (POST, PATCH, DELETE etc.) do NOT touch res.send.
+      // Wrapping res.send breaks multer multipart streaming responses on mobile.
+      if (req.method !== 'GET') return next();
       res.set('Cache-Control', 'no-store');
       return next();
     }
