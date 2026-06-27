@@ -723,28 +723,28 @@ export default function AddProductPage() {
       {/* Story Prompt Modal */}
       <AnimatePresence>
         {showStoryPrompt && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} 
+              initial={{ scale: 0.95, opacity: 0 }} 
               animate={{ scale: 1, opacity: 1 }}
-              className="max-w-md w-full bg-[var(--bg-primary)] rounded-[2.5rem] border border-[var(--glass-border)] p-8 text-center shadow-2xl"
+              className="max-w-[320px] w-full bg-[var(--bg-primary)] rounded-[1.75rem] border border-[var(--glass-border)] p-6 text-center shadow-2xl"
             >
-              <div className="size-20 bg-[var(--accent)]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <ImageIcon className="size-10 text-[var(--accent)]" />
+              <div className="size-14 bg-[var(--accent)]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ImageIcon className="size-7 text-[var(--accent)]" />
               </div>
-              <h3 className="text-lg font-bold tracking-tight mb-2">Boost Visibility?</h3>
-              <p className="text-sm text-[var(--text-secondary)] mb-8">
+              <h3 className="text-base font-bold tracking-tight mb-1">Boost Visibility?</h3>
+              <p className="text-xs text-[var(--text-secondary)] mb-6 leading-relaxed">
                 Your product is live! Vendors who share new products as <span className="font-bold text-[var(--text-primary)]">Stories</span> see up to 3x more engagement in the first hour.
               </p>
               
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <button 
                   onClick={async () => {
                     if (storyPostingRef.current || postingStory) return;
                     const product = getCreatedProduct(createdProduct);
                     const imageUrl = getProductImageUrl(product);
                     if (!product?._id || !imageUrl) {
-                      toast.error('This product needs an image before it can be posted as a story.');
+                       toast.error('This product needs an image before it can be posted as a story.');
                       return;
                     }
 
@@ -773,13 +773,13 @@ export default function AddProductPage() {
                     }
                   }}
                   disabled={postingStory}
-                  className="w-full py-4 bg-[var(--accent)] text-white font-bold tracking-tight rounded-2xl shadow-xl shadow-[var(--accent)]/20 hover:brightness-110 transition-all disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full py-2.5 bg-[var(--accent)] text-white text-sm font-bold tracking-tight rounded-xl shadow-xl shadow-[var(--accent)]/20 hover:brightness-110 transition-all disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {postingStory ? 'Posting Story...' : 'Post as Story Now'}
                 </button>
                 <button 
                   onClick={() => router.push('/vendor/products')}
-                  className="w-full py-4 text-[var(--text-secondary)]  font-bold tracking-tight hover:text-[var(--text-primary)] transition-colors"
+                  className="w-full py-2 text-xs text-[var(--text-secondary)] font-bold tracking-tight hover:text-[var(--text-primary)] transition-colors"
                 >
                   Maybe Later
                 </button>
