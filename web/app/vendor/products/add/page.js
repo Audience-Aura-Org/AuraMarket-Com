@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
-import { getStoredAuthToken } from '@/services/authStorage';
 import CategoryPicker from '@/components/CategoryPicker';
 import { toast } from 'react-hot-toast';
 
@@ -84,40 +83,7 @@ const getProductImageUrl = (product) => {
 };
 
 const createProductWithFormData = async (formData) => {
-  const baseURL = String(api.defaults.baseURL || '').replace(/\/$/, '');
-  const token = await getStoredAuthToken();
-  const language = typeof window !== 'undefined'
-    ? window.localStorage.getItem('aura_language') || 'en'
-    : 'en';
-  const headers = {
-    'Accept-Language': language,
-    'X-Aura-Language': language,
-  };
-
-  if (token && token !== 'undefined' && token !== 'null' && token !== '') {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  let response;
-  try {
-    response = await fetch(`${baseURL}/products`, {
-      method: 'POST',
-      headers,
-      body: formData,
-      credentials: 'include',
-    });
-  } catch (error) {
-    throw new Error(error?.message || 'Product upload network request failed.');
-  }
-
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    const error = new Error(data?.message || data?.error || `Product upload failed (${response.status})`);
-    error.response = { status: response.status, data };
-    throw error;
-  }
-
-  return { data };
+  return await api.post('/products', formData);
 };
 
 const getProductCreateErrorMessage = (err) => {
@@ -139,6 +105,7 @@ const getProductCreateErrorMessage = (err) => {
 export default function AddProductPage() {
   const router = useRouter();
   const fileInputRef = useRef(null);
+  const mobileScrollYRef = useRef(0);
   const publishingRef = useRef(false);
   const storyPostingRef = useRef(false);
   const [loading, setLoading] = useState(false);
@@ -160,15 +127,24 @@ export default function AddProductPage() {
 
 
 
+  const rememberMobileScroll = () => {
+    if (typeof window === 'undefined' || window.innerWidth >= 768) return;
+    mobileScrollYRef.current = window.scrollY;
+  };
+
   const preserveMobileScroll = () => {
     if (typeof window === 'undefined' || window.innerWidth >= 768) return;
-    const y = window.scrollY;
-    window.requestAnimationFrame(() => {
-      if (Math.abs(window.scrollY - y) > 48) window.scrollTo(0, y);
-    });
+    const y = mobileScrollYRef.current || window.scrollY;
+    const restore = () => {
+      if (Math.abs(window.scrollY - y) > 24) window.scrollTo(0, y);
+    };
+    window.requestAnimationFrame(restore);
+    setTimeout(restore, 60);
+    setTimeout(restore, 180);
   };
 
   const updateFormField = (field, value) => {
+    rememberMobileScroll();
     setForm(prev => ({ ...prev, [field]: value }));
     preserveMobileScroll();
   };
@@ -348,7 +324,13 @@ export default function AddProductPage() {
       <div className="fixed top-[-10%] right-[-10%] hidden w-[500px] h-[500px] bg-[var(--accent)]/10 blur-[120px] rounded-full pointer-events-none md:block" />
       <div className="fixed bottom-[-10%] left-[20%] hidden w-[400px] h-[400px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none md:block" />
 
-      <main className="flex-1 flex flex-col relative z-10 w-full">
+      <main
+        className="flex-1 flex flex-col relative z-10 w-full"
+        onPointerDownCapture={rememberMobileScroll}
+        onTouchStartCapture={rememberMobileScroll}
+        onBlurCapture={rememberMobileScroll}
+        onFocusCapture={preserveMobileScroll}
+      >
         {/* Header */}
         <header className="h-16 sm:h-20 flex items-center justify-between px-2 sm:px-4 lg:px-10 glass-panel border-b border-[var(--glass-border)] sticky top-0 z-50 bg-[var(--bg-primary)]/80 backdrop-blur-xl text-[var(--text-primary)]">
           <div className="flex min-w-0 items-center gap-2 sm:gap-4">

@@ -109,26 +109,28 @@ export default function FloatingUploadBadge() {
       </div>
 
       {/* Phase label */}
-      <span
-        style={{
-          fontSize: '9px',
-          fontWeight: 600,
-          letterSpacing: '0.03em',
-          color: 'rgba(192, 132, 252, 0.9)',
-          background: 'rgba(10, 5, 20, 0.85)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          padding: '2px 7px',
-          borderRadius: '10px',
-          maxWidth: '80px',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-          textAlign: 'center',
-        }}
-      >
-        {activeJobs.length > 1 ? `${activeJobs.length} uploads` : `${progress}%`}
-      </span>
+      {activeJobs.length > 1 && (
+        <span
+          style={{
+            fontSize: '9px',
+            fontWeight: 600,
+            letterSpacing: '0.03em',
+            color: 'rgba(192, 132, 252, 0.9)',
+            background: 'rgba(10, 5, 20, 0.85)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            padding: '2px 7px',
+            borderRadius: '10px',
+            maxWidth: '80px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            textAlign: 'center',
+          }}
+        >
+          {activeJobs.length} uploads
+        </span>
+      )}
     </div>
   );
 }
