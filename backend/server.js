@@ -77,7 +77,9 @@ const { getRedisStatus, closeRedis } = require('./config/redis');
 // 7. Express Middleware
 // ─────────────────────────────────────────────
 // ── CORS Preflight (must be first — mobile browsers send OPTIONS before POST) ─
-app.options('/*', cors(createCorsOptions()));
+// Use a JS RegExp instead of a string wildcard: path-to-regexp v8+ on the
+// production server rejects both '*' and '/*' as invalid pattern syntax.
+app.options(/\/.*/, cors(createCorsOptions()));
 app.use(securityHeaders);
 app.use(cors(createCorsOptions()));
 
