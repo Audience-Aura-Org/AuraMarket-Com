@@ -112,7 +112,9 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
   video.setAttribute('playsinline', 'true');
   video.setAttribute('webkit-playsinline', 'true');
   video.preload = 'auto';
-  video.crossOrigin = 'anonymous';
+  if (sourceUrl && !sourceUrl.startsWith('blob:')) {
+    video.crossOrigin = 'anonymous';
+  }
 
   try {
     await metadataLoaded;

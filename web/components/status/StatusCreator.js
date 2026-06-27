@@ -578,7 +578,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     video.muted = true;
     video.playsInline = true;
     video.preload = 'auto';
-    video.crossOrigin = 'anonymous';
+    if (objectUrl && !objectUrl.startsWith('blob:')) {
+      video.crossOrigin = 'anonymous';
+    }
     video.load();
     
     try {
