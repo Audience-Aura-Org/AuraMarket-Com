@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
-import api from '@/services/api';
+import api, { getCachedData } from '@/services/api';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import {
@@ -100,6 +100,44 @@ export default function VendorDashboard() {
   const [orderFilter, setOrderFilter] = useState('all');
 
   useEffect(() => {
+    // Attempt instant render from local cache
+    try {
+      const cachedProducts = getCachedData('/vendor/products');
+      const cachedOrders = getCachedData('/vendor/orders');
+      const cachedWallet = getCachedData('/wallet');
+      const cachedAnalytics = getCachedData('/vendor/analytics');
+      const cachedSubscription = getCachedData('/subscriptions/me', { role: 'vendor' });
+
+      let foundCache = false;
+      if (cachedProducts?.products) {
+        setProducts(cachedProducts.products);
+        foundCache = true;
+      }
+      if (cachedOrders?.orders) {
+        setOrders(cachedOrders.orders);
+        foundCache = true;
+      }
+      if (cachedWallet) {
+        setWalletBalance(cachedWallet.balance ?? 0);
+        setPendingEscrow(cachedWallet.pending_escrow ?? 0);
+        foundCache = true;
+      }
+      if (cachedAnalytics) {
+        setAnalyticsStats(cachedAnalytics.stats || null);
+        setAnalyticsHistory(cachedAnalytics.sales_history || []);
+        foundCache = true;
+      }
+      if (cachedSubscription) {
+        setSubscriptionStatus(cachedSubscription);
+        foundCache = true;
+      }
+      
+      if (foundCache) {
+        setLoading(false);
+      }
+    } catch (e) {
+      console.warn('Dashboard instant cache load failed:', e);
+    }
     setMounted(true);
   }, []);
 
@@ -112,9 +150,12 @@ export default function VendorDashboard() {
 
     setError(null);
 
-    const fetchData = async () => {
+    const fetchData = async (isBackground = false) => {
       try {
-        setLoading(true);
+        const hasData = products.length > 0 || orders.length > 0 || analyticsStats !== null;
+        if (!isBackground && !hasData) {
+          setLoading(true);
+        }
         setError(null);
         
         // Helper to safely handle individual requests and detect 403 onboarding
@@ -189,8 +230,8 @@ export default function VendorDashboard() {
       }
     };
 
-    fetchData();
-    const timer = setInterval(fetchData, 30000);
+    fetchData(true);
+    const timer = setInterval(() => fetchData(true), 30000);
     return () => {
       isMounted = false;
       clearInterval(timer);

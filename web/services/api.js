@@ -81,6 +81,13 @@ const OFFLINE_CACHEABLE_ROUTES = [
   /^vendors(?:\/|$)/,
   /^statuses(?:\/|$)/,
   /^reviews\/product(?:\/|$)/,
+  /^vendor\/products(?:\/|$)/,
+  /^vendor\/orders(?:\/|$)/,
+  /^vendor\/analytics(?:\/|$)/,
+  /^wallet(?:\/|$)/,
+  /^subscriptions\/me(?:\/|$)/,
+  /^notifications(?:\/|$)/,
+  /^chat(?:\/|$)/,
 ];
 
 const getOfflineStorage = () => {
@@ -445,6 +452,45 @@ api.get = async (url, config = {}) => {
   }
 
   return rawGet(url, config);
+};
+
+export const getCachedData = (url, params = {}) => {
+  if (typeof window === 'undefined') return null;
+  const storage = getOfflineStorage();
+  if (!storage) return null;
+
+  // Re-create the request config structure to compute the matching cache key
+  const normalizedConfig = {
+    url,
+    method: 'get',
+    params,
+  };
+
+  let scopedConfig = normalizedConfig;
+  const token = window.localStorage.getItem('aura_auth_token');
+  if (token && token !== 'undefined' && token !== 'null' && token !== '') {
+    scopedConfig = {
+      ...normalizedConfig,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+  }
+
+  const key = getCacheKey(scopedConfig);
+  const raw = storage.getItem(key);
+  if (!raw) return null;
+
+  try {
+    const cached = JSON.parse(raw);
+    if (Date.now() - Number(cached.cachedAt || 0) > OFFLINE_CACHE_TTL_MS) {
+      storage.removeItem(key);
+      return null;
+    }
+    return cached.data;
+  } catch {
+    return null;
+  }
 };
 
 export default api;

@@ -148,14 +148,20 @@ async function readVideoMetadata(file) {
   const objectUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
   
-  // Position hidden video element so the browser's layout engine does not suspend decoding
+  // ── CRITICAL for Android WebView ────────────────────────────────────────
+  // The video element MUST be a real, visible size (at least 160×90).
+  // If it is 1×1px, Android's hardware decoder skips rendering frames and
+  // fails to fire metadata loading events.
+  // We position it off-screen via translateX(-9999px) so it's invisible
+  // to the user but still decoded at full resolution by the GPU.
   video.style.position = 'fixed';
-  video.style.bottom = '0px';
-  video.style.right = '0px';
-  video.style.width = '1px';
-  video.style.height = '1px';
-  video.style.opacity = '0.01';
+  video.style.top = '0px';
+  video.style.left = '0px';
+  video.style.width = '160px';
+  video.style.height = '90px';
+  video.style.transform = 'translateX(-9999px)';
   video.style.pointerEvents = 'none';
+  video.style.zIndex = '-1';
   document.body.appendChild(video);
 
   const metadataLoaded = new Promise((resolve, reject) => {
@@ -471,6 +477,22 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
   }, [trimStart, trimEnd, previewUrl]);
 
+  // Handle preview video source loading and play/pause controls
+  useEffect(() => {
+    const video = previewVideoRef.current;
+    if (!video) return;
+
+    // Load new blob src explicitly (critical for Android WebView)
+    video.load();
+
+    if (isPlaying) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [previewUrl, isPlaying]);
+
+  // Sync play/pause events from native element back to state
   useEffect(() => {
     const video = previewVideoRef.current;
     if (!video) return;

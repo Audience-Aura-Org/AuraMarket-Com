@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Capacitor } from '@capacitor/core';
+import Link from 'next/link';
 import { Download, Smartphone, X } from 'lucide-react';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -251,14 +252,25 @@ export default function PWAInit() {
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={handleInstallWebApp}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-3 text-[12px] font-bold text-[var(--bg-primary)] transition hover:bg-[var(--accent)]"
-        >
-          <Smartphone className="size-4" />
-          Install
-        </button>
+        {typeof window !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent) ? (
+          <Link
+            href="/install"
+            onClick={dismissInstallPrompt}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-3 text-[12px] font-bold text-[var(--bg-primary)] transition hover:bg-[var(--accent)] hover:text-white"
+          >
+            <Smartphone className="size-4" />
+            Install Guide
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={handleInstallWebApp}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--text-primary)] px-3 text-[12px] font-bold text-[var(--bg-primary)] transition hover:bg-[var(--accent)]"
+          >
+            <Smartphone className="size-4" />
+            Install
+          </button>
+        )}
         <a
           href={APK_DOWNLOAD_URL}
           target="_blank"
