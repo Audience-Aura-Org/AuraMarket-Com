@@ -483,20 +483,49 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
   }, [trimStart, trimEnd, previewUrl]);
 
-  // Handle preview video source loading and play/pause controls
+  // Handle preview video source loading and autoplay (Android WebView fix)
   useEffect(() => {
     const video = previewVideoRef.current;
-    if (!video) return;
+    if (!video || !previewUrl) return;
 
-    // Load new blob src explicitly (critical for Android WebView)
+    // Android WebView: must set muted=true on the DOM node directly
+    // (React prop can lag behind), then wait for loadeddata before play()
+    video.muted = true;
     video.load();
 
+    let cancelled = false;
+    const tryPlay = () => {
+      if (cancelled) return;
+      video.muted = true; // re-confirm muted before each play attempt
+      video.play().catch(() => {});
+    };
+
+    // Primary: wait for loadeddata (reliable on Android WebView)
+    video.addEventListener('loadeddata', tryPlay, { once: true });
+    // Fallback: canplay fires on some decoders before loadeddata
+    video.addEventListener('canplay', tryPlay, { once: true });
+    // Final fallback: 3s timeout in case neither event fires
+    const fallback = setTimeout(tryPlay, 3000);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(fallback);
+      video.removeEventListener('loadeddata', tryPlay);
+      video.removeEventListener('canplay', tryPlay);
+    };
+  }, [previewUrl]);
+
+  // Handle play/pause commands from user interaction
+  useEffect(() => {
+    const video = previewVideoRef.current;
+    if (!video || !previewUrl) return;
     if (isPlaying) {
+      video.muted = true;
       video.play().catch(() => {});
     } else {
       video.pause();
     }
-  }, [previewUrl, isPlaying]);
+  }, [isPlaying]);
 
   // Sync play/pause events from native element back to state
   useEffect(() => {
@@ -1276,13 +1305,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     src={previewUrl}
                     className={`w-full h-full ${previewFitClass} z-10`}
                     autoPlay
-                    muted={muted}
+                    muted
                     loop
                     playsInline
                     controls={false}
                     webkit-playsinline="true"
                     x5-playsinline="true"
-                    style={{ WebkitMediaControls: 'none' }}
+                    x5-video-player-type="h5"
+                    x5-video-player-fullscreen="false"
                   />
                   <button
                     type="button"
