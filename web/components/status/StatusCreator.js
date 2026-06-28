@@ -403,6 +403,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [showTrimmer, setShowTrimmer]   = useState(true);
   const [fontFamilyIndex, setFontFamilyIndex] = useState(1); // Default to Quicksand (index 1)
   const [timelineFrames, setTimelineFrames] = useState([]);
+  const [isGeneratingTimeline, setIsGeneratingTimeline] = useState(false);
 
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
@@ -483,7 +484,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
   }, [trimStart, trimEnd, previewUrl]);
 
-  // Handle preview video source loading and play/pause controls
+  // Handle preview video source loading
   useEffect(() => {
     const video = previewVideoRef.current;
     if (!video) return;
@@ -491,12 +492,29 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     // Load new blob src explicitly (critical for Android WebView)
     video.load();
 
-    if (isPlaying) {
+    const handleCanPlay = () => {
+      if (isPlaying && !isGeneratingTimeline) {
+        video.play().catch(() => {});
+      }
+    };
+
+    video.addEventListener('canplay', handleCanPlay);
+    return () => {
+      video.removeEventListener('canplay', handleCanPlay);
+    };
+  }, [previewUrl]);
+
+  // Handle play/pause commands from state (avoid load() recursion)
+  useEffect(() => {
+    const video = previewVideoRef.current;
+    if (!video) return;
+
+    if (isPlaying && !isGeneratingTimeline) {
       video.play().catch(() => {});
     } else {
       video.pause();
     }
-  }, [previewUrl, isPlaying]);
+  }, [isPlaying, isGeneratingTimeline]);
 
   // Sync play/pause events from native element back to state
   useEffect(() => {
@@ -572,6 +590,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   // Extraction of timeline frames from uploaded video file
   const generateTimelineFrames = async (videoFile, duration) => {
     if (!videoFile || !duration) return;
+    setIsGeneratingTimeline(true);
     setTimelineFrames([]);
     const objectUrl = URL.createObjectURL(videoFile);
     const video = document.createElement('video');
@@ -678,6 +697,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         video.parentNode.removeChild(video);
       }
       URL.revokeObjectURL(objectUrl);
+      setIsGeneratingTimeline(false);
     }
   };
 
@@ -1373,6 +1393,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     >
                       <div className="w-0.5 h-4 bg-white/70 rounded-full" />
                     </div>
+
+                    {/* Generating overlay */}
+                    {isGeneratingTimeline && (
+                      <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center gap-2 pointer-events-none">
+                        <Loader2 className="size-3.5 animate-spin text-[#20c763]" />
+                        <span className="text-[9px] font-bold text-white/95 uppercase tracking-widest">Generating Filmstrip...</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
