@@ -408,6 +408,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const videoInputRef = useRef(null);
   const captionInputRef = useRef(null);
   const previewVideoRef = useRef(null);
+  const previewCanvasRef = useRef(null);
+  const rafRef = useRef(null);
   const trimmerTrackRef = useRef(null);
 
   const trimStartRef = useRef(trimStart);
@@ -483,28 +485,42 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
   }, [trimStart, trimEnd, previewUrl]);
 
-  // Handle preview video source loading and autoplay (Android WebView fix)
   useEffect(() => {
     const video = previewVideoRef.current;
-    if (!video || !previewUrl) return;
+    const canvas = previewCanvasRef.current;
+    if (!video || !canvas || !previewUrl) return;
 
-    // Android WebView: must set muted=true on the DOM node directly
-    // (React prop can lag behind), then wait for loadeddata before play()
     video.muted = true;
     video.load();
 
+    const ctx = canvas.getContext('2d');
     let cancelled = false;
-    const tryPlay = () => {
-      if (cancelled) return;
-      video.muted = true; // re-confirm muted before each play attempt
-      video.play().catch(() => {});
+
+    const paintFrame = () => {
+      if (video.readyState >= 2 && video.videoWidth > 0) {
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
+      rafRef.current = requestAnimationFrame(paintFrame);
     };
 
-    // Primary: wait for loadeddata (reliable on Android WebView)
+    const tryPlay = () => {
+      if (cancelled) return;
+      video.muted = true;
+      video.play()
+        .then(() => {
+          if (!cancelled) {
+            rafRef.current = requestAnimationFrame(paintFrame);
+          }
+        })
+        .catch(() => {});
+    };
+
     video.addEventListener('loadeddata', tryPlay, { once: true });
-    // Fallback: canplay fires on some decoders before loadeddata
     video.addEventListener('canplay', tryPlay, { once: true });
-    // Final fallback: 3s timeout in case neither event fires
     const fallback = setTimeout(tryPlay, 3000);
 
     return () => {
@@ -512,6 +528,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       clearTimeout(fallback);
       video.removeEventListener('loadeddata', tryPlay);
       video.removeEventListener('canplay', tryPlay);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [previewUrl]);
 
@@ -609,20 +626,17 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     const isNative = typeof Capacitor !== 'undefined' && Capacitor?.isNativePlatform?.();
 
     if (isNative) {
-      // ── NATIVE PATH: Wait for preview video to be ready, then capture ────
-      // Android WebView can only reliably decode one video at a time.
-      // We wait for the preview video to start playing, then capture frames
-      // from it by seeking to different positions.
-      const waitForPreview = () => new Promise((resolve) => {
-        const check = () => {
-          const v = previewVideoRef.current;
-          if (v && v.readyState >= 2 && v.videoWidth > 0) return resolve(v);
-          setTimeout(check, 200);
-        };
-        check();
-        // Safety timeout: give up after 8s
-        setTimeout(() => resolve(previewVideoRef.current), 8000);
-      });
+      // Wait for the preview video to be ready
+      const waitForPreview = () =>
+        new Promise((resolve) => {
+          const check = () => {
+            const v = previewVideoRef.current;
+            if (v && v.readyState >= 2 && v.videoWidth > 0) return resolve(v);
+            setTimeout(check, 200);
+          };
+          check();
+          setTimeout(() => resolve(previewVideoRef.current), 8000);
+        });
 
       const video = await waitForPreview();
       if (!video || !video.videoWidth) return;
@@ -633,41 +647,75 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       canvas.height = 90;
       const ctx = canvas.getContext('2d');
 
-      // Save current playback state
       const wasPlaying = !video.paused;
       const savedTime = video.currentTime;
       video.pause();
+      await new Promise((r) => setTimeout(r, 100));
 
-      // Wait for pause to settle
-      await new Promise(r => setTimeout(r, 100));
-
-      for (let i = 0; i < numFrames; i++) {
-        const time = i === 0 ? 0.05 : (i / (numFrames - 1)) * Math.max(duration - 0.05, 0.1);
-
-        await new Promise((resolve) => {
+      // Seek to a time and wait for the actual painted frame
+      // Uses requestVideoFrameCallback if available (Chrome 83+ / Android WebView 83+)
+      // Falls back to double-rAF + 200ms delay for older WebViews
+      const seekAndCapture = (targetTime) =>
+        new Promise((resolve) => {
           let resolved = false;
-          const done = () => { if (!resolved) { resolved = true; resolve(); } };
-          const timer = setTimeout(done, 800);
-          video.onseeked = () => { clearTimeout(timer); done(); };
-          video.currentTime = time;
+
+          const finish = () => {
+            if (resolved) return;
+            resolved = true;
+            try {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              resolve(canvas.toDataURL('image/jpeg', 0.5));
+            } catch {
+              resolve(null);
+            }
+          };
+
+          const onSeeked = () => {
+            if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+              // Wait for the GPU to actually paint the frame before capturing
+              video.requestVideoFrameCallback(() => {
+                finish();
+              });
+            } else {
+              // Fallback: double rAF + 200ms gives GPU pipeline time to flush
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() =>
+                  setTimeout(finish, 200)
+                )
+              );
+            }
+          };
+
+          // Timeout safety net
+          const timer = setTimeout(() => {
+            video.removeEventListener('seeked', onSeeked);
+            finish();
+          }, 1500);
+
+          video.addEventListener('seeked', onSeeked, { once: true });
+
+          // Clear timer when seeked fires normally
+          const onSeekedCleanup = () => clearTimeout(timer);
+          video.addEventListener('seeked', onSeekedCleanup, { once: true });
+
+          video.currentTime = targetTime;
         });
 
-        // Wait 2 rAFs for Android compositor to paint the seeked frame
-        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      for (let i = 0; i < numFrames; i++) {
+        const time =
+          i === 0
+            ? 0.05
+            : (i / (numFrames - 1)) * Math.max(duration - 0.05, 0.1);
 
-        try {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-          setTimelineFrames(prev => [...prev, dataUrl]);
-        } catch (_) {
-          // drawImage may fail on some codecs, skip this frame
+        const dataUrl = await seekAndCapture(time);
+        if (dataUrl) {
+          setTimelineFrames((prev) => [...prev, dataUrl]);
         }
       }
 
-      // Restore playback state
+      // Restore video state
       video.currentTime = savedTime;
       if (wasPlaying) video.play().catch(() => {});
-
     } else {
       // ── DESKTOP PATH: Use a separate off-screen video element ────────────
       const objectUrl = URL.createObjectURL(videoFile);
@@ -1300,19 +1348,22 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             <div className="absolute inset-0 w-full h-full flex items-center justify-center">
               {type === 'video' ? (
                 <>
+                  {/* Hidden video — decodes frames but does not render visually on Android */}
                   <video
                     ref={previewVideoRef}
                     src={previewUrl}
-                    className={`w-full h-full ${previewFitClass} z-10`}
+                    className="absolute opacity-0 pointer-events-none w-0 h-0"
                     autoPlay
                     muted
                     loop
                     playsInline
-                    controls={false}
-                    webkit-playsinline="true"
-                    x5-playsinline="true"
-                    x5-video-player-type="h5"
-                    x5-video-player-fullscreen="false"
+                  />
+
+                  {/* Canvas — what the user actually sees, composites normally on Android */}
+                  <canvas
+                    ref={previewCanvasRef}
+                    className={`w-full h-full ${previewFitClass} z-10`}
+                    style={{ display: previewUrl ? 'block' : 'none' }}
                   />
                   <button
                     type="button"
