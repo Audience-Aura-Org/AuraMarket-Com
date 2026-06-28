@@ -79,6 +79,21 @@ async function generateVideoThumbnail(file) {
 
   const objectUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
+  
+  // ── CRITICAL for Android WebView ────────────────────────────────────────
+  // The video element MUST be appended to the DOM and have a real, visible size (at least 160×90).
+  // We position it on-screen at opacity 0.002 so it's technically visible
+  // to the compositor but completely unnoticeable to the user.
+  video.style.position = 'fixed';
+  video.style.top = '0px';
+  video.style.left = '0px';
+  video.style.width = '160px';
+  video.style.height = '90px';
+  video.style.opacity = '0.002';
+  video.style.pointerEvents = 'none';
+  video.style.zIndex = '9999';
+  document.body.appendChild(video);
+
   video.preload = 'metadata';
   video.muted = true;
   video.playsInline = true;
@@ -111,6 +126,9 @@ async function generateVideoThumbnail(file) {
       lastModified: Date.now(),
     });
   } finally {
+    if (video.parentNode) {
+      video.parentNode.removeChild(video);
+    }
     URL.revokeObjectURL(objectUrl);
   }
 }
@@ -122,15 +140,16 @@ async function readVideoMetadata(file) {
   
   // ── CRITICAL for Android WebView ────────────────────────────────────────
   // The video element MUST be appended to the DOM and have a real, visible size (at least 160×90).
-  // Otherwise, Android's hardware decoder suspends loading and metadata events never resolve.
+  // We position it on-screen at opacity 0.002 so it's technically visible
+  // to the compositor but completely unnoticeable to the user.
   video.style.position = 'fixed';
   video.style.top = '0px';
   video.style.left = '0px';
   video.style.width = '160px';
   video.style.height = '90px';
-  video.style.transform = 'translateX(-9999px)';
+  video.style.opacity = '0.002';
   video.style.pointerEvents = 'none';
-  video.style.zIndex = '-1';
+  video.style.zIndex = '9999';
   document.body.appendChild(video);
 
   video.preload = 'metadata';

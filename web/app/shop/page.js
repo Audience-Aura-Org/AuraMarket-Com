@@ -53,6 +53,10 @@ function ShopContent() {
   const [activeVendor, setActiveVendor] = useState(null);
   const [vendorLoading, setVendorLoading] = useState(false);
 
+  // --- Vendor Search state ---
+  const [matchedVendors, setMatchedVendors] = useState([]);
+  const [vendorsLoading, setVendorsLoading] = useState(false);
+
   // Current level of categories shown in navigation
   const currentLevel = breadcrumb.length === 0
     ? categoryTree
@@ -134,6 +138,26 @@ function ShopContent() {
         setTotalPages(cached.totalPages);
         setLoading(false);
         return;
+      }
+
+      // Fetch matching vendors if searching
+      if (search) {
+        setVendorsLoading(true);
+        api.get('/vendors', { params: { search, limit: 8 } })
+          .then(res => {
+            if (res.data?.success) {
+              setMatchedVendors(res.data.data.stores || []);
+            } else {
+              setMatchedVendors([]);
+            }
+          })
+          .catch(err => {
+            console.error('Vendor search error:', err);
+            setMatchedVendors([]);
+          })
+          .finally(() => setVendorsLoading(false));
+      } else {
+        setMatchedVendors([]);
       }
 
       try {
@@ -482,6 +506,88 @@ function ShopContent() {
 
           {/* Product Grid - Consistently tight layout - ZOOMED STYLE */}
           <div className="px-4 md:px-8 lg:px-12 py-6">
+            
+            {/* MATCHED STORES STRIP */}
+            {search && (matchedVendors.length > 0 || vendorsLoading) && (
+              <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="flex items-center justify-between mb-4 px-1">
+                  <div className="flex items-center gap-2">
+                    <div className="size-2 rounded-full bg-[var(--accent)] animate-pulse" />
+                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+                      {t('search.matchingStores', 'Matching Stores')}
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-semibold text-[var(--text-secondary)]/50 tracking-tight">
+                    {vendorsLoading ? 'Searching...' : `${matchedVendors.length} found`}
+                  </span>
+                </div>
+                
+                {vendorsLoading && matchedVendors.length === 0 ? (
+                  <div className="flex gap-3 overflow-x-auto no-scrollbar py-2">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <div key={idx} className="w-64 h-24 shrink-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 animate-pulse" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex gap-3 overflow-x-auto no-scrollbar py-2 w-full">
+                    {matchedVendors.map((vendor) => {
+                      const logo = vendor.store?.logo || vendor.user_id?.branding?.logo || vendor.user_id?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(vendor.store_name || 'Store')}&background=random&size=200`;
+                      const banner = vendor.store?.banner || vendor.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070';
+                      return (
+                        <div 
+                          key={vendor._id}
+                          onClick={() => router.push(`/stores/${vendor._id}`)}
+                          className="w-64 shrink-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 hover:border-[var(--accent)]/40 transition-all cursor-pointer overflow-hidden group shadow-sm flex flex-col relative"
+                        >
+                          {/* Banner background thumbnail */}
+                          <div className="h-12 w-full overflow-hidden relative">
+                            <img src={banner} alt="" className="w-full h-full object-cover brightness-[0.6] transition-transform duration-700 group-hover:scale-105" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                          </div>
+                          
+                          {/* Logo overlapping banner */}
+                          <div className="absolute top-6 left-4 size-10 rounded-xl border border-white/10 overflow-hidden shadow-md bg-[var(--bg-primary)]">
+                            <img src={logo} alt="" className="size-full object-cover" />
+                          </div>
+                          
+                          {/* Store Details */}
+                          <div className="pt-5 pb-3 px-4 flex-1 flex flex-col justify-between">
+                            <div>
+                              <div className="flex items-center gap-1">
+                                <h4 className="font-bold text-[13px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors leading-tight">
+                                  {vendor.store_name}
+                                </h4>
+                                {vendor.verified && (
+                                  <svg className="size-3 text-[var(--accent)] shrink-0 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                                )}
+                              </div>
+                              <p className="text-[10px] font-semibold text-[var(--text-secondary)] truncate mt-0.5 leading-snug">
+                                {vendor.description || 'No store description'}
+                              </p>
+                            </div>
+                            
+                            {/* Stats */}
+                            <div className="mt-3 flex items-center justify-between text-[9px] font-bold text-[var(--text-secondary)]/60 tracking-wider">
+                              <span className="flex items-center gap-0.5">
+                                <svg className="size-3 text-amber-400 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                                {Number(vendor.rating || 0) > 0 ? Number(vendor.rating).toFixed(1) : 'New'}
+                              </span>
+                              <span>
+                                {vendor.follower_count || 0} followers
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {/* Horizontal divider */}
+                <div className="h-px w-full bg-[var(--glass-border)] mt-6" />
+              </div>
+            )}
+
             {products.length === 0 && loading ? (
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-6">
                 {Array.from({ length: 12 }).map((_, index) => (

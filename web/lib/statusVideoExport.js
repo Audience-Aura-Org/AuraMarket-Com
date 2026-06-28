@@ -93,12 +93,13 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
   const sourceUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
   video.style.position = 'fixed';
-  video.style.top = '-9999px';
-  video.style.left = '-9999px';
-  video.style.width = '100px';
-  video.style.height = '100px';
-  video.style.opacity = '0';
+  video.style.top = '0px';
+  video.style.left = '0px';
+  video.style.width = '160px';
+  video.style.height = '90px';
+  video.style.opacity = '0.002';
   video.style.pointerEvents = 'none';
+  video.style.zIndex = '9999';
   document.body.appendChild(video);
 
   const metadataLoaded = new Promise((resolve, reject) => {
