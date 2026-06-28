@@ -80,11 +80,13 @@ const seekVideoFrame = (video, targetTime, canvas, ctx) =>
     };
 
     const onSeeked = () => {
-      if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+      // Avoid requestVideoFrameCallback on native mobile platforms/WebViews
+      // because it can be deferred/suspended for off-screen/low-opacity/rapidly seeking videos
+      if (!isNativePlatform() && 'requestVideoFrameCallback' in HTMLVideoElement.prototype) {
         video.requestVideoFrameCallback(() => finish());
       } else {
         requestAnimationFrame(() =>
-          requestAnimationFrame(() => setTimeout(finish, isNativePlatform() ? 300 : 120))
+          requestAnimationFrame(() => setTimeout(finish, isNativePlatform() ? 150 : 80))
         );
       }
     };
@@ -92,12 +94,13 @@ const seekVideoFrame = (video, targetTime, canvas, ctx) =>
     const timer = setTimeout(() => {
       video.removeEventListener('seeked', onSeeked);
       finish();
-    }, isNativePlatform() ? 2000 : 900);
+    }, isNativePlatform() ? 2500 : 1200);
 
     video.addEventListener('seeked', () => clearTimeout(timer), { once: true });
     video.addEventListener('seeked', onSeeked, { once: true });
     video.currentTime = targetTime;
   });
+
 
 const canvasToBlob = (canvas, type = 'image/jpeg', quality = 0.78) =>
   new Promise((resolve) => canvas.toBlob(resolve, type, quality));
@@ -659,43 +662,76 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     let cancelled = false;
     setTimelineFrames([]);
 
-    const captureTimelineFrames = async () => {
-      const video = await waitForPreviewVideo(previewVideoRef);
-      if (!video || cancelled || !video.videoWidth) return;
+    // Create a dedicated off-screen video element for extracting filmstrip frames.
+    // This avoids messing with the main preview video (eliminating playback skips)
+    // and works reliably on Android WebViews by matching the thumbnail extraction setup.
+    const video = document.createElement('video');
+    video.style.position = 'fixed';
+    video.style.top = '0px';
+    video.style.left = '0px';
+    video.style.width = '160px';
+    video.style.height = '90px';
+    video.style.opacity = '0.002';
+    video.style.pointerEvents = 'none';
+    video.style.zIndex = '9999';
+    document.body.appendChild(video);
 
-      const duration = videoMeta.duration;
-      const wasPlaying = !video.paused;
-      const resumeTime = trimStartRef.current;
-      video.pause();
-
-      try {
-        await video.play().catch(() => {});
-        video.pause();
-      } catch (_) {}
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-      const canvas = document.createElement('canvas');
-      canvas.width = 160;
-      canvas.height = 90;
-      const ctx = canvas.getContext('2d');
-      const numFrames = 8;
-
-      for (let i = 0; i < numFrames; i++) {
-        if (cancelled) break;
-        const time =
-          i === 0
-            ? 0.05
-            : (i / (numFrames - 1)) * Math.max(duration - 0.05, 0.1);
-        const dataUrl = await seekVideoFrame(video, time, canvas, ctx);
-        if (dataUrl && !cancelled) {
-          setTimelineFrames((prev) => [...prev, dataUrl]);
+    const metadataLoaded = new Promise((resolve) => {
+      let resolved = false;
+      const done = () => {
+        if (!resolved) {
+          resolved = true;
+          resolve();
         }
-      }
+      };
+      video.onloadedmetadata = done;
+      video.onloadeddata = done;
+      video.oncanplay = done;
+      video.onerror = done;
+      setTimeout(done, 3000); // 3s safety timeout
+    });
 
-      if (!cancelled) {
-        video.currentTime = resumeTime;
-        if (wasPlaying) {
-          video.play().catch(() => {});
+    video.preload = 'auto';
+    video.muted = true;
+    video.playsInline = true;
+    video.src = previewUrl;
+    video.load();
+
+    const captureTimelineFrames = async () => {
+      try {
+        await metadataLoaded;
+        if (cancelled) return;
+
+        // Kick the hardware decoder on mobile webviews by playing/pausing briefly
+        try {
+          await video.play();
+          video.pause();
+        } catch (_) {}
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        const duration = videoMeta.duration;
+        const canvas = document.createElement('canvas');
+        canvas.width = 160;
+        canvas.height = 90;
+        const ctx = canvas.getContext('2d');
+        const numFrames = 8;
+
+        for (let i = 0; i < numFrames; i++) {
+          if (cancelled) break;
+          const time =
+            i === 0
+              ? 0.05
+              : (i / (numFrames - 1)) * Math.max(duration - 0.05, 0.1);
+          const dataUrl = await seekVideoFrame(video, time, canvas, ctx);
+          if (dataUrl && !cancelled) {
+            setTimelineFrames((prev) => [...prev, dataUrl]);
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to generate timeline frames', e);
+      } finally {
+        if (video.parentNode) {
+          video.parentNode.removeChild(video);
         }
       }
     };
@@ -706,6 +742,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
     return () => {
       cancelled = true;
+      if (video.parentNode) {
+        video.parentNode.removeChild(video);
+      }
     };
   }, [type, previewUrl, videoMeta?.duration]);
 
