@@ -42,6 +42,63 @@ const DEVICE_TYPE = () => {
   return window.innerWidth < 768 ? 'mobile' : window.innerWidth < 1024 ? 'tablet' : 'desktop';
 };
 
+const isNativePlatform = () =>
+  typeof Capacitor !== 'undefined' && Capacitor?.isNativePlatform?.();
+
+const waitForPreviewVideo = (videoRef, timeoutMs = 12000) =>
+  new Promise((resolve) => {
+    let elapsed = 0;
+    const check = () => {
+      const video = videoRef.current;
+      if (video && video.readyState >= 2 && video.videoWidth > 0) {
+        resolve(video);
+        return;
+      }
+      elapsed += 100;
+      if (elapsed >= timeoutMs) {
+        resolve(videoRef.current);
+        return;
+      }
+      setTimeout(check, 100);
+    };
+    check();
+  });
+
+const seekVideoFrame = (video, targetTime, canvas, ctx) =>
+  new Promise((resolve) => {
+    let resolved = false;
+
+    const finish = () => {
+      if (resolved) return;
+      resolved = true;
+      try {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.5));
+      } catch {
+        resolve(null);
+      }
+    };
+
+    const onSeeked = () => {
+      if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+        video.requestVideoFrameCallback(() => finish());
+      } else {
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => setTimeout(finish, isNativePlatform() ? 300 : 120))
+        );
+      }
+    };
+
+    const timer = setTimeout(() => {
+      video.removeEventListener('seeked', onSeeked);
+      finish();
+    }, isNativePlatform() ? 2000 : 900);
+
+    video.addEventListener('seeked', () => clearTimeout(timer), { once: true });
+    video.addEventListener('seeked', onSeeked, { once: true });
+    video.currentTime = targetTime;
+  });
+
 const canvasToBlob = (canvas, type = 'image/jpeg', quality = 0.78) =>
   new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 
@@ -408,8 +465,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const videoInputRef = useRef(null);
   const captionInputRef = useRef(null);
   const previewVideoRef = useRef(null);
-  const previewCanvasRef = useRef(null);
-  const rafRef = useRef(null);
   const trimmerTrackRef = useRef(null);
 
   const trimStartRef = useRef(trimStart);
@@ -485,64 +540,44 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
   }, [trimStart, trimEnd, previewUrl]);
 
+  // Autoplay the visible preview as soon as the picked file is ready.
   useEffect(() => {
     const video = previewVideoRef.current;
-    const canvas = previewCanvasRef.current;
-    if (!video || !canvas || !previewUrl) return;
+    if (!video || !previewUrl || type !== 'video') return;
 
-    video.muted = true;
-    video.load();
-
-    const ctx = canvas.getContext('2d');
     let cancelled = false;
-
-    const paintFrame = () => {
-      if (video.readyState >= 2 && video.videoWidth > 0) {
-        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-        }
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      }
-      rafRef.current = requestAnimationFrame(paintFrame);
-    };
+    video.muted = muted;
 
     const tryPlay = () => {
-      if (cancelled) return;
-      video.muted = true;
-      video.play()
-        .then(() => {
-          if (!cancelled) {
-            rafRef.current = requestAnimationFrame(paintFrame);
-          }
-        })
-        .catch(() => {});
+      if (cancelled || !isPlaying) return;
+      video.muted = muted;
+      video.play().catch(() => {});
     };
 
     video.addEventListener('loadeddata', tryPlay, { once: true });
     video.addEventListener('canplay', tryPlay, { once: true });
-    const fallback = setTimeout(tryPlay, 3000);
+    const fallback = setTimeout(tryPlay, isNativePlatform() ? 450 : 250);
+    tryPlay();
 
     return () => {
       cancelled = true;
       clearTimeout(fallback);
       video.removeEventListener('loadeddata', tryPlay);
       video.removeEventListener('canplay', tryPlay);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [previewUrl]);
+  }, [previewUrl, type, muted, isPlaying]);
 
   // Handle play/pause commands from user interaction
   useEffect(() => {
     const video = previewVideoRef.current;
-    if (!video || !previewUrl) return;
+    if (!video || !previewUrl || type !== 'video') return;
+    video.muted = muted;
     if (isPlaying) {
-      video.muted = true;
       video.play().catch(() => {});
     } else {
       video.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, muted, previewUrl, type]);
 
   // Sync play/pause events from native element back to state
   useEffect(() => {
@@ -615,178 +650,64 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
   }, []);
 
-  // Extraction of timeline frames from uploaded video file
-  // On native platforms (Android WebView), we use the already-mounted preview
-  // video element to avoid hardware decoder contention. On desktop browsers,
-  // we use a separate off-screen video for better performance.
-  const generateTimelineFrames = async (videoFile, duration) => {
-    if (!videoFile || !duration) return;
+  // Build the 8-frame filmstrip once the live preview video is decoded.
+  useEffect(() => {
+    if (type !== 'video' || !previewUrl || !videoMeta?.duration) {
+      return undefined;
+    }
+
+    let cancelled = false;
     setTimelineFrames([]);
 
-    const isNative = typeof Capacitor !== 'undefined' && Capacitor?.isNativePlatform?.();
+    const captureTimelineFrames = async () => {
+      const video = await waitForPreviewVideo(previewVideoRef);
+      if (!video || cancelled || !video.videoWidth) return;
 
-    if (isNative) {
-      // Wait for the preview video to be ready
-      const waitForPreview = () =>
-        new Promise((resolve) => {
-          const check = () => {
-            const v = previewVideoRef.current;
-            if (v && v.readyState >= 2 && v.videoWidth > 0) return resolve(v);
-            setTimeout(check, 200);
-          };
-          check();
-          setTimeout(() => resolve(previewVideoRef.current), 8000);
-        });
+      const duration = videoMeta.duration;
+      const wasPlaying = !video.paused;
+      const resumeTime = trimStartRef.current;
+      video.pause();
 
-      const video = await waitForPreview();
-      if (!video || !video.videoWidth) return;
+      try {
+        await video.play().catch(() => {});
+        video.pause();
+      } catch (_) {}
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-      const numFrames = 8;
       const canvas = document.createElement('canvas');
       canvas.width = 160;
       canvas.height = 90;
       const ctx = canvas.getContext('2d');
-
-      const wasPlaying = !video.paused;
-      const savedTime = video.currentTime;
-      video.pause();
-      await new Promise((r) => setTimeout(r, 100));
-
-      // Seek to a time and wait for the actual painted frame
-      // Uses requestVideoFrameCallback if available (Chrome 83+ / Android WebView 83+)
-      // Falls back to double-rAF + 200ms delay for older WebViews
-      const seekAndCapture = (targetTime) =>
-        new Promise((resolve) => {
-          let resolved = false;
-
-          const finish = () => {
-            if (resolved) return;
-            resolved = true;
-            try {
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              resolve(canvas.toDataURL('image/jpeg', 0.5));
-            } catch {
-              resolve(null);
-            }
-          };
-
-          const onSeeked = () => {
-            if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
-              // Wait for the GPU to actually paint the frame before capturing
-              video.requestVideoFrameCallback(() => {
-                finish();
-              });
-            } else {
-              // Fallback: double rAF + 200ms gives GPU pipeline time to flush
-              requestAnimationFrame(() =>
-                requestAnimationFrame(() =>
-                  setTimeout(finish, 200)
-                )
-              );
-            }
-          };
-
-          // Timeout safety net
-          const timer = setTimeout(() => {
-            video.removeEventListener('seeked', onSeeked);
-            finish();
-          }, 1500);
-
-          video.addEventListener('seeked', onSeeked, { once: true });
-
-          // Clear timer when seeked fires normally
-          const onSeekedCleanup = () => clearTimeout(timer);
-          video.addEventListener('seeked', onSeekedCleanup, { once: true });
-
-          video.currentTime = targetTime;
-        });
+      const numFrames = 8;
 
       for (let i = 0; i < numFrames; i++) {
+        if (cancelled) break;
         const time =
           i === 0
             ? 0.05
             : (i / (numFrames - 1)) * Math.max(duration - 0.05, 0.1);
-
-        const dataUrl = await seekAndCapture(time);
-        if (dataUrl) {
+        const dataUrl = await seekVideoFrame(video, time, canvas, ctx);
+        if (dataUrl && !cancelled) {
           setTimelineFrames((prev) => [...prev, dataUrl]);
         }
       }
 
-      // Restore video state
-      video.currentTime = savedTime;
-      if (wasPlaying) video.play().catch(() => {});
-    } else {
-      // ── DESKTOP PATH: Use a separate off-screen video element ────────────
-      const objectUrl = URL.createObjectURL(videoFile);
-      const video = document.createElement('video');
-      video.style.position = 'fixed';
-      video.style.top = '0px';
-      video.style.left = '0px';
-      video.style.width = '160px';
-      video.style.height = '90px';
-      video.style.opacity = '0.002';
-      video.style.pointerEvents = 'none';
-      video.style.zIndex = '9999';
-      document.body.appendChild(video);
-
-      const metadataLoaded = new Promise((resolve) => {
-        let resolved = false;
-        const done = () => { if (!resolved) { resolved = true; resolve(); } };
-        video.onloadedmetadata = done;
-        video.onloadeddata = done;
-        video.oncanplay = done;
-        video.onerror = done;
-        setTimeout(done, 3000);
-      });
-
-      video.src = objectUrl;
-      video.muted = true;
-      video.playsInline = true;
-      video.preload = 'auto';
-      video.load();
-
-      try {
-        await metadataLoaded;
-
-        try {
-          const p = video.play();
-          if (p) await p.catch(() => {});
-          video.pause();
-        } catch (_) {}
-        await new Promise(r => requestAnimationFrame(r));
-
-        const numFrames = 8;
-        const canvas = document.createElement('canvas');
-        canvas.width = 160;
-        canvas.height = 90;
-        const ctx = canvas.getContext('2d');
-
-        for (let i = 0; i < numFrames; i++) {
-          const time = i === 0 ? 0.05 : (i / (numFrames - 1)) * Math.max(duration - 0.05, 0.1);
-
-          await new Promise((resolve) => {
-            let resolved = false;
-            const done = () => { if (!resolved) { resolved = true; resolve(); } };
-            const timer = setTimeout(done, 400);
-            video.onseeked = () => { clearTimeout(timer); done(); };
-            video.onerror = () => { clearTimeout(timer); done(); };
-            video.currentTime = time;
-          });
-          await new Promise(r => requestAnimationFrame(r));
-
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-          setTimelineFrames(prev => [...prev, dataUrl]);
+      if (!cancelled) {
+        video.currentTime = resumeTime;
+        if (wasPlaying) {
+          video.play().catch(() => {});
         }
-      } catch (e) {
-        console.warn('Failed to generate timeline frames', e);
-      } finally {
-        if (video.parentNode) video.parentNode.removeChild(video);
-        URL.revokeObjectURL(objectUrl);
       }
-    }
-  };
+    };
+
+    captureTimelineFrames().catch((e) => {
+      console.warn('Failed to generate timeline frames', e);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [type, previewUrl, videoMeta?.duration]);
 
   const handleFileChange = async (e, nextType = type) => {
     const f = e.target.files[0];
@@ -814,8 +735,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             ? 'Video will be cropped to 9:16 and optimized before upload.'
             : null
         );
-        // Generate thumbnail strip frames!
-        generateTimelineFrames(f, meta.duration);
       } catch (err) {
         setError(err.message || 'Could not read video metadata.');
         return;
@@ -1217,8 +1136,28 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
   if (!mounted) return null;
 
+  const previewVideoSrc = previewUrl
+    ? (previewUrl.includes('#') ? previewUrl : `${previewUrl}#t=0.001`)
+    : '';
+
   const layout = (
     <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/85 backdrop-blur-md overflow-hidden font-[Poppins]">
+      <style>{`
+        .status-preview-video {
+          -webkit-appearance: none;
+          appearance: none;
+        }
+        .status-preview-video::-webkit-media-controls,
+        .status-preview-video::-webkit-media-controls-enclosure,
+        .status-preview-video::-webkit-media-controls-panel,
+        .status-preview-video::-webkit-media-controls-start-playback-button,
+        .status-preview-video::-webkit-media-controls-overlay-play-button,
+        .status-preview-video::-webkit-media-controls-play-button {
+          display: none !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+      `}</style>
       {/* Blurred background showing status contents (premium gradient/image blur) */}
       {previewUrl && (
         <div 
@@ -1348,22 +1287,19 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             <div className="absolute inset-0 w-full h-full flex items-center justify-center">
               {type === 'video' ? (
                 <>
-                  {/* Hidden video — decodes frames but does not render visually on Android */}
                   <video
                     ref={previewVideoRef}
-                    src={previewUrl}
-                    className="absolute opacity-0 pointer-events-none w-0 h-0"
+                    src={previewVideoSrc}
+                    className={`status-preview-video absolute inset-0 w-full h-full ${previewFitClass} z-10 pointer-events-none`}
                     autoPlay
-                    muted
+                    muted={muted}
                     loop
                     playsInline
-                  />
-
-                  {/* Canvas — what the user actually sees, composites normally on Android */}
-                  <canvas
-                    ref={previewCanvasRef}
-                    className={`w-full h-full ${previewFitClass} z-10`}
-                    style={{ display: previewUrl ? 'block' : 'none' }}
+                    controls={false}
+                    disablePictureInPicture
+                    controlsList="nodownload noplaybackrate noremoteplayback nofullscreen"
+                    preload="auto"
+                    onContextMenu={(e) => e.preventDefault()}
                   />
                   <button
                     type="button"

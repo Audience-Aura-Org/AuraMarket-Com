@@ -7,7 +7,7 @@ import {
   Search, Star, LayoutGrid, Users,
   List, Check, ChevronRight, ChevronLeft, Folder, Home, MapPin, ShieldCheck
 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import Pagination from '@/components/common/Pagination';
 import BlurUpImage from '@/components/common/BlurUpImage';
@@ -30,6 +30,7 @@ const PRICE_RANGES = [
 function ShopContent() {
   const { t, label } = useLanguage();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initialQuery = searchParams.get('q') || '';
 
   const [products, setProducts] = useState([]);
@@ -534,10 +535,11 @@ function ShopContent() {
                       const logo = vendor.store?.logo || vendor.user_id?.branding?.logo || vendor.user_id?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(vendor.store_name || 'Store')}&background=random&size=200`;
                       const banner = vendor.store?.banner || vendor.user_id?.branding?.banner || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2070';
                       return (
-                        <div 
+                        <button
+                          type="button"
                           key={vendor._id}
-                          onClick={() => router.push(`/stores/${vendor._id}`)}
-                          className="w-64 shrink-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 hover:border-[var(--accent)]/40 transition-all cursor-pointer overflow-hidden group shadow-sm flex flex-col relative"
+                          onClick={() => router.push(`/stores?id=${encodeURIComponent(vendor._id)}`)}
+                          className="w-64 shrink-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 hover:border-[var(--accent)]/40 transition-all cursor-pointer overflow-hidden group shadow-sm flex flex-col relative text-left"
                         >
                           {/* Banner background thumbnail */}
                           <div className="h-12 w-full overflow-hidden relative">
@@ -577,7 +579,7 @@ function ShopContent() {
                               </span>
                             </div>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
