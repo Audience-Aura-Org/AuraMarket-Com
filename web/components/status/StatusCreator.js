@@ -403,7 +403,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [showTrimmer, setShowTrimmer]   = useState(true);
   const [fontFamilyIndex, setFontFamilyIndex] = useState(1); // Default to Quicksand (index 1)
   const [timelineFrames, setTimelineFrames] = useState([]);
-  const [isGeneratingTimeline, setIsGeneratingTimeline] = useState(false);
 
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
@@ -484,7 +483,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
   }, [trimStart, trimEnd, previewUrl]);
 
-  // Handle preview video source loading
+  // Handle preview video source loading and play/pause controls
   useEffect(() => {
     const video = previewVideoRef.current;
     if (!video) return;
@@ -492,29 +491,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     // Load new blob src explicitly (critical for Android WebView)
     video.load();
 
-    const handleCanPlay = () => {
-      if (isPlaying && !isGeneratingTimeline) {
-        video.play().catch(() => {});
-      }
-    };
-
-    video.addEventListener('canplay', handleCanPlay);
-    return () => {
-      video.removeEventListener('canplay', handleCanPlay);
-    };
-  }, [previewUrl]);
-
-  // Handle play/pause commands from state (avoid load() recursion)
-  useEffect(() => {
-    const video = previewVideoRef.current;
-    if (!video) return;
-
-    if (isPlaying && !isGeneratingTimeline) {
+    if (isPlaying) {
       video.play().catch(() => {});
     } else {
       video.pause();
     }
-  }, [isPlaying, isGeneratingTimeline]);
+  }, [previewUrl, isPlaying]);
 
   // Sync play/pause events from native element back to state
   useEffect(() => {
@@ -588,116 +570,144 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   }, []);
 
   // Extraction of timeline frames from uploaded video file
+  // On native platforms (Android WebView), we use the already-mounted preview
+  // video element to avoid hardware decoder contention. On desktop browsers,
+  // we use a separate off-screen video for better performance.
   const generateTimelineFrames = async (videoFile, duration) => {
     if (!videoFile || !duration) return;
-    setIsGeneratingTimeline(true);
     setTimelineFrames([]);
-    const objectUrl = URL.createObjectURL(videoFile);
-    const video = document.createElement('video');
-    
-    // ── CRITICAL for Android WebView ────────────────────────────────────────
-    // The video element MUST be a real, visible size (at least 160×90).
-    // If it is 1×1px, Android's hardware decoder skips rendering frames and
-    // every ctx.drawImage() call produces a pure-black canvas frame.
-    // We position it on-screen at opacity 0.002 so it's technically visible
-    // to the compositor but completely unnoticeable to the user.
-    video.style.position = 'fixed';
-    video.style.top = '0px';
-    video.style.left = '0px';
-    video.style.width = '160px';
-    video.style.height = '90px';
-    video.style.opacity = '0.002';
-    video.style.pointerEvents = 'none';
-    video.style.zIndex = '9999';
-    document.body.appendChild(video);
 
-    // Bind event listeners BEFORE setting source to prevent race conditions
-    const metadataLoaded = new Promise((resolve) => {
-      let resolved = false;
-      const done = () => {
-        if (!resolved) {
-          resolved = true;
-          resolve();
-        }
-      };
-      video.onloadedmetadata = done;
-      video.onloadeddata = done;
-      video.oncanplay = done;
-      video.onerror = done;
-      setTimeout(done, 3000); // 3s safety timeout for slow Android decoders
-    });
+    const isNative = typeof Capacitor !== 'undefined' && Capacitor?.isNativePlatform?.();
 
-    video.src = objectUrl;
-    video.muted = true;
-    video.playsInline = true;
-    video.preload = 'auto';
-    if (objectUrl && !objectUrl.startsWith('blob:')) {
-      video.crossOrigin = 'anonymous';
-    }
-    video.load();
-    
-    try {
-      await metadataLoaded;
-      
-      // Kick the hardware decoder on mobile webviews by playing/pausing briefly.
-      // This primes the GPU pipeline so subsequent seek+drawImage calls produce real frames.
-      try {
-        const playPromise = video.play();
-        if (playPromise) await playPromise.catch(() => {});
-        video.pause();
-      } catch (_) {}
+    if (isNative) {
+      // ── NATIVE PATH: Wait for preview video to be ready, then capture ────
+      // Android WebView can only reliably decode one video at a time.
+      // We wait for the preview video to start playing, then capture frames
+      // from it by seeking to different positions.
+      const waitForPreview = () => new Promise((resolve) => {
+        const check = () => {
+          const v = previewVideoRef.current;
+          if (v && v.readyState >= 2 && v.videoWidth > 0) return resolve(v);
+          setTimeout(check, 200);
+        };
+        check();
+        // Safety timeout: give up after 8s
+        setTimeout(() => resolve(previewVideoRef.current), 8000);
+      });
 
-      // Wait one rAF after play/pause for the GPU pipeline to flush
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      
+      const video = await waitForPreview();
+      if (!video || !video.videoWidth) return;
+
       const numFrames = 8;
       const canvas = document.createElement('canvas');
       canvas.width = 160;
       canvas.height = 90;
       const ctx = canvas.getContext('2d');
-      
-      const isNative = typeof Capacitor !== 'undefined' && Capacitor?.isNativePlatform?.();
-      // Native Android WebView needs more time between seek completion and drawImage
-      const seekTimeout = isNative ? 1200 : 400;
-      
+
+      // Save current playback state
+      const wasPlaying = !video.paused;
+      const savedTime = video.currentTime;
+      video.pause();
+
+      // Wait for pause to settle
+      await new Promise(r => setTimeout(r, 100));
+
       for (let i = 0; i < numFrames; i++) {
-        // Distribute seek times evenly; avoid t=0 which can be black on some decoders
         const time = i === 0 ? 0.05 : (i / (numFrames - 1)) * Math.max(duration - 0.05, 0.1);
 
-        // Wait for seek to settle
         await new Promise((resolve) => {
           let resolved = false;
-          const done = () => {
-            if (!resolved) {
-              resolved = true;
-              resolve();
-            }
-          };
-          const timer = setTimeout(done, seekTimeout);
+          const done = () => { if (!resolved) { resolved = true; resolve(); } };
+          const timer = setTimeout(done, 800);
           video.onseeked = () => { clearTimeout(timer); done(); };
-          video.onerror = () => { clearTimeout(timer); done(); };
           video.currentTime = time;
         });
 
-        // ── CRITICAL: one rAF after onseeked ────────────────────────────────
-        // Android WebView fires onseeked BEFORE the GPU has painted the new
-        // frame into the video element. Without this, drawImage captures the
-        // previous (or an all-black) frame every time.
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-        
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-        // Push each frame as it arrives so the filmstrip builds progressively
-        setTimelineFrames((prev) => [...prev, dataUrl]);
+        // Wait 2 rAFs for Android compositor to paint the seeked frame
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+        try {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+          setTimelineFrames(prev => [...prev, dataUrl]);
+        } catch (_) {
+          // drawImage may fail on some codecs, skip this frame
+        }
       }
-    } catch (e) {
-      console.warn("Failed to generate timeline frames", e);
-    } finally {
-      if (video.parentNode) {
-        video.parentNode.removeChild(video);
+
+      // Restore playback state
+      video.currentTime = savedTime;
+      if (wasPlaying) video.play().catch(() => {});
+
+    } else {
+      // ── DESKTOP PATH: Use a separate off-screen video element ────────────
+      const objectUrl = URL.createObjectURL(videoFile);
+      const video = document.createElement('video');
+      video.style.position = 'fixed';
+      video.style.top = '0px';
+      video.style.left = '0px';
+      video.style.width = '160px';
+      video.style.height = '90px';
+      video.style.opacity = '0.002';
+      video.style.pointerEvents = 'none';
+      video.style.zIndex = '9999';
+      document.body.appendChild(video);
+
+      const metadataLoaded = new Promise((resolve) => {
+        let resolved = false;
+        const done = () => { if (!resolved) { resolved = true; resolve(); } };
+        video.onloadedmetadata = done;
+        video.onloadeddata = done;
+        video.oncanplay = done;
+        video.onerror = done;
+        setTimeout(done, 3000);
+      });
+
+      video.src = objectUrl;
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'auto';
+      video.load();
+
+      try {
+        await metadataLoaded;
+
+        try {
+          const p = video.play();
+          if (p) await p.catch(() => {});
+          video.pause();
+        } catch (_) {}
+        await new Promise(r => requestAnimationFrame(r));
+
+        const numFrames = 8;
+        const canvas = document.createElement('canvas');
+        canvas.width = 160;
+        canvas.height = 90;
+        const ctx = canvas.getContext('2d');
+
+        for (let i = 0; i < numFrames; i++) {
+          const time = i === 0 ? 0.05 : (i / (numFrames - 1)) * Math.max(duration - 0.05, 0.1);
+
+          await new Promise((resolve) => {
+            let resolved = false;
+            const done = () => { if (!resolved) { resolved = true; resolve(); } };
+            const timer = setTimeout(done, 400);
+            video.onseeked = () => { clearTimeout(timer); done(); };
+            video.onerror = () => { clearTimeout(timer); done(); };
+            video.currentTime = time;
+          });
+          await new Promise(r => requestAnimationFrame(r));
+
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+          setTimelineFrames(prev => [...prev, dataUrl]);
+        }
+      } catch (e) {
+        console.warn('Failed to generate timeline frames', e);
+      } finally {
+        if (video.parentNode) video.parentNode.removeChild(video);
+        URL.revokeObjectURL(objectUrl);
       }
-      URL.revokeObjectURL(objectUrl);
-      setIsGeneratingTimeline(false);
     }
   };
 
@@ -1269,6 +1279,10 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     muted={muted}
                     loop
                     playsInline
+                    controls={false}
+                    webkit-playsinline="true"
+                    x5-playsinline="true"
+                    style={{ WebkitMediaControls: 'none' }}
                   />
                   <button
                     type="button"
@@ -1394,13 +1408,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                       <div className="w-0.5 h-4 bg-white/70 rounded-full" />
                     </div>
 
-                    {/* Generating overlay */}
-                    {isGeneratingTimeline && (
-                      <div className="absolute inset-0 bg-black/60 z-30 flex items-center justify-center gap-2 pointer-events-none">
-                        <Loader2 className="size-3.5 animate-spin text-[#20c763]" />
-                        <span className="text-[9px] font-bold text-white/95 uppercase tracking-widest">Generating Filmstrip...</span>
-                      </div>
-                    )}
+
                   </div>
                 </div>
               )}
