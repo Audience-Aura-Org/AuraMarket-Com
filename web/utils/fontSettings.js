@@ -13,7 +13,7 @@ const FONT_FAMILIES = {
 };
 
 const DEFAULT_SETTINGS = {
-  fontSize: FONT_SIZES.md,
+  fontSize: FONT_SIZES.sm,
   fontFamily: FONT_FAMILIES.default
 };
 
@@ -34,10 +34,10 @@ export function setFontFamily(family) {
 }
 
 export function getFontSize() {
-  if (typeof window === 'undefined') return FONT_SIZES.md;
+  if (typeof window === 'undefined') return FONT_SIZES.sm;
   return document.documentElement.getAttribute('data-font-size') ||
     localStorage.getItem('auradime-font-size') ||
-    FONT_SIZES.md;
+    FONT_SIZES.sm;
 }
 
 export function getFontFamily() {
@@ -48,13 +48,13 @@ export function getFontFamily() {
 }
 
 export function resetFontSettings() {
-  setFontSize(FONT_SIZES.md);
+  setFontSize(FONT_SIZES.sm);
   setFontFamily(FONT_FAMILIES.default);
 }
 
 export function initFontSettings() {
   if (typeof window === 'undefined') return;
-  setFontSize(localStorage.getItem('auradime-font-size') || FONT_SIZES.md);
+  setFontSize(localStorage.getItem('auradime-font-size') || FONT_SIZES.sm);
   setFontFamily(localStorage.getItem('auradime-font') || FONT_FAMILIES.default);
 }
 

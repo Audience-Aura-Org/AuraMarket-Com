@@ -18,10 +18,10 @@ router.post('/:id/view', protectOptional, viewStatus);
 
 router.use(protect); // Protect all write/private status routes
 
-// NOTE: createStatus now handles subscription validation internally (see controller)
-// This allows for better error messaging and mobile debugging
+// createStatus requires an active vendor subscription at both the route and controller level
+// to prevent subscription-less vendors from posting statuses (skip-package bug)
 router.route('/')
-  .post(createStatus);
+  .post(requireActiveSubscription('vendor'), createStatus);
 
 router.get('/my-statuses', getMyStatuses);
 

@@ -288,13 +288,33 @@ exports.reactToStatus = async (req, res) => {
 // @access  Private
 exports.viewStatus = async (req, res) => {
   try {
-    const update = { $inc: { views_count: 1 } };
+    let updatedStatus;
     if (req.user) {
-      update.$addToSet = { viewer_ids: req.user._id || req.user.id };
+      const userId = req.user._id || req.user.id;
+      // Increment views_count ONLY if this user hasn't viewed it yet
+      updatedStatus = await Status.findOneAndUpdate(
+        { _id: req.params.id, viewer_ids: { $ne: userId } },
+        { 
+          $addToSet: { viewer_ids: userId }, 
+          $inc: { views_count: 1 } 
+        },
+        { returnDocument: 'after' }
+      );
+
+      // If user already viewed it, findOneAndUpdate returns null.
+      // Retrieve the existing status document without incrementing.
+      if (!updatedStatus) {
+        updatedStatus = await Status.findById(req.params.id);
+      }
+    } else {
+      // For guests/anonymous views, increment unconditionally
+      updatedStatus = await Status.findByIdAndUpdate(
+        req.params.id,
+        { $inc: { views_count: 1 } },
+        { returnDocument: 'after' }
+      );
     }
 
-    // Respond immediately — don't block on socket/vendor lookup
-    const updatedStatus = await Status.findByIdAndUpdate(req.params.id, update, { returnDocument: 'after' });
     res.status(200).json({ success: true });
 
     // 🔥 Fire-and-forget: emit real-time update to vendor after responding
