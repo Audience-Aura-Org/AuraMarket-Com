@@ -3,7 +3,8 @@
  * Auradime — Escrow Control Routes
  *
  * Secure pipelines managing the middleman Vault logic between
- * Customer payments and Vendor payouts. Explicit role partitions.
+ * buyer payments and Vendor payouts. Explicit role partitions.
+ * Vendors and logistics users can act as buyers (hold/release).
  */
 
 const express = require('express');
@@ -26,18 +27,18 @@ router.use(protect);
 // ── Admin Monitoring ──────────────────────────
 router.get('/logs', restrictTo('admin'), getEscrowLogs);
 
-// ── Buyer Initiations ────────────────────────
-// Starts the hold phase
-router.post('/hold', restrictTo('customer'), holdFunds);
+// ── Buyer Initiations ─────────────────────────────────────────────────────
+// Vendors and logistics can also act as buyers, so they can hold/release funds
+router.post('/hold', restrictTo('customer', 'vendor', 'logistics'), holdFunds);
 
-// Can only be fired when Customer hits 'Delivery Confirmed'
-router.post('/release/:orderId', restrictTo('customer', 'admin'), releaseFunds);
+// Can only be fired when Buyer hits 'Delivery Confirmed'
+router.post('/release/:orderId', restrictTo('customer', 'vendor', 'logistics', 'admin'), releaseFunds);
 
 // ── Vendor / Admin Initiations ───────────────
-// Vendor confirms they have delivered
+// Vendor confirms they have delivered (acting as seller, not buyer)
 router.post('/confirm-delivery/:orderId', restrictTo('vendor'), vendorConfirmRelease);
 
-// Customer or Vendor denies release → Dispute
+// Any party can deny release → Dispute
 router.post('/deny/:orderId', denyEscrow);
 
 // Occurs when Vendor cancels the Order / Admins settle a dispute

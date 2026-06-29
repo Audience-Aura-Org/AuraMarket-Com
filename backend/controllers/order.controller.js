@@ -168,6 +168,14 @@ const createOrder = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Vendor not found.' });
     }
 
+    // Prevent vendors from purchasing from their own store
+    if (req.user.role === 'vendor' && vendor.user_id?._id?.toString() === req.user._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot place an order from your own store. You can only purchase from other vendors.',
+      });
+    }
+
     // 2. Calculate Subtotal & Verify Stock atomically
     let subtotal = 0;
     const validatedProducts = [];
@@ -1071,6 +1079,23 @@ const createOrdersFromCart = async (req, res, next) => {
       const vId = item.product.vendor_id.toString();
       if (!itemsByVendor[vId]) itemsByVendor[vId] = [];
       itemsByVendor[vId].push(item);
+    }
+
+    // If the buyer is a vendor, remove any items from their own store
+    if (req.user.role === 'vendor') {
+      const ownVendor = await Vendor.findOne({ user_id: req.user._id }).select('_id').lean();
+      if (ownVendor) {
+        delete itemsByVendor[ownVendor._id.toString()];
+      }
+    }
+
+    if (Object.keys(itemsByVendor).length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot place an order from your own store. Please remove your own products from the cart.',
+      });
     }
 
     const createdOrderIds = [];
