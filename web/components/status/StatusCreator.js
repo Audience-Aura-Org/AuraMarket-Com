@@ -97,45 +97,70 @@ const waitForPreviewVideo = (videoRef, timeoutMs = 12000) =>
     check();
   });
 
+// ── Frame capture helper ───────────────────────────────────────────────────
+// On Android WebView, canvas 2D drawImage(video) hits a CPU readback path that
+// the hardware video decoder blocks, returning a black frame.
+// createImageBitmap(video) uses the GPU texture path (same as WebGL texImage2D)
+// which CAN access hardware-decoded frames. Falls back to plain drawImage.
+const drawVideoToCanvas = async (video, canvas, ctx) => {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bmp = await createImageBitmap(video);
+      ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+      bmp.close?.();
+      return;
+    } catch { /* fall through to drawImage */ }
+  }
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+};
+
 const seekVideoFrame = (video, targetTime, canvas, ctx) =>
   new Promise((resolve) => {
     let resolved = false;
+    const isNative = needsOffscreenFilmstripCapture();
+    const isMob = isMobileWeb();
 
-    const finish = () => {
+    // Async capture — resolved exactly once (resolved flag is set synchronously).
+    const capture = async () => {
       if (resolved) return;
-      resolved = true;
+      resolved = true; // set synchronously before any awaits to block re-entry
       try {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        if (isNative) {
+          await drawVideoToCanvas(video, canvas, ctx);
+        } else {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        }
         resolve(canvas.toDataURL('image/jpeg', 0.5));
       } catch {
         resolve(null);
       }
     };
 
-    const onSeeked = () => {
-      const frameDelay = needsOffscreenFilmstripCapture() || isMobileWeb() ? 200 : 80;
-      const frameFallback = setTimeout(finish, needsOffscreenFilmstripCapture() || isMobileWeb() ? 350 : 150);
+    // How long to wait after seeked before drawing.
+    // Android HW decoder commits the pixel surface asynchronously after seeked fires.
+    const postSeekDelay = isNative ? 550 : isMob ? 180 : 60;
 
-      // requestVideoFrameCallback is unreliable on mobile browsers/WebViews for
-      // off-screen or low-opacity videos — never clear the outer safety timer on seeked.
+    // Hard outer timeout — fires if seeked never arrives.
+    const hardTimer = setTimeout(() => {
+      video.removeEventListener('seeked', onSeeked);
+      capture();
+    }, isNative ? 5000 : isMob ? 3000 : 1200);
+
+    const onSeeked = () => {
+      // On desktop, requestVideoFrameCallback is the most reliable paint signal.
       if (canUseVideoFrameCallback()) {
         video.requestVideoFrameCallback(() => {
-          clearTimeout(frameFallback);
-          finish();
+          clearTimeout(hardTimer);
+          capture();
         });
         return;
       }
-
-      clearTimeout(frameFallback);
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => setTimeout(finish, frameDelay))
-      );
+      // Fixed wait so the HW decoder can commit its surface, then one clean capture.
+      setTimeout(() => {
+        clearTimeout(hardTimer);
+        capture();
+      }, postSeekDelay);
     };
-
-    const timer = setTimeout(() => {
-      video.removeEventListener('seeked', onSeeked);
-      finish();
-    }, needsOffscreenFilmstripCapture() || isMobileWeb() ? 3000 : 1200);
 
     video.addEventListener('seeked', onSeeked, { once: true });
     video.currentTime = targetTime;
@@ -155,14 +180,14 @@ async function generateVideoThumbnail(file) {
   // The video element MUST be a real, visible size (at least 160×90).
   // If it is 1×1px, Android's hardware decoder skips rendering frames and
   // every drawImage() call produces a pure-black canvas frame.
-  // We position it on-screen at opacity 0.002 so it's technically visible
-  // to the compositor but completely unnoticeable to the user.
+  // opacity:0.01 (not 0.002) — some Android WebView versions require a slightly
+  // higher opacity for the compositor to allocate a real pixel surface.
   video.style.position = 'fixed';
   video.style.top = '0px';
   video.style.left = '0px';
   video.style.width = '160px';
   video.style.height = '90px';
-  video.style.opacity = '0.002';
+  video.style.opacity = '0.01';
   video.style.pointerEvents = 'none';
   video.style.zIndex = '9999';
   document.body.appendChild(video);
@@ -179,7 +204,7 @@ async function generateVideoThumbnail(file) {
     video.onloadeddata = done;
     video.oncanplay = done;
     video.onerror = done;
-    setTimeout(done, 2000); // 2s safety timeout
+    setTimeout(done, 3000); // 3 s safety — enough for any decoder
   });
 
   video.preload = 'auto';
@@ -196,29 +221,21 @@ async function generateVideoThumbnail(file) {
     // Kick the hardware decoder on mobile webviews by playing/pausing briefly
     await kickVideoDecoder(video, { delayMs: isNativePlatform() ? 350 : 150 });
 
+    const isNative = isNativePlatform();
     const seekTo = Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
+    // On native: ignore seeked (fires too early), let the 1200 ms timer elapse.
+    // On web: resolve as soon as seeked fires.
     await new Promise((resolve) => {
       let resolved = false;
-      const done = () => {
-        if (!resolved) {
-          resolved = true;
-          resolve();
-        }
-      };
-      const isNative = Capacitor?.isNativePlatform?.();
-      const seekTimeout = isNative ? 850 : 350;
-      const timer = setTimeout(done, seekTimeout);
-      
-      video.onseeked = () => {
-        clearTimeout(timer);
-        done();
-      };
-      video.onerror = () => {
-        clearTimeout(timer);
-        done();
-      };
+      const done = () => { if (!resolved) { resolved = true; resolve(); } };
+      const timer = setTimeout(done, isNative ? 1200 : 350);
+      video.onseeked = () => { if (!isNative) { clearTimeout(timer); done(); } };
+      video.onerror = () => { clearTimeout(timer); done(); };
       video.currentTime = seekTo;
     });
+
+    // Extra wait on native so the HW decoder can commit its pixel surface.
+    if (isNative) await new Promise((r) => setTimeout(r, 600));
 
     const maxWidth = 720;
     const scale = Math.min(1, maxWidth / Math.max(video.videoWidth, 1));
@@ -227,7 +244,12 @@ async function generateVideoThumbnail(file) {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
-    canvas.getContext('2d').drawImage(video, 0, 0, width, height);
+    const thumbCtx = canvas.getContext('2d');
+    if (isNative) {
+      await drawVideoToCanvas(video, canvas, thumbCtx);
+    } else {
+      thumbCtx.drawImage(video, 0, 0, width, height);
+    }
 
     const blob = await canvasToBlob(canvas, 'image/jpeg', 0.78);
     if (!blob) return null;
@@ -264,7 +286,7 @@ async function readVideoMetadata(file) {
   video.style.left = '0px';
   video.style.width = '160px';
   video.style.height = '90px';
-  video.style.opacity = '0.002';
+  video.style.opacity = '0.01';
   video.style.pointerEvents = 'none';
   video.style.zIndex = '9999';
   document.body.appendChild(video);
@@ -712,7 +734,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     video.style.left = '0px';
     video.style.width = '160px';
     video.style.height = '90px';
-    video.style.opacity = '0.002';
+    video.style.opacity = '0.01';
     video.style.pointerEvents = 'none';
     video.style.zIndex = '9999';
     document.body.appendChild(video);
@@ -767,7 +789,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         const canvas = document.createElement('canvas');
         canvas.width = 160;
         canvas.height = 90;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
         const numFrames = 8;
         const wasPaused = captureVideo.paused;
         const usingPreviewElement = captureVideo !== video;

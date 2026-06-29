@@ -314,18 +314,21 @@ i, em { font-style: normal !important; }
     zoom: 0.8;
   }
   input, textarea, select {
-    font-size: 16px !important;
-    /* Prevent iOS/Android zoom on focus */
+    /* html has zoom:0.8 at this breakpoint, so 16px renders as 12.8px effective —
+       which triggers iOS/Android auto-zoom on focus. Compensate: 20px × 0.8 = 16px effective. */
+    font-size: 20px !important;
     touch-action: manipulation;
   }
   p { line-height: 1.45; }
   button, a { word-break: normal; }
 }
 
-/* ── Prevent page zoom on input focus (mobile) ── */
+/* ── Prevent page zoom on input focus (iOS Safari) ── */
 @supports (-webkit-touch-callout: none) {
   input, textarea, select {
+    /* iOS Safari zoom threshold is 16px in device pixels. */
     font-size: 16px !important;
+    touch-action: manipulation;
   }
 }
 
