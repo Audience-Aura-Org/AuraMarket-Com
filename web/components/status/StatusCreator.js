@@ -22,7 +22,7 @@ import {
   STATUS_IMAGE_MAX_BYTES,
   STATUS_VIDEO_MAX_SECONDS,
 } from '@/constants/statusVideo';
-import { prepareStatusVideoForUpload } from '@/lib/statusVideoExport';
+import { prepareStatusVideoForUpload, isAndroidNative } from '@/lib/statusVideoExport';
 import { useUploadQueue } from '@/context/UploadQueueContext';
 
 const DURATION_OPTIONS = [
@@ -44,6 +44,39 @@ const DEVICE_TYPE = () => {
 
 const isNativePlatform = () =>
   typeof Capacitor !== 'undefined' && Capacitor?.isNativePlatform?.();
+
+const needsOffscreenFilmstripCapture = () =>
+  isNativePlatform() || isAndroidNative();
+
+const kickVideoDecoder = async (video, { delayMs = 100 } = {}) => {
+  if (!video) return;
+  try {
+    await video.play();
+    video.pause();
+  } catch (_) {}
+  if (delayMs > 0) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+};
+
+const isMobileWeb = () => {
+  if (typeof window === 'undefined') return false;
+  if (isNativePlatform()) return false;
+  return window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+};
+
+/** Safari needs #t= on remote URLs for first-frame paint; blob/data URLs break with fragments on mobile Chrome. */
+const buildPreviewVideoSrc = (url) => {
+  if (!url) return '';
+  if (url.startsWith('blob:') || url.startsWith('data:') || url.includes('#')) return url;
+  return `${url}#t=0.001`;
+};
+
+const canUseVideoFrameCallback = () =>
+  !isNativePlatform()
+  && !isMobileWeb()
+  && typeof HTMLVideoElement !== 'undefined'
+  && 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
 
 const waitForPreviewVideo = (videoRef, timeoutMs = 12000) =>
   new Promise((resolve) => {
@@ -80,23 +113,30 @@ const seekVideoFrame = (video, targetTime, canvas, ctx) =>
     };
 
     const onSeeked = () => {
-      // Avoid requestVideoFrameCallback on native mobile platforms/WebViews
-      // because it can be deferred/suspended for off-screen/low-opacity/rapidly seeking videos
-      if (!isNativePlatform() && 'requestVideoFrameCallback' in HTMLVideoElement.prototype) {
-        video.requestVideoFrameCallback(() => finish());
-      } else {
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => setTimeout(finish, isNativePlatform() ? 150 : 80))
-        );
+      const frameDelay = needsOffscreenFilmstripCapture() || isMobileWeb() ? 200 : 80;
+      const frameFallback = setTimeout(finish, needsOffscreenFilmstripCapture() || isMobileWeb() ? 350 : 150);
+
+      // requestVideoFrameCallback is unreliable on mobile browsers/WebViews for
+      // off-screen or low-opacity videos — never clear the outer safety timer on seeked.
+      if (canUseVideoFrameCallback()) {
+        video.requestVideoFrameCallback(() => {
+          clearTimeout(frameFallback);
+          finish();
+        });
+        return;
       }
+
+      clearTimeout(frameFallback);
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => setTimeout(finish, frameDelay))
+      );
     };
 
     const timer = setTimeout(() => {
       video.removeEventListener('seeked', onSeeked);
       finish();
-    }, isNativePlatform() ? 2500 : 1200);
+    }, needsOffscreenFilmstripCapture() || isMobileWeb() ? 3000 : 1200);
 
-    video.addEventListener('seeked', () => clearTimeout(timer), { once: true });
     video.addEventListener('seeked', onSeeked, { once: true });
     video.currentTime = targetTime;
   });
@@ -145,6 +185,8 @@ async function generateVideoThumbnail(file) {
   video.preload = 'auto';
   video.muted = true;
   video.playsInline = true;
+  video.setAttribute('playsinline', 'true');
+  video.setAttribute('webkit-playsinline', 'true');
   video.src = objectUrl;
   video.load();
 
@@ -152,10 +194,7 @@ async function generateVideoThumbnail(file) {
     await metadataLoaded;
     
     // Kick the hardware decoder on mobile webviews by playing/pausing briefly
-    try {
-      await video.play();
-      video.pause();
-    } catch (_) {}
+    await kickVideoDecoder(video, { delayMs: isNativePlatform() ? 350 : 150 });
 
     const seekTo = Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
     await new Promise((resolve) => {
@@ -248,6 +287,8 @@ async function readVideoMetadata(file) {
   video.preload = 'auto';
   video.muted = true;
   video.playsInline = true;
+  video.setAttribute('playsinline', 'true');
+  video.setAttribute('webkit-playsinline', 'true');
   video.src = objectUrl;
   video.load();
 
@@ -688,12 +729,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       video.onloadeddata = done;
       video.oncanplay = done;
       video.onerror = done;
-      setTimeout(done, 3000); // 3s safety timeout
+      setTimeout(done, needsOffscreenFilmstripCapture() ? 4500 : 3000);
     });
 
     video.preload = 'auto';
     video.muted = true;
     video.playsInline = true;
+    video.setAttribute('playsinline', 'true');
+    video.setAttribute('webkit-playsinline', 'true');
     video.src = previewUrl;
     video.load();
 
@@ -702,12 +745,23 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         await metadataLoaded;
         if (cancelled) return;
 
-        // Kick the hardware decoder on mobile webviews by playing/pausing briefly
-        try {
-          await video.play();
-          video.pause();
-        } catch (_) {}
-        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        // APK / native WebView: always capture from the dedicated 160×90 off-screen
+        // element. Android HW decoders skip canvas reads from the full-screen preview.
+        let captureVideo = video;
+
+        if (!needsOffscreenFilmstripCapture()) {
+          const previewVideo = await waitForPreviewVideo(previewVideoRef, isMobileWeb() ? 8000 : 5000);
+          if (!cancelled && previewVideo?.readyState >= 2 && previewVideo.videoWidth > 0) {
+            captureVideo = previewVideo;
+          }
+        }
+
+        const decoderDelay = needsOffscreenFilmstripCapture() ? 350 : isMobileWeb() ? 200 : 100;
+        if (captureVideo.readyState < 2 || captureVideo.videoWidth === 0) {
+          await kickVideoDecoder(captureVideo, { delayMs: decoderDelay });
+        } else if (needsOffscreenFilmstripCapture()) {
+          await kickVideoDecoder(captureVideo, { delayMs: decoderDelay });
+        }
 
         const duration = videoMeta.duration;
         const canvas = document.createElement('canvas');
@@ -715,16 +769,33 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         canvas.height = 90;
         const ctx = canvas.getContext('2d');
         const numFrames = 8;
+        const wasPaused = captureVideo.paused;
+        const usingPreviewElement = captureVideo !== video;
 
-        for (let i = 0; i < numFrames; i++) {
-          if (cancelled) break;
-          const time =
-            i === 0
-              ? 0.05
-              : (i / (numFrames - 1)) * Math.max(duration - 0.05, 0.1);
-          const dataUrl = await seekVideoFrame(video, time, canvas, ctx);
-          if (dataUrl && !cancelled) {
-            setTimelineFrames((prev) => [...prev, dataUrl]);
+        try {
+          captureVideo.pause();
+
+          for (let i = 0; i < numFrames; i++) {
+            if (cancelled) break;
+            if (needsOffscreenFilmstripCapture() && i > 0) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+            const time =
+              i === 0
+                ? 0.05
+                : (i / (numFrames - 1)) * Math.max(duration - 0.05, 0.1);
+            let dataUrl = await seekVideoFrame(captureVideo, time, canvas, ctx);
+            if (!dataUrl && needsOffscreenFilmstripCapture()) {
+              await kickVideoDecoder(captureVideo, { delayMs: 150 });
+              dataUrl = await seekVideoFrame(captureVideo, time, canvas, ctx);
+            }
+            if (dataUrl && !cancelled) {
+              setTimelineFrames((prev) => [...prev, dataUrl]);
+            }
+          }
+        } finally {
+          if (usingPreviewElement && !wasPaused && !cancelled) {
+            captureVideo.play().catch(() => {});
           }
         }
       } catch (e) {
@@ -1175,9 +1246,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
   if (!mounted) return null;
 
-  const previewVideoSrc = previewUrl
-    ? (previewUrl.includes('#') ? previewUrl : `${previewUrl}#t=0.001`)
-    : '';
+  const previewVideoSrc = buildPreviewVideoSrc(previewUrl);
 
   const layout = (
     <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/85 backdrop-blur-md overflow-hidden font-[Poppins]">
@@ -1334,11 +1403,26 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     muted={muted}
                     loop
                     playsInline
+                    webkit-playsinline="true"
                     controls={false}
                     disablePictureInPicture
                     controlsList="nodownload noplaybackrate noremoteplayback nofullscreen"
                     preload="auto"
                     onContextMenu={(e) => e.preventDefault()}
+                    onLoadedData={(e) => {
+                      const v = e.currentTarget;
+                      if (v.currentTime < 0.001 && v.readyState >= 2) {
+                        v.currentTime = 0.001;
+                      }
+                    }}
+                    onError={(e) => {
+                      const v = e.currentTarget;
+                      if (previewUrl && v.src !== previewUrl && !v.dataset.retriedPlainSrc) {
+                        v.dataset.retriedPlainSrc = '1';
+                        v.src = previewUrl;
+                        v.load();
+                      }
+                    }}
                   />
                   <button
                     type="button"
