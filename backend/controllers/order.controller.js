@@ -624,7 +624,23 @@ const updateOrderStatus = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Order not found.' });
     }
 
-    // ── GUARD: First to Launch Wins (Authority Handover) ──
+    // ── SELLER GUARD ─────────────────────────────────────────────────────────
+    // Only the vendor who SOLD this order can update its status.
+    // A vendor who BOUGHT from another store is acting as a customer and must
+    // use the customer cancel/refund routes — not this seller endpoint.
+    if (req.user.role === 'vendor') {
+      const sellerVendorId = order.vendor_id?.toString();
+      const requestingVendorId = req.vendor?._id?.toString();
+      if (!sellerVendorId || sellerVendorId !== requestingVendorId) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(403).json({
+          success: false,
+          message: 'You are not the seller for this order. Use the customer orders section to manage orders you have placed.',
+        });
+      }
+    }
+
     // Applies to every logistics-backed order (single checkout or cart-split / "group" orders are separate Order docs each).
     const orderUsesLogistics =
       order.shipping_method === 'logistics_partner' || !!order.logistics_company_id;
@@ -985,6 +1001,16 @@ const approveRefund = async (req, res, next) => {
   try {
     const order = await Order.findById(req.params.id).session(session);
     if (!order) throw new Error('Order not found.');
+
+    // Seller guard: only the vendor who sold this order can approve refunds
+    if (req.vendor && order.vendor_id?.toString() !== req.vendor._id?.toString()) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(403).json({
+        success: false,
+        message: 'You are not the seller for this order and cannot approve its refund.',
+      });
+    }
 
     await RefundRequest.findOneAndUpdate({ order_id: order._id, status: 'pending' }, { status: 'approved' }, { session });
 
