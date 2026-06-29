@@ -285,7 +285,8 @@ function ShopContent() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 !text-base placeholder:!text-base outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
+                style={{ touchAction: 'manipulation' }}
+                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-base placeholder:text-base outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
               />
               <button 
                 onClick={() => { setPage(1); fetchProducts(1); }}

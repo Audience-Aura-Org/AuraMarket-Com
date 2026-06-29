@@ -87,8 +87,8 @@ export default function VendorDashboard() {
   const router = useRouter();
   const { t } = useLanguage();
   const { user, updateUser } = useAuthStore();
+  const [orderFilter, setOrderFilter] = useState('all');
   const [mounted, setMounted] = useState(false);
-  const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [pendingEscrow, setPendingEscrow] = useState(0);
@@ -97,22 +97,16 @@ export default function VendorDashboard() {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [orderFilter, setOrderFilter] = useState('all');
 
   useEffect(() => {
     // Attempt instant render from local cache
     try {
-      const cachedProducts = getCachedData('/vendor/products');
       const cachedOrders = getCachedData('/vendor/orders');
       const cachedWallet = getCachedData('/wallet');
       const cachedAnalytics = getCachedData('/vendor/analytics');
       const cachedSubscription = getCachedData('/subscriptions/me', { role: 'vendor' });
 
       let foundCache = false;
-      if (cachedProducts?.products) {
-        setProducts(cachedProducts.products);
-        foundCache = true;
-      }
       if (cachedOrders?.orders) {
         setOrders(cachedOrders.orders);
         foundCache = true;
@@ -131,10 +125,7 @@ export default function VendorDashboard() {
         setSubscriptionStatus(cachedSubscription);
         foundCache = true;
       }
-      
-      if (foundCache) {
-        setLoading(false);
-      }
+      if (foundCache) setLoading(false);
     } catch (e) {
       console.warn('Dashboard instant cache load failed:', e);
     }
@@ -143,22 +134,15 @@ export default function VendorDashboard() {
 
   useEffect(() => {
     let isMounted = true;
-
-    if (!mounted) {
-      return;
-    }
-
+    if (!mounted) return;
     setError(null);
 
     const fetchData = async (isBackground = false) => {
       try {
-        const hasData = products.length > 0 || orders.length > 0 || analyticsStats !== null;
-        if (!isBackground && !hasData) {
-          setLoading(true);
-        }
+        const hasData = orders.length > 0 || analyticsStats !== null;
+        if (!isBackground && !hasData) setLoading(true);
         setError(null);
-        
-        // Helper to safely handle individual requests and detect 403 onboarding
+
         const safeGet = async (url) => {
           try {
             return await api.get(url);
@@ -166,8 +150,8 @@ export default function VendorDashboard() {
             if (err.response?.status === 403 || err.response?.status === 404) {
               const msg = err.response?.data?.message?.toLowerCase() || '';
               if (msg.includes('onboarding') || msg.includes('profile not found') || msg.includes('vendor profile not found')) {
-                console.warn('[Dashboard] Authorization failed (Profile/Onboarding), redirecting...', url);
-                updateUser({ ...user, onboarded: false }); // Break potential redirect loops
+                console.warn('[Dashboard] Authorization failed, redirecting...', url);
+                updateUser({ ...user, onboarded: false });
                 router.replace('/onboarding');
                 throw new Error('ONBOARDING_REQUIRED');
               }
@@ -176,8 +160,9 @@ export default function VendorDashboard() {
           }
         };
 
-        const [productsResult, ordersResult, walletResult, analyticsResult, subscriptionResult] = await Promise.allSettled([
-          safeGet('/vendor/products'),
+        // Only 3 parallel requests instead of 5 — /vendor/products dropped;
+        // analytics already returns all product stats + low_stock_count.
+        const [ordersResult, walletResult, analyticsResult, subscriptionResult] = await Promise.allSettled([
           safeGet('/vendor/orders'),
           safeGet('/wallet'),
           safeGet('/vendor/analytics'),
@@ -185,23 +170,17 @@ export default function VendorDashboard() {
         ]);
 
         if (isMounted) {
-          const productsRes = fulfilledValue(productsResult);
-          const ordersRes = fulfilledValue(ordersResult);
-          const walletRes = fulfilledValue(walletResult);
+          const ordersRes    = fulfilledValue(ordersResult);
+          const walletRes    = fulfilledValue(walletResult);
           const analyticsRes = fulfilledValue(analyticsResult);
           const subscriptionRes = fulfilledValue(subscriptionResult);
-          const productsData = getResponseData(productsRes);
-          const ordersData = getResponseData(ordersRes);
-          const walletData = getResponseData(walletRes);
+
+          const ordersData    = getResponseData(ordersRes);
+          const walletData    = getResponseData(walletRes);
           const analyticsData = getResponseData(analyticsRes);
           const subscriptionData = subscriptionRes?.data?.data || null;
 
-          if (productsRes?.data?.success) {
-            setProducts(productsData.products || analyticsData.top_products || []);
-          }
-          if (ordersRes?.data?.success) {
-            setOrders(ordersData.orders || analyticsData.recent_orders || []);
-          }
+          if (ordersRes?.data?.success) setOrders(ordersData.orders || analyticsData.recent_orders || []);
           if (walletRes?.data?.success) {
             setWalletBalance(walletData.balance ?? analyticsData.stats?.wallet_balance ?? 0);
             setPendingEscrow(walletData.pending_escrow ?? analyticsData.stats?.pending_escrow ?? 0);
@@ -209,7 +188,6 @@ export default function VendorDashboard() {
           if (analyticsRes?.data?.success) {
             setAnalyticsStats(analyticsData.stats || null);
             setAnalyticsHistory(analyticsData.sales_history || []);
-            if (!productsRes?.data?.success) setProducts(analyticsData.top_products || []);
             if (!ordersRes?.data?.success) setOrders(analyticsData.recent_orders || []);
             if (!walletRes?.data?.success) {
               setWalletBalance(analyticsData.stats?.wallet_balance ?? 0);
@@ -220,8 +198,7 @@ export default function VendorDashboard() {
           setLoading(false);
         }
       } catch (err) {
-        if (err.message === 'ONBOARDING_REQUIRED') return; // Handled above
-
+        if (err.message === 'ONBOARDING_REQUIRED') return;
         console.error('[VendorDashboard] Error:', err);
         if (isMounted) {
           setError(err.response?.data?.message || err.message || 'Failed to fetch data');
@@ -232,35 +209,28 @@ export default function VendorDashboard() {
 
     fetchData(true);
     const timer = setInterval(() => fetchData(true), 30000);
-    return () => {
-      isMounted = false;
-      clearInterval(timer);
-    };
+    return () => { isMounted = false; clearInterval(timer); };
   }, [mounted, router, updateUser, user]);
 
   const handleRefresh = async () => {
     setLoading(true);
     try {
-      const [productsResult, ordersResult, walletResult, analyticsResult, subscriptionResult] = await Promise.allSettled([
-        api.get('/vendor/products'),
+      const [ordersResult, walletResult, analyticsResult, subscriptionResult] = await Promise.allSettled([
         api.get('/vendor/orders'),
         api.get('/wallet'),
         api.get('/vendor/analytics'),
         api.get('/subscriptions/me', { params: { role: 'vendor' }, skipClientCache: true, silent: true }).catch(() => null),
       ]);
 
-      const productsRes = fulfilledValue(productsResult);
-      const ordersRes = fulfilledValue(ordersResult);
-      const walletRes = fulfilledValue(walletResult);
+      const ordersRes    = fulfilledValue(ordersResult);
+      const walletRes    = fulfilledValue(walletResult);
       const analyticsRes = fulfilledValue(analyticsResult);
       const subscriptionRes = fulfilledValue(subscriptionResult);
-      const productsData = getResponseData(productsRes);
-      const ordersData = getResponseData(ordersRes);
-      const walletData = getResponseData(walletRes);
+      const ordersData    = getResponseData(ordersRes);
+      const walletData    = getResponseData(walletRes);
       const analyticsData = getResponseData(analyticsRes);
       const subscriptionData = subscriptionRes?.data?.data || null;
 
-      if (productsRes?.data?.success) setProducts(productsData.products || analyticsData.top_products || []);
       if (ordersRes?.data?.success) setOrders(ordersData.orders || analyticsData.recent_orders || []);
       if (walletRes?.data?.success) {
         setWalletBalance(walletData.balance ?? analyticsData.stats?.wallet_balance ?? 0);
@@ -269,7 +239,6 @@ export default function VendorDashboard() {
       if (analyticsRes?.data?.success) {
         setAnalyticsStats(analyticsData.stats || null);
         setAnalyticsHistory(analyticsData.sales_history || []);
-        if (!productsRes?.data?.success) setProducts(analyticsData.top_products || []);
         if (!ordersRes?.data?.success) setOrders(analyticsData.recent_orders || []);
         if (!walletRes?.data?.success) {
           setWalletBalance(analyticsData.stats?.wallet_balance ?? 0);
@@ -277,7 +246,6 @@ export default function VendorDashboard() {
         }
       }
       setSubscriptionStatus(subscriptionData);
-      
       setLoading(false);
     } catch (err) {
       setError(err.message);
@@ -289,9 +257,10 @@ export default function VendorDashboard() {
   const completedOrders = orders.filter(isCompletedOrder);
   const openOrders = orders.filter(isOpenOrder);
   const totalSales = analyticsStats?.total_revenue ?? paidOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
-  const totalProducts = analyticsStats?.total_products ?? products.length;
-  const inStockProducts = analyticsStats?.in_stock_products ?? products.filter(p => Number(p.stock || 0) > 0).length;
-  const outOfStockProducts = analyticsStats?.out_of_stock_products ?? products.filter(p => Number(p.stock || 0) === 0).length;
+  const totalProducts = analyticsStats?.total_products ?? 0;
+  const inStockProducts = analyticsStats?.in_stock_products ?? 0;
+  const outOfStockProducts = analyticsStats?.out_of_stock_products ?? 0;
+  const lowStockCount = analyticsStats?.low_stock_count ?? 0;
   const processingOrders = analyticsStats?.processing_orders ?? orders.filter(o => o.order_status === 'processing').length;
   const openOrderCount = analyticsStats?.open_orders ?? openOrders.length;
   const fulfilledOrderCount = analyticsStats?.total_sales ?? completedOrders.length;
@@ -482,9 +451,9 @@ export default function VendorDashboard() {
                 <div className="size-10 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-500 border border-indigo-600/20 shrink-0">
                   <Boxes className="size-5" />
                 </div>
-                {products.filter(p => Number(p.stock || 0) <= 5).length > 0 && (
+                {lowStockCount > 0 && (
                   <span className="text-[10px] font-medium tracking-wide text-rose-500/90">
-                    {products.filter(p => Number(p.stock || 0) <= 5).length} {t('dashboard.lowStock', 'low stock')}
+                    {lowStockCount} {t('dashboard.lowStock', 'low stock')}
                   </span>
                 )}
               </div>

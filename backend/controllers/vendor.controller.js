@@ -579,24 +579,49 @@ const getFollowing = async (req, res, next) => {
 const getVendorAnalytics = async (req, res, next) => {
   try {
     const vendorId = req.vendor._id;
-    // Calculate 6-month window for analytics history
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    const [products, orders, escrowStats, followCount, vendorUser] = await Promise.all([
-      Product.find({ vendor_id: vendorId, status: { $ne: 'archived' } }).sort('-purchase_count').lean(),
+    // Run all DB calls concurrently. Limits/projections keep this fast:
+    // - products: only fields needed for stats + display (no large text fields)
+    // - orders: last 100 only (dashboard shows ≤10; extra 90 give accurate stat counts)
+    // - salesOverTime: aggregate pipeline — already efficient
+    const [products, orders, escrowStats, followCount, vendorUser, salesOverTime] = await Promise.all([
+      Product.find({ vendor_id: vendorId, status: { $ne: 'archived' } })
+        .select('name price images stock view_count purchase_count status')
+        .sort('-purchase_count')
+        .limit(200)
+        .lean(),
       Order.find({ vendor_id: vendorId })
-        .populate('customer_id', 'name email phone avatar')
+        .select('order_status payment_status total_amount createdAt customer_id products')
+        .populate('customer_id', 'name avatar')
         .populate('products.product_id', 'name price images')
-        .populate('shipment', 'status tracking_code')
         .sort('-createdAt')
+        .limit(100)
         .lean(),
       Escrow.aggregate([
         { $match: { vendor_id: vendorId, status: 'held' } },
         { $group: { _id: null, totalHeld: { $sum: '$amount' } } }
       ]),
       Follow.countDocuments({ vendor_id: vendorId }),
-      User.findById(req.vendor.user_id).select('wallet_balance').lean()
+      User.findById(req.vendor.user_id).select('wallet_balance').lean(),
+      Order.aggregate([
+        {
+          $match: {
+            vendor_id: vendorId,
+            createdAt: { $gte: sixMonthsAgo },
+            order_status: { $ne: 'cancelled' }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+            revenue: { $sum: '$total_amount' },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ])
     ]);
 
     const completedOrders = orders.filter(o => ['delivered', 'completed'].includes(o.order_status));
@@ -607,28 +632,7 @@ const getVendorAnalytics = async (req, res, next) => {
 
     const totalViews = products.reduce((sum, p) => sum + (p.view_count || 0), 0);
     const totalSales = completedOrders.length;
-    
-    // Calculate conversion rate (sales / views)
     const conversionRate = totalViews > 0 ? (totalSales / totalViews) * 100 : 0;
-    
-    // Aggregate monthly revenue for the last 6 months — feeds the dashboard bar chart
-    const salesOverTime = await Order.aggregate([
-      { 
-        $match: { 
-          vendor_id: vendorId, 
-          createdAt: { $gte: sixMonthsAgo },
-          order_status: { $ne: 'cancelled' }
-        } 
-      },
-      { 
-        $group: { 
-          _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, 
-          revenue: { $sum: "$total_amount" }, 
-          count: { $sum: 1 } 
-        } 
-      },
-      { $sort: { "_id": 1 } }
-    ]);
 
     res.status(200).json({
       success: true,
@@ -641,6 +645,8 @@ const getVendorAnalytics = async (req, res, next) => {
           processing_orders: orders.filter(o => o.order_status === 'processing').length,
           in_stock_products: products.filter(p => Number(p.stock || 0) > 0).length,
           out_of_stock_products: products.filter(p => Number(p.stock || 0) === 0).length,
+          // low_stock_count included so dashboard never needs /vendor/products
+          low_stock_count: products.filter(p => Number(p.stock || 0) > 0 && Number(p.stock || 0) <= 5).length,
           total_views: totalViews,
           pending_escrow: escrowStats[0]?.totalHeld || 0,
           wallet_balance: vendorUser?.wallet_balance || 0,
@@ -648,7 +654,7 @@ const getVendorAnalytics = async (req, res, next) => {
           conversion_rate: parseFloat(conversionRate.toFixed(2))
         },
         top_products: products.slice(0, 5),
-        recent_orders: orders.slice(0, 5),
+        recent_orders: orders.slice(0, 20),
         sales_history: salesOverTime
       }
     });

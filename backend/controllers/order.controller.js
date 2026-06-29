@@ -529,22 +529,39 @@ const getCustomerOrders = async (req, res, next) => {
 
 const getVendorOrders = async (req, res, next) => {
   try {
-    const orders = await Order.find({ vendor_id: req.vendor._id })
-      .populate('customer_id', 'name email phone avatar')
-      .populate('products.product_id', 'name price images')
-      .populate({
-        path: 'vendor_id',
-        select: 'store_name user_id',
-        populate: {
-          path: 'user_id',
-          select: 'name avatar branding'
-        }
-      })
-      .populate('shipment', 'status tracking_code')
-      .sort('-createdAt');
-    res.status(200).json({ success: true, count: orders.length, data: { orders } });
+    const page  = Math.max(1, parseInt(req.query.page,  10) || 1);
+    const limit = Math.min(200, parseInt(req.query.limit, 10) || 50);
+    const skip  = (page - 1) * limit;
+
+    const [orders, total] = await Promise.all([
+      Order.find({ vendor_id: req.vendor._id })
+        .select('order_status payment_status total_amount createdAt customer_id products vendor_id shipment logistics_company_id shipping_method')
+        .populate('customer_id', 'name email phone avatar')
+        .populate('products.product_id', 'name price images')
+        .populate({
+          path: 'vendor_id',
+          select: 'store_name user_id',
+          populate: { path: 'user_id', select: 'name avatar branding' }
+        })
+        .populate('shipment', 'status tracking_code')
+        .sort('-createdAt')
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Order.countDocuments({ vendor_id: req.vendor._id })
+    ]);
+
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      data: { orders }
+    });
   } catch (error) { next(error); }
 };
+
 
 const getOrderById = async (req, res, next) => {
   try {
