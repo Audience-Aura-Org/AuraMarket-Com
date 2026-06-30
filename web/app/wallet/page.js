@@ -198,9 +198,19 @@ export default function WalletPage() {
       router.replace('/login?from=wallet');
       return;
     }
-    if (user.role === 'vendor') { router.replace('/vendor/wallet'); return; }
     if (user.role === 'admin')  { router.replace('/admin/withdrawals'); return; }
     fetchWallet();
+
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('action') === 'deposit') {
+      setModal('deposit');
+      setDepositStep('amount');
+      setDepositGateway('payunit');
+      setDepositStatus('pending');
+      setDepositReason('');
+      setDepositRef(null);
+      setDepositMessage('');
+    }
   }, [mounted, user, router]);
 
   useEffect(() => {

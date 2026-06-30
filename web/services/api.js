@@ -125,7 +125,8 @@ const isOfflineCacheableRoute = (url = '') => {
     normalized.startsWith('checkout') ||
     normalized.startsWith('notifications') ||
     normalized.startsWith('users/') ||
-    normalized.startsWith('security/')
+    normalized.startsWith('security/') ||
+    normalized === 'vendors/me'
   ) {
     return false;
   }

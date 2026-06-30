@@ -18,7 +18,6 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useLanguage } from '@/context/LanguageContext';
 
 const STEPS = [
-  { id: 'categories', title: 'Your Interests', subtitle: 'Pick 2+ categories', icon: Heart, color: 'rose' },
   { id: 'location', title: 'Your Location', subtitle: 'City, zone & contact', icon: MapPin, color: 'emerald' },
   { id: 'vendors', title: 'Follow Vendors', subtitle: 'Pick 2+ stores you love', icon: Users, color: 'blue' },
   { id: 'done', title: 'All Set!', subtitle: 'Enter the marketplace', icon: CheckCircle2, color: 'accent' },
@@ -26,7 +25,6 @@ const STEPS = [
 
 const VENDOR_STEPS = [
   { id: 'profile', title: 'Your Brand', subtitle: 'Name, phone & description', icon: Store, color: 'amber' },
-  { id: 'categories', title: 'Trade Sectors', subtitle: 'Pick 2+ categories', icon: LayoutGrid, color: 'rose' },
   { id: 'location', title: 'Pickup Base', subtitle: 'City & zone for logistics', icon: MapPin, color: 'emerald' },
   { id: 'done', title: 'Go Live!', subtitle: 'Launch your store', icon: Sparkles, color: 'accent' },
 ];
@@ -175,10 +173,9 @@ export default function OnboardingFlow() {
 
         // Auto-ahead: if all data already collected, skip onboarding
         const hasFollows = follows.length >= 2;
-        const hasCategories = (user.liked_categories?.length || 0) >= 2;
         const hasLocation = !!user.onboarding_location?.city;
         const hasPhone = !!user.phone;
-        if (!isVendor && !isLogistics && hasFollows && hasCategories && hasLocation && hasPhone) {
+        if (!isVendor && !isLogistics && hasFollows && hasLocation && hasPhone) {
           router.replace('/shop');
         }
       } catch (err) {
@@ -193,7 +190,7 @@ export default function OnboardingFlow() {
 
   // Defer zones fetch until relevant step
   useEffect(() => {
-    const locationStep = isLogistics ? 1 : isVendor ? 2 : 1;
+    const locationStep = isLogistics ? 1 : isVendor ? 1 : 0;
     if (step === locationStep && zones.length === 0 && !zonesLoading) {
       setZonesLoading(true);
       api.get('/logistics/zones')
@@ -243,9 +240,7 @@ export default function OnboardingFlow() {
     if (isVendor) {
       if (step === 0 && (!vendorProfile.store_name || !vendorProfile.description || !phone))
         return toast.error('Store name, description and phone are required.');
-      if (step === 1 && selectedCategories.length < 2) 
-        return toast.error('Select at least 2 categories.');
-      if (step === 2 && (!location.city || !location.quartier || !location.address_description))
+      if (step === 1 && (!location.city || !location.quartier || !location.address_description))
         return toast.error('City, zone and store pickup address details are required.');
     } else if (isLogistics) {
       if (step === 0 && (!logisticsProfile.company_name || !phone || logisticsProfile.vehicle_types.length === 0))
@@ -253,12 +248,10 @@ export default function OnboardingFlow() {
       if (step === 1 && logisticsProfile.service_regions.length < 1)
         return toast.error('Select at least 1 service region.');
     } else {
-      // Customer steps: Categories (0) -> Location (1) -> Vendors (2)
-      if (step === 0 && selectedCategories.length < 2) 
-        return toast.error('Pick at least 2 interests.');
-      if (step === 1 && (!location.city || !location.quartier || !phone)) 
+      // Customer steps: Location (0) -> Vendors (1) -> done (2)
+      if (step === 0 && (!location.city || !location.quartier || !phone)) 
         return toast.error('City, zone and phone are required.');
-      if (step === 2 && followedVendors.length < 2) 
+      if (step === 1 && followedVendors.length < 2) 
         return toast.error('Follow at least 2 vendors.');
     }
     setSearch('');
@@ -512,8 +505,8 @@ export default function OnboardingFlow() {
       )}
 
       <div className="mx-auto w-full max-w-6xl space-y-5 px-3 py-3 pb-[calc(9rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(10rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(11rem+env(safe-area-inset-bottom,0px))] sm:px-5 md:space-y-7 md:px-6 md:py-5">
-          {/* ── Step: Categories (Customers: Step 0, Vendors: Step 1) ── */}
-          {((!isVendor && !isLogistics && step === 0) || (isVendor && step === 1)) && (
+          {/* ── Step: Categories (Disabled) ── */}
+          {false && (
             <div className="space-y-4 max-w-6xl mx-auto w-full">
 
               {/* Search + Dropdown */}
@@ -648,8 +641,8 @@ export default function OnboardingFlow() {
             </div>
           )}
 
-          {/* ── Step: Location (Customers: Step 1, Vendors: Step 2) ── */}
-          {((!isVendor && !isLogistics && step === 1) || (isVendor && step === 2)) && (
+          {/* ── Step: Location (Customers: Step 0, Vendors: Step 1) ── */}
+          {((!isVendor && !isLogistics && step === 0) || (isVendor && step === 1)) && (
             <div className="mx-auto w-full max-w-2xl space-y-4">
 
               {/* Customer-only: phone field */}
@@ -878,8 +871,8 @@ export default function OnboardingFlow() {
             </div>
           )}
 
-          {/* ── Step: Vendors (Customers Step 2) ── */}
-          {!isVendor && !isLogistics && step === 2 && (
+          {/* ── Step: Vendors (Customers Step 1) ── */}
+          {!isVendor && !isLogistics && step === 1 && (
              <div className="space-y-4">
                {/* Search Vendors */}
                <div className="relative">

@@ -180,7 +180,7 @@ export default function AccountPageClient() {
     }
     setAudienceLoading(true);
     try {
-      const vRes = await api.get('/vendors/me');
+      const vRes = await api.get('/vendors/me', { skipClientCache: true });
       if (vRes.data.success) {
         const aRes = await api.get(`/vendors/${vRes.data.data.vendor._id}/followers`);
         if (aRes.data.success) setAudience(aRes.data.data.followers || []);
@@ -214,7 +214,7 @@ export default function AccountPageClient() {
 
     // Only fetch vendor profile when the Vendor document is guaranteed to exist
     if (user.role === 'vendor' && user.onboarded) {
-      api.get('/vendors/me').then(res => {
+      api.get('/vendors/me', { skipClientCache: true }).then(res => {
         if (res.data.success) {
           const v = res.data.data.vendor;
           const s = v.store || {};
