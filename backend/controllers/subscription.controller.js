@@ -300,13 +300,66 @@ const initializeSubscription = async (req, res, next) => {
 const getAdminOverview = async (req, res, next) => {
   try {
     await ensureDefaultSubscriptionPlan();
-    const [plans, subscriptions, requirements, revenueAgg] = await Promise.all([
+
+    // Status priority for deduplication: active wins over everything, then grace, limited, pending, cancelled/expired
+    const STATUS_PRIORITY = { active: 5, grace: 4, limited: 3, pending: 2, refunded: 1, cancelled: 0, expired: 0 };
+
+    const [plans, rawSubscriptions, requirements, revenueAgg] = await Promise.all([
       SubscriptionPlan.find().sort({ is_active: -1, price: 1, createdAt: -1 }),
-      UserSubscription.find()
-        .populate('user_id', 'name email phone role avatar branding')
-        .populate('plan_id')
-        .sort('-createdAt')
-        .limit(300),
+
+      // Aggregation: deduplicate by (user_id + role), keep highest-priority + newest record per user
+      UserSubscription.aggregate([
+        { $sort: { createdAt: -1 } },
+        {
+          $addFields: {
+            statusPriority: {
+              $switch: {
+                branches: [
+                  { case: { $eq: ['$status', 'active'] },    then: 5 },
+                  { case: { $eq: ['$status', 'grace'] },     then: 4 },
+                  { case: { $eq: ['$status', 'limited'] },   then: 3 },
+                  { case: { $eq: ['$status', 'pending'] },   then: 2 },
+                  { case: { $eq: ['$status', 'refunded'] },  then: 1 },
+                ],
+                default: 0,
+              },
+            },
+          },
+        },
+        { $sort: { statusPriority: -1, createdAt: -1 } },
+        // Group by user + role, pick the best record
+        {
+          $group: {
+            _id: { user_id: '$user_id', role: '$role' },
+            doc: { $first: '$$ROOT' },
+          },
+        },
+        { $replaceRoot: { newRoot: '$doc' } },
+        { $sort: { createdAt: -1 } },
+        { $limit: 500 },
+        // Lookup user info
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'user_id',
+            foreignField: '_id',
+            as: 'user_id',
+            pipeline: [{ $project: { name: 1, email: 1, phone: 1, role: 1, avatar: 1, branding: 1 } }],
+          },
+        },
+        { $unwind: { path: '$user_id', preserveNullAndEmpty: true } },
+        // Lookup plan info
+        {
+          $lookup: {
+            from: 'subscriptionplans',
+            localField: 'plan_id',
+            foreignField: '_id',
+            as: 'plan_id',
+          },
+        },
+        { $unwind: { path: '$plan_id', preserveNullAndEmpty: true } },
+      ]),
+
       getRoleRequirements(),
       Transaction.aggregate([
         { $match: { type: 'subscription', status: 'completed' } },
@@ -314,9 +367,11 @@ const getAdminOverview = async (req, res, next) => {
       ]),
     ]);
 
-    const activeCount = subscriptions.filter((sub) => sub.status === 'active').length;
+    const subscriptions = rawSubscriptions;
+
+    const activeCount  = subscriptions.filter((sub) => sub.status === 'active').length;
     const pendingCount = subscriptions.filter((sub) => sub.status === 'pending').length;
-    const graceCount = subscriptions.filter((sub) => sub.status === 'grace').length;
+    const graceCount   = subscriptions.filter((sub) => sub.status === 'grace').length;
     const limitedCount = subscriptions.filter((sub) => sub.status === 'limited').length;
 
     res.status(200).json({

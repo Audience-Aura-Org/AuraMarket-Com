@@ -264,17 +264,27 @@ export default function VendorDashboard() {
   const processingOrders = analyticsStats?.processing_orders ?? orders.filter(o => o.order_status === 'processing').length;
   const openOrderCount = analyticsStats?.open_orders ?? openOrders.length;
   const fulfilledOrderCount = analyticsStats?.total_sales ?? completedOrders.length;
-  const subscriptionRequired = subscriptionStatus?.required;
+  const subscriptionRequired  = subscriptionStatus?.required;
   const subscriptionSubscribed = subscriptionStatus?.subscribed;
   const subscriptionGrace = subscriptionStatus?.grace || subscriptionStatus?.access_state === 'grace';
   const subscriptionLimited = subscriptionStatus?.limited || subscriptionStatus?.access_state === 'limited';
+  const subscriptionUnsubscribed = !subscriptionSubscribed && !subscriptionGrace && !subscriptionLimited;
+
+  // Build an accurate label: show plan name + expiry when active
+  const activePlanName = subscriptionStatus?.subscription?.plan_id?.name || null;
+  const expiresAt = subscriptionStatus?.subscription?.expires_at
+    ? new Date(subscriptionStatus.subscription.expires_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+
   const subscriptionLabel = !subscriptionRequired
     ? t('subscription.storeActive', 'Store active')
     : subscriptionSubscribed
-      ? t('subscription.packageActive', 'Package active')
+      ? activePlanName
+        ? `${activePlanName}${expiresAt ? ` · exp. ${expiresAt}` : ''}`
+        : t('subscription.packageActive', 'Package active')
       : subscriptionGrace
-        ? t('subscription.graceShort', 'Grace active')
-        : t('subscription.packageNeeded', 'Package needed');
+        ? t('subscription.graceShort', 'Grace period')
+        : t('subscription.packageNeeded', 'Get a package');
   const subscriptionDotClass = !subscriptionRequired || subscriptionSubscribed
     ? 'bg-emerald-500'
     : subscriptionGrace

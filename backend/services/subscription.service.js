@@ -255,14 +255,24 @@ const addDays = (date, days) => {
   return next;
 };
 
-const ensureGraceOrLimitedRecord = async ({ user, role, graceDays, plan }) => {
+/**
+ * Returns the current grace/limited record IF one already exists in the DB.
+ * Does NOT auto-create a record — new users should see a clean "no subscription"
+ * state and be free to purchase a plan without being blocked by a phantom record.
+ */
+const getExistingGraceOrLimitedRecord = async ({ user, role, graceDays }) => {
   const now = new Date();
   const latest = await getLatestSubscriptionRecord(user._id, role);
 
-  if (latest?.status === 'grace') {
+  if (!latest) return null;
+
+  // Only consider records that were NOT auto-created placeholders (amount_paid > 0 means real payment)
+  // OR records created by admin manual activation
+  if (latest.status === 'grace') {
     if (latest.grace_expires_at && latest.grace_expires_at > now) {
-      return latest;
+      return latest; // still within grace window
     }
+    // Grace expired → transition to limited and save
     latest.status = 'limited';
     latest.limited_since = latest.limited_since || now;
     latest.restriction_reason = 'Subscription grace period ended.';
@@ -275,54 +285,11 @@ const ensureGraceOrLimitedRecord = async ({ user, role, graceDays, plan }) => {
     return latest;
   }
 
-  if (latest?.status === 'limited') {
+  if (latest.status === 'limited') {
     return latest;
   }
 
-  if (Number(graceDays || 0) > 0 && plan) {
-    return UserSubscription.create({
-      user_id: user._id,
-      plan_id: plan._id,
-      role,
-      status: 'grace',
-      billing_cycle: plan.billing_cycle,
-      amount_paid: 0,
-      currency: plan.currency,
-      started_at: now,
-      grace_started_at: now,
-      grace_expires_at: addDays(now, graceDays),
-      source: 'manual',
-      restriction_reason: 'Subscription required for this role.',
-      history: [{
-        action: 'grace_started',
-        note: `${graceDays} day subscription grace period started automatically.`,
-        at: now,
-      }],
-    });
-  }
-
-  if (plan) {
-    return UserSubscription.create({
-      user_id: user._id,
-      plan_id: plan._id,
-      role,
-      status: 'limited',
-      billing_cycle: plan.billing_cycle,
-      amount_paid: 0,
-      currency: plan.currency,
-      started_at: now,
-      limited_since: now,
-      source: 'manual',
-      restriction_reason: 'Subscription required for this role.',
-      history: [{
-        action: 'limited',
-        note: 'Account placed in limited subscription access.',
-        at: now,
-      }],
-    });
-  }
-
-  return latest;
+  return null;
 };
 
 const getSubscriptionStatus = async (user, role = null) => {
@@ -378,9 +345,29 @@ const getSubscriptionStatus = async (user, role = null) => {
     };
   }
 
-  const accessRecord = await ensureGraceOrLimitedRecord({ user, role: activeRole, graceDays, plan });
+  // Check for existing grace/limited records only — do NOT auto-create new ones.
+  // New vendors with no subscription should see a clean "unsubscribed" state.
+  const accessRecord = await getExistingGraceOrLimitedRecord({ user, role: activeRole, graceDays });
   const isGrace = accessRecord?.status === 'grace' && accessRecord.grace_expires_at && accessRecord.grace_expires_at > new Date();
-  const isLimited = !isGrace;
+  const isLimited = accessRecord?.status === 'limited';
+
+  // If no record at all (brand new user) → clean unsubscribed state, free to purchase
+  if (!accessRecord) {
+    return {
+      required,
+      active: false,
+      subscribed: false,
+      access_allowed: false,
+      access_state: 'unsubscribed',
+      limited: false,
+      grace: false,
+      grace_days: graceDays,
+      grace_expires_at: null,
+      limited_since: null,
+      role: activeRole,
+      subscription: null,
+    };
+  }
 
   return {
     required,
