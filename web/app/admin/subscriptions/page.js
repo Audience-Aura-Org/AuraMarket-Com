@@ -219,7 +219,7 @@ export default function AdminSubscriptionsPage() {
 
   const activateManual = async () => {
     if (!manualActivation.user_id || !manualActivation.plan_id) {
-      toast.error(t('subscription.manualRequired', 'User ID and plan are required.'));
+      toast.error(t('subscription.manualRequired', 'User ID or Email and plan are required.'));
       return;
     }
     try {
@@ -619,7 +619,7 @@ function ManualActivationPanel({ manualActivation, setManualActivation, plans, a
       <div className="grid gap-3">
         <input
           className={fieldClass}
-          placeholder={t('subscription.userId', 'User ID')}
+          placeholder={t('subscription.userIdOrEmail', 'User ID or Email')}
           value={manualActivation.user_id}
           onChange={(e) => setManualActivation({ ...manualActivation, user_id: e.target.value })}
         />

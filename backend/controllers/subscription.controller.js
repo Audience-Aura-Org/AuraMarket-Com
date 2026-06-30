@@ -419,8 +419,24 @@ const updateRoleRequirements = async (req, res, next) => {
 const activateUserSubscription = async (req, res, next) => {
   try {
     const { user_id, plan_id, role, note, started_at, expires_at } = req.body;
-    const user = await User.findById(user_id);
-    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    
+    if (!user_id) {
+      return res.status(400).json({ success: false, message: 'User ID or Email is required.' });
+    }
+
+    let user;
+    if (String(user_id).includes('@')) {
+      user = await User.findOne({ email: String(user_id).toLowerCase().trim() });
+    } else {
+      if (mongoose.Types.ObjectId.isValid(user_id)) {
+        user = await User.findById(user_id);
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found with the provided ID or Email.' });
+    }
+
     const subscription = await activateSubscription({
       userId: user._id,
       planId: plan_id,
