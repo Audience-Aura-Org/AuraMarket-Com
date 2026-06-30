@@ -347,7 +347,7 @@ const getAdminOverview = async (req, res, next) => {
             pipeline: [{ $project: { name: 1, email: 1, phone: 1, role: 1, avatar: 1, branding: 1 } }],
           },
         },
-        { $unwind: { path: '$user_id', preserveNullAndEmpty: true } },
+        { $unwind: { path: '$user_id', preserveNullAndEmptyArrays: true } },
         // Lookup plan info
         {
           $lookup: {
@@ -357,7 +357,7 @@ const getAdminOverview = async (req, res, next) => {
             as: 'plan_id',
           },
         },
-        { $unwind: { path: '$plan_id', preserveNullAndEmpty: true } },
+        { $unwind: { path: '$plan_id', preserveNullAndEmptyArrays: true } },
       ]),
 
       getRoleRequirements(),
