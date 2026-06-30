@@ -199,11 +199,12 @@ const ensureDefaultSubscriptionPlan = async () => {
 };
 
 const getRoleRequirements = async () => {
+  const settings = await PlatformSettings.getSettings();
   return {
     required: {
-      customer: false,
-      vendor: true, // Vendor subscription is always required immediately
-      logistics: false,
+      customer: Boolean(settings.subscription_required_roles?.customer),
+      vendor: settings.subscription_required_roles?.vendor !== false,
+      logistics: Boolean(settings.subscription_required_roles?.logistics),
       admin: false,
     },
     grace_days: {
