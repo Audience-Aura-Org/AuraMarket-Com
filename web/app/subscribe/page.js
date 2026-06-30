@@ -73,6 +73,7 @@ function SubscribeContent() {
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [method, setMethod] = useState('payunit');
   const [phone, setPhone] = useState(user?.phone || '');
+  const [provider, setProvider] = useState('CM_MTNMOMO');
   const [submitting, setSubmitting] = useState(false);
 
   const selectedPlan = useMemo(
@@ -128,7 +129,7 @@ function SubscribeContent() {
         currency: selectedPlan.currency || 'XAF',
         phone,
         country: 'CM',
-        provider: method === 'payunit' ? 'CM_MTNMOMO' : undefined,
+        provider: method === 'payunit' ? provider : undefined,
         redirect_url: `${window.location.origin}/wallet/verify?gateway=${method}&type=subscription&role=${encodeURIComponent(role)}`,
       });
 
@@ -365,15 +366,38 @@ function SubscribeContent() {
                   </div>
 
                   {['payunit', 'eversend'].includes(method) && (
-                    <label className="mt-4 block">
-                      <span className="text-xs font-bold text-[var(--text-secondary)]">{t('subscription.phone', 'Phone number')}</span>
-                      <input
-                        value={phone}
-                        onChange={(event) => setPhone(event.target.value)}
-                        placeholder="651188134"
-                        className="mt-2 h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold outline-none focus:border-[var(--accent)]"
-                      />
-                    </label>
+                    <div className="mt-4 space-y-4">
+                      <label className="block">
+                        <span className="text-xs font-bold text-[var(--text-secondary)]">{t('subscription.phone', 'Phone number')}</span>
+                        <input
+                          value={phone}
+                          onChange={(event) => setPhone(event.target.value)}
+                          placeholder="651188134"
+                          className="mt-2 h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold outline-none focus:border-[var(--accent)]"
+                        />
+                      </label>
+                      
+                      {method === 'payunit' && (
+                        <div className="space-y-2">
+                          <span className="text-xs font-bold text-[var(--text-secondary)]">{t('subscription.provider', 'Network provider')}</span>
+                          <div className="grid grid-cols-2 gap-3">
+                            {[
+                              { id: 'CM_MTNMOMO', label: 'MTN Mobile Money' },
+                              { id: 'CM_ORANGE', label: 'Orange Money' },
+                            ].map(node => (
+                              <button
+                                key={node.id}
+                                type="button"
+                                onClick={() => setProvider(node.id)}
+                                className={`h-11 rounded-2xl border font-bold text-xs tracking-tight transition-all ${provider === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                              >
+                                {node.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   <div className="mt-6 rounded-3xl bg-[var(--bg-secondary)] p-4">
