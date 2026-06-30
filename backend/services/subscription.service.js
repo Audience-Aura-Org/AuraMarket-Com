@@ -170,7 +170,7 @@ const ensureDefaultSubscriptionPlan = async () => {
   for (const defaults of DEFAULT_VENDOR_PLANS) {
     const plan = await SubscriptionPlan.findOneAndUpdate(
       { slug: defaults.slug },
-      { $set: defaults },
+      { $setOnInsert: defaults },
       { returnDocument: 'after', upsert: true }
     );
     plans.push(plan);
@@ -179,7 +179,7 @@ const ensureDefaultSubscriptionPlan = async () => {
   for (const defaults of DEFAULT_LOGISTICS_PLANS) {
     const plan = await SubscriptionPlan.findOneAndUpdate(
       { slug: defaults.slug },
-      { $set: defaults },
+      { $setOnInsert: defaults },
       { returnDocument: 'after', upsert: true }
     );
     plans.push(plan);
@@ -188,36 +188,12 @@ const ensureDefaultSubscriptionPlan = async () => {
   await SubscriptionPlan.updateMany(
     { slug: { $in: LEGACY_VENDOR_PLAN_SLUGS } },
     {
-      $set: {
+      $setOnInsert: {
         is_active: false,
         description: 'Legacy package kept for historical subscription records. Use vendor-welcome instead.',
       },
     }
   );
-
-  for (const defaults of DEFAULT_VENDOR_PLANS) {
-    if (Number(defaults.price || 0) > 0) {
-      await SubscriptionPlan.updateMany(
-        {
-          slug: defaults.slug,
-          $or: [{ price: { $exists: false } }, { price: { $lte: 0 } }],
-        },
-        { $set: { price: defaults.price } }
-      );
-    }
-  }
-
-  for (const defaults of DEFAULT_LOGISTICS_PLANS) {
-    if (Number(defaults.price || 0) > 0) {
-      await SubscriptionPlan.updateMany(
-        {
-          slug: defaults.slug,
-          $or: [{ price: { $exists: false } }, { price: { $lte: 0 } }],
-        },
-        { $set: { price: defaults.price } }
-      );
-    }
-  }
 
   return plans[0];
 };

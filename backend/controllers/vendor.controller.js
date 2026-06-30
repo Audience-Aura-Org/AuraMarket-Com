@@ -138,6 +138,12 @@ const onboardVendor = async (req, res, next) => {
     
     await User.findByIdAndUpdate(req.user._id, { 
       onboarded: true,
+      phone: phone || req.user.phone || '',
+      onboarding_location: location ? {
+        city: location.city || '',
+        quartier: location.quartier || '',
+        address_description: location.address_description || ''
+      } : req.user.onboarding_location,
       ...(brandingUpdates)
     }, { session });
 

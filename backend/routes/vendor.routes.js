@@ -1,9 +1,6 @@
 /**
  * routes/vendor.routes.js
  * Auradime — Vendor Routes
- *
- * Public:
- *   GET    /api/vendors
  */
 
 const express = require('express');
@@ -62,15 +59,17 @@ router.use(restrictTo('vendor'));
 // Onboarding must happen BEFORE loadVendor check
 router.post('/onboard', onboardVendor);
 
-router.use(requireActiveSubscription('vendor'));
-
 // Universal Vendor Data loader
 router.use(loadVendor);
 
+// Profile and Store Setup (Allowed BEFORE purchasing subscription)
 router.get('/me', getVendorProfile);
 router.patch('/profile', updateVendorProfile);
 router.patch('/store', updateStore);
 router.post('/kyc', submitKYC);
+
+// ── Active operations require active subscription ────────────────
+router.use(requireActiveSubscription('vendor'));
 
 // Operation-based subroutes
 router.get('/products', getVendorProducts);
