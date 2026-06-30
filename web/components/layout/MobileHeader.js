@@ -48,9 +48,9 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           <button
             type="button"
             onClick={toggleSidebar}
-            className="flex shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-2.5 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
           >
-            {isOpen ? <X className="size-[22px]" /> : <Menu className="size-[22px]" />}
+            {isOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
           <Link
             href={user ? "/shop" : "/"}
@@ -68,9 +68,9 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           {user && (
             <Link
               href="/wallet"
-              className="relative flex min-w-[76px] items-center justify-center gap-1.5 rounded-2xl border border-white/15 bg-white/10 px-2.5 py-2 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
+              className="relative flex h-10 min-w-[76px] items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
             >
-              <Wallet className="size-[18px] shrink-0" />
+              <Wallet className="size-4 shrink-0 text-[var(--accent)]" />
               <span className="max-w-[48px] truncate text-[10px] font-bold tabular-nums leading-none">
                 {walletBalance === null ? '...' : walletBalance.toLocaleString()}
               </span>
@@ -80,9 +80,9 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           {/* Cart */}
           <Link
             href="/cart"
-            className="relative flex items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-2.5 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
+            className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
           >
-            <ShoppingCart className="size-[22px]" />
+            <ShoppingCart className="size-5" />
             {cartCount > 0 && (
               <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-[var(--accent)] px-0.5 text-[10px] font-semibold leading-none text-white shadow-sm lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
                 {cartCount > 99 ? "99+" : cartCount}
@@ -96,9 +96,9 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
               type="button"
               onClick={() => openChat(null, null, null, false)}
               aria-label="Messages"
-              className={`relative flex items-center justify-center rounded-2xl border border-white/15 bg-white/10 p-2.5 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))] ${chatOverlayOpen ? "ring-2 ring-[var(--accent)]/50 dark:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]" : ""}`}
+              className={`relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))] ${chatOverlayOpen ? "ring-2 ring-[var(--accent)]/50 dark:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]" : ""}`}
             >
-              <MessageCircle className="size-[22px]" />
+              <MessageCircle className="size-5" />
               {unreadMessages > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-red-500 px-0.5 text-[10px] font-semibold leading-none text-white animate-pulse lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
                   {unreadMessages > 99 ? "99+" : unreadMessages}
