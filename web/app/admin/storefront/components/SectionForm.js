@@ -272,7 +272,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 <input 
                   autoFocus
                   placeholder={t('products.searchByNameBrandCategory', 'Search by name, brand, or category...')}
-                  className="h-12 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 !text-base font-semibold outline-none placeholder:text-[11px] placeholder:font-normal focus:border-[var(--accent)]"
+                  className="h-12 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[13px] font-semibold outline-none placeholder:text-[11px] placeholder:font-normal focus:border-[var(--accent)]"
                   value={productSearchQuery}
                   onChange={(e) => setProductSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && searchProducts()}
@@ -361,7 +361,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 <select 
                   value={formData.type}
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value, data: [] }))}
-                  className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
+                  className="h-12 w-full cursor-pointer appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[13px] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]"
                 >
                   <option value="hero" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Hero Banner Carousel</option>
                   <option value="categories" className="bg-[var(--bg-primary)] text-[var(--text-primary)]">Category Horizontal List</option>
@@ -382,7 +382,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="e.g. Best Sellers"
-                className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
+                className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[13px] font-semibold text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]"
               />
             </div>
           </div>
@@ -431,7 +431,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                            <input 
                              value={item.image_url}
                              onChange={(e) => updateDataItem(i, 'image_url', e.target.value)}
-                             className="h-11 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
+                             className="h-11 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[13px] outline-none focus:border-[var(--accent)]"
                              placeholder="Image URL"
                            />
                            <label className="flex min-w-[46px] cursor-pointer items-center justify-center rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 p-3 text-[var(--accent)] transition-all hover:bg-[var(--accent)]/20">
@@ -469,7 +469,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                           <input 
                             value={item.headline}
                             onChange={(e) => updateDataItem(i, 'headline', e.target.value)}
-                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
+                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[13px] outline-none focus:border-[var(--accent)]"
                           />
                         </div>
                         <div className="space-y-2">
@@ -477,7 +477,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                           <input 
                             value={item.subtext}
                             onChange={(e) => updateDataItem(i, 'subtext', e.target.value)}
-                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
+                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[13px] outline-none focus:border-[var(--accent)]"
                           />
                         </div>
                         <div className="space-y-2 md:col-span-2">
@@ -485,7 +485,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                           <input 
                             value={item.cta_text}
                             onChange={(e) => updateDataItem(i, 'cta_text', e.target.value)}
-                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
+                            className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[13px] outline-none focus:border-[var(--accent)]"
                             placeholder="e.g. Shop Now, Explore, Get Started"
                           />
                         </div>
@@ -508,7 +508,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                    setProductSearch('');
                                    setItemProductResults([]);
                                  }}
-                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 !text-base placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]"
+                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 text-[13px] placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]"
                                  placeholder="Search products by name..."
                                />
                                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-20" />
@@ -563,7 +563,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                 setActiveCategoryDropdown(activeCategoryDropdown === i ? null : i);
                                 setCategorySearch('');
                               }}
-                              className="flex h-11 w-full cursor-pointer items-center justify-between rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base transition-all hover:border-[var(--accent)]/40"
+                              className="flex h-11 w-full cursor-pointer items-center justify-between rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[13px] transition-all hover:border-[var(--accent)]/40"
                             >
                               <span className={item.category_name ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}>
                                 {item.category_name || 'Select Category'}
@@ -578,7 +578,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                       <input 
                                         autoFocus
                                         placeholder="Filter categories..."
-                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 !text-base font-bold text-[var(--text-primary)] outline-none placeholder:text-[11px] placeholder:font-normal placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
+                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 text-[13px] font-bold text-[var(--text-primary)] outline-none placeholder:text-[11px] placeholder:font-normal placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
                                         value={categorySearch}
                                         onChange={(e) => setCategorySearch(e.target.value)}
                                       />
@@ -618,7 +618,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                               <input 
                                 value={item.link_to}
                                 onChange={(e) => updateDataItem(i, 'link_to', e.target.value)}
-                                className="h-11 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base outline-none focus:border-[var(--accent)]"
+                                className="h-11 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[13px] outline-none focus:border-[var(--accent)]"
                                 placeholder="/categories/tech"
                               />
                               <button 
@@ -641,7 +641,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                       <input 
                                         autoFocus
                                         placeholder="Search category to link..."
-                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 !text-base font-bold text-[var(--text-primary)] outline-none placeholder:text-[11px] placeholder:font-normal placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
+                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 text-[13px] font-bold text-[var(--text-primary)] outline-none placeholder:text-[11px] placeholder:font-normal placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
                                         value={categorySearch}
                                         onChange={(e) => setCategorySearch(e.target.value)}
                                       />
@@ -695,7 +695,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                    setVendorSearch('');
                                    setItemVendorResults([]);
                                  }}
-                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 !text-base placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]"
+                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 text-[13px] placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]"
                                  placeholder="Search vendors by store name..."
                                />
                                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-20" />

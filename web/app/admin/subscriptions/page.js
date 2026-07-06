@@ -21,6 +21,7 @@ import {
   Sparkles,
   ToggleLeft,
   ToggleRight,
+  Trash2,
   Users,
   WalletCards,
   XCircle,
@@ -45,7 +46,7 @@ const defaultPlan = {
   is_active: true,
 };
 
-const fieldClass = 'h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)]';
+const fieldClass = 'h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[13px] font-semibold text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal outline-none transition focus:border-[var(--accent)]';
 
 const money = (value, currency = 'XAF') => `${Number(value || 0).toLocaleString()} ${currency}`;
 const shortDate = (value) => {
@@ -88,6 +89,13 @@ export default function AdminSubscriptionsPage() {
   const subscriptions = overview.subscriptions || [];
   const stats = overview.stats || {};
   const activePlansCount = plans.filter((plan) => plan.is_active).length;
+
+  // Compute counts from the subscriptions array so stats cards are always accurate
+  const activeCount = subscriptions.filter((s) => s.status === 'active').length;
+  const pendingCount = subscriptions.filter((s) => s.status === 'pending').length;
+  const graceCount = subscriptions.filter((s) => s.status === 'grace').length;
+  const limitedCount = subscriptions.filter((s) => s.status === 'limited').length;
+  const totalRevenue = subscriptions.reduce((sum, s) => sum + Number(s.amount_paid || 0), 0);
 
   const filteredSubscriptions = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -217,6 +225,17 @@ export default function AdminSubscriptionsPage() {
     }
   };
 
+  const deleteSubscription = async (id) => {
+    if (!window.confirm(t('subscription.deleteConfirm', 'Permanently delete this subscription? This cannot be undone.'))) return;
+    try {
+      await api.delete(`/subscriptions/admin/subscriptions/${id}`);
+      toast.success(t('subscription.subscriptionDeleted', 'Subscription deleted.'));
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not delete subscription.'));
+    }
+  };
+
   const activateManual = async () => {
     if (!manualActivation.user_id || !manualActivation.plan_id) {
       toast.error(t('subscription.manualRequired', 'User ID or Email and plan are required.'));
@@ -275,10 +294,10 @@ export default function AdminSubscriptionsPage() {
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Stat icon={Users} tone="accent" label={t('subscription.activeSubscribers', 'Active subscribers')} value={stats.active || 0} detail={`${stats.pending || 0} ${t('subscription.pending', 'pending payments')}`} />
-          <Stat icon={WalletCards} tone="emerald" label={t('subscription.revenue', 'Subscription revenue')} value={money(stats.revenue)} detail={`${stats.completed_payments || 0} completed payments`} />
+          <Stat icon={Users} tone="accent" label={t('subscription.activeSubscribers', 'Active subscribers')} value={activeCount} detail={`${pendingCount} ${t('subscription.pending', 'pending payments')}`} />
+          <Stat icon={WalletCards} tone="emerald" label={t('subscription.revenue', 'Subscription revenue')} value={money(totalRevenue || stats.revenue)} detail={`${subscriptions.length} total subscriptions`} />
           <Stat icon={Sparkles} tone="amber" label={t('subscription.activePlans', 'Active plans')} value={activePlansCount} detail={`${plans.length} total packages`} />
-          <Stat icon={ShieldCheck} tone="blue" label={t('subscription.graceUsers', 'Grace users')} value={stats.grace || 0} detail={`${stats.limited || 0} ${t('subscription.limitedUsers', 'limited users')}`} />
+          <Stat icon={ShieldCheck} tone="blue" label={t('subscription.graceUsers', 'Grace users')} value={graceCount} detail={`${limitedCount} ${t('subscription.limitedUsers', 'limited users')}`} />
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
@@ -383,11 +402,11 @@ export default function AdminSubscriptionsPage() {
                   className="h-10 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-9 pr-3 text-[11px] placeholder:text-[11px] placeholder:font-normal font-semibold outline-none focus:border-[var(--accent)]"
                 />
               </div>
-              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="h-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base font-semibold outline-none">
+              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="h-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[12px] font-semibold outline-none">
                 <option value="all">{t('common.allRoles', 'All roles')}</option>
                 {ROLE_OPTIONS.map((role) => <option key={role} value={role}>{label(role)}</option>)}
               </select>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base font-semibold outline-none">
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[12px] font-semibold outline-none">
                 {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status === 'all' ? t('common.all', 'All') : label(status)}</option>)}
               </select>
             </div>
@@ -399,6 +418,7 @@ export default function AdminSubscriptionsPage() {
             <SubscriberTable
               subscriptions={filteredSubscriptions}
               updateSubscription={updateSubscription}
+              deleteSubscription={deleteSubscription}
               t={t}
               label={label}
             />
@@ -467,7 +487,7 @@ function RoleGateCard({ role, enabled, graceDays, onToggle, onGraceChange, onGra
           value={graceDays}
           onChange={(event) => onGraceChange(event.target.value)}
           onBlur={(event) => onGraceBlur(event.target.value)}
-          className="mt-1 h-10 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 !text-base font-bold outline-none focus:border-[var(--accent)]"
+          className="mt-1 h-10 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[13px] font-bold outline-none focus:border-[var(--accent)]"
         />
       </label>
     </div>
@@ -681,7 +701,7 @@ function ManualActivationPanel({ manualActivation, setManualActivation, plans, a
   );
 }
 
-function SubscriberTable({ subscriptions, updateSubscription, t, label }) {
+function SubscriberTable({ subscriptions, updateSubscription, deleteSubscription, t, label }) {
   if (!subscriptions.length) {
     return <EmptyState title={t('subscription.noSubscribers', 'No subscribers yet.')} detail="Subscriptions will appear here when users pay or when an admin activates them manually." />;
   }
@@ -737,6 +757,7 @@ function SubscriberTable({ subscriptions, updateSubscription, t, label }) {
                     <ActionButton icon={CheckCircle2} label={t('common.activate', 'Activate')} onClick={() => updateSubscription(sub._id, 'activate')} />
                     <ActionButton icon={XCircle} label={t('common.cancel', 'Cancel')} onClick={() => updateSubscription(sub._id, 'cancel')} />
                     <ActionButton danger icon={RotateCcw} label={t('common.refund', 'Refund')} onClick={() => updateSubscription(sub._id, 'refund')} />
+                    <ActionButton danger icon={Trash2} label={t('common.delete', 'Delete')} onClick={() => deleteSubscription(sub._id)} />
                   </div>
                 </td>
               </tr>

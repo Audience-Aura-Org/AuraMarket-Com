@@ -86,7 +86,7 @@ export default function VendorDisputesPage() {
                 placeholder="Scan disputes..."
                 value={search}
                 onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full h-9 bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-2xl pl-9 pr-4 text-[11px] font-semibold placeholder:text-[var(--text-secondary)]/50 outline-none focus:border-[var(--accent)]/50 focus:ring-1 focus:ring-[var(--accent)]/20 transition-all"
+                className="w-full h-9 bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-2xl pl-9 pr-4 text-[11px] font-semibold placeholder:text-[11px] placeholder:font-normal placeholder:opacity-50 outline-none focus:border-[var(--accent)]/50 focus:ring-1 focus:ring-[var(--accent)]/20 transition-all"
               />
            </div>
            <button onClick={fetchDisputes} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">

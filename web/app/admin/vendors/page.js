@@ -383,7 +383,7 @@ export default function AdminVendorsPage() {
                             value={mediaForm[item.field]}
                             onChange={(event) => setMediaForm((prev) => ({ ...prev, [item.field]: event.target.value }))}
                             placeholder={item.placeholder}
-                            className="mt-2 h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-sm font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]/40 focus:border-[var(--accent)]"
+                            className="mt-2 h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[13px] font-semibold text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal placeholder:opacity-40 outline-none focus:border-[var(--accent)]"
                           />
                         </div>
                         <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-60 leading-normal">{item.hint}</p>
@@ -417,7 +417,7 @@ export default function AdminVendorsPage() {
                         value={mediaForm[item.field]}
                         onChange={(event) => setMediaForm((prev) => ({ ...prev, [item.field]: event.target.value }))}
                         placeholder={`${item.label} URL`}
-                        className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-base font-semibold text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
+                        className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[13px] font-semibold text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]"
                       />
                     </div>
                   ))}

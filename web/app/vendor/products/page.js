@@ -141,7 +141,7 @@ export default function VendorProductsPage() {
                     placeholder={t('products.searchPlaceholder', 'Search products or category')}
                     value={searchTerm}
                     onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                    className="h-9 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 pl-8 pr-3 text-[11px] placeholder:text-[var(--text-secondary)]/70 outline-none transition-all focus:border-[var(--accent)]/50 focus:bg-[var(--bg-primary)]/80 focus:ring-1 focus:ring-[var(--accent)]/20"
+                    className="h-9 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 pl-8 pr-3 text-[11px] placeholder:text-[11px] placeholder:font-normal placeholder:opacity-70 outline-none transition-all focus:border-[var(--accent)]/50 focus:bg-[var(--bg-primary)]/80 focus:ring-1 focus:ring-[var(--accent)]/20"
                   />
                 </div>
                 <div className="inline-flex items-center gap-1 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-1">

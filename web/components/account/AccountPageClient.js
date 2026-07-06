@@ -594,7 +594,7 @@ export default function AccountPageClient() {
                           <select
                             value={language}
                             onChange={(event) => handleLanguageChange(event.target.value)}
-                            className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 !text-base font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 md:text-sm"
+                            className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[13px] font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
                           >
                             {languages.map((item) => (
                               <option key={item.code} value={item.code}>
@@ -1442,7 +1442,7 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
           placeholder={placeholder}
           disabled={disabled}
           rows={4}
-          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-sm font-medium text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
         />
       ) : (
         <input
@@ -1451,7 +1451,7 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-sm font-medium text-[var(--text-primary)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
         />
       )}
     </div>

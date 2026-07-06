@@ -520,7 +520,7 @@ export default function OnboardingFlow() {
                     onChange={e => { setCategorySearch(e.target.value); setCategoryDropdownOpen(true); setSearch(e.target.value); }}
                     onFocus={() => setCategoryDropdownOpen(true)}
                     onBlur={() => setTimeout(() => setCategoryDropdownOpen(false), 150)}
-                    className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner placeholder:text-[var(--text-secondary)]/30"
+                    className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 py-3.5 text-[13px] font-semibold outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner placeholder:text-[11px] placeholder:font-normal placeholder:opacity-30"
                   />
                   {/* Dropdown results — one per line full width */}
                   <AnimatePresence>
@@ -863,7 +863,7 @@ export default function OnboardingFlow() {
                       value={location.address_description}
                       onChange={e => setLocation(p => ({ ...p, address_description: e.target.value }))}
                       rows={3}
-                      className="w-full bg-transparent text-sm font-medium outline-none resize-none placeholder:text-[var(--text-secondary)]/20 text-[var(--text-primary)] leading-relaxed min-h-[72px]"
+                      className="w-full bg-transparent text-[13px] font-medium outline-none resize-none placeholder:text-[11px] placeholder:font-normal placeholder:opacity-20 text-[var(--text-primary)] leading-relaxed min-h-[72px]"
                     />
                   </motion.div>
                 )}
@@ -882,7 +882,7 @@ export default function OnboardingFlow() {
                    placeholder="Search vendors..."
                    value={search}
                    onChange={e => setSearch(e.target.value)}
-                   className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 !text-base placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
+                   className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 text-[13px] placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
                  />
                </div>
 
@@ -1022,7 +1022,7 @@ export default function OnboardingFlow() {
                   value={vendorProfile.description}
                   onChange={e => setVendorProfile(p => ({ ...p, description: e.target.value.slice(0, 300) }))}
                   rows={4}
-                  className="w-full bg-transparent text-sm font-medium outline-none resize-none placeholder:text-[var(--text-secondary)]/20 text-[var(--text-primary)] leading-relaxed min-h-[100px]"
+                  className="w-full bg-transparent text-[13px] font-medium outline-none resize-none placeholder:text-[11px] placeholder:font-normal placeholder:opacity-20 text-[var(--text-primary)] leading-relaxed min-h-[100px]"
                 />
               </div>
             </div>
@@ -1044,7 +1044,7 @@ export default function OnboardingFlow() {
                         placeholder="e.g. Auradime Express"
                         value={logisticsProfile.company_name}
                         onChange={e => setLogisticsProfile(p => ({ ...p, company_name: e.target.value }))}
-                        className="w-full bg-transparent pl-11 pr-3 py-1.5 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/30"
+                        className="w-full bg-transparent pl-11 pr-3 py-1.5 text-[13px] font-bold outline-none placeholder:text-[11px] placeholder:font-normal placeholder:opacity-30"
                       />
                     </div>
                   </div>
@@ -1061,7 +1061,7 @@ export default function OnboardingFlow() {
                         placeholder="+237 6XX XXX XXX"
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
-                        className="w-full bg-transparent pl-11 pr-3 py-1.5 text-base font-bold outline-none placeholder:text-[var(--text-secondary)]/30"
+                        className="w-full bg-transparent pl-11 pr-3 py-1.5 text-[13px] font-bold outline-none placeholder:text-[11px] placeholder:font-normal placeholder:opacity-30"
                       />
                     </div>
                   </div>
@@ -1104,7 +1104,7 @@ export default function OnboardingFlow() {
                   placeholder="Filter service regions..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 !text-base placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
+                  className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 py-3 text-[13px] placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]/60 transition-all shadow-inner"
                 />
               </div>
 

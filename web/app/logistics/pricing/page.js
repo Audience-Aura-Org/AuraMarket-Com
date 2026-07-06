@@ -401,7 +401,7 @@ export default function LogisticsPricingPage() {
                         setSearchTerm(e.target.value);
                         setCurrentPage(1);
                       }}
-                      className="w-full border-none bg-transparent !text-base placeholder:text-[11px] placeholder:font-normal font-semibold tracking-tight outline-none"
+                      className="w-full border-none bg-transparent text-[13px] placeholder:text-[11px] placeholder:font-normal font-semibold tracking-tight outline-none"
                     />
                   </div>
                   <p className="text-[10px] font-semibold tracking-[0.2em] opacity-40">

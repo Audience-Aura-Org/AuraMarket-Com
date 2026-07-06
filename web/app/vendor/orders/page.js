@@ -220,7 +220,7 @@ export default function VendorOrdersPage() {
                <input
                  type="text"
                  placeholder="Find Reference..."
-                 className="w-full h-9 bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-2xl pl-10 pr-4 text-[11px] font-semibold tracking-tight text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 outline-none focus:border-[var(--accent)]/40 focus:bg-[var(--bg-secondary)] focus:ring-1 focus:ring-[var(--accent)]/20 transition-all"
+                 className="w-full h-9 bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-2xl pl-10 pr-4 text-[11px] font-semibold tracking-tight text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal placeholder:opacity-50 outline-none focus:border-[var(--accent)]/40 focus:bg-[var(--bg-secondary)] focus:ring-1 focus:ring-[var(--accent)]/20 transition-all"
                  value={search}
                  onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
                />
