@@ -373,7 +373,7 @@ export default function ShipmentStatusModal({
                   placeholder="e.g. Traffic delay, ready for pickup..."
                   value={updateData.note}
                   onChange={(e) => setUpdateData({ ...updateData, note: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 transition-all placeholder:font-medium placeholder:opacity-30"
+                  className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 transition-all placeholder:text-[11px] placeholder:font-normal placeholder:opacity-30"
                 />
               </div>
             </div>
