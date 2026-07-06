@@ -1862,15 +1862,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 className="max-h-[88px] min-h-[42px] w-full min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-[14px] leading-snug text-[var(--text-primary)] outline-none placeholder:text-[var(--text-secondary)]"
                 style={{ height: 'auto', contain: 'layout style paint', willChange: 'height' }}
                 onFocus={() => {
-                  setTimeout(() => viewportSyncRef.current?.(), 50);
-                  setTimeout(() => viewportSyncRef.current?.(), 150);
-                  setTimeout(() => viewportSyncRef.current?.(), 300);
-                  setTimeout(() => viewportSyncRef.current?.(), 500);
+                  // Immediate — before keyboard starts rising
+                  viewportSyncRef.current?.();
                   keepChatInView('auto');
-                  setTimeout(() => keepChatInView('auto'), 100);
-                  setTimeout(() => keepChatInView('auto'), 150);
-                  setTimeout(() => keepChatInView('auto'), 300);
-                  setTimeout(() => keepChatInView('auto'), 520);
+                  // Mid-animation — catches most Android keyboards
+                  setTimeout(() => { viewportSyncRef.current?.(); keepChatInView('auto'); }, 250);
+                  // Fully open — catches iOS spring animation finish
+                  setTimeout(() => { viewportSyncRef.current?.(); keepChatInView('auto'); }, 520);
                 }}
                 onBlur={() => {
                   setTimeout(() => viewportSyncRef.current?.(), 100);

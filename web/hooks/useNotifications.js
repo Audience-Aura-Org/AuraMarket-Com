@@ -18,6 +18,8 @@ import api from '@/services/api';
 import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 
+const NOTIFICATION_POLL_MS = 120_000;
+
 const getUnreadChatThreadTotal = (chats = []) =>
   chats.reduce((total, chat) => total + (Number(chat?.unread_count || 0) > 0 ? 1 : 0), 0);
 
@@ -88,8 +90,18 @@ export function useNotifications() {
     socketService.on('sent_message_echo', handleSentEcho);
     socketService.on('messages_read', handleMessagesRead);
 
-    // Refresh counts every 45s as a safety net
-    const interval = setInterval(fetchCounts, 45_000);
+    const poll = () => {
+      if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+        fetchCounts();
+      }
+    };
+    const handleVisible = () => {
+      if (document.visibilityState === 'visible') fetchCounts();
+    };
+
+    // Refresh counts every 120s as a safety net when sockets miss an event.
+    const interval = setInterval(poll, NOTIFICATION_POLL_MS);
+    document.addEventListener('visibilitychange', handleVisible);
 
     return () => {
       socketService.off('notification', handleNotification);
@@ -97,6 +109,7 @@ export function useNotifications() {
       socketService.off('sent_message_echo', handleSentEcho);
       socketService.off('messages_read', handleMessagesRead);
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisible);
     };
   }, [user?._id, fetchCounts]);
 

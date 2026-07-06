@@ -10,6 +10,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import Pagination from '@/components/common/Pagination';
 import { useLanguage } from '@/context/LanguageContext';
+import StatCard from '@/components/layout/StatCard';
 
 export default function VendorProductsPage() {
   const { t } = useLanguage();
@@ -164,12 +165,12 @@ export default function VendorProductsPage() {
           </div>
         )}
 
-        <div className="flex w-full items-center divide-x divide-[var(--glass-border)] overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
-          <MetricItem label={t('products.active', 'Active')} value={activeCount} />
-          <MetricItem label={t('products.low', 'Low')} value={lowStockCount} />
-          <MetricItem label={t('products.sold', 'Sold')} value={soldUnits} />
-          <MetricItem label={t('products.views', 'Views')} value={viewUnits} />
-          <MetricItem label={t('products.onSale', 'On Sale')} value={onSaleCount} accent />
+        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+          <StatCard label={t('products.total', 'Total')}    value={String(products.length)} icon="inventory_2"  color="indigo"  sub="Products" />
+          <StatCard label={t('products.active', 'Active')}  value={String(activeCount)}     icon="check_circle" color="emerald" sub="In stock" />
+          <StatCard label={t('products.low', 'Low Stock')}  value={String(lowStockCount)}   icon="warning"      color="amber"   sub="≤ 5 units" />
+          <StatCard label={t('products.onSale', 'On Sale')} value={String(onSaleCount)}     icon="sell"         color="primary" sub="Discounted" />
+          <StatCard label={t('products.sold', 'Sold')}      value={String(soldUnits)}       icon="shopping_bag" color="fuchsia" sub={`${viewUnits} views`} />
         </div>
 
         <section className="overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
@@ -216,13 +217,11 @@ export default function VendorProductsPage() {
   );
 }
 
-function MetricItem({ label, value, accent }) {
-  return (
-    <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5 px-2 py-2.5">
-      <span className="text-[10px] font-medium text-[var(--text-secondary)]">{label}</span>
-      <span className={`text-[12px] font-semibold ${accent ? 'text-[var(--accent)]' : ''}`}>{value}</span>
-    </div>
-  );
+
+function getProductImageUrl(product) {
+  const firstImage = product?.images?.[0];
+  if (!firstImage) return '';
+  return typeof firstImage === 'string' ? firstImage : firstImage.url || firstImage.location || '';
 }
 
 function ManagementCard({ product, onDelete, t }) {
@@ -240,8 +239,8 @@ function ManagementCard({ product, onDelete, t }) {
     <div className="group relative overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
       <Link href={`/vendor/products/edit/${product._id}`} className="block">
       <div className="relative aspect-[4/3] bg-[var(--bg-secondary)]">
-        {product.images?.[0]?.url ? (
-          <img src={product.images[0].url} alt={product.name} className="size-full object-cover transition duration-500 group-hover:scale-105" />
+        {getProductImageUrl(product) ? (
+          <img src={getProductImageUrl(product)} alt={product.name} loading="lazy" decoding="async" className="size-full object-cover transition duration-500 group-hover:scale-105" />
         ) : (
           <div className="flex size-full items-center justify-center text-[var(--accent)]/20">
             <Package className="size-10" />
@@ -323,8 +322,8 @@ function ListRow({ product, onDelete, t }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2.5">
       <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-secondary)]">
-        {product.images?.[0]?.url ? (
-          <img src={product.images[0].url} alt={product.name} className="size-full object-cover" />
+        {getProductImageUrl(product) ? (
+          <img src={getProductImageUrl(product)} alt={product.name} loading="lazy" decoding="async" className="size-full object-cover" />
         ) : (
           <div className="flex size-full items-center justify-center text-[var(--accent)]/20">
             <Package className="size-5" />

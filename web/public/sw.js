@@ -1,11 +1,15 @@
 /**
- * Auradime — PWA Service Worker v8
+ * Auradime — PWA Service Worker v9
  * Robust background push handling with redundant notification suppression.
  * Fix: RSC / prefetch requests are never intercepted (prevents 404 on dynamic routes).
  * Fix: Asset fallback never returns null to respondWith() (prevents Response TypeError).
+ * New: Stale-while-revalidate media cache for CDN images (status thumbnails, product photos).
  */
 
-const CACHE_NAME = 'aura-cache-v10';
+const CACHE_NAME       = 'aura-cache-v11';
+const MEDIA_CACHE_NAME = 'aura-media-v1';
+const MEDIA_CACHE_MAX  = 250; // max cached image entries
+
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -30,10 +34,11 @@ self.addEventListener('message', (event) => {
 
 // ── Activate: Cleanup old caches ────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
+  const keepCaches = new Set([CACHE_NAME, MEDIA_CACHE_NAME, 'aura-google-fonts']);
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+        keys.filter((k) => !keepCaches.has(k)).map((k) => caches.delete(k))
       )
     ).then(() => self.clients.claim())
   );
@@ -66,6 +71,14 @@ function normalizeNotificationUrl(rawUrl) {
   } catch {
     return rawUrl;
   }
+}
+
+// ── Helper: detect cacheable image media (skip videos — too large) ──────────
+function isCacheableMedia(url) {
+  // Explicit uploads path
+  if (url.pathname.startsWith('/uploads/')) return true;
+  // S3/CDN URLs ending with image extensions
+  return /\.(jpe?g|png|webp|avif|gif)(\?|$)/i.test(url.pathname + url.search);
 }
 
 // ── Fetch: Network-first for nav, cache-first for assets ────────────────────
@@ -122,6 +135,39 @@ self.addEventListener('fetch', (event) => {
         caches.match('/').then((cached) =>
           cached || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } })
         )
+      )
+    );
+    return;
+  }
+
+  // ── CDN images: stale-while-revalidate into dedicated media cache ────────────
+  // This makes watched status images, product photos, and avatars load
+  // instantly on repeat views — on both the PWA and the Capacitor APK.
+  if (isCacheableMedia(url)) {
+    event.respondWith(
+      caches.open(MEDIA_CACHE_NAME).then((mediaCache) =>
+        mediaCache.match(event.request).then((cached) => {
+          const fetchAndCache = fetch(event.request).then((response) => {
+            if (response.ok) {
+              mediaCache.put(event.request, response.clone());
+              // Evict oldest entries when over the size limit
+              mediaCache.keys().then((keys) => {
+                if (keys.length > MEDIA_CACHE_MAX) {
+                  const toEvict = keys.slice(0, keys.length - MEDIA_CACHE_MAX);
+                  toEvict.forEach((k) => mediaCache.delete(k));
+                }
+              });
+            }
+            return response;
+          }).catch(() =>
+            cached || new Response('Media unavailable offline', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain' },
+            })
+          );
+          // Serve cached immediately; revalidate in background
+          return cached || fetchAndCache;
+        })
       )
     );
     return;

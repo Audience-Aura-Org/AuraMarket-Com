@@ -28,6 +28,7 @@ import { LogisticsShortcutsRow } from "@/components/logistics/LogisticsSubpageSh
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 10;
+const DASHBOARD_POLL_MS = 90_000;
 
 function summarizeLineItems(order) {
   if (!order?.products?.length) return "—";
@@ -74,9 +75,9 @@ export default function LogisticsDashboard() {
     daysLeft: 14,
   });
 
-  const fetchDashboard = useCallback(async () => {
+  const fetchDashboard = useCallback(async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       const [shipRes, subRes] = await Promise.all([
         api.get("/logistics/shipments/firm", {
           params: {
@@ -121,15 +122,27 @@ export default function LogisticsDashboard() {
     } catch (err) {
       console.error("Failed to fetch logistics dashboard:", err);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   }, [page, filterStatus, sortBy, refreshWalletBalance]);
 
   useEffect(() => {
     if (!user || user.role !== "logistics") return;
+    const shouldPoll = () => typeof document === "undefined" || document.visibilityState === "visible";
+    const poll = () => {
+      if (shouldPoll()) fetchDashboard(true);
+    };
+    const handleVisible = () => {
+      if (document.visibilityState === "visible") fetchDashboard(true);
+    };
+
     fetchDashboard();
-    const interval = setInterval(fetchDashboard, 45000);
-    return () => clearInterval(interval);
+    const interval = setInterval(poll, DASHBOARD_POLL_MS);
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisible);
+    };
   }, [user, fetchDashboard]);
 
   useEffect(() => {

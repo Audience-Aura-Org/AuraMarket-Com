@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 
 const getResponseData = (res) => res?.data?.data || {};
+const DASHBOARD_POLL_MS = 60_000;
 
 const fulfilledValue = (result) => result?.status === 'fulfilled' ? result.value : null;
 
@@ -207,9 +208,22 @@ export default function VendorDashboard() {
       }
     };
 
+    const shouldPoll = () => typeof document === 'undefined' || document.visibilityState === 'visible';
+    const poll = () => {
+      if (shouldPoll()) fetchData(true);
+    };
+    const handleVisible = () => {
+      if (document.visibilityState === 'visible') fetchData(true);
+    };
+
     fetchData(true);
-    const timer = setInterval(() => fetchData(true), 30000);
-    return () => { isMounted = false; clearInterval(timer); };
+    const timer = setInterval(poll, DASHBOARD_POLL_MS);
+    document.addEventListener('visibilitychange', handleVisible);
+    return () => {
+      isMounted = false;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisible);
+    };
   }, [mounted, router, updateUser, user]);
 
   const handleRefresh = async () => {

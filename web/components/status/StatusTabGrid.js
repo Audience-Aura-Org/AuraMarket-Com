@@ -16,16 +16,17 @@ import { buildStatusSequences, getStatusVendorId, markStatusViewed } from '@/com
 
 const warmStoryMedia = (story, eager = false) => {
   if (!story?.content_url) return;
+  // Preload the thumbnail / cover image
   const previewUrl = story.type === 'video' ? story.thumbnail_url : story.content_url;
   if (previewUrl) {
     const img = new Image();
     img.fetchPriority = eager ? 'high' : 'auto';
     img.src = previewUrl;
-    return;
   }
+  // Also prime video metadata so playback starts without stalling
   if (story.type === 'video') {
     const video = document.createElement('video');
-    video.preload = 'none';
+    video.preload = eager ? 'metadata' : 'none';
     video.muted = true;
     video.playsInline = true;
     video.src = story.content_url;
@@ -265,7 +266,11 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [] }) {
   const handleOpen = (status, pool) => {
     const startStory = status.firstUnviewed || status.latestStory || status;
     const startId = startStory?._id;
-    pool.slice(0, 6).forEach((s) => warmStoryMedia(s, s._id === startId));
+    const startIndex = pool.findIndex((item) => item._id === startId);
+    const warmWindow = startIndex === -1
+      ? pool.slice(0, 6)
+      : pool.slice(Math.max(0, startIndex - 1), startIndex + 5);
+    warmWindow.forEach((s) => warmStoryMedia(s, s._id === startId));
     setFollowedStatuses((items) => markStatusViewed(items, startId));
     setGlobalStatuses((items) => markStatusViewed(items, startId));
     onSelectStatus(pool, startId);

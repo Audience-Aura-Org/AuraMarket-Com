@@ -11,26 +11,29 @@ import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 
 const STORY_DURATION = 5000;
-const VIDEO_PRELOAD_AHEAD = 2;
-const VIDEO_WAIT_TIMEOUT_MS = 6000;
+const VIDEO_PRELOAD_AHEAD = 3;
+const VIDEO_WAIT_TIMEOUT_MS = 3000;
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
 const preloadCache = new Set();
 const videoPreloadMap = new Map();
-function preloadMedia(url, type, { eager = false } = {}) {
+function preloadMedia(url, type, { eager = false, autoload = false } = {}) {
   if (!url || preloadCache.has(url)) return;
   preloadCache.add(url);
   if (type === 'video') {
     const existing = videoPreloadMap.get(url);
     if (existing) {
-      if (eager && existing.preload !== 'metadata') {
+      if (autoload && existing.preload !== 'auto') {
+        existing.preload = 'auto';
+        existing.load();
+      } else if (eager && existing.preload === 'none') {
         existing.preload = 'metadata';
         existing.load();
       }
       return;
     }
     const v = document.createElement('video');
-    v.preload = eager ? 'metadata' : 'none';
+    v.preload = autoload ? 'auto' : (eager ? 'metadata' : 'none');
     v.src = url;
     v.muted = true;
     v.playsInline = true;
@@ -474,11 +477,12 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
     for (let i = globalIdx + 1; i <= globalIdx + VIDEO_PRELOAD_AHEAD; i++) {
       const nextStory = initialStatuses[i];
       if (!nextStory) break;
-      const eager = i <= globalIdx + 2;
+      const eager    = i <= globalIdx + VIDEO_PRELOAD_AHEAD;
+      const autoload = i === globalIdx + 1; // full buffer only for the very next story
       if (nextStory.type === 'video') {
         preloadMedia(nextStory.thumbnail_url, 'image', { eager: true });
         keepVideoUrls.push(nextStory.content_url);
-        preloadMedia(nextStory.content_url, 'video', { eager });
+        preloadMedia(nextStory.content_url, 'video', { eager, autoload });
       } else {
         preloadMedia(nextStory.content_url, nextStory.type, { eager });
       }
@@ -806,9 +810,23 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
           />
         </div>
 
+        {/* Central play overlay */}
+        {paused && !isReplying && (
+          <button
+            type="button"
+            onClick={togglePaused}
+            className="absolute inset-0 z-[45] flex items-center justify-center pointer-events-auto"
+            aria-label={isVideo ? 'Resume video' : 'Resume story'}
+          >
+            <div className="flex size-20 items-center justify-center rounded-full border border-white/20 bg-black/50 shadow-2xl backdrop-blur-md">
+              <Play className="ml-1 size-9 text-white" />
+            </div>
+          </button>
+        )}
+
         {/* Header */}
         <div
-          className={`absolute inset-x-4 z-50 flex items-center justify-between transition-all duration-200 pointer-events-none ${(paused || isReplying) ? 'opacity-0 -translate-y-1' : 'opacity-100 translate-y-0'}`}
+          className={`absolute inset-x-4 z-50 flex items-center justify-between transition-all duration-200 pointer-events-none ${isReplying ? 'opacity-0 -translate-y-1' : 'opacity-100 translate-y-0'}`}
           style={{ top: 'calc(max(env(safe-area-inset-top, 0px), 14px) + 14px)' }}
         >
           <div 
@@ -848,11 +866,6 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
           </div>
 
           <div className="flex items-center gap-2 pointer-events-auto">
-            {paused && !isVideo && (
-              <div className="size-9 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-                <Pause className="size-4 text-white" />
-              </div>
-            )}
             {isVideo && (
               <button
                 onClick={togglePaused}
@@ -880,7 +893,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
         </div>
 
         {/* Tap zones */}
-        <div className="absolute inset-0 z-40 flex pointer-events-none">
+        <div className={`absolute inset-0 z-40 flex transition-opacity duration-200 ${paused && !isReplying ? 'opacity-0 pointer-events-none' : 'pointer-events-none'}`}>
           <div className="w-[35%] h-full pointer-events-auto" onClick={e => { e.stopPropagation(); goPrev(); }} />
           <div className="flex-1 h-full pointer-events-auto" onClick={e => { e.stopPropagation(); goNext(); }} />
         </div>
