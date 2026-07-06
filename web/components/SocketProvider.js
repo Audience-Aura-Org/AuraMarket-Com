@@ -505,26 +505,34 @@ export default function SocketProvider({ children }) {
 
       if (msg.type === 'push-received') {
         const payload = msg.payload || {};
-        const senderId = payload.sender_id || payload.senderId || payload.data?.senderId || payload.data?.sender_id;
+        const pushSenderId = payload.sender_id || payload.senderId || payload.data?.senderId || payload.data?.sender_id;
         const text = payload.body || payload.message || 'New message received';
-        const route = payload.data?.url || payload.url || (senderId ? `/chat?vendorId=${senderId}` : '/chat');
+        const route = payload.data?.url || payload.url || (pushSenderId ? `/chat?vendorId=${pushSenderId}` : '/chat');
+        const pushType = payload.type || 'default';
 
         if (isAppForeground()) {
-          // If chat for this sender is active, don't show a toast; otherwise show briefly
-          const senderId = payload.sender_id || payload.senderId || payload.data?.senderId || payload.data?.sender_id;
-          if (senderId && activePartnerIdRef.current?.toString() === String(senderId)) {
+          // If the active chat for this sender is already open, suppress entirely.
+          if (pushSenderId && activePartnerIdRef.current?.toString() === String(pushSenderId)) {
             console.log('[SocketProvider] SW push received for active chat; skipping toast.');
-          } else {
-            setNotifToast({
-              id: Date.now(),
-              type: payload.type || 'default',
-              title: payload.title || 'Auradime',
-              message: text,
-              link: route,
-            });
-            if (notifToastTimer.current) clearTimeout(notifToastTimer.current);
-            notifToastTimer.current = setTimeout(() => setNotifToast(null), 3000);
+            return;
           }
+
+          // If socket is connected and delivering messages in real-time, the socket handler
+          // already shows a chatToast — skip the duplicate notifToast from the push.
+          if (pushType === 'message' && socketService.isConnected()) {
+            console.log('[SocketProvider] SW push-received skipped: socket handling delivery.');
+            return;
+          }
+
+          setNotifToast({
+            id: Date.now(),
+            type: pushType,
+            title: payload.title || 'Auradime',
+            message: text,
+            link: route,
+          });
+          if (notifToastTimer.current) clearTimeout(notifToastTimer.current);
+          notifToastTimer.current = setTimeout(() => setNotifToast(null), 3000);
         }
       }
     };

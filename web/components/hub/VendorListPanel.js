@@ -101,7 +101,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
             onChange={e => setSearch(e.target.value)}
             placeholder={t('vendor.searchPlaceholder', 'Search vendors...')}
             style={{ touchAction: 'manipulation' }}
-            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-10 pr-10 text-base placeholder:text-base font-medium focus:ring-1 focus:ring-[var(--accent)] outline-none placeholder:text-[var(--text-secondary)]/50 transition-all"
+            className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-10 pr-10 text-[11px] placeholder:text-[11px] placeholder:font-normal font-medium focus:ring-1 focus:ring-[var(--accent)] outline-none placeholder:text-[var(--text-secondary)]/50 transition-all"
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2">

@@ -380,7 +380,7 @@ export default function AdminSubscriptionsPage() {
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={t('common.search', 'Search')}
-                  className="h-10 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-9 pr-3 !text-base font-semibold outline-none focus:border-[var(--accent)]"
+                  className="h-10 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-9 pr-3 text-[11px] placeholder:text-[11px] placeholder:font-normal font-semibold outline-none focus:border-[var(--accent)]"
                 />
               </div>
               <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="h-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 !text-base font-semibold outline-none">

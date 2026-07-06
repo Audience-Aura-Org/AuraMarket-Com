@@ -28,6 +28,8 @@ export function useNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const latestCount = useRef(0);
+  // Debounce timer: rapid incoming messages only trigger one badge refresh per 500ms burst.
+  const msgDebounceRef = useRef(null);
 
   const fetchCounts = useCallback(async () => {
     if (!user?._id) return;
@@ -71,23 +73,21 @@ export function useNotifications() {
     };
 
     // ── Real-time: new chat message received ──
+    // Debounced so rapid messages don't hammer the API — one refresh per 500ms burst.
     const handleMessage = () => {
-      fetchCounts();
+      if (msgDebounceRef.current) clearTimeout(msgDebounceRef.current);
+      msgDebounceRef.current = setTimeout(() => fetchCounts(), 500);
     };
 
-    // ── Real-time: message echo when we send (inbox thread needs refresh) ──
-    const handleSentEcho = () => {
-      fetchCounts();
-    };
+    // sent_message_echo fires when WE send — our unread count doesn't change, skip.
 
-    // ── Mark messages as read (read receipts — decrement badge instantly) ──
+    // ── Mark messages as read (read receipts — update badge accurately) ──
     const handleMessagesRead = () => {
       fetchCounts();
     };
 
     socketService.on('notification', handleNotification);
     socketService.on('receive_message', handleMessage);
-    socketService.on('sent_message_echo', handleSentEcho);
     socketService.on('messages_read', handleMessagesRead);
 
     const poll = () => {
@@ -106,8 +106,8 @@ export function useNotifications() {
     return () => {
       socketService.off('notification', handleNotification);
       socketService.off('receive_message', handleMessage);
-      socketService.off('sent_message_echo', handleSentEcho);
       socketService.off('messages_read', handleMessagesRead);
+      if (msgDebounceRef.current) clearTimeout(msgDebounceRef.current);
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisible);
     };

@@ -85,7 +85,7 @@ function StoresDirectoryContent() {
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 placeholder={t('store.searchPlaceholder', 'Search stores...')}
-                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-12 pr-4 !text-base placeholder:!text-base font-medium text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 focus:outline-none focus:border-[var(--accent)]/50 transition-all shadow-sm"
+                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-12 pr-4 text-[11px] placeholder:text-[11px] placeholder:font-normal font-medium text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 focus:outline-none focus:border-[var(--accent)]/50 transition-all shadow-sm"
               />
             </div>
             <motion.button

@@ -731,10 +731,13 @@ export function ChatProvider({ children }) {
     const onVisible = () => {
       if (document.visibilityState === 'visible') syncInboxFromServer();
     };
+    // When socket reconnects after a drop, immediately fetch any messages missed during downtime.
+    const onSocketReconnect = () => syncInboxFromServer({ force: true });
 
     window.addEventListener('online', onOnline);
     window.addEventListener('focus', onFocus);
     document.addEventListener('visibilitychange', onVisible);
+    socketService.on('connect', onSocketReconnect);
 
     return () => {
       stopped = true;
@@ -742,6 +745,7 @@ export function ChatProvider({ children }) {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisible);
+      socketService.off('connect', onSocketReconnect);
     };
   }, [user?._id, syncInboxFromServer]);
 

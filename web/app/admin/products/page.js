@@ -178,7 +178,7 @@ export default function AdminProductsPage() {
             <input
               type="text"
               placeholder="Search assets..."
-              className="bg-transparent border-none outline-none !text-base placeholder:!text-base font-semibold tracking-tight w-full placeholder:opacity-40"
+              className="bg-transparent border-none outline-none text-[11px] placeholder:text-[11px] placeholder:font-normal font-semibold tracking-tight w-full placeholder:opacity-40"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             />
