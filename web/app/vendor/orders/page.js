@@ -216,11 +216,11 @@ export default function VendorOrdersPage() {
           {/* Row 2: Search + Desktop filters */}
           <div className="mt-3 flex items-center gap-3">
             <div className="relative flex-1 md:max-w-xs group">
-               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-30 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
+               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)] opacity-30 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
                <input
                  type="text"
                  placeholder="Find Reference..."
-                 className="w-full h-10 bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-xs font-medium tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/40 focus:bg-[var(--bg-secondary)] transition-all font-[Poppins]"
+                 className="w-full h-9 bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-2xl pl-10 pr-4 text-[11px] font-semibold tracking-tight text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 outline-none focus:border-[var(--accent)]/40 focus:bg-[var(--bg-secondary)] focus:ring-1 focus:ring-[var(--accent)]/20 transition-all"
                  value={search}
                  onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
                />

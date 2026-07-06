@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 import { applyVariantPricing, formatVariantLabel } from '@/utils/variants';
+import { MOBILE_MONEY_PROVIDERS } from '@/lib/formatting';
 
 const cartLineKey = (item) => {
   const productId = item.product_id || item.product?._id || item.product;
@@ -1193,8 +1194,9 @@ function CheckoutContent() {
                                             onChange={(e) => setFormData(prev => ({...prev, payunit: {...prev.payunit, provider: e.target.value}}))}
                                             className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
                                           >
-                                            <option value="CM_MTNMOMO">MTN Mobile Money</option>
-                                            <option value="CM_ORANGE">Orange Money</option>
+                                            {MOBILE_MONEY_PROVIDERS.map(p => (
+                                              <option key={p.id} value={p.id}>{p.label}</option>
+                                            ))}
                                           </select>
                                        ) : (
                                           <div className="flex h-12 w-full cursor-not-allowed select-none items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[11px] font-semibold lg:text-[12px]">

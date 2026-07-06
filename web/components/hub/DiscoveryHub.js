@@ -217,18 +217,18 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
               transition={{ duration: 0.2 }}
               className="flex flex-col relative"
             >
-              {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
+              {(followedStatuses?.length > 0 || user?.role === 'vendor' || user?.role === 'logistics') && (
                 <div
                   className="sticky z-[50] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 shadow-sm overflow-hidden"
                   style={{ top: TOP_NAV_HEIGHT }}
                 >
-                  <StatusRow 
-                    statuses={followedStatuses} 
+                  <StatusRow
+                    statuses={followedStatuses}
                     onSelect={(items, storyId) => {
                       openStatusSequence(items, storyId);
                     }}
                     onAdd={() => setShowCreator(true)}
-                    isVendor={user?.role === 'vendor'}
+                    isVendor={user?.role === 'vendor' || user?.role === 'logistics'}
                   />
                 </div>
               )}
@@ -254,24 +254,27 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              {(followedStatuses?.length > 0 || user?.role === 'vendor') && (
+              {(followedStatuses?.length > 0 || user?.role === 'vendor' || user?.role === 'logistics') && (
                 <div
                   className="sticky z-[50] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 overflow-hidden"
                   style={{ top: TOP_NAV_HEIGHT }}
                 >
-                  <StatusRow 
-                    statuses={followedStatuses} 
+                  <StatusRow
+                    statuses={followedStatuses}
                     onSelect={(items, storyId) => {
                       openStatusSequence(items, storyId);
                     }}
                     onAdd={() => setShowCreator(true)}
-                    isVendor={user?.role === 'vendor'}
+                    isVendor={user?.role === 'vendor' || user?.role === 'logistics'}
                   />
                 </div>
               )}
-              <StatusTabGrid viewedStoryIds={viewedStoryIds} onSelectStatus={(items, storyId) => {
-                openStatusSequence(items, storyId);
-              }} />
+              <StatusTabGrid
+                viewedStoryIds={viewedStoryIds}
+                onSelectStatus={(items, storyId) => { openStatusSequence(items, storyId); }}
+                onAdd={() => setShowCreator(true)}
+                isCreator={user?.role === 'vendor' || user?.role === 'logistics'}
+              />
             </motion.div>
           )}
 

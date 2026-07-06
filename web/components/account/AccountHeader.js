@@ -1,21 +1,71 @@
 "use client";
 
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Camera } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/hooks/useAuth';
 
-export default function AccountHeader({ title = "Account Settings" }) {
+export default function AccountHeader({ title = "Account Settings", profileBranding, canUseBanner, onBannerUpload }) {
   const router = useRouter();
+  const { user } = useAuthStore();
+
+  const displayName = user?.name || 'Aura User';
+  const avatarSrc = profileBranding?.logo || user?.branding?.logo || user?.avatar;
+  const bannerSrc = profileBranding?.banner || user?.branding?.banner;
 
   return (
-    <div className="sticky top-0 lg:top-0 max-lg:top-14 z-50 border-b border-[var(--glass-border)] backdrop-blur-2xl bg-[var(--bg-primary)]/80">
-      <div className="max-w-[90%] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.back()} className="p-2 hover:bg-[var(--bg-secondary)]/50 rounded-[1.5rem] transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-lg  font-bold tracking-tight">{title}</h1>
+    <div className="sticky top-0 z-50 lg:top-0 max-lg:top-14">
+      {/* Hero Banner Layer */}
+      <div className="relative h-28 md:h-32 overflow-hidden bg-gradient-to-br from-[var(--accent)] via-indigo-600 to-purple-700">
+        {bannerSrc && (
+          <img
+            src={bannerSrc}
+            alt=""
+            className="absolute inset-0 size-full object-cover opacity-60"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70" />
+
+        {/* Back button overlay */}
+        <button
+          onClick={() => router.back()}
+          className="absolute top-4 left-4 size-9 flex items-center justify-center rounded-xl bg-black/30 backdrop-blur-md border border-white/20 text-white hover:bg-black/50 transition-all active:scale-95"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+
+        {/* Banner upload (vendors/logistics) */}
+        {canUseBanner && onBannerUpload && (
+          <label className="absolute top-4 right-4 size-9 flex items-center justify-center rounded-xl bg-black/30 backdrop-blur-md border border-white/20 text-white hover:bg-black/50 transition-all cursor-pointer active:scale-95">
+            <Camera className="w-4 h-4" />
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => onBannerUpload(e.target.files?.[0])}
+            />
+          </label>
+        )}
+      </div>
+
+      {/* Name bar that sits just below banner */}
+      <div className="bg-[var(--bg-primary)]/95 backdrop-blur-2xl border-b border-[var(--glass-border)] px-4 py-2.5 flex items-center gap-3">
+        {/* Tiny avatar */}
+        <div className="size-8 rounded-xl overflow-hidden border border-[var(--glass-border)] shrink-0 bg-[var(--bg-secondary)]">
+          {avatarSrc ? (
+            <img src={avatarSrc} alt="" className="size-full object-cover" />
+          ) : (
+            <div className="size-full flex items-center justify-center text-sm font-bold text-[var(--accent)] bg-[var(--accent)]/10">
+              {displayName[0]?.toUpperCase()}
+            </div>
+          )}
         </div>
-        <div className="w-9" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-[var(--text-primary)] truncate leading-tight">{displayName}</p>
+          <p className="text-[10px] font-semibold text-[var(--text-secondary)] capitalize opacity-60 leading-tight">{user?.role || 'user'} account</p>
+        </div>
+        <span className="shrink-0 px-2.5 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[10px] font-bold uppercase tracking-wide">
+          {user?.role || 'user'}
+        </span>
       </div>
     </div>
   );

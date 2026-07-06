@@ -12,7 +12,7 @@ import { toast } from 'react-hot-toast';
 
 const STORY_DURATION = 5000;
 const VIDEO_PRELOAD_AHEAD = 3;
-const VIDEO_WAIT_TIMEOUT_MS = 3000;
+const VIDEO_WAIT_TIMEOUT_MS = 5000;
 
 // ─── Preload helper ──────────────────────────────────────────────────────────
 const preloadCache = new Set();
@@ -104,6 +104,17 @@ const StoryVideo = memo(function StoryVideo({
   const safeSegmentEnd = Number.isFinite(Number(segmentEnd)) && Number(segmentEnd) > safeSegmentStart
     ? Number(segmentEnd)
     : null;
+
+  // Set Android WebView / Capacitor attributes imperatively — JSX props alone are
+  // not reliable for webkit-playsinline / x5-playsinline on all WebView versions.
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    v.setAttribute('webkit-playsinline', 'true');
+    v.setAttribute('x5-video-player-type', 'h5');
+    v.setAttribute('x5-playsinline', 'true');
+    v.setAttribute('playsinline', 'true');
+  }, []); // once on mount
 
   useEffect(() => {
     setPlaybackSrc(src);

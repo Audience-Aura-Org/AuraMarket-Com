@@ -79,13 +79,13 @@ export default function VendorRatingsPage() {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
            <div className="relative group flex-1 md:flex-none md:w-80">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20" />
-              <input 
-                type="text" 
-                placeholder="Scan reviews..." 
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)] opacity-30 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
+              <input
+                type="text"
+                placeholder="Scan reviews..."
                 value={search}
                 onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-[11px] lg:text-[12px] font-semibold outline-none focus:border-[var(--accent)] transition-all"
+                className="w-full h-9 bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-2xl pl-9 pr-4 text-[11px] font-semibold placeholder:text-[var(--text-secondary)]/50 outline-none focus:border-[var(--accent)]/50 focus:ring-1 focus:ring-[var(--accent)]/20 transition-all"
               />
            </div>
            <button onClick={fetchReviews} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">

@@ -22,6 +22,7 @@ import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import { MOBILE_MONEY_PROVIDERS } from '@/lib/formatting';
 
 const ROLE_LABELS = {
   customer: 'Customer',
@@ -381,10 +382,7 @@ function SubscribeContent() {
                         <div className="space-y-2">
                           <span className="text-xs font-bold text-[var(--text-secondary)]">{t('subscription.provider', 'Network provider')}</span>
                           <div className="grid grid-cols-2 gap-3">
-                            {[
-                              { id: 'CM_MTNMOMO', label: 'MTN Mobile Money' },
-                              { id: 'CM_ORANGE', label: 'Orange Money' },
-                            ].map(node => (
+                            {MOBILE_MONEY_PROVIDERS.map(node => (
                               <button
                                 key={node.id}
                                 type="button"

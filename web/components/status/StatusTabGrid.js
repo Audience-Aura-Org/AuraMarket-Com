@@ -4,7 +4,7 @@ import {
   Flame, Play, Search, X,
   Clock, ShoppingBag,
   Users, Globe,
-  Layers
+  Layers, Plus, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
@@ -183,7 +183,7 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unvie
 const CATEGORIES = STATUS_FILTER_CATEGORIES;
 
 // â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [] }) {
+export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onAdd, isCreator = false }) {
   const { user }                   = useAuthStore();
   const [followedStatuses, setFollowedStatuses] = useState([]);
   const [globalStatuses,   setGlobalStatuses]   = useState([]);
@@ -360,6 +360,25 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [] }) {
           </div>
         </div>
       </div>
+
+      {/* ─── Create Story CTA (vendors / logistics) ─── */}
+      {isCreator && onAdd && (
+        <div className="w-full px-2 pt-4 sm:px-3 lg:px-4">
+          <button
+            onClick={onAdd}
+            className="w-full flex items-center gap-4 p-4 rounded-3xl bg-gradient-to-r from-[var(--accent)]/10 to-indigo-500/10 border border-[var(--accent)]/20 hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/15 transition-all group active:scale-[0.99]"
+          >
+            <div className="size-12 rounded-2xl bg-[var(--accent)] flex items-center justify-center shrink-0 shadow-lg shadow-[var(--accent)]/25 group-hover:scale-105 transition-transform">
+              <Plus className="size-6 text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight">Post a Story</p>
+              <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-70">Share a moment, product, or update with your network</p>
+            </div>
+            <Sparkles className="size-5 text-[var(--accent)] opacity-50 shrink-0" />
+          </button>
+        </div>
+      )}
 
       {/* ─── Grid ─── */}
       <div className="w-full px-2 pt-4 sm:px-3 lg:px-4">

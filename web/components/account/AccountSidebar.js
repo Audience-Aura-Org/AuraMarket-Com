@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Moon, Sun } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
 import { TABS } from './constants';
@@ -25,31 +25,26 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
 
   return (
     <div className="lg:col-span-1">
-      <div className="sticky top-20 space-y-2">
-        {/* Profile Card */}
-        <div className="bg-gradient-to-br from-[var(--bg-secondary)]/30 to-transparent border border-[var(--glass-border)] rounded-2xl p-3 backdrop-blur-3xl shadow-xl transition-all duration-500 hover:shadow-2xl space-y-2">
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl overflow-hidden border border-[var(--glass-border)] bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 flex items-center justify-center">
-              {(user?.branding?.logo || user?.avatar) ? (
-                <img src={user?.branding?.logo || user?.avatar} className="w-full h-full object-cover" alt="" />
-              ) : (
-                <User className="w-6 h-6 text-[var(--accent)]" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm  font-semibold truncate">{user?.name}</p>
-              <p className="text-xs text-[var(--text-secondary)] capitalize truncate">{user?.role}</p>
-            </div>
+      <div className="sticky top-[160px] space-y-1.5">
+        {/* Theme toggle chip */}
+        <button
+          onClick={toggleTheme}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 hover:bg-[var(--bg-secondary)]/60 transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] group"
+        >
+          <div className="size-7 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center shrink-0 group-hover:bg-[var(--accent)]/20 transition-colors">
+            {theme === 'dark' ? (
+              <Moon className="w-3.5 h-3.5 text-[var(--accent)]" />
+            ) : (
+              <Sun className="w-3.5 h-3.5 text-[var(--accent)]" />
+            )}
           </div>
-          <div className="flex gap-2">
-            <button onClick={toggleTheme} className="flex-1 p-2 rounded-xl bg-[var(--bg-secondary)]/50 hover:bg-[var(--glass-border)] transition-colors flex items-center justify-center gap-2">
-              {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
+          <span className="text-[11px] font-semibold tracking-tight">
+            {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+          </span>
+        </button>
 
         {/* Navigation */}
-        <nav className="space-y-2">
+        <nav className="space-y-1">
           {filteredTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -57,14 +52,20 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
               <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all text-left group ${
                   isActive
-                    ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                    : 'hover:bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    ? 'bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/25'
+                    : 'hover:bg-[var(--bg-secondary)]/60 text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[var(--accent)]'}`} />
-                <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">{t(`tabs.${tab.id}`, tab.label)}</span>
+                <div className={`size-7 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                  isActive
+                    ? 'bg-white/20'
+                    : 'bg-[var(--accent)]/10 group-hover:bg-[var(--accent)]/20'
+                }`}>
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-[var(--accent)]'}`} />
+                </div>
+                <span className="text-[11px] font-semibold tracking-tight">{t(`tabs.${tab.id}`, tab.label)}</span>
               </button>
             );
           })}

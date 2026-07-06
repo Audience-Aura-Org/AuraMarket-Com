@@ -211,7 +211,7 @@ export default function LogisticsManifestsPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={handleSearchKey}
-                className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] pl-9 pr-3 text-[10px] font-semibold outline-none ring-[var(--accent)]/20 focus:ring-4 focus:ring-offset-1"
+                className="h-9 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] pl-9 pr-3 text-[11px] font-semibold placeholder:text-[var(--text-secondary)]/50 outline-none focus:border-[var(--accent)]/50 focus:ring-1 focus:ring-[var(--accent)]/20 transition-all"
               />
             </div>
             <button

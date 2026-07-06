@@ -138,13 +138,13 @@ const seekVideoFrame = (video, targetTime, canvas, ctx) =>
 
     // How long to wait after seeked before drawing.
     // Android HW decoder commits the pixel surface asynchronously after seeked fires.
-    const postSeekDelay = isNative ? 550 : isMob ? 180 : 60;
+    const postSeekDelay = isNative ? 380 : isMob ? 150 : 60;
 
     // Hard outer timeout — fires if seeked never arrives.
     const hardTimer = setTimeout(() => {
       video.removeEventListener('seeked', onSeeked);
       capture();
-    }, isNative ? 5000 : isMob ? 3000 : 1200);
+    }, isNative ? 3500 : isMob ? 2000 : 1200);
 
     const onSeeked = () => {
       // On desktop, requestVideoFrameCallback is the most reliable paint signal.
@@ -235,7 +235,7 @@ async function generateVideoThumbnail(file) {
     });
 
     // Extra wait on native so the HW decoder can commit its pixel surface.
-    if (isNative) await new Promise((r) => setTimeout(r, 600));
+    if (isNative) await new Promise((r) => setTimeout(r, 400));
 
     const maxWidth = 720;
     const scale = Math.min(1, maxWidth / Math.max(video.videoWidth, 1));
@@ -772,7 +772,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       video.onloadeddata = done;
       video.oncanplay = done;
       video.onerror = done;
-      setTimeout(done, needsOffscreenFilmstripCapture() ? 4500 : 3000);
+      setTimeout(done, needsOffscreenFilmstripCapture() ? 3000 : 2500);
     });
 
     video.preload = 'auto';
@@ -793,13 +793,13 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         let captureVideo = video;
 
         if (!needsOffscreenFilmstripCapture()) {
-          const previewVideo = await waitForPreviewVideo(previewVideoRef, isMobileWeb() ? 8000 : 5000);
+          const previewVideo = await waitForPreviewVideo(previewVideoRef, isMobileWeb() ? 5000 : 3000);
           if (!cancelled && previewVideo?.readyState >= 2 && previewVideo.videoWidth > 0) {
             captureVideo = previewVideo;
           }
         }
 
-        const decoderDelay = needsOffscreenFilmstripCapture() ? 600 : isMobileWeb() ? 200 : 100;
+        const decoderDelay = needsOffscreenFilmstripCapture() ? 380 : isMobileWeb() ? 180 : 100;
         if (captureVideo.readyState < 2 || captureVideo.videoWidth === 0) {
           await kickVideoDecoder(captureVideo, { delayMs: decoderDelay });
         } else if (needsOffscreenFilmstripCapture()) {
@@ -810,7 +810,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         // to commit its first surface before starting frame-by-frame capture.
         if (needsOffscreenFilmstripCapture()) {
           captureVideo.currentTime = 0.001;
-          await new Promise((r) => setTimeout(r, 300));
+          await new Promise((r) => setTimeout(r, 200));
         }
 
         const duration = videoMeta.duration;
@@ -828,9 +828,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           for (let i = 0; i < numFrames; i++) {
             if (cancelled) break;
             if (needsOffscreenFilmstripCapture() && i > 0) {
-              // Longer inter-frame pause on Capacitor — Android HW decoder needs
-              // more time to commit each new surface after a seek.
-              await new Promise((resolve) => setTimeout(resolve, 200));
+              // Inter-frame pause on Capacitor — Android HW decoder needs
+              // time to commit each new surface after a seek.
+              await new Promise((resolve) => setTimeout(resolve, 150));
             }
             const time =
               i === 0

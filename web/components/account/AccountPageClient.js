@@ -426,7 +426,12 @@ export default function AccountPageClient() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] pb-[calc(5rem+env(safe-area-inset-bottom,0px))]">
-      <AccountHeader title={t('settings.title')} />
+      <AccountHeader
+        title={t('settings.title')}
+        profileBranding={profileBranding}
+        canUseBanner={canUseBanner}
+        onBannerUpload={(file) => handleBrandingFileUpload('banner', file)}
+      />
 
       <div className="w-full px-1.5 sm:px-2 lg:px-3 py-2 grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-3">
         <AccountSidebar activeTab={activeTab} onTabChange={handleTabChange} />
@@ -443,35 +448,42 @@ export default function AccountPageClient() {
             >
               {activeTab === 'general' && (
                 <div className="space-y-3">
-                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl w-full">
-                    <div className="flex flex-col md:flex-row items-center md:items-center gap-3 md:gap-4">
+                  {/* Avatar Upload Card */}
+                  <div className="relative overflow-hidden glass-panel rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 backdrop-blur-3xl p-4 shadow-lg w-full">
+                    <div className="flex items-center gap-4">
                       <div className="relative group shrink-0">
-                        <div className="size-28 md:size-32 rounded-full border-4 border-[var(--bg-secondary)] bg-[var(--bg-secondary)] overflow-hidden shadow-xl relative z-10 flex items-center justify-center text-4xl  font-bold text-[var(--accent)]">
-                          {profileBranding.logo ? (
-                            <img src={profileBranding.logo} className="size-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
+                        <div className="size-20 rounded-2xl border-2 border-[var(--glass-border)] bg-[var(--bg-secondary)] overflow-hidden shadow-xl relative z-10 flex items-center justify-center text-3xl font-bold text-[var(--accent)]">
+                          {brandingUploading === 'logo' ? (
+                            <div className="size-full flex items-center justify-center bg-[var(--bg-secondary)]">
+                              <div className="size-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+                            </div>
+                          ) : profileBranding.logo ? (
+                            <img src={profileBranding.logo} className="size-full object-cover" alt="" />
                           ) : (
-                            user?.name?.[0]?.toUpperCase()
+                            <div className="size-full flex items-center justify-center bg-[var(--accent)]/10">
+                              {user?.name?.[0]?.toUpperCase()}
+                            </div>
                           )}
                         </div>
-                        <label className="absolute bottom-0 right-0 size-10 rounded-full bg-[var(--bg-secondary)] text-[var(--text-primary)] border-4 border-[var(--bg-primary)] flex items-center justify-center hover:scale-110 hover:text-[var(--accent)] transition-all shadow-xl cursor-pointer z-20">
-                          <Camera className="size-4" />
+                        <label className="absolute -bottom-1 -right-1 size-8 rounded-xl bg-[var(--accent)] text-white border-2 border-[var(--bg-primary)] flex items-center justify-center hover:scale-110 transition-all shadow-lg cursor-pointer z-20">
+                          <Camera className="size-3.5" />
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBrandingFileUpload('logo', e.target.files?.[0])} />
                         </label>
                       </div>
-
-                      <div className="flex-1 text-center md:text-left space-y-1">
-                        <h3 className="text-2xl md:text-3xl  font-bold  text-[var(--text-primary)] tracking-tight">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-bold text-[var(--text-primary)] truncate">
                           {user?.role === 'vendor' ? (storeData.store_name || user?.name) : user?.name || 'Aura User'}
-                        </h3>
-                        <p className="text-[var(--text-secondary)] font-medium flex items-center justify-center md:justify-start gap-2 text-sm">
-                          <Mail className="size-4 opacity-40 shrink-0" /> {user?.email}
                         </p>
-                        <div className="pt-2">
-                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold tracking-tight  border border-[var(--accent)]/20 shadow-sm">
-                            {user?.role || 'User'} Profile
-                          </span>
-                        </div>
+                        <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60 flex items-center gap-1.5 mt-0.5">
+                          <Mail className="size-3 shrink-0" /> {user?.email}
+                        </p>
+                        {brandingStatus && (
+                          <p className="text-[11px] font-semibold text-[var(--accent)] mt-1">{brandingStatus}</p>
+                        )}
                       </div>
+                      <span className="shrink-0 px-2.5 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[10px] font-bold uppercase tracking-wide">
+                        {user?.role || 'user'}
+                      </span>
                     </div>
                   </div>
 
