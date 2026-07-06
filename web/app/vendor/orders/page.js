@@ -229,7 +229,7 @@ export default function VendorOrdersPage() {
                {['all', 'placed', 'processing', 'shipped', 'delivered', 'failed'].map(tab => (
                  <button
                    key={tab}
-                   onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
+                   onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
                    className={`px-3.5 py-1.5 rounded-lg text-[10px] lg:text-[11px] font-semibold tracking-tight transition-all capitalize font-[Poppins] ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-50'}`}
                  >
                    {tab}
@@ -243,7 +243,7 @@ export default function VendorOrdersPage() {
                {['all', 'placed', 'processing', 'shipped', 'delivered', 'failed', 'cancelled'].map(tab => (
                  <button
                    key={tab}
-                   onClick={() => { setActiveTab(tab); setExpandedId(null); setCurrentPage(1); }}
+                   onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
                    className={`px-4 py-2 rounded-xl text-[10px] font-bold tracking-tight transition-all capitalize whitespace-nowrap border font-[Poppins] ${activeTab === tab ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/20' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-60'}`}
                  >
                    {tab}

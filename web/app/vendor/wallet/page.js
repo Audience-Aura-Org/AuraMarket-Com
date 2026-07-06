@@ -116,7 +116,7 @@ export default function VendorWalletPage() {
     try {
       const [balRes, txRes, escrowRes, wdRes] = await Promise.all([
         api.get('/wallet'),
-        api.get('/wallet/transactions'),
+        api.get('/wallet/transactions?limit=50'),
         api.get('/wallet/escrow'),
         api.get('/withdrawals/mine'),
       ]);
