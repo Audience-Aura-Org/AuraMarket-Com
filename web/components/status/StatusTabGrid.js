@@ -324,7 +324,7 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search stories, vendors..."
-                  className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-2.5 px-4 !text-base placeholder:!text-base font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]/40 transition-all placeholder:text-[var(--text-secondary)]/30"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-2.5 px-4 text-[13px] placeholder:text-[11px] placeholder:font-normal font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]/40 transition-all placeholder:text-[var(--text-secondary)]/30"
                 />
               </motion.div>
             )}

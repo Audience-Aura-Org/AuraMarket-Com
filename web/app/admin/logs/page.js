@@ -78,7 +78,7 @@ export default function AdminLogsPage() {
               <input 
                 type="text" 
                 placeholder="Search logs..." 
-                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 !text-base placeholder:!text-base focus:border-[var(--accent)] transition-all outline-none"
+                className="w-full h-11 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 !text-base placeholder:text-[11px] placeholder:font-normal focus:border-[var(--accent)] transition-all outline-none"
               />
            </div>
            <button onClick={fetchLogs} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">

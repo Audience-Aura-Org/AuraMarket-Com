@@ -272,7 +272,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                 <input 
                   autoFocus
                   placeholder={t('products.searchByNameBrandCategory', 'Search by name, brand, or category...')}
-                  className="h-12 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 !text-base font-semibold outline-none placeholder:!text-base focus:border-[var(--accent)]"
+                  className="h-12 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 !text-base font-semibold outline-none placeholder:text-[11px] placeholder:font-normal focus:border-[var(--accent)]"
                   value={productSearchQuery}
                   onChange={(e) => setProductSearchQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && searchProducts()}
@@ -508,7 +508,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                    setProductSearch('');
                                    setItemProductResults([]);
                                  }}
-                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)]"
+                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 !text-base placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]"
                                  placeholder="Search products by name..."
                                />
                                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-20" />
@@ -578,7 +578,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                       <input 
                                         autoFocus
                                         placeholder="Filter categories..."
-                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 !text-base font-bold text-[var(--text-primary)] outline-none placeholder:!text-base placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
+                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 !text-base font-bold text-[var(--text-primary)] outline-none placeholder:text-[11px] placeholder:font-normal placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
                                         value={categorySearch}
                                         onChange={(e) => setCategorySearch(e.target.value)}
                                       />
@@ -641,7 +641,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                       <input 
                                         autoFocus
                                         placeholder="Search category to link..."
-                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 !text-base font-bold text-[var(--text-primary)] outline-none placeholder:!text-base placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
+                                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 !text-base font-bold text-[var(--text-primary)] outline-none placeholder:text-[11px] placeholder:font-normal placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
                                         value={categorySearch}
                                         onChange={(e) => setCategorySearch(e.target.value)}
                                       />
@@ -695,7 +695,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                    setVendorSearch('');
                                    setItemVendorResults([]);
                                  }}
-                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 !text-base placeholder:!text-base outline-none focus:border-[var(--accent)]"
+                                 className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 pr-10 !text-base placeholder:text-[11px] placeholder:font-normal outline-none focus:border-[var(--accent)]"
                                  placeholder="Search vendors by store name..."
                                />
                                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 opacity-20" />

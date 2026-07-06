@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git stash:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(export AURA_RELEASE_STORE_FILE=\"C:/Users/Zero/Desktop/AuraMarket/web/android/auradime-release-key.jks\")",
+      "Bash(export AURA_RELEASE_STORE_PASSWORD=\"Talktome123\")",
+      "Bash(export AURA_RELEASE_KEY_ALIAS=\"auradime\")",
+      "Bash(export AURA_RELEASE_KEY_PASSWORD=\"Talktome123\")",
+      "Bash(npm run mobile:sync:android:*)"
+    ]
+  }
+}

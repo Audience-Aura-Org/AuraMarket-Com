@@ -61,7 +61,7 @@ export default function HelpHubPage() {
               <input 
                 type="text" 
                 placeholder="Search resources..." 
-                className="w-full h-12 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-4 !text-base placeholder:!text-base focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5 transition-all outline-none"
+                className="w-full h-12 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl pl-12 pr-4 !text-base placeholder:text-[11px] placeholder:font-normal focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5 transition-all outline-none"
               />
            </div>
         </div>

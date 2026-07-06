@@ -370,7 +370,7 @@ export default function AdminHomepagePage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search sections, products, categories, vendors"
-                className="min-w-0 flex-1 bg-transparent !text-base font-medium outline-none placeholder:text-[var(--text-secondary)]"
+                className="min-w-0 flex-1 bg-transparent text-[13px] placeholder:text-[11px] placeholder:font-normal font-medium outline-none placeholder:text-[var(--text-secondary)]"
               />
             </label>
             <div className="flex gap-2 overflow-x-auto no-scrollbar">

@@ -18,6 +18,11 @@ export const TOP_NAV_HEIGHT_LG = 'calc(73px + env(safe-area-inset-top,0px))';
 
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
 
+// Shared class for all icon-action buttons/links in the top nav.
+// Uses CSS custom properties (driven by the JS theme system) so the style
+// is always consistent — no Tailwind dark: prefix needed.
+const NAV_BTN = 'flex size-10 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/80 text-[var(--text-primary)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95';
+
 export default function TopNav() {
   const pathname = usePathname();
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
@@ -87,11 +92,11 @@ export default function TopNav() {
 
   return (
     <>
-    <header className="fixed inset-x-0 top-0 z-[500] w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_10px_40px_-14px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-all duration-300 dark:shadow-[0_10px_36px_-12px_rgba(0,0,0,0.12)]">
+    <header className="fixed inset-x-0 top-0 z-[500] w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_10px_40px_-14px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-all duration-300">
       {/* iOS Dynamic Island / notch safe-area spacer */}
       <div className="w-full shrink-0" style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
       <div className="mx-auto flex max-w-[1920px] items-center justify-between gap-3 px-4 py-2.5 md:gap-4 md:px-6 md:py-4">
-        
+
         {/* Logo Section */}
         <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3 lg:gap-12">
           <Link href={user ? "/shop" : "/"} className="flex items-center gap-2 md:gap-3 group">
@@ -102,13 +107,13 @@ export default function TopNav() {
             />
           </Link>
         </div>
-        
+
         {/* Global Search Interface - Icon Only */}
         {!hideSearchIcon && (
           <div className="hidden lg:flex flex-1 justify-end mr-4">
-             <button 
+             <button
                onClick={() => setIsSearchOpen(!isSearchOpen)}
-               className="group flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
+               className={`group ${NAV_BTN}`}
              >
                <Search className="size-5 transition-transform group-hover:scale-110" />
              </button>
@@ -119,9 +124,9 @@ export default function TopNav() {
         <div className={`flex items-center gap-2 md:gap-4 ${hideSearchIcon ? 'ml-auto' : ''}`}>
           {/* Mobile Search Toggle */}
           {!hideSearchIcon && (
-            <button 
+            <button
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))] lg:hidden"
+              className={`${NAV_BTN} lg:hidden`}
             >
               <Search className="size-5" />
             </button>
@@ -130,7 +135,7 @@ export default function TopNav() {
           {user && (
             <Link
               href="/wallet"
-              className="inline-flex h-10 max-w-[112px] items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 text-[10px] font-semibold text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 sm:max-w-none sm:gap-2 sm:px-3 sm:text-[11px] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)]"
+              className="inline-flex h-10 max-w-[112px] items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/80 px-2.5 text-[10px] font-semibold text-[var(--text-primary)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95 sm:max-w-none sm:gap-2 sm:px-3 sm:text-[11px]"
               title="Wallet balance"
             >
               <Wallet className="size-3 shrink-0 text-[var(--accent)] sm:size-3.5" />
@@ -140,10 +145,10 @@ export default function TopNav() {
           )}
 
           <div className="relative group/cart">
-            <Link href="/cart" className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]">
+            <Link href="/cart" className={`relative ${NAV_BTN}`}>
               <ShoppingCart className="size-5" />
               {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-[var(--accent)] px-1 text-[10px] font-semibold leading-none text-white shadow-lg lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
+                <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-[var(--accent)] px-1 text-[10px] font-semibold leading-none text-white shadow-lg lg:text-[12px]">
                   {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}
@@ -154,35 +159,35 @@ export default function TopNav() {
             </div>
           </div>
 
-          <button 
+          <button
             onClick={() => openChat(null)}
-            className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-95 dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
+            className={`relative ${NAV_BTN}`}
           >
             <MessageCircle className="size-5" />
             {unreadMessages > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-lg animate-pulse lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
+              <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-red-500 px-1 text-[10px] font-semibold leading-none text-white shadow-lg animate-pulse lg:text-[12px]">
                 {unreadMessages > 99 ? '99+' : unreadMessages}
               </span>
             )}
           </button>
-          
+
           {user ? (
-            <Link 
-              href={user.role === 'admin' ? '/admin/dashboard' : user.role === 'logistics' ? '/logistics/dashboard' : '/profile'} 
+            <Link
+              href={user.role === 'admin' ? '/admin/dashboard' : user.role === 'logistics' ? '/logistics/dashboard' : '/profile'}
               className="shrink-0 relative z-[600] pointer-events-auto cursor-pointer"
             >
                <div className="size-10 rounded-full bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] p-0.5 shadow-xl shadow-[var(--accent)]/10 hover:scale-110 transition-all">
-                 <div className="size-full rounded-full bg-[#0f0a14] flex items-center justify-center overflow-hidden dark:bg-[var(--bg-primary)]">
+                 <div className="size-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center overflow-hidden">
                     {user.branding?.logo || user.avatar ? (
                       <img src={user.branding?.logo || user.avatar} className="size-full object-cover" alt={user.name} />
                     ) : (
-                      <span className="text-[11px] font-bold text-white dark:text-[var(--text-primary)]">{user.name?.[0]?.toUpperCase()}</span>
+                      <span className="text-[11px] font-bold text-[var(--text-primary)]">{user.name?.[0]?.toUpperCase()}</span>
                     )}
                  </div>
                </div>
             </Link>
           ) : (
-            <Link href="/login" className="flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-[10px] font-semibold capitalize tracking-[0.12em] text-[#0a051a] shadow-xl transition-all hover:bg-[var(--accent)] hover:text-white whitespace-nowrap active:scale-95 dark:bg-[var(--text-primary)] dark:text-[var(--bg-primary)] dark:shadow-xl lg:text-[12px] dark:hover:bg-[var(--accent)] dark:hover:text-white">
+            <Link href="/login" className="flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/80 px-6 py-2.5 text-[10px] font-semibold capitalize tracking-[0.12em] text-[var(--text-primary)] shadow-xl transition-all hover:bg-[var(--accent)] hover:text-white whitespace-nowrap active:scale-95 lg:text-[12px]">
               <UserIcon className="size-3.5" />
               <span>{t('common.login')}</span>
             </Link>
@@ -192,27 +197,27 @@ export default function TopNav() {
 
       {/* Standardized Search Overlay */}
       {isSearchOpen && !hideSearchIcon && (
-        <div className="absolute left-0 top-full w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)]/95 px-4 py-2.5 font-poppins text-[var(--nav-text)] shadow-[0_14px_36px_-18px_rgba(0,0,0,0.42)] backdrop-blur-2xl animate-in slide-in-from-top-2 duration-300 dark:shadow-[0_12px_28px_-18px_rgba(0,0,0,0.18)]">
+        <div className="absolute left-0 top-full w-full border-b border-[var(--glass-border)] bg-[var(--nav-bg)]/95 px-4 py-2.5 font-poppins shadow-[0_14px_36px_-18px_rgba(0,0,0,0.42)] backdrop-blur-2xl animate-in slide-in-from-top-2 duration-300">
           <div className="relative mx-auto w-full max-w-lg">
-            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--nav-text)] opacity-45 dark:text-[var(--text-secondary)]" />
-            <input 
+            <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--text-secondary)] opacity-45" />
+            <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}
               placeholder={t('search.placeholder')}
-              className="h-11 w-full rounded-2xl border border-white/15 bg-white/10 pl-10 pr-24 !text-base placeholder:!text-base font-semibold tracking-tight text-[var(--nav-text)] outline-none transition-all placeholder:text-[var(--nav-text)]/45 focus:border-[color-mix(in_srgb,var(--accent)_42%,white)] focus:bg-white/15 focus:ring-2 focus:ring-[var(--accent)]/10 dark:border-[var(--glass-border)] dark:bg-[var(--bg-secondary)] dark:text-[var(--text-primary)] dark:placeholder:text-[var(--text-secondary)]"
+              className="h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-10 pr-24 text-[13px] placeholder:text-[11px] placeholder:font-normal font-semibold tracking-tight text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--accent)]/40 focus:bg-[var(--bg-primary)] focus:ring-2 focus:ring-[var(--accent)]/10"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="absolute right-12 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-[var(--nav-text)]/55 transition hover:bg-white/10 hover:text-[var(--nav-text)] dark:text-[var(--text-secondary)] dark:hover:bg-[var(--bg-primary)]"
+                className="absolute right-12 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-[var(--text-secondary)]/55 transition hover:bg-[var(--bg-primary)] hover:text-[var(--text-primary)]"
                 aria-label={t('common.clearSearch')}
               >
                 ×
               </button>
             )}
-            <button 
+            <button
               onClick={() => {
                 const q = search.trim();
                 if (!q) return;

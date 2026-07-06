@@ -374,7 +374,7 @@ function SubscribeContent() {
                           value={phone}
                           onChange={(event) => setPhone(event.target.value)}
                           placeholder="651188134"
-                          className="mt-2 h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 !text-base font-semibold outline-none focus:border-[var(--accent)]"
+                          className="mt-2 h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[13px] placeholder:text-[11px] placeholder:font-normal font-semibold outline-none focus:border-[var(--accent)]"
                         />
                       </label>
                       

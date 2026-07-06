@@ -78,7 +78,7 @@ export default function EmailLogsPage() {
                 placeholder="Search by recipient or subject..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-14 pr-6 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-transparent focus:border-[var(--accent)]/30 outline-none !text-base placeholder:!text-base font-bold transition-all"
+                className="w-full pl-14 pr-6 py-4 rounded-2xl bg-[var(--bg-secondary)] border border-transparent focus:border-[var(--accent)]/30 outline-none !text-base placeholder:text-[11px] placeholder:font-normal font-bold transition-all"
               />
            </form>
            <div className="flex items-center gap-2 p-1 bg-[var(--bg-secondary)] rounded-2xl border border-[var(--glass-border)]">
