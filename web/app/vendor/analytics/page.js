@@ -48,6 +48,28 @@ export default function VendorAnalyticsPage() {
     }
   };
 
+  const handleDownloadReport = () => {
+    const { stats, sales_history } = data || {};
+    const rows = [
+      ['Date', 'Revenue (XAF)', 'Orders'],
+      ...(sales_history || []).map((d) => [d._id || '', d.revenue ?? 0, d.count ?? 0]),
+      [],
+      ['Summary', '', ''],
+      ['Total Revenue', stats?.total_revenue ?? 0, ''],
+      ['Total Orders', stats?.total_sales ?? 0, ''],
+      ['Pending Escrow', stats?.pending_escrow ?? 0, ''],
+      ['Total Products', stats?.total_products ?? 0, ''],
+    ];
+    const csv = rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([csv], { type: 'text/csv' })),
+      download: `analytics-${new Date().toISOString().slice(0, 10)}.csv`,
+    });
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast.success('Report downloaded');
+  };
+
   if (loading) {
     return <LoadingSpinner fullScreen />;
   }
@@ -81,7 +103,8 @@ export default function VendorAnalyticsPage() {
            <button onClick={fetchAnalytics} className="hidden md:flex h-11 px-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-bold tracking-tight hover:bg-[var(--accent)] hover:text-white transition-all items-center gap-2">
               <Activity className="size-4" /> Refresh
            </button>
-           <button className="flex-1 md:flex-none h-11 px-6 rounded-xl bg-[var(--accent)] text-white text-[11px] font-bold tracking-tight shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all">
+           <button onClick={handleDownloadReport} className="flex-1 md:flex-none h-11 px-6 rounded-xl bg-[var(--accent)] text-white text-[11px] font-bold tracking-tight shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center gap-2 justify-center">
+              <Download className="size-4" />
               {t('analytics.downloadReport', 'Download Report')}
            </button>
         </div>

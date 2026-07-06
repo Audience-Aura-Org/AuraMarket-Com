@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Zap, Package, AlertCircle, Eye, Search, Trash2, RefreshCw, ChevronRight, LayoutGrid, List, Pencil, Tag } from 'lucide-react';
+import { Zap, Package, AlertCircle, Eye, Search, Trash2, RefreshCw, ChevronRight, LayoutGrid, List, Pencil, Tag, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import Pagination from '@/components/common/Pagination';
@@ -24,7 +24,11 @@ export default function VendorProductsPage() {
   const [mounted, setMounted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState(() =>
+    (typeof window !== 'undefined' && localStorage.getItem('productsView')) || 'grid'
+  );
+  const [stockFilter, setStockFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
   const itemsPerPage = viewMode === 'grid' ? 12 : 20;
 
   const fetchProducts = async () => {
@@ -60,19 +64,25 @@ export default function VendorProductsPage() {
 
   const filteredProducts = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) return products;
-    return products.filter((p) =>
+    let list = products.filter((p) =>
+      !query ||
       p.name?.toLowerCase().includes(query) ||
       p.category?.toLowerCase().includes(query)
     );
-  }, [products, searchTerm]);
+    if (stockFilter === 'in_stock') list = list.filter((p) => p.stock > 5);
+    else if (stockFilter === 'low_stock') list = list.filter((p) => p.stock > 0 && p.stock <= 5);
+    else if (stockFilter === 'out_of_stock') list = list.filter((p) => p.stock <= 0);
+    if (sortBy === 'price_asc') list = [...list].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
+    else if (sortBy === 'price_desc') list = [...list].sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
+    else if (sortBy === 'stock') list = [...list].sort((a, b) => (b.stock ?? 0) - (a.stock ?? 0));
+    else list = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return list;
+  }, [products, searchTerm, stockFilter, sortBy]);
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const currentProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const activeCount = products.filter((p) => p.stock > 0).length;
   const lowStockCount = products.filter((p) => p.stock <= 5 && p.stock > 0).length;
-  const soldUnits = products.reduce((acc, p) => acc + Number(p.purchase_count || 0), 0);
-  const viewUnits = products.reduce((acc, p) => acc + Number(p.view_count || 0), 0);
   const onSaleCount = products.filter((p) => p.compare_at_price != null && p.compare_at_price > p.price).length;
 
   const handleDeleteProduct = async (id) => {
@@ -122,35 +132,62 @@ export default function VendorProductsPage() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[var(--text-secondary)]" />
-                <input
-                  type="text"
-                  placeholder={t('products.searchPlaceholder', 'Search products or category')}
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="h-10 w-full rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 pl-9 pr-3 text-[12px] outline-none transition focus:border-[var(--accent)]/45"
-                />
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-[var(--text-secondary)]" />
+                  <input
+                    type="text"
+                    placeholder={t('products.searchPlaceholder', 'Search products or category')}
+                    value={searchTerm}
+                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+                    className="h-9 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 pl-8 pr-3 text-[11px] placeholder:text-[var(--text-secondary)]/70 outline-none transition-all focus:border-[var(--accent)]/50 focus:bg-[var(--bg-primary)]/80 focus:ring-1 focus:ring-[var(--accent)]/20"
+                  />
+                </div>
+                <div className="inline-flex items-center gap-1 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-1">
+                  <button
+                    onClick={() => { setViewMode('grid'); localStorage.setItem('productsView', 'grid'); }}
+                    className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
+                  >
+                    <LayoutGrid className="size-3.5" />
+                    {t('products.grid', 'Grid')}
+                  </button>
+                  <button
+                    onClick={() => { setViewMode('list'); localStorage.setItem('productsView', 'list'); }}
+                    className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition ${viewMode === 'list' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
+                  >
+                    <List className="size-3.5" />
+                    {t('products.list', 'List')}
+                  </button>
+                </div>
               </div>
-              <div className="inline-flex items-center gap-1 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-1">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
-                >
-                  <LayoutGrid className="size-3.5" />
-                  {t('products.grid', 'Grid')}
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition ${viewMode === 'list' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
-                >
-                  <List className="size-3.5" />
-                  {t('products.list', 'List')}
-                </button>
+              <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'in_stock', label: 'In Stock' },
+                  { key: 'low_stock', label: 'Low Stock' },
+                  { key: 'out_of_stock', label: 'Out of Stock' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => { setStockFilter(key); setCurrentPage(1); }}
+                    className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-medium transition ${stockFilter === key ? 'border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+                <div className="ml-auto shrink-0">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="h-7 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 text-[10px] text-[var(--text-secondary)] outline-none"
+                  >
+                    <option value="name">A–Z</option>
+                    <option value="price_asc">Price ↑</option>
+                    <option value="price_desc">Price ↓</option>
+                    <option value="stock">Stock</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -165,12 +202,11 @@ export default function VendorProductsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           <StatCard label={t('products.total', 'Total')}    value={String(products.length)} icon="inventory_2"  color="indigo"  sub="Products" />
           <StatCard label={t('products.active', 'Active')}  value={String(activeCount)}     icon="check_circle" color="emerald" sub="In stock" />
           <StatCard label={t('products.low', 'Low Stock')}  value={String(lowStockCount)}   icon="warning"      color="amber"   sub="≤ 5 units" />
           <StatCard label={t('products.onSale', 'On Sale')} value={String(onSaleCount)}     icon="sell"         color="primary" sub="Discounted" />
-          <StatCard label={t('products.sold', 'Sold')}      value={String(soldUnits)}       icon="shopping_bag" color="fuchsia" sub={`${viewUnits} views`} />
         </div>
 
         <section className="overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">

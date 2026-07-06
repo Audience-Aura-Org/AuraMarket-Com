@@ -23,32 +23,9 @@ import {
   LogisticsSubpageHeader,
   LogisticsShortcutsRow,
 } from "@/components/logistics/LogisticsSubpageShell";
-import { formatVariantLabel } from "@/utils/variants";
+import { summarizeLineItems, destinationLine } from "@/lib/logistics";
 
 const PAGE_SIZE = 10;
-
-function summarizeLineItems(order) {
-  if (!order?.products?.length) return "—";
-  const parts = order.products.slice(0, 2).map((p) => {
-    const name =
-      (typeof p.product_id === "object" && p.product_id?.name) ||
-      p.name ||
-      "Item";
-    const variant = formatVariantLabel(p.variant);
-    return `${name}${variant ? ` (${variant})` : ""} x${p.quantity ?? 1}`;
-  });
-  const extra = order.products.length > 2 ? ` +${order.products.length - 2}` : "";
-  return parts.join(" · ") + extra;
-}
-
-function destinationLine(s) {
-  const d = s.delivery_address;
-  if (!d || (!d.city && !d.region && !d.quartier))
-    return { main: "—", sub: "" };
-  const main = d.city || d.quartier || d.region || "—";
-  const sub = [d.quartier, d.region].filter(Boolean).join(" · ") || "";
-  return { main, sub };
-}
 
 export default function LogisticsTrackingPage() {
   const user = useAuthStore((s) => s.user);

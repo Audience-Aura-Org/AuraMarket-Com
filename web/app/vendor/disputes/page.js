@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   AlertTriangle, Shield, CheckCircle2, Search,
-  RefreshCw, User, MessageSquare
+  RefreshCw, User
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';

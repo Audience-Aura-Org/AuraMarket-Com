@@ -8,7 +8,7 @@ import {
   CheckCircle2, AlertCircle, Loader2, ChevronRight,
   RefreshCw, Smartphone, Building2, Clock, TrendingUp,
   Shield, X, ArrowLeft, History, Package, Download,
-  ExternalLink, Printer, Fingerprint, Star
+  ExternalLink, Printer
 } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
@@ -135,6 +135,12 @@ export default function VendorWalletPage() {
   }, [setWalletBalance]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [load]);
 
   useEffect(() => {
     setCurrentPage(1);

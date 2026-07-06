@@ -1,23 +1,25 @@
 ﻿"use client";
 
 import { useEffect, useState } from 'react';
-import { 
-  Zap, Clock, ShoppingBag, ArrowUpRight, 
-  Flame, Lock, ShieldCheck, Star, 
-  ChevronRight, Timer, Globe, CheckCircle
+import {
+  Zap, Clock, ShoppingBag, ArrowUpRight,
+  Flame, Lock, ShieldCheck, Star,
+  ChevronRight, Timer, Globe, CheckCircle, Loader2
 } from 'lucide-react';
 import Link from 'next/link';
+import api from '@/services/api';
+import { toast } from 'react-hot-toast';
 
-const DROPS = [
+const DROPS_FALLBACK = [
   {
     id: 'drop-1',
     title: 'Aura Genesis-X',
     description: 'The definitive revision of high-velocity operational hardware. Limited availability.',
     image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=1200',
     price: '245,000 XAF',
-    status: 'Live Now',
+    status: 'live',
     tag: 'Operational',
-    timer: '72:00:00'
+    timer: '72:00:00',
   },
   {
     id: 'drop-2',
@@ -25,15 +27,37 @@ const DROPS = [
     description: 'Surgical design for regional logistics hubs. Premium fulfillment options included.',
     image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&q=80&w=1200',
     price: '1.2M XAF',
-    status: 'Coming Soon',
+    status: 'coming_soon',
     tag: 'Infrastructure',
-    timer: 'T-Minus 14H'
-  }
+    timer: 'T-Minus 14H',
+  },
 ];
 
 export default function SignatureDropsPage() {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [drops, setDrops] = useState(DROPS_FALLBACK);
+  const [securing, setSecuring] = useState(null);
+
+  useEffect(() => {
+    setMounted(true);
+    api.get('/signature-drops')
+      .then((res) => { if (res.data?.success && Array.isArray(res.data.data)) setDrops(res.data.data); })
+      .catch(() => {});
+  }, []);
+
+  const handleSecureSlot = async (drop) => {
+    const isLive = drop.status === 'live' || drop.status === 'Live Now';
+    if (!isLive) { toast('Opening soon! Stay tuned.'); return; }
+    setSecuring(drop.id);
+    try {
+      await api.post(`/signature-drops/${drop.id}/secure`);
+      toast.success('Slot secured! Check your orders.');
+    } catch {
+      toast.error('Unable to secure slot — please try again.');
+    } finally {
+      setSecuring(null);
+    }
+  };
 
   if (!mounted) return null;
 
@@ -66,7 +90,7 @@ export default function SignatureDropsPage() {
         </div>
 
         {/* Featured Drop */}
-        {DROPS.map((drop, i) => (
+        {drops.map((drop, i) => (
            <div 
              key={drop.id} 
              className={`flex flex-col lg:flex-row gap-20 items-center justify-between ${i % 2 !== 0 ? 'lg:flex-row-reverse' : ''} animate-in fade-in slide-in-from-bottom-8 duration-1000`}
@@ -105,12 +129,14 @@ export default function SignatureDropsPage() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                       <Link 
-                         href="/shop" 
-                         className="h-20 lg:h-24 px-12 lg:px-16 rounded-[2.5rem] bg-white text-black  font-bold text-xs lg:text-sm  tracking-[0.4em] flex items-center gap-4 transition-all hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] shadow-2xl"
+                       <button
+                         onClick={() => handleSecureSlot(drop)}
+                         disabled={securing === drop.id}
+                         className="h-20 lg:h-24 px-12 lg:px-16 rounded-[2.5rem] bg-white text-black font-bold text-xs lg:text-sm tracking-[0.4em] flex items-center gap-4 transition-all hover:scale-[1.03] active:scale-[0.97] hover:shadow-[0_0_50px_rgba(255,255,255,0.3)] shadow-2xl disabled:opacity-60"
                        >
-                          Secure Slot <ArrowUpRight className="size-5" />
-                       </Link>
+                          {securing === drop.id ? <Loader2 className="size-5 animate-spin" /> : <ArrowUpRight className="size-5" />}
+                          Secure Slot
+                       </button>
                        <button className="size-20 lg:size-24 rounded-[2.5rem] border-2 border-white/10 hover:border-white/40 text-white flex items-center justify-center transition-all hover:bg-white/5 active:scale-90 shadow-2xl group/share">
                           <ShoppingBag className="size-6 group-hover:scale-110 transition-transform" />
                        </button>

@@ -2,19 +2,36 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
-import { 
-  ArrowLeft, Bell, Tag, Truck, Gift, Users, 
-  Copy, Share2, PlusCircle, MinusCircle 
+import { useState, useEffect } from 'react';
+import {
+  ArrowLeft, Bell, Tag, Truck, Gift, Users,
+  Copy, Share2, PlusCircle, MinusCircle, Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import api from '@/services/api';
 
 export default function RewardsPage() {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
-  const referralCode = "AURA-X94B";
+  const [referral, setReferral] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get('/customer/referral')
+      .then((res) => { if (res.data?.success) setReferral(res.data.data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const referralCode = referral?.code || '—';
+  const pointsBalance = referral?.points_balance ?? null;
+  const tierProgress = referral?.tier_progress_pct ?? 70;
+  const tierName = referral?.tier || 'Gold';
+  const rewardItems = referral?.rewards || [];
+  const activityItems = referral?.activity || [];
 
   const handleCopy = () => {
+    if (referralCode === '—') return;
     navigator.clipboard.writeText(referralCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -22,6 +39,11 @@ export default function RewardsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] overflow-hidden pb-24 transition-colors duration-500 md:pt-0">
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--bg-secondary)]/80 backdrop-blur">
+          <Loader2 className="size-8 animate-spin text-[var(--accent)]" />
+        </div>
+      )}
       {/* Gradients */}
       <div className="fixed top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[var(--accent)]/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="fixed bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-[var(--accent-light)]/10 blur-[150px] rounded-full pointer-events-none" />
@@ -48,14 +70,16 @@ export default function RewardsPage() {
             <div className="relative z-10">
               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-[0.4em] mb-4  opacity-80">Accumulated Points</p>
               <div className="flex items-baseline gap-3">
-                <h2 className="text-7xl  font-bold text-[var(--text-primary)] tracking-tighter font-mono">2,840</h2>
+                <h2 className="text-7xl  font-bold text-[var(--text-primary)] tracking-tighter font-mono">
+                  {pointsBalance !== null ? Number(pointsBalance).toLocaleString() : '—'}
+                </h2>
                 <span className="text-3xl  font-bold text-[var(--accent)]">AUR</span>
               </div>
               <div className="mt-12 flex items-center gap-6">
                 <div className="flex-1 h-3 bg-[var(--bg-secondary)] rounded-full overflow-hidden border border-[var(--glass-border)] shadow-inner">
-                  <div className="h-full bg-[var(--accent)] w-[70%] rounded-full shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] animate-pulse" />
+                  <div className="h-full bg-[var(--accent)] rounded-full shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] animate-pulse" style={{ width: `${tierProgress}%` }} />
                 </div>
-                <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] whitespace-nowrap ">70% to Gold Tier</span>
+                <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] whitespace-nowrap">{tierProgress}% to {tierName} Tier</span>
               </div>
             </div>
             <div className="absolute -right-16 -top-16 size-64 bg-[var(--accent)]/10 blur-[80px] rounded-full" />
@@ -107,16 +131,18 @@ export default function RewardsPage() {
           <section className="pb-12">
             <h3 className="text-2xl  font-bold tracking-tight mb-8 px-2 ">Sync Activity</h3>
             <div className="space-y-4">
-              <ActivityRow 
-                icon={PlusCircle} title="Protocol Reward" 
-                subtitle="Oct 24, 2023 &bull; Ref #8271" 
-                amount="+142 pts" type="positive" 
-              />
-              <ActivityRow 
-                icon={MinusCircle} title="Redeemed Credit" 
-                subtitle="Oct 18, 2023 &bull; 10% Activation" 
-                amount="-300 pts" type="negative" 
-              />
+              {activityItems.length > 0 ? activityItems.map((item, i) => (
+                <ActivityRow
+                  key={i}
+                  icon={item.type === 'earn' ? PlusCircle : MinusCircle}
+                  title={item.title || (item.type === 'earn' ? 'Protocol Reward' : 'Redeemed Credit')}
+                  subtitle={item.subtitle || (item.created_at ? new Date(item.created_at).toLocaleDateString() : '')}
+                  amount={`${item.type === 'earn' ? '+' : '-'}${Math.abs(item.points || 0)} pts`}
+                  type={item.type === 'earn' ? 'positive' : 'negative'}
+                />
+              )) : (
+                <p className="text-[12px] text-[var(--text-secondary)] opacity-50 px-2">No activity yet.</p>
+              )}
             </div>
           </section>
 

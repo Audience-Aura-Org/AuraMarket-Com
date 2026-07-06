@@ -133,7 +133,7 @@ export default function VendorRatingsPage() {
                   <div className="flex items-start gap-4">
                     <div className="size-12 h-12 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden flex-shrink-0">
                       {r.user_id?.avatar ? (
-                        <img src={r.user_id.avatar} className="size-full object-cover" />
+                        <img src={r.user_id.avatar} loading="lazy" className="size-full object-cover" />
                       ) : (
                         <User className="w-5 h-5 text-[var(--accent)] opacity-60" />
                       )}
@@ -161,7 +161,7 @@ export default function VendorRatingsPage() {
                       <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]">
                         <div className="size-10 h-10 rounded-lg bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center overflow-hidden flex-shrink-0">
                           {r.product_id?.images?.[0]?.url ? (
-                            <img src={r.product_id.images[0].url} className="size-full object-cover" />
+                            <img src={r.product_id.images[0].url} loading="lazy" className="size-full object-cover" />
                           ) : (
                             <Package className="w-4 h-4 text-[var(--accent)] opacity-40" />
                           )}

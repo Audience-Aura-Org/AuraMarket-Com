@@ -218,6 +218,11 @@ export default function AddProductPage() {
     if (!form.category) return toast.error('Please select a category.');
     if (images.length === 0) return toast.error('At least one product image is required.');
 
+    if (hasVariants && skuVariants.length > 0) {
+      const missingPrice = skuVariants.some((v) => !v.price || Number(v.price) <= 0);
+      if (missingPrice) return toast.error('All variant combinations must have a price greater than 0.');
+    }
+
     publishingRef.current = true;
     setLoading(true);
     try {

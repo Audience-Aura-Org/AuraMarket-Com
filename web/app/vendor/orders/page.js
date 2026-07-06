@@ -57,7 +57,6 @@ export default function VendorOrdersPage() {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const [expandedId, setExpandedId] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
   const [viewingOrderId, setViewingOrderId] = useState(null);
 

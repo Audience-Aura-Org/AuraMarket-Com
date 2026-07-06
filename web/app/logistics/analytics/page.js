@@ -10,6 +10,7 @@ import {
   ArrowUpRight, LayoutDashboard, List, LineChart,
 } from 'lucide-react';
 import api from '@/services/api';
+import { toast } from 'react-hot-toast';
 import { useAuthStore } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -25,6 +26,7 @@ export default function LogisticsAnalyticsPage() {
   const [shipments, setShipments] = useState([]);
   const [range, setRange] = useState('30');
   const [hoveredBlock, setHoveredBlock] = useState(null);
+  const [rebalancing, setRebalancing] = useState(false);
 
   useEffect(() => {
     if (!user || user.role !== 'logistics') return;
@@ -44,28 +46,61 @@ export default function LogisticsAnalyticsPage() {
     fetchData();
   }, [user]);
 
+  const handleRebalance = async () => {
+    setRebalancing(true);
+    try {
+      await api.post('/logistics/rebalance');
+      toast.success('Rebalance triggered successfully');
+    } catch {
+      toast.error('Rebalance failed — please try again');
+    } finally {
+      setRebalancing(false);
+    }
+  };
+
+  // Pre-bucket shipments by date for O(n) histogram
+  const shipmentDateMap = useMemo(() => {
+    const m = {};
+    shipments.forEach((s) => {
+      const k = (s.createdAt || s.created_at)?.slice(0, 10);
+      if (k) m[k] = (m[k] || 0) + 1;
+    });
+    return m;
+  }, [shipments]);
+
   // Transform shipment data into shipment flux (Histogram)
   const histogramData = useMemo(() => {
-    if (!shipments.length) return Array(30).fill({ count: 0, intensity: 0 });
-    
     const now = new Date();
     const data = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const count = shipments.filter(s => {
-        const sd = new Date(s.createdAt);
-        return sd.toDateString() === d.toDateString();
-      }).length;
-      
+      const key = d.toISOString().slice(0, 10);
+      const count = shipmentDateMap[key] || 0;
       data.push({
         date: d,
-        count: count,
+        count,
         label: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
-        intensity: Math.min(count * 20, 100)
+        intensity: Math.min(count * 20, 100),
       });
     }
     return data;
+  }, [shipmentDateMap]);
+
+  // Compute regional stats from real shipment data
+  const regionStats = useMemo(() => {
+    const counts = {};
+    shipments.forEach((s) => {
+      const r = s.delivery_address?.region || s.destination_region || 'Other';
+      counts[r] = (counts[r] || 0) + 1;
+    });
+    const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+    const COLORS = ['bg-emerald-500', 'bg-[var(--accent)]', 'bg-indigo-500', 'bg-rose-500'];
+    return Object.entries(counts)
+      .map(([name, n]) => ({ name, pct: Math.round((n / total) * 100) }))
+      .sort((a, b) => b.pct - a.pct)
+      .slice(0, 4)
+      .map((r, i) => ({ ...r, color: COLORS[i] || 'bg-gray-500' }));
   }, [shipments]);
 
   // Stats
@@ -218,26 +253,23 @@ export default function LogisticsAnalyticsPage() {
             </div>
             
             <div className="space-y-6">
-              {[
-                { label: 'Littoral (Douala)', perf: 98, color: 'bg-emerald-500' },
-                { label: 'Centre (Yaoundé)', perf: 92, color: 'bg-[var(--accent)]' },
-                { label: 'West (Bafoussam)', perf: 85, color: 'bg-indigo-500' },
-                { label: 'South West', perf: 72, color: 'bg-rose-500' }
-              ].map((reg, i) => (
+              {regionStats.length > 0 ? regionStats.map((reg, i) => (
                 <div key={i} className="space-y-2">
                   <div className="flex justify-between text-[11px] lg:text-[12px]  font-semibold tracking-tight">
-                    <span>{reg.label}</span>
-                    <span>{reg.perf}%</span>
+                    <span>{reg.name}</span>
+                    <span>{reg.pct}%</span>
                   </div>
                   <div className="h-1 bg-[var(--bg-secondary)] rounded-full overflow-hidden">
-                    <motion.div 
+                    <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${reg.perf}%` }}
+                      animate={{ width: `${reg.pct}%` }}
                       className={`h-full ${reg.color}`}
                     />
                   </div>
                 </div>
-              ))}
+              )) : (
+                <p className="text-[11px] text-[var(--text-secondary)] opacity-60">No shipment data yet.</p>
+              )}
             </div>
           </section>
 
@@ -249,7 +281,13 @@ export default function LogisticsAnalyticsPage() {
             <p className="text-sm text-[var(--text-secondary)] opacity-60 mb-8 max-w-[280px]">
               Regional load in <span className="text-[var(--text-primary)]  font-bold">Douala</span> is peaking. Reallocate assets to Zone 04.
             </p>
-            <button type="button" className="min-h-11 touch-manipulation rounded-full bg-[var(--text-primary)] px-6 py-3 text-[11px] font-semibold tracking-[0.15em] text-[var(--bg-primary)] shadow-xl shadow-[var(--accent)]/10 transition-all hover:bg-[var(--accent)] hover:text-white active:scale-95 sm:px-8 sm:tracking-[0.2em]">
+            <button
+              type="button"
+              onClick={handleRebalance}
+              disabled={rebalancing}
+              className="min-h-11 touch-manipulation rounded-full bg-[var(--text-primary)] px-6 py-3 text-[11px] font-semibold tracking-[0.15em] text-[var(--bg-primary)] shadow-xl shadow-[var(--accent)]/10 transition-all hover:bg-[var(--accent)] hover:text-white active:scale-95 sm:px-8 sm:tracking-[0.2em] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {rebalancing && <RefreshCw className="size-3.5 animate-spin" />}
               Execute Rebalance
             </button>
           </section>

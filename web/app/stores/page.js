@@ -23,6 +23,9 @@ function StoresDirectoryContent() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [mounted, setMounted] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [ratingFilter, setRatingFilter] = useState('all');
+  const [verifiedFilter, setVerifiedFilter] = useState(false);
 
   const fetchStores = async (pageNum = 1) => {
     setLoading(true);
@@ -44,9 +47,13 @@ function StoresDirectoryContent() {
     fetchStores(page);
   }, [page]);
 
-  const filteredStores = stores.filter(s => 
-    s.store_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredStores = stores.filter((s) => {
+    if (!s.store_name?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (verifiedFilter && !s.verified) return false;
+    if (ratingFilter === '4+' && Number(s.rating || 0) < 4) return false;
+    if (ratingFilter === '4.5+' && Number(s.rating || 0) < 4.5) return false;
+    return true;
+  });
 
   const handlePageChange = (p) => {
     setPage(p);
@@ -81,14 +88,40 @@ function StoresDirectoryContent() {
                 className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl py-3 pl-12 pr-4 !text-base placeholder:!text-base font-medium text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 focus:outline-none focus:border-[var(--accent)]/50 transition-all shadow-sm"
               />
             </div>
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="p-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:bg-[var(--bg-primary)]/80 transition-all text-[var(--text-secondary)] shadow-sm hover:text-[var(--accent)]"
+              onClick={() => setFilterOpen((v) => !v)}
+              className={`p-3 rounded-2xl border transition-all shadow-sm ${filterOpen ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)]'}`}
             >
-               <Filter className="size-5" />
+              <Filter className="size-5" />
             </motion.button>
           </div>
+
+          {filterOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-wrap items-center gap-3 pt-2"
+            >
+              <span className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-60">Rating:</span>
+              {[{ key: 'all', label: 'All' }, { key: '4+', label: '4★+' }, { key: '4.5+', label: '4.5★+' }].map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => { setRatingFilter(key); setPage(1); }}
+                  className={`rounded-full px-3 py-1 text-[11px] font-medium border transition ${ratingFilter === key ? 'bg-[var(--accent)]/10 border-[var(--accent)]/40 text-[var(--accent)]' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                onClick={() => { setVerifiedFilter((v) => !v); setPage(1); }}
+                className={`rounded-full px-3 py-1 text-[11px] font-medium border transition flex items-center gap-1 ${verifiedFilter ? 'bg-blue-500/10 border-blue-400/40 text-blue-500' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+              >
+                <ShieldCheck className="size-3" /> Verified only
+              </button>
+            </motion.div>
+          )}
         </motion.div>
 
         {filteredStores.length === 0 ? (

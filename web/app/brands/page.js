@@ -69,9 +69,10 @@ export default function VerifiedBrandsPage() {
                     
                     <div className="flex items-center gap-4 relative z-10">
                        <div className="size-14 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center p-0.5 overflow-hidden group-hover:scale-105 transition-transform duration-500 shadow-sm shrink-0">
-                          <img 
-                            src={vendor.logo || `https://api.dicebear.com/7.x/identicon/svg?seed=${vendor._id}`} 
-                            className="size-full object-cover rounded-lg" alt="" 
+                          <img
+                            src={vendor.logo || `https://api.dicebear.com/7.x/identicon/svg?seed=${vendor._id}`}
+                            className="size-full object-cover rounded-lg" alt=""
+                            loading="lazy"
                           />
                        </div>
                        <div className="flex-1 min-w-0">

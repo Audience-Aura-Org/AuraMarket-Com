@@ -24,7 +24,7 @@ import { useAuthStore } from "@/hooks/useAuth";
 import { useWalletBalance } from "@/hooks/useWalletBalance";
 import StatCard from "@/components/layout/StatCard";
 import ShipmentStatusModal from "@/components/logistics/ShipmentStatusModal";
-import { formatVariantLabel } from "@/utils/variants";
+import { summarizeLineItems, destinationLine } from "@/lib/logistics";
 import {
   LogisticsSubpageHeader,
   LogisticsShortcutsRow,
@@ -54,24 +54,6 @@ const STATUS_BADGE = {
   cancelled:        "bg-rose-500/10 text-rose-600",
 };
 
-function summarizeLineItems(order) {
-  if (!order?.products?.length) return "—";
-  const parts = order.products.slice(0, 2).map((p) => {
-    const name = (typeof p.product_id === "object" && p.product_id?.name) || p.name || "Item";
-    const variant = formatVariantLabel(p.variant);
-    return `${name}${variant ? ` (${variant})` : ""} x${p.quantity ?? 1}`;
-  });
-  const extra = order.products.length > 2 ? ` +${order.products.length - 2}` : "";
-  return parts.join(" · ") + extra;
-}
-
-function destinationLine(s) {
-  const d = s.delivery_address;
-  if (!d || (!d.city && !d.region && !d.quartier)) return { main: "—", sub: "" };
-  const main = d.city || d.quartier || d.region || "—";
-  const sub = [d.quartier, d.region].filter(Boolean).join(" · ") || "";
-  return { main, sub };
-}
 
 export default function LogisticsManifestsPage() {
   const router = useRouter();
