@@ -189,12 +189,20 @@ export default function VendorWalletPage() {
 
       <div className="p-4 md:p-10 space-y-8 pb-32">
         {/* KPI Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
-          <StatCard label="Available" value={`${fmt(balance)}`} icon="account_balance_wallet" color="emerald" sub="XAF Ready" />
-          <StatCard label="In Escrow" value={`${fmt(escrow)}`} icon="lock_clock" color="amber" sub="Pending Delivery" />
-          <StatCard label="Total Earned" value={`${fmt(totalEarned)}`} icon="trending_up" color="fuchsia" sub="Total earned" />
-          <StatCard label="Withdrawn" value={`${fmt(withdrawnTotal)}`} icon="arrow_outward" color="blue" sub="Successful payouts" />
-        </div>
+        {(() => {
+          const totalFunds   = balance + escrow;
+          const availRatio   = totalFunds > 0 ? Math.round((balance / totalFunds) * 100) : 0;
+          const escrowRatioW = totalFunds > 0 ? Math.round((escrow / totalFunds) * 100) : 0;
+          const withdrawRatio = totalEarned > 0 ? Math.min(Math.round((withdrawnTotal / totalEarned) * 100), 100) : 0;
+          return (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
+              <StatCard label="Available"    value={fmt(balance)}         icon="account_balance_wallet" color="emerald" sub="XAF Ready"          progress={availRatio}    footer={`${escrowRatioW}% held in escrow`} />
+              <StatCard label="In Escrow"    value={fmt(escrow)}          icon="lock_clock"             color="amber"   sub="Pending Delivery"   progress={escrowRatioW}  footer="Pending delivery confirmation" />
+              <StatCard label="Total Earned" value={fmt(totalEarned)}     icon="trending_up"            color="fuchsia" sub="Total earned"        progress={Math.min(withdrawRatio + availRatio, 100)} footer={`${fmt(totalEarned)} lifetime`} />
+              <StatCard label="Withdrawn"    value={fmt(withdrawnTotal)}  icon="arrow_outward"          color="blue"    sub="Successful payouts"  progress={withdrawRatio} footer={`${fmt(Math.max(totalEarned - withdrawnTotal, 0))} remaining`} />
+            </div>
+          );
+        })()}
 
         {/* Actions */}
         <div className="flex gap-4">

@@ -98,23 +98,19 @@ export default function VendorDisputesPage() {
         <div className="px-4 md:px-8 py-8">
           
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
-            {[
-              { label: 'Active', value: activeCount, sub: 'Attention', icon: 'warning', color: 'rose' },
-              { label: 'Resolved', value: (disputes.length - activeCount), sub: 'Closed', icon: 'verified_user', color: 'emerald' },
-              { label: 'Rate', value: `${disputes.length > 0 ? Math.round(((disputes.length - activeCount)/disputes.length)*100) : 100}%`, sub: 'Yield', icon: 'security', color: 'indigo' },
-              { label: 'Total', value: disputes.length, sub: 'Cases', icon: 'database', color: 'blue' }
-            ].map((stat, i) => (
-              <StatCard
-                key={i}
-                label={stat.label}
-                value={String(stat.value)}
-                sub={stat.sub}
-                icon={stat.icon}
-                color={stat.color}
-              />
-            ))}
-          </div>
+          {(() => {
+            const resolvedCount = disputes.length - activeCount;
+            const resolveRate   = disputes.length > 0 ? Math.round((resolvedCount / disputes.length) * 100) : 100;
+            const activeRate    = disputes.length > 0 ? Math.round((activeCount / disputes.length) * 100) : 0;
+            return (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+                <StatCard label="Active"   value={String(activeCount)}    sub="Attention" icon="warning"      color="rose"   progress={activeRate}                     footer={`${activeCount} need attention`} />
+                <StatCard label="Resolved" value={String(resolvedCount)}  sub="Closed"    icon="verified_user" color="emerald" progress={resolveRate}                  footer={`${resolvedCount} cases closed`} />
+                <StatCard label="Rate"     value={`${resolveRate}%`}      sub="Yield"     icon="security"     color="indigo" progress={resolveRate}                    footer={`${resolveRate}% resolution rate`} />
+                <StatCard label="Total"    value={String(disputes.length)} sub="Cases"    icon="database"     color="blue"   progress={Math.min(disputes.length, 100)} footer={`${disputes.length} total cases`} />
+              </div>
+            );
+          })()}
 
 
           {/* Disputes List */}

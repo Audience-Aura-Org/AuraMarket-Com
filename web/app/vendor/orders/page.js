@@ -176,11 +176,15 @@ export default function VendorOrdersPage() {
 
   const openOrdersCount = orders.filter(o => o.payment_status !== 'failed' && !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status)).length;
 
+  const completionRate = orders.length > 0 ? Math.round((completedCount / orders.length) * 100) : 0;
+  const openRate       = orders.length > 0 ? Math.round((openOrdersCount / orders.length) * 100) : 0;
+  const pendingRate    = orders.length > 0 ? Math.round((pendingCount / orders.length) * 100) : 0;
+
   const stats = [
-    { label: 'Total Revenue', value: `${totalRevenue.toLocaleString()} XAF`, icon: 'payments', color: 'emerald', pct: `${completedCount} done`, sub: `+${recentRevenue.toLocaleString()} recent` },
-    { label: 'Open Orders', value: String(openOrdersCount), icon: 'shopping_bag', color: 'primary', pct: `${orders.length} total`, sub: `${orders.filter(o => o.payment_status === 'failed').length} failed` },
-    { label: 'Pending Payouts', value: String(pendingCount), icon: 'account_balance', color: 'purple', pct: 'Held in Escrow', sub: 'Pending Delivery' },
-    { label: 'Completed Orders', value: String(completedCount), icon: 'verified', color: 'blue', pct: 'Fully Completed', sub: 'Delivered and Settled' }
+    { label: 'Total Revenue',   value: `${totalRevenue.toLocaleString()} XAF`, icon: 'payments',       color: 'emerald', pct: `${completedCount} done`,  sub: `+${recentRevenue.toLocaleString()} recent`, progress: completionRate, footer: `${completedCount} orders complete` },
+    { label: 'Open Orders',     value: String(openOrdersCount),                  icon: 'shopping_bag',   color: 'primary', pct: `${orders.length} total`, sub: `${orders.filter(o => o.payment_status === 'failed').length} failed`,       progress: openRate,       footer: `${orders.length} orders total` },
+    { label: 'Pending Payouts', value: String(pendingCount),                     icon: 'account_balance', color: 'purple', pct: 'Held in Escrow',         sub: 'Pending Delivery',                            progress: pendingRate,    footer: 'Held in escrow' },
+    { label: 'Completed Orders', value: String(completedCount),                  icon: 'verified',       color: 'blue',   pct: 'Fully Completed',         sub: 'Delivered and Settled',                       progress: completionRate, footer: `${completedCount} fulfilled` },
   ];
 
   if (user?.role !== 'vendor' || !user.onboarded) return null;
@@ -260,7 +264,7 @@ export default function VendorOrdersPage() {
             <>
                {/* Live Stats */}
                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-                  {stats.map((stat, idx) => (
+                  {stats.map((stat) => (
                     <StatCard
                       key={stat.label}
                       label={stat.label}
@@ -269,6 +273,8 @@ export default function VendorOrdersPage() {
                       color={stat.color}
                       pct={stat.pct}
                       sub={stat.sub}
+                      progress={stat.progress}
+                      footer={stat.footer}
                     />
                   ))}
                </div>

@@ -97,12 +97,20 @@ export default function VendorRatingsPage() {
         <div className="p-4 md:p-10 space-y-8 pb-40">
           
           {/* Reputation Matrix */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-            <StatCard label="Active" value={String(reviews.filter(r => new Date(r.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length)} icon="bolt" color="fuchsia" sub="RECENT_FEED" />
-            <StatCard label="Attention" value={String(threeStars + twoStars + oneStar)} icon="warning" color="rose" sub="LOW_SCORES" />
-            <StatCard label="Resolved" value={String(fiveStars)} icon="check_circle" color="emerald" sub="TOP_TIER" />
-            <StatCard label="Closed" value={String(reviews.length)} icon="inventory_2" color="slate" sub="TOTAL_REVIEWS" />
-          </div>
+          {(() => {
+            const recentCount = reviews.filter(r => new Date(r.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)).length;
+            const lowCount    = threeStars + twoStars + oneStar;
+            const avgRating   = reviews.length > 0 ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviews.length) : 0;
+            const ratingScore = Math.round((avgRating / 5) * 100);
+            return (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+                <StatCard label="Active"    value={String(recentCount)}    icon="bolt"         color="fuchsia" sub="RECENT_FEED"   progress={reviews.length > 0 ? Math.round((recentCount / reviews.length) * 100) : 0} footer={`${avgRating.toFixed(1)} avg rating`} />
+                <StatCard label="Attention" value={String(lowCount)}       icon="warning"      color="rose"    sub="LOW_SCORES"   progress={reviews.length > 0 ? Math.round((lowCount / reviews.length) * 100) : 0}    footer={`${lowCount} need response`} />
+                <StatCard label="Resolved"  value={String(fiveStars)}      icon="check_circle" color="emerald" sub="TOP_TIER"     progress={ratingScore}                                                                   footer={`${fiveStars} five-star reviews`} />
+                <StatCard label="Closed"    value={String(reviews.length)} icon="inventory_2"  color="indigo"  sub="TOTAL_REVIEWS" progress={Math.min(reviews.length, 100)}                                               footer={`${reviews.length} total reviews`} />
+              </div>
+            );
+          })()}
 
 
           {/* Reviews List */}

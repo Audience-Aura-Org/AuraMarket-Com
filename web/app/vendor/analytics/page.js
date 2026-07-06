@@ -88,22 +88,21 @@ export default function VendorAnalyticsPage() {
       </header>
 
         {/* Micro-Stat Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
-          {[
-            { label: t('analytics.revenue', 'Revenue'), value: `${fmt(stats?.total_revenue)}`, icon: 'payments', color: 'emerald' },
-            { label: t('analytics.escrow', 'Escrow'), value: `${fmt(stats?.pending_escrow)}`, icon: 'account_balance_wallet', color: 'amber' },
-            { label: t('analytics.orders', 'Orders'), value: String(stats?.total_sales || 0), icon: 'shopping_bag', color: 'blue' },
-            { label: t('analytics.inventory', 'Inventory'), value: String(stats?.total_products || 0), icon: 'category', color: 'indigo' },
-          ].map((s, i) => (
-            <StatCard
-              key={i}
-              label={s.label}
-              value={s.value}
-              icon={s.icon}
-              color={s.color}
-            />
-          ))}
-        </div>
+        {(() => {
+          const totalSales    = stats?.total_sales || 0;
+          const totalRevenue  = stats?.total_revenue || 0;
+          const pendingEscrow = stats?.pending_escrow || 0;
+          const totalProducts = stats?.total_products || 0;
+          const escrowRatio   = totalRevenue > 0 ? Math.min(Math.round((pendingEscrow / totalRevenue) * 100), 100) : 0;
+          return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
+              <StatCard label={t('analytics.revenue', 'Revenue')}   value={fmt(totalRevenue)}       icon="payments"                color="emerald" progress={Math.min(totalSales, 100)}  footer={`${totalSales} orders fulfilled`} />
+              <StatCard label={t('analytics.escrow', 'Escrow')}     value={fmt(pendingEscrow)}      icon="account_balance_wallet"  color="amber"   progress={escrowRatio}                footer={`${fmt(pendingEscrow)} pending release`} />
+              <StatCard label={t('analytics.orders', 'Orders')}     value={String(totalSales)}      icon="shopping_bag"            color="blue"    progress={Math.min(totalSales, 100)}  footer={`${totalProducts} products active`} />
+              <StatCard label={t('analytics.inventory', 'Inventory')} value={String(totalProducts)} icon="category"                color="indigo"  progress={totalProducts > 0 ? 70 : 0} footer={`${totalProducts} listed`} />
+            </div>
+          );
+        })()}
 
         {/* Main intelligence Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

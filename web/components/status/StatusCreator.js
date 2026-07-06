@@ -617,12 +617,23 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     const tryPlay = () => {
       if (cancelled || !isPlaying) return;
       video.muted = muted;
-      video.play().catch(() => {});
+      video.play()
+        .then(() => {
+          // Android HW decoder commits its pixel surface asynchronously after play().
+          // Seeking to 0.001 forces the compositor to surface the first decoded frame.
+          if (isNativePlatform()) {
+            setTimeout(() => {
+              if (!cancelled) video.currentTime = 0.001;
+            }, 200);
+          }
+        })
+        .catch(() => {});
     };
 
     video.addEventListener('loadeddata', tryPlay, { once: true });
     video.addEventListener('canplay', tryPlay, { once: true });
-    const fallback = setTimeout(tryPlay, isNativePlatform() ? 450 : 250);
+    // Extend Capacitor fallback: 450ms → 600ms to cover slower HW decoders
+    const fallback = setTimeout(tryPlay, isNativePlatform() ? 600 : 250);
     tryPlay();
 
     return () => {
@@ -632,6 +643,16 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       video.removeEventListener('canplay', tryPlay);
     };
   }, [previewUrl, type, muted, isPlaying]);
+
+  // Set Android WebView-specific video attributes that React drops when passed as JSX props.
+  // webkit-playsinline / x5-playsinline / x5-video-player-type must be set imperatively.
+  useEffect(() => {
+    const v = previewVideoRef.current;
+    if (!v || !isNativePlatform()) return;
+    v.setAttribute('webkit-playsinline', 'true');
+    v.setAttribute('x5-video-player-type', 'h5');
+    v.setAttribute('x5-playsinline', 'true');
+  }, [previewUrl]);
 
   // Handle play/pause commands from user interaction
   useEffect(() => {
@@ -778,11 +799,18 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           }
         }
 
-        const decoderDelay = needsOffscreenFilmstripCapture() ? 350 : isMobileWeb() ? 200 : 100;
+        const decoderDelay = needsOffscreenFilmstripCapture() ? 600 : isMobileWeb() ? 200 : 100;
         if (captureVideo.readyState < 2 || captureVideo.videoWidth === 0) {
           await kickVideoDecoder(captureVideo, { delayMs: decoderDelay });
         } else if (needsOffscreenFilmstripCapture()) {
           await kickVideoDecoder(captureVideo, { delayMs: decoderDelay });
+        }
+
+        // On Capacitor, seek to 0.001 after the kick and wait for the HW decoder
+        // to commit its first surface before starting frame-by-frame capture.
+        if (needsOffscreenFilmstripCapture()) {
+          captureVideo.currentTime = 0.001;
+          await new Promise((r) => setTimeout(r, 300));
         }
 
         const duration = videoMeta.duration;
@@ -800,7 +828,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           for (let i = 0; i < numFrames; i++) {
             if (cancelled) break;
             if (needsOffscreenFilmstripCapture() && i > 0) {
-              await new Promise((resolve) => setTimeout(resolve, 100));
+              // Longer inter-frame pause on Capacitor — Android HW decoder needs
+              // more time to commit each new surface after a seek.
+              await new Promise((resolve) => setTimeout(resolve, 200));
             }
             const time =
               i === 0
@@ -1425,12 +1455,16 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     muted={muted}
                     loop
                     playsInline
-                    webkit-playsinline="true"
                     controls={false}
                     disablePictureInPicture
                     controlsList="nodownload noplaybackrate noremoteplayback nofullscreen"
                     preload="auto"
                     onContextMenu={(e) => e.preventDefault()}
+                    onCanPlay={(e) => {
+                      // On Capacitor, canplay fires after HW decoder allocates surface;
+                      // seeking to 0.001 forces the first decoded frame to be painted.
+                      if (isNativePlatform()) e.currentTarget.currentTime = 0.001;
+                    }}
                     onLoadedData={(e) => {
                       const v = e.currentTarget;
                       if (v.currentTime < 0.001 && v.readyState >= 2) {
