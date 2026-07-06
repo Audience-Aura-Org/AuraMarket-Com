@@ -520,14 +520,10 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                <div className="absolute top-full left-0 right-0 mt-2 z-[100] space-y-1 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-[0_20px_50px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2">
                                   <div className="max-h-60 overflow-y-auto no-scrollbar">
                                      {itemProductResults.map(p => (
-                                       <div 
+                                       <div
                                          key={p._id}
                                          onClick={() => {
-                                           updateDataItem(i, 'product_id', p._id);
-                                           // We store name helper for UI
-                                           const newData = [...formData.data];
-                                           newData[i].product_name = p.name;
-                                           setFormData(prev => ({ ...prev, data: newData }));
+                                           updateDataItemFields(i, { product_id: p._id, product_name: p.name });
                                            setActiveProductDropdown(null);
                                          }}
                                          className="group flex cursor-pointer items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors hover:border-[var(--glass-border)] hover:bg-[var(--bg-secondary)]"
@@ -613,17 +609,18 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                       </div>
                     )}
 
+                    {(['hero', 'promo_banner'].includes(formData.type)) && (
                      <div className="space-y-2">
                         <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Link Destination</label>
                         <div className="relative" ref={activeLinkDropdown === i ? dropdownRef : null}>
                            <div className="flex gap-2">
-                              <input 
+                              <input
                                 value={item.link_to}
                                 onChange={(e) => updateDataItem(i, 'link_to', e.target.value)}
                                 className="h-11 flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[13px] outline-none focus:border-[var(--accent)]"
                                 placeholder="/categories/tech"
                               />
-                              <button 
+                              <button
                                 type="button"
                                 onClick={() => {
                                   setActiveLinkDropdown(activeLinkDropdown === i ? null : i);
@@ -640,7 +637,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                <div className="absolute top-full left-0 right-0 mt-2 z-[100] space-y-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-[0_20px_50px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2">
                                   <div className="relative">
                                      <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-secondary)] opacity-60" />
-                                      <input 
+                                      <input
                                         autoFocus
                                         placeholder="Search category to link..."
                                         className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-2.5 pl-9 pr-4 text-[13px] font-bold text-[var(--text-primary)] outline-none placeholder:text-[11px] placeholder:font-normal placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
@@ -649,7 +646,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                       />
                                   </div>
                                   <div className="max-h-48 overflow-y-auto no-scrollbar">
-                                     <div 
+                                     <div
                                        onClick={() => {
                                          updateDataItem(i, 'link_to', '/shop');
                                          setActiveLinkDropdown(null);
@@ -659,7 +656,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                         [ Generic Shop Page ]
                                      </div>
                                      {filteredCategories.map(cat => (
-                                       <div 
+                                       <div
                                          key={cat._id}
                                          onClick={() => {
                                            updateDataItemFields(i, {
@@ -680,6 +677,7 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                             )}
                         </div>
                      </div>
+                    )}
 
                     {(formData.type === 'stores') && (
                       <div className="space-y-2 md:col-span-2">
@@ -707,13 +705,10 @@ export default function SectionForm({ section, onClose, onSuccess }) {
                                <div className="absolute top-full left-0 right-0 mt-2 z-[100] space-y-1 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2 shadow-[0_20px_50px_rgba(15,23,42,0.16)] animate-in fade-in slide-in-from-top-2">
                                   <div className="max-h-60 overflow-y-auto no-scrollbar">
                                      {itemVendorResults.map(v => (
-                                       <div 
+                                       <div
                                          key={v._id}
                                          onClick={() => {
-                                           updateDataItem(i, 'vendor_id', v._id);
-                                           const newData = [...formData.data];
-                                           newData[i].vendor_name = v.store_name;
-                                           setFormData(prev => ({ ...prev, data: newData }));
+                                           updateDataItemFields(i, { vendor_id: v._id, vendor_name: v.store_name });
                                            setActiveVendorDropdown(null);
                                          }}
                                          className="group flex cursor-pointer items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors hover:border-[var(--glass-border)] hover:bg-[var(--bg-secondary)]"

@@ -986,7 +986,7 @@ export default function AccountPageClient() {
                             <select
                               value={kycData.id_type}
                               onChange={(e) => setKycData({...kycData, id_type: e.target.value})}
-                              className="w-full bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] rounded-[1.5rem] px-5 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all text-[var(--text-primary)]"
+                              className="w-full bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] rounded-[1.5rem] px-5 py-3 text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all text-[var(--text-primary)]"
                             >
                               <option value="national_id">National Identification</option>
                               <option value="passport">Passport</option>
@@ -1050,7 +1050,7 @@ export default function AccountPageClient() {
                               <select
                                 value={kycData.id_type}
                                 onChange={(e) => setKycData({...kycData, id_type: e.target.value})}
-                                className="w-full bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] rounded-[1.5rem] px-5 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all text-[var(--text-primary)]"
+                                className="w-full bg-[var(--bg-secondary)]/40 border border-[var(--glass-border)] rounded-[1.5rem] px-5 py-3 text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 transition-all text-[var(--text-primary)]"
                               >
                                 <option value="national_id">National Identification</option>
                                 <option value="passport">Global Passport</option>
@@ -1365,7 +1365,7 @@ function DeleteAccountPanel({ deleteConfirm, setDeleteConfirm, deleteStatus, del
         value={deleteConfirm}
         onChange={(e) => setDeleteConfirm(e.target.value.toUpperCase())}
         placeholder={`Type ${confirmationWord} to confirm`}
-        className="w-full bg-[var(--bg-primary)]/70 border border-rose-500/20 rounded-2xl px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-rose-500/30"
+        className="w-full bg-[var(--bg-primary)]/70 border border-rose-500/20 rounded-2xl px-4 py-3 text-[13px] font-semibold outline-none focus:ring-2 focus:ring-rose-500/30"
       />
 
       {deleteStatus && (
@@ -1434,7 +1434,7 @@ function KycUploadCard({ title, image, field, uploading, onUpload }) {
 function FormField({ label, value, onChange, icon: Icon, placeholder, disabled = false, textarea = false, type = "text" }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{label}</label>
+      <label className="block text-[13px] font-medium mb-2 text-[var(--text-primary)]">{label}</label>
       {textarea ? (
         <textarea
           value={value ?? ""}
@@ -1461,12 +1461,12 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
 function FormSelect({ label, value, onChange, options, icon: Icon, placeholder, disabled = false }) {
   return (
     <div>
-      <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{label}</label>
+      <label className="block text-[13px] font-medium mb-2 text-[var(--text-primary)]">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-sm font-medium text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 appearance-none"
+        className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[13px] font-medium text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 appearance-none"
       >
         <option value="">{placeholder}</option>
         {options.map(opt => (
@@ -1482,7 +1482,7 @@ function NotificationToggle({ label, icon: Icon, active }) {
     <div className="flex items-center justify-between p-4 hover:bg-[var(--bg-secondary)] rounded-[1.5rem] transition-colors border border-[var(--glass-border)]">
       <div className="flex items-center gap-3">
         <Icon className="w-5 h-5 text-[var(--accent)]" />
-        <p className="font-medium text-sm text-[var(--text-primary)]">{label}</p>
+        <p className="font-medium text-[13px] text-[var(--text-primary)]">{label}</p>
       </div>
       <div className={`w-12 h-6 rounded-full transition-colors relative ${active ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}>
         <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-[var(--text-primary)] transition-transform ${active ? 'left-[26px]' : 'left-0.5'}`} />

@@ -9,7 +9,10 @@ export default function ProductSection({ title, subtitle, data, config }) {
   const { t, label } = useLanguage();
   if (!data?.length) return null;
 
-  const products = data.map((item) => item.product_id).filter(Boolean);
+  // Only render items where product_id is a populated object (not a bare string ID)
+  const products = data
+    .map((item) => item.product_id)
+    .filter((p) => p && typeof p === 'object' && (p._id || p.id));
   if (!products.length) return null;
 
   return (
