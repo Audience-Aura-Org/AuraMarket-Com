@@ -139,8 +139,8 @@ html[data-font-size] :where(.font-size-preview, [data-font-size-preview]) {
 .dark {
   --bg-primary: #0A0A0C;
   --bg-secondary: #0A0A0C;
-  --nav-bg: rgba(255, 255, 255, 0.9);
-  --nav-text: #0a051b;
+  --nav-bg: rgba(10, 5, 15, 0.95);
+  --nav-text: #f8fafc;
   --nav-border: rgba(255, 255, 255, 0.08);
   --component-bg: rgba(255, 255, 255, 0.04);
   --text-primary: #e5e1e4;

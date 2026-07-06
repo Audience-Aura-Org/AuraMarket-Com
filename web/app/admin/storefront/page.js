@@ -19,9 +19,13 @@ export default function StorefrontBuilder() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
 
+  const broadcastHomepageUpdate = () => {
+    try { localStorage.setItem('aura_homepage_updated', Date.now().toString()); } catch {}
+  };
+
   const fetchSections = async () => {
     try {
-      const res = await api.get('/homepage');
+      const res = await api.get('/homepage', { params: { t: Date.now() } });
       if (res.data?.success) {
         setSections(res.data.data.sections);
       }
@@ -40,6 +44,7 @@ export default function StorefrontBuilder() {
     try {
       await api.patch(`/homepage/admin/sections/${id}`, { is_active: !currentStatus });
       fetchSections();
+      broadcastHomepageUpdate();
       toast.success('Section status updated');
     } catch (err) {
       toast.error('Failed to update status');
@@ -51,6 +56,7 @@ export default function StorefrontBuilder() {
     try {
       await api.delete(`/homepage/admin/sections/${id}`);
       fetchSections();
+      broadcastHomepageUpdate();
       toast.success('Section deleted');
     } catch (err) {
       toast.error('Failed to delete section');
@@ -70,6 +76,7 @@ export default function StorefrontBuilder() {
 
     try {
       await api.patch('/homepage/admin/sections/reorder', { orders });
+      broadcastHomepageUpdate();
     } catch (err) {
       toast.error('Failed to reorder');
       fetchSections();
@@ -281,7 +288,7 @@ export default function StorefrontBuilder() {
           <SectionForm 
             section={editingSection} 
             onClose={() => setIsFormOpen(false)} 
-            onSuccess={() => { setIsFormOpen(false); fetchSections(); }}
+            onSuccess={() => { setIsFormOpen(false); fetchSections(); broadcastHomepageUpdate(); }}
           />
         )}
 

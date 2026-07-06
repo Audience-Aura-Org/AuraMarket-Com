@@ -14,38 +14,53 @@ export default function AccountHeader({ title = "Account Settings", profileBrand
 
   return (
     <div className="sticky top-0 z-50 lg:top-0 max-lg:top-14">
-      {/* Hero Banner Layer */}
-      <div className="relative h-28 md:h-32 overflow-hidden bg-gradient-to-br from-[var(--accent)] via-indigo-600 to-purple-700">
-        {bannerSrc && (
-          <img
-            src={bannerSrc}
-            alt=""
-            className="absolute inset-0 size-full object-cover opacity-60"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70" />
-
-        {/* Back button overlay */}
-        <button
-          onClick={() => router.back()}
-          className="absolute top-4 left-4 size-9 flex items-center justify-center rounded-xl bg-black/30 backdrop-blur-md border border-white/20 text-white hover:bg-black/50 transition-all active:scale-95"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </button>
-
-        {/* Banner upload (vendors/logistics) */}
-        {canUseBanner && onBannerUpload && (
-          <label className="absolute top-4 right-4 size-9 flex items-center justify-center rounded-xl bg-black/30 backdrop-blur-md border border-white/20 text-white hover:bg-black/50 transition-all cursor-pointer active:scale-95">
-            <Camera className="w-4 h-4" />
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => onBannerUpload(e.target.files?.[0])}
+      {/* Hero Banner Layer — vendors and logistics only */}
+      {canUseBanner && (
+        <div className="relative h-28 md:h-32 overflow-hidden bg-gradient-to-br from-[var(--accent)] via-indigo-600 to-purple-700">
+          {bannerSrc && (
+            <img
+              src={bannerSrc}
+              alt=""
+              className="absolute inset-0 size-full object-cover opacity-60"
             />
-          </label>
-        )}
-      </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70" />
+
+          {/* Back button overlay */}
+          <button
+            onClick={() => router.back()}
+            className="absolute top-4 left-4 size-9 flex items-center justify-center rounded-xl bg-black/30 backdrop-blur-md border border-white/20 text-white hover:bg-black/50 transition-all active:scale-95"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+
+          {/* Banner upload */}
+          {onBannerUpload && (
+            <label className="absolute top-4 right-4 size-9 flex items-center justify-center rounded-xl bg-black/30 backdrop-blur-md border border-white/20 text-white hover:bg-black/50 transition-all cursor-pointer active:scale-95">
+              <Camera className="w-4 h-4" />
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => onBannerUpload(e.target.files?.[0])}
+              />
+            </label>
+          )}
+        </div>
+      )}
+
+      {/* Compact back button for customers (no banner area) */}
+      {!canUseBanner && (
+        <div className="bg-[var(--bg-primary)]/95 backdrop-blur-2xl border-b border-[var(--glass-border)] px-4 py-3 flex items-center gap-2">
+          <button
+            onClick={() => router.back()}
+            className="size-9 flex items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-95 shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <span className="text-sm font-bold text-[var(--text-primary)] truncate">{title}</span>
+        </div>
+      )}
 
       {/* Name bar that sits just below banner */}
       <div className="bg-[var(--bg-primary)]/95 backdrop-blur-2xl border-b border-[var(--glass-border)] px-4 py-2.5 flex items-center gap-3">

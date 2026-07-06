@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Star, MapPin, Package, Users, Filter, LayoutGrid, List, ShieldCheck, Heart, UserPlus, UserMinus, Loader2, Check, Activity } from 'lucide-react';
+import { Star, MapPin, Package, Users, Filter, LayoutGrid, List, ShieldCheck, Heart, UserPlus, UserMinus, Loader2, Check, Activity, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import api from '@/services/api';
@@ -196,19 +196,19 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
 
               {/* Action Stack - MOBILE OPTIMIZED */}
               <div className="flex flex-row md:flex-col items-center gap-2 w-full md:w-auto shrink-0">
-                <VendorFollowButton 
-                  vendorId={vendor?._id?.toString() || id} 
+                <VendorFollowButton
+                  vendorId={vendor?._id?.toString() || id}
                   className="!h-10 md:!h-11 !text-[10px] lg:text-[12px] flex-1 md:flex-none"
                 />
                 {user?._id === store.vendor_id?.user_id?._id && (
-                   <button 
+                   <button
                     onClick={() => setShowStatusCreator(true)}
                     className="h-10 md:h-11 px-6 rounded-xl bg-[var(--accent)] text-white  font-semibold text-[10px] lg:text-[12px] tracking-tight  hover:brightness-110 transition-all shadow-lg shadow-[var(--accent)]/20 flex-1 md:flex-none flex items-center justify-center gap-2"
                    >
                      <Activity className="size-3.5" /> {t('story.addStory', 'Add Story')}
                    </button>
                 )}
-                <button 
+                <button
                   onClick={() => openChat(store.vendor_id?.user_id?._id, null, {
                     store_name: store.vendor_id?.store_name,
                     branding: { logo: store.logo || store.vendor_id?.user_id?.branding?.logo }
@@ -216,6 +216,28 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
                   className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)]  font-semibold text-[10px] lg:text-[12px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
                 >
                   {t('common.contact', 'Contact')}
+                </button>
+                <button
+                  onClick={async () => {
+                    const storeUrl = `${window.location.origin}/stores/${encodeURIComponent(vendor?._id?.toString() || id)}`;
+                    const storeName = store.vendor_id?.store_name || 'this store';
+                    try {
+                      if (navigator.share) {
+                        await navigator.share({ title: storeName, url: storeUrl });
+                      } else {
+                        await navigator.clipboard.writeText(storeUrl);
+                        toast.success('Store link copied!');
+                      }
+                    } catch (e) {
+                      if (e?.name !== 'AbortError') {
+                        try { await navigator.clipboard.writeText(storeUrl); toast.success('Store link copied!'); } catch {}
+                      }
+                    }
+                  }}
+                  className="size-10 md:size-11 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex items-center justify-center shrink-0"
+                  title="Share store"
+                >
+                  <Share2 className="size-4" />
                 </button>
               </div>
             </div>

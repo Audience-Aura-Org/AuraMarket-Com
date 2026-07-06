@@ -329,7 +329,7 @@ export default function AdminLogistics() {
                            placeholder="NODE_DESIGNATION (E.G. AKWA)"
                            value={newZone.name}
                            onChange={e => setNewZone({...newZone, name: e.target.value})}
-                           className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 text-sm font-bold uppercase outline-none focus:border-[var(--accent)] transition-all shadow-inner"
+                           className="w-full h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 text-[13px] font-bold uppercase outline-none focus:border-[var(--accent)] transition-all shadow-inner"
                         />
                      </div>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -342,7 +342,7 @@ export default function AdminProductsPage() {
                     <select
                       value={editForm.status}
                       onChange={(e) => setEditForm(f => ({ ...f, status: e.target.value }))}
-                      className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-sm font-semibold outline-none"
+                      className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[13px] font-semibold outline-none"
                     >
                       <option value="active">Approved / Active</option>
                       <option value="pending">Pending</option>
@@ -430,7 +430,7 @@ function AdminInput({ label, value, onChange, type = 'text' }) {
         type={type}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
-        className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/45"
+        className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[13px] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/45"
       />
     </label>
   );
@@ -444,7 +444,7 @@ function AdminTextarea({ label, value, onChange }) {
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
         rows={4}
-        className="w-full resize-none rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-sm font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/45"
+        className="w-full resize-none rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[13px] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/45"
       />
     </label>
   );

@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Upload, X, Plus, Package, Image as ImageIcon,
@@ -62,6 +62,25 @@ export default function AddProductPage() {
   });
   const [showStoryPrompt, setShowStoryPrompt] = useState(false);
   const [createdProduct, setCreatedProduct] = useState(null);
+
+  // Restore draft from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const draft = sessionStorage.getItem('aura_add_product_draft');
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (parsed.form) setForm(prev => ({ ...prev, ...parsed.form }));
+        if (parsed.tags) setTags(parsed.tags);
+      }
+    } catch {}
+  }, []);
+
+  // Save draft to sessionStorage whenever form changes
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('aura_add_product_draft', JSON.stringify({ form, tags }));
+    } catch {}
+  }, [form, tags]);
 
   // Variable Product State
   const [hasVariants, setHasVariants] = useState(false);
@@ -241,6 +260,7 @@ export default function AddProductPage() {
       const res = await createProductWithFormData(formData);
 
       toast.success(`"${form.name}" has been published!`, { icon: '🚀' });
+      try { sessionStorage.removeItem('aura_add_product_draft'); } catch {}
       
       if (res.data.success) {
         setCreatedProduct(getCreatedProduct(res.data.data));

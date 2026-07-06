@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/services/api';
+import { toast } from 'react-hot-toast';
 import { useAuthStore } from '@/hooks/useAuth';
 
 // Request cache to prevent duplicate requests for the same vendor
@@ -49,7 +50,10 @@ export function useFollow(vendorId) {
 
   const toggleFollow = async () => {
     if (!user) {
-      alert('Please login to follow vendors');
+      const from = typeof window !== 'undefined'
+        ? encodeURIComponent(window.location.pathname + window.location.search)
+        : '';
+      window.location.href = `/login${from ? `?from=${from}` : ''}`;
       return;
     }
 
@@ -91,7 +95,7 @@ export function useFollow(vendorId) {
       window.dispatchEvent(new CustomEvent('aura_follow_update', { 
         detail: { vendorId, isFollowing: prevStatus } 
       }));
-      alert('Follow action failed. Please try again.');
+      toast.error('Follow action failed. Please try again.');
     } finally {
       setLoading(false);
     }

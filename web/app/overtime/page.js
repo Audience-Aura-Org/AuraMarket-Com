@@ -46,10 +46,15 @@ export default function LandingPage() {
       if (document.visibilityState === 'visible') fetchHomepage();
     };
 
+    const handleAdminUpdate = (e) => {
+      if (e.key === 'aura_homepage_updated') fetchHomepage();
+    };
+
     fetchHomepage();
     const intervalId = window.setInterval(refreshWhenVisible, 15000);
     window.addEventListener('focus', fetchHomepage);
     window.addEventListener('online', fetchHomepage);
+    window.addEventListener('storage', handleAdminUpdate);
     document.addEventListener('visibilitychange', refreshWhenVisible);
 
     return () => {
@@ -58,6 +63,7 @@ export default function LandingPage() {
       window.clearInterval(intervalId);
       window.removeEventListener('focus', fetchHomepage);
       window.removeEventListener('online', fetchHomepage);
+      window.removeEventListener('storage', handleAdminUpdate);
       document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
   }, []);

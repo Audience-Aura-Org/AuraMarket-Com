@@ -244,7 +244,7 @@ export default function AdminCategories() {
                            placeholder="Enter Node Designation..."
                            value={formData.name}
                            onChange={e => setFormData({...formData, name: e.target.value})}
-                           className="flex-1 h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 text-sm font-bold outline-none focus:border-[var(--accent)] transition-all shadow-inner"
+                           className="flex-1 h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 text-[13px] font-bold outline-none focus:border-[var(--accent)] transition-all shadow-inner"
                         />
                         <div className="flex gap-3">
                            <button onClick={handleAdd} className="flex-1 md:flex-none h-14 px-8 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white transition-all">Commit</button>

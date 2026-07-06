@@ -9,6 +9,9 @@ import {
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
+import { useChat } from '@/context/ChatContext';
+import socketService from '@/services/socket';
+import { useAuthStore } from '@/hooks/useAuth';
 
 const STORY_DURATION = 5000;
 const VIDEO_PRELOAD_AHEAD = 3;
@@ -413,6 +416,8 @@ const getEndingSoonInfo = (story) => {
 // ─── StatusViewer ─────────────────────────────────────────────────────────────
 export default function StatusViewer({ initialStatuses, initialStoryId, onClose, onStoryViewed }) {
   const router = useRouter();
+  const { openChat } = useChat();
+  const { user } = useAuthStore();
 
   const vendorGroups = useMemo(() => {
     const groups = [];
@@ -588,22 +593,40 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
   };
 
   const handleViewProduct = useCallback(() => {
-    const productId = story?.linked_product?._id || story?.linked_product;
-    if (!productId) return;
+    const product = story?.linked_product;
+    if (!product) return;
+    const recipientUserId = story?.vendor_id?.user_id?._id || story?.vendor_id?.user_id;
+    // If there's a vendor to chat with, open chat with product context (WhatsApp-like)
+    if (recipientUserId) {
+      const partnerData = {
+        _id: recipientUserId,
+        name: story.vendor_id?.store_name || 'Vendor',
+        avatar: story.vendor_id?.user_id?.branding?.logo || story.vendor_id?.user_id?.avatar || null,
+      };
+      handleClose();
+      openChat(recipientUserId, product, partnerData);
+      return;
+    }
+    // Fallback: navigate to product page
+    const productId = product._id || product;
     handleClose();
     router.push(`/products?id=${encodeURIComponent(productId)}`);
-  }, [story, handleClose, router]);
+  }, [story, handleClose, router, openChat]);
 
   const handleVendorClick = useCallback((e, vendorId) => {
     e.stopPropagation();
     handleClose();
-    router.push(`/stores?id=${encodeURIComponent(vendorId)}`);
+    router.push(`/stores/${encodeURIComponent(vendorId)}`);
   }, [handleClose, router]);
 
   const toggleLike = useCallback(() => {
+    if (!user) {
+      router.push('/login?from=' + encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname : '/status'));
+      return;
+    }
     setLiked(l => !l);
     api.post(`/statuses/${story._id}/react`).catch(() => {});
-  }, [story?._id]);
+  }, [story?._id, user, router]);
 
   const handleShareStory = useCallback(async (e) => {
     e.stopPropagation();
@@ -611,7 +634,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
 
     const vendorName = story.vendor_id?.store_name || 'Auradime';
     const storyUrl = typeof window !== 'undefined'
-      ? `${window.location.origin}/discovery?tab=status&story=${encodeURIComponent(story._id)}`
+      ? `${window.location.origin}/status?story=${encodeURIComponent(story._id)}`
       : '';
     const shareText = story.caption || story.text_content || `View ${vendorName}'s story on Auradime`;
 
@@ -652,7 +675,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
     setPaused((current) => !current);
   }, []);
 
-  const handleSendReply = useCallback(() => {
+  const handleSendReply = useCallback(async () => {
     if (!replyText.trim()) return;
     const recipientUserId = story?.vendor_id?.user_id?._id || story?.vendor_id?.user_id;
     if (!recipientUserId) return;
@@ -660,22 +683,38 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
     dismissKeyboard();
     setReplyText('');
     setIsReplying(false);
-    api.post('/chat', {
-      receiver_id: recipientUserId,
-      text,
-      metadata: {
-        type: 'story_reply',
-        storyId: story._id,
-        storyType: story.type,
-        storyPreview: story.type === 'text' ? story.text_content : story.content_url,
-        storyThumbnail: story.thumbnail_url || '',
-        storyCaption: story.caption || '',
-        storyCategory: story.category || '',
-      }
-    }).catch(() => {});
+    // Stop typing indicator
+    socketService.emit('typing_stop', { receiver_id: recipientUserId });
+    try {
+      await api.post('/chat', {
+        receiver_id: recipientUserId,
+        text,
+        metadata: {
+          type: 'story_reply',
+          storyId: story._id,
+          storyType: story.type,
+          storyPreview: story.type === 'text' ? story.text_content : story.content_url,
+          storyThumbnail: story.thumbnail_url || '',
+          storyCaption: story.caption || '',
+          storyCategory: story.category || '',
+        }
+      });
+    } catch {
+      // Continue to open chat even if the API call fails — socket will retry delivery
+    }
     window.dispatchEvent(new CustomEvent('aura_vendor_reply', { detail: story }));
-    setPaused(false);
-  }, [replyText, story, dismissKeyboard]);
+    // Open chat thread after message is persisted (WhatsApp-like navigation)
+    const partnerData = {
+      _id: recipientUserId,
+      name: story.vendor_id?.store_name || 'Vendor',
+      avatar: story.vendor_id?.user_id?.branding?.logo || story.vendor_id?.user_id?.avatar || null,
+    };
+    const linkedProduct = story.linked_product && (story.linked_product._id || story.linked_product.name)
+      ? story.linked_product
+      : null;
+    handleClose();
+    openChat(recipientUserId, linkedProduct, partnerData);
+  }, [replyText, story, dismissKeyboard, openChat, handleClose]);
 
   const onPointerDown = useCallback((e) => {
     if (isReplying) return;
@@ -967,11 +1006,21 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
                   type="text"
                   value={replyText}
                   onChange={e => setReplyText(e.target.value)}
-                  onFocus={() => { setIsReplying(true); setPaused(true); }}
-                  onBlur={() => { setIsReplying(false); setPaused(false); }}
+                  onFocus={() => {
+                    setIsReplying(true);
+                    setPaused(true);
+                    const recipientId = story?.vendor_id?.user_id?._id || story?.vendor_id?.user_id;
+                    if (recipientId) socketService.emit('typing_start', { receiver_id: recipientId });
+                  }}
+                  onBlur={() => {
+                    setIsReplying(false);
+                    setPaused(false);
+                    const recipientId = story?.vendor_id?.user_id?._id || story?.vendor_id?.user_id;
+                    if (recipientId) socketService.emit('typing_stop', { receiver_id: recipientId });
+                  }}
                   onKeyDown={e => { if (e.key === 'Enter' && replyText.trim()) { e.preventDefault(); handleSendReply(); } }}
-                  placeholder="Reply..."
-                  className="w-full h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 px-5 pr-12 text-sm text-white placeholder:text-white/40 outline-none focus:border-[var(--accent)]/60 focus:bg-white/15 transition-all shadow-inner"
+                  placeholder="Reply to story..."
+                  className="w-full h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 px-5 pr-12 text-[13px] text-white placeholder:text-[11px] placeholder:font-normal placeholder:text-white/40 outline-none focus:border-[var(--accent)]/60 focus:bg-white/15 transition-all shadow-inner"
                 />
                 <button
                   onClick={handleSendReply}

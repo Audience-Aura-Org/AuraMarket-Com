@@ -60,7 +60,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
-    if (!user) { toast.error(t('common.loginCart')); return; }
+    if (!user) { router.push('/login?from=' + encodeURIComponent(window.location.pathname + window.location.search)); return; }
     
     // If product has variants, show selector instead of adding directly
     if (product.has_variants) {
@@ -90,7 +90,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
 
   const handleBuyNow = (e) => {
     e.stopPropagation();
-    if (!user) { toast.error(t('common.loginProceed')); return; }
+    if (!user) { router.push('/login?from=' + encodeURIComponent(window.location.pathname + window.location.search)); return; }
 
     // If product has variants, show selector
     if (product.has_variants) {
@@ -140,7 +140,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
 
   const handleWishlist = async (e) => {
     e.stopPropagation();
-    if (!user) { toast.error(t('common.loginWishlist')); return; }
+    if (!user) { router.push('/login?from=' + encodeURIComponent(window.location.pathname + window.location.search)); return; }
     setWishlistLoading(true);
     try {
       await api.post(`/wishlist/toggle/${productId}`);
@@ -157,7 +157,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
 
   const handleChat = (e) => {
     e.stopPropagation();
-    if (!user) { toast.error(t('common.loginChat')); return; }
+    if (!user) { router.push('/login?from=' + encodeURIComponent(window.location.pathname + window.location.search)); return; }
     if (vendorUserId) {
       const vName = vendor_id?.store_name || t('common.verifiedStore');
       const vLogo = vendor_id?.store?.logo || vendor_id?.user_id?.branding?.logo;

@@ -25,7 +25,43 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
 
   return (
     <div className="lg:col-span-1">
-      <div className="sticky top-[160px] space-y-1.5">
+      {/* ── Mobile: horizontal scrollable pill row ── */}
+      <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+        {/* Theme toggle pill */}
+        <button
+          onClick={toggleTheme}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 text-[var(--text-secondary)] transition-all active:scale-95"
+        >
+          {theme === 'dark' ? (
+            <Moon className="w-3.5 h-3.5 text-[var(--accent)]" />
+          ) : (
+            <Sun className="w-3.5 h-3.5 text-[var(--accent)]" />
+          )}
+          <span className="text-[10px] font-semibold">{theme === 'dark' ? 'Dark' : 'Light'}</span>
+        </button>
+
+        {filteredTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleTabClick(tab.id)}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border transition-all active:scale-95 ${
+                isActive
+                  ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/25'
+                  : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/70 text-[var(--text-secondary)]'
+              }`}
+            >
+              <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-[var(--accent)]'}`} />
+              <span className="text-[10px] font-semibold whitespace-nowrap">{t(`tabs.${tab.id}`, tab.label)}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Desktop: vertical sticky list ── */}
+      <div className="hidden lg:block sticky top-[160px] space-y-1.5">
         {/* Theme toggle chip */}
         <button
           onClick={toggleTheme}
@@ -43,7 +79,6 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
           </span>
         </button>
 
-        {/* Navigation */}
         <nav className="space-y-1">
           {filteredTabs.map((tab) => {
             const Icon = tab.icon;
@@ -59,9 +94,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
                 }`}
               >
                 <div className={`size-7 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                  isActive
-                    ? 'bg-white/20'
-                    : 'bg-[var(--accent)]/10 group-hover:bg-[var(--accent)]/20'
+                  isActive ? 'bg-white/20' : 'bg-[var(--accent)]/10 group-hover:bg-[var(--accent)]/20'
                 }`}>
                   <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-[var(--accent)]'}`} />
                 </div>

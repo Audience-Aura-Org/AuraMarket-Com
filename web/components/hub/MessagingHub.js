@@ -700,6 +700,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     };
   }, [activePartnerId, isSystemWide]);
 
+  // Reload active conversation when tab becomes visible again (e.g. after replying to a status)
+  useEffect(() => {
+    const handleVisibilityResume = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (!activePartnerId) return;
+      loadConversation(activePartnerId, 1, { silent: true, skipProfile: true, skipPresence: true });
+    };
+    document.addEventListener('visibilitychange', handleVisibilityResume);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityResume);
+  }, [activePartnerId, isSystemWide]);
+
   const loadInbox = async (options = {}) => {
     const silent = Boolean(options.silent);
     if (!silent) setInboxLoading(true);
