@@ -20,9 +20,6 @@ export default function AdminProductsPage() {
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkDeleting, setBulkDeleting] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [editForm, setEditForm] = useState({});
-  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     fetchProducts();
@@ -81,44 +78,6 @@ export default function AdminProductsPage() {
       }
     } catch (err) {
       toast.error('Asset status change failed');
-    }
-  };
-
-  const openEdit = (product) => {
-    setEditingProduct(product);
-    setEditForm({
-      name: product.name || '',
-      description: product.description || '',
-      price: product.price ?? '',
-      sale_price: product.sale_price ?? '',
-      stock: product.stock ?? '',
-      category: product.category || '',
-      status: product.status || 'active',
-      featured: !!product.featured,
-      specifications: product.specifications || '',
-      long_description: product.long_description || '',
-    });
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editingProduct?._id) return;
-    if (editForm.sale_price && Number(editForm.sale_price) >= Number(editForm.price)) {
-      toast.error('Sale price must be less than the regular price.');
-      return;
-    }
-    setSavingEdit(true);
-    try {
-      const res = await api.patch(`/admin/products/${editingProduct._id}`, editForm);
-      if (res.data.success) {
-        const updated = res.data.data.product;
-        setProducts(prev => prev.map(p => p._id === updated._id ? updated : p));
-        setEditingProduct(null);
-        toast.success('Product updated.');
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Product update failed.');
-    } finally {
-      setSavingEdit(false);
     }
   };
 
@@ -263,9 +222,9 @@ export default function AdminProductsPage() {
                               <Link href={`/products?id=${encodeURIComponent(p._id)}`} className="size-9 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)] transition-all">
                                 <Eye className="size-4" />
                               </Link>
-                              <button onClick={() => openEdit(p)} className="size-9 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)] transition-all" title="Edit product">
+                              <Link href={`/admin/products/edit/${p._id}`} className="size-9 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent)] transition-all" title="Edit product">
                                 <Pencil className="size-4" />
-                              </button>
+                              </Link>
                               {p.status !== 'active' && (
                                 <button onClick={() => handleStatusUpdate(p._id, 'active')} className="h-9 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 text-[10px] font-bold text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all">
                                   Approve
@@ -306,85 +265,6 @@ export default function AdminProductsPage() {
           )}
         </div>
       </div>
-      <AnimatePresence>
-        {editingProduct && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[90] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ scale: 0.96, y: 12 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.96, y: 12 }}
-              className="w-full max-w-3xl overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl"
-            >
-              <div className="flex items-center justify-between border-b border-[var(--glass-border)] px-6 py-5">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--accent)]">Admin Product Edit</p>
-                  <h3 className="text-lg font-bold tracking-tight text-[var(--text-primary)]">Update product record</h3>
-                </div>
-                <button onClick={() => setEditingProduct(null)} className="rounded-xl px-3 py-2 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
-                  Close
-                </button>
-              </div>
-
-              <div className="max-h-[72vh] overflow-y-auto p-6">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <AdminInput label="Product name" value={editForm.name} onChange={(v) => setEditForm(f => ({ ...f, name: v }))} />
-                  <AdminInput label="Category" value={editForm.category} onChange={(v) => setEditForm(f => ({ ...f, category: v }))} />
-                  <AdminInput label="Price (Regular)" type="number" value={editForm.price} onChange={(v) => setEditForm(f => ({ ...f, price: v }))} />
-                  <AdminInput label="Sale Price" type="number" value={editForm.sale_price} onChange={(v) => setEditForm(f => ({ ...f, sale_price: v }))} />
-                  <AdminInput label="Stock" type="number" value={editForm.stock} onChange={(v) => setEditForm(f => ({ ...f, stock: v }))} />
-                  <label className="space-y-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/55">Status</span>
-                    <select
-                      value={editForm.status}
-                      onChange={(e) => setEditForm(f => ({ ...f, status: e.target.value }))}
-                      className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[13px] font-semibold outline-none"
-                    >
-                      <option value="active">Approved / Active</option>
-                      <option value="pending">Pending</option>
-                      <option value="archived">Disapproved / Archived</option>
-                      <option value="suspended">Suspended</option>
-                      <option value="draft">Draft</option>
-                    </select>
-                  </label>
-                  <label className="flex h-12 items-center justify-between self-end rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4">
-                    <span className="text-sm font-bold text-[var(--text-primary)]">Featured</span>
-                    <input
-                      type="checkbox"
-                      checked={!!editForm.featured}
-                      onChange={(e) => setEditForm(f => ({ ...f, featured: e.target.checked }))}
-                      className="size-5 accent-[var(--accent)]"
-                    />
-                  </label>
-                  <AdminTextarea label="Description" value={editForm.description} onChange={(v) => setEditForm(f => ({ ...f, description: v }))} />
-                  <AdminTextarea label="Long description" value={editForm.long_description} onChange={(v) => setEditForm(f => ({ ...f, long_description: v }))} />
-                  <div className="md:col-span-2">
-                    <AdminTextarea label="Specifications" value={editForm.specifications} onChange={(v) => setEditForm(f => ({ ...f, specifications: v }))} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 border-t border-[var(--glass-border)] px-6 py-5">
-                <button onClick={() => setEditingProduct(null)} className="rounded-2xl px-5 py-3 text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveEdit}
-                  disabled={savingEdit}
-                  className="flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-6 py-3 text-xs font-bold text-white shadow-lg disabled:opacity-50"
-                >
-                  {savingEdit && <Loader2 className="size-3 animate-spin" />}
-                  Save Product
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
       {/* BULK ACTION BAR */}
       <AnimatePresence>
         {selectedIds.length > 0 && (
@@ -422,30 +302,3 @@ export default function AdminProductsPage() {
   );
 }
 
-function AdminInput({ label, value, onChange, type = 'text' }) {
-  return (
-    <label className="space-y-2">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/55">{label}</span>
-      <input
-        type={type}
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[13px] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/45"
-      />
-    </label>
-  );
-}
-
-function AdminTextarea({ label, value, onChange }) {
-  return (
-    <label className="space-y-2 md:col-span-2">
-      <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/55">{label}</span>
-      <textarea
-        value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
-        rows={4}
-        className="w-full resize-none rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[13px] font-semibold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/45"
-      />
-    </label>
-  );
-}

@@ -8,6 +8,7 @@
 
 const express = require('express');
 const router = express.Router();
+const upload = require('../utils/storage');
 
 const {
   getHomepageLayout,
@@ -151,7 +152,7 @@ router.patch('/vendors/:id/media', updateVendorMedia);
 router.patch('/vendors/:id/store-settings', updateVendorStoreSettings);
 router.patch('/vendors/:id/status', updateVendorStatus);
 router.get('/products', getAllProducts);
-router.patch('/products/:id', updateProductAdmin);
+router.patch('/products/:id', upload.array('images', 5), updateProductAdmin);
 router.post('/users/bulk-delete', bulkDeleteUsers);
 router.post('/products/bulk-delete', bulkDeleteProducts);
 

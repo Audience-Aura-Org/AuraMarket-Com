@@ -523,56 +523,107 @@ const reviewProduct = async (req, res, next) => {
 
 const updateProductAdmin = async (req, res, next) => {
   try {
-    const allowedUpdates = [
-      'name',
-      'description',
-      'price',
-      'compare_at_price',
-      'stock',
-      'category',
-      'status',
-      'featured',
-      'specifications',
-      'long_description',
-    ];
-    const updateData = {};
-    allowedUpdates.forEach((field) => {
-      if (req.body[field] !== undefined) updateData[field] = req.body[field];
-    });
-
-    if (updateData.compare_at_price === '' || updateData.compare_at_price === null) {
-      updateData.compare_at_price = null;
-    } else if (updateData.compare_at_price !== undefined) {
-      const nextPrice = updateData.price !== undefined ? Number(updateData.price) : undefined;
-      const compareAt = Number(updateData.compare_at_price);
-      const product = await Product.findById(req.params.id).select('price');
-      const sellingPrice = nextPrice !== undefined ? nextPrice : Number(product?.price || 0);
-      if (!Number.isFinite(compareAt) || compareAt <= 0 || compareAt <= sellingPrice) {
-        return res.status(400).json({ success: false, message: 'Compare-at price must be greater than the selling price.' });
-      }
-      updateData.compare_at_price = compareAt;
-    }
-    updateData.sale_price = null;
-    updateData.on_sale = false;
-    if (updateData.price !== undefined) {
-      updateData.price = Number(updateData.price);
-      if (!Number.isFinite(updateData.price) || updateData.price < 0) {
-        return res.status(400).json({ success: false, message: 'Invalid product price.' });
-      }
-    }
-    if (updateData.stock !== undefined) {
-      updateData.stock = Number(updateData.stock);
-      if (!Number.isFinite(updateData.stock) || updateData.stock < 0) {
-        return res.status(400).json({ success: false, message: 'Invalid product stock.' });
-      }
-    }
-    if (updateData.featured !== undefined) updateData.featured = Boolean(updateData.featured);
-
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
 
-    Object.assign(product, updateData);
+    const updateData = {};
 
+    // ── Simple string / boolean fields ────────────────────────────────────────
+    ['name', 'description', 'category', 'status', 'specifications', 'long_description'].forEach((f) => {
+      if (req.body[f] !== undefined) updateData[f] = req.body[f];
+    });
+
+    if (req.body.featured !== undefined) {
+      updateData.featured = req.body.featured === 'true' || req.body.featured === true;
+    }
+
+    // ── Tags ──────────────────────────────────────────────────────────────────
+    if (req.body.tags !== undefined) {
+      try {
+        updateData.tags = typeof req.body.tags === 'string' ? JSON.parse(req.body.tags) : req.body.tags;
+      } catch { updateData.tags = []; }
+    }
+
+    // ── Price ─────────────────────────────────────────────────────────────────
+    if (req.body.price !== undefined) {
+      const price = Number(req.body.price);
+      if (!Number.isFinite(price) || price < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid product price.' });
+      }
+      updateData.price = price;
+    }
+
+    // ── Sale price ────────────────────────────────────────────────────────────
+    if (req.body.sale_price === '' || req.body.sale_price === null || req.body.sale_price === undefined) {
+      updateData.sale_price = null;
+      updateData.on_sale = false;
+    } else {
+      const salePrice = Number(req.body.sale_price);
+      const refPrice = updateData.price !== undefined ? updateData.price : Number(product.price);
+      if (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= refPrice) {
+        return res.status(400).json({ success: false, message: 'Sale price must be less than the regular price.' });
+      }
+      updateData.sale_price = salePrice;
+      updateData.on_sale = true;
+    }
+
+    // ── Stock ─────────────────────────────────────────────────────────────────
+    if (req.body.stock !== undefined) {
+      const stock = Number(req.body.stock);
+      if (!Number.isFinite(stock) || stock < 0) {
+        return res.status(400).json({ success: false, message: 'Invalid product stock.' });
+      }
+      updateData.stock = stock;
+    }
+
+    // ── Images ────────────────────────────────────────────────────────────────
+    if (req.body.existing_images !== undefined || (req.files && req.files.length > 0)) {
+      const finalImages = [];
+      if (req.body.existing_images) {
+        const existing = Array.isArray(req.body.existing_images)
+          ? req.body.existing_images
+          : [req.body.existing_images];
+        existing.forEach((url) => finalImages.push({ url }));
+      }
+      if (req.files && req.files.length > 0) {
+        req.files.forEach((file) => {
+          finalImages.push({ url: file.location || `/uploads/${file.filename}` });
+        });
+      }
+      updateData.images = finalImages;
+    }
+
+    // ── Variants ──────────────────────────────────────────────────────────────
+    if (req.body.has_variants !== undefined) {
+      const wantsVariants = req.body.has_variants === 'true' || req.body.has_variants === true;
+      updateData.has_variants = wantsVariants;
+      if (!wantsVariants) {
+        updateData.variant_types = [];
+        updateData.sku_variants = [];
+      }
+    }
+
+    if (req.body.variant_types && typeof req.body.variant_types === 'string') {
+      try { updateData.variant_types = JSON.parse(req.body.variant_types); } catch (e) {}
+    }
+
+    if (req.body.sku_variants && typeof req.body.sku_variants === 'string') {
+      try {
+        const variants = JSON.parse(req.body.sku_variants);
+        variants.forEach((v) => {
+          if (v.price !== undefined) v.price = Number(v.price);
+          if (v.stock !== undefined) v.stock = Number(v.stock);
+          if (v.sale_price === '' || v.sale_price === null || v.sale_price === undefined) {
+            v.sale_price = null;
+          } else {
+            v.sale_price = Number(v.sale_price);
+          }
+        });
+        updateData.sku_variants = variants;
+      } catch (e) {}
+    }
+
+    // If price changed on a variable product with no explicit sku_variants update, propagate price
     if (
       updateData.price !== undefined &&
       product.has_variants &&
@@ -580,11 +631,16 @@ const updateProductAdmin = async (req, res, next) => {
       product.sku_variants.length > 0 &&
       req.body.sku_variants === undefined
     ) {
-      product.sku_variants.forEach((variant) => {
-        variant.price = updateData.price;
-      });
-      product.markModified('sku_variants');
+      updateData.sku_variants = product.sku_variants.map((v) => ({
+        ...v.toObject(),
+        price: updateData.price,
+      }));
     }
+
+    Object.assign(product, updateData);
+    if (updateData.sku_variants !== undefined) product.markModified('sku_variants');
+    if (updateData.variant_types !== undefined) product.markModified('variant_types');
+    if (updateData.images !== undefined) product.markModified('images');
 
     await product.save();
     const populated = await Product.findById(product._id).populate('vendor_id', 'store_name');
