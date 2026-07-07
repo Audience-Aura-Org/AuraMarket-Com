@@ -17,6 +17,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function AdminLogistics() {
   const [mounted, setMounted] = useState(false);
   const [shipments, setShipments] = useState([]);
+  const [shipmentTotal, setShipmentTotal] = useState(0);
+  const [shipmentPage, setShipmentPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
   const [firms, setFirms] = useState([]);
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,10 +45,16 @@ export default function AdminLogistics() {
   const fetchLogistics = async () => {
     setLoading(true);
     try {
-      const respShip = await api.get('/admin/logistics/shipments');
+      const params = new URLSearchParams({ page: 1, limit: 50 });
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      const respShip = await api.get(`/admin/logistics/shipments?${params}`);
       const respFirm = await api.get('/admin/logistics/firms');
       const respZone = await api.get('/logistics/zones');
-      if (respShip.data?.success) setShipments(respShip.data.data.shipments || []);
+      if (respShip.data?.success) {
+        setShipments(respShip.data.data.shipments || []);
+        setShipmentTotal(respShip.data.total || 0);
+        setShipmentPage(1);
+      }
       if (respFirm.data?.success) setFirms(respFirm.data.data.firms || []);
       if (respZone.data?.success) setZones(respZone.data.data.zones || []);
     } catch (err) {
@@ -54,6 +64,32 @@ export default function AdminLogistics() {
       setLoading(false);
     }
   };
+
+  const loadMoreShipments = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const nextPage = shipmentPage + 1;
+      const params = new URLSearchParams({ page: nextPage, limit: 50 });
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      const res = await api.get(`/admin/logistics/shipments?${params}`);
+      if (res.data?.success) {
+        setShipments(prev => [...prev, ...(res.data.data.shipments || [])]);
+        setShipmentTotal(res.data.total || 0);
+        setShipmentPage(nextPage);
+      }
+    } catch {
+      toast.error('Failed to load more shipments');
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Re-fetch when status filter changes
+  useEffect(() => {
+    if (mounted) fetchLogistics();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter]);
 
   const openShipmentEditor = (shipment) => {
     setSelectedShipment(shipment);
@@ -155,6 +191,28 @@ export default function AdminLogistics() {
                <p className="hidden md:block text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em]">Synchronized Fulfillment Matrix</p>
             </div>
 
+            {/* Shipment status filter bar */}
+            {activeTab === 'Shipments' && (
+              <div className="px-4 md:px-8 py-3 border-b border-[var(--glass-border)] flex flex-wrap items-center gap-2">
+                {['all', 'pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed'].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setStatusFilter(s)}
+                    className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all ${
+                      statusFilter === s
+                        ? 'bg-[var(--accent)] text-white'
+                        : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {s.replace(/_/g, ' ')}
+                  </button>
+                ))}
+                <span className="ml-auto text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">
+                  {shipments.length} / {shipmentTotal} shipments
+                </span>
+              </div>
+            )}
+
             <div className="min-h-[400px] p-4 md:p-8">
               {loading ? (
                  <LoadingSpinner />
@@ -208,7 +266,21 @@ export default function AdminLogistics() {
                              </button>
                           </div>
                        </div>
-                    )) : activeTab === 'Delivery Partners' ? firms.map(f => (
+                    )) : null}
+                    {/* Load More — spans full grid width */}
+                    {activeTab === 'Shipments' && shipments.length < shipmentTotal && (
+                      <div className="col-span-full flex justify-center pt-4">
+                        <button
+                          onClick={loadMoreShipments}
+                          disabled={loadingMore}
+                          className="flex items-center gap-2 px-8 h-12 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-[11px] font-bold uppercase tracking-widest hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-all active:scale-95 disabled:opacity-40"
+                        >
+                          {loadingMore ? <Loader2 className="size-4 animate-spin" /> : <ChevronDown className="size-4" />}
+                          {loadingMore ? 'Loading...' : `Load more  (${shipmentTotal - shipments.length} remaining)`}
+                        </button>
+                      </div>
+                    )}
+                    {activeTab === 'Delivery Partners' ? firms.map(f => (
                        <div key={f._id} className="group relative rounded-[2rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1 backdrop-blur-xl flex flex-col p-5 md:p-6">
                           <div className="flex items-center justify-between mb-6">
                              <div className="flex items-center gap-4">
