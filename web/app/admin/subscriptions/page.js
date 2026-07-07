@@ -39,9 +39,9 @@ const FEATURE_CATALOG = [
   { key: 'shop_logo',          type: 'toggle', group: 'Vendor',             defaultValue: true,  makeLabel: (v) => v ? 'Add your shop logo'                                : 'No shop logo customization' },
   { key: 'promotions',         type: 'toggle', group: 'Vendor',             defaultValue: false, makeLabel: (v) => v ? 'Promotions and discounts enabled'                  : 'No promotions or discounts' },
   { key: 'sales_reports',      type: 'toggle', group: 'Vendor',             defaultValue: false, makeLabel: (v) => v ? 'Sales reports available'                           : 'No sales reports' },
-  { key: 'max_shipments',      type: 'number', group: 'Logistics',          defaultValue: 10,    makeLabel: (v) => v >= 9999 ? 'Unlimited shipments & dispatchers'         : `Manage up to ${v} active shipments` },
+  { key: 'max_shipments',      type: 'number', group: 'Logistics',          defaultValue: 10,    makeLabel: (v) => v >= 9999 ? 'Unlimited active shipments'               : `Manage up to ${v} active shipments` },
+  { key: 'max_routes',         type: 'number', group: 'Logistics',          defaultValue: 3,     makeLabel: (v) => v >= 9999 ? 'Unlimited delivery routes'                 : `Create up to ${v} delivery routes` },
   { key: 'route_optimization', type: 'toggle', group: 'Logistics',          defaultValue: true,  makeLabel: (v) => v ? 'Route optimization tools'                         : 'Basic route optimization tools' },
-  { key: 'custom_pricing',     type: 'toggle', group: 'Logistics',          defaultValue: false, makeLabel: (v) => v ? 'Custom pricing/zones available'                   : 'No custom pricing/zones' },
   { key: 'email_support',      type: 'toggle', group: 'Vendor / Logistics', defaultValue: true,  makeLabel: (v) => v ? 'Email support available'                          : 'No email support' },
 ];
 

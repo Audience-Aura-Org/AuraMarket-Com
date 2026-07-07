@@ -91,9 +91,9 @@ const DEFAULT_LOGISTICS_PLANS = [
     roles: ['logistics'],
     features: [
       { key: 'max_shipments',      type: 'number', value: 10,    label: 'Manage up to 10 active shipments' },
+      { key: 'max_routes',         type: 'number', value: 3,     label: 'Create up to 3 delivery routes' },
       { key: 'route_optimization', type: 'toggle', value: false, label: 'Basic route optimization tools' },
       { key: 'email_support',      type: 'toggle', value: true,  label: 'Email support available' },
-      { key: 'custom_pricing',     type: 'toggle', value: false, label: 'No custom pricing/zones' },
     ],
     is_active: true,
   },
@@ -108,8 +108,8 @@ const DEFAULT_LOGISTICS_PLANS = [
     roles: ['logistics'],
     features: [
       { key: 'max_shipments',      type: 'number', value: 100,  label: 'Manage up to 100 active shipments' },
+      { key: 'max_routes',         type: 'number', value: 20,   label: 'Create up to 20 delivery routes' },
       { key: 'route_optimization', type: 'toggle', value: true, label: 'Route optimization tools' },
-      { key: 'custom_pricing',     type: 'toggle', value: true, label: 'Custom pricing/zones available' },
       { key: 'email_support',      type: 'toggle', value: true, label: 'Priority email support' },
     ],
     is_active: true,
@@ -125,8 +125,8 @@ const DEFAULT_LOGISTICS_PLANS = [
     roles: ['logistics'],
     features: [
       { key: 'max_shipments',      type: 'number', value: 500,  label: 'Manage up to 500 active shipments' },
+      { key: 'max_routes',         type: 'number', value: 100,  label: 'Create up to 100 delivery routes' },
       { key: 'route_optimization', type: 'toggle', value: true, label: 'Route optimization tools' },
-      { key: 'custom_pricing',     type: 'toggle', value: true, label: 'Custom pricing/zones available' },
       { key: 'email_support',      type: 'toggle', value: true, label: 'Priority email support' },
     ],
     is_active: true,
@@ -142,9 +142,9 @@ const DEFAULT_LOGISTICS_PLANS = [
     contact_required: true,
     roles: ['logistics'],
     features: [
-      { key: 'max_shipments',      type: 'number', value: 9999, label: 'Unlimited shipments & dispatchers' },
+      { key: 'max_shipments',      type: 'number', value: 9999, label: 'Unlimited active shipments' },
+      { key: 'max_routes',         type: 'number', value: 9999, label: 'Unlimited delivery routes' },
       { key: 'route_optimization', type: 'toggle', value: true, label: 'Route optimization tools' },
-      { key: 'custom_pricing',     type: 'toggle', value: true, label: 'Custom pricing/zones available' },
       { key: 'email_support',      type: 'toggle', value: true, label: 'Dedicated account manager & support' },
     ],
     is_active: true,
