@@ -88,7 +88,7 @@ export default function StorefrontBuilder() {
       <div className="max-w-[1400px] mx-auto space-y-8 md:space-y-16">
         
         {/* Dynamic Header */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 sticky top-0 md:top-16 z-40 bg-[var(--bg-secondary)]/80 backdrop-blur-xl py-4 border-b border-[var(--glass-border)] md:border-none md:static md:bg-transparent md:backdrop-blur-none md:p-0">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8 sticky top-0 md:top-16 lg:top-0 z-40 bg-[var(--bg-secondary)]/80 backdrop-blur-xl py-4 border-b border-[var(--glass-border)] md:border-none md:static md:bg-transparent md:backdrop-blur-none md:p-0">
            <div className="flex items-center gap-4 md:gap-6">
               <div className="size-12 md:size-16 rounded-[18px] md:rounded-[22px] bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] text-white flex items-center justify-center shadow-xl shadow-[var(--accent)]/30 border border-white/20 shrink-0">
                  <Layers className="size-6 md:size-8" />

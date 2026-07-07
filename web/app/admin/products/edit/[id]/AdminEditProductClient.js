@@ -234,7 +234,7 @@ export default function AdminEditProductClient() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="min-h-16 py-3 flex items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 z-40 gap-3">
+      <header className="min-h-16 py-3 flex items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 lg:top-0 z-40 gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <button
             onClick={() => router.push('/admin/products')}
