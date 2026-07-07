@@ -416,7 +416,7 @@ const getEndingSoonInfo = (story) => {
 // ─── StatusViewer ─────────────────────────────────────────────────────────────
 export default function StatusViewer({ initialStatuses, initialStoryId, onClose, onStoryViewed }) {
   const router = useRouter();
-  const { openChat } = useChat();
+  const { openChat, receiveMessage } = useChat();
   const { user } = useAuthStore();
 
   const vendorGroups = useMemo(() => {
@@ -605,6 +605,9 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
       };
       handleClose();
       openChat(recipientUserId, product, partnerData);
+      window.dispatchEvent(new CustomEvent('aura_chat_focus', {
+        detail: { partnerId: recipientUserId.toString(), partnerData, skipPresence: true },
+      }));
       return;
     }
     // Fallback: navigate to product page
@@ -685,8 +688,18 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
     setIsReplying(false);
     // Stop typing indicator
     socketService.emit('typing_stop', { receiver_id: recipientUserId });
+    const partnerData = {
+      _id: recipientUserId,
+      name: story.vendor_id?.store_name || 'Vendor',
+      avatar: story.vendor_id?.user_id?.branding?.logo || story.vendor_id?.user_id?.avatar || null,
+    };
+    const linkedProduct = story.linked_product && (story.linked_product._id || story.linked_product.name)
+      ? story.linked_product
+      : null;
+    const pidStr = recipientUserId.toString();
+
     try {
-      await api.post('/chat', {
+      const res = await api.post('/chat', {
         receiver_id: recipientUserId,
         text,
         metadata: {
@@ -699,22 +712,25 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
           storyCategory: story.category || '',
         }
       });
+      // Add the confirmed message to context state immediately so the chat view
+      // shows it without waiting for a socket echo (which can be delayed on mobile)
+      const realMsg = res?.data?.data?.message || res?.data?.message;
+      if (realMsg) {
+        receiveMessage(realMsg, { partnerId: pidStr, isActive: false });
+      }
     } catch {
       // Continue to open chat even if the API call fails — socket will retry delivery
     }
+
     window.dispatchEvent(new CustomEvent('aura_vendor_reply', { detail: story }));
-    // Open chat thread after message is persisted (WhatsApp-like navigation)
-    const partnerData = {
-      _id: recipientUserId,
-      name: story.vendor_id?.store_name || 'Vendor',
-      avatar: story.vendor_id?.user_id?.branding?.logo || story.vendor_id?.user_id?.avatar || null,
-    };
-    const linkedProduct = story.linked_product && (story.linked_product._id || story.linked_product.name)
-      ? story.linked_product
-      : null;
     handleClose();
     openChat(recipientUserId, linkedProduct, partnerData);
-  }, [replyText, story, dismissKeyboard, openChat, handleClose]);
+    // Force MessagingHub to reload the conversation — handles the case where
+    // activePartnerId was already this partner (effect wouldn't re-fire otherwise)
+    window.dispatchEvent(new CustomEvent('aura_chat_focus', {
+      detail: { partnerId: pidStr, partnerData, skipPresence: true },
+    }));
+  }, [replyText, story, dismissKeyboard, openChat, handleClose, receiveMessage]);
 
   const onPointerDown = useCallback((e) => {
     if (isReplying) return;

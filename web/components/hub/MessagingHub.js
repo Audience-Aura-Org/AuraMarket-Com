@@ -213,6 +213,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const activePartnerIdRef = useRef(activePartnerId);
   const messagesRef = useRef(activeMessages);
   const initialChatSyncRef = useRef(null);
+  const loadConversationRef = useRef(null); // always-fresh reference to loadConversation
   const chatRootRef = useRef(null);
   const viewportSyncRef = useRef(null);
   const viewportResumeUntilRef = useRef(0);
@@ -651,15 +652,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const partnerId = event.detail?.partnerId?.toString();
       if (!partnerId) return;
       setActiveConversation(partnerId, event.detail?.partnerData || null, event.detail?.notificationTitle);
-        loadConversation(partnerId, 1, {
-          silent: true,
-          skipProfile: Boolean(event.detail?.partnerData),
-        });
+      // Use ref so we always call the latest loadConversation, never a stale closure
+      loadConversationRef.current?.(partnerId, 1, {
+        silent: true,
+        skipProfile: Boolean(event.detail?.partnerData),
+        skipPresence: Boolean(event.detail?.skipPresence),
+      });
       queuePinToLatest([0, 80, 180, 360]);
     };
     window.addEventListener('aura_chat_focus', handleFocus);
     return () => window.removeEventListener('aura_chat_focus', handleFocus);
-  }, [setActiveConversation, isSystemWide]);
+  }, [setActiveConversation]);
 
   useEffect(() => {
     if (!activePartnerId) return;
@@ -704,12 +707,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   useEffect(() => {
     const handleVisibilityResume = () => {
       if (document.visibilityState !== 'visible') return;
-      if (!activePartnerId) return;
-      loadConversation(activePartnerId, 1, { silent: true, skipProfile: true, skipPresence: true });
+      if (!activePartnerIdRef.current) return;
+      // Use ref so we always have the latest loadConversation and activePartnerId
+      loadConversationRef.current?.(activePartnerIdRef.current, 1, {
+        silent: true,
+        skipProfile: true,
+        skipPresence: true,
+      });
     };
     document.addEventListener('visibilitychange', handleVisibilityResume);
     return () => document.removeEventListener('visibilitychange', handleVisibilityResume);
-  }, [activePartnerId, isSystemWide]);
+  }, []);
 
   const loadInbox = async (options = {}) => {
     const silent = Boolean(options.silent);
@@ -823,6 +831,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }
     }
   };
+
+  // Keep ref current so event handlers never close over a stale copy
+  loadConversationRef.current = loadConversation;
 
   const locallyUpdateInbox = (msg) => {
     if (!msg) return;
