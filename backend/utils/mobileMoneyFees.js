@@ -1,6 +1,6 @@
 const MOBILE_MONEY_COLLECTION_FEE_XAF = Math.max(
   0,
-  Number(process.env.MOBILE_MONEY_COLLECTION_FEE_XAF || 5)
+  Number(process.env.MOBILE_MONEY_COLLECTION_FEE_XAF || 50)
 );
 
 const MOBILE_MONEY_GATEWAYS = new Set(['eversend', 'payunit']);

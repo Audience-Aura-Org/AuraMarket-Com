@@ -122,7 +122,7 @@ export default function AdminDashboard() {
               { title: t('admin.commission', 'Commission'), value: earnings.commission, desc: t('admin.productSaleFee', 'Product sale fee'), icon: TrendingUp, color: 'emerald' },
               { title: t('admin.escrowFees', 'Escrow Fees'), value: earnings.escrow, desc: t('admin.escrowProtectionFee', 'Escrow protection fee'), icon: ShieldCheck, color: 'blue' },
               { title: t('admin.collectionFees', 'Collection Fees'), value: earnings.collection, desc: t('admin.mobileMoneyCharges', 'Mobile money charges'), icon: Activity, color: 'amber' },
-              { title: t('admin.subscriptions', 'Subscriptions'), value: earnings.subscription, desc: t('admin.futureRecurringIncome', 'Future recurring income'), icon: Zap, color: 'indigo' },
+              { title: t('admin.subscriptions', 'Subscriptions'), value: earnings.subscription, desc: t('admin.vendorSubscriptionFees', 'Vendor subscription fees'), icon: Zap, color: 'indigo' },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-3">
                 <div className="mb-3 flex items-center justify-between gap-2">
