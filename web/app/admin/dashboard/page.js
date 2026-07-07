@@ -175,39 +175,39 @@ export default function AdminDashboard() {
                 ))}
              </div>
 
-             <div className="mt-6 pt-6 border-t border-[var(--glass-border)]">
-                <div className="mb-3 flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xs md:text-sm font-bold tracking-tight text-[var(--text-primary)]">Ops Signals</h3>
-                    <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-55">Compact treasury and risk readout.</p>
+             <div className="mt-6 pt-5 border-t border-[var(--glass-border)]">
+                <div className="mb-2.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--text-secondary)] opacity-50">Ops Signals</p>
                   </div>
-                  <span className="hidden rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-500 sm:inline-flex">Operational</span>
+                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-500">Live</span>
                 </div>
-                <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 md:gap-3">
+                <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 divide-y divide-[var(--glass-border)] overflow-hidden">
                   {[
                     { title: 'Volume', desc: 'Marketplace flow', count: loading ? '—' : `${fmt(stats?.revenue || 0)} XAF`, icon: Activity, color: 'blue', signal: 'Flow', href: '/admin/analytics' },
-                    { title: 'KYC Queue', desc: 'Awaiting review', count: loading ? '—' : fmt(stats?.pending_vendors || 0), icon: ShieldAlert, color: 'rose', signal: 'Review', href: '/admin/approvals' },
+                    { title: 'KYC Queue', desc: 'Pending review', count: loading ? '—' : fmt(stats?.pending_vendors || 0), icon: ShieldAlert, color: 'rose', signal: 'Review', href: '/admin/approvals' },
                     { title: 'Escrow', desc: 'Protected funds', count: loading ? '—' : `${fmt(stats?.escrow_vault || 0)} XAF`, icon: ShieldCheck, color: 'emerald', signal: 'Vault', href: '/admin/escrow' },
                     { title: 'Uptime', desc: 'API health', count: '99.98%', icon: Zap, color: 'amber', signal: 'Stable', href: '/admin/logs' },
-                  ].map((item, i) => (
-                    <Link key={i} href={item.href} className="relative overflow-hidden p-3 rounded-2xl bg-[var(--bg-primary)]/65 border border-[var(--glass-border)] group hover:-translate-y-0.5 hover:border-[var(--accent)]/30 hover:shadow-lg transition-all">
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                         <div className={`size-8 rounded-xl flex items-center justify-center border ${COLOR_BOX_STYLES[item.color] || COLOR_BOX_STYLES.blue}`}>
-                           <item.icon className="size-3.5" />
-                         </div>
-                         <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-70">{item.signal}</span>
-                      </div>
-                      
-                      <div className="space-y-0.5">
-                        <p className="text-sm md:text-base font-bold tracking-tight text-[var(--text-primary)] tabular-nums truncate">{item.count}</p>
-                        <p className="text-[11px] font-bold tracking-tight text-[var(--text-primary)]">{item.title}</p>
-                        <p className="text-[10px] font-semibold leading-snug text-[var(--text-secondary)] opacity-55">{item.desc}</p>
-                      </div>
-
-                      {/* Micro-sparkline effect */}
-                      <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--glass-border)] to-transparent opacity-20" />
-                    </Link>
-                  ))}
+                  ].map((item, i) => {
+                    const colorClass = COLOR_BOX_STYLES[item.color] || COLOR_BOX_STYLES.blue;
+                    const textColor = colorClass.split(' ')[0];
+                    return (
+                      <Link key={i} href={item.href} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--bg-secondary)]/40 transition-colors">
+                        <div className={`size-7 rounded-xl flex items-center justify-center border shrink-0 ${colorClass}`}>
+                          <item.icon className="size-3" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[11px] font-bold text-[var(--text-primary)] leading-tight">{item.title}</p>
+                          <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-45 leading-tight">{item.desc}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[12px] font-bold tabular-nums text-[var(--text-primary)]">{item.count}</p>
+                          <p className={`text-[9px] font-bold uppercase tracking-[0.12em] ${textColor}`}>{item.signal}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
              </div>
           </section>

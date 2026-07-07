@@ -448,46 +448,36 @@ export default function AccountPageClient() {
             >
               {activeTab === 'general' && (
                 <div className="space-y-3">
-                  {/* Profile Hero Card */}
-                  <div className="relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 backdrop-blur-3xl shadow-lg">
-                    {/* Accent gradient strip */}
-                    <div className="h-[72px] bg-gradient-to-r from-[var(--accent)]/25 via-[var(--accent)]/12 to-transparent" />
-                    <div className="px-4 pb-4">
-                      <div className="flex items-end justify-between -mt-9 mb-3">
-                        <div className="relative group">
-                          <div className="size-[72px] rounded-2xl border-[3px] border-[var(--bg-primary)] bg-[var(--bg-secondary)] overflow-hidden shadow-xl flex items-center justify-center text-2xl font-bold text-[var(--accent)]">
-                            {brandingUploading === 'logo' ? (
-                              <div className="size-full flex items-center justify-center bg-[var(--bg-secondary)]">
-                                <div className="size-5 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-                              </div>
-                            ) : profileBranding.logo ? (
-                              <img src={profileBranding.logo} className="size-full object-cover" alt="" />
-                            ) : (
-                              <div className="size-full flex items-center justify-center bg-[var(--accent)]/10">
-                                {user?.name?.[0]?.toUpperCase()}
-                              </div>
-                            )}
+                  {/* Avatar upload row — compact, no duplication of header info */}
+                  <div className="flex items-center gap-3 px-1 py-0.5">
+                    <div className="relative shrink-0">
+                      <div className="size-14 rounded-2xl border-2 border-[var(--glass-border)] bg-[var(--bg-secondary)] overflow-hidden flex items-center justify-center text-lg font-bold text-[var(--accent)]">
+                        {brandingUploading === 'logo' ? (
+                          <div className="size-full flex items-center justify-center">
+                            <div className="size-4 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
                           </div>
-                          <label className="absolute -bottom-1 -right-1 size-7 rounded-xl bg-[var(--accent)] text-white border-2 border-[var(--bg-primary)] flex items-center justify-center hover:scale-110 transition-all shadow-lg cursor-pointer z-20">
-                            <Camera className="size-3" />
-                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBrandingFileUpload('logo', e.target.files?.[0])} />
-                          </label>
-                        </div>
-                        <span className="mb-0.5 px-2.5 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[10px] font-bold uppercase tracking-wide">
-                          {user?.role || 'user'}
-                        </span>
-                      </div>
-                      <div className="space-y-0.5">
-                        <p className="text-[13px] font-bold text-[var(--text-primary)] truncate leading-tight">
-                          {user?.role === 'vendor' ? (storeData.store_name || user?.name) : user?.name || 'Aura User'}
-                        </p>
-                        <p className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1.5">
-                          <Mail className="size-3 shrink-0 opacity-60" /> {user?.email}
-                        </p>
-                        {brandingStatus && (
-                          <p className="text-[10px] font-semibold text-[var(--accent)] pt-0.5">{brandingStatus}</p>
+                        ) : profileBranding.logo ? (
+                          <img src={profileBranding.logo} className="size-full object-cover" alt="" />
+                        ) : (
+                          <div className="size-full flex items-center justify-center bg-[var(--accent)]/10">
+                            {user?.name?.[0]?.toUpperCase()}
+                          </div>
                         )}
                       </div>
+                      <label className="absolute -bottom-1 -right-1 size-6 rounded-xl bg-[var(--accent)] text-white border-2 border-[var(--bg-primary)] flex items-center justify-center hover:scale-110 transition-all shadow-lg cursor-pointer z-20">
+                        <Camera className="size-2.5" />
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBrandingFileUpload('logo', e.target.files?.[0])} />
+                      </label>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold text-[var(--text-primary)] truncate leading-tight">
+                        {user?.role === 'vendor' ? (storeData.store_name || user?.name) : user?.name || 'Aura User'}
+                      </p>
+                      {brandingStatus ? (
+                        <p className="text-[10px] font-semibold text-[var(--accent)]">{brandingStatus}</p>
+                      ) : (
+                        <p className="text-[10px] text-[var(--text-secondary)] opacity-50">Tap avatar to update photo</p>
+                      )}
                     </div>
                   </div>
 
@@ -598,7 +588,7 @@ export default function AccountPageClient() {
                           <select
                             value={language}
                             onChange={(event) => handleLanguageChange(event.target.value)}
-                            className="h-10 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[12px] font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
+                            className="h-10 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[11px] md:text-[12px] font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
                           >
                             {languages.map((item) => (
                               <option key={item.code} value={item.code}>
@@ -1312,7 +1302,7 @@ function DeleteAccountPanel({ deleteConfirm, setDeleteConfirm, deleteStatus, del
         value={deleteConfirm}
         onChange={(e) => setDeleteConfirm(e.target.value.toUpperCase())}
         placeholder={`Type ${confirmationWord} to confirm`}
-        className="w-full bg-[var(--bg-primary)]/70 border border-rose-500/20 rounded-2xl px-4 py-3 text-[13px] font-semibold outline-none focus:ring-2 focus:ring-rose-500/30"
+        className="w-full bg-[var(--bg-primary)]/70 border border-rose-500/20 rounded-2xl px-4 py-3 text-[11px] md:text-[12px] font-semibold outline-none focus:ring-2 focus:ring-rose-500/30"
       />
 
       {deleteStatus && (
@@ -1389,7 +1379,7 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
           placeholder={placeholder}
           disabled={disabled}
           rows={4}
-          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[12px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[11px] md:text-[12px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
         />
       ) : (
         <input
@@ -1398,7 +1388,7 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[12px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[11px] md:text-[12px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
         />
       )}
     </div>
@@ -1413,7 +1403,7 @@ function FormSelect({ label, value, onChange, options, icon: Icon, placeholder, 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[12px] font-medium text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 appearance-none"
+        className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[11px] md:text-[12px] font-medium text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 appearance-none"
       >
         <option value="">{placeholder}</option>
         {options.map(opt => (
