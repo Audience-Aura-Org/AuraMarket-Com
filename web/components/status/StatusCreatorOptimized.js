@@ -124,19 +124,12 @@ async function generateVideoThumbnail(file) {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
 
-    // GPU path: createImageBitmap bypasses the CPU-readback black-frame issue
-    if (typeof createImageBitmap === 'function') {
-      try {
-        const bmp = await createImageBitmap(video);
-        ctx.drawImage(bmp, 0, 0, width, height);
-        bmp.close?.();
-      } catch {
-        ctx.drawImage(video, 0, 0, width, height);
-      }
-    } else {
-      ctx.drawImage(video, 0, 0, width, height);
-    }
-
+    // Draw inside rAF while video is still playing.
+    // createImageBitmap silently returns a black ImageBitmap on many Android
+    // WebView versions — it does not throw, so the catch/fallback never ran.
+    // drawImage(video) inside an active rAF tick is the only reliable path.
+    await new Promise((r) => requestAnimationFrame(r));
+    ctx.drawImage(video, 0, 0, width, height);
     video.pause();
 
     const blob = await canvasToBlob(canvas, 'image/jpeg', 0.78);

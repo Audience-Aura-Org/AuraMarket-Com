@@ -21,49 +21,57 @@ const formatSize = (bytes = 0) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
 
-// Capture a real video frame to canvas using play→timeupdate→capture→pause.
-// On Android WebView, seeking alone does NOT commit a pixel surface — the video
-// must actually output frames (timeupdate) before drawImage/createImageBitmap
-// returns anything other than solid black.
-const captureVideoFrame = async (video, targetTime = 0) => {
+// Capture a real video frame using a dedicated off-screen muted video.
+//
+// Cannot reuse the main <video muted={false}>: Android WebView requires a user
+// gesture to call play() on any video whose muted attribute was NOT true at
+// creation time, even after setting .muted = true programmatically.
+// onLoadedMetadata fires before any tap → play() throws NotAllowedError → black.
+//
+// Fix: separate element with muted=true from birth → play() is always allowed.
+// Sequence: play() → timeupdate (HW frame committed) → rAF → drawImage → pause.
+const captureVideoFrame = async (src, targetTime = 0) => {
+  if (!src) return null;
+  const vid = document.createElement('video');
+  vid.style.cssText =
+    'position:fixed;top:0;left:0;width:160px;height:90px;' +
+    'opacity:0.01;pointer-events:none;z-index:9999';
+  document.body.appendChild(vid);
+  vid.muted = true;
+  vid.playsInline = true;
+  vid.setAttribute('playsinline', 'true');
+  vid.preload = 'auto';
+  vid.src = src;
   try {
-    video.currentTime = targetTime > 0 ? targetTime : 0.001;
-    await new Promise((r) => { video.addEventListener('seeked', r, { once: true }); setTimeout(r, 500); });
-
-    const savedMuted = video.muted;
-    video.muted = true;
-    await video.play();
-    // Wait for the HW decoder to present a real frame
     await new Promise((r) => {
-      video.addEventListener('timeupdate', r, { once: true });
-      setTimeout(r, 700);
+      vid.onloadedmetadata = r; vid.onloadeddata = r;
+      vid.oncanplay = r; vid.onerror = r;
+      setTimeout(r, 3000);
     });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 320;
-    canvas.height = video.videoHeight || 568;
-    const ctx = canvas.getContext('2d');
-
-    // GPU path preferred (works on Android HW decoder)
-    if (typeof createImageBitmap === 'function') {
-      try {
-        const bmp = await createImageBitmap(video);
-        ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-        bmp.close?.();
-      } catch {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      }
-    } else {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (targetTime > 0.001) {
+      vid.currentTime = targetTime;
+      await new Promise((r) => {
+        vid.addEventListener('seeked', r, { once: true });
+        setTimeout(r, 800);
+      });
     }
-
-    video.pause();
-    video.currentTime = targetTime > 0 ? targetTime : 0.001;
-    video.muted = savedMuted;
-
-    return canvas.toDataURL('image/jpeg', 0.85);
-  } catch {
+    await vid.play();
+    await new Promise((r) => {
+      vid.addEventListener('timeupdate', r, { once: true });
+      setTimeout(r, 900);
+    });
+    const c = document.createElement('canvas');
+    c.width = vid.videoWidth || 320;
+    c.height = vid.videoHeight || 568;
+    await new Promise((r) => requestAnimationFrame(r));
+    c.getContext('2d').drawImage(vid, 0, 0, c.width, c.height);
+    vid.pause();
+    return c.toDataURL('image/jpeg', 0.85);
+  } catch (e) {
+    console.warn('captureVideoFrame', e);
     return null;
+  } finally {
+    if (vid.parentNode) vid.parentNode.removeChild(vid);
   }
 };
 
@@ -224,11 +232,11 @@ export default function StatusVideoTrimmer({
               onPause={() => setPlaying(false)}
               onPlay={() => setPlaying(true)}
               onLoadedMetadata={(e) => {
-                const v = e.currentTarget;
-                // Capture a real first frame using play→timeupdate→pause so
-                // the poster image is never black on Android WebView.
-                // (Simple seek to 0.001 does not initialize the HW surface.)
-                captureVideoFrame(v, trimStart > 0 ? trimStart : 0.001)
+                // Seek main video to trimStart for audio playback alignment
+                e.currentTarget.currentTime = trimStart > 0 ? trimStart : 0.001;
+                // Capture poster using a separate muted off-screen element —
+                // main video can't be played here (no user gesture yet on Android)
+                captureVideoFrame(previewUrl, trimStart > 0 ? trimStart : 0.001)
                   .then((url) => { if (url) setPosterUrl(url); })
                   .catch(() => {});
               }}

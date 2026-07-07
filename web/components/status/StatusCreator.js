@@ -108,21 +108,19 @@ const waitForPreviewVideo = (videoRef, timeoutMs = 12000) =>
   });
 
 // ── Frame capture helper ───────────────────────────────────────────────────
-// On Android WebView, canvas 2D drawImage(video) hits a CPU readback path that
-// the hardware video decoder blocks, returning a black frame.
-// createImageBitmap(video) uses the GPU texture path (same as WebGL texImage2D)
-// which CAN access hardware-decoded frames. Falls back to plain drawImage.
-const drawVideoToCanvas = async (video, canvas, ctx) => {
-  if (typeof createImageBitmap === 'function') {
-    try {
-      const bmp = await createImageBitmap(video);
-      ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-      bmp.close?.();
-      return;
-    } catch { /* fall through to drawImage */ }
-  }
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-};
+// On Android WebView, BOTH drawImage(video) and createImageBitmap(video) return
+// pure black unless called during a requestAnimationFrame tick while the video
+// is actively playing (not paused, not just seeked).
+// createImageBitmap silently returns a black ImageBitmap — it does NOT throw —
+// so the previous try/catch fallback never ran.
+// Rule: always capture inside rAF while playing; pause AFTER the draw.
+const drawVideoToCanvas = (video, canvas, ctx) =>
+  new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      resolve();
+    });
+  });
 
 const seekVideoFrame = (video, targetTime, canvas, ctx) =>
   new Promise((resolve) => {
@@ -249,24 +247,28 @@ async function generateVideoThumbnail(file) {
   try {
     await metadataLoaded;
     
-    // Kick the hardware decoder on mobile webviews by playing/pausing briefly
-    await kickVideoDecoder(video, { delayMs: isNativePlatform() ? 350 : 150 });
-
     const isNative = isNativePlatform();
+
+    // Seek to 10% of duration for a representative frame
     const seekTo = Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
-    // On native: ignore seeked (fires too early), let the 1200 ms timer elapse.
-    // On web: resolve as soon as seeked fires.
     await new Promise((resolve) => {
-      let resolved = false;
-      const done = () => { if (!resolved) { resolved = true; resolve(); } };
-      const timer = setTimeout(done, isNative ? 1200 : 350);
-      video.onseeked = () => { if (!isNative) { clearTimeout(timer); done(); } };
-      video.onerror = () => { clearTimeout(timer); done(); };
+      let settled = false;
+      const done = () => { if (!settled) { settled = true; resolve(); } };
+      video.addEventListener('seeked', done, { once: true });
+      video.onerror = done;
+      setTimeout(done, 1000);
       video.currentTime = seekTo;
     });
 
-    // Extra wait on native so the HW decoder can commit its pixel surface.
-    if (isNative) await new Promise((r) => setTimeout(r, 400));
+    // Play until timeupdate — the ONLY reliable way to get the HW decoder to
+    // commit a real pixel surface on Android WebView. kickVideoDecoder alone
+    // (play+pause) is insufficient because pause can fire before any frame is
+    // decoded, and subsequent drawImage/createImageBitmap both return black.
+    await video.play();
+    await new Promise((r) => {
+      video.addEventListener('timeupdate', r, { once: true });
+      setTimeout(r, 800); // safety timeout
+    });
 
     const maxWidth = 720;
     const scale = Math.min(1, maxWidth / Math.max(video.videoWidth, 1));
@@ -276,11 +278,12 @@ async function generateVideoThumbnail(file) {
     canvas.width = width;
     canvas.height = height;
     const thumbCtx = canvas.getContext('2d');
-    if (isNative) {
-      await drawVideoToCanvas(video, canvas, thumbCtx);
-    } else {
-      thumbCtx.drawImage(video, 0, 0, width, height);
-    }
+
+    // Capture inside rAF while video is still playing (not yet paused).
+    // On Android WebView, drawImage(video) only returns real pixels when called
+    // during an active rAF tick while the video is outputting frames.
+    await drawVideoToCanvas(video, canvas, thumbCtx);
+    video.pause();
 
     const blob = await canvasToBlob(canvas, 'image/jpeg', 0.78);
     if (!blob) return null;
