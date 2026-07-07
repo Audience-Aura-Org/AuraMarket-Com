@@ -74,7 +74,7 @@ export default function AdminDashboard() {
         {/* Accent gradient line */}
         <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
         <div className="px-4 md:px-6 py-3 md:py-4">
-          <div className="max-w-[1600px] mx-auto flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="size-10 md:size-11 rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-indigo-600/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0 shadow-lg shadow-[var(--accent)]/5">
                  <LayoutDashboard className="size-5" />
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="p-4 md:p-8 space-y-8 max-w-[1600px] mx-auto font-sans">
+      <div className="p-4 md:p-8 space-y-8 font-sans">
         
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

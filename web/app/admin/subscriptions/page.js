@@ -276,7 +276,7 @@ export default function AdminSubscriptionsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-secondary)] p-4 pb-28 text-[var(--text-primary)] sm:p-6 lg:p-8 md:pt-4" style={{ paddingTop: 'calc\(56px\ \+\ env\(safe-area-inset-top,\ 0px\)\)' }}>
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-5">
+      <div className="flex w-full flex-col gap-5">
         <header className="overflow-hidden rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
           <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex min-w-0 items-start gap-4">

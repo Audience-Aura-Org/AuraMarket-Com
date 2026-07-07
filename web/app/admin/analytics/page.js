@@ -69,7 +69,7 @@ export default function AdminAnalyticsPage() {
       
       {/* Surgical Header */}
       <div className="px-6 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-[1600px] mx-auto flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20">
               <Layers className="size-5" />
@@ -98,7 +98,7 @@ export default function AdminAnalyticsPage() {
         </div>
       </div>
 
-      <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto pb-32">
+      <div className="p-6 md:p-8 space-y-8 pb-32">
         
         {/* Metric Grid - High Density */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

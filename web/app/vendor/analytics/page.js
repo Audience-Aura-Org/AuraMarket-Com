@@ -78,7 +78,7 @@ export default function VendorAnalyticsPage() {
 
   return (
     <div className="flex-1 bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">
-      <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto pb-32">
+      <div className="p-6 md:p-8 space-y-8 pb-32">
         
       <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-14 lg:top-0 z-40 gap-4 md:gap-0">
         <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
