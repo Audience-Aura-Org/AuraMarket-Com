@@ -57,16 +57,26 @@ const subscribe = async (req, res, next) => {
       });
     }
 
-    await PushSubscription.findOneAndUpdate(
-      { user_id: req.user._id, 'subscription.endpoint': endpoint },
-      { 
-        user_id: req.user._id, 
-        channel: 'web',
-        subscription, 
-        device_type: device_type || 'mobile' 
-      },
-      { upsert: true, returnDocument: 'after', runValidators: true }
-    );
+    try {
+      await PushSubscription.findOneAndUpdate(
+        { user_id: req.user._id, 'subscription.endpoint': endpoint },
+        {
+          user_id: req.user._id,
+          channel: 'web',
+          subscription,
+          device_type: device_type || 'mobile'
+        },
+        { upsert: true, returnDocument: 'after', runValidators: true }
+      );
+    } catch (upsertErr) {
+      // Race condition: two concurrent subscribe calls both pass the shouldRefresh
+      // check before either has written, then the second hits the unique index.
+      // The subscription is already saved by the first call — treat as success.
+      if (upsertErr.code === 11000) {
+        return res.status(200).json({ success: true, message: 'Subscription already current.' });
+      }
+      throw upsertErr;
+    }
 
     console.log(`[PWA] Push subscription ${existing ? 'refreshed' : 'saved'} for ${req.user._id} (${device_type || 'mobile'}) endpoint=${endpoint.slice(-24)}`);
     res.status(200).json({ success: true, message: 'Subscription stabilized.' });

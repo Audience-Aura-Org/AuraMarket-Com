@@ -508,6 +508,26 @@ const activateUserSubscription = async (req, res, next) => {
   }
 };
 
+const deletePlan = async (req, res, next) => {
+  try {
+    const plan = await SubscriptionPlan.findByIdAndDelete(req.params.id);
+    if (!plan) return res.status(404).json({ success: false, message: 'Plan not found.' });
+    res.status(200).json({ success: true, message: 'Plan deleted.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteUserSubscription = async (req, res, next) => {
+  try {
+    const subscription = await UserSubscription.findByIdAndDelete(req.params.id);
+    if (!subscription) return res.status(404).json({ success: false, message: 'Subscription not found.' });
+    res.status(200).json({ success: true, message: 'Subscription deleted.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const updateUserSubscription = async (req, res, next) => {
   try {
     const { action, note = '' } = req.body;
@@ -547,7 +567,9 @@ module.exports = {
   getAdminOverview,
   createPlan,
   updatePlan,
+  deletePlan,
   updateRoleRequirements,
   activateUserSubscription,
   updateUserSubscription,
+  deleteUserSubscription,
 };

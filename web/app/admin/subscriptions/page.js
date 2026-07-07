@@ -203,6 +203,17 @@ export default function AdminSubscriptionsPage() {
     }
   };
 
+  const deletePlan = async (plan) => {
+    if (!window.confirm(t('subscription.deletePlanConfirm', `Permanently delete "${plan.name}"? This cannot be undone.`))) return;
+    try {
+      await api.delete(`/subscriptions/admin/plans/${plan._id}`);
+      toast.success(t('subscription.planDeleted', 'Plan deleted.'));
+      load();
+    } catch (error) {
+      toast.error(error.response?.data?.message || t('subscription.saveFailed', 'Could not delete plan.'));
+    }
+  };
+
   const togglePlanStatus = async (plan) => {
     try {
       await api.patch(`/subscriptions/admin/plans/${plan._id}`, {
@@ -353,6 +364,7 @@ export default function AdminSubscriptionsPage() {
                       plan={plan}
                       onEdit={() => editPlan(plan)}
                       onToggle={() => togglePlanStatus(plan)}
+                      onDelete={() => deletePlan(plan)}
                       t={t}
                       label={label}
                     />
@@ -494,7 +506,7 @@ function RoleGateCard({ role, enabled, graceDays, onToggle, onGraceChange, onGra
   );
 }
 
-function PlanCard({ plan, onEdit, onToggle, t, label }) {
+function PlanCard({ plan, onEdit, onToggle, onDelete, t, label }) {
   const features = plan.features || [];
   return (
     <article className="flex min-h-[260px] flex-col rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
@@ -539,14 +551,24 @@ function PlanCard({ plan, onEdit, onToggle, t, label }) {
         ))}
       </ul>
 
-      <button
-        type="button"
-        onClick={onToggle}
-        className="mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-xs font-bold text-[var(--text-primary)] transition active:scale-95"
-      >
-        {plan.is_active ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-        {plan.is_active ? t('subscription.hidePlan', 'Hide package') : t('subscription.activatePlan', 'Activate package')}
-      </button>
+      <div className="mt-4 flex gap-2">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex-1 inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-xs font-bold text-[var(--text-primary)] transition active:scale-95"
+        >
+          {plan.is_active ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          {plan.is_active ? t('subscription.hidePlan', 'Hide package') : t('subscription.activatePlan', 'Activate package')}
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 text-red-500 transition active:scale-95"
+          title={t('common.delete', 'Delete')}
+        >
+          <Trash2 className="size-4" />
+        </button>
+      </div>
     </article>
   );
 }
