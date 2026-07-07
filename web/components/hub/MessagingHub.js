@@ -475,7 +475,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       if (wasKeyboardOpen && lastKeyboardViewportRef.current) {
         viewportHeightRef.current = lastKeyboardViewportRef.current;
         setViewportHeight(lastKeyboardViewportRef.current);
-        applyChatShellMetrics(lastKeyboardViewportRef.current);
+        applyChatShellHeight(lastKeyboardViewportRef.current, true);
       }
       requestAnimationFrame(() => {
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -1396,10 +1396,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           /* Chat Header */
           <motion.div
             key="chat-header"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
             className="shrink-0 bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_1px_3px_rgba(0,0,0,0.15)]"
             data-chat-header
           >
@@ -1477,10 +1477,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           /* Inbox Header */
           <motion.div
             key="inbox-header"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
             className="shrink-0"
             data-chat-header
           >
