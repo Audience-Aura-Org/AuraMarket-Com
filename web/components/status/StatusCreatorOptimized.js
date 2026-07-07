@@ -79,22 +79,19 @@ async function generateVideoThumbnail(file) {
 
   const objectUrl = URL.createObjectURL(file);
   const video = document.createElement('video');
-  
-  // ── CRITICAL for Android WebView ────────────────────────────────────────
-  // The video element MUST be appended to the DOM and have a real, visible size (at least 160×90).
-  // We position it on-screen at opacity 0.002 so it's technically visible
-  // to the compositor but completely unnoticeable to the user.
+
+  // Must be DOM-attached at real size so Android WebView compositor allocates a surface
   video.style.position = 'fixed';
   video.style.top = '0px';
   video.style.left = '0px';
   video.style.width = '160px';
   video.style.height = '90px';
-  video.style.opacity = '0.002';
+  video.style.opacity = '0.01';
   video.style.pointerEvents = 'none';
   video.style.zIndex = '9999';
   document.body.appendChild(video);
 
-  video.preload = 'metadata';
+  video.preload = 'auto';
   video.muted = true;
   video.playsInline = true;
   video.src = objectUrl;
@@ -103,9 +100,19 @@ async function generateVideoThumbnail(file) {
     await waitForVideoMetadata(video);
 
     const seekTo = Math.min(1, Math.max(0.1, (video.duration || 1) * 0.1));
+    video.currentTime = seekTo;
     await new Promise((resolve) => {
-      video.onseeked = resolve;
-      video.currentTime = seekTo;
+      video.addEventListener('seeked', resolve, { once: true });
+      setTimeout(resolve, 500);
+    });
+
+    // ── Play→timeupdate→capture→pause ───────────────────────────────────────
+    // Android WebView HW decoder only commits a real pixel surface while the
+    // video is actively playing. seek+drawImage without play always returns black.
+    await video.play();
+    await new Promise((r) => {
+      video.addEventListener('timeupdate', r, { once: true });
+      setTimeout(r, 700);
     });
 
     const maxWidth = 720;
@@ -115,7 +122,22 @@ async function generateVideoThumbnail(file) {
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
-    canvas.getContext('2d').drawImage(video, 0, 0, width, height);
+    const ctx = canvas.getContext('2d');
+
+    // GPU path: createImageBitmap bypasses the CPU-readback black-frame issue
+    if (typeof createImageBitmap === 'function') {
+      try {
+        const bmp = await createImageBitmap(video);
+        ctx.drawImage(bmp, 0, 0, width, height);
+        bmp.close?.();
+      } catch {
+        ctx.drawImage(video, 0, 0, width, height);
+      }
+    } else {
+      ctx.drawImage(video, 0, 0, width, height);
+    }
+
+    video.pause();
 
     const blob = await canvasToBlob(canvas, 'image/jpeg', 0.78);
     if (!blob) return null;
@@ -806,7 +828,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 {previewUrl ? (
                   <>
                     {type === 'video'
-                      ? <video src={previewUrl} className="size-full object-cover" autoPlay muted loop playsInline preload="auto" onLoadedData={(e) => { if (e.currentTarget.currentTime < 0.001) e.currentTarget.currentTime = 0.001; }} />
+                      ? <video src={previewUrl} className="size-full object-cover" autoPlay muted loop playsInline preload="auto" onLoadedData={(e) => { const v = e.currentTarget; if (v.paused) v.play().catch(() => {}); }} />
                       : <img src={previewUrl} className="size-full object-cover" alt="" />
                     }
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />

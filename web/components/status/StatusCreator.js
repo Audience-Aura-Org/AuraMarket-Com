@@ -52,6 +52,16 @@ const kickVideoDecoder = async (video, { delayMs = 100 } = {}) => {
   if (!video) return;
   try {
     await video.play();
+    // ── CRITICAL FIX ────────────────────────────────────────────────────────
+    // On Android WebView, calling play() then immediately pause() means the HW
+    // decoder never commits a real frame to the compositor surface — every
+    // subsequent drawImage / createImageBitmap returns pure black.
+    // We MUST wait for timeupdate, which fires only after the decoder has
+    // decoded and presented at least one real frame, before capturing.
+    await new Promise((resolve) => {
+      video.addEventListener('timeupdate', resolve, { once: true });
+      setTimeout(resolve, 800); // safety fallback if timeupdate is very slow
+    });
     video.pause();
   } catch (_) {}
   if (delayMs > 0) {
@@ -146,7 +156,28 @@ const seekVideoFrame = (video, targetTime, canvas, ctx) =>
       capture();
     }, isNative ? 3500 : isMob ? 2000 : 1200);
 
-    const onSeeked = () => {
+    const onSeeked = async () => {
+      if (isNative) {
+        // ── Android HW decoder fix ───────────────────────────────────────────
+        // After a seek on Android, the surface is still black until the decoder
+        // actively outputs frames. We must play until timeupdate fires (= first
+        // real frame presented) and capture WHILE the video is still playing.
+        // Waiting a fixed delay after seeked (previous approach) is not enough.
+        try {
+          await video.play();
+          await new Promise((r) => {
+            video.addEventListener('timeupdate', r, { once: true });
+            setTimeout(r, 600);
+          });
+          clearTimeout(hardTimer);
+          await capture();
+          video.pause();
+        } catch {
+          clearTimeout(hardTimer);
+          await capture();
+        }
+        return;
+      }
       // On desktop, requestVideoFrameCallback is the most reliable paint signal.
       if (canUseVideoFrameCallback()) {
         video.requestVideoFrameCallback(() => {
@@ -155,7 +186,7 @@ const seekVideoFrame = (video, targetTime, canvas, ctx) =>
         });
         return;
       }
-      // Fixed wait so the HW decoder can commit its surface, then one clean capture.
+      // Mobile web: short fixed delay is sufficient.
       setTimeout(() => {
         clearTimeout(hardTimer);
         capture();
@@ -1461,14 +1492,18 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     preload="auto"
                     onContextMenu={(e) => e.preventDefault()}
                     onCanPlay={(e) => {
-                      // On Capacitor, canplay fires after HW decoder allocates surface;
-                      // seeking to 0.001 forces the first decoded frame to be painted.
-                      if (isNativePlatform()) e.currentTarget.currentTime = 0.001;
+                      const v = e.currentTarget;
+                      if (isNativePlatform()) {
+                        // Capacitor WebView: autoPlay attribute is sometimes ignored
+                        // for blob: URLs. Force play explicitly so the HW decoder
+                        // allocates a surface and shows the first real frame.
+                        if (v.paused) v.play().catch(() => {});
+                      }
                     }}
                     onLoadedData={(e) => {
                       const v = e.currentTarget;
-                      if (v.currentTime < 0.001 && v.readyState >= 2) {
-                        v.currentTime = 0.001;
+                      if (v.readyState >= 2 && v.paused) {
+                        v.play().catch(() => {});
                       }
                     }}
                     onError={(e) => {

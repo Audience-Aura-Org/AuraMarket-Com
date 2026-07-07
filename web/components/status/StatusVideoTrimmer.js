@@ -21,6 +21,52 @@ const formatSize = (bytes = 0) => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
 
+// Capture a real video frame to canvas using play→timeupdate→capture→pause.
+// On Android WebView, seeking alone does NOT commit a pixel surface — the video
+// must actually output frames (timeupdate) before drawImage/createImageBitmap
+// returns anything other than solid black.
+const captureVideoFrame = async (video, targetTime = 0) => {
+  try {
+    video.currentTime = targetTime > 0 ? targetTime : 0.001;
+    await new Promise((r) => { video.addEventListener('seeked', r, { once: true }); setTimeout(r, 500); });
+
+    const savedMuted = video.muted;
+    video.muted = true;
+    await video.play();
+    // Wait for the HW decoder to present a real frame
+    await new Promise((r) => {
+      video.addEventListener('timeupdate', r, { once: true });
+      setTimeout(r, 700);
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 320;
+    canvas.height = video.videoHeight || 568;
+    const ctx = canvas.getContext('2d');
+
+    // GPU path preferred (works on Android HW decoder)
+    if (typeof createImageBitmap === 'function') {
+      try {
+        const bmp = await createImageBitmap(video);
+        ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+        bmp.close?.();
+      } catch {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
+    } else {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
+
+    video.pause();
+    video.currentTime = targetTime > 0 ? targetTime : 0.001;
+    video.muted = savedMuted;
+
+    return canvas.toDataURL('image/jpeg', 0.85);
+  } catch {
+    return null;
+  }
+};
+
 export default function StatusVideoTrimmer({
   previewUrl,
   duration = 0,
@@ -36,6 +82,7 @@ export default function StatusVideoTrimmer({
   const animationRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(trimStart);
+  const [posterUrl, setPosterUrl] = useState(null);
   const safeDuration = Math.max(0.1, Number(duration) || STATUS_VIDEO_MAX_SECONDS);
   const selectedLength = Math.max(0.1, trimEnd - trimStart);
   const maxClip = STATUS_VIDEO_MAX_SECONDS;
@@ -173,18 +220,17 @@ export default function StatusVideoTrimmer({
               playsInline
               preload="auto"
               muted={false}
+              poster={posterUrl || undefined}
               onPause={() => setPlaying(false)}
               onPlay={() => setPlaying(true)}
               onLoadedMetadata={(e) => {
-                // Seek to trimStart (or 0.001 as fallback) so the first frame
-                // is visible on Android WebView before the user hits play
                 const v = e.currentTarget;
-                v.currentTime = trimStart > 0 ? trimStart : 0.001;
-              }}
-              onLoadedData={(e) => {
-                // Secondary guard: if still at 0 after data loads, nudge to paint a frame
-                const v = e.currentTarget;
-                if (v.currentTime < 0.001) v.currentTime = 0.001;
+                // Capture a real first frame using play→timeupdate→pause so
+                // the poster image is never black on Android WebView.
+                // (Simple seek to 0.001 does not initialize the HW surface.)
+                captureVideoFrame(v, trimStart > 0 ? trimStart : 0.001)
+                  .then((url) => { if (url) setPosterUrl(url); })
+                  .catch(() => {});
               }}
             />
             <button
