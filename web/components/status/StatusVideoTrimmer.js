@@ -171,9 +171,21 @@ export default function StatusVideoTrimmer({
               src={previewUrl}
               className="aspect-[9/16] w-full object-cover"
               playsInline
+              preload="auto"
               muted={false}
               onPause={() => setPlaying(false)}
               onPlay={() => setPlaying(true)}
+              onLoadedMetadata={(e) => {
+                // Seek to trimStart (or 0.001 as fallback) so the first frame
+                // is visible on Android WebView before the user hits play
+                const v = e.currentTarget;
+                v.currentTime = trimStart > 0 ? trimStart : 0.001;
+              }}
+              onLoadedData={(e) => {
+                // Secondary guard: if still at 0 after data loads, nudge to paint a frame
+                const v = e.currentTarget;
+                if (v.currentTime < 0.001) v.currentTime = 0.001;
+              }}
             />
             <button
               type="button"

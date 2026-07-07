@@ -520,7 +520,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             {previewUrl ? (
               <>
                 {type === 'video'
-                  ? <video src={previewUrl} className="size-full object-cover" autoPlay muted loop />
+                  ? <video src={previewUrl} className="size-full object-cover" autoPlay muted loop playsInline preload="auto" onLoadedData={(e) => { if (e.currentTarget.currentTime < 0.001) e.currentTarget.currentTime = 0.001; }} />
                   : <img src={previewUrl} className="size-full object-cover" alt="" />
                 }
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
@@ -806,7 +806,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 {previewUrl ? (
                   <>
                     {type === 'video'
-                      ? <video src={previewUrl} className="size-full object-cover" autoPlay muted loop />
+                      ? <video src={previewUrl} className="size-full object-cover" autoPlay muted loop playsInline preload="auto" onLoadedData={(e) => { if (e.currentTarget.currentTime < 0.001) e.currentTarget.currentTime = 0.001; }} />
                       : <img src={previewUrl} className="size-full object-cover" alt="" />
                     }
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
