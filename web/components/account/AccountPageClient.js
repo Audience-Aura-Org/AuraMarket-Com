@@ -478,14 +478,14 @@ export default function AccountPageClient() {
                         </span>
                       </div>
                       <div className="space-y-0.5">
-                        <p className="text-[15px] font-bold text-[var(--text-primary)] truncate leading-tight">
+                        <p className="text-[13px] font-bold text-[var(--text-primary)] truncate leading-tight">
                           {user?.role === 'vendor' ? (storeData.store_name || user?.name) : user?.name || 'Aura User'}
                         </p>
                         <p className="text-[11px] text-[var(--text-secondary)] flex items-center gap-1.5">
                           <Mail className="size-3 shrink-0 opacity-60" /> {user?.email}
                         </p>
                         {brandingStatus && (
-                          <p className="text-[11px] font-semibold text-[var(--accent)] pt-1">{brandingStatus}</p>
+                          <p className="text-[10px] font-semibold text-[var(--accent)] pt-0.5">{brandingStatus}</p>
                         )}
                       </div>
                     </div>
@@ -532,7 +532,7 @@ export default function AccountPageClient() {
                                 <Type className="size-4" />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">Typography</p>
+                                <p className="text-[12px] font-bold tracking-tight text-[var(--text-primary)]">Typography</p>
                                 <p className="text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">Font size applies across the app. Default font is Poppins.</p>
                               </div>
                             </div>
@@ -591,14 +591,14 @@ export default function AccountPageClient() {
                               <Globe2 className="size-4" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-bold tracking-tight text-[var(--text-primary)]">{t('settings.language')}</p>
+                              <p className="text-[12px] font-bold tracking-tight text-[var(--text-primary)]">{t('settings.language')}</p>
                               <p className="text-[11px] font-semibold leading-snug text-[var(--text-secondary)] opacity-70">{t('settings.languageHelp')}</p>
                             </div>
                           </div>
                           <select
                             value={language}
                             onChange={(event) => handleLanguageChange(event.target.value)}
-                            className="h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[13px] font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
+                            className="h-10 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[12px] font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
                           >
                             {languages.map((item) => (
                               <option key={item.code} value={item.code}>
@@ -1381,7 +1381,7 @@ function KycUploadCard({ title, image, field, uploading, onUpload }) {
 function FormField({ label, value, onChange, icon: Icon, placeholder, disabled = false, textarea = false, type = "text" }) {
   return (
     <div>
-      <label className="block text-[13px] font-medium mb-2 text-[var(--text-primary)]">{label}</label>
+      <label className="block text-[11px] font-semibold mb-1.5 text-[var(--text-secondary)]">{label}</label>
       {textarea ? (
         <textarea
           value={value ?? ""}
@@ -1389,7 +1389,7 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
           placeholder={placeholder}
           disabled={disabled}
           rows={4}
-          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[12px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
         />
       ) : (
         <input
@@ -1398,7 +1398,7 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[13px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[12px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
         />
       )}
     </div>
@@ -1408,12 +1408,12 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
 function FormSelect({ label, value, onChange, options, icon: Icon, placeholder, disabled = false }) {
   return (
     <div>
-      <label className="block text-[13px] font-medium mb-2 text-[var(--text-primary)]">{label}</label>
+      <label className="block text-[11px] font-semibold mb-1.5 text-[var(--text-secondary)]">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[13px] font-medium text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 appearance-none"
+        className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[12px] font-medium text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 appearance-none"
       >
         <option value="">{placeholder}</option>
         {options.map(opt => (
@@ -1429,7 +1429,7 @@ function NotificationToggle({ label, icon: Icon, active }) {
     <div className="flex items-center justify-between p-4 hover:bg-[var(--bg-secondary)] rounded-[1.5rem] transition-colors border border-[var(--glass-border)]">
       <div className="flex items-center gap-3">
         <Icon className="w-5 h-5 text-[var(--accent)]" />
-        <p className="font-medium text-[13px] text-[var(--text-primary)]">{label}</p>
+        <p className="font-medium text-[12px] text-[var(--text-primary)]">{label}</p>
       </div>
       <div className={`w-12 h-6 rounded-full transition-colors relative ${active ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}>
         <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${active ? 'left-[26px]' : 'left-0.5'}`} />

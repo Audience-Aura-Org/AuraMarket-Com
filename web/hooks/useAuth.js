@@ -214,7 +214,11 @@ export const useAuthStore = create(
             set({ user: null, token: null, isAuthenticated: false, authChecked: true, loading: false });
             return { success: false, invalidSession: true };
           }
-          set({ user: null, isAuthenticated: false, authChecked: true, loading: false });
+          // Non-terminal failure (network error, 5xx, temporary outage).
+          // Do NOT clear isAuthenticated — the user's token is still valid.
+          // Clearing it would log them out on every server blip or
+          // cold-start before the token finishes loading from native storage.
+          set({ authChecked: true, loading: false });
           return { success: false };
         } finally {
           fetchMeInFlight = null;

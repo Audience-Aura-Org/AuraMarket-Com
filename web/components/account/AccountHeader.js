@@ -49,39 +49,58 @@ export default function AccountHeader({ title = "Account Settings", profileBrand
         </div>
       )}
 
-      {/* Compact back button for customers (no banner area) */}
+      {/* Customer header — single compact row with back + avatar + name */}
       {!canUseBanner && (
-        <div className="bg-[var(--bg-primary)]/95 backdrop-blur-2xl border-b border-[var(--glass-border)] px-4 py-3 flex items-center gap-2">
-          <button
-            onClick={() => router.back()}
-            className="size-9 flex items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-95 shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <span className="text-sm font-bold text-[var(--text-primary)] truncate">{title}</span>
+        <div className="relative overflow-hidden border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-2xl">
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--accent)]/7 to-transparent pointer-events-none" />
+          <div className="relative flex items-center gap-3 px-4 py-3">
+            <button
+              onClick={() => router.back()}
+              className="size-9 flex items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-95 shrink-0"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
+            <div className="size-9 rounded-xl overflow-hidden border border-[var(--glass-border)] shrink-0 bg-[var(--bg-secondary)]">
+              {avatarSrc ? (
+                <img src={avatarSrc} alt="" className="size-full object-cover" />
+              ) : (
+                <div className="size-full flex items-center justify-center text-[13px] font-bold text-[var(--accent)] bg-[var(--accent)]/10">
+                  {displayName[0]?.toUpperCase()}
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-[var(--text-primary)] truncate leading-tight">{displayName}</p>
+              <p className="text-[10px] font-semibold text-[var(--text-secondary)] capitalize opacity-60 leading-tight">{user?.role || 'user'} account</p>
+            </div>
+            <span className="shrink-0 px-2.5 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[10px] font-bold uppercase tracking-wide">
+              {user?.role || 'user'}
+            </span>
+          </div>
         </div>
       )}
 
-      {/* Name bar that sits just below banner */}
-      <div className="bg-[var(--bg-primary)]/95 backdrop-blur-2xl border-b border-[var(--glass-border)] px-4 py-2.5 flex items-center gap-3">
-        {/* Tiny avatar */}
-        <div className="size-8 rounded-xl overflow-hidden border border-[var(--glass-border)] shrink-0 bg-[var(--bg-secondary)]">
-          {avatarSrc ? (
-            <img src={avatarSrc} alt="" className="size-full object-cover" />
-          ) : (
-            <div className="size-full flex items-center justify-center text-sm font-bold text-[var(--accent)] bg-[var(--accent)]/10">
-              {displayName[0]?.toUpperCase()}
-            </div>
-          )}
+      {/* Name bar — shown below vendor/logistics banner */}
+      {canUseBanner && (
+        <div className="bg-[var(--bg-primary)]/95 backdrop-blur-2xl border-b border-[var(--glass-border)] px-4 py-2.5 flex items-center gap-3">
+          <div className="size-8 rounded-xl overflow-hidden border border-[var(--glass-border)] shrink-0 bg-[var(--bg-secondary)]">
+            {avatarSrc ? (
+              <img src={avatarSrc} alt="" className="size-full object-cover" />
+            ) : (
+              <div className="size-full flex items-center justify-center text-sm font-bold text-[var(--accent)] bg-[var(--accent)]/10">
+                {displayName[0]?.toUpperCase()}
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-bold text-[var(--text-primary)] truncate leading-tight">{displayName}</p>
+            <p className="text-[10px] font-semibold text-[var(--text-secondary)] capitalize opacity-60 leading-tight">{user?.role || 'user'} account</p>
+          </div>
+          <span className="shrink-0 px-2.5 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[10px] font-bold uppercase tracking-wide">
+            {user?.role || 'user'}
+          </span>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-[var(--text-primary)] truncate leading-tight">{displayName}</p>
-          <p className="text-[10px] font-semibold text-[var(--text-secondary)] capitalize opacity-60 leading-tight">{user?.role || 'user'} account</p>
-        </div>
-        <span className="shrink-0 px-2.5 py-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] text-[10px] font-bold uppercase tracking-wide">
-          {user?.role || 'user'}
-        </span>
-      </div>
+      )}
     </div>
   );
 }

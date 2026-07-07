@@ -301,7 +301,16 @@ let lastInvalidSessionNoticeAt = 0;
 const notifyInvalidStoredSession = async (message) => {
   if (typeof window === 'undefined') return;
   const now = Date.now();
-  if (now - lastInvalidSessionNoticeAt < 5000) return;
+  // 15s debounce — prevents rapid repeated logout triggers
+  if (now - lastInvalidSessionNoticeAt < 15000) return;
+
+  // Only log out if the user has an active stored token.
+  // This prevents 401s from unauthenticated requests (before Zustand
+  // hydrates, guest routes, or pre-login API probes) from triggering
+  // a spurious logout → login loop.
+  const storedToken = await getStoredAuthToken().catch(() => null);
+  if (!storedToken) return;
+
   lastInvalidSessionNoticeAt = now;
   try {
     await clearStoredAuthToken();

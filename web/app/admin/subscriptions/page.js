@@ -305,7 +305,7 @@ export default function AdminSubscriptionsPage() {
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Stat icon={Users} tone="accent" label={t('subscription.activeSubscribers', 'Active subscribers')} value={activeCount} detail={`${pendingCount} ${t('subscription.pending', 'pending payments')}`} />
+          <Stat icon={Users} tone="accent" label={t('subscription.totalSubscribers', 'Subscribers')} value={subscriptions.length} detail={`${activeCount} active · ${pendingCount} pending`} />
           <Stat icon={WalletCards} tone="emerald" label={t('subscription.revenue', 'Subscription revenue')} value={money(totalRevenue || stats.revenue)} detail={`${subscriptions.length} total subscriptions`} />
           <Stat icon={Sparkles} tone="amber" label={t('subscription.activePlans', 'Active plans')} value={activePlansCount} detail={`${plans.length} total packages`} />
           <Stat icon={ShieldCheck} tone="blue" label={t('subscription.graceUsers', 'Grace users')} value={graceCount} detail={`${limitedCount} ${t('subscription.limitedUsers', 'limited users')}`} />
@@ -754,7 +754,9 @@ function SubscriberTable({ subscriptions, updateSubscription, deleteSubscription
                       {avatar ? <img src={avatar} alt="" className="size-full object-cover" /> : (user.name || user.email || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-bold">{user.name || t('common.unknown', 'Unknown')}</p>
+                      <p className={`truncate font-bold ${!user.name && !user.email ? 'text-[11px] italic text-[var(--text-secondary)]' : ''}`}>
+                        {user.name || (!user.email && !user.phone ? t('common.deletedAccount', 'Deleted account') : t('common.unknown', 'Unknown'))}
+                      </p>
                       <p className="truncate text-xs text-[var(--text-secondary)]">{user.email || user.phone || '-'}</p>
                       <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">{label(sub.role || user.role || 'user')}</p>
                     </div>
