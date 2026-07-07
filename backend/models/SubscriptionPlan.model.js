@@ -51,9 +51,7 @@ const SubscriptionPlanSchema = new mongoose.Schema(
       enum: ['customer', 'vendor', 'logistics', 'admin'],
     }],
     features: [{
-      type: String,
-      trim: true,
-      maxlength: 160,
+      type: mongoose.Schema.Types.Mixed,
     }],
     is_active: {
       type: Boolean,

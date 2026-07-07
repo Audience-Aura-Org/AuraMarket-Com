@@ -14,11 +14,11 @@ const DEFAULT_VENDOR_PLANS = [
     duration_days: 30,
     roles: ['vendor'],
     features: [
-      'List up to 20 products in your store',
-      'Add your shop logo',
-      "Get help via email when you're stuck",
-      'No promotions or discounts',
-      'No sales reports',
+      { key: 'max_products',  type: 'number', value: 20,    label: 'List up to 20 products in your store' },
+      { key: 'shop_logo',     type: 'toggle', value: true,  label: 'Add your shop logo' },
+      { key: 'email_support', type: 'toggle', value: true,  label: 'Email support available' },
+      { key: 'promotions',    type: 'toggle', value: false, label: 'No promotions or discounts' },
+      { key: 'sales_reports', type: 'toggle', value: false, label: 'No sales reports' },
     ],
     is_active: true,
   },
@@ -32,12 +32,11 @@ const DEFAULT_VENDOR_PLANS = [
     duration_days: 60,
     roles: ['vendor'],
     features: [
-      'List up to 100 products',
-      'Your products get highlighted 3 times/month',
-      'Run flash sales & discount codes',
-      'See basic reports on your sales',
-      'Logo + store banner customization',
-      'Priority email support',
+      { key: 'max_products',  type: 'number', value: 100,  label: 'List up to 100 products in your store' },
+      { key: 'shop_logo',     type: 'toggle', value: true, label: 'Add your shop logo' },
+      { key: 'promotions',    type: 'toggle', value: true, label: 'Promotions and discounts enabled' },
+      { key: 'sales_reports', type: 'toggle', value: true, label: 'Sales reports available' },
+      { key: 'email_support', type: 'toggle', value: true, label: 'Priority email support' },
     ],
     is_active: true,
   },
@@ -51,12 +50,11 @@ const DEFAULT_VENDOR_PLANS = [
     duration_days: 90,
     roles: ['vendor'],
     features: [
-      'List up to 500 products',
-      '10 featured spots per month',
-      'Detailed reports - who buys, when & what',
-      'Full store design customization',
-      'Upload many products at once (bulk import)',
-      'Live chat + email support',
+      { key: 'max_products',  type: 'number', value: 500,  label: 'List up to 500 products in your store' },
+      { key: 'shop_logo',     type: 'toggle', value: true, label: 'Add your shop logo' },
+      { key: 'promotions',    type: 'toggle', value: true, label: 'Promotions and discounts enabled' },
+      { key: 'sales_reports', type: 'toggle', value: true, label: 'Full sales reports & analytics' },
+      { key: 'email_support', type: 'toggle', value: true, label: 'Priority email support' },
     ],
     is_active: true,
   },
@@ -71,11 +69,11 @@ const DEFAULT_VENDOR_PLANS = [
     contact_required: true,
     roles: ['vendor'],
     features: [
-      'Unlimited products',
-      'Your banner on the homepage',
-      'Connect your own systems via API',
-      'Your own dedicated account manager',
-      'Lowest commission rate — negotiated',
+      { key: 'max_products',  type: 'number', value: 9999, label: 'Unlimited products in your store' },
+      { key: 'shop_logo',     type: 'toggle', value: true, label: 'Add your shop logo' },
+      { key: 'promotions',    type: 'toggle', value: true, label: 'Promotions and discounts enabled' },
+      { key: 'sales_reports', type: 'toggle', value: true, label: 'Full sales reports & analytics' },
+      { key: 'email_support', type: 'toggle', value: true, label: 'Dedicated account manager & support' },
     ],
     is_active: true,
   },
@@ -92,11 +90,10 @@ const DEFAULT_LOGISTICS_PLANS = [
     duration_days: 30,
     roles: ['logistics'],
     features: [
-      'Manage up to 10 active shipments',
-      'Basic route optimization tools',
-      'Email support when you are stuck',
-      'No custom pricing/zones',
-      'Basic analytics dashboard',
+      { key: 'max_shipments',      type: 'number', value: 10,    label: 'Manage up to 10 active shipments' },
+      { key: 'route_optimization', type: 'toggle', value: false, label: 'Basic route optimization tools' },
+      { key: 'email_support',      type: 'toggle', value: true,  label: 'Email support available' },
+      { key: 'custom_pricing',     type: 'toggle', value: false, label: 'No custom pricing/zones' },
     ],
     is_active: true,
   },
@@ -110,11 +107,10 @@ const DEFAULT_LOGISTICS_PLANS = [
     duration_days: 60,
     roles: ['logistics'],
     features: [
-      'Manage up to 100 active shipments',
-      'Advanced routing & dispatch tools',
-      'Custom pricing tariffs & zones',
-      'Detailed shipment analytics',
-      'Priority email support',
+      { key: 'max_shipments',      type: 'number', value: 100,  label: 'Manage up to 100 active shipments' },
+      { key: 'route_optimization', type: 'toggle', value: true, label: 'Route optimization tools' },
+      { key: 'custom_pricing',     type: 'toggle', value: true, label: 'Custom pricing/zones available' },
+      { key: 'email_support',      type: 'toggle', value: true, label: 'Priority email support' },
     ],
     is_active: true,
   },
@@ -128,11 +124,10 @@ const DEFAULT_LOGISTICS_PLANS = [
     duration_days: 90,
     roles: ['logistics'],
     features: [
-      'Manage up to 500 active shipments',
-      'Automatic dispatcher assignment',
-      'Custom pricing tariffs & unlimited zones',
-      'Real-time manifest analytics & exports',
-      '24/7 Priority support',
+      { key: 'max_shipments',      type: 'number', value: 500,  label: 'Manage up to 500 active shipments' },
+      { key: 'route_optimization', type: 'toggle', value: true, label: 'Route optimization tools' },
+      { key: 'custom_pricing',     type: 'toggle', value: true, label: 'Custom pricing/zones available' },
+      { key: 'email_support',      type: 'toggle', value: true, label: 'Priority email support' },
     ],
     is_active: true,
   },
@@ -147,11 +142,10 @@ const DEFAULT_LOGISTICS_PLANS = [
     contact_required: true,
     roles: ['logistics'],
     features: [
-      'Unlimited shipments & dispatchers',
-      'Connect API/Webhooks to your systems',
-      'Custom SLA & dedicated account manager',
-      'Aura Market direct integration placement',
-      'Lowest escrow commission rate',
+      { key: 'max_shipments',      type: 'number', value: 9999, label: 'Unlimited shipments & dispatchers' },
+      { key: 'route_optimization', type: 'toggle', value: true, label: 'Route optimization tools' },
+      { key: 'custom_pricing',     type: 'toggle', value: true, label: 'Custom pricing/zones available' },
+      { key: 'email_support',      type: 'toggle', value: true, label: 'Dedicated account manager & support' },
     ],
     is_active: true,
   },
@@ -166,20 +160,19 @@ const toObjectId = (value) => {
 };
 
 const ensureDefaultSubscriptionPlan = async () => {
+  const allDefaults = [...DEFAULT_VENDOR_PLANS, ...DEFAULT_LOGISTICS_PLANS];
   const plans = [];
-  for (const defaults of DEFAULT_VENDOR_PLANS) {
-    const plan = await SubscriptionPlan.findOneAndUpdate(
-      { slug: defaults.slug },
-      { $setOnInsert: defaults },
-      { returnDocument: 'after', upsert: true }
-    );
-    plans.push(plan);
-  }
 
-  for (const defaults of DEFAULT_LOGISTICS_PLANS) {
+  for (const defaults of allDefaults) {
+    const { features, ...insertOnlyFields } = defaults;
     const plan = await SubscriptionPlan.findOneAndUpdate(
       { slug: defaults.slug },
-      { $setOnInsert: defaults },
+      {
+        // Only set non-feature fields when the record is first created
+        $setOnInsert: insertOnlyFields,
+        // Always sync features so structured feature objects stay up to date
+        $set: { features },
+      },
       { returnDocument: 'after', upsert: true }
     );
     plans.push(plan);
@@ -187,12 +180,7 @@ const ensureDefaultSubscriptionPlan = async () => {
 
   await SubscriptionPlan.updateMany(
     { slug: { $in: LEGACY_VENDOR_PLAN_SLUGS } },
-    {
-      $setOnInsert: {
-        is_active: false,
-        description: 'Legacy package kept for historical subscription records. Use vendor-welcome instead.',
-      },
-    }
+    { $set: { is_active: false } }
   );
 
   return plans[0];

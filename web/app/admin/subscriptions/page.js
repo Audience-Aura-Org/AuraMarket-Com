@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   BadgeCheck,
   CalendarClock,
+  Check,
   CheckCircle2,
   CreditCard,
   Edit3,
@@ -33,6 +34,17 @@ import { useLanguage } from '@/context/LanguageContext';
 const ROLE_OPTIONS = ['customer', 'vendor', 'logistics'];
 const STATUS_OPTIONS = ['all', 'active', 'pending', 'grace', 'limited', 'cancelled', 'refunded'];
 
+const FEATURE_CATALOG = [
+  { key: 'max_products',       type: 'number', group: 'Vendor',             defaultValue: 20,    makeLabel: (v) => v >= 9999 ? 'Unlimited products in your store'          : `List up to ${v} products in your store` },
+  { key: 'shop_logo',          type: 'toggle', group: 'Vendor',             defaultValue: true,  makeLabel: (v) => v ? 'Add your shop logo'                                : 'No shop logo customization' },
+  { key: 'promotions',         type: 'toggle', group: 'Vendor',             defaultValue: false, makeLabel: (v) => v ? 'Promotions and discounts enabled'                  : 'No promotions or discounts' },
+  { key: 'sales_reports',      type: 'toggle', group: 'Vendor',             defaultValue: false, makeLabel: (v) => v ? 'Sales reports available'                           : 'No sales reports' },
+  { key: 'max_shipments',      type: 'number', group: 'Logistics',          defaultValue: 10,    makeLabel: (v) => v >= 9999 ? 'Unlimited shipments & dispatchers'         : `Manage up to ${v} active shipments` },
+  { key: 'route_optimization', type: 'toggle', group: 'Logistics',          defaultValue: true,  makeLabel: (v) => v ? 'Route optimization tools'                         : 'Basic route optimization tools' },
+  { key: 'custom_pricing',     type: 'toggle', group: 'Logistics',          defaultValue: false, makeLabel: (v) => v ? 'Custom pricing/zones available'                   : 'No custom pricing/zones' },
+  { key: 'email_support',      type: 'toggle', group: 'Vendor / Logistics', defaultValue: true,  makeLabel: (v) => v ? 'Email support available'                          : 'No email support' },
+];
+
 const defaultPlan = {
   name: '',
   description: '',
@@ -42,7 +54,7 @@ const defaultPlan = {
   duration_days: '',
   contact_required: false,
   roles: ['vendor'],
-  features: '',
+  features: [],
   is_active: true,
 };
 
@@ -161,7 +173,7 @@ export default function AdminSubscriptionsPage() {
       duration_days: plan.duration_days ?? '',
       contact_required: Boolean(plan.contact_required),
       roles: plan.roles || ['vendor'],
-      features: (plan.features || []).join('\n'),
+      features: Array.isArray(plan.features) ? plan.features.filter((f) => typeof f === 'object' && f !== null) : [],
       is_active: plan.is_active !== false,
     });
     if (typeof window !== 'undefined') {
@@ -186,7 +198,7 @@ export default function AdminSubscriptionsPage() {
         price: Number(planForm.price || 0),
         duration_days: planForm.duration_days === '' ? null : Number(planForm.duration_days || 0),
         contact_required: Boolean(planForm.contact_required),
-        features: String(planForm.features || '').split('\n').map((line) => line.trim()).filter(Boolean),
+        features: Array.isArray(planForm.features) ? planForm.features : [],
       };
       if (editingPlanId) {
         await api.patch(`/subscriptions/admin/plans/${editingPlanId}`, payload);
@@ -543,12 +555,16 @@ function PlanCard({ plan, onEdit, onToggle, onDelete, t, label }) {
       </div>
 
       <ul className="mt-4 min-h-0 flex-1 space-y-2">
-        {features.slice(0, 4).map((feature) => (
-          <li key={feature} className="flex gap-2 text-xs font-medium leading-relaxed text-[var(--text-secondary)]">
-            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
-            <span className="line-clamp-2">{feature}</span>
-          </li>
-        ))}
+        {features.slice(0, 5).map((feature, i) => {
+          const text = typeof feature === 'string' ? feature : (feature?.label || feature?.key || '');
+          const negative = typeof feature === 'object' && feature?.value === false;
+          return (
+            <li key={`${i}-${text}`} className="flex gap-2 text-xs font-medium leading-relaxed text-[var(--text-secondary)]">
+              <CheckCircle2 className={`mt-0.5 size-3.5 shrink-0 ${negative ? 'text-red-400' : 'text-emerald-500'}`} />
+              <span className="line-clamp-2">{text}</span>
+            </li>
+          );
+        })}
       </ul>
 
       <div className="mt-4 flex gap-2">
@@ -637,7 +653,13 @@ function PlanStudio({ id, planForm, setPlanForm, editingPlanId, resetForm, saveP
             })}
           </div>
         </div>
-        <textarea className={`${fieldClass} min-h-28 py-3`} placeholder={t('subscription.featuresHelp', 'One feature per line')} value={planForm.features} onChange={(e) => setPlanForm({ ...planForm, features: e.target.value })} />
+        <div>
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">Features</p>
+          <FeatureBuilder
+            features={planForm.features}
+            onChange={(features) => setPlanForm((current) => ({ ...current, features }))}
+          />
+        </div>
         <button
           type="button"
           onClick={savePlan}
@@ -820,6 +842,83 @@ function ActionButton({ icon: Icon, label, onClick, danger = false }) {
       <Icon className="size-3.5" />
       {label}
     </button>
+  );
+}
+
+function FeatureBuilder({ features, onChange }) {
+  const featureMap = Object.fromEntries(
+    (features || [])
+      .filter((f) => typeof f === 'object' && f !== null && f.key)
+      .map((f) => [f.key, f])
+  );
+
+  const toggleFeature = (catalog) => {
+    if (featureMap[catalog.key]) {
+      onChange((features || []).filter((f) => f?.key !== catalog.key));
+    } else {
+      const value = catalog.defaultValue;
+      onChange([...(features || []), { key: catalog.key, type: catalog.type, value, label: catalog.makeLabel(value) }]);
+    }
+  };
+
+  const updateValue = (catalog, newValue) => {
+    onChange((features || []).map((f) =>
+      f?.key === catalog.key ? { ...f, value: newValue, label: catalog.makeLabel(newValue) } : f
+    ));
+  };
+
+  const groups = [...new Set(FEATURE_CATALOG.map((c) => c.group))];
+
+  return (
+    <div className="space-y-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
+      {groups.map((group) => (
+        <div key={group}>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">{group}</p>
+          <div className="space-y-2">
+            {FEATURE_CATALOG.filter((c) => c.group === group).map((catalog) => {
+              const included = !!featureMap[catalog.key];
+              const current = featureMap[catalog.key];
+              return (
+                <div
+                  key={catalog.key}
+                  className={`flex items-center gap-3 rounded-xl border p-2.5 transition ${included ? 'border-[var(--accent)]/30 bg-[var(--accent)]/5' : 'border-[var(--glass-border)] bg-[var(--bg-primary)]'}`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleFeature(catalog)}
+                    className={`flex size-5 shrink-0 items-center justify-center rounded-md border-2 transition ${included ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] bg-transparent'}`}
+                  >
+                    {included && <Check className="size-3" />}
+                  </button>
+                  <p className={`min-w-0 flex-1 text-[11px] font-semibold ${included ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                    {included && current ? current.label : catalog.makeLabel(catalog.defaultValue)}
+                  </p>
+                  {included && catalog.type === 'number' && (
+                    <input
+                      type="number"
+                      min="1"
+                      value={current?.value ?? catalog.defaultValue}
+                      onChange={(e) => updateValue(catalog, Math.max(1, Number(e.target.value) || 1))}
+                      className="h-8 w-20 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-2 text-center text-[12px] font-bold outline-none focus:border-[var(--accent)]"
+                    />
+                  )}
+                  {included && catalog.type === 'toggle' && (
+                    <button
+                      type="button"
+                      onClick={() => updateValue(catalog, !current?.value)}
+                      className={`flex h-8 shrink-0 items-center gap-1.5 rounded-xl border px-3 text-[11px] font-bold transition ${current?.value ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600' : 'border-red-500/20 bg-red-500/10 text-red-500'}`}
+                    >
+                      {current?.value ? <CheckCircle2 className="size-3.5" /> : <XCircle className="size-3.5" />}
+                      {current?.value ? 'Yes' : 'No'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
