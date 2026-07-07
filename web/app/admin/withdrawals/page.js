@@ -82,7 +82,7 @@ function getRequesterProfile(withdrawal) {
 }
 
 export default function AdminWithdrawalsPage() {
-  const { user } = useAuthStore();
+  const { user, hasHydrated } = useAuthStore();
   const router = useRouter();
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,12 +98,13 @@ export default function AdminWithdrawalsPage() {
   const itemsPerPage = 10;
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!user) {
       router.replace('/login?from=admin-withdrawals');
       return;
     }
     if (user.role !== 'admin') router.replace('/wallet');
-  }, [user, router]);
+  }, [user, router, hasHydrated]);
 
   const load = useCallback(async () => {
     setLoading(true);

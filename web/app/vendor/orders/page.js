@@ -50,6 +50,7 @@ const NEXT_STATUSES = {
 export default function VendorOrdersPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const updateUser = useAuthStore((s) => s.updateUser);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -186,12 +187,13 @@ export default function VendorOrdersPage() {
     { label: 'Completed Orders', value: String(completedCount),                  icon: 'verified',       color: 'blue',   pct: 'Fully Completed',         sub: 'Delivered and Settled',                       progress: completionRate, footer: `${completedCount} fulfilled` },
   ];
 
-  if (user?.role !== 'vendor' || !user.onboarded) return null;
+  // Wait for Zustand hydration before rendering to prevent login-page flash
+  if (!hasHydrated || !user || user.role !== 'vendor' || !user.onboarded) return null;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[var(--bg-primary)]">
       {/* Redesigned Header */}
-      <header className="relative sticky top-0 md:top-16 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-2xl">
+      <header className="relative sticky top-0 md:top-16 lg:top-0 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-2xl">
         {/* Accent gradient line */}
         <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
         <div className="mx-auto max-w-[1600px] px-4 py-3 sm:px-5 md:px-8">

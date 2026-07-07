@@ -44,6 +44,12 @@ const EscrowSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    auto_released: {
+      type: Boolean,
+      default: false,
+      // Set to true when funds are released automatically by the escrow worker
+      // (no customer confirmation action — 6-hour window expired with no dispute).
+    },
     logistics_settled: {
       type: Boolean,
       default: false,

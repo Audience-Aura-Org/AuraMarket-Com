@@ -27,18 +27,20 @@ function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
 export default function AdminAnalyticsPage() {
   const user = useAuthStore((s) => s.user);
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!user) {
       router.replace('/login?from=admin-analytics');
     } else if (user.role !== 'admin') {
       router.replace('/wallet');
     }
-  }, [user, router]);
+  }, [user, router, hasHydrated]);
 
   const fetchAnalytics = async () => {
     setLoading(true);

@@ -81,7 +81,7 @@ function ElapsedTimer() {
 }
 
 export default function WalletPage() {
-  const { user, setWalletBalance, walletBalance, refreshWalletBalance } = useAuthStore();
+  const { user, hasHydrated, setWalletBalance, walletBalance, refreshWalletBalance } = useAuthStore();
   const { t } = useLanguage();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -193,7 +193,8 @@ export default function WalletPage() {
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    if (!mounted) return;
+    // Wait for both client mount and Zustand rehydration to prevent login-page flash
+    if (!mounted || !hasHydrated) return;
     if (!user) {
       router.replace('/login?from=wallet');
       return;
@@ -211,7 +212,7 @@ export default function WalletPage() {
       setDepositRef(null);
       setDepositMessage('');
     }
-  }, [mounted, user, router]);
+  }, [mounted, hasHydrated, user, router]);
 
   useEffect(() => {
     if (user?.phone && !depositPhone) {

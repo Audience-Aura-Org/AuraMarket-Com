@@ -252,6 +252,7 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
 
   escrow.status = 'released';
   escrow.release_date = new Date();
+  escrow.auto_released = !!req.autoRelease;
   await escrow.save({ session });
 
   order.order_status = 'completed';
@@ -400,6 +401,7 @@ const releaseFunds = async (req, res, next) => {
 
     if (escrow.status === 'released') {
       escrow.vendor_confirmed = true;
+      const orderFinalized = ['delivered', 'completed'].includes(order.order_status);
       if (!orderFinalized || order.order_status !== 'completed') {
         order.order_status = 'completed';
       }

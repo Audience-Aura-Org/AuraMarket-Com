@@ -393,9 +393,31 @@ const getEscrowTransactions = async (req, res, next) => {
     .populate('order_id', 'order_status products total_amount')
     .sort('-createdAt');
 
+    // Attach escrow record for each transaction so the client can show
+    // customer_confirmed, vendor_confirmed, auto_released, and status.
+    const orderIds = transactions.map(t => t.order_id?._id || t.order_id).filter(Boolean);
+    const escrowRecords = orderIds.length
+      ? await Escrow.find({ order_id: { $in: orderIds } }).select(
+          'order_id status customer_confirmed vendor_confirmed auto_released auto_release_at release_date'
+        ).lean()
+      : [];
+
+    const escrowByOrder = {};
+    for (const e of escrowRecords) {
+      escrowByOrder[e.order_id.toString()] = e;
+    }
+
+    const enriched = transactions.map(t => {
+      const orderId = (t.order_id?._id || t.order_id)?.toString();
+      return {
+        ...t.toObject(),
+        escrow_record: orderId ? (escrowByOrder[orderId] || null) : null,
+      };
+    });
+
     res.status(200).json({
       success: true,
-      data: { transactions }
+      data: { transactions: enriched }
     });
   } catch (error) { next(error); }
 };

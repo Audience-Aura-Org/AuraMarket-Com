@@ -2,20 +2,19 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
-import { 
-  ShieldCheck, Lock, Unlock, History, 
-  DollarSign, ArrowUpRight, ArrowDownLeft, RefreshCw,
+import { useState, useEffect, useMemo } from 'react';
+import {
+  ShieldCheck, Lock, Unlock, History,
+  ArrowUpRight, ArrowDownLeft, RefreshCw,
   Search, Filter, Database, Loader2, Zap, CreditCard,
   AlertCircle, Clock, XCircle, CheckCircle2,
-  Globe, Percent, Save, Settings2
+  Globe, Percent, Save, Settings2, Bot, User2, Shield
 } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import Pagination from '@/components/common/Pagination';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const STAT_COLOR_STYLES = {
   amber: 'text-amber-500 bg-amber-500/5',
@@ -40,6 +39,55 @@ const ESCROW_FILTERS = [
   { id: 'released', label: 'Released' },
   { id: 'refunded', label: 'Refunded' }
 ];
+
+const STATUS_ICON = {
+  held: Lock,
+  pending_release: Clock,
+  disputed: AlertCircle,
+  released: Unlock,
+  refunded: XCircle,
+};
+
+const STATUS_COLOR = {
+  held: 'text-amber-500',
+  pending_release: 'text-blue-500',
+  disputed: 'text-rose-600',
+  released: 'text-emerald-500',
+  refunded: 'text-rose-500',
+};
+
+function AutoReleaseCountdown({ autoReleaseAt }) {
+  const [remaining, setRemaining] = useState('');
+
+  useEffect(() => {
+    if (!autoReleaseAt) return;
+    const tick = () => {
+      const diff = new Date(autoReleaseAt) - Date.now();
+      if (diff <= 0) { setRemaining('Releasing soon…'); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setRemaining(`${h}h ${m}m ${s}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [autoReleaseAt]);
+
+  if (!autoReleaseAt) return null;
+  return (
+    <div className="col-span-2 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/15">
+      <p className="text-[9px] font-bold text-amber-500 opacity-60 uppercase tracking-[0.2em] mb-1">Auto-Release In</p>
+      <div className="flex items-center gap-2">
+        <Bot className="size-3.5 text-amber-500" />
+        <p className="text-[12px] font-bold text-amber-500 tabular-nums">{remaining}</p>
+      </div>
+      <p className="text-[9px] text-[var(--text-secondary)] opacity-40 mt-1">
+        {new Date(autoReleaseAt).toLocaleString()}
+      </p>
+    </div>
+  );
+}
 
 export default function AdminEscrow() {
   const [mounted, setMounted] = useState(false);
@@ -100,6 +148,17 @@ export default function AdminEscrow() {
     return type === 'amount' ? `${amount.toLocaleString()} XAF` : `${amount}%`;
   };
 
+  // Live fee preview for a 10,000 XAF base amount
+  const feePreview = useMemo(() => {
+    const base = 10000;
+    const commissionVal = Number(settings.commission_value || 0);
+    const escrowVal = Number(settings.escrow_fee_value || 0);
+    const commFee = settings.commission_type === 'amount' ? Math.min(commissionVal, base) : (base * commissionVal) / 100;
+    const esFee = settings.escrow_fee_type === 'amount' ? Math.min(escrowVal, base) : (base * escrowVal) / 100;
+    const total = Math.min(commFee + esFee, base);
+    return { base, commFee, esFee, total, payout: base - total };
+  }, [settings]);
+
   const handleSettingsChange = (field, value) => {
     setSettings(prev => ({ ...prev, [field]: value }));
   };
@@ -147,62 +206,44 @@ export default function AdminEscrow() {
        l.buyer_id?.name?.toLowerCase().includes(query) ||
        l.buyer_id?.email?.toLowerCase().includes(query) ||
        l.vendor_id?.store_name?.toLowerCase().includes(query) ||
-       l.vendor_id?.user_id?.name?.toLowerCase().includes(query) ||
        l._id?.toLowerCase().includes(query)
     );
-
     return matchesStatus && matchesSearch;
   });
 
   const handleRelease = async (orderId) => {
-    if (!orderId) {
-      toast.error('Invalid order reference');
-      return;
-    }
+    if (!orderId) { toast.error('Invalid order reference'); return; }
     if (!window.confirm('Are you sure you want to FORCE RELEASE funds to the vendor? This action is irreversible.')) return;
-    
     setLoadingAction(orderId);
     try {
       const res = await api.post(`/escrow/release/${orderId}`);
-      if (res.data?.success) {
-        toast.success('Funds released successfully');
-        fetchEscrow();
-      }
+      if (res.data?.success) { toast.success('Funds released successfully'); fetchEscrow(); }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to release funds');
-    } finally {
-      setLoadingAction(null);
-    }
+    } finally { setLoadingAction(null); }
   };
 
   const handleRefund = async (orderId) => {
-    if (!orderId) {
-      toast.error('Invalid order reference');
-      return;
-    }
+    if (!orderId) { toast.error('Invalid order reference'); return; }
     if (!window.confirm('Are you sure you want to FORCE REFUND funds to the customer? This action is irreversible.')) return;
-    
     setLoadingAction(orderId);
     try {
       const res = await api.post(`/escrow/refund/${orderId}`, { reason: 'Admin override' });
-      if (res.data?.success) {
-        toast.success('Funds refunded successfully');
-        fetchEscrow();
-      }
+      if (res.data?.success) { toast.success('Funds refunded successfully'); fetchEscrow(); }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to refund funds');
-    } finally {
-      setLoadingAction(null);
-    }
+    } finally { setLoadingAction(null); }
   };
 
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
   const currentLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const heldTotal = stats.find(s => s._id === 'held')?.totalAmount || 0;
+  const heldTotal     = stats.find(s => s._id === 'held')?.totalAmount || 0;
   const releasedTotal = stats.find(s => s._id === 'released')?.totalAmount || 0;
   const disputedTotal = stats.find(s => s._id === 'disputed')?.totalAmount || 0;
-  const custodyTotal = heldTotal + disputedTotal; // active custody = held + disputed
+  const custodyTotal  = heldTotal + disputedTotal;
+  // Platform revenue: sum commission transactions if available, fallback to analytics
+  const adminEarn = analytics?.admin_revenue || analytics?.admin_earnings?.total || 0;
 
   const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
 
@@ -210,7 +251,7 @@ export default function AdminEscrow() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
-      {/* Surgical Header */}
+      {/* Header */}
       <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 lg:top-0 z-40 gap-4 md:gap-0">
         <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
           <div className="flex items-center gap-4">
@@ -221,7 +262,7 @@ export default function AdminEscrow() {
               <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Escrow <span className="text-[var(--accent)]">Vault</span></h2>
               <div className="flex items-center gap-2 mt-0.5">
                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Protocol Active // Master</p>
+                 <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Protocol Active // Master</p>
               </div>
             </div>
           </div>
@@ -233,10 +274,10 @@ export default function AdminEscrow() {
         <div className="flex items-center gap-3 w-full md:w-auto">
            <div className="relative flex-1 md:w-64 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
-              <input 
+              <input
                 type="text"
                 placeholder="Order ID, Customer, Store..."
-                className="w-full h-11 md:h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all shadow-inner"
+                className="w-full h-11 md:h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all shadow-inner"
                 value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               />
@@ -248,301 +289,387 @@ export default function AdminEscrow() {
       </header>
 
       <div className="p-4 md:p-10 space-y-8 pb-32">
-         <div className="rounded-[1.5rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-3 md:p-4 backdrop-blur-xl">
-            <div className="mb-3 flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--text-secondary)] opacity-60">
-               <Filter className="size-3.5" />
-               Vault Filter
-            </div>
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-               {ESCROW_FILTERS.map(filter => (
-                  <button
-                    key={filter.id}
-                    type="button"
-                    onClick={() => { setStatusFilter(filter.id); setCurrentPage(1); }}
-                    className={`flex min-w-max items-center gap-2 rounded-2xl border px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] transition-all ${
-                      statusFilter === filter.id
-                        ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                        : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/45 text-[var(--text-secondary)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    <span>{filter.label}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-[9px] ${
-                      statusFilter === filter.id
-                        ? 'bg-white/20 text-white'
-                        : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                    }`}>
-                      {statusCounts[filter.id] || 0}
-                    </span>
-                  </button>
-               ))}
-            </div>
-         </div>
+        {/* Filter Row */}
+        <div className="rounded-[1.5rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-3 md:p-4 backdrop-blur-xl">
+           <div className="mb-3 flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--text-secondary)] opacity-60">
+              <Filter className="size-3.5" />
+              Vault Filter
+           </div>
+           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+              {ESCROW_FILTERS.map(filter => (
+                 <button
+                   key={filter.id}
+                   type="button"
+                   onClick={() => { setStatusFilter(filter.id); setCurrentPage(1); }}
+                   className={`flex min-w-max items-center gap-2 rounded-2xl border px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] transition-all ${
+                     statusFilter === filter.id
+                       ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
+                       : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/45 text-[var(--text-secondary)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)]'
+                   }`}
+                 >
+                   <span>{filter.label}</span>
+                   <span className={`rounded-full px-2 py-0.5 text-[9px] ${
+                     statusFilter === filter.id ? 'bg-white/20 text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                   }`}>
+                     {statusCounts[filter.id] || 0}
+                   </span>
+                 </button>
+              ))}
+           </div>
+        </div>
 
-         {/* Live Intelligence Stats */}
-         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
-            {[
-               { title: 'LOCKED', desc: 'Active Custody', count: `${fmt(custodyTotal)} XAF`, icon: Database, color: 'blue' },
-               { title: 'RELEASED', desc: 'Settled Capital', count: `${fmt(releasedTotal)} XAF`, icon: CheckCircle2, color: 'emerald' },
-               { title: 'DISPUTE', desc: 'Contested Funds', count: `${fmt(disputedTotal)} XAF`, icon: AlertCircle, color: 'rose' },
-               { title: 'ADMIN EARN', desc: 'Platform earnings', count: loading ? '…' : `${fmt(analytics?.admin_revenue || analytics?.admin_earnings?.total)} XAF`, icon: Globe, color: 'indigo' },
-            ].map((item, i) => (
-               <div key={i} className="flex flex-col gap-3 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group backdrop-blur-xl">
-                  <div className="flex items-center justify-between gap-2">
-                     <div className={`size-9 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all ${STAT_COLOR_STYLES[item.color] || STAT_COLOR_STYLES.blue}`}>
-                        <item.icon className="size-4" />
-                     </div>
-                     <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-40">XAF</span>
-                  </div>
-                  <div>
-                     <p className={`text-[13px] font-bold tabular-nums truncate transition-all ${loading && item.count === '…' ? 'animate-pulse opacity-40' : ''}`}>{item.count}</p>
-                     <p className="text-[10px] font-bold uppercase tracking-tight text-[var(--text-primary)] mt-0.5">{item.title}</p>
-                     <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-40 mt-0.5">{item.desc}</p>
-                  </div>
-               </div>
-            ))}
-         </div>
-
-         <div className="grid grid-cols-1 gap-5 md:gap-6">
-            <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-5 md:p-6 backdrop-blur-xl">
-               <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
-                  <div className="flex items-center gap-3">
-                     <div className="size-11 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center border border-[var(--accent)]/20">
-                        <Settings2 className="size-5" />
-                     </div>
-                     <div>
-                        <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">Commission Controls</h3>
-                        <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.2em]">Admin fee policy</p>
-                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                     <span className="px-3 py-1.5 rounded-xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)]">
-                        Admin {formatFee(settings.commission_type, settings.commission_value)}
-                     </span>
-                     <span className="px-3 py-1.5 rounded-xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)]">
-                        Escrow {formatFee(settings.escrow_fee_type, settings.escrow_fee_value)}
-                     </span>
-                  </div>
-               </div>
-
-               <div className="grid md:grid-cols-2 gap-4">
-                  {[
-                    {
-                      title: 'Admin Commission',
-                      desc: 'Deducted from vendor payout on every completed sale.',
-                      typeField: 'commission_type',
-                      valueField: 'commission_value',
-                      icon: Percent
-                    },
-                    {
-                      title: 'Escrow Commission',
-                      desc: 'Additional fee applied only when escrow protection is used.',
-                      typeField: 'escrow_fee_type',
-                      valueField: 'escrow_fee_value',
-                      icon: Lock
-                    }
-                  ].map(item => (
-                    <div key={item.valueField} className="rounded-2xl bg-[var(--bg-primary)]/45 border border-[var(--glass-border)] p-4 space-y-4">
-                       <div className="flex items-start gap-3">
-                          <div className="size-9 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center">
-                             <item.icon className="size-4" />
-                          </div>
-                          <div>
-                             <p className="text-xs font-bold text-[var(--text-primary)]">{item.title}</p>
-                             <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 leading-relaxed">{item.desc}</p>
-                          </div>
-                       </div>
-                       <div className="grid grid-cols-[1fr_120px] gap-3">
-                          <select
-                            value={settings[item.typeField]}
-                            onChange={e => handleSettingsChange(item.typeField, e.target.value)}
-                            className="h-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                          >
-                             <option value="percentage">Percentage</option>
-                             <option value="amount">Fixed XAF</option>
-                          </select>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={settings[item.valueField]}
-                            onChange={e => handleSettingsChange(item.valueField, e.target.value)}
-                            className="h-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
-                          />
-                       </div>
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+           {[
+              { title: 'LOCKED', desc: 'Active Custody', count: `${fmt(custodyTotal)} XAF`, icon: Database, color: 'blue' },
+              { title: 'RELEASED', desc: 'Settled Capital', count: `${fmt(releasedTotal)} XAF`, icon: CheckCircle2, color: 'emerald' },
+              { title: 'DISPUTE', desc: 'Contested Funds', count: `${fmt(disputedTotal)} XAF`, icon: AlertCircle, color: 'rose' },
+              { title: 'ADMIN EARN', desc: 'Platform commissions', count: loading ? '…' : `${fmt(adminEarn)} XAF`, icon: Globe, color: 'indigo' },
+           ].map((item, i) => (
+              <div key={i} className="flex flex-col gap-3 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group backdrop-blur-xl">
+                 <div className="flex items-center justify-between gap-2">
+                    <div className={`size-9 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all ${STAT_COLOR_STYLES[item.color] || STAT_COLOR_STYLES.blue}`}>
+                       <item.icon className="size-4" />
                     </div>
-                  ))}
-               </div>
-
-               <div className="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 leading-relaxed max-w-2xl">
-                    Fees are calculated against the vendor base amount. When a logistics partner handles delivery, shipping is excluded from the vendor base and paid to logistics after delivery.
-                  </p>
-                  <button
-                    onClick={handleSaveSettings}
-                    disabled={savingSettings}
-                    className="h-12 px-5 rounded-2xl bg-[var(--accent)] text-white text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20 disabled:opacity-50 active:scale-95 transition-all"
-                  >
-                    {savingSettings ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                    Save Fees
-                  </button>
-               </div>
-            </div>
-
-         </div>
-
-         {/* Escrow Ledger */}
-         <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">
-            <div className="p-6 md:p-8 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-secondary)]/20">
-               <h3 className="text-xs font-bold text-[var(--text-primary)] tracking-[0.2em] flex items-center gap-3 uppercase">
-                  <Database className="size-4 text-[var(--accent)]" /> Global Escrow Trace Ledger
-               </h3>
-               <p className="hidden md:block text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em]">Secure Vault Logs Synchronized</p>
-            </div>
-
-            <div className="p-4 md:p-8 space-y-4">
-              {loading ? (
-                 <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-20">
-                    <Loader2 className="animate-spin size-10" />
-                    <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Synchronizing Items...</p>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-40">XAF</span>
                  </div>
-              ) : currentLogs.length > 0 ? (
-                 <div className="grid grid-cols-1 gap-4">
-                   {currentLogs.map(l => {
-                     const isExpanded = expandedId === l._id;
-                     const statusColor = 
-                        l.status === 'held' ? 'text-amber-500' : 
-                        l.status === 'pending_release' ? 'text-blue-500' :
-                        l.status === 'disputed' ? 'text-rose-600' :
-                        l.status === 'released' ? 'text-emerald-500' : 'text-rose-500';
-                     const statusBg = statusColor.replace('text-', 'bg-').concat('/10');
+                 <div>
+                    <p className={`text-[13px] font-bold tabular-nums truncate ${loading && item.count === '…' ? 'animate-pulse opacity-40' : ''}`}>{item.count}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-tight text-[var(--text-primary)] mt-0.5">{item.title}</p>
+                    <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-40 mt-0.5">{item.desc}</p>
+                 </div>
+              </div>
+           ))}
+        </div>
 
-                     return (
-                        <div 
-                           key={l._id} 
-                           className={`group relative rounded-[2rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden backdrop-blur-xl flex flex-col ${isExpanded ? 'ring-1 ring-[var(--accent)]/30 shadow-2xl bg-[var(--bg-primary)]/60' : 'hover:-translate-y-1'}`}
-                        >
-                           <div 
-                              className="p-5 md:p-6 flex flex-col md:flex-row md:items-center gap-6 cursor-pointer"
-                              onClick={() => setExpandedId(isExpanded ? null : l._id)}
-                           >
-                              <div className={`size-12 md:size-14 rounded-2xl ${statusBg} ${statusColor} flex items-center justify-center shrink-0 border ${statusColor.replace('text-', 'border-')}/10 shadow-inner group-hover:scale-105 transition-transform duration-500`}>
-                                 {l.status === 'held' ? <Lock className="w-6 h-6 md:w-7 h-7" /> : <Unlock className="w-6 h-6 md:w-7 h-7" />}
-                              </div>
+        {/* Commission Controls */}
+        <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-5 md:p-6 backdrop-blur-xl">
+           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                 <div className="size-11 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center border border-[var(--accent)]/20">
+                    <Settings2 className="size-5" />
+                 </div>
+                 <div>
+                    <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">Commission Controls</h3>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.2em]">Platform fee policy</p>
+                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                 <span className="px-3 py-1.5 rounded-xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)]">
+                    Admin {formatFee(settings.commission_type, settings.commission_value)}
+                 </span>
+                 <span className="px-3 py-1.5 rounded-xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] text-[10px] font-bold text-[var(--text-secondary)]">
+                    Escrow {formatFee(settings.escrow_fee_type, settings.escrow_fee_value)}
+                 </span>
+              </div>
+           </div>
 
-                              <div className="flex-1 min-w-0">
-                                 <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-3">
-                                       <span className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight uppercase">Order Trace #{l.order_id?._id?.slice(-8).toUpperCase() || 'LEGACY'}</span>
-                                       <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold tracking-widest border uppercase ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20`}>
-                                          {l.status.replace('_', ' ')}
-                                       </span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">
-                                       <Clock className="w-3 h-3" /> {new Date(l.createdAt).toLocaleDateString()}
-                                    </div>
-                                 </div>
-                                 <div className="flex items-center gap-4">
-                                    <div className="flex-1 min-w-0">
-                                       <p className="text-[13px] font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors truncate">
-                                          {l.buyer_id?.name || 'Customer Node'} {'->'} {l.vendor_id?.store_name || 'Vendor Hub'}
-                                       </p>
-                                       <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest mt-0.5">Network Transaction Protocol</p>
-                                    </div>
-                                 </div>
-                              </div>
+           <div className="grid md:grid-cols-2 gap-4">
+              {[
+                {
+                  title: 'Admin Commission',
+                  desc: 'Deducted from vendor payout on every completed sale.',
+                  typeField: 'commission_type',
+                  valueField: 'commission_value',
+                  icon: Percent
+                },
+                {
+                  title: 'Escrow Commission',
+                  desc: 'Additional fee applied only when escrow protection is used.',
+                  typeField: 'escrow_fee_type',
+                  valueField: 'escrow_fee_value',
+                  icon: Lock
+                }
+              ].map(item => (
+                <div key={item.valueField} className="rounded-2xl bg-[var(--bg-primary)]/45 border border-[var(--glass-border)] p-4 space-y-4">
+                   <div className="flex items-start gap-3">
+                      <div className="size-9 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center">
+                         <item.icon className="size-4" />
+                      </div>
+                      <div>
+                         <p className="text-xs font-bold text-[var(--text-primary)]">{item.title}</p>
+                         <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 leading-relaxed">{item.desc}</p>
+                      </div>
+                   </div>
+                   <div className="grid grid-cols-[1fr_120px] gap-3">
+                      <select
+                        value={settings[item.typeField]}
+                        onChange={e => handleSettingsChange(item.typeField, e.target.value)}
+                        className="h-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
+                      >
+                         <option value="percentage">Percentage (%)</option>
+                         <option value="amount">Fixed (XAF)</option>
+                      </select>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={settings[item.valueField]}
+                        onChange={e => handleSettingsChange(item.valueField, e.target.value)}
+                        className="h-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
+                      />
+                   </div>
+                </div>
+              ))}
+           </div>
 
-                              <div className="flex items-center justify-between md:flex-col md:items-end md:justify-center gap-4 pt-5 md:pt-0 border-t md:border-t-0 border-[var(--glass-border)]/50">
-                                 <div className="text-left md:text-right">
-                                    <p className="text-xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{l.amount.toLocaleString()} <span className="text-[10px] opacity-30 ml-1 font-mono">XAF</span></p>
-                                    <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-20 uppercase tracking-[0.2em] mt-0.5">Asset Custody</p>
-                                 </div>
-                                 <ShieldCheck className={`hidden md:block size-4 ${l.status === 'released' ? 'text-emerald-500' : 'text-[var(--text-secondary)] opacity-20'}`} />
-                              </div>
-                           </div>
+           {/* Live Fee Preview */}
+           <div className="mt-4 rounded-2xl bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] p-4">
+              <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-[0.2em] mb-3">Live Preview — 10,000 XAF order</p>
+              <div className="grid grid-cols-4 gap-3">
+                 {[
+                   { label: 'Base',       value: `${fmt(feePreview.base)} XAF`,     color: 'text-[var(--text-primary)]' },
+                   { label: 'Commission', value: `-${fmt(feePreview.commFee)} XAF`, color: 'text-rose-500' },
+                   { label: 'Escrow Fee', value: `-${fmt(feePreview.esFee)} XAF`,   color: 'text-rose-500' },
+                   { label: 'Vendor Gets', value: `${fmt(feePreview.payout)} XAF`,  color: 'text-emerald-500' },
+                 ].map(p => (
+                   <div key={p.label} className="text-center">
+                      <p className={`text-[12px] font-bold tabular-nums ${p.color}`}>{p.value}</p>
+                      <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.1em] mt-0.5">{p.label}</p>
+                   </div>
+                 ))}
+              </div>
+           </div>
 
-                           <AnimatePresence>
-                              {isExpanded && (
-                                 <motion.div 
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden bg-[var(--bg-secondary)]/20 border-t border-[var(--glass-border)]"
-                                 >
-                                    <div className="p-6 md:p-8 flex flex-col lg:flex-row gap-8">
-                                       <div className="flex-1 space-y-6">
-                                          <div className="grid grid-cols-2 gap-4">
-                                             <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
-                                                <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Customer Confirmed</p>
-                                                <div className="flex items-center gap-2">
-                                                   <div className={`size-1.5 rounded-full ${l.customer_confirmed ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
-                                                   <p className={`text-[11px] font-bold ${l.customer_confirmed ? 'text-emerald-500' : 'text-rose-500'}`}>{l.customer_confirmed ? 'VERIFIED' : 'PENDING'}</p>
-                                                </div>
-                                             </div>
-                                             <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
-                                                <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Transaction State</p>
-                                                <div className="flex items-center gap-2">
-                                                   <div className={`size-1.5 rounded-full ${l.status === 'released' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                                                   <p className={`text-[11px] font-bold ${l.status === 'released' ? 'text-emerald-500' : 'text-amber-500'}`}>{l.status === 'released' ? 'SETTLED' : 'LOCKED'}</p>
-                                                </div>
-                                             </div>
-                                             {l.release_date && (
-                                               <div className="col-span-2 p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
-                                                  <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Settlement Timestamp</p>
-                                                  <p className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight">{new Date(l.release_date).toLocaleString()}</p>
+           <div className="mt-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 leading-relaxed max-w-2xl">
+                Fees are calculated against the vendor base amount. Logistics shipping fees are paid directly to the carrier after delivery and are excluded from the commission base.
+              </p>
+              <button
+                onClick={handleSaveSettings}
+                disabled={savingSettings}
+                className="h-12 px-5 rounded-2xl bg-[var(--accent)] text-white text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20 disabled:opacity-50 active:scale-95 transition-all whitespace-nowrap"
+              >
+                {savingSettings ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                Save Fees
+              </button>
+           </div>
+        </div>
+
+        {/* Escrow Ledger */}
+        <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">
+           <div className="p-6 md:p-8 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-secondary)]/20">
+              <h3 className="text-xs font-bold text-[var(--text-primary)] tracking-[0.2em] flex items-center gap-3 uppercase">
+                 <Database className="size-4 text-[var(--accent)]" /> Global Escrow Trace Ledger
+              </h3>
+              <p className="hidden md:block text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em]">Secure Vault Logs Synchronized</p>
+           </div>
+
+           <div className="p-4 md:p-8 space-y-4">
+             {loading ? (
+                <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-20">
+                   <Loader2 className="animate-spin size-10" />
+                   <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Synchronizing Items...</p>
+                </div>
+             ) : currentLogs.length > 0 ? (
+                <div className="grid grid-cols-1 gap-4">
+                  {currentLogs.map(l => {
+                    const isExpanded = expandedId === l._id;
+                    const statusColor = STATUS_COLOR[l.status] || 'text-[var(--text-secondary)]';
+                    const statusBg = statusColor.replace('text-', 'bg-').concat('/10');
+                    const StatusIcon = STATUS_ICON[l.status] || Lock;
+                    const isReleased = l.status === 'released';
+                    const isHeld = l.status === 'held' || l.status === 'pending_release';
+
+                    return (
+                       <div
+                          key={l._id}
+                          className={`group relative rounded-[2rem] bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden backdrop-blur-xl flex flex-col ${isExpanded ? 'ring-1 ring-[var(--accent)]/30 shadow-2xl bg-[var(--bg-primary)]/60' : 'hover:-translate-y-1'}`}
+                       >
+                          <div
+                             className="p-5 md:p-6 flex flex-col md:flex-row md:items-center gap-6 cursor-pointer"
+                             onClick={() => setExpandedId(isExpanded ? null : l._id)}
+                          >
+                             <div className={`size-12 md:size-14 rounded-2xl ${statusBg} ${statusColor} flex items-center justify-center shrink-0 border ${statusColor.replace('text-', 'border-')}/10 shadow-inner group-hover:scale-105 transition-transform duration-500`}>
+                                <StatusIcon className="w-6 h-6 md:w-7 md:h-7" />
+                             </div>
+
+                             <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-3">
+                                   <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight uppercase">Order #{l.order_id?._id?.slice(-8).toUpperCase() || 'LEGACY'}</span>
+                                      <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold tracking-widest border uppercase ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20`}>
+                                         {l.status.replace('_', ' ')}
+                                      </span>
+                                      {/* Auto-released badge */}
+                                      {l.auto_released && (
+                                        <span className="px-2 py-0.5 rounded-lg text-[9px] font-bold tracking-widest border bg-amber-500/10 text-amber-500 border-amber-500/20 flex items-center gap-1">
+                                          <Bot className="size-2.5" /> AUTO
+                                        </span>
+                                      )}
+                                   </div>
+                                   <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">
+                                      <Clock className="w-3 h-3" /> {new Date(l.createdAt).toLocaleDateString()}
+                                   </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                   <div className="flex-1 min-w-0">
+                                      <p className="text-[13px] font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors truncate">
+                                         {l.buyer_id?.name || 'Customer Node'} → {l.vendor_id?.store_name || 'Vendor Hub'}
+                                      </p>
+                                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                                        {/* Customer confirmed inline indicator */}
+                                        <span className={`text-[9px] font-bold flex items-center gap-1 ${l.customer_confirmed ? 'text-emerald-500' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                                          <User2 className="size-2.5" />
+                                          {l.customer_confirmed ? 'Buyer ✓' : 'Buyer pending'}
+                                        </span>
+                                        <span className={`text-[9px] font-bold flex items-center gap-1 ${l.vendor_confirmed ? 'text-emerald-500' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                                          <Shield className="size-2.5" />
+                                          {l.vendor_confirmed ? 'Vendor ✓' : 'Vendor pending'}
+                                        </span>
+                                      </div>
+                                   </div>
+                                </div>
+                             </div>
+
+                             <div className="flex items-center justify-between md:flex-col md:items-end md:justify-center gap-4 pt-5 md:pt-0 border-t md:border-t-0 border-[var(--glass-border)]/50">
+                                <div className="text-left md:text-right">
+                                   <p className="text-xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{l.amount.toLocaleString()} <span className="text-[10px] opacity-30 ml-1 font-mono">XAF</span></p>
+                                   <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-20 uppercase tracking-[0.2em] mt-0.5">Asset Custody</p>
+                                </div>
+                                <ShieldCheck className={`hidden md:block size-4 ${isReleased ? 'text-emerald-500' : 'text-[var(--text-secondary)] opacity-20'}`} />
+                             </div>
+                          </div>
+
+                          <AnimatePresence>
+                             {isExpanded && (
+                                <motion.div
+                                   initial={{ height: 0, opacity: 0 }}
+                                   animate={{ height: 'auto', opacity: 1 }}
+                                   exit={{ height: 0, opacity: 0 }}
+                                   className="overflow-hidden bg-[var(--bg-secondary)]/20 border-t border-[var(--glass-border)]"
+                                >
+                                   <div className="p-6 md:p-8 flex flex-col lg:flex-row gap-8">
+                                      <div className="flex-1 space-y-4">
+                                         {/* Confirmation grid */}
+                                         <div className="grid grid-cols-2 gap-3">
+                                            {/* Customer Confirmed */}
+                                            <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
+                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Customer Confirmed</p>
+                                               <div className="flex items-center gap-2">
+                                                  {l.auto_released ? (
+                                                    <>
+                                                      <Bot className="size-3 text-amber-500" />
+                                                      <p className="text-[11px] font-bold text-amber-500">AUTO-RELEASED</p>
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <div className={`size-1.5 rounded-full ${l.customer_confirmed ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
+                                                      <p className={`text-[11px] font-bold ${l.customer_confirmed ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                        {l.customer_confirmed ? 'VERIFIED' : 'PENDING'}
+                                                      </p>
+                                                    </>
+                                                  )}
                                                </div>
-                                             )}
-                                          </div>
-                                       </div>
-
-                                       <div className="flex-1">
-                                          {['held', 'pending_release', 'disputed'].includes(l.status) ? (
-                                            <div className="flex flex-col gap-3 h-full justify-center">
-                                               <button 
-                                                 onClick={() => handleRelease(l.order_id?._id)}
-                                                 disabled={loadingAction === l.order_id?._id}
-                                                 className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-bold text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
-                                               >
-                                                  {loadingAction === l.order_id?._id ? <Loader2 className="size-4 animate-spin" /> : <Unlock className="size-4" />} Force Release
-                                               </button>
-                                               <button 
-                                                 onClick={() => handleRefund(l.order_id?._id)}
-                                                 disabled={loadingAction === l.order_id?._id}
-                                                 className="w-full h-14 bg-rose-500 text-white rounded-2xl font-bold text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
-                                               >
-                                                  {loadingAction === l.order_id?._id ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />} Force Refund
-                                               </button>
                                             </div>
-                                          ) : (
-                                             <div className="h-full flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-[var(--glass-border)] opacity-30">
-                                                <CheckCircle2 className="size-8 mb-3 text-emerald-500" />
-                                                <p className="text-[10px] font-bold tracking-widest uppercase">Node Fully Settled</p>
-                                             </div>
-                                          )}
-                                       </div>
-                                    </div>
-                                 </motion.div>
-                              )}
-                           </AnimatePresence>
-                        </div>
-                     );
-                   })}
-                 </div>
-              ) : (
-                 <div className="py-40 flex flex-col items-center justify-center opacity-10 px-10 text-center gap-6">
-                    <Database className="w-16 h-16 text-[var(--text-secondary)]" />
-                    <p className="text-xs font-bold tracking-[0.4em] uppercase max-w-sm">No Secure Vault Logs Detected</p>
-                 </div>
-              )}
-            </div>
+                                            {/* Vendor Confirmed */}
+                                            <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
+                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Vendor Confirmed</p>
+                                               <div className="flex items-center gap-2">
+                                                  <div className={`size-1.5 rounded-full ${l.vendor_confirmed ? 'bg-emerald-500 animate-pulse' : 'bg-[var(--text-secondary)] opacity-30'}`} />
+                                                  <p className={`text-[11px] font-bold ${l.vendor_confirmed ? 'text-emerald-500' : 'text-[var(--text-secondary)] opacity-50'}`}>
+                                                    {l.vendor_confirmed ? 'VERIFIED' : 'PENDING'}
+                                                  </p>
+                                               </div>
+                                            </div>
+                                            {/* Transaction State */}
+                                            <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
+                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Transaction State</p>
+                                               <div className="flex items-center gap-2">
+                                                  <div className={`size-1.5 rounded-full ${isReleased ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                                                  <p className={`text-[11px] font-bold ${isReleased ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                    {isReleased ? 'SETTLED' : l.status.toUpperCase().replace('_',' ')}
+                                                  </p>
+                                               </div>
+                                            </div>
+                                            {/* Released By */}
+                                            <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
+                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Released By</p>
+                                               <div className="flex items-center gap-2">
+                                                  {isReleased ? (
+                                                    l.auto_released ? (
+                                                      <>
+                                                        <Bot className="size-3.5 text-amber-500" />
+                                                        <p className="text-[11px] font-bold text-amber-500">System (Auto)</p>
+                                                      </>
+                                                    ) : l.customer_confirmed ? (
+                                                      <>
+                                                        <User2 className="size-3.5 text-emerald-500" />
+                                                        <p className="text-[11px] font-bold text-emerald-500">Customer</p>
+                                                      </>
+                                                    ) : (
+                                                      <>
+                                                        <Shield className="size-3.5 text-indigo-500" />
+                                                        <p className="text-[11px] font-bold text-indigo-500">Admin Override</p>
+                                                      </>
+                                                    )
+                                                  ) : (
+                                                    <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40">—</p>
+                                                  )}
+                                               </div>
+                                            </div>
+                                            {/* Auto-release countdown for held escrows */}
+                                            {isHeld && <AutoReleaseCountdown autoReleaseAt={l.auto_release_at} />}
+                                            {/* Settlement Timestamp */}
+                                            {l.release_date && (
+                                              <div className="col-span-2 p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
+                                                 <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Settlement Timestamp</p>
+                                                 <p className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight">{new Date(l.release_date).toLocaleString()}</p>
+                                              </div>
+                                            )}
+                                         </div>
+                                      </div>
 
-            <div className="p-6 md:p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 flex justify-center">
-               <Pagination 
-                   currentPage={currentPage}
-                   totalPages={totalPages}
-                   onPageChange={setCurrentPage}
-               />
-            </div>
-         </div>
+                                      <div className="flex-1">
+                                         {['held', 'pending_release', 'disputed'].includes(l.status) ? (
+                                           <div className="flex flex-col gap-3 h-full justify-center">
+                                              <button
+                                                onClick={() => handleRelease(l.order_id?._id)}
+                                                disabled={loadingAction === l.order_id?._id}
+                                                className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-bold text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                                              >
+                                                 {loadingAction === l.order_id?._id ? <Loader2 className="size-4 animate-spin" /> : <Unlock className="size-4" />} Force Release
+                                              </button>
+                                              <button
+                                                onClick={() => handleRefund(l.order_id?._id)}
+                                                disabled={loadingAction === l.order_id?._id}
+                                                className="w-full h-14 bg-rose-500 text-white rounded-2xl font-bold text-[10px] tracking-[0.2em] uppercase shadow-lg shadow-rose-500/20 hover:bg-rose-600 transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+                                              >
+                                                 {loadingAction === l.order_id?._id ? <Loader2 className="size-4 animate-spin" /> : <XCircle className="size-4" />} Force Refund
+                                              </button>
+                                           </div>
+                                         ) : (
+                                            <div className="h-full flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-[var(--glass-border)] opacity-30">
+                                               <CheckCircle2 className="size-8 mb-3 text-emerald-500" />
+                                               <p className="text-[10px] font-bold tracking-widest uppercase">Node Fully Settled</p>
+                                               {l.auto_released && <p className="text-[9px] mt-1 opacity-60">Released automatically by system</p>}
+                                            </div>
+                                         )}
+                                      </div>
+                                   </div>
+                                </motion.div>
+                             )}
+                          </AnimatePresence>
+                       </div>
+                    );
+                  })}
+                </div>
+             ) : (
+                <div className="py-40 flex flex-col items-center justify-center opacity-10 px-10 text-center gap-6">
+                   <Database className="w-16 h-16 text-[var(--text-secondary)]" />
+                   <p className="text-xs font-bold tracking-[0.4em] uppercase max-w-sm">No Secure Vault Logs Detected</p>
+                </div>
+             )}
+           </div>
+
+           <div className="p-6 md:p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 flex justify-center">
+              <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+              />
+           </div>
+        </div>
       </div>
     </div>
   );
