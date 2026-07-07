@@ -465,6 +465,10 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
   const touchStart  = useRef({ x: 0, y: 0, t: 0 });
   const transitionLockRef = useRef(false);
   const transitionUnlockRef = useRef(null);
+  // Keep a stable ref so the view-tracking effect never re-fires due to an
+  // inline arrow function changing identity on every parent render.
+  const onStoryViewedRef = useRef(onStoryViewed);
+  useEffect(() => { onStoryViewedRef.current = onStoryViewed; });
 
   const currentGroup = vendorGroups[vendorIdx];
   const story        = currentGroup?.stories[storyIdx];
@@ -508,11 +512,15 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
   }, [story?._id, story?.content_url, initialStatuses]);
 
   // Register view and immediately reflect it in parent lists.
+  // IMPORTANT: onStoryViewed is intentionally read via ref — passing an inline
+  // arrow function from the parent creates a new reference every render, which
+  // would cause this effect to re-fire, calling the callback again, triggering
+  // another parent render, creating an infinite loop that freezes the UI.
   useEffect(() => {
     if (!story?._id) return;
-    onStoryViewed?.(story._id, story);
+    onStoryViewedRef.current?.(story._id, story);
     api.post(`/statuses/${story._id}/view`).catch(() => {});
-  }, [story?._id, onStoryViewed]);
+  }, [story?._id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dismissKeyboard = useCallback(() => {
     if (typeof document !== 'undefined') {
@@ -1036,7 +1044,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
                   }}
                   onKeyDown={e => { if (e.key === 'Enter' && replyText.trim()) { e.preventDefault(); handleSendReply(); } }}
                   placeholder="Reply to story..."
-                  className="w-full h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 px-5 pr-12 text-[13px] text-white placeholder:text-[11px] placeholder:font-normal placeholder:text-white/40 outline-none focus:border-[var(--accent)]/60 focus:bg-white/15 transition-all shadow-inner"
+                  className="w-full h-12 rounded-full bg-white/10 backdrop-blur-xl border border-white/15 px-5 pr-12 text-[13px] text-white placeholder:text-[11px] placeholder:font-normal placeholder:text-white/40 outline-none focus:border-[var(--accent)]/60 focus:bg-white/15 transition-all shadow-inner touch-auto"
                 />
                 <button
                   onClick={handleSendReply}
