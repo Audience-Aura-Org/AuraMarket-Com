@@ -392,8 +392,8 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
           >
             {groupedPool.length > 0 ? (
               activeTab === 'inner' ? (
-                /* Inner circle — regular 2-col grid */
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+                /* Inner circle — horizontal scroll on mobile, grid on sm+ */
+                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 sm:grid sm:grid-cols-3 sm:pb-0 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-4">
                   {groupedPool.map((s, i) => (
                     <PremiumCard
                       key={s.vendor_id?._id || s._id}
@@ -402,14 +402,14 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
                       unviewedCount={s.unviewedCount}
                       isNew={s.isNew}
                       priority={i < 4 ? 'high' : 'auto'}
-                      className="aspect-[4/5]"
+                      className="flex-none w-[46vw] sm:w-auto aspect-[4/5]"
                       onClick={() => handleOpen(s, activePool)}
                     />
                   ))}
                 </div>
               ) : (
-                /* Global pulse — masonry columns */
-                <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-3 md:gap-4 space-y-3 md:space-y-4">
+                /* Global pulse — horizontal scroll on mobile, masonry on sm+ */
+                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 sm:block sm:columns-3 sm:pb-0 md:columns-4 lg:columns-5 xl:columns-6 sm:space-y-3 md:space-y-4">
                   {groupedPool.map((s, i) => (
                     <PremiumCard
                       key={s.vendor_id?._id || s._id}
@@ -419,7 +419,7 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
                       rank={i < 10 ? i + 1 : null}
                       isNew={s.isNew}
                       priority={i < 6 ? 'high' : 'auto'}
-                      className={`w-full break-inside-avoid ${i % 3 === 0 ? 'aspect-[4/5]' : 'aspect-[5/6]'}`}
+                      className={`flex-none w-[46vw] sm:w-full sm:break-inside-avoid sm:mb-0 ${i % 3 === 0 ? 'aspect-[4/5]' : 'aspect-[5/6]'}`}
                       onClick={() => handleOpen(s, activePool)}
                     />
                   ))}

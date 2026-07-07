@@ -48,7 +48,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           <button
             type="button"
             onClick={toggleSidebar}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--nav-btn-border)] dark:bg-[var(--nav-btn-bg)] dark:text-[var(--nav-btn-text)] dark:hover:border-[var(--accent)]/30 dark:hover:bg-[var(--accent)]/10"
           >
             {isOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
@@ -68,7 +68,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           {user && (
             <Link
               href="/wallet"
-              className="relative flex h-10 min-w-[76px] items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
+              className="relative flex h-10 min-w-[76px] items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--nav-btn-border)] dark:bg-[var(--nav-btn-bg)] dark:text-[var(--nav-btn-text)] dark:hover:border-[var(--accent)]/30 dark:hover:bg-[var(--accent)]/10"
             >
               <Wallet className="size-4 shrink-0 text-[var(--accent)]" />
               <span className="max-w-[48px] truncate text-[10px] font-bold tabular-nums leading-none">
@@ -80,11 +80,11 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           {/* Cart */}
           <Link
             href="/cart"
-            className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))]"
+            className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--nav-btn-border)] dark:bg-[var(--nav-btn-bg)] dark:text-[var(--nav-btn-text)] dark:hover:border-[var(--accent)]/30 dark:hover:bg-[var(--accent)]/10"
           >
             <ShoppingCart className="size-5" />
             {cartCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-[var(--accent)] px-0.5 text-[10px] font-semibold leading-none text-white shadow-sm lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
+              <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-[var(--accent)] px-0.5 text-[10px] font-semibold leading-none text-white shadow-sm lg:text-[12px] dark:border-[var(--nav-bg)]">
                 {cartCount > 99 ? "99+" : cartCount}
               </span>
             )}
@@ -96,11 +96,11 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
               type="button"
               onClick={() => openChat(null, null, null, false)}
               aria-label="Messages"
-              className={`relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--glass-border)] dark:bg-[color-mix(in_srgb,var(--bg-secondary)_92%,transparent)] dark:text-[var(--text-primary)] dark:hover:border-[color-mix(in_srgb,var(--accent)_28%,var(--glass-border))] dark:hover:bg-[color-mix(in_srgb,var(--accent)_8%,var(--bg-secondary))] ${chatOverlayOpen ? "ring-2 ring-[var(--accent)]/50 dark:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]" : ""}`}
+              className={`relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--nav-btn-border)] dark:bg-[var(--nav-btn-bg)] dark:text-[var(--nav-btn-text)] dark:hover:border-[var(--accent)]/30 dark:hover:bg-[var(--accent)]/10 ${chatOverlayOpen ? "ring-2 ring-[var(--accent)]/50 dark:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]" : ""}`}
             >
               <MessageCircle className="size-5" />
               {unreadMessages > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-red-500 px-0.5 text-[10px] font-semibold leading-none text-white animate-pulse lg:text-[12px] dark:border-[color-mix(in_srgb,var(--bg-primary)_96%,transparent)]">
+                <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-[var(--nav-bg)] bg-red-500 px-0.5 text-[10px] font-semibold leading-none text-white animate-pulse lg:text-[12px] dark:border-[var(--nav-bg)]">
                   {unreadMessages > 99 ? "99+" : unreadMessages}
                 </span>
               )}
@@ -118,11 +118,11 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
             }
             className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-tr from-[var(--accent)] to-indigo-600 p-0.5 shadow-sm transition-all active:scale-[0.97] sm:size-10 relative z-[600] pointer-events-auto cursor-pointer"
           >
-            <div className="size-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center overflow-hidden">
+            <div className="size-full rounded-full bg-[var(--nav-bg)] flex items-center justify-center overflow-hidden">
               {user?.branding?.logo || user?.avatar ? (
                 <img src={user?.branding?.logo || user?.avatar} className="size-full object-cover" alt="" />
               ) : (
-                <span className="text-[10px] font-bold text-[var(--text-primary)] uppercase">
+                <span className="text-[10px] font-bold text-[var(--nav-btn-text)] uppercase">
                   {user?.name?.[0] || 'U'}
                 </span>
               )}

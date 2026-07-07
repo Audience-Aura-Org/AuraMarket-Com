@@ -21,7 +21,7 @@ const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: fal
 // Shared class for all icon-action buttons/links in the top nav.
 // Uses CSS custom properties (driven by the JS theme system) so the style
 // is always consistent — no Tailwind dark: prefix needed.
-const NAV_BTN = 'flex size-10 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/80 text-[var(--text-primary)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95';
+const NAV_BTN = 'flex size-10 items-center justify-center rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] text-[var(--nav-btn-text)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95';
 
 export default function TopNav() {
   const pathname = usePathname();
@@ -135,7 +135,7 @@ export default function TopNav() {
           {user && (
             <Link
               href="/wallet"
-              className="inline-flex h-10 max-w-[112px] items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/80 px-2.5 text-[10px] font-semibold text-[var(--text-primary)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95 sm:max-w-none sm:gap-2 sm:px-3 sm:text-[11px]"
+              className="inline-flex h-10 max-w-[112px] items-center gap-1.5 rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] px-2.5 text-[10px] font-semibold text-[var(--nav-btn-text)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95 sm:max-w-none sm:gap-2 sm:px-3 sm:text-[11px]"
               title="Wallet balance"
             >
               <Wallet className="size-3 shrink-0 text-[var(--accent)] sm:size-3.5" />
@@ -177,17 +177,17 @@ export default function TopNav() {
               className="shrink-0 relative z-[600] pointer-events-auto cursor-pointer"
             >
                <div className="size-10 rounded-full bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] p-0.5 shadow-xl shadow-[var(--accent)]/10 hover:scale-110 transition-all">
-                 <div className="size-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center overflow-hidden">
+                 <div className="size-full rounded-full bg-[var(--nav-bg)] flex items-center justify-center overflow-hidden">
                     {user.branding?.logo || user.avatar ? (
                       <img src={user.branding?.logo || user.avatar} className="size-full object-cover" alt={user.name} />
                     ) : (
-                      <span className="text-[11px] font-bold text-[var(--text-primary)]">{user.name?.[0]?.toUpperCase()}</span>
+                      <span className="text-[11px] font-bold text-[var(--nav-btn-text)]">{user.name?.[0]?.toUpperCase()}</span>
                     )}
                  </div>
                </div>
             </Link>
           ) : (
-            <Link href="/login" className="flex items-center gap-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)]/80 px-6 py-2.5 text-[10px] font-semibold capitalize tracking-[0.12em] text-[var(--text-primary)] shadow-xl transition-all hover:bg-[var(--accent)] hover:text-white whitespace-nowrap active:scale-95 lg:text-[12px]">
+            <Link href="/login" className="flex items-center gap-2 rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] px-6 py-2.5 text-[10px] font-semibold capitalize tracking-[0.12em] text-[var(--nav-btn-text)] shadow-xl transition-all hover:bg-[var(--accent)] hover:text-white whitespace-nowrap active:scale-95 lg:text-[12px]">
               <UserIcon className="size-3.5" />
               <span>{t('common.login')}</span>
             </Link>
@@ -205,7 +205,7 @@ export default function TopNav() {
               onChange={e => setSearch(e.target.value)}
               onKeyDown={handleSearch}
               placeholder={t('search.placeholder')}
-              className="h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-10 pr-24 text-[13px] placeholder:text-[11px] placeholder:font-normal font-semibold tracking-tight text-[var(--text-primary)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--accent)]/40 focus:bg-[var(--bg-primary)] focus:ring-2 focus:ring-[var(--accent)]/10"
+              className="h-11 w-full rounded-2xl border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] pl-10 pr-24 text-[13px] placeholder:text-[11px] placeholder:font-normal font-semibold tracking-tight text-[var(--nav-btn-text)] outline-none transition-all placeholder:text-[var(--nav-btn-text)]/50 focus:border-[var(--accent)]/40 focus:ring-2 focus:ring-[var(--accent)]/10"
             />
             {search && (
               <button
