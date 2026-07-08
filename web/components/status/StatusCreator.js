@@ -824,6 +824,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     if (type !== 'video' || !previewUrl || !videoMeta?.duration) {
       return undefined;
     }
+    // Android WebView has 1-2 hardware decoder slots. Creating a second offscreen
+    // video element here competes with the main preview and causes both to show
+    // black frames. Skip canvas-based frame extraction on native; the placeholder
+    // skeleton (animated gradient bars) renders when timelineFrames is empty.
+    if (isNativePlatform()) return undefined;
 
     let cancelled = false;
     setTimelineFrames([]);
