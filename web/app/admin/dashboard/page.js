@@ -48,11 +48,17 @@ export default function AdminDashboard() {
   const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [subRevenue, setSubRevenue] = useState(null);
   const earnings = stats?.admin_earnings || {};
 
   useEffect(() => {
     setMounted(true);
     fetchStats();
+    // Fetch subscription revenue separately — /admin/analytics returns 0 for
+    // earnings.subscription; the real total lives in /subscriptions/admin/overview.
+    api.get('/subscriptions/admin/overview', { skipClientCache: true })
+      .then(r => { const rev = r.data?.data?.stats?.revenue; if (rev != null) setSubRevenue(rev); })
+      .catch(() => {});
   }, []);
 
   const fetchStats = async () => {
@@ -132,7 +138,7 @@ export default function AdminDashboard() {
               { title: t('admin.commission', 'Commission'), value: earnings.commission, desc: t('admin.productSaleFee', 'Product sale fee'), icon: TrendingUp, color: 'emerald' },
               { title: t('admin.escrowFees', 'Escrow Fees'), value: earnings.escrow, desc: t('admin.escrowProtectionFee', 'Escrow protection fee'), icon: ShieldCheck, color: 'blue' },
               { title: t('admin.collectionFees', 'Collection Fees'), value: earnings.collection, desc: t('admin.mobileMoneyCharges', 'Mobile money charges'), icon: Activity, color: 'amber' },
-              { title: t('admin.subscriptions', 'Subscriptions'), value: earnings.subscription, desc: t('admin.vendorSubscriptionFees', 'Vendor subscription fees'), icon: Zap, color: 'indigo' },
+              { title: t('admin.subscriptions', 'Subscriptions'), value: subRevenue ?? earnings.subscription ?? 0, desc: t('admin.vendorSubscriptionFees', 'Vendor subscription fees'), icon: Zap, color: 'indigo' },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-3">
                 <div className="mb-3 flex items-center justify-between gap-2">

@@ -324,7 +324,7 @@ export default function AdminSubscriptionsPage() {
             const gracePct  = subscriptions.length > 0 ? Math.round((graceCount / subscriptions.length) * 100) : 0;
             return (
               <>
-                <StatCard label={t('subscription.totalSubscribers', 'Subscribers')} value={subscriptions.length} icon={Users} color="primary" sub={`${activeCount} active · ${pendingCount} pending`} progress={activePct} footer={`${activePct}% active`} />
+                <StatCard label={t('subscription.totalSubscribers', 'Subscribers')} value={subscriptions.length || (activeCount + pendingCount + graceCount + limitedCount) || stats.total || 0} icon={Users} color="primary" sub={`${activeCount} active · ${pendingCount} pending`} progress={activePct} footer={`${activePct}% active`} />
                 <StatCard label={t('subscription.revenue', 'Subscription revenue')} value={money(stats.revenue ?? totalRevenue)} icon={WalletCards} color="emerald" sub={`${subscriptions.length} total subscriptions`} progress={100} footer="Total collected" />
                 <StatCard label={t('subscription.activePlans', 'Active plans')} value={activePlansCount} icon={Sparkles} color="amber" sub={`${plans.length} total packages`} progress={planPct} footer={`${planPct}% active`} />
                 <StatCard label={t('subscription.graceUsers', 'Grace users')} value={graceCount} icon={ShieldCheck} color="blue" sub={`${limitedCount} ${t('subscription.limitedUsers', 'limited users')}`} progress={gracePct} footer={`${gracePct}% in grace`} />

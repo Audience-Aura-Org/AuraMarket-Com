@@ -750,7 +750,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     if (!video) return;
 
     const syncPlayState = () => setIsPlaying(!video.paused && !video.ended);
-    syncPlayState();
 
     video.addEventListener('play', syncPlayState);
     video.addEventListener('pause', syncPlayState);
@@ -838,31 +837,42 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     video.style.zIndex = '9999';
     document.body.appendChild(video);
 
-    const metadataLoaded = new Promise((resolve) => {
-      let resolved = false;
-      const done = () => {
-        if (!resolved) {
-          resolved = true;
-          resolve();
-        }
-      };
-      video.onloadedmetadata = done;
-      video.onloadeddata = done;
-      video.oncanplay = done;
-      video.onerror = done;
-      setTimeout(done, needsOffscreenFilmstripCapture() ? 3000 : 2500);
-    });
-
     video.preload = 'auto';
     video.muted = true;
     video.playsInline = true;
     video.setAttribute('playsinline', 'true');
     video.setAttribute('webkit-playsinline', 'true');
-    video.src = previewUrl;
-    video.load();
 
     const captureTimelineFrames = async () => {
       try {
+        // On native: wait for the main preview + trimmer to acquire the HW decoder
+        // first. Android has limited concurrent decoder slots (~1-2); loading all
+        // three video elements simultaneously causes all to show black frames.
+        if (isNativePlatform()) {
+          await new Promise((r) => setTimeout(r, 1500));
+          if (cancelled) return;
+        }
+
+        // Set up metadata promise and start loading the offscreen video NOW
+        // (after the delay on native, immediately on web).
+        const metadataLoaded = new Promise((resolve) => {
+          let resolved = false;
+          const done = () => {
+            if (!resolved) {
+              resolved = true;
+              resolve();
+            }
+          };
+          video.onloadedmetadata = done;
+          video.onloadeddata = done;
+          video.oncanplay = done;
+          video.onerror = done;
+          setTimeout(done, needsOffscreenFilmstripCapture() ? 3000 : 2500);
+        });
+
+        video.src = previewUrl;
+        video.load();
+
         await metadataLoaded;
         if (cancelled) return;
 
