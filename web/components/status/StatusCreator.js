@@ -694,7 +694,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       try { video.removeAttribute('src'); video.load(); } catch {}
       return;
     }
-    video.pause();
     video.src = previewUrl;
     video.load();
     return () => {
@@ -1469,7 +1468,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   if (!mounted) return null;
 
   const previewVideoSrc = buildPreviewVideoSrc(previewUrl);
-  const nativePreviewSrc = isNativePlatform() ? undefined : previewVideoSrc;
 
   const layout = (
     <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/85 backdrop-blur-md overflow-hidden font-[Poppins]">
@@ -1620,7 +1618,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 <>
                   <video
                     ref={previewVideoRef}
-                    src={nativePreviewSrc}
+                    src={previewVideoSrc}
                     className={`status-preview-video absolute inset-0 w-full h-full ${previewFitClass} z-10 pointer-events-none`}
                     autoPlay
                     muted={muted}
@@ -1846,7 +1844,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               <input
                 ref={videoInputRef}
                 type="file"
-                accept="video/*,image/*"
+                accept="video/*"
                 className="hidden"
                 onChange={handleFileChange}
               />
