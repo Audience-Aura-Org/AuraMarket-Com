@@ -224,12 +224,17 @@ export default function AdminCategories() {
 
       <div className="p-4 md:p-10 space-y-8 pb-32">
          {/* Intelligence Matrix */}
-         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            <StatCard label="Total Nodes" value={categories.length} icon="database" color="primary" sub="REGISTRY" />
-            <StatCard label="Sectors" value="18" icon="zap" color="emerald" sub="ACTIVE" />
-            <StatCard label="Growth" value="+12%" icon="trending_up" color="blue" sub="SCALE" />
-            <StatCard label="Health" value="Stable" icon="verified_user" color="amber" sub="CORE" />
-         </div>
+         {(() => {
+           const nodeCount = categories.length;
+           return (
+             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+               <StatCard label="Total Nodes" value={nodeCount} icon="database" color="primary" sub="REGISTRY" progress={Math.min(nodeCount * 5, 100)} footer={`${nodeCount} category nodes`} />
+               <StatCard label="Sectors" value="18" icon="zap" color="emerald" sub="ACTIVE" progress={75} footer="Active domains" />
+               <StatCard label="Growth" value="+12%" icon="trending_up" color="blue" sub="SCALE" progress={85} footer="MoM expansion" />
+               <StatCard label="Health" value="Stable" icon="verified_user" color="amber" sub="CORE" progress={95} footer="System nominal" />
+             </div>
+           );
+         })()}
 
          <AnimatePresence>
             {isAdding && (

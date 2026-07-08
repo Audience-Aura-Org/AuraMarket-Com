@@ -100,12 +100,19 @@ export default function AdminDashboard() {
       <div className="p-4 md:p-8 space-y-8 font-sans">
         
         {/* KPI Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label={t('admin.actives', 'Actives')} value={loading ? '—' : fmt(stats?.users)} sub={t('admin.registeredAccounts', 'Registered Accounts')} icon={Users} color="blue" href="/admin/users" />
-          <StatCard label={t('admin.merchantQueue', 'Merchant Queue')} value={loading ? '—' : fmt(stats?.pending_vendors)} sub={t('admin.awaitingKyc', 'Awaiting KYC')} icon={Store} color="amber" href="/admin/vendors" />
-          <StatCard label={t('admin.assetPipeline', 'Asset Pipeline')} value={loading ? '—' : fmt(stats?.pending_products)} sub={t('admin.pendingApproval', 'Pending Approval')} icon={Package} color="primary" href="/admin/products" />
-          <StatCard label={t('admin.globalVolume', 'Global Volume')} value={loading ? '—' : `${fmt(stats?.revenue)} XAF`} sub={t('admin.grossRevenue', 'Gross Platform Revenue')} icon={TrendingUp} color="emerald" href="/admin/analytics" />
-        </div>
+        {(() => {
+          const userPct   = Math.min(Math.round((stats?.users || 0) / 10), 100);
+          const vendorPct = Math.min((stats?.pending_vendors || 0) * 10, 100);
+          const prodPct   = Math.min((stats?.pending_products || 0) * 5, 100);
+          return (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard label={t('admin.actives', 'Actives')} value={loading ? '—' : fmt(stats?.users)} sub={t('admin.registeredAccounts', 'Registered Accounts')} icon={Users} color="blue" href="/admin/users" progress={userPct} footer={`${fmt(stats?.users || 0)} total accounts`} />
+              <StatCard label={t('admin.merchantQueue', 'Merchant Queue')} value={loading ? '—' : fmt(stats?.pending_vendors)} sub={t('admin.awaitingKyc', 'Awaiting KYC')} icon={Store} color="amber" href="/admin/vendors" progress={vendorPct} footer="Awaiting review" />
+              <StatCard label={t('admin.assetPipeline', 'Asset Pipeline')} value={loading ? '—' : fmt(stats?.pending_products)} sub={t('admin.pendingApproval', 'Pending Approval')} icon={Package} color="primary" href="/admin/products" progress={prodPct} footer="Pending approval" />
+              <StatCard label={t('admin.globalVolume', 'Global Volume')} value={loading ? '—' : `${fmt(stats?.revenue)} XAF`} sub={t('admin.grossRevenue', 'Gross Platform Revenue')} icon={TrendingUp} color="emerald" href="/admin/analytics" progress={100} footer="Gross platform revenue" />
+            </div>
+          );
+        })()}
 
         <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm md:p-5">
           <div className="mb-4 flex items-center justify-between gap-3">

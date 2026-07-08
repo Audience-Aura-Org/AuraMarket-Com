@@ -26,6 +26,7 @@ import {
 import api from '@/services/api';
 import SectionForm from '../storefront/components/SectionForm';
 import { toast } from 'react-hot-toast';
+import StatCard from '@/components/layout/StatCard';
 
 const sectionTypes = [
   { value: 'all', label: 'All' },
@@ -83,17 +84,6 @@ function SectionIcon({ type }) {
   return <Icon className="size-4" />;
 }
 
-function StatCard({ label, value, tone = 'text-[var(--text-primary)]', icon: Icon }) {
-  return (
-    <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{label}</span>
-        <Icon className={`size-4 ${tone}`} />
-      </div>
-      <p className={`text-2xl font-semibold leading-none tracking-tight ${tone}`}>{value}</p>
-    </div>
-  );
-}
 
 function PreviewCard({ section, item }) {
   const title = getItemTitle(section, item);
@@ -356,10 +346,18 @@ export default function AdminHomepagePage() {
         </header>
 
         <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="Sections" value={stats.total} icon={Layers} />
-          <StatCard label="Live" value={stats.live} icon={CheckCircle2} tone="text-emerald-600" />
-          <StatCard label="Scheduled" value={stats.scheduled} icon={Activity} tone="text-blue-500" />
-          <StatCard label="Items" value={stats.items} icon={Package} tone="text-[var(--accent)]" />
+          {(() => {
+            const livePct  = stats.total > 0 ? Math.round((stats.live     / stats.total) * 100) : 0;
+            const schedPct = stats.total > 0 ? Math.round((stats.scheduled / stats.total) * 100) : 0;
+            return (
+              <>
+                <StatCard label="Sections" value={stats.total} icon={Layers} color="primary" sub="Total sections" progress={100} footer={`${stats.total} section nodes`} />
+                <StatCard label="Live" value={stats.live} icon={CheckCircle2} color="emerald" sub="Active & visible" progress={livePct} footer={`${livePct}% live`} />
+                <StatCard label="Scheduled" value={stats.scheduled} icon={Activity} color="blue" sub="With start date" progress={schedPct} footer={`${schedPct}% scheduled`} />
+                <StatCard label="Items" value={stats.items} icon={Package} color="amber" sub="Total content items" progress={Math.min(stats.items * 2, 100)} footer="Across all sections" />
+              </>
+            );
+          })()}
         </section>
 
         <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3 shadow-sm">

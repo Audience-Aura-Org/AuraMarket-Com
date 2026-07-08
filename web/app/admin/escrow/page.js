@@ -15,6 +15,7 @@ import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import Pagination from '@/components/common/Pagination';
+import StatCard from '@/components/layout/StatCard';
 
 const STAT_COLOR_STYLES = {
   amber: 'text-amber-500 bg-amber-500/5',
@@ -319,28 +320,20 @@ export default function AdminEscrow() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
-           {[
-              { title: 'LOCKED', desc: 'Active Custody', count: `${fmt(custodyTotal)} XAF`, icon: Database, color: 'blue' },
-              { title: 'RELEASED', desc: 'Settled Capital', count: `${fmt(releasedTotal)} XAF`, icon: CheckCircle2, color: 'emerald' },
-              { title: 'DISPUTE', desc: 'Contested Funds', count: `${fmt(disputedTotal)} XAF`, icon: AlertCircle, color: 'rose' },
-              { title: 'ADMIN EARN', desc: 'Platform commissions', count: loading ? '…' : `${fmt(adminEarn)} XAF`, icon: Globe, color: 'indigo' },
-           ].map((item, i) => (
-              <div key={i} className="flex flex-col gap-3 p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group backdrop-blur-xl">
-                 <div className="flex items-center justify-between gap-2">
-                    <div className={`size-9 rounded-xl flex items-center justify-center border border-transparent group-hover:border-current transition-all ${STAT_COLOR_STYLES[item.color] || STAT_COLOR_STYLES.blue}`}>
-                       <item.icon className="size-4" />
-                    </div>
-                    <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-40">XAF</span>
-                 </div>
-                 <div>
-                    <p className={`text-[13px] font-bold tabular-nums truncate ${loading && item.count === '…' ? 'animate-pulse opacity-40' : ''}`}>{item.count}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-tight text-[var(--text-primary)] mt-0.5">{item.title}</p>
-                    <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-40 mt-0.5">{item.desc}</p>
-                 </div>
-              </div>
-           ))}
-        </div>
+        {(() => {
+          const total   = (custodyTotal + releasedTotal) || 1;
+          const lockPct = Math.min(Math.round((custodyTotal  / total) * 100), 100);
+          const relPct  = Math.min(Math.round((releasedTotal / total) * 100), 100);
+          const disPct  = Math.min(Math.round((disputedTotal / total) * 100), 100);
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+              <StatCard label="Locked" value={`${fmt(custodyTotal)} XAF`} sub="Active Custody" icon={Database} color="blue" progress={lockPct} footer={`${lockPct}% of vault`} />
+              <StatCard label="Released" value={`${fmt(releasedTotal)} XAF`} sub="Settled Capital" icon={CheckCircle2} color="emerald" progress={relPct} footer={`${relPct}% settled`} />
+              <StatCard label="Disputed" value={`${fmt(disputedTotal)} XAF`} sub="Contested Funds" icon={AlertCircle} color="rose" progress={disPct} footer={`${disPct}% contested`} />
+              <StatCard label="Admin Earn" value={loading ? '…' : `${fmt(adminEarn)} XAF`} sub="Platform commissions" icon={Globe} color="indigo" progress={100} footer="Platform revenue" />
+            </div>
+          );
+        })()}
 
         {/* Commission Controls */}
         <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-5 md:p-6 backdrop-blur-xl">

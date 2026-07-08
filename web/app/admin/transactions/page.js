@@ -16,11 +16,11 @@ import {
   PartyAvatar,
   getTransactionParty,
 } from '@/components/admin/FinanceRowDisplay';
+import StatCard from '@/components/layout/StatCard';
 import {
   AdminFinancePage,
   AdminFinanceHeader,
   AdminFinanceBody,
-  AdminMetricGrid,
   AdminFilterToolbar,
   AdminFilterSearch,
   AdminFilterSelect,
@@ -645,16 +645,21 @@ export default function AdminTransactionsPage() {
       />
 
       <AdminFinanceBody>
-      <AdminMetricGrid
-          theme="transactions"
-          columns={4}
-          metrics={[
-            { label: 'Commission', value: stats ? `${fmt(earnings.commission)} XAF` : '…', hint: 'Product sale fees' },
-            { label: 'Escrow fees', value: stats ? `${fmt(earnings.escrow)} XAF` : '…', hint: 'Escrow protection fee' },
-            { label: 'Collection fees', value: stats ? `${fmt(earnings.collection)} XAF` : '…', hint: 'Mobile money charges' },
-            { label: 'Subscriptions', value: stats ? `${fmt(earnings.subscription)} XAF` : '…', hint: 'Recurring plan revenue' },
-          ]}
-        />
+      {(() => {
+          const total = (earnings.commission || 0) + (earnings.escrow || 0) + (earnings.collection || 0) + (earnings.subscription || 0) || 1;
+          const commPct = Math.min(Math.round(((earnings.commission || 0) / total) * 100), 100);
+          const escPct  = Math.min(Math.round(((earnings.escrow     || 0) / total) * 100), 100);
+          const colPct  = Math.min(Math.round(((earnings.collection || 0) / total) * 100), 100);
+          const subPct  = Math.min(Math.round(((earnings.subscription || 0) / total) * 100), 100);
+          return (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <StatCard label="Commission" value={stats ? `${fmt(earnings.commission)} XAF` : '…'} icon="storefront" color="emerald" sub="Product sale fees" progress={commPct} footer={`${commPct}% of earnings`} />
+              <StatCard label="Escrow fees" value={stats ? `${fmt(earnings.escrow)} XAF` : '…'} icon="lock_clock" color="indigo" sub="Escrow protection fee" progress={escPct} footer={`${escPct}% of earnings`} />
+              <StatCard label="Collection fees" value={stats ? `${fmt(earnings.collection)} XAF` : '…'} icon="payments" color="amber" sub="Mobile money charges" progress={colPct} footer={`${colPct}% of earnings`} />
+              <StatCard label="Subscriptions" value={stats ? `${fmt(earnings.subscription)} XAF` : '…'} icon="card_membership" color="primary" sub="Recurring plan revenue" progress={subPct} footer={`${subPct}% of earnings`} />
+            </div>
+          );
+        })()}
 
         <AdminListPanel
           theme="transactions"

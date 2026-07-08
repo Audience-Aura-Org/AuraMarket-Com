@@ -30,6 +30,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '@/services/api';
 import { useLanguage } from '@/context/LanguageContext';
+import StatCard from '@/components/layout/StatCard';
 
 const ROLE_OPTIONS = ['customer', 'vendor', 'logistics'];
 const STATUS_OPTIONS = ['all', 'active', 'pending', 'grace', 'limited', 'cancelled', 'refunded'];
@@ -317,10 +318,19 @@ export default function AdminSubscriptionsPage() {
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <Stat icon={Users} tone="accent" label={t('subscription.totalSubscribers', 'Subscribers')} value={subscriptions.length} detail={`${activeCount} active · ${pendingCount} pending`} />
-          <Stat icon={WalletCards} tone="emerald" label={t('subscription.revenue', 'Subscription revenue')} value={money(totalRevenue || stats.revenue)} detail={`${subscriptions.length} total subscriptions`} />
-          <Stat icon={Sparkles} tone="amber" label={t('subscription.activePlans', 'Active plans')} value={activePlansCount} detail={`${plans.length} total packages`} />
-          <Stat icon={ShieldCheck} tone="blue" label={t('subscription.graceUsers', 'Grace users')} value={graceCount} detail={`${limitedCount} ${t('subscription.limitedUsers', 'limited users')}`} />
+          {(() => {
+            const activePct = subscriptions.length > 0 ? Math.round((activeCount / subscriptions.length) * 100) : 0;
+            const planPct   = plans.length > 0 ? Math.round((activePlansCount / plans.length) * 100) : 0;
+            const gracePct  = subscriptions.length > 0 ? Math.round((graceCount / subscriptions.length) * 100) : 0;
+            return (
+              <>
+                <StatCard label={t('subscription.totalSubscribers', 'Subscribers')} value={subscriptions.length} icon={Users} color="primary" sub={`${activeCount} active · ${pendingCount} pending`} progress={activePct} footer={`${activePct}% active`} />
+                <StatCard label={t('subscription.revenue', 'Subscription revenue')} value={money(totalRevenue || stats.revenue)} icon={WalletCards} color="emerald" sub={`${subscriptions.length} total subscriptions`} progress={100} footer="Total collected" />
+                <StatCard label={t('subscription.activePlans', 'Active plans')} value={activePlansCount} icon={Sparkles} color="amber" sub={`${plans.length} total packages`} progress={planPct} footer={`${planPct}% active`} />
+                <StatCard label={t('subscription.graceUsers', 'Grace users')} value={graceCount} icon={ShieldCheck} color="blue" sub={`${limitedCount} ${t('subscription.limitedUsers', 'limited users')}`} progress={gracePct} footer={`${gracePct}% in grace`} />
+              </>
+            );
+          })()}
         </section>
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">

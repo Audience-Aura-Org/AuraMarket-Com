@@ -101,12 +101,21 @@ export default function AdminAnalyticsPage() {
       <div className="p-6 md:p-8 space-y-8 pb-32">
         
         {/* Metric Grid - High Density */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard label="Global Flow" value={`XAF ${fmt(payout_intel?.total_revenue)}`} sub="Total Processed" icon="payments" color="emerald" />
-          <StatCard label="Escrow Pool" value={`XAF ${fmt(payout_intel?.total_escrow)}`} sub="Held Liquidity" icon="lock_clock" color="amber" />
-          <StatCard label="Entity count" value={fmt(platform_summary?.total_users)} sub="Registered Items" icon="groups" color="blue" />
-          <StatCard label="Merchant Base" value={fmt(platform_summary?.total_vendors)} sub="Active Stores" icon="store" color="purple" />
-        </div>
+        {(() => {
+          const rev      = payout_intel?.total_revenue || 0;
+          const escrow   = payout_intel?.total_escrow  || 0;
+          const users    = platform_summary?.total_users   || 0;
+          const vendors  = platform_summary?.total_vendors || 0;
+          const escrowPct = rev > 0 ? Math.min(Math.round((escrow / rev) * 100), 100) : 0;
+          return (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard label="Global Flow" value={`XAF ${fmt(rev)}`} sub="Total Processed" icon="payments" color="emerald" progress={100} footer="Total inflow" />
+              <StatCard label="Escrow Pool" value={`XAF ${fmt(escrow)}`} sub="Held Liquidity" icon="lock_clock" color="amber" progress={escrowPct} footer={`${escrowPct}% of revenue`} />
+              <StatCard label="Entity Count" value={fmt(users)} sub="Registered Items" icon="groups" color="blue" progress={Math.min(Math.round(users / 10), 100)} footer={`${fmt(users)} accounts`} />
+              <StatCard label="Merchant Base" value={fmt(vendors)} sub="Active Stores" icon="store" color="purple" progress={Math.min(vendors * 2, 100)} footer={`${fmt(vendors)} merchants`} />
+            </div>
+          );
+        })()}
 
         {/* Intelligence Matrix */}
         <div className="grid lg:grid-cols-3 gap-8">

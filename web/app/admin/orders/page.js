@@ -18,11 +18,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 
 import Pagination from '@/components/common/Pagination';
+import StatCard from '@/components/layout/StatCard';
 import {
   AdminFinancePage,
   AdminFinanceHeader,
   AdminFinanceBody,
-  AdminMetricGrid,
   AdminFilterToolbar,
   AdminFilterSearch,
   AdminFilterPills,
@@ -256,15 +256,23 @@ export default function AdminOrdersPage() {
       </AdminFinanceHeader>
 
       <AdminFinanceBody>
-        <AdminMetricGrid
-          theme="transactions"
-          metrics={[
-            { label: 'Active', value: stats ? stats.active_orders : '...', hint: 'in progress' },
-            { label: 'Attention', value: orders.filter(o => o.order_status === 'refund_pending' || o.payment_status === 'failed').length, hint: 'needs review' },
-            { label: 'Resolved', value: stats ? stats.delivered_orders || '0' : '...', hint: 'cycle complete' },
-            { label: 'Closed', value: stats ? stats.orders : '...', hint: 'archive total' },
-          ]}
-        />
+        {(() => {
+          const activeOrders    = stats?.active_orders    || 0;
+          const resolvedOrders  = stats?.delivered_orders || 0;
+          const totalOrders     = stats?.orders           || 1;
+          const attentionOrders = orders.filter(o => o.order_status === 'refund_pending' || o.payment_status === 'failed').length;
+          const activePct    = Math.min(Math.round((activeOrders   / totalOrders) * 100), 100);
+          const resolvedPct  = Math.min(Math.round((resolvedOrders / totalOrders) * 100), 100);
+          const attentionPct = Math.min(attentionOrders * 5, 100);
+          return (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <StatCard label="Active orders" value={stats ? activeOrders : '…'} icon={ShoppingBag} color="primary" sub="In progress" progress={activePct} footer={`${activePct}% of total`} />
+              <StatCard label="Attention" value={attentionOrders} icon={Zap} color="amber" sub="Needs review" progress={attentionPct} footer={attentionOrders > 0 ? `${attentionOrders} flagged` : 'All clear'} />
+              <StatCard label="Resolved" value={stats ? resolvedOrders : '…'} icon={ShieldCheck} color="emerald" sub="Cycle complete" progress={resolvedPct} footer={`${resolvedPct}% resolved`} />
+              <StatCard label="Closed" value={stats ? totalOrders : '…'} icon={Database} color="indigo" sub="Archive total" progress={100} footer="All-time orders" />
+            </div>
+          );
+        })()}
 
         <AdminListPanel
           theme="transactions"

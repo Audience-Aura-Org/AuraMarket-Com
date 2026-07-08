@@ -213,22 +213,21 @@ export default function AdminVendorsPage() {
 
       <div className="p-4 md:p-10 space-y-8 pb-32">
          {/* Live Intelligence Stats */}
-         {/* Live Intelligence Stats */}
-         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Total Merchants" value={vendors.length} icon="storefront" color="fuchsia" sub="REGISTRY" />
-            <StatCard label="Verified Items" value={vendors.filter(v => v.verified).length} icon="verified_user" color="emerald" sub="TRUST" />
-            <StatCard
-              label="Avg Rating"
-              value={(() => {
-                const rated = vendors.map(v => Number(v.rating || 0)).filter(v => v > 0);
-                return rated.length ? (rated.reduce((sum, v) => sum + v, 0) / rated.length).toFixed(2) : 'New';
-              })()}
-              icon="star"
-              color="amber"
-              sub="SCORE"
-            />
-            <StatCard label="Network Yield" value="High" icon="trending_up" color="indigo" sub="SCALE" />
-         </div>
+         {(() => {
+           const verified  = vendors.filter(v => v.verified).length;
+           const verifyPct = vendors.length > 0 ? Math.round((verified / vendors.length) * 100) : 0;
+           const rated     = vendors.map(v => Number(v.rating || 0)).filter(v => v > 0);
+           const avgRating = rated.length ? (rated.reduce((s, v) => s + v, 0) / rated.length).toFixed(2) : 'New';
+           const ratingPct = rated.length ? Math.min(Math.round((parseFloat(avgRating) / 5) * 100), 100) : 0;
+           return (
+             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+               <StatCard label="Total Merchants" value={vendors.length} icon="storefront" color="fuchsia" sub="REGISTRY" progress={Math.min(vendors.length * 2, 100)} footer={`${vendors.length} in registry`} />
+               <StatCard label="Verified Items" value={verified} icon="verified_user" color="emerald" sub="TRUST" progress={verifyPct} footer={`${verifyPct}% verified`} />
+               <StatCard label="Avg Rating" value={avgRating} icon="star" color="amber" sub="SCORE" progress={ratingPct} footer="Quality score" />
+               <StatCard label="Network Yield" value="High" icon="trending_up" color="indigo" sub="SCALE" progress={75} footer="Platform growth" />
+             </div>
+           );
+         })()}
 
          {/* Vendor Ledger */}
          <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">
