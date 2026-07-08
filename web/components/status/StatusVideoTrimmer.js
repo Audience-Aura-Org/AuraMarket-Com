@@ -180,6 +180,9 @@ export default function StatusVideoTrimmer({
       setCurrentTime(trimStart);
     }
     try {
+      // Unmute on explicit user gesture — video starts muted so Android WebView
+      // preloads the blob: URL without requiring a user gesture first.
+      video.muted = false;
       await video.play();
       setPlaying(true);
     } catch {
@@ -247,7 +250,7 @@ export default function StatusVideoTrimmer({
               className="aspect-[9/16] w-full object-cover"
               playsInline
               preload="auto"
-              muted={false}
+              muted
               poster={posterUrl || undefined}
               onPause={() => setPlaying(false)}
               onPlay={() => setPlaying(true)}

@@ -689,6 +689,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
     video.addEventListener('loadeddata', tryPlay, { once: true });
     video.addEventListener('canplay', tryPlay, { once: true });
+    // Android WebView silently ignores preload="auto" and autoPlay for blob: URLs
+    // without an explicit load() call. Trigger it here so loadeddata/canplay fire.
+    if (isNativePlatform()) {
+      video.load();
+    }
     // Extend Capacitor fallback: 450ms → 600ms to cover slower HW decoders
     const fallback = setTimeout(tryPlay, isNativePlatform() ? 600 : 250);
     tryPlay();
