@@ -59,9 +59,12 @@ export default function AdminDashboard() {
     setLoading(true);
     try {
       const res = await api.get('/admin/analytics');
-      if (res.data.success) setStats(res.data.data.stats);
+      // Always set stats — fall back to empty object so cards show 0 instead
+      // of staying '—' when the API returns success:false or a missing field.
+      setStats(res.data.success ? res.data.data.stats : {});
     } catch (err) {
       console.error('Failed to fetch admin stats:', err);
+      setStats({});
     } finally { setLoading(false); }
   };
 
