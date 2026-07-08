@@ -58,6 +58,33 @@ export default function AccountPageClient() {
   const [activeTab, setActiveTab] = useState('general');
   const [viewingOrderId, setViewingOrderId] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // ── Notification preferences ─────────────────────────────────────────────
+  const [notifPrefs, setNotifPrefs] = useState({
+    push_orders: true, push_messages: true, push_payments: true, push_promos: false,
+    email_orders: true, email_messages: false, email_payments: true, email_promos: false,
+  });
+  const [pushPermission, setPushPermission] = useState('default');
+
+  useEffect(() => {
+    if (activeTab !== 'notifications' || !user?._id) return;
+    if ('Notification' in window) setPushPermission(Notification.permission);
+    api.get('/users/notification-preferences', { silent: true })
+      .then((res) => { if (res.data?.data) setNotifPrefs((p) => ({ ...p, ...res.data.data })); })
+      .catch(() => {});
+  }, [activeTab, user?._id]);
+
+  const saveNotifPref = (key, value) => {
+    const updated = { ...notifPrefs, [key]: value };
+    setNotifPrefs(updated);
+    api.patch('/users/notification-preferences', updated).catch(() => {});
+  };
+
+  const requestPushPermission = async () => {
+    if (!('Notification' in window)) return;
+    const perm = await Notification.requestPermission();
+    setPushPermission(perm);
+  };
   const canUseBanner = ['vendor', 'logistics'].includes(user?.role);
 
   useEffect(() => {
@@ -1220,12 +1247,51 @@ export default function AccountPageClient() {
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-5 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
-                    
-                    <div className="relative z-10 space-y-4">
-                      <NotificationToggle label="App Notifications" icon={Bell} active={true} />
-                      <NotificationToggle label="External Multi-cast (Email)" icon={Mail} active={true} />
+
+                    <div className="relative z-10 space-y-5">
+                      {/* ── Push Notifications ── */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Bell className="size-4 text-[var(--accent)]" />
+                            <span className="text-[12px] font-bold text-[var(--text-primary)]">Push Notifications</span>
+                          </div>
+                          {pushPermission === 'denied' && (
+                            <span className="text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/15">Blocked in browser</span>
+                          )}
+                          {pushPermission === 'default' && (
+                            <button type="button" onClick={requestPushPermission} className="text-[9px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 hover:bg-[var(--accent)]/20 transition-colors">
+                              Enable
+                            </button>
+                          )}
+                          {pushPermission === 'granted' && (
+                            <span className="text-[9px] font-black uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/15">Active</span>
+                          )}
+                        </div>
+                        <div className="space-y-1 pl-2">
+                          <NotificationToggle label="Order updates" active={notifPrefs.push_orders} onChange={(v) => saveNotifPref('push_orders', v)} />
+                          <NotificationToggle label="Messages &amp; chat" active={notifPrefs.push_messages} onChange={(v) => saveNotifPref('push_messages', v)} />
+                          <NotificationToggle label="Payments &amp; wallet" active={notifPrefs.push_payments} onChange={(v) => saveNotifPref('push_payments', v)} />
+                          <NotificationToggle label="Promotions &amp; offers" active={notifPrefs.push_promos} onChange={(v) => saveNotifPref('push_promos', v)} />
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-[var(--glass-border)]" />
+
+                      {/* ── Email Notifications ── */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Mail className="size-4 text-[var(--accent)]" />
+                          <span className="text-[12px] font-bold text-[var(--text-primary)]">Email Notifications</span>
+                        </div>
+                        <div className="space-y-1 pl-2">
+                          <NotificationToggle label="Order updates" active={notifPrefs.email_orders} onChange={(v) => saveNotifPref('email_orders', v)} />
+                          <NotificationToggle label="Payments received" active={notifPrefs.email_payments} onChange={(v) => saveNotifPref('email_payments', v)} />
+                          <NotificationToggle label="Promotions &amp; offers" active={notifPrefs.email_promos} onChange={(v) => saveNotifPref('email_promos', v)} />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1414,16 +1480,21 @@ function FormSelect({ label, value, onChange, options, icon: Icon, placeholder, 
   );
 }
 
-function NotificationToggle({ label, icon: Icon, active }) {
+function NotificationToggle({ label, icon: Icon, active, onChange }) {
   return (
-    <div className="flex items-center justify-between p-4 hover:bg-[var(--bg-secondary)] rounded-[1.5rem] transition-colors border border-[var(--glass-border)]">
-      <div className="flex items-center gap-3">
-        <Icon className="w-5 h-5 text-[var(--accent)]" />
+    <div className="flex items-center justify-between py-2.5 px-3 hover:bg-[var(--bg-secondary)] rounded-2xl transition-colors">
+      <div className="flex items-center gap-2.5">
+        {Icon && <Icon className="size-4 text-[var(--accent)]" />}
         <p className="font-medium text-[12px] text-[var(--text-primary)]">{label}</p>
       </div>
-      <div className={`w-12 h-6 rounded-full transition-colors relative ${active ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}>
-        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${active ? 'left-[26px]' : 'left-0.5'}`} />
-      </div>
+      <button
+        type="button"
+        onClick={() => onChange?.(!active)}
+        aria-pressed={active}
+        className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${active ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]'}`}
+      >
+        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-all duration-200 ${active ? 'left-[22px]' : 'left-0.5'}`} />
+      </button>
     </div>
   );
 }

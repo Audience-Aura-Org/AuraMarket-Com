@@ -63,8 +63,28 @@ const captureVideoFrame = async (src, targetTime = 0) => {
     const c = document.createElement('canvas');
     c.width = vid.videoWidth || 320;
     c.height = vid.videoHeight || 568;
+    const ctx2d = c.getContext('2d');
+    // Primary: ImageCapture.grabFrame() reads directly from the HW decoder
+    // pipeline, bypassing the compositor surface flush delay that causes
+    // rAF+drawImage to return black on Android WebView.
+    if (typeof ImageCapture !== 'undefined' && typeof vid.captureStream === 'function') {
+      try {
+        const stream = vid.captureStream();
+        const tracks = stream.getVideoTracks();
+        if (tracks.length > 0) {
+          const ic = new ImageCapture(tracks[0]);
+          const bitmap = await ic.grabFrame();
+          ctx2d.drawImage(bitmap, 0, 0, c.width, c.height);
+          bitmap.close?.();
+          stream.getTracks().forEach((t) => t.stop());
+          vid.pause();
+          return c.toDataURL('image/jpeg', 0.85);
+        }
+      } catch (_) { /* fall through to rAF */ }
+    }
+    // Fallback: rAF + drawImage
     await new Promise((r) => requestAnimationFrame(r));
-    c.getContext('2d').drawImage(vid, 0, 0, c.width, c.height);
+    ctx2d.drawImage(vid, 0, 0, c.width, c.height);
     vid.pause();
     return c.toDataURL('image/jpeg', 0.85);
   } catch (e) {

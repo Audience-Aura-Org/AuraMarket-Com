@@ -114,13 +114,36 @@ const waitForPreviewVideo = (videoRef, timeoutMs = 12000) =>
 // createImageBitmap silently returns a black ImageBitmap — it does NOT throw —
 // so the previous try/catch fallback never ran.
 // Rule: always capture inside rAF while playing; pause AFTER the draw.
-const drawVideoToCanvas = (video, canvas, ctx) =>
-  new Promise((resolve) => {
+//
+// v1.9: add ImageCapture.grabFrame() as the primary path.
+// grabFrame() reads directly from the HW decoder's media pipeline —
+// it is NOT subject to the compositor surface flush delay that causes
+// rAF + drawImage to return black on many Android WebView builds.
+// The rAF + drawImage path remains as a fallback for browsers without
+// the ImageCapture API (e.g. Firefox, older Safari).
+const drawVideoToCanvas = async (video, canvas, ctx) => {
+  if (typeof ImageCapture !== 'undefined' && typeof video.captureStream === 'function') {
+    try {
+      const stream = video.captureStream();
+      const tracks = stream.getVideoTracks();
+      if (tracks.length > 0) {
+        const ic = new ImageCapture(tracks[0]);
+        const bitmap = await ic.grabFrame();
+        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        bitmap.close?.();
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+    } catch (_) { /* fall through to rAF */ }
+  }
+  // Fallback: rAF + drawImage (reliable on desktop, may draw black on some Android WebView)
+  await new Promise((resolve) => {
     requestAnimationFrame(() => {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       resolve();
     });
   });
+};
 
 const seekVideoFrame = (video, targetTime, canvas, ctx) =>
   new Promise((resolve) => {
