@@ -592,7 +592,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
   const trimStartRef = useRef(trimStart);
   const trimEndRef = useRef(trimEnd);
-  
+  const isPlayingRef = useRef(true); // mirrors isPlaying; safe to read inside stale closures
+  const initialFrameSurfacedRef = useRef(false); // one-shot per video pick — prevents repeated seek
+
   const [isPlaying, setIsPlaying] = useState(true);
 
   const resetMediaInputs = () => {
@@ -640,6 +642,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     setIsPlaying(true);
   }, [type, previewUrl]);
 
+  // Keep isPlayingRef in sync so async callbacks always see the latest value.
+  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
+
+  // Reset the one-shot frame-surface flag every time a new video is picked.
+  useEffect(() => { initialFrameSurfacedRef.current = false; }, [previewUrl]);
+
   // Sync main preview video playback range with trimmer start/end
   useEffect(() => {
     const video = previewVideoRef.current;
@@ -677,21 +685,26 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   }, [previewUrl, type]);
 
   // Autoplay the visible preview as soon as the picked file is ready.
+  // Deps: only [previewUrl, type] — isPlaying/muted changes are handled by the
+  // sync effect below so we never re-register listeners on a playing video.
   useEffect(() => {
     const video = previewVideoRef.current;
     if (!video || !previewUrl || type !== 'video') return;
 
     let cancelled = false;
-    video.muted = muted;
 
     const tryPlay = () => {
-      if (cancelled || !isPlaying) return;
-      video.muted = muted;
+      // Use ref — not the stale closure value — so the first pick always plays.
+      if (cancelled || !isPlayingRef.current) return;
+      // Guard: don't call play() if the video is already playing (prevents duplicate play).
+      if (!video.paused) return;
       video.play()
         .then(() => {
           // Android HW decoder commits its pixel surface asynchronously after play().
           // Seeking to 0.001 forces the compositor to surface the first decoded frame.
-          if (isNativePlatform()) {
+          // One-shot per video pick so subsequent play() calls never re-seek.
+          if (isNativePlatform() && !initialFrameSurfacedRef.current) {
+            initialFrameSurfacedRef.current = true;
             setTimeout(() => {
               if (!cancelled) video.currentTime = 0.001;
             }, 200);
@@ -713,7 +726,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       video.removeEventListener('loadeddata', tryPlay);
       video.removeEventListener('canplay', tryPlay);
     };
-  }, [previewUrl, type, muted, isPlaying]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewUrl, type]);
 
   // Set Android WebView-specific video attributes that React drops when passed as JSX props.
   // webkit-playsinline / x5-playsinline / x5-video-player-type must be set imperatively.
@@ -1531,21 +1545,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     controlsList="nodownload noplaybackrate noremoteplayback nofullscreen"
                     preload="auto"
                     onContextMenu={(e) => e.preventDefault()}
-                    onCanPlay={(e) => {
-                      const v = e.currentTarget;
-                      if (isNativePlatform()) {
-                        // Capacitor WebView: autoPlay attribute is sometimes ignored
-                        // for blob: URLs. Force play explicitly so the HW decoder
-                        // allocates a surface and shows the first real frame.
-                        if (v.paused) v.play().catch(() => {});
-                      }
-                    }}
-                    onLoadedData={(e) => {
-                      const v = e.currentTarget;
-                      if (v.readyState >= 2 && v.paused) {
-                        v.play().catch(() => {});
-                      }
-                    }}
                     onError={(e) => {
                       const v = e.currentTarget;
                       if (previewUrl && v.src !== previewUrl && !v.dataset.retriedPlainSrc) {
