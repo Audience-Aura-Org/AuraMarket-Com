@@ -688,14 +688,20 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
 
     video.addEventListener('loadeddata', tryPlay, { once: true });
-    video.addEventListener('canplay', tryPlay, { once: true });
-    // Android WebView silently ignores preload="auto" and autoPlay for blob: URLs
-    // without an explicit load() call. Trigger it here so loadeddata/canplay fire.
+    video.addEventListener('canplay',    tryPlay, { once: true });
+
     if (isNativePlatform()) {
+      // On Android WebView, React's JSX src prop update and the DOM attribute set
+      // are not guaranteed to have been flushed when this effect runs.
+      // Setting src imperatively THEN calling load() guarantees the correct order
+      // and eliminates the intermittent "src not ready before load()" race.
+      video.src = previewUrl;
       video.load();
     }
-    // Extend Capacitor fallback: 450ms → 600ms to cover slower HW decoders
-    const fallback = setTimeout(tryPlay, isNativePlatform() ? 600 : 250);
+
+    // Fallback: if loadeddata / canplay never fire (e.g. codec timeout on slow HW)
+    // try playing directly. Longer timeout on native covers slow hardware decoders.
+    const fallback = setTimeout(tryPlay, isNativePlatform() ? 800 : 250);
     tryPlay();
 
     return () => {

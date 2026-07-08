@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Menu, X, ShoppingCart, MessageCircle, User, Wallet } from 'lucide-react';
+import { Menu, X, ShoppingCart, MessageCircle, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -48,18 +48,15 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           <button
             type="button"
             onClick={toggleSidebar}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--nav-btn-border)] dark:bg-[var(--nav-btn-bg)] dark:text-[var(--nav-btn-text)] dark:hover:border-[var(--accent)]/30 dark:hover:bg-[var(--accent)]/10"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] text-[var(--nav-btn-text)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95"
           >
             {isOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
           <Link
             href={user ? "/shop" : "/"}
-            className="flex min-w-0 max-w-[52vw] items-center gap-2 transition-transform active:scale-[0.98] sm:max-w-none"
+            className="flex items-center gap-2 transition-transform active:scale-[0.98] group"
           >
-            {mounted && <img src="/icon-512.png" alt="Aura" className="h-[18px] w-auto shrink-0" />}
-            <h1 className="truncate text-[11px] font-semibold leading-none tracking-tight text-[var(--nav-text)] lg:text-[12px]">
-              Aura <span className="text-[var(--accent)]">Market</span>
-            </h1>
+            {mounted && <img src="/icon-512.png" alt="Auradime" className="h-6 w-auto shrink-0 object-contain transition-transform group-hover:scale-105" />}
           </Link>
         </div>
 
@@ -68,19 +65,18 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           {user && (
             <Link
               href={user.role === 'vendor' ? '/vendor/wallet' : user.role === 'logistics' ? '/logistics/wallet' : '/wallet'}
-              className="relative flex h-10 min-w-[76px] items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--nav-btn-border)] dark:bg-[var(--nav-btn-bg)] dark:text-[var(--nav-btn-text)] dark:hover:border-[var(--accent)]/30 dark:hover:bg-[var(--accent)]/10"
+              className="relative inline-flex h-10 max-w-[112px] items-center gap-1.5 rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] px-2.5 text-[10px] font-semibold text-[var(--nav-btn-text)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95 sm:max-w-none sm:gap-2 sm:px-3 sm:text-[11px]"
             >
-              <Wallet className="size-4 shrink-0 text-[var(--accent)]" />
-              <span className="max-w-[48px] truncate text-[10px] font-bold tabular-nums leading-none">
-                {walletBalance === null ? '...' : walletBalance.toLocaleString()}
-              </span>
+              <Wallet className="size-3 shrink-0 text-[var(--accent)] sm:size-3.5" />
+              <span className="min-w-0 truncate tabular-nums">{walletBalance === null ? '...' : walletBalance.toLocaleString()}</span>
+              <span className="text-[9px] opacity-55">XAF</span>
             </Link>
           )}
 
           {/* Cart */}
           <Link
             href="/cart"
-            className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--nav-btn-border)] dark:bg-[var(--nav-btn-bg)] dark:text-[var(--nav-btn-text)] dark:hover:border-[var(--accent)]/30 dark:hover:bg-[var(--accent)]/10"
+            className="relative flex size-10 items-center justify-center rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] text-[var(--nav-btn-text)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95"
           >
             <ShoppingCart className="size-5" />
             {cartCount > 0 && (
@@ -96,7 +92,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
               type="button"
               onClick={() => openChat(null, null, null, false)}
               aria-label="Messages"
-              className={`relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/10 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--nav-btn-border)] dark:bg-[var(--nav-btn-bg)] dark:text-[var(--nav-btn-text)] dark:hover:border-[var(--accent)]/30 dark:hover:bg-[var(--accent)]/10 ${chatOverlayOpen ? "ring-2 ring-[var(--accent)]/50 dark:ring-[color-mix(in_srgb,var(--accent)_45%,transparent)]" : ""}`}
+              className={`relative flex size-10 items-center justify-center rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] text-[var(--nav-btn-text)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95 ${chatOverlayOpen ? "ring-2 ring-[var(--accent)]/50" : ""}`}
             >
               <MessageCircle className="size-5" />
               {unreadMessages > 0 && (
@@ -116,16 +112,16 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
                   ? "/logistics/dashboard"
                   : "/profile"
             }
-            className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-tr from-[var(--accent)] to-indigo-600 p-0.5 shadow-sm transition-all active:scale-[0.97] sm:size-10 relative z-[600] pointer-events-auto cursor-pointer"
+            className="shrink-0 relative z-[600] pointer-events-auto cursor-pointer block"
           >
-            <div className="size-full rounded-full bg-[var(--nav-bg)] flex items-center justify-center overflow-hidden">
-              {user?.branding?.logo || user?.avatar ? (
-                <img src={user?.branding?.logo || user?.avatar} className="size-full object-cover" alt="" />
-              ) : (
-                <span className="text-[10px] font-bold text-[var(--nav-btn-text)] uppercase">
-                  {user?.name?.[0] || 'U'}
-                </span>
-              )}
+            <div className="size-10 rounded-full bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] p-0.5 shadow-xl shadow-[var(--accent)]/10 hover:scale-110 transition-all">
+              <div className="size-full rounded-full bg-[var(--nav-bg)] flex items-center justify-center overflow-hidden">
+                {user?.branding?.logo || user?.avatar ? (
+                  <img src={user?.branding?.logo || user?.avatar} className="size-full object-cover" alt={user?.name} />
+                ) : (
+                  <span className="text-[11px] font-bold text-[var(--nav-btn-text)]">{user?.name?.[0]?.toUpperCase() || 'U'}</span>
+                )}
+              </div>
             </div>
           </Link>
         </div>

@@ -10,6 +10,7 @@ import {
 import { toast } from 'react-hot-toast';
 
 import Pagination from '@/components/common/Pagination';
+import StatCard from '@/components/layout/StatCard';
 
 export default function AdminAuditLogs() {
   const [mounted, setMounted] = useState(false);
@@ -95,27 +96,18 @@ export default function AdminAuditLogs() {
 
       <div className="p-4 md:p-10 space-y-8 pb-32">
          {/* Live Intelligence Metadata */}
-         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-               { label: 'Total Events', value: logs.length, icon: Database, color: 'text-[var(--accent)]', sub: 'REGISTRY' },
-               { label: 'High Priority', value: logs.filter(l => l.action.includes('ban')).length, icon: AlertTriangle, color: 'text-rose-500', sub: 'CRITICAL' },
-               { label: 'Items Tracked', value: '7 Active', icon: Fingerprint, color: 'text-indigo-500', sub: 'IDENTITY' },
-               { label: 'Feed Uptime', value: '99.99%', icon: Activity, color: 'text-emerald-500', sub: 'HEALTH' }
-            ].map(s => (
-               <div key={s.label} className="group relative p-5 md:p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 backdrop-blur-xl shadow-sm hover:shadow-xl overflow-hidden">
-                  <div className="flex items-center justify-between mb-4">
-                     <div className={`size-9 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center ${s.color} border border-[var(--glass-border)] shadow-inner`}>
-                        <s.icon className="size-4 opacity-40 group-hover:opacity-100" />
-                     </div>
-                     <span className="text-[9px] font-bold tracking-[0.2em] text-[var(--text-secondary)] opacity-20 group-hover:opacity-40 uppercase font-mono">{s.sub}</span>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40 mb-1">{s.label}</p>
-                    <h3 className={`text-xl font-bold tracking-tight truncate ${s.color}`}>{s.value}</h3>
-                  </div>
-               </div>
-            ))}
-         </div>
+         {(() => {
+           const highPriority = logs.filter(l => l.action.includes('ban')).length;
+           const highPct      = logs.length > 0 ? Math.round((highPriority / logs.length) * 100) : 0;
+           return (
+             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+               <StatCard label="Total Events" value={logs.length} icon={Database} color="primary" sub="Registry" progress={Math.min(logs.length, 100)} footer={`${logs.length} log entries`} />
+               <StatCard label="High Priority" value={highPriority} icon={AlertTriangle} color="rose" sub="Critical" progress={highPct} footer={`${highPct}% flagged`} />
+               <StatCard label="Items Tracked" value="7 Active" icon={Fingerprint} color="indigo" sub="Identity" progress={70} footer="Active monitors" />
+               <StatCard label="Feed Uptime" value="99.99%" icon={Activity} color="emerald" sub="Health" progress={100} footer="Stream online" />
+             </div>
+           );
+         })()}
 
          {/* Event Stream */}
          <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">

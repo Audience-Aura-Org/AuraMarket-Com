@@ -14,6 +14,7 @@ import Link from 'next/link';
 
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import StatCard from '@/components/layout/StatCard';
 
 export default function AdminDisputes() {
   const [mounted, setMounted] = useState(false);
@@ -274,27 +275,21 @@ export default function AdminDisputes() {
 
       <div className="p-4 md:p-10 space-y-8 pb-32">
          {/* Live Intelligence Stats */}
-         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-               { label: 'Active Disputes', value: disputes.filter(d => d.status !== 'resolved').length, icon: AlertCircle, color: 'var(--accent)', sub: 'THREATS' },
-               { label: 'Settled Cases', value: disputes.filter(d => d.status === 'resolved').length, icon: CheckCircle2, color: '#10b981', sub: 'EQUITY' },
-               { label: 'Avg Latency', value: '2.4 Days', icon: Clock, color: '#6366f1', sub: 'TIME' },
-               { label: 'System Health', value: 'High', icon: ShieldCheck, color: '#fbbf24', sub: 'INTEGRITY' }
-            ].map(s => (
-               <div key={s.label} className="group relative p-5 md:p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 backdrop-blur-xl shadow-sm hover:shadow-xl">
-                  <div className="flex items-center justify-between mb-4">
-                     <div className="size-9 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] border border-[var(--glass-border)] group-hover:text-[var(--text-primary)] transition-colors">
-                        <s.icon className="size-4 opacity-40 group-hover:opacity-100" />
-                     </div>
-                     <span className="text-[9px] font-bold tracking-[0.2em] text-[var(--text-secondary)] opacity-20 group-hover:opacity-40 uppercase">{s.sub}</span>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40 mb-1">{s.label}</p>
-                    <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">{s.value}</h3>
-                  </div>
-               </div>
-            ))}
-         </div>
+         {(() => {
+           const active     = disputes.filter(d => d.status !== 'resolved').length;
+           const resolved   = disputes.filter(d => d.status === 'resolved').length;
+           const total      = disputes.length || 1;
+           const resolvePct = Math.round((resolved / total) * 100);
+           const activePct  = Math.round((active   / total) * 100);
+           return (
+             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+               <StatCard label="Active Disputes" value={active} icon={AlertCircle} color="primary" sub="Open cases" progress={activePct} footer={`${activePct}% of total`} />
+               <StatCard label="Settled Cases" value={resolved} icon={CheckCircle2} color="emerald" sub="Resolved" progress={resolvePct} footer={`${resolvePct}% resolution rate`} />
+               <StatCard label="Avg Latency" value="2.4 Days" icon={Clock} color="indigo" sub="Resolution time" progress={75} footer="Within target" />
+               <StatCard label="System Health" value="High" icon={ShieldCheck} color="amber" sub="Integrity" progress={95} footer="Arbitration online" />
+             </div>
+           );
+         })()}
 
          {/* Dispute Ledger */}
          <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">

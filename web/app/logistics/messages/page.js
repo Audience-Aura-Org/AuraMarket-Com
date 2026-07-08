@@ -80,37 +80,19 @@ export default function LogisticsMessagesHubPage() {
       />
 
       <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          <StatCard
-            label="Unread chats"
-            value={String(unreadMessages)}
-            sub="Needs attention"
-            icon="mark_chat_unread"
-            color="indigo"
-          />
-          <StatCard
-            label="Inbox threads"
-            value={String(inboxCount)}
-            sub="Active partners"
-            icon="forum"
-            color="primary"
-          />
-          <StatCard
-            label="Signals"
-            value={String(unreadCount)}
-            sub="In-app alerts"
-            icon="notifications"
-            color="amber"
-          />
-          <StatCard
-            label="Wallet"
-            value={`${balance.toLocaleString()} XAF`}
-            sub="Balance"
-            icon="account_balance_wallet"
-            color="purple"
-            href="/logistics/wallet"
-          />
-        </div>
+        {(() => {
+          const totalInbox    = inboxCount || 1;
+          const unreadPct     = Math.min(Math.round((unreadMessages / totalInbox) * 100), 100);
+          const signalPct     = Math.min(unreadCount * 10, 100);
+          return (
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+              <StatCard label="Unread chats" value={String(unreadMessages)} sub="Needs attention" icon="mark_chat_unread" color="indigo" progress={unreadPct} footer={unreadMessages > 0 ? `${unreadMessages} unread` : 'All caught up'} />
+              <StatCard label="Inbox threads" value={String(inboxCount)} sub="Active partners" icon="forum" color="primary" progress={100} footer={`${inboxCount} active threads`} />
+              <StatCard label="Signals" value={String(unreadCount)} sub="In-app alerts" icon="notifications" color="amber" progress={signalPct} footer={unreadCount > 0 ? `${unreadCount} pending` : 'No new alerts'} />
+              <StatCard label="Wallet" value={`${balance.toLocaleString()} XAF`} sub="Balance" icon="account_balance_wallet" color="purple" href="/logistics/wallet" footer="Tap to manage funds" />
+            </div>
+          );
+        })()}
 
         <LogisticsShortcutsRow
           links={[

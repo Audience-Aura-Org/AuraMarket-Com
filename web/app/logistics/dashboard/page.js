@@ -215,37 +215,20 @@ export default function LogisticsDashboard() {
         )}
 
         {/* Exactly 4 KPI cards */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          <StatCard
-            label="Wallet"
-            value={`${walletBalance.toLocaleString()} XAF`}
-            sub="Available balance"
-            icon="account_balance_wallet"
-            color="purple"
-            href="/logistics/wallet"
-          />
-          <StatCard
-            label="In transit"
-            value={String(counts.active)}
-            sub="Pickup → delivery"
-            icon="local_shipping"
-            color="indigo"
-          />
-          <StatCard
-            label="Awaiting pickup"
-            value={String(counts.pending)}
-            sub="New assignments"
-            icon="schedule"
-            color="amber"
-          />
-          <StatCard
-            label="Delivered"
-            value={String(counts.delivered)}
-            sub="Closed successfully"
-            icon="verified"
-            color="emerald"
-          />
-        </div>
+        {(() => {
+          const totalShipments = counts.active + counts.pending + counts.delivered || 1;
+          const activePct  = Math.round((counts.active    / totalShipments) * 100);
+          const pendingPct = Math.round((counts.pending   / totalShipments) * 100);
+          const delivPct   = Math.round((counts.delivered / totalShipments) * 100);
+          return (
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+              <StatCard label="Wallet" value={`${walletBalance.toLocaleString()} XAF`} sub="Available balance" icon="account_balance_wallet" color="purple" href="/logistics/wallet" footer="Tap to manage funds" />
+              <StatCard label="In transit" value={String(counts.active)} sub="Pickup → delivery" icon="local_shipping" color="indigo" progress={activePct} footer={`${activePct}% of workload`} />
+              <StatCard label="Awaiting pickup" value={String(counts.pending)} sub="New assignments" icon="schedule" color="amber" progress={pendingPct} footer={`${pendingPct}% of workload`} />
+              <StatCard label="Delivered" value={String(counts.delivered)} sub="Closed successfully" icon="verified" color="emerald" progress={delivPct} footer={`${delivPct}% success rate`} />
+            </div>
+          );
+        })()}
 
         {/* Compact shortcuts - fully optimized premium grid component */}
         <LogisticsShortcutsRow

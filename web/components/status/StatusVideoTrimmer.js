@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Play, Pause, Scissors, FileVideo, Maximize2 } from 'lucide-react';
 import { STATUS_VIDEO_MAX_SECONDS } from '@/constants/statusVideo';
+import { Capacitor } from '@capacitor/core';
+
+const isNative = () => Capacitor.isNativePlatform();
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -117,6 +120,17 @@ export default function StatusVideoTrimmer({
 
   const atMax = selectedLength >= maxClip - 0.05;
   const overMax = selectedLength > maxClip + 0.01;
+
+  // On Android WebView, blob: URL changes don't trigger automatic buffering even
+  // when preload="auto" is set. Set src imperatively then call load() so the
+  // loadedmetadata / canplay events always fire regardless of JSX render order.
+  useEffect(() => {
+    if (!isNative()) return;
+    const video = videoRef.current;
+    if (!video || !previewUrl) return;
+    video.src = previewUrl;
+    video.load();
+  }, [previewUrl]);
 
   useEffect(() => {
     const video = videoRef.current;

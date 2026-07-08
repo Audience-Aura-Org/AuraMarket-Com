@@ -13,13 +13,13 @@ import api from '@/services/api';
 import { STATUS_CONFIG } from '@/utils/adminFinance';
 import { AmountDateColumn, GatewayBrand, PartyAvatar } from '@/components/admin/FinanceRowDisplay';
 import Pagination from '@/components/common/Pagination';
+import StatCard from '@/components/layout/StatCard';
 import {
   AdminFinancePage,
   AdminFinanceHeader,
   AdminFinanceBody,
   AdminFinanceSplit,
   AdminSidebarCard,
-  AdminMetricStrip,
   AdminAlertBanner,
   AdminFilterToolbar,
   AdminFilterSearch,
@@ -235,15 +235,21 @@ export default function AdminWithdrawalsPage() {
         />
 
         <AdminFinanceBody>
-          <AdminMetricStrip
-            theme="withdrawals"
-            metrics={[
-              { label: 'Pending', value: pendingCount },
-              { label: 'In view', value: displayed.length },
-              { label: 'Approved', value: withdrawals.filter((w) => w.status === 'approved').length },
-              { label: 'Issues', value: flaggedCount },
-            ]}
-          />
+          {(() => {
+            const approved   = withdrawals.filter(w => w.status === 'approved').length;
+            const total      = withdrawals.length || 1;
+            const pendingPct = Math.min(pendingCount * 5, 100);
+            const approvedPct = Math.round((approved / total) * 100);
+            const issuePct   = Math.min(flaggedCount * 10, 100);
+            return (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <StatCard label="Pending" value={pendingCount} icon={CheckCircle2} color="amber" sub="Awaiting review" progress={pendingPct} footer={pendingCount > 0 ? `${pendingCount} need action` : 'Queue clear'} />
+                <StatCard label="In view" value={displayed.length} icon={Wallet} color="primary" sub="Currently filtered" progress={Math.min(Math.round((displayed.length / total) * 100), 100)} footer={`${displayed.length} shown`} />
+                <StatCard label="Approved" value={approved} icon={CheckCircle2} color="emerald" sub="Processed" progress={approvedPct} footer={`${approvedPct}% approved`} />
+                <StatCard label="Issues" value={flaggedCount} icon={AlertCircle} color="rose" sub="Failed / errors" progress={issuePct} footer={flaggedCount > 0 ? `${flaggedCount} flagged` : 'All clear'} />
+              </div>
+            );
+          })()}
 
           {pendingCount > 0 && filter !== 'pending' && (
             <AdminAlertBanner

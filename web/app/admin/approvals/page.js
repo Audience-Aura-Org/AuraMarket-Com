@@ -13,6 +13,7 @@ import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
+import StatCard from '@/components/layout/StatCard';
 
 export default function AdminApprovals() {
   const [activeTab, setActiveTab] = useState('Verifications');
@@ -156,30 +157,20 @@ export default function AdminApprovals() {
 
       <div className="p-10 space-y-8 pb-40">
          {/* Live Stats */}
-         <div className="grid grid-cols-4 gap-6">
-            {[
-               { label: kycStatusFilter === 'all' ? 'Verification Records' : `${kycStatusFilter} Verifications`, value: vendors.length, icon: Building2, color: 'var(--accent)', sub: 'KYC_QUEUE' },
-               { label: 'Pending Assets', value: products.length, icon: Package, color: '#6366f1', sub: 'PRODUCT_GATE' },
-               { label: 'Wait Latency', value: '4.2h', icon: Clock, color: '#10b981', sub: 'SYNC_SPEED' },
-               { label: 'Risk Profile', value: 'Minimal', icon: AlertCircle, color: '#fbbf24', sub: 'SAFETY_INDEX' }
-            ].map(s => (
-               <div key={s.label} className="group relative p-8 rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 backdrop-blur-2xl">
-                  <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 size-32 rounded-full blur-[80px] opacity-10 transition-opacity group-hover:opacity-30" style={{ backgroundColor: s.color }} />
-                  <div className="relative flex flex-col justify-between h-full space-y-8">
-                     <div className="flex items-center justify-between">
-                        <div className="size-12 rounded-[1.25rem] flex items-center justify-center border border-[var(--glass-border)] bg-[var(--bg-secondary)] shadow-inner text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all duration-500">
-                           <s.icon className="w-5 h-5 opacity-40 group-hover:opacity-100" />
-                        </div>
-                        <span className="text-[10px] lg:text-[12px]  font-semibold tracking-[0.3em] capitalize opacity-20 group-hover:opacity-40 transition-opacity font-mono">{s.sub}</span>
-                     </div>
-                     <div>
-                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-[0.2em] mb-2 capitalize opacity-40">{s.label}</p>
-                        <h3 className="text-2xl  font-bold text-[var(--text-primary)] tracking-tighter leading-none">{s.value}</h3>
-                     </div>
-                  </div>
-               </div>
-            ))}
-         </div>
+         {(() => {
+           const approved  = vendors.filter(v => v.status === 'approved').length;
+           const pending   = vendors.filter(v => v.status === 'pending').length;
+           const approvePct = vendors.length > 0 ? Math.round((approved / vendors.length) * 100) : 0;
+           const pendingPct = vendors.length > 0 ? Math.round((pending  / vendors.length) * 100) : 0;
+           return (
+             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+               <StatCard label={kycStatusFilter === 'all' ? 'Verification Records' : `${kycStatusFilter} Verifications`} value={vendors.length} icon={Building2} color="primary" sub="KYC queue" progress={approvePct} footer={`${approvePct}% approved`} />
+               <StatCard label="Pending Assets" value={products.length} icon={Package} color="indigo" sub="Product gate" progress={Math.min(products.length * 5, 100)} footer={`${products.length} awaiting review`} />
+               <StatCard label="Pending KYC" value={pending} icon={Clock} color="amber" sub="Awaiting review" progress={pendingPct} footer={`${pendingPct}% pending`} />
+               <StatCard label="Risk Profile" value="Minimal" icon={AlertCircle} color="emerald" sub="Safety index" progress={95} footer="System secure" />
+             </div>
+           );
+         })()}
 
          {/* Approval Ledger */}
          <div className="glass-panel rounded-[3rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl">

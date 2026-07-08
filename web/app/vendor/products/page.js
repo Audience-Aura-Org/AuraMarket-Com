@@ -202,12 +202,20 @@ export default function VendorProductsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          <StatCard label={t('products.total', 'Total')}    value={String(products.length)} icon="inventory_2"  color="indigo"  sub="Products" />
-          <StatCard label={t('products.active', 'Active')}  value={String(activeCount)}     icon="check_circle" color="emerald" sub="In stock" />
-          <StatCard label={t('products.low', 'Low Stock')}  value={String(lowStockCount)}   icon="warning"      color="amber"   sub="≤ 5 units" />
-          <StatCard label={t('products.onSale', 'On Sale')} value={String(onSaleCount)}     icon="sell"         color="primary" sub="Discounted" />
-        </div>
+        {(() => {
+          const total      = products.length || 1;
+          const activePct  = Math.round((activeCount    / total) * 100);
+          const lowPct     = Math.round((lowStockCount  / total) * 100);
+          const salePct    = Math.round((onSaleCount    / total) * 100);
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              <StatCard label={t('products.total', 'Total')}    value={String(products.length)} icon="inventory_2"  color="indigo"  sub="Products"   progress={100}     footer={`${products.length} in catalog`} />
+              <StatCard label={t('products.active', 'Active')}  value={String(activeCount)}     icon="check_circle" color="emerald" sub="In stock"    progress={activePct} footer={`${activePct}% active`} />
+              <StatCard label={t('products.low', 'Low Stock')}  value={String(lowStockCount)}   icon="warning"      color="amber"   sub="≤ 5 units"  progress={lowPct}    footer={lowStockCount > 0 ? `${lowStockCount} need restock` : 'Stock healthy'} />
+              <StatCard label={t('products.onSale', 'On Sale')} value={String(onSaleCount)}     icon="sell"         color="primary" sub="Discounted"  progress={salePct}   footer={`${salePct}% on sale`} />
+            </div>
+          );
+        })()}
 
         <section className="overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
           <div className="flex items-center justify-between border-b border-[var(--glass-border)] px-3 py-2.5 sm:px-4">
