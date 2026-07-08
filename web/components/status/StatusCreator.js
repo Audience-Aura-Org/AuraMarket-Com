@@ -708,6 +708,35 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
   }, [previewUrl, type]);
 
+  // On native: update videoMeta duration from the preview video's own loadedmetadata
+  // event. This replaces the separate offscreen readVideoMetadata call which was
+  // blocking the HW decoder for 3500ms and causing gray preview frames.
+  useEffect(() => {
+    if (!isNativePlatform() || type !== 'video' || !previewUrl) return;
+    const video = previewVideoRef.current;
+    if (!video) return;
+    const handleMeta = () => {
+      const dur = Number.isFinite(video.duration) && video.duration > 0
+        ? video.duration
+        : STATUS_VIDEO_MAX_SECONDS;
+      const needsTrim = dur > STATUS_VIDEO_MAX_SECONDS + 0.5;
+      setVideoMeta((prev) => prev ? {
+        ...prev,
+        duration: dur,
+        width: video.videoWidth || prev.width,
+        height: video.videoHeight || prev.height,
+        needsTrim,
+      } : prev);
+      if (needsTrim) {
+        setTrimEnd(STATUS_VIDEO_MAX_SECONDS);
+      } else {
+        setTrimEnd(Math.min(STATUS_VIDEO_MAX_SECONDS, Math.max(1, dur)));
+      }
+    };
+    video.addEventListener('loadedmetadata', handleMeta, { once: true });
+    return () => video.removeEventListener('loadedmetadata', handleMeta);
+  }, [previewUrl, type]);
+
   // Autoplay the visible preview as soon as the picked file is ready.
   // Deps: only [previewUrl, type] — isPlaying/muted changes are handled by the
   // sync effect below so we never re-register listeners on a playing video.
@@ -1017,21 +1046,31 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     if (actualType === 'video') {
       if (f.size > STATUS_VIDEO_INPUT_MAX_BYTES) { setError('Max 500MB source video.'); return; }
 
-      const meta = await readVideoMetadata(f);
-      if (meta?.objectUrl) URL.revokeObjectURL(meta.objectUrl);
-      const needsTrim = (meta?.duration ?? 0) > STATUS_VIDEO_MAX_SECONDS + 0.5;
       const needsCompression = f.size > STATUS_VIDEO_MAX_BYTES;
-      setVideoMeta({ ...meta, needsTrim, needsCompression });
-      setTrimStart(0);
-      setTrimEnd(Math.min(STATUS_VIDEO_MAX_SECONDS, Math.max(1, meta?.duration || STATUS_VIDEO_MAX_SECONDS)));
-      setVideoPostMode('trim');
-      setEditingVideo(true);
-      setError(needsCompression && !needsTrim ? 'Video will be cropped to 9:16 and optimized before upload.' : null);
 
       if (isNativePlatform()) {
-        // Give Android WebView one beat to release the temporary metadata decoder
-        // before the visible preview video claims the media pipeline.
-        await new Promise((resolve) => setTimeout(resolve, 150));
+        // On native Android: skip the separate metadata video element entirely.
+        // Creating an offscreen video just to read duration blocks the HW decoder
+        // that the real preview video needs, causing gray frames and 3.5s delays.
+        // Set provisional metadata immediately so the trimmer renders right away.
+        // Real duration is updated by the loadedmetadata effect below once the
+        // preview video fires the event.
+        setVideoMeta({ duration: STATUS_VIDEO_MAX_SECONDS, width: 0, height: 0, needsTrim: false, needsCompression });
+        setTrimStart(0);
+        setTrimEnd(STATUS_VIDEO_MAX_SECONDS);
+        setVideoPostMode('trim');
+        setEditingVideo(true);
+        setError(needsCompression ? 'Video will be cropped to 9:16 and optimized before upload.' : null);
+      } else {
+        const meta = await readVideoMetadata(f);
+        if (meta?.objectUrl) URL.revokeObjectURL(meta.objectUrl);
+        const needsTrim = (meta?.duration ?? 0) > STATUS_VIDEO_MAX_SECONDS + 0.5;
+        setVideoMeta({ ...meta, needsTrim, needsCompression });
+        setTrimStart(0);
+        setTrimEnd(Math.min(STATUS_VIDEO_MAX_SECONDS, Math.max(1, meta?.duration || STATUS_VIDEO_MAX_SECONDS)));
+        setVideoPostMode('trim');
+        setEditingVideo(true);
+        setError(needsCompression && !needsTrim ? 'Video will be cropped to 9:16 and optimized before upload.' : null);
       }
     } else {
       if (f.size > STATUS_IMAGE_MAX_BYTES) { setError('Max 8MB image.'); return; }
