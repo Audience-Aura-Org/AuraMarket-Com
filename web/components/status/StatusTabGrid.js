@@ -33,7 +33,7 @@ const warmStoryMedia = (story, eager = false) => {
   }
 };
 
-// â”€â”€â”€ Utils â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€ Utils â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 const ago = d => {
   const s = Math.floor((Date.now() - new Date(d)) / 1000);
   if (s < 60) return `${s}s`;
@@ -43,7 +43,7 @@ const ago = d => {
 };
 const hoursLeft = exp => Math.max(0, (new Date(exp) - Date.now()) / 3600000);
 
-// â”€â”€â”€ Story Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€ Story Card â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unviewedCount = 0, rank, isNew, priority = 'auto', onClick, className = '' }) {
   const v       = status.vendor_id;
   const logo    = v?.user_id?.branding?.logo || v?.user_id?.avatar;
@@ -112,11 +112,11 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unvie
         </div>
       )}
 
-      {/* Info overlay â€” always visible (not hover-only) */}
-      <div className="absolute inset-x-0 bottom-0 p-3 z-20">
-        <div className="bg-black/55 backdrop-blur-md border border-white/10 rounded-2xl p-2.5 space-y-2 shadow-lg">
-          <div className="flex items-center gap-2">
-            <div className="size-8 rounded-full border border-white/20 overflow-hidden bg-black/40 shrink-0">
+      {/* Info overlay - always visible (not hover-only) */}
+      <div className="absolute inset-x-0 bottom-0 p-2.5 z-20">
+        <div className="bg-black/55 backdrop-blur-md border border-white/10 rounded-2xl p-3 shadow-lg">
+          <div className="flex items-center gap-2.5">
+            <div className="size-9 rounded-full border border-white/20 overflow-hidden bg-black/40 shrink-0">
               {logo ? (
                 <BlurUpImage src={logo} alt={name} priority="low" className="size-full" objectFit="cover" />
               ) : (
@@ -126,8 +126,8 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unvie
               )}
             </div>
             <div className="min-w-0 flex-1 text-left">
-              <p className="text-xs lg:text-sm font-semibold text-white truncate">{name}</p>
-              <p className="text-[10px] lg:text-[11px] font-semibold text-white/45">{ago(status.createdAt)}</p>
+              <p className="text-[11px] lg:text-xs font-semibold text-white truncate">{name}</p>
+              <p className="text-[10px] font-medium text-white/45">{ago(status.createdAt)}</p>
             </div>
             <div className="flex items-center gap-1 shrink-0">
               {statusesCount > 1 && (
@@ -140,20 +140,13 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unvie
                   {unviewedCount > 1 ? `${unviewedCount} new` : 'New'}
                 </div>
               )}
-              {!isNew && (
-                <div className="px-2 py-1 rounded-full bg-white/15 border border-white/10 text-white/70 text-[10px] font-semibold">
-                  Viewed
-                </div>
-              )}
             </div>
           </div>
 
           {status.linked_product && (
-            <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-2">
-              <div className="flex items-center gap-1.5 min-w-0 text-[10px] lg:text-[11px] font-semibold text-white/70">
-                <ShoppingBag className="size-3 shrink-0 text-[var(--accent)]" />
-                <span className="truncate">{status.linked_product.name}</span>
-              </div>
+            <div className="flex items-center gap-1.5 min-w-0 mt-2 pt-2 border-t border-white/10 text-[10px] font-semibold text-white/70">
+              <ShoppingBag className="size-3 shrink-0 text-[var(--accent)]" />
+              <span className="truncate">{status.linked_product.name}</span>
             </div>
           )}
         </div>
@@ -182,7 +175,7 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unvie
 
 const CATEGORIES = STATUS_FILTER_CATEGORIES;
 
-// â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â"€â"€â"€ Main Component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onAdd, isCreator = false }) {
   const { user }                   = useAuthStore();
   const [followedStatuses, setFollowedStatuses] = useState([]);
@@ -278,7 +271,7 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
 
   return (
     <div className="bg-[var(--bg-secondary)] min-h-screen pb-32 w-full">
-      {/* â”€â”€ Compact Sticky Header â”€â”€ */}
+      {/* â"€â"€ Compact Sticky Header â"€â"€ */}
       <div className="sticky top-0 z-40 bg-[var(--bg-primary)]/90 backdrop-blur-3xl border-b border-[var(--glass-border)] w-full">
         <div className="w-full px-4 pt-4 pb-3 space-y-3">
 
@@ -392,8 +385,8 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
           >
             {groupedPool.length > 0 ? (
               activeTab === 'inner' ? (
-                /* Inner circle — horizontal scroll on mobile, grid on sm+ */
-                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 sm:grid sm:grid-cols-3 sm:pb-0 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-4">
+                /* Inner circle — 2-col grid on mobile, horizontal scroll on desktop */
+                <div className="grid grid-cols-2 gap-3 lg:flex lg:flex-row lg:gap-4 lg:overflow-x-auto lg:no-scrollbar lg:pb-4">
                   {groupedPool.map((s, i) => (
                     <PremiumCard
                       key={s.vendor_id?._id || s._id}
@@ -402,14 +395,14 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
                       unviewedCount={s.unviewedCount}
                       isNew={s.isNew}
                       priority={i < 4 ? 'high' : 'auto'}
-                      className="flex-none w-[46vw] sm:w-auto aspect-[4/5]"
+                      className="aspect-[4/5] lg:flex-none lg:w-52 lg:shrink-0"
                       onClick={() => handleOpen(s, activePool)}
                     />
                   ))}
                 </div>
               ) : (
-                /* Global pulse — horizontal scroll on mobile, masonry on sm+ */
-                <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 sm:block sm:columns-3 sm:pb-0 md:columns-4 lg:columns-5 xl:columns-6 sm:space-y-3 md:space-y-4">
+                /* Global pulse — 2-col grid on mobile, horizontal scroll on desktop */
+                <div className="grid grid-cols-2 gap-3 lg:flex lg:flex-row lg:gap-4 lg:overflow-x-auto lg:no-scrollbar lg:pb-4">
                   {groupedPool.map((s, i) => (
                     <PremiumCard
                       key={s.vendor_id?._id || s._id}
@@ -419,7 +412,7 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
                       rank={i < 10 ? i + 1 : null}
                       isNew={s.isNew}
                       priority={i < 6 ? 'high' : 'auto'}
-                      className={`flex-none w-[46vw] sm:w-full sm:break-inside-avoid sm:mb-0 ${i % 3 === 0 ? 'aspect-[4/5]' : 'aspect-[5/6]'}`}
+                      className="aspect-[4/5] lg:flex-none lg:w-52 lg:shrink-0"
                       onClick={() => handleOpen(s, activePool)}
                     />
                   ))}
