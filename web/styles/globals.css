@@ -84,9 +84,9 @@
   --nav-bg: rgba(10, 5, 15, 0.95);
   --nav-text: #f8fafc;
   --nav-border: rgba(255, 255, 255, 0.08);
-  --nav-btn-bg: rgba(255, 255, 255, 0.10);
-  --nav-btn-text: rgba(248, 250, 252, 0.90);
-  --nav-btn-border: rgba(255, 255, 255, 0.14);
+  --nav-btn-bg: rgba(255, 255, 255, 0.12);
+  --nav-btn-text: #f8fafc;
+  --nav-btn-border: rgba(255, 255, 255, 0.18);
   --component-bg: rgba(15, 23, 42, 0.04);
   --text-primary: #0f172a;
   --text-secondary: #64748b;
