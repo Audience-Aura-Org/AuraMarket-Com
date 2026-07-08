@@ -11,7 +11,6 @@ import {
   Check,
   CreditCard,
   Loader2,
-  LockKeyhole,
   MessageCircle,
   ShieldCheck,
   Smartphone,
@@ -181,20 +180,6 @@ function SubscribeContent() {
 
         <section className="grid w-full gap-5 2xl:grid-cols-[minmax(0,1fr)_420px]">
           <div className="rounded-[24px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3 shadow-sm sm:p-5 lg:p-7">
-            <div className="mb-6 flex items-start gap-4">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                <LockKeyhole className="size-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                  {t('subscription.title', 'Activate your workspace')}
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--text-secondary)]">
-                  {t('subscription.description', 'This role requires an active package before dashboard tools can be used. Your subscription is checked securely on the server.')}
-                </p>
-              </div>
-            </div>
-
             {loading ? (
               <div className="flex min-h-[280px] items-center justify-center">
                 <Loader2 className="size-7 animate-spin text-[var(--accent)]" />

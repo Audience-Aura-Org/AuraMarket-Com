@@ -13,6 +13,7 @@ import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { motion, AnimatePresence } from 'framer-motion';
+import StatCard from '@/components/layout/StatCard';
 
 export default function AdminLogistics() {
   const [mounted, setMounted] = useState(false);
@@ -161,25 +162,20 @@ export default function AdminLogistics() {
       <div className="p-4 md:p-10 space-y-8 pb-32">
          {/* Live Intelligence Stats */}
          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-               { label: 'Active Transit', value: shipments.filter(s => s.status !== 'delivered' && s.status !== 'failed').length, icon: Package, color: 'var(--accent)', sub: 'TRANSIT' },
-               { label: 'Flow Success', value: '98.4%', icon: CheckCircle2, color: '#10b981', sub: 'FLOW' },
-               { label: 'Node Count', value: firms.length, icon: Building2, color: '#6366f1', sub: 'NODES' },
-               { label: 'Alert Items', value: shipments.filter(s => s.status === 'failed').length, icon: AlertTriangle, color: '#f43f5e', sub: 'RISK' }
-            ].map(s => (
-               <div key={s.label} className="group relative p-5 md:p-6 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-primary)]/60 transition-all duration-500 backdrop-blur-xl shadow-sm hover:shadow-xl">
-                  <div className="flex items-center justify-between mb-4">
-                     <div className="size-9 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)] border border-[var(--glass-border)] group-hover:text-[var(--text-primary)] transition-colors">
-                        <s.icon className="size-4 opacity-40 group-hover:opacity-100" />
-                     </div>
-                     <span className="text-[9px] font-bold tracking-[0.2em] text-[var(--text-secondary)] opacity-20 group-hover:opacity-40 uppercase">{s.sub}</span>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase opacity-40 mb-1">{s.label}</p>
-                    <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">{s.value}</h3>
-                  </div>
-               </div>
-            ))}
+            {(() => {
+              const activeCount = shipments.filter(s => s.status !== 'delivered' && s.status !== 'failed').length;
+              const failedCount = shipments.filter(s => s.status === 'failed').length;
+              const total = shipments.length || 1;
+              const successPct = Math.round(((total - failedCount) / total) * 100);
+              return (
+                <>
+                  <StatCard label="Active Transit" value={String(activeCount)} icon="local_shipping" color="primary" sub="In-flight shipments" progress={Math.min(Math.round((activeCount / total) * 100), 100)} footer={`${total} total shipments`} />
+                  <StatCard label="Flow Success" value={`${successPct}%`} icon="verified" color="emerald" sub="Delivery rate" progress={successPct} footer="Successful fulfillment" />
+                  <StatCard label="Partner Nodes" value={String(firms.length)} icon="hub" color="indigo" sub="Active logistics firms" progress={firms.length > 0 ? Math.min(firms.length * 10, 100) : 0} footer="Carrier network" />
+                  <StatCard label="Alert Items" value={String(failedCount)} icon="warning" color="rose" sub="Failed shipments" progress={failedCount > 0 ? Math.min(Math.round((failedCount / total) * 100), 100) : 0} footer={failedCount === 0 ? 'All clear' : `${failedCount} need attention`} />
+                </>
+              );
+            })()}
          </div>
 
          {/* Logistics Ledger */}

@@ -79,7 +79,7 @@ export default function LogisticsMessagesHubPage() {
         }
       />
 
-      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+      <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
           <StatCard
             label="Unread chats"
@@ -108,7 +108,7 @@ export default function LogisticsMessagesHubPage() {
             sub="Balance"
             icon="account_balance_wallet"
             color="purple"
-            href="/wallet"
+            href="/logistics/wallet"
           />
         </div>
 

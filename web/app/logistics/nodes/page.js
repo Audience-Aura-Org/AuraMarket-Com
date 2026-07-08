@@ -153,38 +153,13 @@ export default function LogisticsNodesPage() {
         }
       />
 
-      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+      <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          <StatCard
-            label="Wallet"
-            value={`${balance.toLocaleString()} XAF`}
-            sub="Balance"
-            icon="account_balance_wallet"
-            color="purple"
-            href="/wallet"
-          />
-          <StatCard
-            label="Regions"
-            value={String(regionCount)}
-            sub="Catalog regions"
-            icon="public"
-            color="indigo"
-          />
-          <StatCard
-            label="Quartiers"
-            value={String(quartierCount)}
-            sub="Network nodes"
-            icon="hub"
-            color="amber"
-          />
-          <StatCard
-            label="Priced"
-            value={String(pricedCount)}
-            sub="Active rate cards"
-            icon="payments"
-            color="emerald"
-          />
+          <StatCard label="Wallet" value={`${balance.toLocaleString()} XAF`} sub="Settlement balance" icon="account_balance_wallet" color="purple" href="/logistics/wallet" footer="Tap to manage funds" />
+          <StatCard label="Regions" value={String(regionCount)} sub="Catalog regions" icon="public" color="indigo" progress={regionCount > 0 ? Math.min(regionCount * 10, 100) : 0} footer="Coverage zones" />
+          <StatCard label="Quartiers" value={String(quartierCount)} sub="Network nodes" icon="hub" color="amber" progress={quartierCount > 0 ? Math.min(quartierCount * 2, 100) : 0} footer={`${pricedCount} with rates set`} />
+          <StatCard label="Priced" value={String(pricedCount)} sub="Active rate cards" icon="payments" color="emerald" progress={quartierCount > 0 ? Math.round((pricedCount / quartierCount) * 100) : 0} footer={`${quartierCount > 0 ? Math.round((pricedCount / quartierCount) * 100) : 0}% route coverage`} />
         </div>
 
         <LogisticsShortcutsRow

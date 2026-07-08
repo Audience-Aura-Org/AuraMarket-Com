@@ -150,7 +150,7 @@ export default function LogisticsAnalyticsPage() {
         }
       />
 
-      <div className="mx-auto max-w-[1600px] w-full space-y-6 px-3 py-5 sm:space-y-8 sm:px-4 sm:py-6 md:p-8">
+      <div className="w-full space-y-6 px-3 py-5 sm:space-y-8 sm:px-4 sm:py-6 md:p-8">
 
         {/* Navigation shortcuts */}
         <LogisticsShortcutsRow

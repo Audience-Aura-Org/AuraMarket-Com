@@ -190,38 +190,18 @@ export default function LogisticsPricingPage() {
         }
       />
 
-      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          <StatCard
-            label="Wallet"
-            value={`${balance.toLocaleString()} XAF`}
-            sub="Settlement balance"
-            icon="account_balance_wallet"
-            color="purple"
-            href="/wallet"
-          />
-          <StatCard
-            label="Priced routes"
-            value={String(profile.quartier_prices.length)}
-            sub="Active quartiers"
-            icon="route"
-            color="indigo"
-          />
-          <StatCard
-            label="Coverage map"
-            value={String(quartierNetworkCount)}
-            sub="Network quartiers"
-            icon="map"
-            color="amber"
-          />
-          <StatCard
-            label="Avg. fee"
-            value={avgPrice ? `${avgPrice.toLocaleString()} XAF` : "—"}
-            sub="Across priced zones"
-            icon="payments"
-            color="emerald"
-          />
-        </div>
+      <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+        {(() => {
+          const coveragePct = quartierNetworkCount > 0 ? Math.round((profile.quartier_prices.length / quartierNetworkCount) * 100) : 0;
+          return (
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+              <StatCard label="Wallet" value={`${balance.toLocaleString()} XAF`} sub="Settlement balance" icon="account_balance_wallet" color="purple" href="/logistics/wallet" footer="Tap to manage funds" />
+              <StatCard label="Priced routes" value={String(profile.quartier_prices.length)} sub="Active quartiers" icon="route" color="indigo" progress={coveragePct} footer={`${coveragePct}% of network`} />
+              <StatCard label="Coverage map" value={String(quartierNetworkCount)} sub="Network quartiers" icon="map" color="amber" progress={quartierNetworkCount > 0 ? Math.min(quartierNetworkCount * 2, 100) : 0} footer={`${regionCount} regions`} />
+              <StatCard label="Avg. fee" value={avgPrice ? `${avgPrice.toLocaleString()} XAF` : "—"} sub="Across priced zones" icon="payments" color="emerald" progress={avgPrice > 0 ? Math.min(Math.round((avgPrice / 5000) * 100), 100) : 0} footer="Per-quartier rate" />
+            </div>
+          );
+        })()}
 
         <LogisticsShortcutsRow
           links={[

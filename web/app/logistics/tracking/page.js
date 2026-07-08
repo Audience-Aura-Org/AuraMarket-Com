@@ -97,38 +97,21 @@ export default function LogisticsTrackingPage() {
         }
       />
 
-      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          <StatCard
-            label="Wallet"
-            value={`${balance.toLocaleString()} XAF`}
-            sub="Available balance"
-            icon="account_balance_wallet"
-            color="purple"
-            href="/wallet"
-          />
-          <StatCard
-            label="In transit"
-            value={String(counts.active)}
-            sub="Pickup → delivery"
-            icon="local_shipping"
-            color="indigo"
-          />
-          <StatCard
-            label="Awaiting pickup"
-            value={String(counts.pending)}
-            sub="New tickets"
-            icon="schedule"
-            color="amber"
-          />
-          <StatCard
-            label="Delivered"
-            value={String(counts.delivered)}
-            sub="Closed"
-            icon="verified"
-            color="emerald"
-          />
-        </div>
+      <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+        {(() => {
+          const totalShipments = counts.active + counts.pending + counts.delivered || 1;
+          const activePct  = Math.round((counts.active    / totalShipments) * 100);
+          const pendingPct = Math.round((counts.pending   / totalShipments) * 100);
+          const delivPct   = Math.round((counts.delivered / totalShipments) * 100);
+          return (
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+              <StatCard label="Wallet" value={`${balance.toLocaleString()} XAF`} sub="Settlement balance" icon="account_balance_wallet" color="purple" href="/logistics/wallet" footer="Tap to manage funds" />
+              <StatCard label="In transit" value={String(counts.active)} sub="Pickup → delivery" icon="local_shipping" color="indigo" progress={activePct} footer={`${activePct}% of workload`} />
+              <StatCard label="Awaiting pickup" value={String(counts.pending)} sub="New tickets" icon="schedule" color="amber" progress={pendingPct} footer={`${pendingPct}% of workload`} />
+              <StatCard label="Delivered" value={String(counts.delivered)} sub="Completed" icon="verified" color="emerald" progress={delivPct} footer={`${delivPct}% success rate`} />
+            </div>
+          );
+        })()}
 
         <LogisticsShortcutsRow
           links={[

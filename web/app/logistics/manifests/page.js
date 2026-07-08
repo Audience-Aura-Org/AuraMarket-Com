@@ -228,7 +228,7 @@ export default function LogisticsManifestsPage() {
 
       {/* ── Detail view ── */}
       {viewingShipmentId ? (
-        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-1 flex-col px-3 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8">
+        <div className="flex h-full min-h-0 w-full flex-1 flex-col px-3 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8">
           {detailLoading && !selectedShipment ? (
             <div className="flex min-h-[200px] flex-col items-center justify-center gap-3 py-12">
               <Loader2 className="size-8 animate-spin text-[var(--accent)] opacity-60" />
@@ -250,7 +250,7 @@ export default function LogisticsManifestsPage() {
           ) : null}
         </div>
       ) : (
-        <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+        <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
 
           {/* ── KPI cards — same StatCard grid as dashboard ── */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
@@ -260,7 +260,7 @@ export default function LogisticsManifestsPage() {
               sub="Available balance"
               icon="account_balance_wallet"
               color="purple"
-              href="/wallet"
+              href="/logistics/wallet"
             />
             <StatCard
               label="In transit"

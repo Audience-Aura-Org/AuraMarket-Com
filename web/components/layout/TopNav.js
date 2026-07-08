@@ -134,7 +134,7 @@ export default function TopNav() {
 
           {user && (
             <Link
-              href="/wallet"
+              href={user.role === 'vendor' ? '/vendor/wallet' : user.role === 'logistics' ? '/logistics/wallet' : '/wallet'}
               className="inline-flex h-10 max-w-[112px] items-center gap-1.5 rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] px-2.5 text-[10px] font-semibold text-[var(--nav-btn-text)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95 sm:max-w-none sm:gap-2 sm:px-3 sm:text-[11px]"
               title="Wallet balance"
             >

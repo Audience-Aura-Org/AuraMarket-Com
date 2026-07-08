@@ -135,7 +135,7 @@ export default function LogisticsDashboard() {
       <header className="relative z-20 w-full min-w-0 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 backdrop-blur-2xl">
         {/* Accent gradient line */}
         <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
-        <div className="mx-auto flex min-w-0 max-w-[1600px] flex-col gap-3 px-4 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between md:px-8 md:py-4">
+        <div className="flex min-w-0 flex-col gap-3 px-4 py-3 sm:px-5 sm:py-4 md:flex-row md:items-center md:justify-between md:px-8 md:py-4">
           <div className="flex min-w-0 items-center gap-3 md:gap-4">
             <div className="flex size-10 md:size-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--accent)]/25 bg-gradient-to-br from-[var(--accent)]/20 to-indigo-600/10 shadow-lg shadow-[var(--accent)]/5 md:size-12">
               <Truck className="size-5 text-[var(--accent)] md:size-6" />
@@ -184,7 +184,7 @@ export default function LogisticsDashboard() {
         </div>
       </header>
 
-      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+      <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
         {/* Trial mode indicator banner when no subscription is added by admin */}
         {!subscription.subscribed && (
           <div className="relative overflow-hidden rounded-[2rem] border border-amber-500/20 bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-amber-500/5 p-5 md:p-6 shadow-md shadow-amber-500/5 flex flex-col md:flex-row items-center md:items-center justify-between gap-4">
@@ -222,7 +222,7 @@ export default function LogisticsDashboard() {
             sub="Available balance"
             icon="account_balance_wallet"
             color="purple"
-            href="/wallet"
+            href="/logistics/wallet"
           />
           <StatCard
             label="In transit"

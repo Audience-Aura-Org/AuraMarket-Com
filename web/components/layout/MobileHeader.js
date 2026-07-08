@@ -67,7 +67,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           {/* Wallet */}
           {user && (
             <Link
-              href="/wallet"
+              href={user.role === 'vendor' ? '/vendor/wallet' : user.role === 'logistics' ? '/logistics/wallet' : '/wallet'}
               className="relative flex h-10 min-w-[76px] items-center justify-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 text-[var(--nav-text)] shadow-sm transition-all hover:border-[color-mix(in_srgb,var(--accent)_45%,white)] hover:bg-[var(--accent)]/15 hover:text-[var(--accent)] active:scale-[0.97] dark:border-[var(--nav-btn-border)] dark:bg-[var(--nav-btn-bg)] dark:text-[var(--nav-btn-text)] dark:hover:border-[var(--accent)]/30 dark:hover:bg-[var(--accent)]/10"
             >
               <Wallet className="size-4 shrink-0 text-[var(--accent)]" />

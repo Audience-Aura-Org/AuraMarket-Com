@@ -38,7 +38,7 @@ const ADMIN_NAV = [
   { icon: 'receipt_long',   label: 'Transactions',    href: '/admin/transactions' },
   { icon: 'workspace_premium', label: 'Subscriptions', href: '/admin/subscriptions' },
   { icon: 'local_shipping', label: 'Shipment Node',    href: '/admin/logistics' },
-  { icon: 'payments',       label: 'Logistics Earnings',href: '/admin/logistics/earnings' },
+  { icon: 'payments',       label: 'Earnings',          href: '/admin/logistics/earnings' },
   { icon: 'monitoring',     label: 'Analytics',        href: '/admin/analytics' },
   { icon: 'category',       label: 'Categories',       href: '/admin/categories' },
   { icon: 'star',           label: 'Reviews',          href: '/admin/reviews' },
@@ -74,7 +74,7 @@ const LOGISTICS_NAV = [
   { icon: 'auto_awesome',        label: 'Aura Stories', href: '/discovery?tab=status' },
   { icon: 'chat',                label: 'Messages',     href: '/logistics/messages', badge: 'messages' },
   { icon: 'hub',                 label: 'Relay Nodes',  href: '/logistics/nodes' },
-  { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },
+  { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/logistics/wallet' },
 ];
 
 const ROLE_CONFIG = {
