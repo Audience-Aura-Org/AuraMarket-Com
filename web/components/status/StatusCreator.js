@@ -592,7 +592,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
   const trimStartRef = useRef(trimStart);
   const trimEndRef = useRef(trimEnd);
-  const isPlayingRef = useRef(true); // mirrors isPlaying; safe to read inside stale closures
   const initialFrameSurfacedRef = useRef(false); // one-shot per video pick — prevents repeated seek
 
   const [isPlaying, setIsPlaying] = useState(true);
@@ -641,9 +640,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     }
     setIsPlaying(true);
   }, [type, previewUrl]);
-
-  // Keep isPlayingRef in sync so async callbacks always see the latest value.
-  useEffect(() => { isPlayingRef.current = isPlaying; }, [isPlaying]);
 
   // Reset the one-shot frame-surface flag every time a new video is picked.
   useEffect(() => { initialFrameSurfacedRef.current = false; }, [previewUrl]);
@@ -694,15 +690,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     let cancelled = false;
 
     const tryPlay = () => {
-      // Use ref — not the stale closure value — so the first pick always plays.
-      if (cancelled || !isPlayingRef.current) return;
-      // Guard: don't call play() if the video is already playing (prevents duplicate play).
-      if (!video.paused) return;
+      if (cancelled) return;
       video.play()
         .then(() => {
           // Android HW decoder commits its pixel surface asynchronously after play().
           // Seeking to 0.001 forces the compositor to surface the first decoded frame.
-          // One-shot per video pick so subsequent play() calls never re-seek.
+          // One-shot per video pick so the seek never fires twice (no visible restarts).
           if (isNativePlatform() && !initialFrameSurfacedRef.current) {
             initialFrameSurfacedRef.current = true;
             setTimeout(() => {
@@ -1545,6 +1538,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     controlsList="nodownload noplaybackrate noremoteplayback nofullscreen"
                     preload="auto"
                     onContextMenu={(e) => e.preventDefault()}
+                    onCanPlay={(e) => {
+                      const v = e.currentTarget;
+                      if (isNativePlatform() && v.paused) v.play().catch(() => {});
+                    }}
+                    onLoadedData={(e) => {
+                      const v = e.currentTarget;
+                      if (v.readyState >= 2 && v.paused) v.play().catch(() => {});
+                    }}
                     onError={(e) => {
                       const v = e.currentTarget;
                       if (previewUrl && v.src !== previewUrl && !v.dataset.retriedPlainSrc) {
