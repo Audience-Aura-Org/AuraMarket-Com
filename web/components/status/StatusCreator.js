@@ -222,6 +222,20 @@ const seekVideoFrame = (video, targetTime, canvas, ctx) =>
 const canvasToBlob = (canvas, type = 'image/jpeg', quality = 0.78) =>
   new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 
+const teardownTemporaryVideo = (video) => {
+  if (!video) return;
+  try {
+    video.pause();
+  } catch {}
+  try {
+    video.removeAttribute('src');
+    video.load();
+  } catch {}
+  if (video.parentNode) {
+    video.parentNode.removeChild(video);
+  }
+};
+
 async function generateVideoThumbnail(file) {
   if (!file?.type?.startsWith('video/')) return null;
 
@@ -349,18 +363,30 @@ async function readVideoMetadata(file) {
   document.body.appendChild(video);
 
   const metadataLoaded = new Promise((resolve, reject) => {
-    let resolved = false;
-    const done = () => {
-      if (!resolved) {
-        resolved = true;
+    let settled = false;
+    const succeed = () => {
+      if (!settled) {
+        settled = true;
         resolve();
       }
     };
-    video.onloadedmetadata = done;
-    video.onloadeddata = done;
-    video.oncanplay = done;
-    video.onerror = done;
-    setTimeout(done, 3500); // Android browser can delay local video metadata
+    const fail = () => {
+      if (!settled) {
+        settled = true;
+        reject(new Error('Could not read video metadata.'));
+      }
+    };
+    video.onloadedmetadata = succeed;
+    video.onloadeddata = succeed;
+    video.oncanplay = succeed;
+    video.onerror = fail;
+    setTimeout(() => {
+      if (video.readyState >= 1 || video.videoWidth > 0 || (Number.isFinite(video.duration) && video.duration > 0)) {
+        succeed();
+        return;
+      }
+      fail();
+    }, 3500); // Android browser can delay local video metadata, but timeout should remain a real failure.
   });
 
   video.preload = 'auto';
@@ -388,9 +414,7 @@ async function readVideoMetadata(file) {
     URL.revokeObjectURL(objectUrl);
     throw error;
   } finally {
-    if (video.parentNode) {
-      video.parentNode.removeChild(video);
-    }
+    teardownTemporaryVideo(video);
   }
 }
 
@@ -675,9 +699,25 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   useEffect(() => {
     if (!isNativePlatform()) return;
     const video = previewVideoRef.current;
-    if (!video || !previewUrl || type !== 'video') return;
+    if (!video || type !== 'video') return;
+    if (!previewUrl) {
+      // Clear source only — do NOT removeChild on the React-managed preview element.
+      try { video.pause(); } catch {}
+      try { video.removeAttribute('src'); video.load(); } catch {}
+      return;
+    }
+    video.pause();
     video.src = previewUrl;
     video.load();
+    return () => {
+      try {
+        video.pause();
+      } catch {}
+      try {
+        video.removeAttribute('src');
+        video.load();
+      } catch {}
+    };
   }, [previewUrl, type]);
 
   // Autoplay the visible preview as soon as the picked file is ready.
@@ -998,6 +1038,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       } catch (err) {
         setError(err.message || 'Could not read video metadata.');
         return;
+      }
+      if (isNativePlatform()) {
+        // Give Android WebView one beat to release the temporary metadata decoder
+        // before the visible preview video claims the media pipeline.
+        await new Promise((resolve) => setTimeout(resolve, 150));
       }
     } else {
       if (!f.type.startsWith('image/'))  { setError('Select an image file.'); return; }
@@ -1397,6 +1442,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   if (!mounted) return null;
 
   const previewVideoSrc = buildPreviewVideoSrc(previewUrl);
+  const nativePreviewSrc = isNativePlatform() ? undefined : previewVideoSrc;
 
   const layout = (
     <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/85 backdrop-blur-md overflow-hidden font-[Poppins]">
@@ -1547,7 +1593,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 <>
                   <video
                     ref={previewVideoRef}
-                    src={previewVideoSrc}
+                    src={nativePreviewSrc}
                     className={`status-preview-video absolute inset-0 w-full h-full ${previewFitClass} z-10 pointer-events-none`}
                     autoPlay
                     muted={muted}
