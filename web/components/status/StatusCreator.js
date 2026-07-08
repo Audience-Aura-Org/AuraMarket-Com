@@ -691,19 +691,17 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
     const tryPlay = () => {
       if (cancelled) return;
-      video.play()
-        .then(() => {
-          // Android HW decoder commits its pixel surface asynchronously after play().
-          // Seeking to 0.001 forces the compositor to surface the first decoded frame.
-          // One-shot per video pick so the seek never fires twice (no visible restarts).
-          if (isNativePlatform() && !initialFrameSurfacedRef.current) {
-            initialFrameSurfacedRef.current = true;
-            setTimeout(() => {
-              if (!cancelled) video.currentTime = 0.001;
-            }, 200);
-          }
-        })
-        .catch(() => {});
+      // On native: seek to 0.001 BEFORE (and regardless of) play() outcome.
+      // If play() is rejected by Android WebView (AbortError from a load race, or
+      // gesture context expired), the .then() never runs and the screen stays black.
+      // Seeking unconditionally ensures the first frame is always surfaced.
+      if (isNativePlatform() && !initialFrameSurfacedRef.current) {
+        initialFrameSurfacedRef.current = true;
+        setTimeout(() => {
+          if (!cancelled) video.currentTime = 0.001;
+        }, 400);
+      }
+      video.play().catch(() => {});
     };
 
     video.addEventListener('loadeddata', tryPlay, { once: true });
@@ -738,7 +736,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     if (!video || !previewUrl || type !== 'video') return;
     video.muted = muted;
     if (isPlaying) {
-      video.play().catch(() => {});
+      // readyState=0 means video.load() just started (native effect just fired).
+      // Calling play() here causes a silent AbortError on Android WebView because
+      // the media pipeline hasn't initialized yet. The autoplay effect's
+      // loadeddata/canplay listeners (or the 1200ms fallback) will call play()
+      // once there is enough data. On web, call play() immediately as usual.
+      if (video.readyState >= 1 || !isNativePlatform()) {
+        video.play().catch(() => {});
+      }
     } else {
       video.pause();
     }
@@ -1548,6 +1553,13 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     controlsList="nodownload noplaybackrate noremoteplayback nofullscreen"
                     preload="auto"
                     onContextMenu={(e) => e.preventDefault()}
+                    onLoadedMetadata={(e) => {
+                      if (!isNativePlatform()) return;
+                      // Seek to 0.001s the instant metadata is known (readyState=1).
+                      // Primes the HW decoder pipeline before play() is attempted,
+                      // showing the first frame even if play() is later rejected.
+                      e.currentTarget.currentTime = 0.001;
+                    }}
                     onCanPlay={(e) => {
                       const v = e.currentTarget;
                       if (isNativePlatform() && v.paused) v.play().catch(() => {});
