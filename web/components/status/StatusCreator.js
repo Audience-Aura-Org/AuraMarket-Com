@@ -362,34 +362,19 @@ async function readVideoMetadata(file) {
   video.style.zIndex = '9999';
   document.body.appendChild(video);
 
-  const metadataLoaded = new Promise((resolve, reject) => {
+  const metadataLoaded = new Promise((resolve) => {
     let settled = false;
-    const succeed = () => {
-      if (!settled) {
-        settled = true;
-        resolve();
-      }
+    const done = () => {
+      if (!settled) { settled = true; resolve(); }
     };
-    const fail = () => {
-      if (!settled) {
-        settled = true;
-        reject(new Error('Could not read video metadata.'));
-      }
-    };
-    video.onloadedmetadata = succeed;
-    video.onloadeddata = succeed;
-    video.oncanplay = succeed;
-    // On Android WebView, onerror can fire transiently during codec negotiation
-    // even when the file is playable. Delay the rejection so loadedmetadata
-    // still has a chance to fire and succeed within the next 600ms.
-    video.onerror = () => setTimeout(() => fail(), isNativePlatform() ? 600 : 0);
-    setTimeout(() => {
-      if (video.readyState >= 1 || video.videoWidth > 0 || (Number.isFinite(video.duration) && video.duration > 0)) {
-        succeed();
-        return;
-      }
-      fail();
-    }, 3500);
+    video.onloadedmetadata = done;
+    video.onloadeddata = done;
+    video.oncanplay = done;
+    // On Android WebView, onerror fires transiently during codec negotiation
+    // even for fully playable files. Treat it the same as a timeout — resolve
+    // with whatever metadata we have rather than hard-failing the whole flow.
+    video.onerror = done;
+    setTimeout(done, 3500);
   });
 
   video.preload = 'auto';
@@ -1012,52 +997,52 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
   }, [type, previewUrl, videoMeta?.duration]);
 
-  const handleFileChange = async (e, nextType = type) => {
+  const handleFileChange = async (e) => {
     const f = e.target.files[0];
     e.target.value = '';
     if (!f) return;
+
+    // Auto-detect actual file type from MIME — ignores which button triggered
+    // the picker so picking a video while in image mode (or vice versa) just works.
+    const actualType = f.type.startsWith('video/') ? 'video'
+                     : f.type.startsWith('image/') ? 'image'
+                     : null;
+    if (!actualType) { setError('Unsupported file type. Please select a photo or video.'); return; }
+
     if (previewUrl && file) URL.revokeObjectURL(previewUrl);
 
-    if (nextType === 'video') {
-      if (!f.type.startsWith('video/'))  { setError('Select a video file.'); return; }
+    // Sync the type UI to match the actual file that was picked
+    if (actualType !== type) setType(actualType);
+
+    if (actualType === 'video') {
       if (f.size > STATUS_VIDEO_INPUT_MAX_BYTES) { setError('Max 500MB source video.'); return; }
 
-      try {
-        const meta = await readVideoMetadata(f);
-        if (meta.objectUrl) URL.revokeObjectURL(meta.objectUrl);
-        const needsTrim = meta.duration > STATUS_VIDEO_MAX_SECONDS + 0.5;
-        const needsCompression = f.size > STATUS_VIDEO_MAX_BYTES;
-        setVideoMeta({ ...meta, needsTrim, needsCompression });
-        setTrimStart(0);
-        setTrimEnd(Math.min(STATUS_VIDEO_MAX_SECONDS, Math.max(1, meta.duration || STATUS_VIDEO_MAX_SECONDS)));
-        setVideoPostMode('trim');
-        setEditingVideo(true);
-        setError(needsTrim
-          ? null
-          : needsCompression
-            ? 'Video will be cropped to 9:16 and optimized before upload.'
-            : null
-        );
-      } catch (err) {
-        setError(err.message || 'Could not read video metadata.');
-        return;
-      }
+      const meta = await readVideoMetadata(f);
+      if (meta?.objectUrl) URL.revokeObjectURL(meta.objectUrl);
+      const needsTrim = (meta?.duration ?? 0) > STATUS_VIDEO_MAX_SECONDS + 0.5;
+      const needsCompression = f.size > STATUS_VIDEO_MAX_BYTES;
+      setVideoMeta({ ...meta, needsTrim, needsCompression });
+      setTrimStart(0);
+      setTrimEnd(Math.min(STATUS_VIDEO_MAX_SECONDS, Math.max(1, meta?.duration || STATUS_VIDEO_MAX_SECONDS)));
+      setVideoPostMode('trim');
+      setEditingVideo(true);
+      setError(needsCompression && !needsTrim ? 'Video will be cropped to 9:16 and optimized before upload.' : null);
+
       if (isNativePlatform()) {
         // Give Android WebView one beat to release the temporary metadata decoder
         // before the visible preview video claims the media pipeline.
         await new Promise((resolve) => setTimeout(resolve, 150));
       }
     } else {
-      if (!f.type.startsWith('image/'))  { setError('Select an image file.'); return; }
-      if (f.size > STATUS_IMAGE_MAX_BYTES)    { setError('Max 8MB image.'); return; }
+      if (f.size > STATUS_IMAGE_MAX_BYTES) { setError('Max 8MB image.'); return; }
       setVideoMeta(null);
       setVideoPostMode('trim');
       setEditingVideo(false);
       setTimelineFrames([]);
+      setError(null);
     }
     setFile(f);
     setPreviewUrl(URL.createObjectURL(f));
-    if (nextType !== 'video') setError(null);
   };
 
   const handlePost = async () => {
@@ -1700,7 +1685,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                       ) : (
                         <div className="w-full h-full flex items-center justify-center gap-0.5">
                           {Array.from({ length: 8 }).map((_, i) => (
-                            <div key={i} className="flex-1 h-full bg-gradient-to-b from-white/20 to-white/8 animate-pulse border-r border-white/5 last:border-r-0" style={{ animationDelay: `${i * 80}ms` }} />
+                            <div key={i} className="flex-1 h-full bg-white/15 animate-pulse border-r border-white/10 last:border-r-0" style={{ animationDelay: `${i * 80}ms` }} />
                           ))}
                         </div>
                       )}
@@ -1817,14 +1802,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 type="file" 
                 accept="image/*" 
                 className="hidden" 
-                onChange={(e) => handleFileChange(e, 'image')} 
+                onChange={handleFileChange}
               />
-              <input 
-                ref={videoInputRef} 
-                type="file" 
-                accept="video/*" 
-                className="hidden" 
-                onChange={(e) => handleFileChange(e, 'video')} 
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*,image/*"
+                className="hidden"
+                onChange={handleFileChange}
               />
             </div>
           )}
