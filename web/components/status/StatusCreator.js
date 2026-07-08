@@ -379,14 +379,17 @@ async function readVideoMetadata(file) {
     video.onloadedmetadata = succeed;
     video.onloadeddata = succeed;
     video.oncanplay = succeed;
-    video.onerror = fail;
+    // On Android WebView, onerror can fire transiently during codec negotiation
+    // even when the file is playable. Delay the rejection so loadedmetadata
+    // still has a chance to fire and succeed within the next 600ms.
+    video.onerror = () => setTimeout(() => fail(), isNativePlatform() ? 600 : 0);
     setTimeout(() => {
       if (video.readyState >= 1 || video.videoWidth > 0 || (Number.isFinite(video.duration) && video.duration > 0)) {
         succeed();
         return;
       }
       fail();
-    }, 3500); // Android browser can delay local video metadata, but timeout should remain a real failure.
+    }, 3500);
   });
 
   video.preload = 'auto';
@@ -1697,7 +1700,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                       ) : (
                         <div className="w-full h-full flex items-center justify-center gap-0.5">
                           {Array.from({ length: 8 }).map((_, i) => (
-                            <div key={i} className="flex-1 h-full bg-gradient-to-b from-neutral-700 to-neutral-800 animate-pulse" style={{ animationDelay: `${i * 80}ms` }} />
+                            <div key={i} className="flex-1 h-full bg-gradient-to-b from-white/20 to-white/8 animate-pulse border-r border-white/5 last:border-r-0" style={{ animationDelay: `${i * 80}ms` }} />
                           ))}
                         </div>
                       )}
