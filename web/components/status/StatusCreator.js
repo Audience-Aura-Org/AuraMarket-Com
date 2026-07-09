@@ -757,7 +757,23 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           if (!cancelled) video.currentTime = 0.001;
         }, 400);
       }
-      video.play().catch(() => {});
+      if (isNativePlatform()) {
+        video.play().catch(() => {
+          // Retry 1: Android AbortError during load race — wait for pipeline to settle
+          setTimeout(() => {
+            if (cancelled) return;
+            video.play().catch(() => {
+              // Retry 2
+              setTimeout(() => {
+                if (cancelled) return;
+                video.play().catch(() => {});
+              }, 600);
+            });
+          }, 600);
+        });
+      } else {
+        video.play().catch(() => {});
+      }
     };
 
     video.addEventListener('loadeddata', tryPlay, { once: true });
@@ -880,11 +896,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     if (type !== 'video' || !previewUrl || !videoMeta?.duration) {
       return undefined;
     }
-    // Android WebView has 1-2 hardware decoder slots. Creating a second offscreen
-    // video element here competes with the main preview and causes both to show
-    // black frames. Skip canvas-based frame extraction on native; the placeholder
-    // skeleton (animated gradient bars) renders when timelineFrames is empty.
-    if (isNativePlatform()) return undefined;
+    // Note: native is handled inside captureTimelineFrames with a timeupdate gate.
 
     let cancelled = false;
     setTimelineFrames([]);
@@ -911,11 +923,17 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
     const captureTimelineFrames = async () => {
       try {
-        // On native: wait for the main preview + trimmer to acquire the HW decoder
-        // first. Android has limited concurrent decoder slots (~1-2); loading all
-        // three video elements simultaneously causes all to show black frames.
+        // On native: wait for the main preview to fire timeupdate — proves the HW
+        // decoder has committed a real frame. Only then load the offscreen video so
+        // we don't compete for the limited Android decoder slots (~1-2).
         if (isNativePlatform()) {
-          await new Promise((r) => setTimeout(r, 1500));
+          await new Promise((resolve) => {
+            const prevVideo = previewVideoRef.current;
+            if (prevVideo) {
+              prevVideo.addEventListener('timeupdate', resolve, { once: true });
+            }
+            setTimeout(resolve, 3000); // safety fallback
+          });
           if (cancelled) return;
         }
 
