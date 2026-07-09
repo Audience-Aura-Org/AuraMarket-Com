@@ -23,8 +23,8 @@ export default function StoreHighlights({ title, data }) {
   };
 
   return (
-    <section className="w-full py-5 sm:py-7 lg:py-9">
-      <div className="mb-5 flex items-end justify-between gap-3 px-4 sm:px-5 md:mb-6 md:px-2">
+    <section className="w-full py-3 sm:py-4 lg:py-5">
+      <div className="mb-3 flex items-end justify-between gap-3 px-3 sm:px-4 md:mb-4 md:px-1">
         <div className="min-w-0 flex items-center gap-2.5">
           <span className="w-4 h-[3px] bg-[var(--accent)] rounded-full shrink-0" />
           <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-tight text-[var(--text-primary)] sm:text-xl md:text-2xl">

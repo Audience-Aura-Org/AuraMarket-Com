@@ -15,9 +15,9 @@ export default function ProductSection({ title, subtitle, data, config }) {
   if (!products.length) return null;
 
   return (
-    <section className="relative w-full overflow-hidden py-5 sm:py-7 lg:py-9">
+    <section className="relative w-full overflow-hidden py-3 sm:py-4 lg:py-5">
       {/* Section header */}
-      <div className="mb-5 flex items-end justify-between gap-3 px-4 sm:px-5 md:mb-6 md:px-2">
+      <div className="mb-3 flex items-end justify-between gap-3 px-3 sm:px-4 md:mb-4 md:px-1">
         <div className="min-w-0 space-y-1.5 text-left">
           <div className="flex items-center gap-2.5">
             <span className="w-4 h-[3px] bg-[var(--accent)] rounded-full shrink-0" />

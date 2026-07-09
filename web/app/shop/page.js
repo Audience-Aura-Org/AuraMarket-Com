@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import {
   Search, Star, LayoutGrid, Users,
-  List, Check, ChevronRight, ChevronLeft, Folder, Home, MapPin, ShieldCheck, Store, AlertTriangle
+  List, Check, ChevronRight, ChevronLeft, Folder, Home, MapPin, ShieldCheck, Store
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -62,26 +62,6 @@ function ShopContent() {
     const unsub = cartStore.subscribe(({ items }) => setCartItems(items));
     return unsub;
   }, []);
-
-  // --- Vendor minimums cache (keyed by vendor_id string) ---
-  const [vendorMinimums, setVendorMinimums] = useState({});
-  const fetchedVendorIds = useRef(new Set());
-  useEffect(() => {
-    if (!products.length) return;
-    const newIds = [...new Set(
-      products.map(p => String(p.vendor_id?._id || p.vendor_id || '')).filter(Boolean)
-    )].filter(id => !fetchedVendorIds.current.has(id));
-    if (!newIds.length) return;
-    newIds.forEach(vid => fetchedVendorIds.current.add(vid));
-    newIds.forEach(vid => {
-      api.get(`/vendors/stores/${vid}`, { params: { nocache: '1' } })
-        .then(res => {
-          const min = Number(res.data?.data?.store?.minimum_order_amount) || 0;
-          if (min > 0) setVendorMinimums(prev => ({ ...prev, [vid]: min }));
-        })
-        .catch(() => {});
-    });
-  }, [products]);
 
   // --- Vendor Search state ---
   const [matchedVendors, setMatchedVendors] = useState([]);
@@ -684,12 +664,7 @@ function ShopContent() {
               <>
                 <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}>
                   {products.map(product => (
-                    <ProductCard
-                      key={product._id}
-                      product={product}
-                      layout={viewMode}
-                      vendorMinimum={vendorMinimums[String(product.vendor_id?._id || product.vendor_id)] || 0}
-                    />
+                    <ProductCard key={product._id} product={product} layout={viewMode} />
                   ))}
                 </div>
 

@@ -39,7 +39,9 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;
   const vendorId = vendor_id?._id || vendor_id;
   const deliveryTime = vendor_id?.store?.delivery_time;
-  
+  // Read minimum order amount directly from populated product data (no extra fetch needed)
+  const minimumAmount = Number(vendor_id?.store?.minimum_order_amount) || Number(vendorMinimum) || 0;
+
   const { user } = useAuthStore();
   const { isFollowing, toggleFollow, loading: followLoading } = useFollow(vendorId);
   const [addingToCart, setAddingToCart] = useState(false);
@@ -93,10 +95,10 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
     if (!user) { router.push('/login?from=' + encodeURIComponent(window.location.pathname + window.location.search)); return; }
 
     // Minimum order check — Buy Now is a single item so if price < minimum, block it
-    if (vendorMinimum > 0 && displayPrice < vendorMinimum) {
+    if (minimumAmount > 0 && displayPrice < minimumAmount) {
       const storeName = vendor_id?.store_name || 'this store';
-      const needed = vendorMinimum - displayPrice;
-      toast(`Minimum order: ${vendorMinimum.toLocaleString()} XAF for ${storeName}. Add ${needed.toLocaleString()} XAF more to cart first.`, {
+      const needed = minimumAmount - displayPrice;
+      toast(`Minimum order: ${minimumAmount.toLocaleString()} XAF for ${storeName}. Add ${needed.toLocaleString()} XAF more to cart first.`, {
         icon: '⚠️',
         duration: 4000,
         style: { borderRadius: '16px', background: '#333', color: '#fff', fontSize: '12px', fontWeight: 'bold' },
@@ -124,9 +126,9 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
 
     if (modalActionType === 'buy') {
       const variantPrice = variantOrProduct.price ?? displayPrice;
-      if (vendorMinimum > 0 && variantPrice < vendorMinimum) {
+      if (minimumAmount > 0 && variantPrice < minimumAmount) {
         const storeName = vendor_id?.store_name || 'this store';
-        toast(`Minimum order: ${vendorMinimum.toLocaleString()} XAF for ${storeName}. Add more items to cart first.`, {
+        toast(`Minimum order: ${minimumAmount.toLocaleString()} XAF for ${storeName}. Add more items to cart first.`, {
           icon: '⚠️',
           duration: 4000,
           style: { borderRadius: '16px', background: '#333', color: '#fff', fontSize: '12px', fontWeight: 'bold' },
@@ -250,9 +252,9 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
                   {deliveryTime && (
                      <span className="flex items-center gap-1"><Clock className="size-3.5 text-[var(--accent)]" /> Delivered in {deliveryTime}</span>
                    )}
-                  {vendorMinimum > 0 && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-600 tracking-tight leading-none whitespace-nowrap">
-                      Min. {vendorMinimum.toLocaleString()} XAF
+                  {minimumAmount > 0 && (
+                    <span className="text-[9px] font-bold text-amber-600/80 tracking-tight whitespace-nowrap">
+                      · min {minimumAmount >= 1000 ? `${(minimumAmount / 1000).toFixed(minimumAmount % 1000 === 0 ? 0 : 1)}k` : minimumAmount} XAF
                     </span>
                   )}
                 </div>
@@ -374,15 +376,19 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
               </div>
             </div>
           </div>
-          {deliveryTime && (
-                <div className="flex items-center gap-1 text-[10px] font-semibold text-[var(--text-secondary)] opacity-70">
-                  <Clock className="size-3 text-[var(--accent)]" />
-                  <span className="truncate">Delivered in {deliveryTime}</span>
-                </div>
+          {(deliveryTime || minimumAmount > 0) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {deliveryTime && (
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-[var(--text-secondary)] opacity-70">
+                  <Clock className="size-3 text-[var(--accent)] shrink-0" />
+                  <span className="truncate">in {deliveryTime}</span>
+                </span>
               )}
-          {vendorMinimum > 0 && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 self-start">
-              <span className="text-[9px] font-bold text-amber-600 tracking-tight leading-none">Min. {vendorMinimum.toLocaleString()} XAF</span>
+              {minimumAmount > 0 && (
+                <span className="text-[9px] font-bold text-amber-600/80 tracking-tight whitespace-nowrap">
+                  · min {minimumAmount >= 1000 ? `${(minimumAmount / 1000).toFixed(minimumAmount % 1000 === 0 ? 0 : 1)}k` : minimumAmount} XAF
+                </span>
+              )}
             </div>
           )}
           {/* 3 equal-size action buttons — Add to Cart is primary */}
