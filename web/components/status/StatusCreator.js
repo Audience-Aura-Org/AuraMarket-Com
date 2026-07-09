@@ -747,6 +747,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
     const tryPlay = () => {
       if (cancelled) return;
+      if (!video.paused) return; // already playing — skip to avoid concurrent play() AbortErrors
       // On native: seek to 0.001 BEFORE (and regardless of) play() outcome.
       // If play() is rejected by Android WebView (AbortError from a load race, or
       // gesture context expired), the .then() never runs and the screen stays black.
@@ -761,11 +762,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         video.play().catch(() => {
           // Retry 1: Android AbortError during load race — wait for pipeline to settle
           setTimeout(() => {
-            if (cancelled) return;
+            if (cancelled || !video.paused) return;
             video.play().catch(() => {
               // Retry 2
               setTimeout(() => {
-                if (cancelled) return;
+                if (cancelled || !video.paused) return;
                 video.play().catch(() => {});
               }, 600);
             });
@@ -924,8 +925,10 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     const captureTimelineFrames = async () => {
       try {
         // On native: wait for the main preview to fire timeupdate — proves the HW
-        // decoder has committed a real frame. Only then load the offscreen video so
-        // we don't compete for the limited Android decoder slots (~1-2).
+        // decoder has committed a real frame. Then pause it to release the decoder
+        // slot before loading the offscreen video. Android's ~1-2 HW decoder slots
+        // can't serve both simultaneously; pausing first gives the offscreen video
+        // clean exclusive access. Main preview resumes in the finally block.
         if (isNativePlatform()) {
           await new Promise((resolve) => {
             const prevVideo = previewVideoRef.current;
@@ -935,6 +938,13 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             setTimeout(resolve, 3000); // safety fallback
           });
           if (cancelled) return;
+          const prevVideo = previewVideoRef.current;
+          if (prevVideo && !prevVideo.paused) prevVideo.pause();
+          await new Promise((r) => setTimeout(r, 300)); // let decoder slot release
+          if (cancelled) {
+            if (prevVideo) prevVideo.play().catch(() => {});
+            return;
+          }
         }
 
         // Set up metadata promise and start loading the offscreen video NOW
@@ -1027,6 +1037,15 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       } finally {
         if (video.parentNode) {
           video.parentNode.removeChild(video);
+        }
+        // On native: resume main preview now that offscreen video is torn down
+        // and the HW decoder slot is free for the main preview to reclaim.
+        if (isNativePlatform()) {
+          const prevVideo = previewVideoRef.current;
+          if (prevVideo && prevVideo.paused && !cancelled) {
+            prevVideo.currentTime = trimStartRef.current || 0;
+            prevVideo.play().catch(() => {});
+          }
         }
       }
     };
@@ -1654,14 +1673,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                       // showing the first frame even if play() is later rejected.
                       e.currentTarget.currentTime = 0.001;
                     }}
-                    onCanPlay={(e) => {
-                      const v = e.currentTarget;
-                      if (isNativePlatform() && v.paused) v.play().catch(() => {});
-                    }}
-                    onLoadedData={(e) => {
-                      const v = e.currentTarget;
-                      if (v.readyState >= 2 && v.paused) v.play().catch(() => {});
-                    }}
+                    onCanPlay={undefined}
+                    onLoadedData={undefined}
                     onError={(e) => {
                       const v = e.currentTarget;
                       if (previewUrl && v.src !== previewUrl && !v.dataset.retriedPlainSrc) {
