@@ -282,7 +282,7 @@ async function generateVideoThumbnail(file) {
     video.onloadeddata = done;
     video.oncanplay = done;
     video.onerror = done;
-    setTimeout(done, 3000); // 3 s safety — enough for any decoder
+    setTimeout(done, 1500); // safety — metadata fires in <500ms on most decoders
   });
 
   video.preload = 'auto';
@@ -305,7 +305,7 @@ async function generateVideoThumbnail(file) {
       const done = () => { if (!settled) { settled = true; resolve(); } };
       video.addEventListener('seeked', done, { once: true });
       video.onerror = done;
-      setTimeout(done, 1000);
+      setTimeout(done, 400); // seeked fires in <200ms on most decoders
       video.currentTime = seekTo;
     });
 
@@ -316,7 +316,7 @@ async function generateVideoThumbnail(file) {
     await video.play();
     await new Promise((r) => {
       video.addEventListener('timeupdate', r, { once: true });
-      setTimeout(r, 800); // safety timeout
+      setTimeout(r, 300); // safety timeout — HW surface commits within ~250ms
     });
 
     const maxWidth = 720;
@@ -386,7 +386,7 @@ async function readVideoMetadata(file) {
     // even for fully playable files. Treat it the same as a timeout — resolve
     // with whatever metadata we have rather than hard-failing the whole flow.
     video.onerror = done;
-    setTimeout(done, 3500);
+    setTimeout(done, 1500); // safety — metadata fires in <500ms on most decoders
   });
 
   video.preload = 'auto';
@@ -517,7 +517,7 @@ async function runVideoUploadTask(snapshot, { onProgress, onPhase }) {
     });
 
     let segmentUrl = '';
-    let thumbnailSource = file;
+    let segmentThumbnailUrl = '';
 
     if (preparedVideo.mode === 'server') {
       if (!preparedVideo.uploadResult?.success) {
@@ -525,6 +525,17 @@ async function runVideoUploadTask(snapshot, { onProgress, onPhase }) {
       }
       segmentUrl = preparedVideo.uploadResult.data.url;
       onProgress(Math.min(95, Math.round(((segment.index + 1) / totalSegments) * 95)));
+      // Server already processed + uploaded the video. Generate thumbnail now
+      // (nothing else to parallelize with in server mode at this point).
+      onPhase(totalSegments > 1
+        ? `Creating preview ${segmentNumber} of ${totalSegments}...`
+        : 'Creating preview...'
+      );
+      const thumbnailFile = await generateVideoThumbnail(file);
+      if (thumbnailFile) {
+        const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
+        if (thumbnailRes.success) segmentThumbnailUrl = thumbnailRes.data.url;
+      }
     } else {
       const uploadFile = preparedVideo.file;
       if (uploadFile.size > STATUS_VIDEO_MAX_BYTES) {
@@ -534,6 +545,10 @@ async function runVideoUploadTask(snapshot, { onProgress, onPhase }) {
         ? `Uploading part ${segmentNumber} of ${totalSegments}...`
         : 'Uploading video...'
       );
+      // Fire thumbnail generation NOW — runs concurrently with the S3 upload.
+      // Video upload is network-bound; thumbnail generation is CPU/decoder-bound.
+      // They don't share resources so both finish sooner together than sequentially.
+      const thumbnailPromise = generateVideoThumbnail(uploadFile);
       const uploadRes = await uploadService.uploadSingle(uploadFile, 'statuses', {
         onProgress: (pct) => {
           const progress = 70 + (((segment.index + (pct / 100)) / totalSegments) * 25);
@@ -542,18 +557,16 @@ async function runVideoUploadTask(snapshot, { onProgress, onPhase }) {
       });
       if (!uploadRes.success) throw new Error(uploadRes.message || 'Media upload failed');
       segmentUrl = uploadRes.data.url;
-      thumbnailSource = uploadFile;
-    }
-
-    onPhase(totalSegments > 1
-      ? `Creating preview ${segmentNumber} of ${totalSegments}...`
-      : 'Creating preview...'
-    );
-    const thumbnailFile = await generateVideoThumbnail(thumbnailSource);
-    let segmentThumbnailUrl = '';
-    if (thumbnailFile) {
-      const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
-      if (thumbnailRes.success) segmentThumbnailUrl = thumbnailRes.data.url;
+      // Thumbnail should already be done (upload takes longer). If not, wait now.
+      onPhase(totalSegments > 1
+        ? `Creating preview ${segmentNumber} of ${totalSegments}...`
+        : 'Creating preview...'
+      );
+      const thumbnailFile = await thumbnailPromise;
+      if (thumbnailFile) {
+        const thumbnailRes = await uploadService.uploadSingle(thumbnailFile, 'statuses');
+        if (thumbnailRes.success) segmentThumbnailUrl = thumbnailRes.data.url;
+      }
     }
 
     onPhase(totalSegments > 1

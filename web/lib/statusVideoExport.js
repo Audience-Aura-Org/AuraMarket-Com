@@ -137,8 +137,8 @@ export async function exportEditedStatusVideo(file, { trimStart = 0, trimEnd = S
     const chunks = [];
     const recorder = new MediaRecorder(canvasStream, {
       mimeType,
-      videoBitsPerSecond: isAndroidNative() ? 1_500_000 : 2_000_000,
-      audioBitsPerSecond: 96_000,
+      videoBitsPerSecond: isAndroidNative() ? 1_100_000 : 1_400_000,
+      audioBitsPerSecond: 64_000,
     });
 
     const recorded = new Promise((resolve, reject) => {
