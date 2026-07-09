@@ -167,7 +167,7 @@ class SocketService {
       this.warnedUnavailable = true;
       return;
     }
-    console.log(`[SocketService] ✅ Auth token available (${token.substring(0, 10)}...)`);
+    console.log(`[SocketService] ✅ Auth token available`);
 
     if (this.socket) {
       if (this.socket.currentUserId === userId) {

@@ -39,7 +39,7 @@ export const setStoredAuthToken = async (token) => {
   }
   
   try {
-    console.log(`[authStorage] Saving token to localStorage: ${token.substring(0, 10)}...`);
+    console.log(`[authStorage] Saving token to localStorage`);
     window.localStorage.setItem(TOKEN_KEY, token);
     console.log('[authStorage] ✅ Token saved to localStorage');
   } catch (err) {

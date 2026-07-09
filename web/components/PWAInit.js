@@ -8,6 +8,7 @@ import { Download, Smartphone, X } from 'lucide-react';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 import { useAuthStore } from '@/hooks/useAuth';
 import { registerNativeAndroidPush } from '@/lib/native-push';
+import { toast } from 'react-hot-toast';
 
 const APK_DOWNLOAD_URL = '/downloads/Auradime.apk';
 const INSTALL_DISMISS_KEY = 'aura_install_prompt_dismissed_until';
@@ -38,6 +39,7 @@ export default function PWAInit() {
   const [statusComposerOpen, setStatusComposerOpen] = useState(false);
   const subscribedRef = useRef(false);
   const authErrorRef = useRef(false);
+  const pushDeniedToastedRef = useRef(false);
   const syncInFlightRef = useRef(false);
   const lastSyncRef = useRef({ userId: null, at: 0 });
   const SYNC_COOLDOWN_MS = 10 * 60 * 1000;
@@ -57,6 +59,14 @@ export default function PWAInit() {
       console.log('[PWAInit] Syncing push registration...');
       const nativeResult = await registerNativeAndroidPush();
       const result = await subscribeToPush({ promptIfNeeded });
+
+      if (nativeResult?.permission === 'denied' && !pushDeniedToastedRef.current) {
+        pushDeniedToastedRef.current = true;
+        toast(
+          'Notifications are blocked. Enable them in Android Settings \u2192 Apps \u2192 Auradime \u2192 Notifications.',
+          { duration: 6000 }
+        );
+      }
 
       if (nativeResult?.success || result?.success) {
         subscribedRef.current = true;

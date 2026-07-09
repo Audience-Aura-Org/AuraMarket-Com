@@ -95,6 +95,28 @@ async function optimizeImageForUpload(file, folder) {
   }
 }
 
+/**
+ * Retry a fn up to maxAttempts times on network errors or 5xx responses.
+ * Waits delayMs * attempt before each retry.
+ */
+async function withRetry(fn, { maxAttempts = 3, delayMs = 1000 } = {}) {
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isNetwork = !err.response;
+      const isRetryable5xx = err.response?.status >= 500;
+      if (!isNetwork && !isRetryable5xx) throw err;
+      lastErr = err;
+      if (attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, delayMs * attempt));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 async function uploadViaPresign(file, folder, onProgress) {
   const isVid = isVideo(file);
   const contentType = file.type || 'application/octet-stream';
@@ -115,7 +137,7 @@ async function uploadViaPresign(file, folder, onProgress) {
 
   const { uploadUrl, url } = presignRes.data.data;
 
-  await axios.put(uploadUrl, file, {
+  await withRetry(() => axios.put(uploadUrl, file, {
     headers: {
       'Content-Type': contentType,
       'Cache-Control': cacheControl,
@@ -129,7 +151,7 @@ async function uploadViaPresign(file, folder, onProgress) {
         onProgress(Math.min(99, Math.round((event.loaded * 100) / event.total)));
       }
     },
-  });
+  }), { maxAttempts: 3, delayMs: 1200 });
 
   if (onProgress) onProgress(100);
   return { success: true, data: { url, method: 'S3-direct' } };

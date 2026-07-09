@@ -318,7 +318,7 @@ export default function SocketProvider({ children }) {
     // Connect once per user session
     if (connectedUserId.current !== user._id) {
       // Pass token if available; socket will use cookies with withCredentials: true
-      console.log('[SocketProvider] Initiating socket connection for user:', user._id, `using token: ${authToken.substring(0, 10)}...`);
+      console.log('[SocketProvider] Initiating socket connection for user:', user._id);
       socketService.connect(user._id, authToken);
       connectedUserId.current = user._id;
     }

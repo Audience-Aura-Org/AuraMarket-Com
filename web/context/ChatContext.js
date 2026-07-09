@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import socketService from '@/services/socket';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
+import { toast } from 'react-hot-toast';
 
 const ChatContext = createContext(null);
 const CHAT_CACHE_PREFIX = 'aura_chat_cache:';
@@ -705,6 +706,7 @@ export function ChatProvider({ children }) {
     } catch (error) {
       if (error?.response?.status === 429) {
         inboxRateLimitedUntilRef.current = Date.now() + 2 * 60 * 1000;
+        toast('Chat inbox sync paused. Will retry in 2 minutes.', { icon: '⏳', duration: 4000 });
         console.warn('[ChatContext] Inbox sync paused after rate limit.');
       } else {
         console.error('[ChatContext] Inbox sync failed:', error);
