@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import {
   Search, Star, LayoutGrid, Users,
-  List, Check, ChevronRight, ChevronLeft, Folder, Home, MapPin, ShieldCheck, Store
+  List, Check, ChevronRight, ChevronLeft, Folder, Home, MapPin, ShieldCheck, Store, AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -19,6 +19,7 @@ import { trackSearch } from '@/services/tracking';
 import VendorFollowButton from '@/components/VendorFollowButton';
 import { useLanguage } from '@/context/LanguageContext';
 import { TOP_NAV_HEIGHT, TOP_NAV_HEIGHT_LG } from '@/components/layout/TopNav';
+import cartStore from '@/services/cartStore';
 
 const PRICE_RANGES = [
   { id: 'under-5000', name: 'Under 5,000 XAF', min: 0, max: 5000 },
@@ -54,6 +55,13 @@ function ShopContent() {
   // --- Vendor Discovery state ---
   const [activeVendor, setActiveVendor] = useState(null);
   const [vendorLoading, setVendorLoading] = useState(false);
+
+  // --- Cart state for live minimum order progress ---
+  const [cartItems, setCartItems] = useState(cartStore.getItems());
+  useEffect(() => {
+    const unsub = cartStore.subscribe(({ items }) => setCartItems(items));
+    return unsub;
+  }, []);
 
   // --- Vendor Search state ---
   const [matchedVendors, setMatchedVendors] = useState([]);
@@ -424,6 +432,34 @@ function ShopContent() {
                     </button>
                   </div>
                 </div>
+
+                {/* Live minimum order progress bar */}
+                {(() => {
+                  const minimum = Number(activeVendor.minimum_order_amount) || 0;
+                  if (minimum <= 0) return null;
+                  const vendorId = activeVendor.vendor_id?._id?.toString() || String(activeVendor.vendor_id || '');
+                  const subtotal = cartItems
+                    .filter(i => String(i.vendor_id) === vendorId)
+                    .reduce((s, i) => s + i.price * i.quantity, 0);
+                  const pct = Math.min(100, Math.round((subtotal / minimum) * 100));
+                  const met = subtotal >= minimum;
+                  return (
+                    <div className={`mt-3 rounded-2xl border px-3 py-2.5 transition-colors duration-300 ${met ? 'border-emerald-500/25 bg-emerald-500/5' : 'border-amber-500/25 bg-amber-500/5'}`}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className={`text-[10px] font-bold tracking-tight flex items-center gap-1 ${met ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {met ? null : <AlertTriangle className="size-3 shrink-0" />}
+                          {met ? 'Minimum order met' : `Add ${(minimum - subtotal).toLocaleString()} XAF to meet min. order`}
+                        </span>
+                        <span className={`text-[10px] font-semibold font-mono ${met ? 'text-emerald-600' : 'text-amber-600'}`}>
+                          {subtotal.toLocaleString()} / {minimum.toLocaleString()} XAF
+                        </span>
+                      </div>
+                      <div className="h-1 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
+                        <div className={`h-full rounded-full transition-all duration-500 ${met ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>

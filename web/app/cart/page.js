@@ -247,46 +247,74 @@ export default function CartPage() {
             ))}
 
             {/* Per-vendor minimum order warnings */}
-            {minimumErrors.map(g => {
-              const needed = g.minimum - g.subtotal;
-              const pct = Math.min(100, Math.round((g.subtotal / g.minimum) * 100));
-              return (
-                <div key={g.vendor_id} className="p-4 rounded-2xl bg-amber-500/8 border border-amber-500/25">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="size-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 mt-0.5">
-                      <AlertTriangle className="size-4 text-amber-500" />
+            {hasMinimumErrors && (
+              minimumErrors.length === 1 ? (
+                // Single vendor — full card
+                (() => {
+                  const g = minimumErrors[0];
+                  const needed = g.minimum - g.subtotal;
+                  const pct = Math.min(100, Math.round((g.subtotal / g.minimum) * 100));
+                  return (
+                    <div key={g.vendor_id} className="p-4 rounded-2xl bg-amber-500/8 border border-amber-500/25">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="size-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                          <AlertTriangle className="size-4 text-amber-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">
+                            Minimum order not met — {g.vendor_name}
+                          </p>
+                          <p className="text-[11px] font-medium text-[var(--text-secondary)] mt-0.5">
+                            Add <span className="font-bold text-amber-500">{needed.toLocaleString()} XAF</span> more from this store to continue
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mb-2.5">
+                        <div className="h-1.5 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
+                          <div className="h-full rounded-full bg-amber-500 transition-all duration-500" style={{ width: `${pct}%` }} />
+                        </div>
+                        <div className="flex justify-between mt-1.5">
+                          <span className="text-[10px] font-semibold text-[var(--text-secondary)]">{g.subtotal.toLocaleString()} XAF</span>
+                          <span className="text-[10px] font-semibold text-[var(--text-secondary)]">Min. {g.minimum.toLocaleString()} XAF</span>
+                        </div>
+                      </div>
+                      <Link href={`/stores/${g.vendor_id}`} className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-600 hover:text-amber-500 transition-colors">
+                        <Store className="size-3" /> Browse {g.vendor_name}
+                      </Link>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">
-                        Minimum order not met — {g.vendor_name}
-                      </p>
-                      <p className="text-[11px] font-medium text-[var(--text-secondary)] mt-0.5">
-                        Add <span className="font-bold text-amber-500">{needed.toLocaleString()} XAF</span> more from this store to continue
-                      </p>
+                  );
+                })()
+              ) : (
+                // Multiple vendors — compact summarized block
+                <div className="p-4 rounded-2xl bg-amber-500/8 border border-amber-500/25">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="size-7 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
+                      <AlertTriangle className="size-3.5 text-amber-500" />
                     </div>
+                    <p className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">
+                      {minimumErrors.length} stores have unmet minimum orders
+                    </p>
                   </div>
-                  {/* Progress bar */}
-                  <div className="mb-2.5">
-                    <div className="h-1.5 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-amber-500 transition-all duration-500"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <div className="flex justify-between mt-1.5">
-                      <span className="text-[10px] font-semibold text-[var(--text-secondary)]">{g.subtotal.toLocaleString()} XAF</span>
-                      <span className="text-[10px] font-semibold text-[var(--text-secondary)]">Min. {g.minimum.toLocaleString()} XAF</span>
-                    </div>
+                  <div className="space-y-2.5">
+                    {minimumErrors.map(g => {
+                      const pct = Math.min(100, Math.round((g.subtotal / g.minimum) * 100));
+                      const needed = g.minimum - g.subtotal;
+                      return (
+                        <div key={g.vendor_id}>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold text-amber-600 truncate max-w-[55%]">{g.vendor_name}</span>
+                            <span className="text-[10px] font-semibold text-[var(--text-secondary)] font-mono">+{needed.toLocaleString()} XAF</span>
+                          </div>
+                          <div className="h-1 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
+                            <div className="h-full rounded-full bg-amber-500 transition-all duration-500" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <Link
-                    href={`/stores/${g.vendor_id}`}
-                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-600 hover:text-amber-500 transition-colors"
-                  >
-                    <Store className="size-3" /> Browse {g.vendor_name}
-                  </Link>
                 </div>
-              );
-            })}
+              )
+            )}
 
             <div className="p-4 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 flex items-center gap-4 shadow-inner">
               <div className="size-10 rounded-xl bg-[var(--accent)] flex items-center justify-center text-white shadow-[0_0_20px_rgba(242,13,242,0.25)] flex-shrink-0">

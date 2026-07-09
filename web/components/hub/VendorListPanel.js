@@ -263,7 +263,7 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
           “{snippet}”
         </p>
         
-        <div className="flex items-center gap-1.5 mt-1">
+        <div className="flex items-center gap-2 mt-1">
           {isOnline ? (
             <span className="flex items-center gap-1 text-[11px] lg:text-[12px]  font-semibold text-emerald-500  tracking-tighter">
               <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
@@ -272,6 +272,11 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
           ) : (
             <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40  tracking-tighter">
               {t('vendor.repliesFast', 'Replies fast')}
+            </span>
+          )}
+          {Number(storeInfo.minimum_order_amount) > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-600 tracking-tight leading-none">
+              Min. {Number(storeInfo.minimum_order_amount).toLocaleString()} XAF
             </span>
           )}
         </div>
