@@ -668,7 +668,10 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
-      if (video.currentTime >= trimEnd - 0.05) {
+      // Use a 250ms lookahead — Android's timeupdate fires every ~250ms so a 50ms
+      // window is too small and the native `loop` can fire first (looping to 0
+      // instead of trimStart). 250ms gives one full timeupdate interval of margin.
+      if (video.currentTime >= trimEnd - 0.25) {
         video.currentTime = trimStart;
       }
     };
@@ -755,7 +758,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       if (isNativePlatform() && !initialFrameSurfacedRef.current) {
         initialFrameSurfacedRef.current = true;
         setTimeout(() => {
-          if (!cancelled) video.currentTime = 0.001;
+          // Only seek if still paused — if play() already succeeded the video is
+          // advancing and seeking backward to 0.001 would cause a visible stutter.
+          if (!cancelled && video.paused) video.currentTime = 0.001;
         }, 400);
       }
       if (isNativePlatform()) {
