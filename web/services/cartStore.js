@@ -45,6 +45,7 @@ function parseItems(raw) {
       variant: i.variant || null,
       vendor_name: i.product?.vendor_id?.store_name || 'Vendor',
       vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id || null,
+      vendor_minimum_order_amount: i.product?.vendor_id?.store?.minimum_order_amount ?? null,
       raw: i,
     };
   });

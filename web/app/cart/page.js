@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { 
-  Trash2, Plus, Minus, ArrowRight, 
-  ShoppingBag, ShieldCheck, Truck, Tag, 
-  X, Loader2, CheckCircle2, ChevronLeft 
+import {
+  Trash2, Plus, Minus, ArrowRight,
+  ShoppingBag, ShieldCheck, Truck, Tag,
+  X, Loader2, CheckCircle2, ChevronLeft,
+  AlertTriangle, Store
 } from 'lucide-react';
 import api from '@/services/api';
 import { useRouter } from 'next/navigation';
@@ -94,6 +95,27 @@ export default function CartPage() {
   const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const discount = coupon ? (coupon.type === 'percent' ? Math.round(subtotal * coupon.discount / 100) : coupon.discount) : 0;
   const total = subtotal - discount;
+
+  // Per-vendor minimum order checks
+  const vendorGroups = useMemo(() => {
+    const map = new Map();
+    cartItems.forEach(item => {
+      const vid = String(item.vendor_id || 'unknown');
+      if (!map.has(vid)) {
+        map.set(vid, {
+          vendor_id: vid,
+          vendor_name: item.vendor_name,
+          subtotal: 0,
+          minimum: Number(item.vendor_minimum_order_amount) || 0,
+        });
+      }
+      map.get(vid).subtotal += item.price * item.quantity;
+    });
+    return Array.from(map.values());
+  }, [cartItems]);
+
+  const minimumErrors = vendorGroups.filter(g => g.minimum > 0 && g.subtotal < g.minimum);
+  const hasMinimumErrors = minimumErrors.length > 0;
 
   if (loading) return <LoadingSpinner />;
 
@@ -199,6 +221,48 @@ export default function CartPage() {
               </div>
             ))}
 
+            {/* Per-vendor minimum order warnings */}
+            {minimumErrors.map(g => {
+              const needed = g.minimum - g.subtotal;
+              const pct = Math.min(100, Math.round((g.subtotal / g.minimum) * 100));
+              return (
+                <div key={g.vendor_id} className="p-4 rounded-2xl bg-amber-500/8 border border-amber-500/25">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="size-8 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                      <AlertTriangle className="size-4 text-amber-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">
+                        Minimum order not met — {g.vendor_name}
+                      </p>
+                      <p className="text-[11px] font-medium text-[var(--text-secondary)] mt-0.5">
+                        Add <span className="font-bold text-amber-500">{needed.toLocaleString()} XAF</span> more from this store to continue
+                      </p>
+                    </div>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="mb-2.5">
+                    <div className="h-1.5 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-amber-500 transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between mt-1.5">
+                      <span className="text-[10px] font-semibold text-[var(--text-secondary)]">{g.subtotal.toLocaleString()} XAF</span>
+                      <span className="text-[10px] font-semibold text-[var(--text-secondary)]">Min. {g.minimum.toLocaleString()} XAF</span>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/stores/${g.vendor_id}`}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-600 hover:text-amber-500 transition-colors"
+                  >
+                    <Store className="size-3" /> Browse {g.vendor_name}
+                  </Link>
+                </div>
+              );
+            })}
+
             <div className="p-4 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 flex items-center gap-4 shadow-inner">
               <div className="size-10 rounded-xl bg-[var(--accent)] flex items-center justify-center text-white shadow-[0_0_20px_rgba(242,13,242,0.25)] flex-shrink-0">
                 <ShieldCheck className="w-5 h-5" />
@@ -269,12 +333,31 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <Link 
-                href="/checkout" 
-                className="w-full py-4 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)]  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 shadow-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 group mb-4"
-              >
-                Go to checkout <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              {hasMinimumErrors ? (
+                <div className="mb-4 space-y-2">
+                  <div className="w-full py-3 px-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2">
+                    <AlertTriangle className="size-3.5 text-amber-500 shrink-0" />
+                    <p className="text-[11px] font-semibold text-amber-600 leading-snug">
+                      {minimumErrors.length === 1
+                        ? `Add ${(minimumErrors[0].minimum - minimumErrors[0].subtotal).toLocaleString()} XAF more from ${minimumErrors[0].vendor_name}`
+                        : `${minimumErrors.length} stores have unmet minimums`}
+                    </p>
+                  </div>
+                  <button
+                    disabled
+                    className="w-full py-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 cursor-not-allowed opacity-50"
+                  >
+                    Go to checkout <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  href="/checkout"
+                  className="w-full py-4 rounded-xl bg-[var(--text-primary)] text-[var(--bg-primary)] font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 shadow-xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95 group mb-4"
+                >
+                  Go to checkout <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              )}
 
               <div className="flex items-center justify-center gap-6 py-4 border-t border-[var(--glass-border)]">
                 <div className="flex items-center gap-2 text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] ">
