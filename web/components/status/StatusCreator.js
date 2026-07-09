@@ -60,7 +60,7 @@ const kickVideoDecoder = async (video, { delayMs = 100 } = {}) => {
     // decoded and presented at least one real frame, before capturing.
     await new Promise((resolve) => {
       video.addEventListener('timeupdate', resolve, { once: true });
-      setTimeout(resolve, 800); // safety fallback if timeupdate is very slow
+      setTimeout(resolve, 300); // safety fallback — HW decoders commit within ~200ms
     });
     video.pause();
   } catch (_) {}
@@ -108,19 +108,15 @@ const waitForPreviewVideo = (videoRef, timeoutMs = 12000) =>
   });
 
 // ── Frame capture helper ───────────────────────────────────────────────────
-// On Android WebView, BOTH drawImage(video) and createImageBitmap(video) return
-// pure black unless called during a requestAnimationFrame tick while the video
-// is actively playing (not paused, not just seeked).
-// createImageBitmap silently returns a black ImageBitmap — it does NOT throw —
-// so the previous try/catch fallback never ran.
-// Rule: always capture inside rAF while playing; pause AFTER the draw.
+// On Android WebView HW decoders, rAF+drawImage returns pure black because the
+// decoded frame lives in an HW surface not accessible to the compositor.
+// grabFrame() reads directly from the HW decoder pipeline and is the primary path.
 //
-// v1.9: add ImageCapture.grabFrame() as the primary path.
-// grabFrame() reads directly from the HW decoder's media pipeline —
-// it is NOT subject to the compositor surface flush delay that causes
-// rAF + drawImage to return black on many Android WebView builds.
-// The rAF + drawImage path remains as a fallback for browsers without
-// the ImageCapture API (e.g. Firefox, older Safari).
+// On software decoders (BlueStacks, emulators, some older WebView builds),
+// grabFrame() silently returns a black ImageBitmap without throwing — there is
+// no HW pipeline to read from. We detect this by sampling the center pixels
+// of the captured bitmap; if they are all near-black we fall through to
+// rAF+drawImage which DOES work on SW decoders (frames go through compositor).
 const drawVideoToCanvas = async (video, canvas, ctx) => {
   if (typeof ImageCapture !== 'undefined' && typeof video.captureStream === 'function') {
     try {
@@ -132,11 +128,27 @@ const drawVideoToCanvas = async (video, canvas, ctx) => {
         ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
         bitmap.close?.();
         stream.getTracks().forEach((t) => t.stop());
-        return;
+        // Verify the captured frame has content. On SW decoders (BlueStacks,
+        // emulators) grabFrame() returns a valid-looking but all-black bitmap.
+        // Sample the centre quarter of the canvas — if every pixel is near-black
+        // the grab failed silently and we fall through to rAF+drawImage.
+        const sw = Math.max(1, canvas.width  >> 2);
+        const sh = Math.max(1, canvas.height >> 2);
+        const sample = ctx.getImageData(
+          (canvas.width  - sw) >> 1,
+          (canvas.height - sh) >> 1,
+          sw, sh,
+        );
+        const hasContent = sample.data.some((v, i) => i % 4 !== 3 && v > 12);
+        if (hasContent) return;
+        // Black bitmap detected — clear canvas and fall through to rAF path.
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
     } catch (_) { /* fall through to rAF */ }
   }
-  // Fallback: rAF + drawImage (reliable on desktop, may draw black on some Android WebView)
+  // rAF + drawImage: works on SW decoders (BlueStacks, emulators) where decoded
+  // frames are committed to the compositor. May return black on HW decoders
+  // where frames live in a separate HW surface — grabFrame() is tried first.
   await new Promise((resolve) => {
     requestAnimationFrame(() => {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -175,7 +187,7 @@ const seekVideoFrame = (video, targetTime, canvas, ctx) =>
     const hardTimer = setTimeout(() => {
       video.removeEventListener('seeked', onSeeked);
       capture();
-    }, isNative ? 3500 : isMob ? 2000 : 1200);
+    }, isNative ? 2000 : isMob ? 2000 : 1200);
 
     const onSeeked = async () => {
       if (isNative) {
@@ -188,7 +200,7 @@ const seekVideoFrame = (video, targetTime, canvas, ctx) =>
           await video.play();
           await new Promise((r) => {
             video.addEventListener('timeupdate', r, { once: true });
-            setTimeout(r, 600);
+            setTimeout(r, 350); // HW decoders commit first post-seek frame within ~300ms
           });
           clearTimeout(hardTimer);
           await capture();
@@ -940,12 +952,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             if (prevVideo) {
               prevVideo.addEventListener('timeupdate', resolve, { once: true });
             }
-            setTimeout(resolve, 3000); // safety fallback
+            setTimeout(resolve, 2000); // safety fallback
           });
           if (cancelled) return;
           const prevVideo = previewVideoRef.current;
           if (prevVideo && !prevVideo.paused) prevVideo.pause();
-          await new Promise((r) => setTimeout(r, 300)); // let decoder slot release
+          await new Promise((r) => setTimeout(r, 100)); // let decoder slot release
           if (cancelled) {
             if (prevVideo) prevVideo.play().catch(() => {});
             return;
@@ -986,7 +998,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           }
         }
 
-        const decoderDelay = needsOffscreenFilmstripCapture() ? 380 : isMobileWeb() ? 180 : 100;
+        const decoderDelay = needsOffscreenFilmstripCapture() ? 80 : isMobileWeb() ? 80 : 80;
         if (captureVideo.readyState < 2 || captureVideo.videoWidth === 0) {
           await kickVideoDecoder(captureVideo, { delayMs: decoderDelay });
         } else if (needsOffscreenFilmstripCapture()) {
@@ -997,7 +1009,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         // to commit its first surface before starting frame-by-frame capture.
         if (needsOffscreenFilmstripCapture()) {
           captureVideo.currentTime = 0.001;
-          await new Promise((r) => setTimeout(r, 200));
+          await new Promise((r) => setTimeout(r, 80));
         }
 
         const duration = videoMeta.duration;
@@ -1015,9 +1027,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           for (let i = 0; i < numFrames; i++) {
             if (cancelled) break;
             if (needsOffscreenFilmstripCapture() && i > 0) {
-              // Inter-frame pause on Capacitor — Android HW decoder needs
-              // time to commit each new surface after a seek.
-              await new Promise((resolve) => setTimeout(resolve, 150));
+              // Brief inter-frame pause — gives HW decoder time between seeks.
+              await new Promise((resolve) => setTimeout(resolve, 50));
             }
             const time =
               i === 0
