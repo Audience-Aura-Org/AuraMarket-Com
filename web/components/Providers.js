@@ -120,7 +120,7 @@ export default function Providers({ children }) {
           {!isImmersiveChat && !isDashboardRoute && !isAuthRoute && <TopNav />}
 
           <div className="flex w-full items-stretch flex-1 relative">
-            <main className={`flex-1 flex flex-col min-w-0${(!isAuthRoute && !isImmersiveChat) ? ' pb-[calc(68px+env(safe-area-inset-bottom,0px))] sm:pb-0' : ''}`}>
+            <main className={`flex-1 flex flex-col min-w-0${(!isAuthRoute && !isImmersiveChat) ? ' pb-[calc(68px+env(safe-area-inset-bottom,0px))] sm:pb-24' : ''}`}>
               {!isDashboardRoute && <SubscriptionAccessNotice />}
               <div className="flex-1 flex flex-col">
                 {children}</div>
