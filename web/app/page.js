@@ -13,7 +13,7 @@ export default function HomePage() {
     if (authLoading) return;
 
     if (!isAuthenticated) {
-      router.replace('/overtime');
+      router.replace('/shop');
       return;
     }
 
