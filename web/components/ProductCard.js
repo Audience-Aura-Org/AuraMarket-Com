@@ -23,7 +23,7 @@ import { useLanguage } from '@/context/LanguageContext';
  * ProductCard - Elite Nexus Version
  * Standardized premium card used across Hub and Shop.
  */
-export default function ProductCard({ product, layout = "grid", onOpenChat = null, onClick = null }) {
+export default function ProductCard({ product, layout = "grid", onOpenChat = null, onClick = null, vendorMinimum = 0 }) {
   const router = useRouter();
   const { t } = useLanguage();
   const { id, _id, name, price, sale_price, images, rating, vendor_id, category } = product;
@@ -227,6 +227,11 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
                   {deliveryTime && (
                      <span className="flex items-center gap-1"><Clock className="size-3.5 text-[var(--accent)]" /> Delivered in {deliveryTime}</span>
                    )}
+                  {vendorMinimum > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-bold text-amber-600 tracking-tight leading-none whitespace-nowrap">
+                      Min. {vendorMinimum.toLocaleString()} XAF
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -352,6 +357,11 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
                   <span className="truncate">Delivered in {deliveryTime}</span>
                 </div>
               )}
+          {vendorMinimum > 0 && (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 self-start">
+              <span className="text-[9px] font-bold text-amber-600 tracking-tight leading-none">Min. {vendorMinimum.toLocaleString()} XAF</span>
+            </div>
+          )}
           {/* 3 equal-size action buttons — Add to Cart is primary */}
           <div className="grid grid-cols-3 items-center gap-1 md:gap-1.5 mt-auto">
             {/* Add to Cart — PRIMARY */}
