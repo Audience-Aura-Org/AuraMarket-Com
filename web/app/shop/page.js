@@ -61,7 +61,7 @@ function ShopContent() {
   // Current level of categories shown in navigation
   const currentLevel = breadcrumb.length === 0
     ? categoryTree
-    : breadcrumb[breadcrumb.length - 1].children;
+    : breadcrumb[breadcrumb.length - 1].children || [];
 
   // 1. Initial Category Load (Once on mount)
   useEffect(() => {
@@ -439,14 +439,6 @@ function ShopContent() {
               <h3 className="text-xs md:text-xl  font-bold text-[var(--text-primary)] tracking-tight">
                 {activeCategoryName === 'All' ? t('common.globalMarket') : label(activeCategoryName)}
               </h3>
-              {!activeVendor && (
-                <>
-                  <div className="h-3 md:h-4 w-px bg-[var(--glass-border)]" />
-                  <p className="text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] tracking-tight opacity-60">
-                    {products.length} {t('common.results')}
-                  </p>
-                </>
-              )}
             </div>
 
             <div className="flex items-center gap-3 shrink-0 ml-auto z-20">
