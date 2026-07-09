@@ -1040,9 +1040,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         }
         // On native: resume main preview now that offscreen video is torn down
         // and the HW decoder slot is free for the main preview to reclaim.
+        // NOTE: intentionally NOT gated on !cancelled — if this run was cancelled
+        // by a newer run (e.g. duration update), we must still resume the main
+        // preview so the next run's timeupdate gate doesn't hang for 3000ms.
         if (isNativePlatform()) {
           const prevVideo = previewVideoRef.current;
-          if (prevVideo && prevVideo.paused && !cancelled) {
+          if (prevVideo && prevVideo.paused) {
             prevVideo.currentTime = trimStartRef.current || 0;
             prevVideo.play().catch(() => {});
           }
@@ -1058,6 +1061,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       cancelled = true;
       if (video.parentNode) {
         video.parentNode.removeChild(video);
+      }
+      // On native: if the offscreen capture had paused the main preview, resume
+      // it immediately so the incoming run's timeupdate gate doesn't wait 3000ms.
+      if (isNativePlatform()) {
+        const prevVideo = previewVideoRef.current;
+        if (prevVideo && prevVideo.paused) prevVideo.play().catch(() => {});
       }
     };
   }, [type, previewUrl, videoMeta?.duration]);
