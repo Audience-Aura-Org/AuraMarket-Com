@@ -3,10 +3,11 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
-import { 
+import {
   Search, Star, LayoutGrid, Users,
-  List, Check, ChevronRight, ChevronLeft, Folder, Home, MapPin, ShieldCheck
+  List, Check, ChevronRight, ChevronLeft, Folder, Home, MapPin, ShieldCheck, Store
 } from 'lucide-react';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
 import Pagination from '@/components/common/Pagination';
@@ -434,10 +435,16 @@ function ShopContent() {
           {/* Results Info & Action Bar */}
           <div className="px-3 md:px-6 lg:px-12 py-1.5 md:py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-2 md:gap-3 bg-[var(--bg-secondary)]">
             
-            <div className="flex items-center gap-1.5 md:gap-3">
-              <h3 className="text-xs md:text-xl  font-bold text-[var(--text-primary)] tracking-tight">
+            <div className="flex items-center gap-2 md:gap-3 min-w-0">
+              <h3 className="text-xs md:text-xl font-bold text-[var(--text-primary)] tracking-tight truncate">
                 {activeCategoryName === 'All' ? t('common.globalMarket') : label(activeCategoryName)}
               </h3>
+              <Link
+                href="/discovery?tab=vendors"
+                className="shrink-0 hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[10px] font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/30 transition-colors"
+              >
+                <Store className="size-3" /> Vendors
+              </Link>
             </div>
 
             <div className="flex items-center gap-3 shrink-0 ml-auto z-20">
