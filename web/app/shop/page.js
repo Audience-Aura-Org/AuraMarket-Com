@@ -111,8 +111,6 @@ function ShopContent() {
 
   // Optimized Fetcher
   const fetchProducts = useCallback(async (targetPage = page, isImmediate = false) => {
-    setLoading(true);
-
     if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
 
     const executeFetch = async () => {
@@ -126,20 +124,21 @@ function ShopContent() {
       }
       if (search) params.search = search;
       if (sortBy) params.sort = sortBy;
-      
+
       const vendorId = searchParams.get('vendorId');
       if (vendorId) params.vendor_id = vendorId;
 
       const queryKey = JSON.stringify(params);
       const cached = productCacheRef.current.get(queryKey);
-      
-      // Only use cache for non-search queries to avoid stale results
-      if (cached && !search && !isImmediate) {
+
+      // Serve from cache instantly for non-search queries (including category clicks)
+      if (cached && !search) {
         setProducts(cached.products);
         setTotalPages(cached.totalPages);
-        setLoading(false);
         return;
       }
+
+      setLoading(true);
 
       // Fetch matching vendors if searching
       if (search) {
