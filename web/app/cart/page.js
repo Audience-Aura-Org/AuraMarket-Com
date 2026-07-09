@@ -21,9 +21,10 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [couponCode, setCouponCode] = useState('');
-  const [coupon, setCoupon]  = useState(null); 
+  const [coupon, setCoupon]  = useState(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
+  const [vendorMinimums, setVendorMinimums] = useState({});
 
   useEffect(() => {
     setLoading(true);
@@ -37,6 +38,22 @@ export default function CartPage() {
     cartStore.refresh();
     return unsubscribe;
   }, [loading, router]);
+
+  // Fetch minimum order amounts from each vendor's store page
+  // (cart API doesn't deeply populate vendor_id.store.minimum_order_amount)
+  useEffect(() => {
+    if (!cartItems.length) return;
+    const vendorIds = [...new Set(cartItems.map(i => i.vendor_id).filter(Boolean))];
+    if (!vendorIds.length) return;
+    vendorIds.forEach(vid => {
+      api.get(`/vendors/stores/${vid}`)
+        .then(res => {
+          const min = Number(res.data?.data?.store?.minimum_order_amount) || 0;
+          if (min > 0) setVendorMinimums(prev => ({ ...prev, [String(vid)]: min }));
+        })
+        .catch(() => {});
+    });
+  }, [cartItems.length]); // re-run when item count changes (vendor set may change)
 
   const updateCartQty = async (id, delta) => {
     cartStore.startMutation();
@@ -97,22 +114,25 @@ export default function CartPage() {
   const total = subtotal - discount;
 
   // Per-vendor minimum order checks
+  // vendorMinimums (fetched from store API) takes priority over cart-item field
   const vendorGroups = useMemo(() => {
     const map = new Map();
     cartItems.forEach(item => {
       const vid = String(item.vendor_id || 'unknown');
       if (!map.has(vid)) {
+        const fetched = vendorMinimums[vid] || 0;
+        const fallback = Number(item.vendor_minimum_order_amount) || 0;
         map.set(vid, {
           vendor_id: vid,
           vendor_name: item.vendor_name,
           subtotal: 0,
-          minimum: Number(item.vendor_minimum_order_amount) || 0,
+          minimum: fetched || fallback,
         });
       }
       map.get(vid).subtotal += item.price * item.quantity;
     });
     return Array.from(map.values());
-  }, [cartItems]);
+  }, [cartItems, vendorMinimums]);
 
   const minimumErrors = vendorGroups.filter(g => g.minimum > 0 && g.subtotal < g.minimum);
   const hasMinimumErrors = minimumErrors.length > 0;

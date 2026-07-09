@@ -250,9 +250,14 @@ export default function AdminHomepagePage() {
     fetchSections();
   }, []);
 
+  const notifyHomepageUpdated = () => {
+    try { localStorage.setItem('aura_homepage_updated', String(Date.now())); } catch {}
+  };
+
   const handleToggle = async (id, currentStatus) => {
     try {
       await api.patch(`/homepage/admin/sections/${id}`, { is_active: !currentStatus });
+      notifyHomepageUpdated();
       fetchSections();
       toast.success('Section status updated');
     } catch (err) {
@@ -264,6 +269,7 @@ export default function AdminHomepagePage() {
     if (!confirm('Delete this homepage section?')) return;
     try {
       await api.delete(`/homepage/admin/sections/${id}`);
+      notifyHomepageUpdated();
       fetchSections();
       toast.success('Section deleted');
     } catch (err) {
@@ -284,6 +290,7 @@ export default function AdminHomepagePage() {
 
     try {
       await api.patch('/homepage/admin/sections/reorder', { orders });
+      notifyHomepageUpdated();
     } catch (err) {
       toast.error('Failed to reorder sections');
       fetchSections();
@@ -420,7 +427,7 @@ export default function AdminHomepagePage() {
           <SectionForm
             section={editingSection}
             onClose={() => setIsFormOpen(false)}
-            onSuccess={() => { setIsFormOpen(false); fetchSections(); }}
+            onSuccess={() => { setIsFormOpen(false); notifyHomepageUpdated(); fetchSections(); }}
           />
         )}
       </div>

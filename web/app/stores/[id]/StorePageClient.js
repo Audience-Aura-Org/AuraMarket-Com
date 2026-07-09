@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Star, MapPin, Package, Users, Filter, LayoutGrid, List, ShieldCheck, Heart, UserPlus, UserMinus, Loader2, Check, Activity, Share2 } from 'lucide-react';
+import { Star, MapPin, Package, Users, Filter, LayoutGrid, List, ShieldCheck, Heart, UserPlus, UserMinus, Loader2, Check, Activity, Share2, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import api from '@/services/api';
@@ -214,6 +214,12 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
                     {t('store.verified', 'Verified')}
                   </span>
                 )}
+                {Number(store?.minimum_order_amount) > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-[11px] font-semibold text-amber-600">
+                    <ShoppingBag className="size-3" />
+                    Min. {Number(store.minimum_order_amount).toLocaleString()} XAF
+                  </span>
+                )}
               </div>
             </div>
 
@@ -267,6 +273,23 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
 
       {/* ── Products Section ─────────────────────────────────────── */}
       <div className="px-4 sm:px-6 lg:px-12 mt-8">
+
+        {/* Minimum order notice */}
+        {Number(store?.minimum_order_amount) > 0 && (
+          <div className="mb-4 flex items-center gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/8 px-4 py-3">
+            <div className="size-8 shrink-0 rounded-xl bg-amber-500/15 flex items-center justify-center">
+              <ShoppingBag className="size-4 text-amber-500" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">
+                Minimum order — {Number(store.minimum_order_amount).toLocaleString()} XAF
+              </p>
+              <p className="text-[11px] font-medium text-[var(--text-secondary)] mt-0.5">
+                Your cart from this store must reach this amount to check out
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Tab bar */}
         <div ref={productsAnchor} className="mb-6 flex items-center gap-2 overflow-x-auto no-scrollbar">
