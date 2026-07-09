@@ -14,7 +14,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useLanguage } from '@/context/LanguageContext';
 
 export const TOP_NAV_HEIGHT = 'calc(53px + env(safe-area-inset-top,0px))';
-export const TOP_NAV_HEIGHT_LG = 'calc(68px + env(safe-area-inset-top, 0px))';
+export const TOP_NAV_HEIGHT_LG = 'calc(65px + env(safe-area-inset-top, 0px))';
 
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
 
