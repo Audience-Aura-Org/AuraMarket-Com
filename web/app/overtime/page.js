@@ -10,11 +10,45 @@ import dynamic_import from 'next/dynamic';
 const StorefrontRenderer = dynamic_import(() => import('@/components/homepage/StorefrontRenderer'), { ssr: false });
 const AuraAssistant = dynamic_import(() => import('@/components/onboarding/AuraAssistant'), { ssr: false });
 
+function OvertimeSkeleton() {
+  return (
+    <div className="w-full animate-pulse">
+      {/* Hero skeleton */}
+      <div className="w-full h-[72dvh] min-h-[440px] md:h-[88dvh] md:min-h-[600px] bg-[var(--bg-primary)] rounded-none relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-secondary)] via-[var(--bg-primary)] to-[var(--bg-secondary)] animate-[shimmer_1.8s_infinite]" style={{backgroundSize:'200% 100%'}} />
+        <div className="absolute bottom-16 md:bottom-20 left-5 sm:left-10 md:left-16 lg:left-28 space-y-4 w-80 md:w-[480px]">
+          <div className="h-3 w-24 bg-white/10 rounded-full" />
+          <div className="h-10 md:h-14 w-full bg-white/10 rounded-2xl" />
+          <div className="h-10 md:h-14 w-4/5 bg-white/10 rounded-2xl" />
+          <div className="h-4 w-3/4 bg-white/8 rounded-full" />
+          <div className="h-12 w-36 bg-white/10 rounded-2xl mt-4" />
+        </div>
+      </div>
+      {/* Section skeletons */}
+      {[0, 1].map(i => (
+        <div key={i} className="px-5 sm:px-8 md:px-12 py-8">
+          <div className="flex items-end justify-between mb-5">
+            <div className="space-y-2">
+              <div className="h-5 w-36 bg-[var(--bg-primary)] rounded-full" />
+              <div className="h-3 w-52 bg-[var(--bg-primary)] rounded-full opacity-60" />
+            </div>
+            <div className="h-8 w-20 bg-[var(--bg-primary)] rounded-full" />
+          </div>
+          <div className="flex gap-3 overflow-hidden">
+            {[0,1,2,3,4,5].map(j => (
+              <div key={j} className="w-[calc(50%-0.375rem)] sm:w-[calc(33.33%-0.5rem)] lg:w-[calc(16.66%-0.625rem)] shrink-0 aspect-[3/4] rounded-3xl bg-[var(--bg-primary)]" />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const { user } = useAuthStore();
   const [sections, setSections] = useState(null); // null = not yet loaded
 
-  // No mounted guard needed — we use null check instead
   useEffect(() => {
     let isActive = true;
     let controller = new AbortController();
@@ -70,22 +104,25 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] overflow-x-hidden transition-colors duration-500">
-      {/* Ambient blobs — CSS-only, zero JS cost */}
-      <div className="pointer-events-none fixed top-[-100px] left-[-100px] w-[400px] h-[400px] rounded-full opacity-20 z-0" style={{background:'radial-gradient(circle, var(--accent) 0%, transparent 70%)', filter:'blur(60px)'}} />
-      <div className="pointer-events-none fixed top-[60%] right-[-50px] w-[400px] h-[400px] rounded-full opacity-20 z-0" style={{background:'radial-gradient(circle, var(--accent) 0%, transparent 70%)', filter:'blur(60px)'}} />
+      {/* Ambient glow blobs */}
+      <div className="pointer-events-none fixed top-[-120px] left-[-120px] w-[500px] h-[500px] rounded-full opacity-15 z-0"
+        style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)', filter: 'blur(80px)' }} />
+      <div className="pointer-events-none fixed top-[55%] right-[-80px] w-[450px] h-[450px] rounded-full opacity-12 z-0"
+        style={{ background: 'radial-gradient(circle, var(--accent) 0%, transparent 70%)', filter: 'blur(80px)' }} />
+      <div className="pointer-events-none fixed bottom-[-100px] left-[30%] w-[400px] h-[400px] rounded-full opacity-8 z-0"
+        style={{ background: 'radial-gradient(circle, var(--accent-light, var(--accent)) 0%, transparent 70%)', filter: 'blur(100px)' }} />
 
-      {/* Storefront renders only CMS data; no preload/marketing fallback between pages. */}
       <div className="w-full relative z-10 pb-[calc(92px+env(safe-area-inset-bottom,0px))] sm:pb-10">
-        {sections === null ? null : sections.length > 0 ? (
+        {sections === null ? (
+          <OvertimeSkeleton />
+        ) : sections.length > 0 ? (
           <StorefrontRenderer sections={sections} />
         ) : (
           <main className="min-h-[60dvh] w-full" aria-label="Overtime CMS content" />
         )}
       </div>
 
-      {/* Aura Assistant — lazy, appears 1.2s after mount only for eligible users */}
       <AuraAssistant user={user} />
     </div>
   );
 }
-

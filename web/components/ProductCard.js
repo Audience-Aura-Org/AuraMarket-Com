@@ -92,6 +92,18 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
     e.stopPropagation();
     if (!user) { router.push('/login?from=' + encodeURIComponent(window.location.pathname + window.location.search)); return; }
 
+    // Minimum order check — Buy Now is a single item so if price < minimum, block it
+    if (vendorMinimum > 0 && displayPrice < vendorMinimum) {
+      const storeName = vendor_id?.store_name || 'this store';
+      const needed = vendorMinimum - displayPrice;
+      toast(`Minimum order: ${vendorMinimum.toLocaleString()} XAF for ${storeName}. Add ${needed.toLocaleString()} XAF more to cart first.`, {
+        icon: '⚠️',
+        duration: 4000,
+        style: { borderRadius: '16px', background: '#333', color: '#fff', fontSize: '12px', fontWeight: 'bold' },
+      });
+      return;
+    }
+
     // If product has variants, show selector
     if (product.has_variants) {
       setModalActionType('buy');
@@ -111,6 +123,17 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
     };
 
     if (modalActionType === 'buy') {
+      const variantPrice = variantOrProduct.price ?? displayPrice;
+      if (vendorMinimum > 0 && variantPrice < vendorMinimum) {
+        const storeName = vendor_id?.store_name || 'this store';
+        toast(`Minimum order: ${vendorMinimum.toLocaleString()} XAF for ${storeName}. Add more items to cart first.`, {
+          icon: '⚠️',
+          duration: 4000,
+          style: { borderRadius: '16px', background: '#333', color: '#fff', fontSize: '12px', fontWeight: 'bold' },
+        });
+        setIsVariantModalOpen(false);
+        return;
+      }
       router.push(`/checkout?productId=${productId}&quantity=1&variant=${encodeURIComponent(JSON.stringify(variantOrProduct.combination))}`);
     } else {
       setAddingToCart(true);

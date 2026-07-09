@@ -12,9 +12,7 @@ export default function Hero({ data, config }) {
 
   useEffect(() => {
     if (config?.autoplay && data.length > 1) {
-      const timer = setInterval(() => {
-        handleNext();
-      }, config.interval || 5000);
+      const timer = setInterval(() => handleNext(), config.interval || 5000);
       return () => clearInterval(timer);
     }
   }, [data.length, config, current]);
@@ -41,87 +39,96 @@ export default function Hero({ data, config }) {
 
   return (
     <section className="relative w-full overflow-hidden group select-none">
-      <div className="relative h-[400px] md:h-[520px] bg-[#0a050c]">
+      {/* Full-height immersive hero */}
+      <div className="relative h-[72dvh] min-h-[440px] md:h-[88dvh] md:min-h-[600px] bg-[#060408]">
         {data.map((banner, i) => (
-          <div 
-            key={i} 
+          <div
+            key={i}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === current ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
           >
-            {/* Background Image with optimized scale effect */}
-            <div className={`absolute inset-0 transition-transform duration-[10000ms] ease-out ${i === current ? 'scale-100' : 'scale-110'}`}>
-              <img 
-                src={banner.image_url} 
-                className="w-full h-full object-cover" 
+            {/* Background with slow zoom */}
+            <div className={`absolute inset-0 transition-transform duration-[12000ms] ease-out ${i === current ? 'scale-100' : 'scale-110'}`}>
+              <img
+                src={banner.image_url}
+                className="w-full h-full object-cover"
                 alt={banner.headline}
+                loading={i === 0 ? 'eager' : 'lazy'}
               />
-              <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-black/40 to-transparent" />
+              {/* Cinematic multi-layer gradient */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/45 to-black/5" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/10" />
             </div>
 
-            {/* Premium Content Card */}
-            <div className="absolute inset-0 z-20 flex items-center justify-start px-4 sm:px-8 md:px-20">
-              <div className={`w-full sm:max-w-2xl transition-all duration-700 delay-300 ${i === current ? 'translate-x-0 opacity-100 block' : '-translate-x-12 opacity-0 hidden'}`}>
-                <div className="liquid-glass p-6 sm:p-8 md:p-12 rounded-[1.5rem] sm:rounded-[2.5rem] space-y-4 md:space-y-6">
-                  <h1 className="text-2xl sm:text-4xl md:text-6xl font-bold text-white leading-[1.1] tracking-tight drop-shadow-2xl font-quicksand">
-                    {label(banner.headline)}
-                  </h1>
-                  
-                  <p className="text-xs md:text-lg text-white/80 font-medium leading-relaxed max-w-lg line-clamp-3 sm:line-clamp-none">
+            {/* Content — bottom-aligned on mobile, center on desktop */}
+            <div className="absolute inset-0 z-20 flex items-end md:items-center px-5 sm:px-10 md:px-16 lg:px-28 pb-20 md:pb-0">
+              <div className={`w-full max-w-xl md:max-w-2xl transition-all duration-700 delay-200 ${i === current ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+                {/* Eyebrow */}
+                <div className="flex items-center gap-2.5 mb-5 md:mb-7">
+                  <span className="w-8 h-[2px] bg-[var(--accent)] rounded-full" />
+                  <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-[0.28em] text-white/55">
+                    {t('overtime.newArrival', 'New Arrival')}
+                  </span>
+                </div>
+
+                {/* Headline */}
+                <h1 className="text-[2rem] sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-[1.02] tracking-tighter drop-shadow-2xl font-quicksand mb-4 md:mb-6">
+                  {label(banner.headline)}
+                </h1>
+
+                {/* Subtext */}
+                {banner.subtext && (
+                  <p className="text-sm md:text-lg text-white/65 font-medium leading-relaxed max-w-md mb-7 md:mb-10 line-clamp-2 md:line-clamp-none">
                     {label(banner.subtext)}
                   </p>
-                  
-                  <div className="pt-2 md:pt-4">
-                    <button 
-                      onClick={() => router.push(banner.link_to || '/overtime')}
-                      className="group bg-white text-black px-6 sm:px-10 py-3 sm:py-4 rounded-xl sm:rounded-2xl  font-bold text-xs sm:text-sm shadow-2xl hover:bg-[var(--accent)] hover:text-white transition-all flex items-center gap-3 tracking-tight active:scale-95"
-                    >
-                      <span className="whitespace-nowrap">{banner.cta_text ? label(banner.cta_text) : t('overtime.exploreCollection', 'Explore Collection')}</span>
-                      <ArrowRight className="w-4 h-4 md:w-5 md:h-5 group-hover:translate-x-2 transition-transform" />
-                    </button>
-                  </div>
-                </div>
+                )}
+
+                {/* CTA */}
+                <button
+                  onClick={() => router.push(banner.link_to || '/shop')}
+                  className="group inline-flex items-center gap-3 bg-white text-black px-7 sm:px-10 py-3.5 sm:py-4 rounded-2xl font-bold text-sm shadow-2xl hover:bg-[var(--accent)] hover:text-white transition-all active:scale-95"
+                >
+                  <span className="whitespace-nowrap">
+                    {banner.cta_text ? label(banner.cta_text) : t('overtime.exploreCollection', 'Explore Collection')}
+                  </span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </button>
               </div>
             </div>
           </div>
         ))}
 
-        {/* Dynamic Interactive Navigation */}
+        {/* Arrow navigation */}
         {data.length > 1 && (
           <>
-            <div className="absolute top-1/2 -translate-y-1/2 inset-x-8 z-30 flex justify-between pointer-events-none">
-              <button 
-                onClick={handlePrev} 
-                className="pointer-events-auto w-14 h-14 flex items-center justify-center rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent)] hover:border-[var(--accent)]/50 -translate-x-4 group-hover:translate-x-0"
+            <div className="absolute top-1/2 -translate-y-1/2 inset-x-3 md:inset-x-8 z-30 flex justify-between pointer-events-none">
+              <button
+                onClick={handlePrev}
+                className="pointer-events-auto size-9 md:size-14 flex items-center justify-center rounded-xl md:rounded-2xl bg-white/8 backdrop-blur-md border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent)] hover:border-[var(--accent)]/50 -translate-x-3 group-hover:translate-x-0"
               >
-                <ChevronLeft className="w-6 h-6" />
+                <ChevronLeft className="w-4 h-4 md:w-6 md:h-6" />
               </button>
-              <button 
-                onClick={handleNext} 
-                className="pointer-events-auto w-14 h-14 flex items-center justify-center rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent)] hover:border-[var(--accent)]/50 translate-x-4 group-hover:translate-x-0"
+              <button
+                onClick={handleNext}
+                className="pointer-events-auto size-9 md:size-14 flex items-center justify-center rounded-xl md:rounded-2xl bg-white/8 backdrop-blur-md border border-white/10 text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent)] hover:border-[var(--accent)]/50 translate-x-3 group-hover:translate-x-0"
               >
-                <ChevronRight className="w-6 h-6" />
+                <ChevronRight className="w-4 h-4 md:w-6 md:h-6" />
               </button>
             </div>
 
-            {/* Premium Mini-Pills Pagination */}
-            <div className="absolute bottom-10 right-20 z-30 flex items-center gap-4">
-               <div className="h-[2px] w-24 bg-white/10 relative overflow-hidden hidden md:block">
-                  <div 
-                    className="absolute top-0 left-0 h-full bg-[var(--accent)] transition-all duration-700"
-                    style={{ width: `${((current + 1) / data.length) * 100}%` }}
-                  />
-               </div>
-               <div className="flex gap-2">
+            {/* Pagination — left-aligned below content */}
+            <div className="absolute bottom-6 md:bottom-10 left-5 sm:left-10 md:left-16 lg:left-28 z-30 flex items-center gap-4">
+              <div className="flex gap-2 items-center">
                 {data.map((_, i) => (
-                  <button 
-                    key={i} 
+                  <button
+                    key={i}
                     onClick={() => setCurrent(i)}
-                    className={`h-1.5 transition-all duration-500 rounded-full ${i === current ? 'bg-[var(--accent)] w-10' : 'bg-white/20 w-3 hover:bg-white/40'}`}
+                    className={`h-[3px] transition-all duration-500 rounded-full ${i === current ? 'bg-[var(--accent)] w-8 md:w-10' : 'bg-white/30 w-3 hover:bg-white/55'}`}
                   />
                 ))}
-               </div>
-               <span className="text-[11px] lg:text-[12px]  font-semibold text-white/40 tracking-tight ml-2 hidden md:inline">
-                  {String(current + 1).padStart(2, '0')} / {String(data.length).padStart(2, '0')}
-               </span>
+              </div>
+              <span className="text-[10px] font-semibold text-white/40 tracking-tight hidden sm:inline">
+                {String(current + 1).padStart(2, '0')} / {String(data.length).padStart(2, '0')}
+              </span>
             </div>
           </>
         )}

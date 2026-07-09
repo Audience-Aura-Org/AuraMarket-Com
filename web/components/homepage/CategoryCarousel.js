@@ -17,10 +17,11 @@ export default function CategoryCarousel({ title, data }) {
   };
 
   return (
-    <section className="w-full py-3 sm:py-4 lg:py-5">
-      <div className="mb-3 flex items-end justify-between gap-3 px-3 sm:px-4 md:mb-4 md:px-1">
-        <div className="min-w-0">
-          <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-normal text-[var(--text-primary)] sm:text-xl md:text-2xl">
+    <section className="w-full py-5 sm:py-7 lg:py-9">
+      <div className="mb-5 flex items-end justify-between gap-3 px-4 sm:px-5 md:mb-6 md:px-2">
+        <div className="min-w-0 flex items-center gap-2.5">
+          <span className="w-4 h-[3px] bg-[var(--accent)] rounded-full shrink-0" />
+          <h2 className="truncate font-[var(--font-poppins)] text-[18px] font-semibold leading-tight tracking-tight text-[var(--text-primary)] sm:text-xl md:text-2xl">
             {title ? label(title) : t('overtime.shopByCategory', 'Shop by Category')}
           </h2>
         </div>
@@ -33,30 +34,31 @@ export default function CategoryCarousel({ title, data }) {
         </Link>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto no-scrollbar px-0 pb-4 snap-x snap-mandatory md:gap-4 md:px-1 md:pb-5">
+      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-5 snap-x snap-mandatory md:gap-4 md:pb-6">
+        <div className="w-1 shrink-0 md:hidden" aria-hidden="true" />
         {data.map((cat, i) => (
-          <Link 
-            key={i} 
+          <Link
+            key={i}
             href={categoryHref(cat)}
-            className="group w-[38vw] max-w-[168px] flex-shrink-0 snap-start sm:w-[24vw] md:w-[178px] lg:w-[190px]"
+            className="group w-[38vw] max-w-[172px] flex-shrink-0 snap-start sm:w-[24vw] md:w-[182px] lg:w-[194px]"
           >
-            <div className="relative aspect-square overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm transition-all duration-300 group-hover:border-[var(--accent)]/30 group-hover:shadow-lg">
-              <img 
-                src={cat.image_url || 'https://via.placeholder.com/200'} 
-                className="size-full object-cover transition-transform duration-500 group-hover:scale-105" 
+            <div className="relative aspect-square overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm transition-all duration-300 group-hover:border-[var(--accent)]/35 group-hover:shadow-xl group-hover:-translate-y-1">
+              <img
+                src={cat.image_url || 'https://via.placeholder.com/200'}
+                className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
                 alt={cat.category_name}
+                loading="lazy"
               />
-              <div className="absolute inset-x-0 bottom-0 p-3 md:p-4 bg-gradient-to-t from-black/60 to-transparent">
-                <span className="block truncate px-1 text-center font-[var(--font-poppins)] text-[11px] font-semibold tracking-normal text-white md:px-2 md:text-[12px]">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-3 md:p-4">
+                <span className="block truncate text-center font-[var(--font-poppins)] text-[11px] font-bold tracking-tight text-white drop-shadow md:text-[12px]">
                   {label(cat.category_name)}
                 </span>
               </div>
             </div>
-            <p className="mt-2 truncate px-1 text-center font-[var(--font-poppins)] text-[11px] font-semibold tracking-normal text-[var(--text-primary)] opacity-80 transition-opacity group-hover:opacity-100 md:px-2 md:text-[12px]">
-              {label(cat.category_name)}
-            </p>
           </Link>
         ))}
+        <div className="w-1 shrink-0 md:hidden" aria-hidden="true" />
       </div>
     </section>
   );
