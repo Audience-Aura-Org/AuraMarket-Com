@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import nextDynamic from 'next/dynamic';
-import { Activity, LogIn, UserPlus } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import StatusTabGrid from '@/components/status/StatusTabGrid';
@@ -71,24 +71,6 @@ function StatusPageContent() {
             <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-[0.15em]">Live Vendor Updates</p>
           </div>
         </div>
-        {!user && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push('/login')}
-              className="h-8 px-3 rounded-full border border-[var(--glass-border)] text-[11px] font-semibold text-[var(--text-secondary)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-all flex items-center gap-1.5"
-            >
-              <LogIn className="size-3" />
-              Log in
-            </button>
-            <button
-              onClick={() => router.push('/register')}
-              className="h-8 px-3 rounded-full bg-[var(--accent)] text-white text-[11px] font-semibold hover:brightness-110 transition-all flex items-center gap-1.5 shadow-md shadow-[var(--accent)]/20"
-            >
-              <UserPlus className="size-3" />
-              Sign up
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Guest CTA banner — see followed vendor stories */}

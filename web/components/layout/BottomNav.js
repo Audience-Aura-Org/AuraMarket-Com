@@ -39,24 +39,34 @@ export default function BottomNav() {
   // If discovery hub uses its own exact replica, we can hide this one to prevent double rendering.
   if (isDiscoveryPage) return null;
 
-  const isCustomer = !user || user.role === 'customer';
+  const isCustomer = user?.role === 'customer';
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const storiesHref = user?.role === 'vendor' ? "/vendor/stories" : "/discovery?tab=status";
 
-  const menu = isCustomer ? [
+  const guestMenu = [
+    { label: t('bottomNav.shop',     'Shop'),     href: "/shop",     icon: Compass  },
+    { label: t('bottomNav.stories',  'Stories'),  href: "/status",   icon: Activity },
+    { label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House    },
+  ];
+
+  const customerMenu = [
     { label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },
     { label: t('bottomNav.vendors', 'Vendors'), href: "/discovery?tab=vendors", icon: Store },
     { label: t('bottomNav.stories', 'Stories'), href: "/discovery?tab=status", icon: Activity },
     { label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House },
     { label: t('bottomNav.profile', 'Profile'), href: "/profile", icon: User }
-  ] : [
+  ];
+
+  const vendorMenu = [
     { label: t('bottomNav.dashboard', 'Dashboard'), href: dashboardHref, icon: LayoutDashboard },
     { label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },
     { label: t('bottomNav.stories', 'Stories'), href: storiesHref, icon: Activity },
     { label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House },
     { label: t('bottomNav.profile', 'Profile'), href: "/profile", icon: User }
   ];
+
+  const menu = !user ? guestMenu : isCustomer ? customerMenu : vendorMenu;
 
   const isItemActive = (item) => {
     const [itemPath, itemQuery = ''] = item.href.split('?');

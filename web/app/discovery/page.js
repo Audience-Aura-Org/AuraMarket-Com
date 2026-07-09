@@ -9,26 +9,18 @@ function DiscoveryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab');
-  const { user, authChecked } = useAuthStore();
+  const { authChecked } = useAuthStore();
 
   useEffect(() => {
-    if (authChecked && !user) {
-      router.replace('/login');
-    }
-  }, [user, authChecked, router]);
-
-  useEffect(() => {
-    if (!authChecked || !user) return;
+    if (!authChecked) return;
     if (!tab || tab === 'discover') {
       router.replace('/shop');
     }
-  }, [tab, authChecked, user, router]);
+  }, [tab, authChecked, router]);
 
   if (!authChecked || !tab || tab === 'discover') {
     return <LoadingSpinner />;
   }
-
-  if (!user) return null;
 
   return <DiscoveryHub initialTab={tab} />;
 }
