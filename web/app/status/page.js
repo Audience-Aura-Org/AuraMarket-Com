@@ -73,18 +73,17 @@ function StatusPageContent() {
         </div>
       </div>
 
-      {/* Guest CTA banner — see followed vendor stories */}
+      {/* Guest CTA banner */}
       {!user && (
-        <div className="mx-4 mt-4 px-4 py-3 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/15 flex items-center gap-3">
-          <span className="material-symbols-outlined text-[var(--accent)] text-[18px]">auto_awesome</span>
-          <p className="text-[11px] font-semibold text-[var(--text-secondary)] flex-1">
+        <div className="mx-4 mt-4 px-4 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-3">
+          <p className="text-[11px] font-semibold text-[var(--text-secondary)] flex-1 font-[Poppins]">
             <span className="text-[var(--text-primary)]">Sign in</span> to see stories from vendors you follow
           </p>
           <button
             onClick={() => router.push('/login')}
-            className="text-[10px] font-bold text-[var(--accent)] hover:underline whitespace-nowrap"
+            className="text-[10px] font-bold text-[var(--accent)] hover:underline whitespace-nowrap font-[Poppins]"
           >
-            Sign in
+            Sign in →
           </button>
         </div>
       )}

@@ -1,10 +1,9 @@
 "use client";
 import { useState, useEffect, useCallback, memo, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  Flame, Play, Search, X,
-  Clock, ShoppingBag,
-  Users, Globe,
-  Layers, Plus, Sparkles
+  Play, Search, X,
+  Clock, ShoppingBag, Plus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
@@ -16,14 +15,12 @@ import { buildStatusSequences, getStatusVendorId, markStatusViewed } from '@/com
 
 const warmStoryMedia = (story, eager = false) => {
   if (!story?.content_url) return;
-  // Preload the thumbnail / cover image
   const previewUrl = story.type === 'video' ? story.thumbnail_url : story.content_url;
   if (previewUrl) {
     const img = new Image();
     img.fetchPriority = eager ? 'high' : 'auto';
     img.src = previewUrl;
   }
-  // Also prime video metadata so playback starts without stalling
   if (story.type === 'video') {
     const video = document.createElement('video');
     video.preload = eager ? 'metadata' : 'none';
@@ -33,7 +30,7 @@ const warmStoryMedia = (story, eager = false) => {
   }
 };
 
-// â"€â"€â"€ Utils â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Utils ────────────────────────────────────────────────────────────────────
 const ago = d => {
   const s = Math.floor((Date.now() - new Date(d)) / 1000);
   if (s < 60) return `${s}s`;
@@ -43,7 +40,7 @@ const ago = d => {
 };
 const hoursLeft = exp => Math.max(0, (new Date(exp) - Date.now()) / 3600000);
 
-// â"€â"€â"€ Story Card â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Story Card ────────────────────────────────────────────────────────────────
 const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unviewedCount = 0, rank, isNew, priority = 'auto', onClick, className = '' }) {
   const v       = status.vendor_id;
   const logo    = v?.user_id?.branding?.logo || v?.user_id?.avatar;
@@ -59,115 +56,117 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unvie
       onClick={onClick}
       className={`group relative overflow-visible cursor-pointer transition-all duration-300 ${className}`}
     >
-      {/* 3D Overlapping Card Deck Effect for Grouped Statuses */}
+      {/* 3D Overlapping Card Deck for grouped statuses */}
       {statusesCount > 1 && (
         <>
-          {/* Deepest stack layer */}
           <div className="absolute inset-0 translate-x-2.5 translate-y-2.5 scale-[0.93] rounded-[1.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] opacity-30 shadow-md -z-20 transition-transform duration-300 group-hover:translate-x-3.5 group-hover:translate-y-3.5" />
-          {/* Middle stack layer */}
           <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 scale-[0.96] rounded-[1.5rem] bg-[var(--bg-primary)] border border-[var(--glass-border)] opacity-60 shadow-lg -z-10 transition-transform duration-300 group-hover:translate-x-2 group-hover:translate-y-2" />
         </>
       )}
 
-      {/* Main Card Container */}
+      {/* Main Card */}
       <div className={`relative w-full h-full overflow-hidden rounded-[1.5rem] shadow-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 transition-all duration-300 ${
-        isNew 
-          ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg-secondary)]' 
+        isNew
+          ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg-secondary)]'
           : 'opacity-75 hover:opacity-100'
       }`}>
-      {statusesCount > 1 && (
-        <div className="absolute inset-x-3 top-3 z-30 flex gap-1">
-          {Array.from({ length: statusesCount }).map((_, i) => (
-            <span
-              key={i}
-              className={`h-1 flex-1 rounded-full shadow-sm ${i < unviewedCount ? 'bg-[var(--accent)]' : 'bg-white/35'}`}
-            />
-          ))}
-        </div>
-      )}
-      {/* Media */}
-      <div className="absolute inset-0">
-        {!isText ? (
-          <>
-            <MediaThumbnail src={status.content_url} poster={status.thumbnail_url} alt={name} priority={priority}
-              className="w-full h-full"
-              objectFit="cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-          </>
-        ) : (
-          <div className="size-full flex items-center justify-center p-5 text-center overflow-hidden"
-            style={{ background: 'linear-gradient(160deg, #090909 0%, #1a1a1a 100%)' }}>
-            <div className="absolute -top-10 -left-10 size-24 bg-[var(--accent)] blur-[50px] opacity-20 rounded-full animate-pulse" />
-            <p className="relative z-10 text-[12px] lg:text-sm font-semibold text-white/90 leading-relaxed line-clamp-5">
-              {status.text_content}
-            </p>
+
+        {/* Progress dots */}
+        {statusesCount > 1 && (
+          <div className="absolute inset-x-3 top-3 z-30 flex gap-1">
+            {Array.from({ length: statusesCount }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-1 flex-1 rounded-full shadow-sm ${i < unviewedCount ? 'bg-[var(--accent)]' : 'bg-white/35'}`}
+              />
+            ))}
           </div>
         )}
-      </div>
 
-      {/* Video play icon */}
-      {isVideo && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 size-8 rounded-full bg-black/40 backdrop-blur border border-white/20 flex items-center justify-center pointer-events-none">
-          <Play className="size-3.5 text-white ml-0.5" />
-        </div>
-      )}
-
-      {/* Info overlay - always visible (not hover-only) */}
-      <div className="absolute inset-x-0 bottom-0 p-2.5 z-20">
-        <div className="bg-black/55 backdrop-blur-md border border-white/10 rounded-2xl p-3 shadow-lg">
-          <div className="flex items-center gap-2.5">
-            <div className="size-9 rounded-full border border-white/20 overflow-hidden bg-black/40 shrink-0">
-              {logo ? (
-                <BlurUpImage src={logo} alt={name} priority="low" className="size-full" objectFit="cover" />
-              ) : (
-                <div className="size-full flex items-center justify-center text-xs font-semibold text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
-                  {name[0]}
-                </div>
-              )}
-            </div>
-            <div className="min-w-0 flex-1 text-left">
-              <p className="text-[11px] lg:text-xs font-semibold text-white truncate">{name}</p>
-              <p className="text-[10px] font-medium text-white/45">{ago(status.createdAt)}</p>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              {statusesCount > 1 && (
-                <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-white/20 backdrop-blur border border-white/10 text-white text-[10px] font-bold shadow-sm" title="Grouped updates">
-                  <Layers className="size-3 text-[var(--accent)]" /> {statusesCount}
-                </div>
-              )}
-              {isNew && (
-                <div className="px-2 py-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-semibold">
-                  {unviewedCount > 1 ? `${unviewedCount} new` : 'New'}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {status.linked_product && (
-            <div className="flex items-center gap-1.5 min-w-0 mt-2 pt-2 border-t border-white/10 text-[10px] font-semibold text-white/70">
-              <ShoppingBag className="size-3 shrink-0 text-[var(--accent)]" />
-              <span className="truncate">{status.linked_product.name}</span>
+        {/* Media */}
+        <div className="absolute inset-0">
+          {!isText ? (
+            <>
+              <MediaThumbnail src={status.content_url} poster={status.thumbnail_url} alt={name} priority={priority}
+                className="w-full h-full"
+                objectFit="cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+            </>
+          ) : (
+            <div className="size-full flex items-center justify-center p-5 text-center overflow-hidden"
+              style={{ background: 'linear-gradient(160deg, #090909 0%, #1a1a1a 100%)' }}>
+              <div className="absolute -top-10 -left-10 size-24 bg-[var(--accent)] blur-[50px] opacity-20 rounded-full animate-pulse" />
+              <p className="relative z-10 text-[12px] lg:text-sm font-semibold text-white/90 leading-relaxed line-clamp-5 font-[Poppins]">
+                {status.text_content}
+              </p>
             </div>
           )}
         </div>
-      </div>
 
-      {/* Badges */}
-      {rank && (
-        <div className="absolute top-2.5 left-2.5 z-30">
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur border border-white/10">
-            <Flame className={`size-2.5 ${rank === 1 ? 'text-orange-400' : 'text-white/50'}`} />
-            <span className="text-[11px] lg:text-[12px]  font-semibold text-white">#{rank}</span>
+        {/* Video play indicator */}
+        {isVideo && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 size-8 rounded-full bg-black/40 backdrop-blur border border-white/20 flex items-center justify-center pointer-events-none">
+            <Play className="size-3.5 text-white ml-0.5" />
+          </div>
+        )}
+
+        {/* Info overlay */}
+        <div className="absolute inset-x-0 bottom-0 p-2.5 z-20">
+          <div className="bg-black/55 backdrop-blur-md border border-white/10 rounded-2xl p-3 shadow-lg">
+            <div className="flex items-center gap-2.5">
+              <div className="size-9 rounded-full border border-white/20 overflow-hidden bg-black/40 shrink-0">
+                {logo ? (
+                  <BlurUpImage src={logo} alt={name} priority="low" className="size-full" objectFit="cover" />
+                ) : (
+                  <div className="size-full flex items-center justify-center text-xs font-semibold text-white bg-gradient-to-br from-[var(--accent)] to-purple-600">
+                    {name[0]}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 text-left">
+                <p className="text-[11px] lg:text-xs font-semibold text-white truncate font-[Poppins]">{name}</p>
+                <p className="text-[10px] font-medium text-white/45 font-[Poppins]">{ago(status.createdAt)}</p>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                {statusesCount > 1 && (
+                  <div className="px-2 py-1 rounded-full bg-white/20 backdrop-blur border border-white/10 text-white text-[10px] font-bold shadow-sm font-[Poppins]">
+                    {statusesCount}
+                  </div>
+                )}
+                {isNew && (
+                  <div className="px-2 py-1 rounded-full bg-[var(--accent)] text-white text-[10px] font-semibold font-[Poppins]">
+                    {unviewedCount > 1 ? `${unviewedCount} new` : 'New'}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {status.linked_product && (
+              <div className="flex items-center gap-1.5 min-w-0 mt-2 pt-2 border-t border-white/10 text-[10px] font-semibold text-white/70 font-[Poppins]">
+                <ShoppingBag className="size-3 shrink-0 text-[var(--accent)]" />
+                <span className="truncate">{status.linked_product.name}</span>
+              </div>
+            )}
           </div>
         </div>
-      )}
-      {urgent && (
-        <div className="absolute top-2.5 right-2.5 z-30">
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/80 text-[11px] lg:text-[12px]  font-semibold text-white animate-pulse">
-            <Clock className="size-2.5" /> {Math.floor(expH)}h
+
+        {/* Rank badge — number only, no icon */}
+        {rank && (
+          <div className="absolute top-2.5 left-2.5 z-30">
+            <div className="px-2 py-0.5 rounded-full bg-black/50 backdrop-blur border border-white/10">
+              <span className="text-[11px] font-semibold text-white font-[Poppins]">#{rank}</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Expiry badge */}
+        {urgent && (
+          <div className="absolute top-2.5 right-2.5 z-30">
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/80 text-[11px] font-semibold text-white animate-pulse font-[Poppins]">
+              <Clock className="size-2.5" /> {Math.floor(expH)}h
+            </div>
+          </div>
+        )}
       </div>
     </motion.button>
   );
@@ -175,17 +174,23 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unvie
 
 const CATEGORIES = STATUS_FILTER_CATEGORIES;
 
-// â"€â"€â"€ Main Component â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onAdd, isCreator = false }) {
-  const { user }                   = useAuthStore();
+  const router                     = useRouter();
+  const { user, authChecked }      = useAuthStore();
   const [followedStatuses, setFollowedStatuses] = useState([]);
   const [globalStatuses,   setGlobalStatuses]   = useState([]);
   const [search,           setSearch]           = useState('');
   const [showSearch,       setShowSearch]        = useState(false);
-  const [activeTab,        setActiveTab]         = useState('inner');
+  const [activeTab,        setActiveTab]         = useState('pulse');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const searchRef = useRef(null);
   const viewedStoryKey = viewedStoryIds.join('|');
+
+  // Once auth resolves, switch logged-in users to their follow feed
+  useEffect(() => {
+    if (authChecked && user) setActiveTab('inner');
+  }, [authChecked]);
 
   const fetch = useCallback(async () => {
     try {
@@ -242,7 +247,6 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
       .map((group) => {
         const representative = group.latestStory;
         if (!representative) return null;
-
         return {
           ...representative,
           statusesCount: group.items.length,
@@ -269,40 +273,45 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
     onSelectStatus(pool, startId);
   };
 
+  const handleInnerCircleClick = () => {
+    if (!user) {
+      router.push('/login');
+    } else {
+      setActiveTab('inner');
+    }
+  };
+
   return (
-    <div className="bg-[var(--bg-secondary)] min-h-screen pb-32 w-full">
-      {/* â"€â"€ Compact Sticky Header â"€â"€ */}
+    <div className="bg-[var(--bg-secondary)] min-h-screen pb-32 w-full font-[Poppins]">
+
+      {/* ── Sticky Header ── */}
       <div className="sticky top-0 z-40 bg-[var(--bg-primary)]/90 backdrop-blur-3xl border-b border-[var(--glass-border)] w-full">
         <div className="w-full px-4 pt-4 pb-3 space-y-3">
 
-          {/* Row 1: Title + Active Now + Search toggle */}
+          {/* Row 1: Title + Active Now + Search */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <h2 className="text-2xl  font-bold tracking-tighter text-[var(--text-primary)] leading-none">
+              <h2 className="text-2xl font-bold tracking-tighter text-[var(--text-primary)] leading-none">
                 Story
               </h2>
-              {/* Active Now badge */}
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                 <span className="relative flex size-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full size-2 bg-emerald-400" />
                 </span>
-                <span className="text-[11px] lg:text-[12px]  font-semibold text-emerald-400 tracking-normal">Active Now</span>
+                <span className="text-[11px] lg:text-[12px] font-semibold text-emerald-400 tracking-normal">Active Now</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Search toggle */}
-              <button
-                onClick={() => { setShowSearch(s => !s); if (showSearch) setSearch(''); }}
-                className={`size-9 rounded-full border flex items-center justify-center transition-all ${showSearch ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
-              >
-                {showSearch ? <X className="size-3.5" /> : <Search className="size-3.5" />}
-              </button>
-            </div>
+            <button
+              onClick={() => { setShowSearch(s => !s); if (showSearch) setSearch(''); }}
+              className={`size-9 rounded-full border flex items-center justify-center transition-all ${showSearch ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+            >
+              {showSearch ? <X className="size-3.5" /> : <Search className="size-3.5" />}
+            </button>
           </div>
 
-          {/* Search bar (collapsible) */}
+          {/* Search bar */}
           <AnimatePresence>
             {showSearch && (
               <motion.div
@@ -317,35 +326,35 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search stories, vendors..."
-                  className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-2.5 px-4 text-[13px] placeholder:text-[11px] placeholder:font-normal font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]/40 transition-all placeholder:text-[var(--text-secondary)]/30"
+                  className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl py-2.5 px-4 text-[13px] placeholder:text-[11px] placeholder:font-normal font-medium outline-none focus:ring-2 focus:ring-[var(--accent)]/20 focus:border-[var(--accent)]/40 transition-all placeholder:text-[var(--text-secondary)]/30 font-[Poppins]"
                 />
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Row 2: Tab toggle */}
+          {/* Tab toggle — no icons */}
           <div className="flex p-1 bg-[var(--bg-secondary)] rounded-2xl border border-[var(--glass-border)]">
             <button
-              onClick={() => setActiveTab('inner')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] lg:text-[12px]  font-semibold transition-all ${activeTab === 'inner' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
+              onClick={handleInnerCircleClick}
+              className={`flex-1 flex items-center justify-center py-2 rounded-xl text-[11px] lg:text-[12px] font-semibold tracking-tight transition-all ${activeTab === 'inner' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
             >
-              <Users className="size-3" /> Inner Circle
+              Inner Circle
             </button>
             <button
               onClick={() => setActiveTab('pulse')}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[11px] lg:text-[12px]  font-semibold transition-all ${activeTab === 'pulse' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
+              className={`flex-1 flex items-center justify-center py-2 rounded-xl text-[11px] lg:text-[12px] font-semibold tracking-tight transition-all ${activeTab === 'pulse' ? 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md border border-[var(--glass-border)]' : 'text-[var(--text-secondary)] opacity-50'}`}
             >
-              <Globe className="size-3" /> Global Pulse
+              Global Pulse
             </button>
           </div>
 
-          {/* Row 3: Category pills */}
+          {/* Category pills */}
           <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
             {CATEGORIES.map(c => (
               <button
                 key={c}
                 onClick={() => setSelectedCategory(c)}
-                className={`shrink-0 px-3.5 py-1.5 rounded-full border transition-all text-[11px] lg:text-[12px]  font-semibold ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-md' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
+                className={`shrink-0 px-3.5 py-1.5 rounded-full border transition-all text-[11px] lg:text-[12px] font-semibold ${selectedCategory === c ? 'bg-[var(--accent)] text-white border-transparent shadow-md' : 'bg-[var(--bg-primary)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
               >
                 {c}
               </button>
@@ -354,9 +363,9 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
         </div>
       </div>
 
-      {/* ─── Create Story CTA (vendors / logistics) ─── */}
+      {/* ─── Create Story CTA ─── */}
       {isCreator && onAdd && (
-        <div className="w-full px-2 pt-4 sm:px-3 lg:px-4">
+        <div className="w-full px-4 pt-5 sm:px-6 lg:px-8">
           <button
             onClick={onAdd}
             className="w-full flex items-center gap-4 p-4 rounded-3xl bg-gradient-to-r from-[var(--accent)]/10 to-indigo-500/10 border border-[var(--accent)]/20 hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/15 transition-all group active:scale-[0.99]"
@@ -368,13 +377,12 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
               <p className="text-sm font-bold text-[var(--text-primary)] tracking-tight">Post a Story</p>
               <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-70">Share a moment, product, or update with your network</p>
             </div>
-            <Sparkles className="size-5 text-[var(--accent)] opacity-50 shrink-0" />
           </button>
         </div>
       )}
 
       {/* ─── Grid ─── */}
-      <div className="w-full px-2 pt-4 sm:px-3 lg:px-4">
+      <div className="w-full px-4 pt-5 sm:px-6 lg:px-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -384,51 +392,35 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
             transition={{ duration: 0.2 }}
           >
             {groupedPool.length > 0 ? (
-              activeTab === 'inner' ? (
-                /* Inner circle — 2-col grid on mobile, horizontal scroll on desktop */
-                <div className="grid grid-cols-2 gap-3 lg:flex lg:flex-row lg:gap-4 lg:overflow-x-auto lg:no-scrollbar lg:pb-4">
-                  {groupedPool.map((s, i) => (
-                    <PremiumCard
-                      key={s.vendor_id?._id || s._id}
-                      status={s}
-                      statusesCount={s.statusesCount}
-                      unviewedCount={s.unviewedCount}
-                      isNew={s.isNew}
-                      priority={i < 4 ? 'high' : 'auto'}
-                      className="aspect-[4/5] lg:flex-none lg:w-52 lg:shrink-0"
-                      onClick={() => handleOpen(s, activePool)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                /* Global pulse — 2-col grid on mobile, horizontal scroll on desktop */
-                <div className="grid grid-cols-2 gap-3 lg:flex lg:flex-row lg:gap-4 lg:overflow-x-auto lg:no-scrollbar lg:pb-4">
-                  {groupedPool.map((s, i) => (
-                    <PremiumCard
-                      key={s.vendor_id?._id || s._id}
-                      status={s}
-                      statusesCount={s.statusesCount}
-                      unviewedCount={s.unviewedCount}
-                      rank={i < 10 ? i + 1 : null}
-                      isNew={s.isNew}
-                      priority={i < 6 ? 'high' : 'auto'}
-                      className="aspect-[4/5] lg:flex-none lg:w-52 lg:shrink-0"
-                      onClick={() => handleOpen(s, activePool)}
-                    />
-                  ))}
-                </div>
-              )
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-5">
+                {groupedPool.map((s, i) => (
+                  <PremiumCard
+                    key={s.vendor_id?._id || s._id}
+                    status={s}
+                    statusesCount={s.statusesCount}
+                    unviewedCount={s.unviewedCount}
+                    rank={activeTab === 'pulse' && i < 10 ? i + 1 : null}
+                    isNew={s.isNew}
+                    priority={i < 6 ? 'high' : 'auto'}
+                    className="aspect-[3/4]"
+                    onClick={() => handleOpen(s, activePool)}
+                  />
+                ))}
+              </div>
             ) : (
               <Empty
-                icon={activeTab === 'inner' ? <Users className="size-10 opacity-20" /> : <Globe className="size-10 opacity-20" />}
-                title={activeTab === 'inner' ? 'Quiet in the Circle' : 'No New Vibes'}
+                title={activeTab === 'inner' ? 'Quiet in the Circle' : 'No Stories Yet'}
                 desc={
                   activeTab === 'inner'
-                    ? user ? "The vendors you follow haven't posted recently." : 'Sign in to follow vendors.'
+                    ? user ? "The vendors you follow haven't posted recently." : 'Sign in to follow vendors and see their stories here.'
                     : "No stories at the moment. Check back soon!"
                 }
-                action={activeTab === 'inner' && !user ? 'Sign In' : activeTab === 'inner' ? 'Explore Global' : 'Refresh'}
-                onAction={() => activeTab === 'inner' ? setActiveTab('pulse') : fetch()}
+                action={activeTab === 'inner' && !user ? 'Sign In' : activeTab === 'inner' ? 'Explore Global Pulse' : 'Refresh'}
+                onAction={() => {
+                  if (activeTab === 'inner' && !user) router.push('/login');
+                  else if (activeTab === 'inner') setActiveTab('pulse');
+                  else fetch();
+                }}
               />
             )}
           </motion.div>
@@ -438,21 +430,19 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
   );
 }
 
-// ─── Empty ────────────────────────────────────────────────────────────────────
-function Empty({ icon, title, desc, action, onAction }) {
+// ─── Empty State ───────────────────────────────────────────────────────────────
+function Empty({ title, desc, action, onAction }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 px-6 text-center space-y-5 bg-[var(--bg-primary)]/30 rounded-[2rem] border border-dashed border-[var(--glass-border)] mt-4">
-      <div className="size-20 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center border border-[var(--glass-border)]">
-        {icon}
-      </div>
+      <div className="size-16 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center border border-[var(--glass-border)] opacity-40" />
       <div className="space-y-1.5 max-w-xs">
-        <h4 className="text-base  font-bold tracking-tight text-[var(--text-primary)]">{title}</h4>
-        <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] leading-relaxed opacity-60">{desc}</p>
+        <h4 className="text-base font-bold tracking-tight text-[var(--text-primary)] font-[Poppins]">{title}</h4>
+        <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] leading-relaxed opacity-60 font-[Poppins]">{desc}</p>
       </div>
       {action && (
         <button
           onClick={onAction}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[var(--accent)] text-white text-[11px] lg:text-[12px]  font-semibold shadow-lg hover:scale-105 transition-all active:scale-95"
+          className="px-6 py-2.5 rounded-2xl bg-[var(--accent)] text-white text-[11px] lg:text-[12px] font-semibold shadow-lg hover:scale-105 transition-all active:scale-95 font-[Poppins]"
         >
           {action}
         </button>
