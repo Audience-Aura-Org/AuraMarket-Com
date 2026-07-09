@@ -61,7 +61,8 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
 
         // 1. Fetch Store Details
         if (page === 1) {
-          const storeRes = await api.get(`/vendors/stores/${id}`);
+          // nocache: bypass 3-day offline cache so store settings (minimum_order_amount, etc.) are always current
+          const storeRes = await api.get(`/vendors/stores/${id}`, { params: { nocache: '1' } });
           if (storeRes.data.success) {
             setStore(storeRes.data.data.store);
           }

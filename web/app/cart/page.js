@@ -31,13 +31,17 @@ export default function CartPage() {
     const unsubscribe = cartStore.subscribe((snapshot) => {
       setCartItems(snapshot.items);
       setLoading(false);
-      if (snapshot.items.length === 0 && !loading) {
-        router.push('/overtime');
-      }
     });
     cartStore.refresh();
     return unsubscribe;
-  }, [loading, router]);
+  }, []); // stable — no deps change this logic
+
+  // Separate redirect: only fires after initial load resolves
+  useEffect(() => {
+    if (!loading && cartItems.length === 0) {
+      router.push('/overtime');
+    }
+  }, [loading, cartItems.length, router]);
 
   // Fetch minimum order amounts from each vendor's store page
   // (cart API doesn't deeply populate vendor_id.store.minimum_order_amount)
@@ -46,7 +50,8 @@ export default function CartPage() {
     const vendorIds = [...new Set(cartItems.map(i => i.vendor_id).filter(Boolean))];
     if (!vendorIds.length) return;
     vendorIds.forEach(vid => {
-      api.get(`/vendors/stores/${vid}`)
+      // nocache: bypass the 3-day offline localStorage cache so we get the current minimum_order_amount
+      api.get(`/vendors/stores/${vid}`, { params: { nocache: '1' } })
         .then(res => {
           const min = Number(res.data?.data?.store?.minimum_order_amount) || 0;
           if (min > 0) setVendorMinimums(prev => ({ ...prev, [String(vid)]: min }));
