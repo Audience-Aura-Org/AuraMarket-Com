@@ -17,6 +17,7 @@ const StatusCreator = dynamic(() => import('@/components/status/StatusCreator'),
 import { useAuthStore } from '@/hooks/useAuth';
 import VendorFollowButton from '@/components/VendorFollowButton';
 import { useLanguage } from '@/context/LanguageContext';
+import cartStore from '@/services/cartStore';
 
 export default function StorePage({ storeId: explicitStoreId = null }) {
   const params = useParams();
@@ -36,6 +37,13 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
   const [followLoading, setFollowLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('Products');
   const [showStatusCreator, setShowStatusCreator] = useState(false);
+  const [cartItems, setCartItems] = useState(cartStore.getItems());
+
+  // Subscribe to cart changes so the minimum order progress bar updates live
+  useEffect(() => {
+    const unsub = cartStore.subscribe(({ items }) => setCartItems(items));
+    return unsub;
+  }, []);
 
   const vendor = store?.vendor_id;
   const isFollowing = vendor ? followedVendorIds.includes(vendor._id?.toString() || id) : false;
@@ -275,22 +283,47 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
       {/* ── Products Section ─────────────────────────────────────── */}
       <div className="px-4 sm:px-6 lg:px-12 mt-8">
 
-        {/* Minimum order notice */}
-        {Number(store?.minimum_order_amount) > 0 && (
-          <div className="mb-4 flex items-center gap-3 rounded-2xl border border-amber-500/25 bg-amber-500/8 px-4 py-3">
-            <div className="size-8 shrink-0 rounded-xl bg-amber-500/15 flex items-center justify-center">
-              <ShoppingBag className="size-4 text-amber-500" />
+        {/* Minimum order — live progress bar */}
+        {(() => {
+          const minimum = Number(store?.minimum_order_amount) || 0;
+          if (minimum <= 0) return null;
+          const vendorId = vendor?._id?.toString() || id;
+          const vendorSubtotal = cartItems
+            .filter(i => String(i.vendor_id) === vendorId)
+            .reduce((sum, i) => sum + i.price * i.quantity, 0);
+          const pct = Math.min(100, Math.round((vendorSubtotal / minimum) * 100));
+          const met = vendorSubtotal >= minimum;
+          const needed = minimum - vendorSubtotal;
+          return (
+            <div className={`mb-4 rounded-2xl border px-4 py-3 transition-colors duration-300 ${met ? 'border-emerald-500/25 bg-emerald-500/8' : 'border-amber-500/25 bg-amber-500/8'}`}>
+              <div className="flex items-center gap-3 mb-2.5">
+                <div className={`size-8 shrink-0 rounded-xl flex items-center justify-center transition-colors duration-300 ${met ? 'bg-emerald-500/15' : 'bg-amber-500/15'}`}>
+                  <ShoppingBag className={`size-4 transition-colors duration-300 ${met ? 'text-emerald-500' : 'text-amber-500'}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">
+                    {met ? 'Minimum reached — ready to checkout' : `Minimum order — ${minimum.toLocaleString()} XAF`}
+                  </p>
+                  <p className="text-[11px] font-medium text-[var(--text-secondary)] mt-0.5">
+                    {met
+                      ? `${vendorSubtotal.toLocaleString()} XAF in cart from this store`
+                      : `Add ${needed.toLocaleString()} XAF more from this store to checkout`}
+                  </p>
+                </div>
+              </div>
+              <div className="h-1.5 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${met ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-1.5">
+                <span className="text-[10px] font-semibold text-[var(--text-secondary)]">{vendorSubtotal.toLocaleString()} XAF</span>
+                <span className="text-[10px] font-semibold text-[var(--text-secondary)]">Min. {minimum.toLocaleString()} XAF</span>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-[12px] font-bold text-[var(--text-primary)] tracking-tight">
-                Minimum order — {Number(store.minimum_order_amount).toLocaleString()} XAF
-              </p>
-              <p className="text-[11px] font-medium text-[var(--text-secondary)] mt-0.5">
-                Your cart from this store must reach this amount to check out
-              </p>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Tab bar */}
         <div ref={productsAnchor} className="mb-6 flex items-center gap-2 overflow-x-auto no-scrollbar">
