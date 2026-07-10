@@ -252,11 +252,6 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
                   {deliveryTime && (
                      <span className="flex items-center gap-1"><Clock className="size-3.5 text-[var(--accent)]" /> Delivered in {deliveryTime}</span>
                    )}
-                  {minimumAmount > 0 && (
-                    <span className="text-[9px] font-bold text-amber-600/80 tracking-tight whitespace-nowrap">
-                      · min {minimumAmount >= 1000 ? `${(minimumAmount / 1000).toFixed(minimumAmount % 1000 === 0 ? 0 : 1)}k` : minimumAmount} XAF
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
@@ -376,19 +371,12 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
               </div>
             </div>
           </div>
-          {(deliveryTime || minimumAmount > 0) && (
+          {deliveryTime && (
             <div className="flex items-center gap-2 flex-wrap">
-              {deliveryTime && (
-                <span className="flex items-center gap-1 text-[10px] font-semibold text-[var(--text-secondary)] opacity-70">
-                  <Clock className="size-3 text-[var(--accent)] shrink-0" />
-                  <span className="truncate">in {deliveryTime}</span>
-                </span>
-              )}
-              {minimumAmount > 0 && (
-                <span className="text-[9px] font-bold text-amber-600/80 tracking-tight whitespace-nowrap">
-                  · min {minimumAmount >= 1000 ? `${(minimumAmount / 1000).toFixed(minimumAmount % 1000 === 0 ? 0 : 1)}k` : minimumAmount} XAF
-                </span>
-              )}
+              <span className="flex items-center gap-1 text-[10px] font-semibold text-[var(--text-secondary)] opacity-70">
+                <Clock className="size-3 text-[var(--accent)] shrink-0" />
+                <span className="truncate">in {deliveryTime}</span>
+              </span>
             </div>
           )}
           {/* 3 equal-size action buttons — Add to Cart is primary */}

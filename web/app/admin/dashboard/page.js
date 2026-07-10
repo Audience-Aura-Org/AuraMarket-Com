@@ -47,14 +47,22 @@ export default function AdminDashboard() {
   const { user } = useAuthStore();
   const [stats, setStats] = useState({});      // default {} so fmt() shows 0 immediately
   const [loading, setLoading] = useState(true);
-  const [subRevenue, setSubRevenue] = useState(null);
+  const [subStats, setSubStats] = useState({ revenue: null, total: 0, active: 0 });
   const earnings = stats?.admin_earnings || {};
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/admin/analytics');
-      setStats(res.data.success ? res.data.data.stats : {});
+      const [analyticsRes, subRes] = await Promise.all([
+        api.get('/admin/analytics'),
+        api.get('/subscriptions/admin/overview', { skipClientCache: true }),
+      ]);
+      setStats(analyticsRes.data.success ? analyticsRes.data.data.stats : {});
+      const subData = subRes.data?.data || {};
+      const subs = subData.subscriptions || [];
+      const active = subs.filter(s => s.status === 'active').length;
+      const rev = subData.stats?.revenue ?? subs.reduce((sum, s) => sum + Number(s.amount_paid || 0), 0);
+      setSubStats({ revenue: rev, total: subs.length, active });
     } catch (err) {
       console.error('Failed to fetch admin stats:', err);
     } finally { setLoading(false); }
@@ -62,11 +70,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchStats();
-    // Fetch subscription revenue separately — /admin/analytics returns 0 for
-    // earnings.subscription; the real total lives in /subscriptions/admin/overview.
-    api.get('/subscriptions/admin/overview', { skipClientCache: true })
-      .then(r => { const rev = r.data?.data?.stats?.revenue; if (rev != null) setSubRevenue(rev); })
-      .catch(() => {});
   }, []);
 
   return (
@@ -131,7 +134,7 @@ export default function AdminDashboard() {
               { title: t('admin.commission', 'Commission'), value: earnings.commission, desc: t('admin.productSaleFee', 'Product sale fee'), icon: TrendingUp, color: 'emerald' },
               { title: t('admin.escrowFees', 'Escrow Fees'), value: earnings.escrow, desc: t('admin.escrowProtectionFee', 'Escrow protection fee'), icon: ShieldCheck, color: 'blue' },
               { title: t('admin.collectionFees', 'Collection Fees'), value: earnings.collection, desc: t('admin.mobileMoneyCharges', 'Mobile money charges'), icon: Activity, color: 'amber' },
-              { title: t('admin.subscriptions', 'Subscriptions'), value: subRevenue ?? earnings.subscription ?? 0, desc: t('admin.vendorSubscriptionFees', 'Vendor subscription fees'), icon: Zap, color: 'indigo' },
+              { title: t('admin.subscriptions', 'Subscriptions'), value: subStats.revenue ?? earnings.subscription ?? 0, desc: `${subStats.active} active · ${subStats.total} total`, icon: Zap, color: 'indigo' },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-3">
                 <div className="mb-3 flex items-center justify-between gap-2">

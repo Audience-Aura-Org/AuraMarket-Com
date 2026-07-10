@@ -1,7 +1,47 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(./gradlew assembleDebug:*)",
+      "Bash(git -C /c/Users/Zero/Desktop/AuraMarket log --oneline --all)",
+      "Bash(git -C /c/Users/Zero/Desktop/AuraMarket show b4cf110e --stat)",
+      "Bash(AURA_RELEASE_STORE_FILE=\"C:/Users/Zero/Desktop/AuraMarket/web/android/auradime-release-key.jks\" AURA_RELEASE_STORE_PASSWORD=\"Talktome123\" AURA_RELEASE_KEY_ALIAS=\"auradime\" AURA_RELEASE_KEY_PASSWORD=\"Talktome123\" ./gradlew assembleRelease)",
+      "Bash(python:*)",
+      "Bash(node:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(.properties)",
+      "Bash(.bat)",
+      "Bash(.sh \")",
+      "Bash(export AURA_RELEASE_STORE_FILE:*)",
+      "Bash(npm run mobile:build:web:*)",
+      "Bash(npx cap sync:*)",
+      "Bash(AURA_RELEASE_STORE_FILE=\"C:\\\\Users\\\\Zero\\\\Desktop\\\\AuraMarket\\\\web\\\\android\\\\auradime-release-key.jks\" AURA_RELEASE_STORE_PASSWORD=\"Talktome123\" AURA_RELEASE_KEY_ALIAS=\"auradime\" AURA_RELEASE_KEY_PASSWORD=\"Talktome123\" ./gradlew.bat assembleRelease)",
+      "Bash(xargs sed:*)",
+      "Bash(./gradlew.bat:*)",
+      "Read(//c/Users/Zero/AppData/Roaming/Code/User/**)",
+      "Read(//c/Users/Zero/**)",
+      "Bash(keytool -list:*)",
+      "Bash(AURA_RELEASE_STORE_FILE=\"C:/Users/Zero/Desktop/AuraMarket/web/android/auradime-release-key.jks\" AURA_RELEASE_STORE_PASSWORD=\"Talktome123\" AURA_RELEASE_KEY_ALIAS=\"auradime\" AURA_RELEASE_KEY_PASSWORD=\"Talktome123\" ./gradlew.bat assembleRelease)",
+      "Bash(CAPACITOR_BUILD=true npm run mobile:build:web:*)",
+      "Bash(git checkout:*)",
+      "Bash(AURA_RELEASE_STORE_FILE=\"C:/Users/Zero/Desktop/AuraMarket/web/android/auradime-release-key.jks\" AURA_RELEASE_STORE_PASSWORD=\"Talktome123\" AURA_RELEASE_KEY_ALIAS=\"auradime\" AURA_RELEASE_KEY_PASSWORD=\"Talktome123\" ./gradlew:*)",
+      "Bash(grep:*)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)",
+      "Bash(npm run mobile:build:android:debug:*)",
+      "Bash(cmd //c:*)",
+      "Bash(wmic logicaldisk:*)",
+      "Bash(npx clear-npx-cache:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(npm run mobile:build:android:release:*)",
+      "Bash(head -20 grep -rn \"AURA_RELEASE\" /c/Users/Zero/Desktop/AuraMarket/.env*)",
+      "Bash(export:*)",
+      "Bash(test:*)",
+      "Bash(git -C /c/Users/Zero/Desktop/AuraMarket log --oneline --all -30)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Zero\\.gradle\\caches"
     ]
   }
 }
