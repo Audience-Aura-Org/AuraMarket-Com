@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BadgeCheck,
   CalendarClock,
@@ -44,7 +44,7 @@ const FEATURE_CATALOG = [
   { key: 'max_routes',         type: 'number', group: 'Logistics',          defaultValue: 3,     makeLabel: (v) => v >= 9999 ? 'Unlimited delivery routes'                 : `Create up to ${v} delivery routes` },
   { key: 'route_optimization', type: 'toggle', group: 'Logistics',          defaultValue: true,  makeLabel: (v) => v ? 'Route optimization tools'                         : 'Basic route optimization tools' },
   { key: 'email_support',      type: 'toggle', group: 'Vendor / Logistics', defaultValue: true,  makeLabel: (v) => v ? 'Email support available'                          : 'No email support' },
-  { key: 'status_duration_days', type: 'number', group: 'Vendor',           defaultValue: 1,     makeLabel: (v) => v >= 7 ? 'Status posts visible for up to 7 days' : v >= 3 ? 'Status posts visible for up to 3 days' : 'Status posts visible for 1 day only' },
+  { key: 'status_duration_days', type: 'number', group: 'Vendor / Logistics', defaultValue: 1,    makeLabel: (v) => v >= 7 ? 'Status posts visible for up to 7 days' : v >= 3 ? 'Status posts visible for up to 3 days' : 'Status posts visible for 1 day only' },
 ];
 
 const defaultPlan = {
@@ -76,7 +76,11 @@ export default function AdminSubscriptionsPage() {
   const [saving, setSaving] = useState(false);
   const [overview, setOverview] = useState({ plans: [], subscriptions: [], requirements: {}, grace_days: {}, stats: {} });
   const [planForm, setPlanForm] = useState(defaultPlan);
+  const planFormRef = useRef(planForm);
+  planFormRef.current = planForm;          // always up-to-date, no stale closure
   const [editingPlanId, setEditingPlanId] = useState(null);
+  const editingPlanIdRef = useRef(editingPlanId);
+  editingPlanIdRef.current = editingPlanId;
   const [manualActivation, setManualActivation] = useState({ user_id: '', plan_id: '', role: 'vendor', started_at: '', expires_at: '' });
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -189,21 +193,25 @@ export default function AdminSubscriptionsPage() {
   };
 
   const savePlan = async () => {
-    if (!planForm.name.trim()) {
+    // Always read from ref so we get the latest state even if called
+    // immediately after a feature checkbox toggle (stale closure prevention)
+    const form = planFormRef.current;
+    const planId = editingPlanIdRef.current;
+    if (!form.name.trim()) {
       toast.error(t('subscription.planNameRequired', 'Plan name is required.'));
       return;
     }
     setSaving(true);
     try {
       const payload = {
-        ...planForm,
-        price: Number(planForm.price || 0),
-        duration_days: planForm.duration_days === '' ? null : Number(planForm.duration_days || 0),
-        contact_required: Boolean(planForm.contact_required),
-        features: Array.isArray(planForm.features) ? planForm.features : [],
+        ...form,
+        price: Number(form.price || 0),
+        duration_days: form.duration_days === '' ? null : Number(form.duration_days || 0),
+        contact_required: Boolean(form.contact_required),
+        features: Array.isArray(form.features) ? form.features : [],
       };
-      if (editingPlanId) {
-        await api.patch(`/subscriptions/admin/plans/${editingPlanId}`, payload);
+      if (planId) {
+        await api.patch(`/subscriptions/admin/plans/${planId}`, payload);
       } else {
         await api.post('/subscriptions/admin/plans', payload);
       }
