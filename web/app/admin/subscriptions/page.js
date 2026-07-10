@@ -613,14 +613,14 @@ function PlanStudio({ id, planForm, setPlanForm, editingPlanId, resetForm, saveP
       )}
     >
       <div id={id} className="grid gap-3">
-        <input className={fieldClass} placeholder={t('subscription.planName', 'Plan name')} value={planForm.name} onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })} />
-        <textarea className={`${fieldClass} min-h-24 py-3`} placeholder={t('subscription.descriptionField', 'Description')} value={planForm.description} onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })} />
+        <input className={fieldClass} placeholder={t('subscription.planName', 'Plan name')} value={planForm.name} onChange={(e) => setPlanForm((c) => ({ ...c, name: e.target.value }))} />
+        <textarea className={`${fieldClass} min-h-24 py-3`} placeholder={t('subscription.descriptionField', 'Description')} value={planForm.description} onChange={(e) => setPlanForm((c) => ({ ...c, description: e.target.value }))} />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <input className={fieldClass} type="number" placeholder="500" value={planForm.price} onChange={(e) => setPlanForm({ ...planForm, price: e.target.value })} />
-          <select className={fieldClass} value={planForm.currency} onChange={(e) => setPlanForm({ ...planForm, currency: e.target.value })}>
+          <input className={fieldClass} type="number" placeholder="500" value={planForm.price} onChange={(e) => setPlanForm((c) => ({ ...c, price: e.target.value }))} />
+          <select className={fieldClass} value={planForm.currency} onChange={(e) => setPlanForm((c) => ({ ...c, currency: e.target.value }))}>
             <option value="XAF">XAF</option>
           </select>
-          <select className={fieldClass} value={planForm.billing_cycle} onChange={(e) => setPlanForm({ ...planForm, billing_cycle: e.target.value })}>
+          <select className={fieldClass} value={planForm.billing_cycle} onChange={(e) => setPlanForm((c) => ({ ...c, billing_cycle: e.target.value }))}>
             <option value="one_time">{t('subscription.oneTime', 'One-time')}</option>
             <option value="monthly">{t('subscription.monthly', 'Monthly')}</option>
             <option value="yearly">{t('subscription.yearly', 'Yearly')}</option>
@@ -633,7 +633,7 @@ function PlanStudio({ id, planForm, setPlanForm, editingPlanId, resetForm, saveP
             min="0"
             placeholder={t('subscription.durationDays', 'Duration days')}
             value={planForm.duration_days}
-            onChange={(e) => setPlanForm({ ...planForm, duration_days: e.target.value })}
+            onChange={(e) => setPlanForm((c) => ({ ...c, duration_days: e.target.value }))}
           />
           <button
             type="button"
@@ -668,6 +668,7 @@ function PlanStudio({ id, planForm, setPlanForm, editingPlanId, resetForm, saveP
           <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">Features</p>
           <FeatureBuilder
             features={planForm.features}
+            roles={planForm.roles}
             onChange={(features) => setPlanForm((current) => ({ ...current, features }))}
           />
         </div>
@@ -856,12 +857,21 @@ function ActionButton({ icon: Icon, label, onClick, danger = false }) {
   );
 }
 
-function FeatureBuilder({ features, onChange }) {
+function FeatureBuilder({ features, roles = [], onChange }) {
   const featureMap = Object.fromEntries(
     (features || [])
       .filter((f) => typeof f === 'object' && f !== null && f.key)
       .map((f) => [f.key, f])
   );
+
+  // Only show catalog entries relevant to the plan's selected roles
+  const relevantCatalog = FEATURE_CATALOG.filter((c) => {
+    const g = c.group.toLowerCase();
+    if (roles.includes('vendor') && roles.includes('logistics')) return true;
+    if (roles.includes('vendor')) return g.includes('vendor');
+    if (roles.includes('logistics')) return g.includes('logistics');
+    return true; // customer or unknown — show all
+  });
 
   const toggleFeature = (catalog) => {
     if (featureMap[catalog.key]) {
@@ -878,7 +888,7 @@ function FeatureBuilder({ features, onChange }) {
     ));
   };
 
-  const groups = [...new Set(FEATURE_CATALOG.map((c) => c.group))];
+  const groups = [...new Set(relevantCatalog.map((c) => c.group))];
 
   return (
     <div className="space-y-4 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
@@ -886,7 +896,7 @@ function FeatureBuilder({ features, onChange }) {
         <div key={group}>
           <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">{group}</p>
           <div className="space-y-2">
-            {FEATURE_CATALOG.filter((c) => c.group === group).map((catalog) => {
+            {relevantCatalog.filter((c) => c.group === group).map((catalog) => {
               const included = !!featureMap[catalog.key];
               const current = featureMap[catalog.key];
               return (
