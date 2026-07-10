@@ -176,7 +176,7 @@ export default function CartPage() {
           </div>
           <div className="px-3 md:px-4 py-1.5 glass-panel rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 flex items-center gap-2 shadow-sm self-start md:self-auto">
              <span className="size-1.5 md:size-2 rounded-full bg-emerald-500 animate-pulse"></span>
-             <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] ">{cartItems.length} Items</span>
+             <span className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] ">{cartItems.reduce((s, i) => s + i.quantity, 0)} Items</span>
           </div>
         </div>
 

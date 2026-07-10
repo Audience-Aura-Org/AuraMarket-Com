@@ -39,7 +39,7 @@ function ShopContent() {
   const [loading, setLoading] = useState(true);
   const [activePrice, setActivePrice] = useState(null);
   const [search, setSearch] = useState(initialQuery);
-  const [sortBy, setSortBy] = useState('-createdAt');
+  const [sortBy, setSortBy] = useState('-purchase_count');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState('grid');
@@ -265,6 +265,7 @@ function ShopContent() {
   }, []);
 
   const SORT_OPTIONS = [
+    { value: '-purchase_count', label: t('sort.popularity', 'Most Popular') },
     { value: '-createdAt', label: t('sort.newest') },
     { value: 'price', label: t('sort.priceLowHigh') },
     { value: '-price', label: t('sort.priceHighLow') },

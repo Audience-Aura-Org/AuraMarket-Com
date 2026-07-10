@@ -44,6 +44,7 @@ const FEATURE_CATALOG = [
   { key: 'max_routes',         type: 'number', group: 'Logistics',          defaultValue: 3,     makeLabel: (v) => v >= 9999 ? 'Unlimited delivery routes'                 : `Create up to ${v} delivery routes` },
   { key: 'route_optimization', type: 'toggle', group: 'Logistics',          defaultValue: true,  makeLabel: (v) => v ? 'Route optimization tools'                         : 'Basic route optimization tools' },
   { key: 'email_support',      type: 'toggle', group: 'Vendor / Logistics', defaultValue: true,  makeLabel: (v) => v ? 'Email support available'                          : 'No email support' },
+  { key: 'status_duration_days', type: 'number', group: 'Vendor',           defaultValue: 1,     makeLabel: (v) => v >= 7 ? 'Status posts visible for up to 7 days' : v >= 3 ? 'Status posts visible for up to 3 days' : 'Status posts visible for 1 day only' },
 ];
 
 const defaultPlan = {

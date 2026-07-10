@@ -601,7 +601,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadPhase, setUploadPhase]   = useState('');
   const [error, setError]               = useState(null);
-  const [expiryDays, setExpiryDays]     = useState(initialData?.expiry_days || 3);
+  const [maxStatusDays, setMaxStatusDays] = useState(1);
+  const [expiryDays, setExpiryDays]     = useState(initialData?.expiry_days || 1);
   const [selectedCategory, setSelectedCategory] = useState(initialData?.category || 'Moment');
   const [mounted, setMounted]           = useState(false);
   const [videoMeta, setVideoMeta]       = useState(null);
@@ -894,6 +895,19 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   useEffect(() => {
     api.get('/vendor/products')
       .then(res => { if (res.data.success) setProducts(res.data.data.products || []); })
+      .catch(() => {});
+  }, []);
+
+  // Load subscription status duration limit
+  useEffect(() => {
+    api.get('/subscriptions/me')
+      .then(res => {
+        const features = res.data?.data?.subscription?.plan_id?.features || [];
+        const feat = features.find(f => f.key === 'status_duration_days');
+        const days = feat ? Number(feat.value) : 1;
+        setMaxStatusDays(days);
+        setExpiryDays(prev => Math.min(prev, days));
+      })
       .catch(() => {});
   }, []);
 
@@ -2025,21 +2039,28 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     <div className="space-y-2">
                       <label className="text-[9px] font-bold uppercase tracking-wider text-white/40">Story Duration</label>
                       <div className="grid grid-cols-3 gap-2">
-                        {DURATION_OPTIONS.map(opt => (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            onClick={() => setExpiryDays(opt.value)}
-                            className={`p-2.5 rounded-xl border text-left transition-all ${
-                              expiryDays === opt.value
-                                ? 'border-[#20c763] bg-[#20c763]/10 text-white shadow-md shadow-[#20c763]/5'
-                                : 'border-white/5 bg-white/5 text-white/60 hover:border-white/10'
-                            }`}
-                          >
-                            <p className="text-xs font-bold">{opt.label}</p>
-                            <p className="text-[8px] opacity-50 mt-0.5 leading-none">{opt.description}</p>
-                          </button>
-                        ))}
+                        {DURATION_OPTIONS.map(opt => {
+                          const locked = opt.value > maxStatusDays;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => !locked && setExpiryDays(opt.value)}
+                              disabled={locked}
+                              title={locked ? 'Upgrade your plan to unlock' : undefined}
+                              className={`p-2.5 rounded-xl border text-left transition-all ${
+                                locked
+                                  ? 'opacity-35 cursor-not-allowed border-white/5 bg-white/5 text-white/40'
+                                  : expiryDays === opt.value
+                                    ? 'border-[#20c763] bg-[#20c763]/10 text-white shadow-md shadow-[#20c763]/5'
+                                    : 'border-white/5 bg-white/5 text-white/60 hover:border-white/10'
+                              }`}
+                            >
+                              <p className="text-xs font-bold">{opt.label}</p>
+                              <p className="text-[8px] opacity-50 mt-0.5 leading-none">{locked ? '🔒 Upgrade' : opt.description}</p>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
