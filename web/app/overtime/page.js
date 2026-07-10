@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import dynamic_import from 'next/dynamic';
@@ -46,8 +47,14 @@ function OvertimeSkeleton() {
 }
 
 export default function LandingPage() {
-  const { user } = useAuthStore();
+  const { user, authChecked } = useAuthStore();
   const [sections, setSections] = useState(null); // null = not yet loaded
+
+  const router = useRouter();
+
+  useEffect(() => {
+    if (authChecked && !user) router.replace('/login');
+  }, [authChecked, user, router]);
 
   useEffect(() => {
     let isActive = true;

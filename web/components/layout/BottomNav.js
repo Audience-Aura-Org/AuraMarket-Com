@@ -39,16 +39,12 @@ export default function BottomNav() {
   // If discovery hub uses its own exact replica, we can hide this one to prevent double rendering.
   if (isDiscoveryPage) return null;
 
+  if (!user) return null;
+
   const isCustomer = user?.role === 'customer';
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const storiesHref = user?.role === 'vendor' ? "/vendor/stories" : "/discovery?tab=status";
-
-  const guestMenu = [
-    { label: t('bottomNav.shop',     'Shop'),     href: "/shop",     icon: Compass  },
-    { label: t('bottomNav.stories',  'Stories'),  href: "/status",   icon: Activity },
-    { label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House    },
-  ];
 
   const customerMenu = [
     { label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },
@@ -66,7 +62,7 @@ export default function BottomNav() {
     { label: t('bottomNav.profile', 'Profile'), href: "/profile", icon: User }
   ];
 
-  const menu = !user ? guestMenu : isCustomer ? customerMenu : vendorMenu;
+  const menu = isCustomer ? customerMenu : vendorMenu;
 
   const isItemActive = (item) => {
     const [itemPath, itemQuery = ''] = item.href.split('?');

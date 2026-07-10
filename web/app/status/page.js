@@ -18,7 +18,11 @@ const StatusViewer = nextDynamic(() => import('@/components/status/StatusViewer'
 function StatusPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuthStore();
+  const { user, authChecked } = useAuthStore();
+
+  useEffect(() => {
+    if (authChecked && !user) router.replace('/login');
+  }, [authChecked, user, router]);
 
   const [viewingStatuses, setViewingStatuses] = useState(null);
   const [selectedStoryId, setSelectedStoryId] = useState(null);
@@ -73,20 +77,6 @@ function StatusPageContent() {
         </div>
       </div>
 
-      {/* Guest CTA banner */}
-      {!user && (
-        <div className="mx-4 mt-4 px-4 py-3 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-3">
-          <p className="text-[11px] font-semibold text-[var(--text-secondary)] flex-1 font-[Poppins]">
-            <span className="text-[var(--text-primary)]">Sign in</span> to see stories from vendors you follow
-          </p>
-          <button
-            onClick={() => router.push('/login')}
-            className="text-[10px] font-bold text-[var(--accent)] hover:underline whitespace-nowrap font-[Poppins]"
-          >
-            Sign in →
-          </button>
-        </div>
-      )}
 
       {/* Stories grid */}
       <StatusTabGrid
