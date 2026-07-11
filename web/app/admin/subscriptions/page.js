@@ -44,7 +44,7 @@ const FEATURE_CATALOG = [
   { key: 'max_routes',         type: 'number', group: 'Logistics',          defaultValue: 3,     makeLabel: (v) => v >= 9999 ? 'Unlimited delivery routes'                 : `Create up to ${v} delivery routes` },
   { key: 'route_optimization', type: 'toggle', group: 'Logistics',          defaultValue: true,  makeLabel: (v) => v ? 'Route optimization tools'                         : 'Basic route optimization tools' },
   { key: 'email_support',      type: 'toggle', group: 'Vendor / Logistics', defaultValue: true,  makeLabel: (v) => v ? 'Email support available'                          : 'No email support' },
-  { key: 'status_duration_days', type: 'number', group: 'Vendor / Logistics', defaultValue: 1,    makeLabel: (v) => v >= 7 ? 'Status posts visible for up to 7 days' : v >= 3 ? 'Status posts visible for up to 3 days' : 'Status posts visible for 1 day only' },
+  { key: 'status_duration_days', type: 'number', options: [1, 3, 7], group: 'Vendor / Logistics', defaultValue: 1, makeLabel: (v) => v >= 7 ? 'Status posts visible for up to 7 days' : v >= 3 ? 'Status posts visible for up to 3 days' : 'Status posts visible for 1 day only' },
 ];
 
 const defaultPlan = {
@@ -922,7 +922,7 @@ function FeatureBuilder({ features, roles = [], onChange }) {
                   <p className={`min-w-0 flex-1 text-[11px] font-semibold ${included ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                     {included && current ? current.label : catalog.makeLabel(catalog.defaultValue)}
                   </p>
-                  {included && catalog.type === 'number' && (
+                  {included && catalog.type === 'number' && !catalog.options && (
                     <input
                       type="number"
                       min="1"
@@ -930,6 +930,17 @@ function FeatureBuilder({ features, roles = [], onChange }) {
                       onChange={(e) => updateValue(catalog, Math.max(1, Number(e.target.value) || 1))}
                       className="h-8 w-20 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-2 text-center text-[12px] font-bold outline-none focus:border-[var(--accent)]"
                     />
+                  )}
+                  {included && catalog.type === 'number' && catalog.options && (
+                    <select
+                      value={current?.value ?? catalog.defaultValue}
+                      onChange={(e) => updateValue(catalog, Number(e.target.value))}
+                      className="h-8 rounded-xl border border-[var(--accent)]/30 bg-[var(--bg-primary)] px-2 text-[12px] font-bold outline-none focus:border-[var(--accent)]"
+                    >
+                      {catalog.options.map((opt) => (
+                        <option key={opt} value={opt}>{opt} {opt === 1 ? 'day' : 'days'}</option>
+                      ))}
+                    </select>
                   )}
                   {included && catalog.type === 'toggle' && (
                     <button
