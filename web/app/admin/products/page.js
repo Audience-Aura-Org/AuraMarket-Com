@@ -3,12 +3,13 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { Package, Search, Loader2, Eye, Building2, Star, CheckCircle, Trash2, RefreshCw, Pencil, Ban, Archive } from 'lucide-react';
+import { Package, Search, Loader2, Eye, Building2, Star, CheckCircle, Trash2, RefreshCw, Pencil, Ban, Archive, ShieldAlert, LayoutGrid } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/common/Pagination';
+import StatCard from '@/components/layout/StatCard';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState([]);
@@ -142,6 +143,24 @@ export default function AdminProductsPage() {
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             />
           </div>
+
+          {/* ── Stat Cards ─────────────────────────────────────────────── */}
+          {(() => {
+            const total      = products.length;
+            const active     = products.filter(p => p.status === 'active').length;
+            const pending    = products.filter(p => p.status === 'pending').length;
+            const suspended  = products.filter(p => p.status === 'suspended').length;
+            const fmt = n => n >= 1_000_000 ? `${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `${(n/1_000).toFixed(1)}k` : String(n);
+            const pct = (n) => total > 0 ? Math.round((n / total) * 100) : 0;
+            return (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="Total Assets"      value={fmt(total)}     sub="All Listed Products"    icon={LayoutGrid}   color="blue"    progress={100}       footer={`${fmt(total)} products in pool`} />
+                <StatCard label="Active Listings"   value={fmt(active)}    sub="Live on Marketplace"    icon={Package}      color="emerald" progress={pct(active)}   footer={`${pct(active)}% of total`} />
+                <StatCard label="Pending Review"    value={fmt(pending)}   sub="Awaiting Approval"      icon={Star}         color="amber"   progress={pct(pending)}  footer="Pending approval" />
+                <StatCard label="Suspended"         value={fmt(suspended)} sub="Flagged / Deactivated"  icon={ShieldAlert}  color="rose"    progress={pct(suspended)} footer={`${pct(suspended)}% of total`} />
+              </div>
+            );
+          })()}
 
           {loading ? (
             <div className="py-20 flex flex-col items-center justify-center opacity-40">
