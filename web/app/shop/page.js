@@ -117,6 +117,8 @@ function ShopContent() {
   // Debounce ref
   const fetchTimeout = useRef(null);
   const productCacheRef = useRef(new Map());
+  // Tracks actual current page for event handlers that outlive renders (online refresh)
+  const pageRef = useRef(1);
 
   // Optimized Fetcher
   const fetchProducts = useCallback(async (targetPage = page, isImmediate = false) => {
@@ -193,34 +195,34 @@ function ShopContent() {
     } else {
       fetchTimeout.current = setTimeout(executeFetch, 300);
     }
-  }, [activeCategoryId, activeCategoryName, activePrice, sortBy, search, page, searchParams]); 
+  }, [activeCategoryId, activeCategoryName, activePrice, sortBy, search, searchParams]);
+  // Note: 'page' intentionally excluded — always passed explicitly to avoid stale-closure issues.
 
-  // Trigger fetch: Use immediate for filters, debounce for search
+  // Filter / sort change → reset to page 1 and fetch immediately.
   useEffect(() => {
-    // Determine if we should bypass the debounce (for explicit filter changes)
-    const urlQuery = searchParams.get('q') || '';
-    const isSearching = search !== urlQuery;
-    fetchProducts(page, !isSearching);
-  }, [page, activeCategoryId, activeCategoryName, activePrice, sortBy]);
+    setPage(1);
+    pageRef.current = 1;
+    fetchProducts(1, true);
+  }, [activeCategoryId, activeCategoryName, activePrice, sortBy]);
+  // Note: 'fetchProducts' not in deps — it only recreates when filter state changes,
+  // the same deps that trigger this effect, so the closure is always fresh.
 
-  // Special handle for search input to ensure it debounces correctly
+  // Search change → debounce fetch (skip on initial mount where search === URL param).
   useEffect(() => {
     const urlQuery = searchParams.get('q') || '';
     if (search !== urlQuery) {
+      setPage(1);
+      pageRef.current = 1;
       fetchProducts(1, false); // debounced
     }
   }, [search]);
 
+  // Online refresh — uses pageRef so the handler is never stale.
   useEffect(() => {
-    const refreshWhenOnline = () => fetchProducts(page, true);
+    const refreshWhenOnline = () => fetchProducts(pageRef.current, true);
     window.addEventListener('online', refreshWhenOnline);
     return () => window.removeEventListener('online', refreshWhenOnline);
-  }, [fetchProducts, page]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(1);
-  }, [activeCategoryId, activeCategoryName, activePrice, sortBy, search]);
+  }, [fetchProducts]);
 
   const handleCategoryClick = (cat) => {
     setBreadcrumb(prev => [...prev, cat]);
@@ -247,6 +249,8 @@ function ShopContent() {
 
   const handlePageChange = (p) => {
     setPage(p);
+    pageRef.current = p;
+    fetchProducts(p, true); // call directly — don't rely on an effect to pick up the new page
     resultsAnchor.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
