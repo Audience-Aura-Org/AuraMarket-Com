@@ -173,15 +173,29 @@ const ensureDefaultSubscriptionPlan = async () => {
 
   for (const defaults of allDefaults) {
     const { features, ...insertOnlyFields } = defaults;
-    const plan = await SubscriptionPlan.findOneAndUpdate(
+
+    // Upsert: create with all fields if it doesn't exist yet
+    let plan = await SubscriptionPlan.findOneAndUpdate(
       { slug: defaults.slug },
-      {
-        // Only set all fields (including features) when the record is first created
-        // Admin edits via the plan studio are preserved on server restart
-        $setOnInsert: { ...insertOnlyFields, features },
-      },
+      { $setOnInsert: { ...insertOnlyFields, features } },
       { returnDocument: 'after', upsert: true }
     );
+
+    // For plans that already existed, backfill any feature keys that are
+    // missing (e.g. status_duration_days added after initial seed).
+    // Existing feature entries set by admins are never touched.
+    if (plan) {
+      const existingKeys = new Set((plan.features || []).map((f) => f.key));
+      const missing = features.filter((f) => !existingKeys.has(f.key));
+      if (missing.length > 0) {
+        plan = await SubscriptionPlan.findByIdAndUpdate(
+          plan._id,
+          { $push: { features: { $each: missing } } },
+          { returnDocument: 'after' }
+        );
+      }
+    }
+
     plans.push(plan);
   }
 
