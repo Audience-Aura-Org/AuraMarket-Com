@@ -119,9 +119,13 @@ function ShopContent() {
   const productCacheRef = useRef(new Map());
   // Tracks actual current page for event handlers that outlive renders (online refresh)
   const pageRef = useRef(1);
+  // Generation counter — only the latest fetch may update state; stale responses are discarded.
+  const fetchGenRef = useRef(0);
 
   // Optimized Fetcher
-  const fetchProducts = useCallback(async (targetPage = page, isImmediate = false) => {
+  const fetchProducts = useCallback(async (targetPage = 1, isImmediate = false) => {
+    // Stamp this call — stale in-flight responses will be discarded.
+    const gen = ++fetchGenRef.current;
     if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
 
     const executeFetch = async () => {
@@ -144,8 +148,10 @@ function ShopContent() {
 
       // Serve from cache instantly for non-search queries (including category clicks)
       if (cached && !search) {
+        if (gen !== fetchGenRef.current) return; // stale — newer fetch is in progress
         setProducts(cached.products);
         setTotalPages(cached.totalPages);
+        setPage(targetPage); // confirm page matches fetched data
         return;
       }
 
@@ -173,12 +179,13 @@ function ShopContent() {
 
       try {
         const res = await api.get('/products', { params });
+        if (gen !== fetchGenRef.current) return; // stale — discard response
         if (res.data.success) {
           const nextProducts = res.data.data.products || [];
           setProducts(nextProducts);
           const total = res.data.pagination?.pages || 1;
           setTotalPages(total);
-          
+          setPage(targetPage); // confirm page matches what was actually fetched
           if (!search) {
             productCacheRef.current.set(queryKey, { products: nextProducts, totalPages: total });
           }
@@ -186,7 +193,7 @@ function ShopContent() {
       } catch (err) {
         console.error('Shop fetch error:', err);
       } finally {
-        setLoading(false);
+        if (gen === fetchGenRef.current) setLoading(false);
       }
     };
 
