@@ -7,10 +7,11 @@ import {
   AlertTriangle, Loader2, XCircle, Star,
   CreditCard, Clock, Share2,
   Printer, Scale, Phone, Layers,
-  Fingerprint, History, Zap, User
+  Fingerprint, History, Zap, User, MessageCircle
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useChat } from '@/context/ChatContext';
 import socketService from '@/services/socket';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,6 +32,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const [statusUpdating, setStatusUpdating] = useState(null);
 
   const { user } = useAuthStore();
+  const { openChat } = useChat();
 
   const fetchOrderManifest = async () => {
     try {
@@ -406,6 +408,34 @@ export default function SingleOrderView({ orderId, onBack }) {
     ) &&
     !['picked_up', 'in_transit', 'out_for_delivery', 'delivered'].includes(shipmentStatusNorm);
 
+  // ── Logistics chat ──────────────────────────────────────────────────────────
+  const logisticsUser = shipment?.logistics_id?.user_id || shipment?.logistics_company_id?.user_id;
+  const logisticsUserId = logisticsUser?._id || logisticsUser;
+  const carrierName = shipment?.logistics_id?.company_name || shipment?.logistics_company_id?.company_name || 'Carrier';
+  const canMessageCarrier = (
+    !isVendor &&
+    isLogisticsOrder &&
+    !!shipment &&
+    !!logisticsUserId &&
+    !['cancelled', 'refunded', 'failed', 'completed', 'delivered'].includes(order.order_status)
+  );
+  const openCarrierChat = () => {
+    const firstProduct = order.products?.[0];
+    const contextProduct = firstProduct ? {
+      _id: firstProduct.product_id?._id || firstProduct._id,
+      name: firstProduct.name,
+      images: firstProduct.image ? [firstProduct.image] : [],
+      price: firstProduct.price,
+    } : null;
+    openChat(
+      logisticsUserId,
+      contextProduct,
+      { store_name: carrierName },
+      false,
+      `Order #${order._id.slice(-8).toUpperCase()}`,
+    );
+  };
+
   const STEPS = [
     { label: 'Ordered', icon: ShoppingBag },
     { label: 'Verified', icon: ShieldCheck },
@@ -773,6 +803,30 @@ export default function SingleOrderView({ orderId, onBack }) {
         </div>
       </section>
 
+      {/* ── Transit chat banner ───────────────────────────────────────────── */}
+      {canMessageCarrier && (
+        <div className="flex items-center gap-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-4 py-3.5 sm:rounded-3xl sm:px-6 sm:py-4">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)]/10">
+            <MessageCircle className="size-5 text-[var(--accent)]" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[12px] font-bold text-[var(--text-primary)]">Need help with your shipment?</p>
+            <p className="mt-0.5 text-[11px] text-[var(--text-secondary)] opacity-70">
+              Message <span className="font-semibold">{carrierName}</span> directly while your order is in transit.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={openCarrierChat}
+            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-[11px] font-semibold text-white shadow-sm shadow-[var(--accent)]/20 transition active:opacity-80 sm:hover:opacity-90"
+          >
+            <MessageCircle className="size-3.5" />
+            <span className="hidden sm:inline">Message Carrier</span>
+            <span className="sm:hidden">Chat</span>
+          </button>
+        </div>
+      )}
+
       <div className="grid w-full min-w-0 flex-1 grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-12 lg:items-stretch lg:gap-10">
         <div className="order-2 flex min-h-0 flex-col space-y-8 sm:space-y-10 lg:order-1 lg:col-span-8">
           <div>
@@ -940,6 +994,16 @@ export default function SingleOrderView({ orderId, onBack }) {
                     <Layers className="size-4" />
                   </button>
                 </div>
+                {canMessageCarrier && (
+                  <button
+                    type="button"
+                    onClick={openCarrierChat}
+                    className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
+                  >
+                    <MessageCircle className="size-4" />
+                    Message Carrier
+                  </button>
+                )}
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-4 py-6 text-center">
