@@ -260,12 +260,16 @@ function SubscribeContent() {
                       <p className="mt-1 text-[11px] font-semibold text-[var(--text-secondary)]">{planDuration(plan, t)}</p>
                     </div>
                     <div className="mt-5 space-y-2">
-                      {(plan.features || []).map((feature, featureIndex) => (
-                        <span key={feature} className="flex items-start gap-2 text-[12px] font-semibold leading-5 text-[var(--text-secondary)]">
-                          <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
-                          <span>{t(planTranslationKey(plan, `feature${featureIndex + 1}`), feature)}</span>
-                        </span>
-                      ))}
+                      {(plan.features || []).map((feature, featureIndex) => {
+                        const featureText = typeof feature === 'string' ? feature : (feature?.label || feature?.key || '');
+                        if (!featureText) return null;
+                        return (
+                          <span key={featureIndex} className="flex items-start gap-2 text-[12px] font-semibold leading-5 text-[var(--text-secondary)]">
+                            <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
+                            <span>{t(planTranslationKey(plan, `feature${featureIndex + 1}`), featureText)}</span>
+                          </span>
+                        );
+                      })}
                     </div>
                     <span className="mt-auto inline-flex items-center gap-1 pt-5 text-xs font-black text-[var(--accent)]">
                       {isCurrentPlan
