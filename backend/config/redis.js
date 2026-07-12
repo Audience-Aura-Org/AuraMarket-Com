@@ -30,6 +30,9 @@ const buildOptions = () => ({
   lazyConnect: true,
   maxRetriesPerRequest: 2,
   enableReadyCheck: true,
+  // Send a keepAlive ping every 30s to prevent AWS ElastiCache from
+  // dropping idle connections (default idle timeout is ~60s)
+  keepAlive: 30000,
   retryStrategy(times) {
     return Math.min(times * 250, 3000);
   },

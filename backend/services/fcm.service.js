@@ -17,13 +17,16 @@ const initialize = () => {
   if (messaging || initAttempted) return messaging;
   initAttempted = true;
 
+  const serviceAccount = parseServiceAccount();
+  if (!serviceAccount) {
+    // No Firebase credentials configured — Android push silently disabled
+    return null;
+  }
+
   try {
     const admin = require('firebase-admin');
-    if (!admin.apps.length) {
-      const serviceAccount = parseServiceAccount();
-      admin.initializeApp(serviceAccount
-        ? { credential: admin.credential.cert(serviceAccount) }
-        : { credential: admin.credential.applicationDefault() });
+    if (!admin.apps || !admin.apps.length) {
+      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
     }
     messaging = admin.messaging();
     console.log('✅ [FCM] Firebase Admin initialized for Android push.');
