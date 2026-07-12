@@ -78,7 +78,7 @@ function AutoReleaseCountdown({ autoReleaseAt }) {
   if (!autoReleaseAt) return null;
   return (
     <div className="col-span-2 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/15">
-      <p className="text-[9px] font-bold text-amber-500 opacity-60 uppercase tracking-[0.2em] mb-1">Auto-Release In</p>
+      <p className="text-[10px] font-bold text-amber-500 opacity-80 mb-1">Auto-Release In</p>
       <div className="flex items-center gap-2">
         <Bot className="size-3.5 text-amber-500" />
         <p className="text-[12px] font-bold text-amber-500 tabular-nums">{remaining}</p>
@@ -263,7 +263,7 @@ export default function AdminEscrow() {
               <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Escrow <span className="text-[var(--accent)]">Vault</span></h2>
               <div className="flex items-center gap-2 mt-0.5">
                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Protocol Active // Master</p>
+                 <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-60">Live · Admin View</p>
               </div>
             </div>
           </div>
@@ -344,7 +344,7 @@ export default function AdminEscrow() {
                  </div>
                  <div>
                     <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">Commission Controls</h3>
-                    <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-[0.2em]">Platform fee policy</p>
+                    <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">Platform fee policy</p>
                  </div>
               </div>
               <div className="flex items-center gap-2">
@@ -408,7 +408,7 @@ export default function AdminEscrow() {
 
            {/* Live Fee Preview */}
            <div className="mt-4 rounded-2xl bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] p-4">
-              <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-[0.2em] mb-3">Live Preview — 10,000 XAF order</p>
+              <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-70 mb-3">Fee preview on a 10,000 XAF order</p>
               <div className="grid grid-cols-4 gap-3">
                  {[
                    { label: 'Base',       value: `${fmt(feePreview.base)} XAF`,     color: 'text-[var(--text-primary)]' },
@@ -445,14 +445,14 @@ export default function AdminEscrow() {
               <h3 className="text-xs font-bold text-[var(--text-primary)] tracking-[0.2em] flex items-center gap-3 uppercase">
                  <Database className="size-4 text-[var(--accent)]" /> Global Escrow Trace Ledger
               </h3>
-              <p className="hidden md:block text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em]">Secure Vault Logs Synchronized</p>
+              <p className="hidden md:block text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">{filteredLogs.length} record{filteredLogs.length !== 1 ? 's' : ''} shown</p>
            </div>
 
            <div className="p-4 md:p-8 space-y-4">
              {loading ? (
-                <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-20">
+                <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-30">
                    <Loader2 className="animate-spin size-10" />
-                   <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Synchronizing Items...</p>
+                   <p className="text-[11px] font-semibold">Loading escrow records...</p>
                 </div>
              ) : currentLogs.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
@@ -480,27 +480,28 @@ export default function AdminEscrow() {
                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between mb-3">
                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <span className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight uppercase">Order #{l.order_id?._id?.slice(-8).toUpperCase() || 'LEGACY'}</span>
+                                      <span className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight uppercase">Order #{l.order_id?._id?.slice(-8).toUpperCase() || 'N/A'}</span>
                                       <span className={`px-2 py-0.5 rounded-lg text-[9px] font-bold tracking-widest border uppercase ${statusBg} ${statusColor} ${statusColor.replace('text-', 'border-')}/20`}>
                                          {l.status.replace('_', ' ')}
                                       </span>
                                       {/* Auto-released badge */}
                                       {l.auto_released && (
-                                        <span className="px-2 py-0.5 rounded-lg text-[9px] font-bold tracking-widest border bg-amber-500/10 text-amber-500 border-amber-500/20 flex items-center gap-1">
-                                          <Bot className="size-2.5" /> AUTO
+                                        <span className="px-2 py-0.5 rounded-lg text-[9px] font-bold border bg-amber-500/10 text-amber-500 border-amber-500/20 flex items-center gap-1">
+                                          <Bot className="size-2.5" /> Auto-released
                                         </span>
                                       )}
                                    </div>
-                                   <div className="flex items-center gap-2 text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest">
+                                   <div className="flex items-center gap-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">
                                       <Clock className="w-3 h-3" /> {new Date(l.createdAt).toLocaleDateString()}
                                    </div>
                                 </div>
                                 <div className="flex items-center gap-4">
                                    <div className="flex-1 min-w-0">
                                       <p className="text-[13px] font-bold text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors truncate">
-                                         {l.buyer_id?.name || 'Customer Node'} → {l.vendor_id?.store_name || 'Vendor Hub'}
+                                         {l.buyer_id?.name || 'Unknown Buyer'} → {l.vendor_id?.store_name || 'Unknown Vendor'}
                                       </p>
-                                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                                      <p className="text-[10px] text-[var(--text-secondary)] opacity-60 truncate mt-0.5">{l.buyer_id?.email || ''}</p>
+                                      <div className="flex items-center gap-3 mt-1 flex-wrap">
                                         {/* Customer confirmed inline indicator */}
                                         <span className={`text-[9px] font-bold flex items-center gap-1 ${l.customer_confirmed ? 'text-emerald-500' : 'text-[var(--text-secondary)] opacity-40'}`}>
                                           <User2 className="size-2.5" />
@@ -518,7 +519,7 @@ export default function AdminEscrow() {
                              <div className="flex items-center justify-between md:flex-col md:items-end md:justify-center gap-4 pt-5 md:pt-0 border-t md:border-t-0 border-[var(--glass-border)]/50">
                                 <div className="text-left md:text-right">
                                    <p className="text-xl font-bold tabular-nums text-[var(--text-primary)] tracking-tighter">{l.amount.toLocaleString()} <span className="text-[10px] opacity-30 ml-1 font-mono">XAF</span></p>
-                                   <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-20 uppercase tracking-[0.2em] mt-0.5">Asset Custody</p>
+                                   <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 mt-0.5">Escrow Amount</p>
                                 </div>
                                 <ShieldCheck className={`hidden md:block size-4 ${isReleased ? 'text-emerald-500' : 'text-[var(--text-secondary)] opacity-20'}`} />
                              </div>
@@ -538,7 +539,7 @@ export default function AdminEscrow() {
                                          <div className="grid grid-cols-2 gap-3">
                                             {/* Customer Confirmed */}
                                             <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
-                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Customer Confirmed</p>
+                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-[0.12em] mb-2">Customer Confirmed</p>
                                                <div className="flex items-center gap-2">
                                                   {l.auto_released ? (
                                                     <>
@@ -557,7 +558,7 @@ export default function AdminEscrow() {
                                             </div>
                                             {/* Vendor Confirmed */}
                                             <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
-                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Vendor Confirmed</p>
+                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-[0.12em] mb-2">Vendor Confirmed</p>
                                                <div className="flex items-center gap-2">
                                                   <div className={`size-1.5 rounded-full ${l.vendor_confirmed ? 'bg-emerald-500 animate-pulse' : 'bg-[var(--text-secondary)] opacity-30'}`} />
                                                   <p className={`text-[11px] font-bold ${l.vendor_confirmed ? 'text-emerald-500' : 'text-[var(--text-secondary)] opacity-50'}`}>
@@ -567,7 +568,7 @@ export default function AdminEscrow() {
                                             </div>
                                             {/* Transaction State */}
                                             <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
-                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Transaction State</p>
+                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-[0.12em] mb-2">Transaction State</p>
                                                <div className="flex items-center gap-2">
                                                   <div className={`size-1.5 rounded-full ${isReleased ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
                                                   <p className={`text-[11px] font-bold ${isReleased ? 'text-emerald-500' : 'text-amber-500'}`}>
@@ -577,7 +578,7 @@ export default function AdminEscrow() {
                                             </div>
                                             {/* Released By */}
                                             <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
-                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Released By</p>
+                                               <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-[0.12em] mb-2">Released By</p>
                                                <div className="flex items-center gap-2">
                                                   {isReleased ? (
                                                     l.auto_released ? (
@@ -606,7 +607,7 @@ export default function AdminEscrow() {
                                             {/* Settlement Timestamp */}
                                             {l.release_date && (
                                               <div className="col-span-2 p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
-                                                 <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.2em] mb-2">Settlement Timestamp</p>
+                                                 <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-[0.12em] mb-2">Settlement Timestamp</p>
                                                  <p className="text-[11px] font-bold text-[var(--text-primary)] tracking-tight">{new Date(l.release_date).toLocaleString()}</p>
                                               </div>
                                             )}
@@ -632,10 +633,10 @@ export default function AdminEscrow() {
                                               </button>
                                            </div>
                                          ) : (
-                                            <div className="h-full flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-[var(--glass-border)] opacity-30">
+                                            <div className="h-full flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-[var(--glass-border)] opacity-60">
                                                <CheckCircle2 className="size-8 mb-3 text-emerald-500" />
-                                               <p className="text-[10px] font-bold tracking-widest uppercase">Node Fully Settled</p>
-                                               {l.auto_released && <p className="text-[9px] mt-1 opacity-60">Released automatically by system</p>}
+                                               <p className="text-[11px] font-bold">Transaction Complete</p>
+                                               {l.auto_released && <p className="text-[10px] mt-1 opacity-70">Released automatically by system</p>}
                                             </div>
                                          )}
                                       </div>
@@ -648,9 +649,9 @@ export default function AdminEscrow() {
                   })}
                 </div>
              ) : (
-                <div className="py-40 flex flex-col items-center justify-center opacity-10 px-10 text-center gap-6">
-                   <Database className="w-16 h-16 text-[var(--text-secondary)]" />
-                   <p className="text-xs font-bold tracking-[0.4em] uppercase max-w-sm">No Secure Vault Logs Detected</p>
+                <div className="py-40 flex flex-col items-center justify-center opacity-30 px-10 text-center gap-4">
+                   <Database className="w-12 h-12 text-[var(--text-secondary)]" />
+                   <p className="text-sm font-semibold text-[var(--text-secondary)]">No escrow records found</p>
                 </div>
              )}
            </div>
