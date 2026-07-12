@@ -253,6 +253,7 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   escrow.status = 'released';
   escrow.release_date = new Date();
   escrow.auto_released = !!req.autoRelease;
+  escrow.released_by = req.autoRelease ? 'auto' : (req.user?.role === 'admin' ? 'admin' : 'customer');
   await escrow.save({ session });
 
   order.order_status = 'completed';
@@ -668,6 +669,7 @@ const refundFunds = async (req, res, next) => {
     // 3. Break down Escrow model
     escrow.status = 'refunded';
     escrow.refund_reason = reason || 'Vendor cancellation / Admin dispute resolution';
+    escrow.released_by = req.user?.role === 'admin' ? 'admin' : 'customer';
     await escrow.save({ session });
 
     // 4. Conclude Order cleanly

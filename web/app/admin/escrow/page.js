@@ -580,26 +580,17 @@ export default function AdminEscrow() {
                                             <div className="p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)]">
                                                <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-[0.12em] mb-2">Released By</p>
                                                <div className="flex items-center gap-2">
-                                                  {isReleased ? (
-                                                    l.auto_released ? (
-                                                      <>
-                                                        <Bot className="size-3.5 text-amber-500" />
-                                                        <p className="text-[11px] font-bold text-amber-500">System (Auto)</p>
-                                                      </>
-                                                    ) : l.customer_confirmed ? (
-                                                      <>
-                                                        <User2 className="size-3.5 text-emerald-500" />
-                                                        <p className="text-[11px] font-bold text-emerald-500">Customer</p>
-                                                      </>
-                                                    ) : (
-                                                      <>
-                                                        <Shield className="size-3.5 text-indigo-500" />
-                                                        <p className="text-[11px] font-bold text-indigo-500">Admin Override</p>
-                                                      </>
-                                                    )
-                                                  ) : (
-                                                    <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40">—</p>
-                                                  )}
+                                                  {(() => {
+                                                    // Use explicit released_by field; fall back to legacy flags for old records
+                                                    const by = l.released_by
+                                                      || (l.auto_released ? 'auto' : null)
+                                                      || ((l.customer_confirmed && isReleased) ? 'customer' : null);
+                                                    if (!by) return <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40">—</p>;
+                                                    if (by === 'auto') return <><Bot className="size-3.5 text-amber-500" /><p className="text-[11px] font-bold text-amber-500">System (Auto)</p></>;
+                                                    if (by === 'customer') return <><User2 className="size-3.5 text-emerald-500" /><p className="text-[11px] font-bold text-emerald-500">Customer</p></>;
+                                                    if (by === 'admin') return <><Shield className="size-3.5 text-indigo-500" /><p className="text-[11px] font-bold text-indigo-500">Admin Override</p></>;
+                                                    return <p className="text-[11px] font-bold text-[var(--text-secondary)] opacity-40">—</p>;
+                                                  })()}
                                                </div>
                                             </div>
                                             {/* Auto-release countdown for held escrows */}
