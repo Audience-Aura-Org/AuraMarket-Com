@@ -231,9 +231,9 @@ export default function AddProductPage() {
     if (publishingRef.current || loading) return;
 
     if (!form.name.trim()) return toast.error('Product name is required.');
-    if (!form.price || Number(form.price) <= 0) return toast.error('Please enter a valid price.');
-    if (form.sale_price && Number(form.sale_price) >= Number(form.price)) return toast.error('Sale price must be less than the regular price.');
-    if (!form.stock && form.stock !== 0) return toast.error('Stock quantity is required.');
+    if (!hasVariants && (!form.price || Number(form.price) <= 0)) return toast.error('Please enter a valid price.');
+    if (!hasVariants && form.sale_price && Number(form.sale_price) >= Number(form.price)) return toast.error('Sale price must be less than the regular price.');
+    if (!hasVariants && (!form.stock && form.stock !== 0)) return toast.error('Stock quantity is required.');
     if (!form.category) return toast.error('Please select a category.');
     if (images.length === 0) return toast.error('At least one product image is required.');
 
@@ -604,15 +604,16 @@ export default function AddProductPage() {
                 </div>
                 <div className="space-y-5">
                   <div>
-                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Price (XAF) *</label>
-                    <input 
+                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Price (XAF){!hasVariants && ' *'}</label>
+                    <input
                       type="number" min="0"
                       value={form.price}
                       onChange={e => updateFormField('price', e.target.value)}
-                      required
+                      required={!hasVariants}
                       placeholder="0"
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-xs sm:text-sm font-medium text-[var(--text-primary)] placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-normal placeholder:text-[var(--text-secondary)]/35 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
                     />
+                    {hasVariants && <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Optional for variable products — each variant has its own price.</p>}
                   </div>
                   <div>
                     <label className="text-xs font-bold text-[var(--text-secondary)] tracking-tight mb-2 block">Sale Price (XAF)</label>
@@ -627,15 +628,16 @@ export default function AddProductPage() {
                     <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Optional. If provided, must be less than the regular price.</p>
                   </div>
                   <div>
-                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Stock Quantity *</label>
-                    <input 
+                    <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Stock Quantity{!hasVariants && ' *'}</label>
+                    <input
                       type="number" min="0"
                       value={form.stock}
                       onChange={e => updateFormField('stock', e.target.value)}
-                      required
+                      required={!hasVariants}
                       placeholder="0"
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-xs sm:text-sm font-medium text-[var(--text-primary)] placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-normal placeholder:text-[var(--text-secondary)]/35 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
                     />
+                    {hasVariants && <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Optional for variable products — stock is tracked per variant.</p>}
                   </div>
                 </div>
               </section>

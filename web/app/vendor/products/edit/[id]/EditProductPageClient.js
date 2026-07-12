@@ -218,9 +218,9 @@ export default function EditProductPage() {
     if (loading || preparingImages) return;
 
     if (!form.name.trim()) return toast.error('Product name is required.');
-    if (!form.price || Number(form.price) <= 0)
+    if (!hasVariants && (!form.price || Number(form.price) <= 0))
       return toast.error('Please enter a valid price.');
-    if (form.sale_price && Number(form.sale_price) >= Number(form.price))
+    if (!hasVariants && form.sale_price && Number(form.sale_price) >= Number(form.price))
       return toast.error('Sale price must be less than the regular price.');
     if (!form.category) return toast.error('Please select a category.');
 
@@ -608,15 +608,16 @@ export default function EditProductPage() {
                 </div>
                 <div className="space-y-5">
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-tight mb-2 block">Price (XAF) *</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-tight mb-2 block">Price (XAF){!hasVariants && ' *'}</label>
                     <input
                       type="number" min="0"
                       value={form.price}
                       onChange={e => updateFormField('price', e.target.value)}
-                      required
+                      required={!hasVariants}
                       placeholder="0"
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-xs sm:text-sm font-medium text-[var(--text-primary)] placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-normal placeholder:text-[var(--text-secondary)]/35 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
                     />
+                    {hasVariants && <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Optional for variable products — each variant has its own price.</p>}
                   </div>
                   <div>
                     <label className="text-xs font-bold text-[var(--text-secondary)] tracking-tight mb-2 block">Sale Price (XAF)</label>
@@ -630,15 +631,16 @@ export default function EditProductPage() {
                     <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Optional. If provided, must be less than the regular price.</p>
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-tight mb-2 block">Stock Quantity *</label>
+                    <label className="text-xs font-bold text-[var(--text-secondary)] tracking-tight mb-2 block">Stock Quantity{!hasVariants && ' *'}</label>
                     <input
                       type="number" min="0"
                       value={form.stock}
                       onChange={e => updateFormField('stock', e.target.value)}
-                      required
+                      required={!hasVariants}
                       placeholder="0"
                       className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-5 py-3 text-xs sm:text-sm font-medium text-[var(--text-primary)] placeholder:text-[11px] sm:placeholder:text-xs placeholder:font-normal placeholder:text-[var(--text-secondary)]/35 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition-all"
                     />
+                    {hasVariants && <p className="mt-2 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">Optional for variable products — stock is tracked per variant.</p>}
                   </div>
                 </div>
               </section>
