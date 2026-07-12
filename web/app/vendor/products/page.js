@@ -179,7 +179,7 @@ export default function VendorProductsPage() {
                 <div className="ml-auto shrink-0">
                   <select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
+                    onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
                     className="h-7 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 text-[10px] text-[var(--text-secondary)] outline-none"
                   >
                     <option value="name">A–Z</option>
