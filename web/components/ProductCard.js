@@ -35,6 +35,13 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
   const discountPercent = isOnSale
     ? Math.round(((numericRegularPrice - numericSalePrice) / numericRegularPrice) * 100)
     : 0;
+  // Price range for variable products (WooCommerce-style "min – max")
+  const variantPrices = product.has_variants && product.sku_variants?.length
+    ? product.sku_variants.map(v => Number(v.price || 0)).filter(p => p > 0)
+    : [];
+  const minVariantPrice = variantPrices.length ? Math.min(...variantPrices) : null;
+  const maxVariantPrice = variantPrices.length ? Math.max(...variantPrices) : null;
+  const isPriceRange = minVariantPrice !== null && maxVariantPrice !== null && minVariantPrice !== maxVariantPrice;
   const productId = _id || id;
   const vendorUserId = vendor_id?.user_id?._id || vendor_id?.user_id || vendor_id?._id;
   const vendorId = vendor_id?._id || vendor_id;
@@ -242,8 +249,12 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
               </Link>
               <div className="flex items-center gap-4">
                 <div className="flex items-baseline gap-2">
-                  <p className="text-[14px] md:text-[18px] font-bold text-[var(--text-primary)]">{displayPrice?.toLocaleString()} XAF</p>
-                  {isOnSale && displayOriginalPrice && (
+                  <p className="text-[14px] md:text-[18px] font-bold text-[var(--text-primary)]">
+                    {isPriceRange
+                      ? `${minVariantPrice.toLocaleString()} – ${maxVariantPrice.toLocaleString()} XAF`
+                      : `${displayPrice?.toLocaleString()} XAF`}
+                  </p>
+                  {!isPriceRange && isOnSale && displayOriginalPrice && (
                     <span className="text-[10px] font-semibold text-[var(--text-secondary)] line-through opacity-50">{displayOriginalPrice?.toLocaleString()}</span>
                   )}
                 </div>
@@ -360,8 +371,12 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
             </Link>
             <div className="flex items-center justify-between gap-1">
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[12px] sm:text-[13px] md:text-[15px] font-bold text-[var(--accent)] truncate">{displayPrice?.toLocaleString()} XAF</span>
-                {isOnSale && displayOriginalPrice && (
+                <span className="text-[12px] sm:text-[13px] md:text-[15px] font-bold text-[var(--accent)] truncate">
+                  {isPriceRange
+                    ? `${minVariantPrice.toLocaleString()} – ${maxVariantPrice.toLocaleString()} XAF`
+                    : `${displayPrice?.toLocaleString()} XAF`}
+                </span>
+                {!isPriceRange && isOnSale && displayOriginalPrice && (
                   <span className="text-[9px] sm:text-[10px] font-semibold text-[var(--text-secondary)] line-through opacity-50 truncate">{displayOriginalPrice?.toLocaleString()}</span>
                 )}
               </div>

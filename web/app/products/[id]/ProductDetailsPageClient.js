@@ -192,6 +192,13 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
   const isOnSale = salePrice > 0 && salePrice < regularPrice;
   const displayPrice = isOnSale ? salePrice : regularPrice;
   const originalPrice = isOnSale ? regularPrice : 0;
+  // Price range for variable products before a variant is chosen
+  const variantPrices = !currentVariant && product?.has_variants && product?.sku_variants?.length
+    ? product.sku_variants.map(v => Number(v.price || 0)).filter(p => p > 0)
+    : [];
+  const minVariantPrice = variantPrices.length ? Math.min(...variantPrices) : null;
+  const maxVariantPrice = variantPrices.length ? Math.max(...variantPrices) : null;
+  const isPriceRange = minVariantPrice !== null && maxVariantPrice !== null && minVariantPrice !== maxVariantPrice;
   const displayStock = currentVariant ? currentVariant.stock : product?.stock;
   const inStock = Boolean(displayStock > 0);
   
@@ -331,14 +338,23 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
               <div>
                 <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] mb-0.5">{t('common.price')}</p>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl md:text-3xl  font-bold text-[var(--text-primary)] tracking-tight leading-none">
-                    {displayPrice?.toLocaleString()}
-                  </span>
-                  <span className="text-xs  font-bold text-[var(--accent)] leading-none pb-0.5">XAF</span>
-                  {originalPrice > displayPrice && (
-                    <span className="text-sm font-semibold text-[var(--text-secondary)] line-through opacity-45">
-                      {originalPrice.toLocaleString()}
+                  {isPriceRange ? (
+                    <span className="text-2xl md:text-3xl font-bold text-[var(--text-primary)] tracking-tight leading-none">
+                      {minVariantPrice.toLocaleString()} – {maxVariantPrice.toLocaleString()}
+                      <span className="text-xs font-bold text-[var(--accent)] leading-none pb-0.5 ml-1">XAF</span>
                     </span>
+                  ) : (
+                    <>
+                      <span className="text-2xl md:text-3xl  font-bold text-[var(--text-primary)] tracking-tight leading-none">
+                        {displayPrice?.toLocaleString()}
+                      </span>
+                      <span className="text-xs  font-bold text-[var(--accent)] leading-none pb-0.5">XAF</span>
+                      {originalPrice > displayPrice && (
+                        <span className="text-sm font-semibold text-[var(--text-secondary)] line-through opacity-45">
+                          {originalPrice.toLocaleString()}
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

@@ -74,6 +74,13 @@ export default function VariantSelectorModal({
   const hasSale = salePrice !== null && salePrice > 0 && salePrice < regularPrice;
   const displayPrice = hasSale ? salePrice : regularPrice;
   const originalPrice = hasSale ? regularPrice : null;
+  // Price range before a variant is selected
+  const variantPrices = !currentVariant && product.has_variants && product.sku_variants?.length
+    ? product.sku_variants.map(v => Number(v.price || 0)).filter(p => p > 0)
+    : [];
+  const minVariantPrice = variantPrices.length ? Math.min(...variantPrices) : null;
+  const maxVariantPrice = variantPrices.length ? Math.max(...variantPrices) : null;
+  const isPriceRange = minVariantPrice !== null && maxVariantPrice !== null && minVariantPrice !== maxVariantPrice;
   const inStock      = currentVariant ? currentVariant.stock > 0 : product.stock > 0;
   const images       = product.images || [];
   const mainImage    = currentVariant?.image
@@ -136,8 +143,12 @@ export default function VariantSelectorModal({
                 <div className="min-w-0">
                   <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)] truncate leading-tight">{product.name}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-sm  font-bold text-[var(--accent)]">{displayPrice?.toLocaleString()} XAF</span>
-                    {hasSale && (
+                    <span className="text-sm  font-bold text-[var(--accent)]">
+                      {isPriceRange
+                        ? `${minVariantPrice.toLocaleString()} – ${maxVariantPrice.toLocaleString()} XAF`
+                        : `${displayPrice?.toLocaleString()} XAF`}
+                    </span>
+                    {!isPriceRange && hasSale && (
                       <span className="text-[11px] text-[var(--text-secondary)] line-through opacity-50">{originalPrice?.toLocaleString()} XAF</span>
                     )}
                     <span className={`text-[11px] lg:text-[12px]  font-semibold tracking-tight px-1.5 py-0.5 rounded-full ${inStock ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
