@@ -574,7 +574,7 @@ function PlanCard({ plan, onEdit, onToggle, onDelete, t, label }) {
       </div>
 
       <ul className="mt-4 min-h-0 flex-1 space-y-2">
-        {features.slice(0, 5).map((feature, i) => {
+        {features.slice(0, 6).map((feature, i) => {
           const text = typeof feature === 'string' ? feature : (feature?.label || feature?.key || '');
           const negative = typeof feature === 'object' && feature?.value === false;
           return (
