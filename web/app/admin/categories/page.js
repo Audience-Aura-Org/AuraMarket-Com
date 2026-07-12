@@ -2,288 +2,423 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
-import { 
-  Plus, Edit2, Trash2, ChevronRight, ChevronDown, 
-  Folder, Search, Save, X, Database, Zap, Activity,
-  RefreshCw, ShieldCheck
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  Plus, Edit2, Trash2, ChevronRight, ChevronDown,
+  FolderOpen, Folder, Check, X, Search, RefreshCw,
 } from 'lucide-react';
-import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
-import { motion, AnimatePresence } from 'framer-motion';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import StatCard from '@/components/layout/StatCard';
 
+// ── Tree helpers ─────────────────────────────────────────────────────────────
+function removeById(cats, id) {
+  return cats
+    .filter(c => c._id !== id)
+    .map(c => ({ ...c, children: removeById(c.children || [], id) }));
+}
+
+function addChild(cats, parentId, newCat) {
+  return cats.map(c => {
+    if (c._id === parentId) return { ...c, children: [...(c.children || []), newCat] };
+    return { ...c, children: addChild(c.children || [], parentId, newCat) };
+  });
+}
+
+function updateById(cats, id, updates) {
+  return cats.map(c => {
+    if (c._id === id) return { ...c, ...updates };
+    return { ...c, children: updateById(c.children || [], id, updates) };
+  });
+}
+
+function replaceTemp(cats, tempId, real) {
+  return cats.map(c => {
+    if (c._id === tempId) return { ...real, children: c.children || [] };
+    return { ...c, children: replaceTemp(c.children || [], tempId, real) };
+  });
+}
+
+function filterTree(cats, q) {
+  if (!q) return cats;
+  const lq = q.toLowerCase();
+  return cats.reduce((acc, c) => {
+    const childMatches = filterTree(c.children || [], lq);
+    if (c.name.toLowerCase().includes(lq) || childMatches.length > 0) {
+      acc.push({ ...c, children: childMatches });
+    }
+    return acc;
+  }, []);
+}
+
+function countAll(cats) {
+  return cats.reduce((n, c) => n + 1 + countAll(c.children || []), 0);
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 export default function AdminCategories() {
-  const { user } = useAuthStore();
-  const [mounted, setMounted] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState({});
-  const [editing, setEditing] = useState(null); 
-  const [isAdding, setIsAdding] = useState(false);
-  const [formData, setFormData] = useState({ name: '', parent_id: null });
+  const [editingId, setEditingId] = useState(null);
+  const [editName, setEditName] = useState('');
+  // undefined = closed  |  null = top-level  |  string = sub of that id
+  const [addParentId, setAddParentId] = useState(undefined);
+  const [addName, setAddName] = useState('');
+  const [query, setQuery] = useState('');
 
-  useEffect(() => {
-    setMounted(true);
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get('/categories/tree');
-      if (res.data.success) {
-        setCategories(res.data.data);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Scan of nodes failed.");
+      if (res.data.success) setCategories(res.data.data);
+    } catch {
+      toast.error('Failed to load categories.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const toggleExpand = (id) => {
-    setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
-  };
+  useEffect(() => { fetchCategories(); }, [fetchCategories]);
 
+  const openAdd = (parentId = null) => {
+    setAddParentId(parentId);
+    setAddName('');
+    if (parentId) setExpanded(prev => ({ ...prev, [parentId]: true }));
+  };
+  const closeAdd = () => { setAddParentId(undefined); setAddName(''); };
+
+  // ── Add (optimistic) ───────────────────────────────────────────────────────
   const handleAdd = async () => {
-    if (!formData.name.trim()) return;
+    const name = addName.trim();
+    if (!name) return;
+
+    const tempId = `temp-${Date.now()}`;
+    const newCat = { _id: tempId, name, children: [] };
+
+    setCategories(prev =>
+      addParentId === null ? [...prev, newCat] : addChild(prev, addParentId, newCat)
+    );
+    closeAdd();
+
     try {
-      const res = await api.post('/categories', formData);
+      const res = await api.post('/categories', { name, parent_id: addParentId });
       if (res.data.success) {
-        fetchCategories();
-        setIsAdding(false);
-        setFormData({ name: '', parent_id: null });
-        toast.success("Category node committed.");
+        setCategories(prev => replaceTemp(prev, tempId, res.data.data));
       }
     } catch (err) {
-      toast.error(err.response?.data?.error || "Deployment failed.");
+      setCategories(prev => removeById(prev, tempId));
+      toast.error(err.response?.data?.error || 'Failed to add category.');
     }
   };
+
+  // ── Edit (optimistic) ──────────────────────────────────────────────────────
+  const startEdit = (cat) => { setEditingId(cat._id); setEditName(cat.name); };
+  const cancelEdit = () => { setEditingId(null); setEditName(''); };
 
   const handleUpdate = async () => {
-    if (!editing.name.trim()) return;
+    const name = editName.trim();
+    if (!name) return;
+    const snapshot = categories;
+    const id = editingId;
+    setCategories(prev => updateById(prev, id, { name }));
+    cancelEdit();
     try {
-      const res = await api.put(`/categories/${editing._id}`, editing);
-      if (res.data.success) {
-        fetchCategories();
-        setEditing(null);
-        toast.success("Matrix node recalibrated.");
-      }
+      await api.put(`/categories/${id}`, { name });
     } catch (err) {
-      toast.error(err.response?.data?.error || "Recalibration failed.");
+      setCategories(snapshot);
+      toast.error(err.response?.data?.error || 'Failed to update.');
     }
   };
 
+  // ── Delete (optimistic) ────────────────────────────────────────────────────
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure? This will delete the category node forever.")) return;
+    if (!confirm('Delete this category? Subcategories will also be removed.')) return;
+    const snapshot = categories;
+    setCategories(prev => removeById(prev, id));
     try {
-      const res = await api.delete(`/categories/${id}`);
-      if (res.data.success) {
-        fetchCategories();
-        toast.success("Node terminated.");
-      }
+      await api.delete(`/categories/${id}`);
+      toast.success('Category deleted.');
     } catch (err) {
-      toast.error(err.response?.data?.error || "Purge failed.");
+      setCategories(snapshot);
+      toast.error(err.response?.data?.error || 'Failed to delete.');
     }
   };
 
-  const renderCategoryRow = (cat, depth = 0) => {
+  const filtered = useMemo(() => filterTree(categories, query), [categories, query]);
+  const total = useMemo(() => countAll(categories), [categories]);
+
+  // ── Row renderer ───────────────────────────────────────────────────────────
+  const renderRow = (cat, depth = 0) => {
     const isExpanded = expanded[cat._id];
-    const hasChildren = cat.children && cat.children.length > 0;
+    const hasChildren = (cat.children || []).length > 0;
+    const isEditing = editingId === cat._id;
+    const isAddingHere = addParentId === cat._id;
 
     return (
-      <div key={cat._id} className="w-full">
-        <div 
-          className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 hover:bg-[var(--accent)]/5 border-b border-[var(--glass-border)]/50 transition-all group gap-4 md:gap-0"
-          style={{ paddingLeft: typeof window !== 'undefined' && window.innerWidth < 768 ? '1rem' : `${depth * 2.5 + 2.5}rem` }}
+      <div key={cat._id}>
+        <div
+          className="flex items-center gap-2 py-2.5 border-b border-[var(--glass-border)]/40 hover:bg-[var(--accent)]/5 transition-colors group"
+          style={{ paddingLeft: `${depth * 20 + 12}px`, paddingRight: '12px' }}
         >
-          <div className="flex items-center gap-4 min-w-0">
-            {/* Indentation Spacer for Mobile */}
-            <div className="md:hidden flex items-center shrink-0" style={{ width: `${depth * 1.5}rem` }}>
-               {depth > 0 && <div className="w-px h-6 bg-[var(--glass-border)] mx-auto opacity-20" />}
-            </div>
+          {/* Chevron */}
+          <button
+            type="button"
+            onClick={() => hasChildren && setExpanded(p => ({ ...p, [cat._id]: !p[cat._id] }))}
+            className={`size-6 rounded-md flex items-center justify-center shrink-0 transition-colors ${
+              hasChildren
+                ? 'text-[var(--text-secondary)] hover:text-[var(--accent)]'
+                : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            {isExpanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+          </button>
 
-            {hasChildren ? (
-              <button 
-                onClick={() => toggleExpand(cat._id)}
-                className="size-10 md:size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all active:scale-90 shrink-0 shadow-sm"
-              >
-                {isExpanded ? <ChevronDown className="size-5" /> : <ChevronRight className="size-5" />}
-              </button>
-            ) : (
-              <div className="size-10 md:size-11 flex items-center justify-center opacity-10 shrink-0">
-                 <div className="size-1.5 bg-[var(--text-secondary)] rounded-full" />
-              </div>
-            )}
-            
-            <div className={`size-10 md:size-11 rounded-xl flex items-center justify-center shrink-0 ${hasChildren ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'} border border-[var(--glass-border)]/20 shadow-inner`}>
-               <Folder className="size-5" />
-            </div>
-
-            {editing?._id === cat._id ? (
-              <input 
-                value={editing.name}
-                onChange={e => setEditing({...editing, name: e.target.value})}
-                className="flex-1 min-w-[150px] bg-[var(--bg-primary)] border border-[var(--accent)] rounded-xl px-4 h-10 text-xs font-bold text-[var(--accent)] outline-none ring-4 ring-[var(--accent)]/5 shadow-inner capitalize tracking-tight"
-                autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && handleUpdate()}
-              />
-            ) : (
-              <div className="flex flex-col min-w-0">
-                <span className="text-[12px] md:text-sm font-bold tracking-tight text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors capitalize truncate">{cat.name}</span>
-                <span className="text-[10px] font-bold tracking-widest text-[var(--text-secondary)] opacity-30 uppercase mt-0.5">Node_ID: #{cat._id?.slice(-8).toUpperCase()}</span>
-              </div>
-            )}
+          {/* Folder icon */}
+          <div className={`size-7 rounded-lg flex items-center justify-center shrink-0 ${
+            depth === 0
+              ? 'text-[var(--accent)] bg-[var(--accent)]/10'
+              : 'text-[var(--text-secondary)] opacity-40'
+          }`}>
+            {isExpanded && hasChildren ? <FolderOpen className="size-4" /> : <Folder className="size-4" />}
           </div>
-          
-          <div className="flex items-center gap-2 md:opacity-0 group-hover:opacity-100 transition-all transform md:translate-x-2 group-hover:translate-x-0 justify-end">
-            {editing?._id === cat._id ? (
+
+          {/* Name or edit input */}
+          {isEditing ? (
+            <input
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleUpdate(); if (e.key === 'Escape') cancelEdit(); }}
+              autoFocus
+              className="flex-1 h-8 bg-[var(--bg-secondary)] border border-[var(--accent)] rounded-lg px-3 text-[12px] font-semibold outline-none capitalize"
+            />
+          ) : (
+            <span className="flex-1 text-[12px] sm:text-[13px] font-semibold text-[var(--text-primary)] capitalize truncate min-w-0">
+              {cat.name}
+              {hasChildren && (
+                <span className="ml-1.5 text-[10px] font-bold text-[var(--text-secondary)] opacity-30">
+                  {cat.children.length}
+                </span>
+              )}
+            </span>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-1 shrink-0">
+            {isEditing ? (
               <>
-                <button onClick={handleUpdate} className="h-10 px-4 md:size-11 rounded-xl bg-emerald-500 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg shadow-emerald-500/20 text-[10px] font-bold uppercase tracking-widest md:text-transparent">
-                  <span className="md:hidden mr-2">Save</span>
-                  <Save className="size-4" />
-                </button>
-                <button onClick={() => setEditing(null)} className="h-10 px-4 md:size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95 text-[10px] font-bold uppercase tracking-widest md:text-transparent">
-                  <span className="md:hidden mr-2">Cancel</span>
-                  <X className="size-4" />
-                </button>
+                <ActionBtn onClick={handleUpdate} title="Save" color="emerald">
+                  <Check className="size-3.5" />
+                </ActionBtn>
+                <ActionBtn onClick={cancelEdit} title="Cancel" color="rose">
+                  <X className="size-3.5" />
+                </ActionBtn>
               </>
             ) : (
               <>
-                  <button 
-                    onClick={() => {
-                      setIsAdding(true);
-                      setFormData({ name: '', parent_id: cat._id });
-                    }}
-                    className="size-10 md:size-11 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 flex items-center justify-center hover:bg-[var(--accent)] hover:text-white transition-all shadow-sm active:scale-95 text-[10px] font-bold uppercase"
-                    title="Add Sub"
-                  >
-                    Sub
-                  </button>
-                <button 
-                  onClick={() => setEditing(cat)}
-                  className="size-10 md:size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-indigo-500 hover:bg-indigo-500 hover:text-white transition-all shadow-sm active:scale-95"
-                  title="Edit"
+                <ActionBtn
+                  onClick={() => openAdd(cat._id)}
+                  title="Add subcategory"
+                  color="accent"
+                  className="opacity-0 group-hover:opacity-100"
                 >
-                  <Edit2 className="size-4" />
-                </button>
-                <button 
+                  <Plus className="size-3.5" />
+                </ActionBtn>
+                <ActionBtn
+                  onClick={() => startEdit(cat)}
+                  title="Rename"
+                  color="indigo"
+                  className="opacity-0 group-hover:opacity-100"
+                >
+                  <Edit2 className="size-3.5" />
+                </ActionBtn>
+                <ActionBtn
                   onClick={() => handleDelete(cat._id)}
-                  className="size-10 md:size-11 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95"
-                  title="Purge"
+                  title="Delete"
+                  color="rose"
+                  className="opacity-0 group-hover:opacity-100"
                 >
-                  <Trash2 className="size-4" />
-                </button>
+                  <Trash2 className="size-3.5" />
+                </ActionBtn>
               </>
             )}
           </div>
         </div>
+
+        {/* Inline add-sub form */}
+        {isAddingHere && (
+          <AddForm
+            value={addName}
+            onChange={setAddName}
+            onSubmit={handleAdd}
+            onCancel={closeAdd}
+            depth={depth + 1}
+            placeholder="Subcategory name"
+          />
+        )}
+
+        {/* Children */}
         {isExpanded && hasChildren && (
-          <div className="bg-[var(--bg-secondary)]/5">
-            {cat.children.map(child => renderCategoryRow(child, depth + 1))}
+          <div>
+            {cat.children.map(child => renderRow(child, depth + 1))}
           </div>
         )}
       </div>
     );
   };
 
-  if (!mounted) return null;
-
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
-      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 lg:top-0 z-40 gap-4 md:gap-0">
-        <div className="flex items-center justify-between w-full md:w-auto gap-4">
-          <div className="flex items-center gap-4">
-            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shadow-inner shrink-0">
-               <Database className="size-5 md:size-6" />
-            </div>
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Taxonomy <span className="text-[var(--accent)]">Manager</span></h2>
-              <div className="flex items-center gap-2 mt-0.5">
-                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Operational Hierarchy</p>
-              </div>
-            </div>
-          </div>
-          <button onClick={fetchCategories} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] flex items-center justify-center active:scale-95 text-[var(--text-secondary)]">
-             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <header className="sticky top-0 md:top-16 lg:top-0 z-40 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 sm:px-6 lg:px-10 h-16 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight">Categories</h2>
+          {!loading && (
+            <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">
+              {total} {total === 1 ? 'category' : 'categories'}
+            </p>
+          )}
         </div>
 
-        <button 
-             onClick={() => { setIsAdding(true); setFormData({ name: '', parent_id: null }); }}
-             className="w-full md:w-auto h-12 md:h-14 px-8 bg-[var(--accent)] text-white rounded-2xl text-[11px] font-bold tracking-[0.2em] uppercase shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all flex items-center justify-center gap-3"
-           >
-             New Sector Node
+        <button
+          type="button"
+          onClick={fetchCategories}
+          title="Refresh"
+          className="size-9 rounded-xl border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/30 transition-all active:scale-90"
+        >
+          <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => openAdd(null)}
+          className="flex items-center gap-1.5 h-9 px-4 bg-[var(--accent)] text-white rounded-xl text-[12px] font-bold shadow-sm shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all shrink-0"
+        >
+          <Plus className="size-4" />
+          <span className="hidden sm:inline">Add Category</span>
+          <span className="sm:hidden">Add</span>
         </button>
       </header>
 
-      <div className="p-4 md:p-10 space-y-8 pb-32">
-         {/* Intelligence Matrix */}
-         {(() => {
-           const nodeCount = categories.length;
-           return (
-             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-               <StatCard label="Total Nodes" value={nodeCount} icon="database" color="primary" sub="REGISTRY" progress={Math.min(nodeCount * 5, 100)} footer={`${nodeCount} category nodes`} />
-               <StatCard label="Sectors" value="18" icon="zap" color="emerald" sub="ACTIVE" progress={75} footer="Active domains" />
-               <StatCard label="Growth" value="+12%" icon="trending_up" color="blue" sub="SCALE" progress={85} footer="MoM expansion" />
-               <StatCard label="Health" value="Stable" icon="verified_user" color="amber" sub="CORE" progress={95} footer="System nominal" />
-             </div>
-           );
-         })()}
+      {/* ── Content ─────────────────────────────────────────────────────── */}
+      <div className="p-4 sm:p-6 lg:p-10 pb-32">
+        <div className="max-w-2xl mx-auto space-y-4">
 
-         <AnimatePresence>
-            {isAdding && (
-               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                  <div className="p-6 md:p-8 rounded-[2.5rem] border border-[var(--accent)]/30 bg-[var(--bg-primary)]/60 mb-8 shadow-2xl backdrop-blur-2xl">
-                     <div className="flex items-center gap-3 mb-6">
-                        <div className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-                        <h3 className="text-[10px] font-bold text-[var(--accent)] tracking-[0.3em] uppercase">Provision New Asset Node</h3>
-                     </div>
-                     <div className="flex flex-col md:flex-row gap-4">
-                        <input 
-                           placeholder="Enter Node Designation..."
-                           value={formData.name}
-                           onChange={e => setFormData({...formData, name: e.target.value})}
-                           className="flex-1 h-14 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-6 text-[13px] font-bold outline-none focus:border-[var(--accent)] transition-all shadow-inner"
-                        />
-                        <div className="flex gap-3">
-                           <button onClick={handleAdd} className="flex-1 md:flex-none h-14 px-8 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white transition-all">Commit</button>
-                           <button onClick={() => setIsAdding(false)} className="flex-1 md:flex-none h-14 px-8 bg-[var(--bg-secondary)] rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] border border-[var(--glass-border)] transition-all hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/20">Abort</button>
-                        </div>
-                     </div>
-                  </div>
-               </motion.div>
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search categories…"
+              className="w-full h-10 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl pl-10 pr-4 text-[13px] font-medium outline-none focus:border-[var(--accent)]/50 transition-all"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 size-5 rounded-full bg-[var(--text-secondary)]/10 flex items-center justify-center text-[var(--text-secondary)] hover:bg-rose-500/10 hover:text-rose-500 transition-all"
+              >
+                <X className="size-3" />
+              </button>
             )}
-         </AnimatePresence>
+          </div>
 
-         <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">
-            <div className="p-6 md:p-8 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-secondary)]/20">
-               <h3 className="text-xs font-bold text-[var(--text-primary)] tracking-[0.2em] flex items-center gap-3 uppercase">
-                  <Database className="size-4 text-[var(--accent)]" /> Taxonomy Ledger Protocol
-               </h3>
-               <p className="hidden md:block text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em]">Sector_Hierarchy_v4.2</p>
-            </div>
-            <div className="min-h-[400px]">
-              {loading ? (
-                 <LoadingSpinner />
-              ) : categories.length === 0 ? (
-                 <div className="py-32 flex flex-col items-center justify-center opacity-10 gap-6">
-                    <Folder className="size-20" />
-                    <p className="text-xs font-bold tracking-[0.5em] uppercase">No Synchronization Items Detected</p>
-                 </div>
-              ) : (
-                 <div className="divide-y divide-[var(--glass-border)]/50">
-                    {categories.map(cat => renderCategoryRow(cat))}
-                 </div>
-              )}
-            </div>
-         </div>
+          {/* Top-level add form */}
+          {addParentId === null && (
+            <AddForm
+              value={addName}
+              onChange={setAddName}
+              onSubmit={handleAdd}
+              onCancel={closeAdd}
+              depth={0}
+              placeholder="Category name (press Enter to save)"
+            />
+          )}
+
+          {/* Category tree */}
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 overflow-hidden shadow-sm">
+            {loading ? (
+              <div className="py-16 flex items-center justify-center gap-2 text-[var(--text-secondary)] opacity-30">
+                <RefreshCw className="size-4 animate-spin" />
+                <span className="text-[12px] font-semibold">Loading…</span>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="py-20 flex flex-col items-center gap-3 opacity-30">
+                <Folder className="size-10" />
+                <p className="text-[11px] font-bold uppercase tracking-widest">
+                  {query ? 'No matches found' : 'No categories yet'}
+                </p>
+              </div>
+            ) : (
+              <div>
+                {filtered.map(cat => renderRow(cat))}
+              </div>
+            )}
+          </div>
+
+        </div>
       </div>
+    </div>
+  );
+}
+
+// ── Shared action button ──────────────────────────────────────────────────────
+const COLOR_MAP = {
+  emerald: 'hover:bg-emerald-500/10 hover:text-emerald-500',
+  rose:    'hover:bg-rose-500/10 hover:text-rose-500',
+  indigo:  'hover:bg-indigo-500/10 hover:text-indigo-500',
+  accent:  'hover:bg-[var(--accent)]/10 hover:text-[var(--accent)]',
+};
+
+function ActionBtn({ onClick, title, color, children, className = '' }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`size-7 rounded-lg flex items-center justify-center text-[var(--text-secondary)] transition-all active:scale-90 ${COLOR_MAP[color] ?? ''} ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ── Inline add form ───────────────────────────────────────────────────────────
+function AddForm({ value, onChange, onSubmit, onCancel, depth, placeholder }) {
+  return (
+    <div
+      className="flex items-center gap-2 py-2 border-b border-[var(--accent)]/20 bg-[var(--accent)]/5 animate-in fade-in slide-in-from-top-1 duration-150"
+      style={{ paddingLeft: `${depth * 20 + 12}px`, paddingRight: '12px' }}
+    >
+      {/* Spacer to align with chevron */}
+      <div className="size-6 shrink-0" />
+      <div className="size-7 rounded-lg flex items-center justify-center shrink-0 text-[var(--accent)] bg-[var(--accent)]/10">
+        <Folder className="size-4" />
+      </div>
+      <input
+        autoFocus
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        onKeyDown={e => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); }}
+        placeholder={placeholder}
+        className="flex-1 h-8 bg-[var(--bg-primary)] border border-[var(--accent)]/40 rounded-lg px-3 text-[12px] font-semibold outline-none focus:border-[var(--accent)] transition-all capitalize placeholder:opacity-30 min-w-0"
+      />
+      <button
+        type="button"
+        onClick={onSubmit}
+        disabled={!value.trim()}
+        className="size-7 rounded-lg bg-[var(--accent)] text-white flex items-center justify-center hover:brightness-110 active:scale-90 transition-all disabled:opacity-30 shrink-0"
+      >
+        <Check className="size-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={onCancel}
+        className="size-7 rounded-lg border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-rose-500 hover:border-rose-500/20 flex items-center justify-center transition-all active:scale-90 shrink-0"
+      >
+        <X className="size-3.5" />
+      </button>
     </div>
   );
 }
