@@ -98,6 +98,7 @@ export default function VendorDashboard() {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [signalCount, setSignalCount] = useState(null); // active live signals
 
   useEffect(() => {
     // Attempt instant render from local cache
@@ -163,11 +164,12 @@ export default function VendorDashboard() {
 
         // Only 3 parallel requests instead of 5 — /vendor/products dropped;
         // analytics already returns all product stats + low_stock_count.
-        const [ordersResult, walletResult, analyticsResult, subscriptionResult] = await Promise.allSettled([
+        const [ordersResult, walletResult, analyticsResult, subscriptionResult, signalResult] = await Promise.allSettled([
           safeGet('/vendor/orders'),
           safeGet('/wallet'),
           safeGet('/vendor/analytics'),
           api.get('/subscriptions/me', { params: { role: 'vendor' }, skipClientCache: true, silent: true }).catch(() => null),
+          api.get('/statuses/my-statuses', { silent: true }).catch(() => null),
         ]);
 
         if (isMounted) {
@@ -175,6 +177,12 @@ export default function VendorDashboard() {
           const walletRes    = fulfilledValue(walletResult);
           const analyticsRes = fulfilledValue(analyticsResult);
           const subscriptionRes = fulfilledValue(subscriptionResult);
+          const signalRes    = fulfilledValue(signalResult);
+          if (signalRes?.data?.success) {
+            const now = new Date();
+            const active = (signalRes.data.data || []).filter((s) => new Date(s.expires_at) > now);
+            setSignalCount(active.length);
+          }
 
           const ordersData    = getResponseData(ordersRes);
           const walletData    = getResponseData(walletRes);
@@ -229,17 +237,19 @@ export default function VendorDashboard() {
   const handleRefresh = async () => {
     setLoading(true);
     try {
-      const [ordersResult, walletResult, analyticsResult, subscriptionResult] = await Promise.allSettled([
+      const [ordersResult, walletResult, analyticsResult, subscriptionResult, signalResult] = await Promise.allSettled([
         api.get('/vendor/orders'),
         api.get('/wallet'),
         api.get('/vendor/analytics'),
         api.get('/subscriptions/me', { params: { role: 'vendor' }, skipClientCache: true, silent: true }).catch(() => null),
+        api.get('/statuses/my-statuses', { silent: true }).catch(() => null),
       ]);
 
       const ordersRes    = fulfilledValue(ordersResult);
       const walletRes    = fulfilledValue(walletResult);
       const analyticsRes = fulfilledValue(analyticsResult);
       const subscriptionRes = fulfilledValue(subscriptionResult);
+      const signalRes    = fulfilledValue(signalResult);
       const ordersData    = getResponseData(ordersRes);
       const walletData    = getResponseData(walletRes);
       const analyticsData = getResponseData(analyticsRes);
@@ -258,6 +268,11 @@ export default function VendorDashboard() {
           setWalletBalance(analyticsData.stats?.wallet_balance ?? 0);
           setPendingEscrow(analyticsData.stats?.pending_escrow ?? 0);
         }
+      }
+      if (signalRes?.data?.success) {
+        const now = new Date();
+        const active = (signalRes.data.data || []).filter((s) => new Date(s.expires_at) > now);
+        setSignalCount(active.length);
       }
       setSubscriptionStatus(subscriptionData);
       setLoading(false);
@@ -450,13 +465,16 @@ export default function VendorDashboard() {
             </div>
 
             {/* Open Orders */}
-            <div className="relative overflow-hidden rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] backdrop-blur-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-xl transition-all group">
+            <Link href="/vendor/orders" className="relative overflow-hidden rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] backdrop-blur-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-xl hover:border-[var(--accent)]/30 transition-all group">
               <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
               <div className="flex items-center justify-between">
                 <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
                   <ShoppingBag className="size-5" />
                 </div>
-                <span className="text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Live</span>
+                <div className="flex items-center gap-1.5">
+                  {openOrderCount > 0 && <span className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />}
+                  <span className="text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Live</span>
+                </div>
               </div>
               <div>
                 <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Open orders</p>
@@ -465,8 +483,8 @@ export default function VendorDashboard() {
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-[var(--accent)] rounded-full transition-all duration-1000" style={{ width: orders.length ? `${Math.min((openOrderCount / orders.length) * 100, 100)}%` : '0%' }} />
               </div>
-              <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{processingOrders} processing now</p>
-            </div>
+              <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{processingOrders} processing · tap to view →</p>
+            </Link>
 
             {/* Inventory */}
             <div className="relative overflow-hidden rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] backdrop-blur-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-xl transition-all group">
@@ -515,28 +533,38 @@ export default function VendorDashboard() {
             </div>
           </div>
           
-          {/* Aura Stories Quick Action */}
-          <div className="glass-panel p-5 sm:p-6 rounded-[2rem] border border-[var(--accent)]/20 bg-gradient-to-br from-[var(--accent)]/5 to-[var(--bg-primary)]/80 flex flex-col md:flex-row items-center justify-between gap-5">
-            {/* Icon + Text — centered on mobile, left on desktop */}
-            <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left gap-3 md:gap-4 w-full md:w-auto">
-              <div className="size-14 md:size-12 rounded-2xl bg-[var(--accent)]/15 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/25 shadow-lg shadow-[var(--accent)]/10 shrink-0">
-                <Sparkles className="size-6" />
+          {/* Signal Center Quick Action */}
+          <div className="glass-panel p-5 sm:p-6 rounded-[2rem] border border-[var(--accent)]/20 bg-gradient-to-br from-[var(--accent)]/5 to-[var(--bg-primary)]/80">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-5">
+              {/* Icon + Text */}
+              <div className="flex flex-col items-center text-center md:flex-row md:items-center md:text-left gap-3 md:gap-4 w-full md:w-auto">
+                <div className="size-14 md:size-12 rounded-2xl bg-[var(--accent)]/15 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/25 shadow-lg shadow-[var(--accent)]/10 shrink-0">
+                  <Sparkles className="size-6" />
+                </div>
+                <div>
+                  <div className="flex items-center justify-center md:justify-start gap-2">
+                    <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">{t('dashboard.storiesManager', 'Signal Center')}</h3>
+                    {signalCount !== null && (
+                      <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold border ${signalCount > 0 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
+                        <span className={`size-1.5 rounded-full ${signalCount > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-[var(--text-secondary)] opacity-40'}`} />
+                        {signalCount > 0 ? `${signalCount} live` : 'No live signals'}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)] font-semibold opacity-60 tracking-tight mt-0.5">{t('dashboard.storiesManagerSub', 'Broadcast updates · Engage followers · Drive sales')}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">{t('dashboard.storiesManager', 'Aura Stories Manager')}</h3>
-                <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)] font-semibold opacity-60 tracking-tight mt-0.5">{t('dashboard.storiesManagerSub', 'Share updates & engage with your followers')}</p>
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                <Link href="/vendor/products/add" className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] rounded-full text-[12px] font-semibold tracking-tight hover:border-[var(--accent)]/50 transition-all">
+                  <PlusSquare className="size-4" />
+                  Add Product
+                </Link>
+                <Link href="/vendor/stories" className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[12px] font-semibold tracking-tight shadow-lg shadow-[var(--accent)]/25 hover:scale-105 active:scale-95 transition-all">
+                  <Sparkles className="size-4" />
+                  Open Signal Center
+                </Link>
               </div>
-            </div>
-            {/* Buttons — full-width centered on mobile, auto on desktop */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-              <Link href="/vendor/products/add" className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] rounded-full text-[12px] font-semibold tracking-tight hover:border-[var(--accent)]/50 transition-all">
-                <PlusSquare className="size-4" />
-                Add Product
-              </Link>
-              <Link href="/vendor/stories" className="flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3 bg-[var(--accent)] text-white rounded-full text-[12px] font-semibold tracking-tight shadow-lg shadow-[var(--accent)]/25 hover:scale-105 active:scale-95 transition-all">
-                <Sparkles className="size-4" />
-                Launch Story
-              </Link>
             </div>
           </div>
 

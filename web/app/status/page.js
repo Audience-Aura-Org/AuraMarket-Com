@@ -67,12 +67,12 @@ function StatusPageContent() {
       {/* Header */}
       <div className="sticky top-0 z-30 bg-[var(--bg-secondary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 py-3 flex items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
-          <div className="size-8 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center">
+          <div className="size-8 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center">
             <Activity className="size-4 text-[var(--accent)]" />
           </div>
           <div>
-            <h1 className="text-[13px] font-bold tracking-tight text-[var(--text-primary)]">Stories</h1>
-            <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-[0.15em]">Live Vendor Updates</p>
+            <h1 className="text-[13px] font-bold tracking-tight text-[var(--text-primary)]">Signals</h1>
+            <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-[0.15em] uppercase">Live Vendor Updates</p>
           </div>
         </div>
       </div>
