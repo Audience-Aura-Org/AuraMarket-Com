@@ -266,7 +266,7 @@ function SubscribeContent() {
                         return (
                           <span key={featureIndex} className="flex items-start gap-2 text-[12px] font-semibold leading-5 text-[var(--text-secondary)]">
                             <Check className="mt-0.5 size-3.5 shrink-0 text-emerald-500" />
-                            <span>{t(planTranslationKey(plan, `feature${featureIndex + 1}`), featureText)}</span>
+                            <span>{featureText}</span>
                           </span>
                         );
                       })}
