@@ -41,6 +41,8 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
   const [buyingNow, setBuyingNow] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState({});
   const [currentVariant, setCurrentVariant] = useState(null);
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [longDescExpanded, setLongDescExpanded] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -442,7 +444,12 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
           {/* Short Description */}
           <div className="bg-[var(--bg-primary)] rounded-[32px] shadow-[0_40px_60px_-15px_rgba(0,0,0,0.03)] p-8 space-y-4">
             <h2 className="text-xs md:text-sm  font-bold tracking-tight text-[var(--text-primary)]">{t('product.description')}</h2>
-            <p translate="no" className="text-sm md:text-[15px] text-[var(--text-secondary)] leading-[1.8]">{product.description}</p>
+            <p translate="no" className={`text-sm md:text-[15px] text-[var(--text-secondary)] leading-[1.8] ${descExpanded ? '' : 'line-clamp-4'}`}>{product.description}</p>
+            {product.description?.length > 200 && (
+              <button onClick={() => setDescExpanded(v => !v)} className="text-[12px] font-semibold text-[var(--accent)] hover:opacity-80 transition-opacity">
+                {descExpanded ? 'See less' : 'Read more'}
+              </button>
+            )}
           </div>
 
           {/* Reviews */}
@@ -614,7 +621,12 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
               <p translate="no" className="text-[15px] text-[var(--text-secondary)] leading-[1.8]">{product.description}</p>
               {product.long_description && (
                 <div className="pt-8 space-y-4">
-                  <p translate="no" className="text-[15px] text-[var(--text-secondary)] leading-[1.8] whitespace-pre-wrap">{product.long_description}</p>
+                  <p translate="no" className={`text-[15px] text-[var(--text-secondary)] leading-[1.8] whitespace-pre-wrap ${longDescExpanded ? '' : 'line-clamp-6'}`}>{product.long_description}</p>
+                  {product.long_description.length > 300 && (
+                    <button onClick={() => setLongDescExpanded(v => !v)} className="text-[12px] font-semibold text-[var(--accent)] hover:opacity-80 transition-opacity">
+                      {longDescExpanded ? 'See less' : 'Read more'}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
