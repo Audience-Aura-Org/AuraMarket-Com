@@ -24,12 +24,9 @@ export default function Pagination({ currentPage, totalPages, onPageChange, comp
           disabled={safePage === 1}
         />
 
-        <div className="flex items-center gap-1.5 px-3 sm:gap-2 sm:px-6">
+        <div className="flex items-center px-3 sm:px-6">
           <span className="font-mono text-[11px] font-semibold text-[var(--text-primary)] sm:text-[12px]">
             {safePage}
-          </span>
-          <span className="whitespace-nowrap text-[10px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-40 sm:text-[11px]">
-            / {totalPages}
           </span>
         </div>
 

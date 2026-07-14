@@ -14,7 +14,7 @@ const VENDOR_NAV = [
   { icon: 'workspace_premium',        label: 'Subscription',     href: '/subscribe?role=vendor' },
   { icon: 'inventory_2',              label: 'Products',         href: '/vendor/products' },
   { icon: 'auto_awesome',             label: 'Aura Stories',     href: '/vendor/stories' },
-  { icon: 'shopping_cart',            label: 'Orders',           href: '/vendor/orders',    badge: 'orders' },
+  { icon: 'shopping_cart',            label: 'Orders',           href: '/vendor/orders' },
   { icon: 'star_rate',                label: 'Client Ratings',   href: '/vendor/ratings' },
   { icon: 'gavel',                    label: 'Disputes',         href: '/vendor/disputes' },
   { icon: 'chat',                     label: 'Messages',         href: '/chat',             badge: 'messages' },
@@ -28,7 +28,7 @@ const ADMIN_NAV = [
   { icon: 'person',         label: 'Users',            href: '/admin/users' },
   { icon: 'store',          label: 'Vendors',          href: '/admin/vendors' },
   { icon: 'inventory',      label: 'Products',         href: '/admin/products' },
-  { icon: 'receipt_long',   label: 'Orders',           href: '/admin/orders',      badge: 'orders' },
+  { icon: 'receipt_long',   label: 'Orders',           href: '/admin/orders' },
   { icon: 'chat',           label: 'Messages',         href: '/chat',              badge: 'messages' },
   { icon: 'forum',          label: 'System Comms',     href: '/admin/messages' },
   { icon: 'how_to_reg',     label: 'Vendor KYC',       href: '/admin/approvals' },
@@ -68,7 +68,7 @@ const LOGISTICS_NAV = [
   { icon: 'home',                label: 'Marketplace',  href: '/shop' },
   { icon: 'dashboard_customize', label: 'Dashboard',    href: '/logistics/dashboard' },
   { icon: 'workspace_premium',   label: 'Subscription', href: '/subscribe?role=logistics' },
-  { icon: 'list_alt',            label: 'Manifests',    href: '/logistics/manifests', badge: 'orders' },
+  { icon: 'list_alt',            label: 'Manifests',    href: '/logistics/manifests' },
   { icon: 'payments',            label: 'Route Pricing',href: '/logistics/pricing' },
   { icon: 'location_on',         label: 'Live Tracking',href: '/logistics/tracking' },
   { icon: 'auto_awesome',        label: 'Aura Stories', href: '/discovery?tab=status' },
@@ -120,7 +120,6 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
 
   const getBadge = (item) => {
     if (item.badge === 'messages') return unreadMessages;
-    if (item.badge === 'orders')   return unreadCount;
     return 0;
   };
 

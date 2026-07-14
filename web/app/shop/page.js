@@ -258,7 +258,7 @@ function ShopContent() {
     setPage(p);
     pageRef.current = p;
     fetchProducts(p, true); // call directly — don't rely on an effect to pick up the new page
-    resultsAnchor.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    resultsAnchor.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
   };
 
   const [isSortOpen, setIsSortOpen] = useState(false);
@@ -569,9 +569,9 @@ function ShopContent() {
                       {t('search.matchingStores', 'Matching Stores')}
                     </h3>
                   </div>
-                  <span className="text-[10px] font-semibold text-[var(--text-secondary)]/50 tracking-tight">
-                    {vendorsLoading ? 'Searching...' : `${matchedVendors.length} found`}
-                  </span>
+                  {vendorsLoading && (
+                    <span className="text-[10px] font-semibold text-[var(--text-secondary)]/50 tracking-tight">Searching…</span>
+                  )}
                 </div>
                 
                 {vendorsLoading && matchedVendors.length === 0 ? (
@@ -674,7 +674,10 @@ function ShopContent() {
               </div>
             ) : (
               <>
-                <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}>
+                <div
+                  className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}
+                  style={{ opacity: loading ? 0.45 : 1, transition: 'opacity 0.15s ease' }}
+                >
                   {products.map(product => (
                     <ProductCard key={product._id} product={product} layout={viewMode} />
                   ))}

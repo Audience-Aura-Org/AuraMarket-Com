@@ -269,19 +269,22 @@ function getProductImageUrl(product) {
 }
 
 function ManagementCard({ product, onDelete, t }) {
+  const router = useRouter();
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock <= 5 && product.stock > 0;
   const hasSale = product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price);
   const discountPct = hasSale ? Math.round(((Number(product.compare_at_price) - Number(product.price)) / Number(product.compare_at_price)) * 100) : 0;
-  const status = isOutOfStock 
+  const status = isOutOfStock
     ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
-    : isLowStock 
+    : isLowStock
        ? { label: t('products.lowStock', 'Low Stock'), color: 'text-amber-500', bg: 'bg-amber-500/10' }
        : { label: t('products.active', 'Active'), color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
 
   return (
-    <div className="group relative overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
-      <Link href={`/vendor/products/edit/${product._id}`} className="block">
+    <div
+      className="group relative overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] cursor-pointer active:scale-[0.98] transition-transform"
+      onClick={() => router.push(`/vendor/products/edit/${product._id}`)}
+    >
       <div className="relative aspect-[4/3] bg-[var(--bg-secondary)]">
         {getProductImageUrl(product) ? (
           <img src={getProductImageUrl(product)} alt={product.name} loading="lazy" decoding="async" className="size-full object-cover transition duration-500 group-hover:scale-105" />
@@ -302,25 +305,20 @@ function ManagementCard({ product, onDelete, t }) {
           </div>
         )}
       </div>
-      </Link>
       <div className="space-y-2 p-3">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate text-[10px] font-medium text-[var(--text-secondary)]">{product.category || t('products.general', 'General')}</p>
-            <Link href={`/vendor/products/edit/${product._id}`} className="mt-0.5 block truncate text-[12px] font-semibold">
+            <p className="mt-0.5 truncate text-[12px] font-semibold text-[var(--text-primary)]">
               {product.name}
-            </Link>
+            </p>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
-            <Link
-              href={`/vendor/products/edit/${product._id}`}
-              className="inline-flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition hover:text-[var(--accent)]"
-              aria-label="Edit product"
-            >
+            <div className="inline-flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--accent)]">
               <Pencil className="size-3.5" />
-            </Link>
+            </div>
             <button
-              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(product._id); }}
+              onClick={(e) => { e.stopPropagation(); onDelete(product._id); }}
               className="inline-flex size-8 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white"
               aria-label="Delete product"
             >
@@ -353,18 +351,22 @@ function ManagementCard({ product, onDelete, t }) {
 }
 
 function ListRow({ product, onDelete, t }) {
+  const router = useRouter();
   const isOutOfStock = product.stock <= 0;
   const isLowStock = product.stock <= 5 && product.stock > 0;
   const hasSale = product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price);
   const discountPct = hasSale ? Math.round(((Number(product.compare_at_price) - Number(product.price)) / Number(product.compare_at_price)) * 100) : 0;
-  const status = isOutOfStock 
+  const status = isOutOfStock
     ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
-    : isLowStock 
+    : isLowStock
        ? { label: t('products.lowStock', 'Low Stock'), color: 'text-amber-500', bg: 'bg-amber-500/10' }
        : { label: t('products.active', 'Active'), color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2.5">
+    <div
+      className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2.5 cursor-pointer active:scale-[0.99] transition-transform"
+      onClick={() => router.push(`/vendor/products/edit/${product._id}`)}
+    >
       <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-secondary)]">
         {getProductImageUrl(product) ? (
           <img src={getProductImageUrl(product)} alt={product.name} loading="lazy" decoding="async" className="size-full object-cover" />
@@ -399,28 +401,20 @@ function ListRow({ product, onDelete, t }) {
         </div>
       </div>
       <div className="flex items-center gap-1.5">
-        <Link
-          href={`/vendor/products/edit/${product._id}`}
-          className="inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 text-[10px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--accent)]"
-          aria-label="Edit product"
-        >
+        <div className="inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 text-[10px] font-medium text-[var(--accent)]">
           <Pencil className="size-3.5" />
           {t('products.edit', 'Edit')}
-        </Link>
+        </div>
         <button
-          onClick={() => onDelete(product._id)}
+          onClick={(e) => { e.stopPropagation(); onDelete(product._id); }}
           className="inline-flex size-8 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white"
           aria-label="Delete product"
         >
           <Trash2 className="size-3.5" />
         </button>
-        <Link
-          href={`/vendor/products/edit/${product._id}`}
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition hover:text-[var(--accent)]"
-          aria-label="Open product"
-        >
+        <div className="inline-flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--accent)]">
           <ChevronRight className="size-3.5" />
-        </Link>
+        </div>
       </div>
     </div>
   );
