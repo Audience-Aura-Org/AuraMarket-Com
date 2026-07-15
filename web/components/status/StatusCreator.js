@@ -941,7 +941,16 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     if (type !== 'video' || !previewUrl || !videoMeta?.duration) {
       return undefined;
     }
-    // Note: native is handled inside captureTimelineFrames with a timeupdate gate.
+    // Android WebView commonly has only one usable hardware decoder for blob
+    // videos. Loading a second, hidden video to capture filmstrip frames races
+    // the visible preview for that decoder, so either surface (or both) can turn
+    // black. Keep the preview as the sole native decoder owner. The rendered
+    // timeline already has an animated placeholder when this array is empty, and
+    // its trim handles/playhead continue to work without image frames.
+    if (isNativePlatform()) {
+      setTimelineFrames([]);
+      return undefined;
+    }
 
     let cancelled = false;
     setTimelineFrames([]);
@@ -1131,6 +1140,10 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     // Sync the type UI to match the actual file that was picked
     if (actualType !== type) setType(actualType);
 
+    // Do not carry frames from a previous video into the next selection. This is
+    // especially important on Android, where native frame capture is disabled to
+    // protect the preview decoder and the placeholder is the expected timeline.
+    setTimelineFrames([]);
     if (actualType === 'video') {
       if (f.size > STATUS_VIDEO_INPUT_MAX_BYTES) { setError('Max 500MB source video.'); return; }
 
