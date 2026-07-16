@@ -266,7 +266,7 @@ function VerifyContent() {
                     {recheckLoading ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
                     Recheck Payment Status
                   </button>
-                  <Link href="/wallet/transactions" className="block w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)]  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:border-[var(--accent)]/40 transition-all">
+                  <Link href="/wallet" className="block w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)]  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:border-[var(--accent)]/40 transition-all">
                     View Transaction History
                   </Link>
                 </>

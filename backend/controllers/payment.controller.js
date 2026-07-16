@@ -377,7 +377,7 @@ const payunitInitialize = async (req, res) => {
     const gatewayData = direct?.data || init?.data || {};
     await Transaction.create({
       user_id: req.user._id,
-      type: 'deposit',
+      type: order_ids?.length > 0 ? 'payment' : 'deposit',
       amount: feeBreakdown.netAmount,
       currency,
       reference: transactionRef,
@@ -543,16 +543,18 @@ const eversendInitialize = async (req, res) => {
       const sandboxTxId = `SBX-${Date.now()}`;
       
       await Transaction.create({
-        user_id: user._id, 
-        type: 'deposit', 
-        amount: Number(feeBreakdown.netAmount), 
-        currency, 
+        user_id: user._id,
+        type: order_ids?.length > 0 ? 'payment' : 'deposit',
+        amount: Number(feeBreakdown.netAmount),
+        currency,
         reference: transactionRef,
-        gateway_transaction_id: sandboxTxId, 
-        status: 'pending', 
+        gateway_transaction_id: sandboxTxId,
+        status: 'pending',
         gateway: 'eversend',
         order_ids: order_ids || [],
-        description: `[SANDBOX] Checkout initiation for ${order_ids?.length || 0} order(s)`,
+        description: order_ids?.length > 0
+          ? `[SANDBOX] Checkout payment for ${order_ids.length} order(s) via Eversend (${currency})`
+          : `[SANDBOX] Wallet deposit via Eversend (${currency})`,
         metadata: {
           is_sandbox: true,
           net_amount: feeBreakdown.netAmount,
@@ -606,7 +608,9 @@ const eversendInitialize = async (req, res) => {
     console.log(`[Eversend] gatewayTxId=${gatewayTxId} checkoutUrl=${checkoutUrl}`);
 
     await Transaction.create({
-      user_id: user._id, type: 'deposit', amount: feeBreakdown.netAmount, currency, reference: transactionRef,
+      user_id: user._id,
+      type: order_ids?.length > 0 ? 'payment' : 'deposit',
+      amount: feeBreakdown.netAmount, currency, reference: transactionRef,
       gateway_transaction_id: gatewayTxId, status: 'pending', gateway: 'eversend',
       order_ids: order_ids || [],
       description: order_ids?.length > 0

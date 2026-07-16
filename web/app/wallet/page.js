@@ -47,6 +47,7 @@ function CompactStat({ title, value, sub, icon: Icon, color }) {
     blue: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
     purple: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
     fuchsia: 'bg-fuchsia-500/10 text-fuchsia-500 border-fuchsia-500/20',
+    red: 'bg-red-500/10 text-red-500 border-red-500/20',
   };
 
   return (
@@ -113,6 +114,11 @@ export default function WalletPage() {
   const [recheckingDeposit, setRecheckingDeposit] = useState(false);
   const [recheckingTxId, setRecheckingTxId] = useState(null);
   const itemsPerPage = 10;
+
+  // Guard: only open from ?action=deposit ONCE per page load, even if user/router re-render.
+  // Root cause of re-open: setWalletBalance() creates a new user object reference which
+  // triggers useEffect([..., user]) to re-fire before router.replace() clears the URL.
+  const depositActionHandledRef = useRef(false);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -205,20 +211,25 @@ export default function WalletPage() {
     if (user.role === 'admin')  { router.replace('/admin/withdrawals'); return; }
     fetchWallet();
 
-    const searchParams = new URLSearchParams(window.location.search);
-    if (searchParams.get('action') === 'deposit') {
-      setModal('deposit');
-      setDepositStep('amount');
-      setDepositGateway('payunit');
-      setDepositStatus('pending');
-      setDepositReason('');
-      setDepositRef(null);
-      setDepositMessage('');
-      // Remove ?action=deposit from the URL immediately so this effect can't
-      // re-open the modal when user, router, or other deps change later.
-      router.replace('/wallet', { scroll: false });
+    // depositActionHandledRef guards against the modal re-opening when setWalletBalance()
+    // creates a new user object reference (triggering this effect) before router.replace()
+    // has a chance to clear the URL. Only open once per page load.
+    if (!depositActionHandledRef.current) {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.get('action') === 'deposit') {
+        depositActionHandledRef.current = true;
+        setModal('deposit');
+        setDepositStep('amount');
+        setDepositGateway('payunit');
+        setDepositStatus('pending');
+        setDepositReason('');
+        setDepositRef(null);
+        setDepositMessage('');
+        router.replace('/wallet', { scroll: false });
+      }
     }
-  }, [mounted, hasHydrated, user, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, hasHydrated, user?._id, user?.role]);
 
   // Initialize phone once — never overwrite after user edits the field
   useEffect(() => {
@@ -518,18 +529,30 @@ export default function WalletPage() {
             <CompactStat title={t('wallet.available', 'Available')} value={fmt(balance)} sub={t('wallet.availableToSpend', 'Available to spend')} icon={Wallet} color="emerald" />
             <CompactStat title={t('wallet.inEscrow', 'In escrow')} value={fmt(pendingBalance)} sub={t('wallet.heldInEscrow', 'Held in escrow')} icon={Lock} color="amber" />
             <CompactStat
-              title={t('wallet.successful', 'Successful')}
-              value={transactions.filter(tx => tx.status === 'completed').length}
-              sub={`${fmt(transactions.filter(tx => tx.status === 'completed').reduce((s, tx) => s + Number(tx.amount || 0), 0))} XAF`}
-              icon={CheckCircle2}
+              title="Money In"
+              value={`${fmt(transactions.filter(tx =>
+                  tx.status === 'completed' &&
+                  (tx.type === 'refund' || tx.type === 'payout' ||
+                   (tx.type === 'deposit' && !(tx.order_ids?.length > 0))) // exclude legacy checkout deposits
+                ).reduce((s, tx) => s + Number(tx.amount || 0), 0))} XAF`}
+              sub={`${transactions.filter(tx =>
+                  tx.status === 'completed' &&
+                  (tx.type === 'refund' || tx.type === 'payout' ||
+                   (tx.type === 'deposit' && !(tx.order_ids?.length > 0)))
+                ).length} credit transactions`}
+              icon={ArrowDownLeft}
               color="emerald"
             />
             <CompactStat
-              title={t('wallet.failed', 'Failed')}
-              value={transactions.filter(tx => tx.status === 'failed' || tx.status === 'rejected').length}
-              sub={t('wallet.paymentsDeclined', 'Payments declined')}
-              icon={XCircle}
-              color="fuchsia"
+              title="Money Out"
+              value={`${fmt(transactions.filter(tx =>
+                  tx.status === 'completed' &&
+                  (tx.type === 'withdrawal' || tx.type === 'payment' ||
+                   (tx.type === 'deposit' && tx.order_ids?.length > 0)) // legacy checkout deposits
+                ).reduce((s, tx) => s + Number(tx.amount || 0), 0))} XAF`}
+              sub={`${transactions.filter(tx => tx.status === 'failed' || tx.status === 'rejected').length} failed transactions`}
+              icon={ArrowUpRight}
+              color="red"
             />
           </div>
 
@@ -588,7 +611,10 @@ export default function WalletPage() {
                     currentItems.map((tx, i) => {
                       const config = TX_ICONS[tx.type] || TX_ICONS.payment;
                       const iconStyle = TX_ICON_STYLES[config.color] || TX_ICON_STYLES.amber;
-                      const isCredit = ['deposit', 'refund', 'payout'].includes(tx.type);
+                      // type:'payment' = checkout spend; legacy checkout deposits have order_ids
+                      const isCredit = (tx.type === 'deposit' && !(tx.order_ids?.length > 0))
+                        || tx.type === 'refund'
+                        || tx.type === 'payout';
                       return (
                         <div key={tx._id || i} className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
                           tx.status === 'pending' && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit'
