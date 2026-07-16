@@ -256,13 +256,13 @@ export default function WalletPage() {
   const depositApprovalAmount = depositNetAmount + depositCollectionFee;
 
   const startDeposit = async () => {
-    const min = 500;
+    const min = depositGateway === 'eversend' ? 500 : 1;
     if (!amount || Number(amount) < min) return showToast(`Minimum deposit is ${min} XAF.`, 'error');
     setDepositStep('phone');
   };
 
   const handleDepositInit = async () => {
-    const min = 500;
+    const min = depositGateway === 'eversend' ? 500 : 1;
     if (!amount || Number(amount) < min) return showToast(`Minimum deposit is ${min} XAF.`, 'error');
     if (!depositPhone) return showToast('Phone number is required.', 'error');
 
