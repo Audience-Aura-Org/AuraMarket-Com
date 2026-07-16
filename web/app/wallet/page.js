@@ -444,6 +444,26 @@ export default function WalletPage() {
 
   return (
     <DashboardLayout role={user?.role || 'customer'} hideSidebar={true}>
+      {/* Toast notification — must sit above all modals (z-[1001]) */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            key="toast"
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            className={`fixed top-5 left-1/2 -translate-x-1/2 z-[1001] px-5 py-3 rounded-2xl shadow-2xl font-poppins font-semibold text-sm tracking-tight flex items-center gap-2 border ${
+              toast.type === 'success' ? 'bg-emerald-500 text-white border-emerald-400'
+              : toast.type === 'error'   ? 'bg-rose-500 text-white border-rose-400'
+              : 'bg-[var(--accent)] text-white border-[var(--accent)]'
+            }`}
+          >
+            {toast.type === 'success' && <CheckCircle2 className="size-4 shrink-0" />}
+            {toast.type === 'error'   && <AlertCircle  className="size-4 shrink-0" />}
+            {toast.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-poppins">
         
         {/* Header */}
@@ -656,14 +676,6 @@ export default function WalletPage() {
                               placeholder="Min 500"
                               className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-xl font-semibold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10 shadow-inner" 
                            />
-                           {depositNetAmount > 0 && (
-                             <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 p-3 text-[10px] font-semibold text-[var(--text-secondary)] lg:text-[11px]">
-                               <div className="flex items-center justify-between gap-3 text-[var(--accent)]">
-                                 <span>Amount requested</span>
-                                 <span>{fmt(depositApprovalAmount)} XAF</span>
-                               </div>
-                             </div>
-                           )}
                         </div>
 
                         <div className="space-y-2">
