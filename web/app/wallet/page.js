@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Wallet, ArrowUpRight, ArrowDownLeft, ShieldCheck, 
@@ -20,7 +20,7 @@ import WithdrawModal from '@/components/wallet/WithdrawModal';
 import socketService from '@/services/socket';
 import { useLanguage } from '@/context/LanguageContext';
 
-const MOBILE_MONEY_COLLECTION_FEE_XAF = 5;
+const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
 
 const TX_ICONS = {
   deposit:    { Icon: ArrowDownLeft,  color: 'emerald' },
@@ -99,6 +99,7 @@ export default function WalletPage() {
   
   // Deposit Workflow State
   const [depositStep, setDepositStep] = useState('amount'); // 'amount' | 'phone' | 'processing' | 'result'
+  const phoneInitializedRef = useRef(false);
   const [depositGateway, setDepositGateway] = useState('payunit');
   const [depositPhone, setDepositPhone] = useState(user?.phone || '');
   const [depositNetwork, setDepositNetwork] = useState('CM');
@@ -214,11 +215,13 @@ export default function WalletPage() {
     }
   }, [mounted, hasHydrated, user, router]);
 
+  // Initialize phone once — never overwrite after user edits the field
   useEffect(() => {
-    if (user?.phone && !depositPhone) {
+    if (!phoneInitializedRef.current && user?.phone) {
       setDepositPhone(user.phone);
+      phoneInitializedRef.current = true;
     }
-  }, [user]);
+  }, [user?.phone]);
 
   // ── Socket: instant wallet credit notification ──────────────────────────
   // When the Eversend webhook fires on the backend, it emits 'wallet:credited'
