@@ -2,6 +2,7 @@ package com.auradime.app;
 
 import android.graphics.Color;
 import android.graphics.SurfaceTexture;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
@@ -9,6 +10,7 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 
 import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
@@ -29,8 +31,12 @@ import com.getcapacitor.annotation.CapacitorPlugin;
  * Activity's DecorView — identical to how WhatsApp renders video previews.
  * No WebView compositor overhead; full hardware-accelerated decode.
  *
+ * The native play/pause button sits above the TextureView inside the same
+ * FrameLayout container, so it is always visible and tappable regardless of
+ * the WebView's z-index (exactly like WhatsApp's video preview controls).
+ *
  * Lifecycle (called from StatusCreator.js):
- *   create()    → overlay TextureView at given screen rect
+ *   create()    → overlay TextureView + play/pause button at given screen rect
  *   setSource() → load content:// URI, prepare ExoPlayer
  *   play/pause/seek/setMuted/setTrimRange/updateBounds
  *   destroy()   → release player, remove view
@@ -46,6 +52,7 @@ public class NativeVideoPlayerPlugin extends Plugin {
     private ExoPlayer player;
     private FrameLayout container;
     private TextureView textureView;
+    private ImageButton playPauseBtn;
 
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private Runnable timeUpdateTask;
@@ -82,6 +89,26 @@ public class NativeVideoPlayerPlugin extends Plugin {
             );
             container.addView(textureView, tvLp);
 
+            // Native play/pause button — sits above the TextureView inside the same
+            // FrameLayout, so it is always visible and tappable (WhatsApp-style).
+            ImageButton btn = new ImageButton(getContext());
+            int btnSize = dpToPx(56);
+            FrameLayout.LayoutParams btnLp = new FrameLayout.LayoutParams(btnSize, btnSize, Gravity.CENTER);
+            GradientDrawable btnBg = new GradientDrawable();
+            btnBg.setShape(GradientDrawable.OVAL);
+            btnBg.setColor(Color.argb(160, 0, 0, 0));
+            btn.setBackground(btnBg);
+            btn.setImageResource(android.R.drawable.ic_media_pause); // auto-plays, so start with pause icon
+            btn.setColorFilter(Color.WHITE);
+            btn.setPadding(dpToPx(14), dpToPx(14), dpToPx(14), dpToPx(14));
+            btn.setOnClickListener(v -> {
+                if (player == null || isReleased) return;
+                if (player.isPlaying()) { player.pause(); }
+                else                   { player.play();  }
+            });
+            container.addView(btn, btnLp);
+            playPauseBtn = btn;
+
             // Position overlay above WebView in the DecorView
             int[] wvLoc = new int[2];
             getBridge().getWebView().getLocationOnScreen(wvLoc);
@@ -107,6 +134,12 @@ public class NativeVideoPlayerPlugin extends Plugin {
             player.addListener(new Player.Listener() {
                 @Override
                 public void onIsPlayingChanged(boolean isPlaying) {
+                    // Keep native button icon in sync with player state
+                    if (playPauseBtn != null) {
+                        playPauseBtn.setImageResource(isPlaying
+                            ? android.R.drawable.ic_media_pause
+                            : android.R.drawable.ic_media_play);
+                    }
                     JSObject d = new JSObject();
                     d.put("playing", isPlaying);
                     notifyListeners("stateChange", d, true);
@@ -240,6 +273,7 @@ public class NativeVideoPlayerPlugin extends Plugin {
 
     private void releaseInternal() {
         isReleased = true;
+        playPauseBtn = null;
 
         if (timeUpdateTask != null) {
             mainHandler.removeCallbacks(timeUpdateTask);
@@ -285,5 +319,9 @@ public class NativeVideoPlayerPlugin extends Plugin {
             }
         };
         mainHandler.postDelayed(timeUpdateTask, 100);
+    }
+
+    private int dpToPx(int dp) {
+        return Math.round(dp * getContext().getResources().getDisplayMetrics().density);
     }
 }

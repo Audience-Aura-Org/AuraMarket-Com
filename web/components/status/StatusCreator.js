@@ -1930,14 +1930,20 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     }}
                   />
                   )}
-                  <button
-                    type="button"
-                    onClick={togglePlayPause}
-                    className="absolute bottom-4 right-4 z-30 flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/70"
-                    aria-label={isPlaying ? 'Pause video preview' : 'Play video preview'}
-                  >
-                    {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
-                  </button>
+                  {/* Play/pause button — web only. On native the ExoPlayer overlay
+                      has a native ImageButton above the TextureView (WhatsApp-style),
+                      so we skip this WebView element to avoid it being hidden behind
+                      the native layer. stateChange events keep isPlaying in sync. */}
+                  {!(isNativePlatform() && nativeVideoUri) && (
+                    <button
+                      type="button"
+                      onClick={togglePlayPause}
+                      className="absolute bottom-4 right-4 z-30 flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/70"
+                      aria-label={isPlaying ? 'Pause video preview' : 'Play video preview'}
+                    >
+                      {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
+                    </button>
+                  )}
                 </>
               ) : (
                 <img
