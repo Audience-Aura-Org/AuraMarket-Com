@@ -176,7 +176,7 @@ export default function VendorWalletPage() {
   const totalEarned = transactions
     .filter(t =>
       t.status === 'completed' &&
-      (t.type === 'payout' || t.type === 'refund' ||
+      (t.type === 'payout' || t.type === 'refund' || t.type === 'escrow_release' ||
        (t.type === 'deposit' && !(t.order_ids?.length > 0))) // exclude legacy checkout deposits
     )
     .reduce((s, t) => s + t.amount, 0);
@@ -293,25 +293,41 @@ export default function VendorWalletPage() {
                      <div className="py-20 flex justify-center opacity-20"><Loader2 className="animate-spin" /></div>
                    ) : transactions.length === 0 ? (
                      <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No transaction data available</div>
-                   ) : transactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((tx, i) => (
-                     <div key={tx._id || i} onClick={() => setSelectedTx(tx)} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all flex items-center gap-4 cursor-pointer group">
-                        <div className={`size-11 rounded-xl flex items-center justify-center ${['payout', 'deposit'].includes(tx.type) ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
-                           {['payout', 'deposit'].includes(tx.type) ? <ArrowDownLeft className="size-5" /> : <ArrowUpRight className="size-5" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                           <p className="font-bold text-sm text-[var(--text-primary)] truncate">{tx.description || tx.type}</p>
-                           <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
-                        </div>
-                        <div className="text-right">
-                           <p className={`text-base font-bold ${['payout', 'deposit'].includes(tx.type) ? 'text-emerald-500' : 'text-red-500'}`}>
-                             {['payout', 'deposit'].includes(tx.type) ? '+' : '-'}{fmt(tx.amount)}
-                           </p>
-                           <p className="text-[10px] font-semibold opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1">
-                             <Printer className="size-2" /> Receipt
-                           </p>
-                        </div>
-                     </div>
-                   ))}
+                   ) : transactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((tx, i) => {
+                     const isCredit  = tx.type === 'payout' || tx.type === 'escrow_release' || tx.type === 'refund' ||
+                       (tx.type === 'deposit' && !(tx.order_ids?.length > 0));
+                     const isFailed  = tx.status === 'failed';
+                     const isPending = tx.status === 'pending';
+                     return (
+                       <div key={tx._id || i} onClick={() => setSelectedTx(tx)} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all flex items-center gap-4 cursor-pointer group">
+                          <div className={`size-11 rounded-xl flex items-center justify-center ${
+                            isFailed ? 'bg-gray-500/10 text-gray-400' :
+                            isCredit ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
+                          }`}>
+                             {isCredit ? <ArrowDownLeft className="size-5" /> : <ArrowUpRight className="size-5" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                             <div className="flex items-center gap-2">
+                               <p className="font-bold text-sm text-[var(--text-primary)] truncate">{tx.description || tx.type}</p>
+                               {isPending && <span className="shrink-0 text-[9px] font-bold bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded-md">Pending</span>}
+                               {isFailed  && <span className="shrink-0 text-[9px] font-bold bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded-md">Failed</span>}
+                             </div>
+                             <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                          </div>
+                          <div className="text-right">
+                             <p className={`text-base font-bold ${
+                               isFailed ? 'text-gray-400 line-through opacity-50' :
+                               isCredit ? 'text-emerald-500' : 'text-red-500'
+                             }`}>
+                               {isCredit ? '+' : '-'}{fmt(tx.amount)}
+                             </p>
+                             <p className="text-[10px] font-semibold opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1">
+                               <Printer className="size-2" /> Receipt
+                             </p>
+                          </div>
+                       </div>
+                     );
+                   })}
                 </div>
               )}
 

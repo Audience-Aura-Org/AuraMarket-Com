@@ -658,6 +658,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   // Positioning anchor for the native ExoPlayer TextureView overlay (Android only).
   // The overlay is sized/positioned from this div's getBoundingClientRect().
   const nativeVideoContainerRef = useRef(null);
+  // Root ref used to keep StatusCreator visible while the rest of the body is hidden
+  // (body visibility:hidden hides the status feed page behind so TextureView shows through).
+  const statusCreatorRootRef = useRef(null);
 
   const trimStartRef = useRef(trimStart);
   const trimEndRef = useRef(trimEnd);
@@ -1295,16 +1298,31 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
   // When ExoPlayer is active (viewerMode=true, TextureView BEHIND WebView), every
   // opaque HTML layer between the WebView surface and the TextureView must be cleared.
-  // This includes the document body background which paints before any React elements.
+  // This includes:
+  //   1. The document body background (paints before any React element)
+  //   2. The status feed page content that sits behind StatusCreator in the WebView
+  //      compositor — even at lower z-index it blocks the TextureView through the
+  //      transparent StatusCreator overlay. We hide the body (visibility:hidden) and
+  //      restore only the StatusCreator root (visibility:visible) so nothing else
+  //      in the WebView paints over the native layer.
   useEffect(() => {
     if (!isNativePlatform() || !nativeVideoUri) return;
     const prevBg      = document.body.style.background      || '';
     const prevBgImage = document.body.style.backgroundImage || '';
+    const prevVis     = document.body.style.visibility      || '';
     document.body.style.background      = 'transparent';
     document.body.style.backgroundImage = 'none';
+    document.body.style.visibility      = 'hidden';
+    if (statusCreatorRootRef.current) {
+      statusCreatorRootRef.current.style.visibility = 'visible';
+    }
     return () => {
       document.body.style.background      = prevBg;
       document.body.style.backgroundImage = prevBgImage;
+      document.body.style.visibility      = prevVis;
+      if (statusCreatorRootRef.current) {
+        statusCreatorRootRef.current.style.visibility = '';
+      }
     };
   }, [nativeVideoUri]);
 
@@ -1761,7 +1779,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const previewVideoSrc = buildPreviewVideoSrc(previewUrl);
 
   const layout = (
-    <div className={`fixed inset-0 z-[1100] flex items-center justify-center overflow-hidden font-[Poppins] ${isNativePlatform() && nativeVideoUri ? '' : 'bg-black/85 backdrop-blur-md'}`}>
+    <div ref={statusCreatorRootRef} className={`fixed inset-0 z-[1100] flex items-center justify-center overflow-hidden font-[Poppins] ${isNativePlatform() && nativeVideoUri ? '' : 'bg-black/85 backdrop-blur-md'}`}>
       <style>{`
         .status-preview-video {
           -webkit-appearance: none;
