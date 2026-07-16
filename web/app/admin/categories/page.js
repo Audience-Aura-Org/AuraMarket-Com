@@ -267,10 +267,10 @@ export default function AdminCategories() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
+    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg-primary)]">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 md:top-16 lg:top-0 z-40 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 sm:px-6 lg:px-10 h-16 flex items-center gap-3">
+      <header className="sticky top-0 md:top-16 lg:top-0 z-40 bg-[var(--bg-primary)]/90 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 sm:px-6 lg:px-10 h-16 flex items-center gap-3 shrink-0">
         <div className="flex-1 min-w-0">
           <h2 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight">Categories</h2>
           {!loading && (
@@ -301,8 +301,8 @@ export default function AdminCategories() {
       </header>
 
       {/* ── Content ─────────────────────────────────────────────────────── */}
-      <div className="p-4 sm:p-6 lg:p-10 pb-32">
-        <div className="max-w-2xl mx-auto space-y-4">
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 lg:p-10 space-y-4 pb-32">
 
           {/* Search */}
           <div className="relative">

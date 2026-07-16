@@ -1,7 +1,7 @@
 # Debug Session: android-video-preview
 
-- Status: READY FOR TEST
-- APK: `web/public/downloads/Auradime.apk` (built 2026-07-08 17:01)
+- Status: SHIPPED
+- APK: `web/public/downloads/Auradime.apk` (built 2026-07-16)
 - Scope: `web/components/status/StatusCreator.js`
 
 ## Symptom
