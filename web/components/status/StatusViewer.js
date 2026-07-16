@@ -110,8 +110,11 @@ const StoryVideo = memo(function StoryVideo({
   const [didRetryUrl, setDidRetryUrl] = useState(false);
   const [didRetryCacheBust, setDidRetryCacheBust] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
+  const [hlsActive, setHlsActive]   = useState(false);
   const waitTimeoutRef = useRef(null);
   const endedSegmentRef = useRef(false);
+  const hlsRef    = useRef(null);
+  const isHlsRef  = useRef(false);
   const safeSegmentStart = Math.max(0, Number(segmentStart) || 0);
   const safeSegmentEnd = Number.isFinite(Number(segmentEnd)) && Number(segmentEnd) > safeSegmentStart
     ? Number(segmentEnd)
@@ -139,6 +142,40 @@ const StoryVideo = memo(function StoryVideo({
     setHasStarted(false);
     endedSegmentRef.current = false;
   }, [src, safeSegmentStart, safeSegmentEnd]);
+
+  // ── HLS.js for .m3u8 streams (non-Safari) ────────────────────────────────
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    // Tear down any existing hls.js instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current  = null;
+      isHlsRef.current = false;
+      setHlsActive(false);
+    }
+    if (!playbackSrc || !/\.m3u8(\?|$)/i.test(playbackSrc)) return;
+    // Safari / iOS WebView: native HLS — <video src> handles it
+    if (v.canPlayType('application/vnd.apple.mpegurl')) return;
+    // Dynamic import keeps hls.js out of the initial bundle
+    import('hls.js').then(({ default: Hls }) => {
+      if (!Hls.isSupported()) return;
+      const hls = new Hls({ startLevel: -1, maxBufferLength: 30, maxMaxBufferLength: 60 });
+      hlsRef.current  = hls;
+      isHlsRef.current = true;
+      setHlsActive(true);
+      hls.loadSource(playbackSrc);
+      hls.attachMedia(v);
+    }).catch(console.warn);
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current  = null;
+        isHlsRef.current = false;
+        setHlsActive(false);
+      }
+    };
+  }, [playbackSrc]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const seekToSegmentStart = useCallback((force = false) => {
     const v = ref.current;
@@ -170,7 +207,7 @@ const StoryVideo = memo(function StoryVideo({
     if (!v) return;
     if (active && !paused) {
       if (v.readyState < 2) setIsWaiting(true);
-      if (v.currentSrc !== playbackSrc && v.readyState < 2) v.load();
+      if (!isHlsRef.current && v.currentSrc !== playbackSrc && v.readyState < 2) v.load();
       attemptPlay();
     } else {
       v.pause();
@@ -272,7 +309,7 @@ const StoryVideo = memo(function StoryVideo({
       {/* Video */}
       <video
         ref={ref}
-        src={playbackSrc}
+        src={hlsActive ? undefined : playbackSrc}
         playsInline
         webkit-playsinline="true"
         muted={muted}

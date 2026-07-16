@@ -260,6 +260,42 @@ export default function StatusTabGrid({ onSelectStatus, viewedStoryIds = [], onA
       .filter(Boolean);
   }, [activePool]);
 
+  // ── WiFi background video prefetch ──────────────────────────────────────
+  // On a good connection, pre-fetch the first 3 unviewed video content URLs
+  // into the SW's VIDEO_CACHE so they play instantly (and offline) when opened.
+  // Uses requestIdleCallback so it never competes with active network requests.
+  const videoPrefetchedRef = useRef(false);
+  useEffect(() => {
+    if (videoPrefetchedRef.current || typeof window === 'undefined' || typeof navigator === 'undefined') return;
+    const allStatuses = [...followedStatuses, ...globalStatuses];
+    if (!allStatuses.length) return;
+
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const isGoodConn = !conn || conn.type === 'wifi' || conn.effectiveType === '4g';
+    if (!isGoodConn) return;
+
+    videoPrefetchedRef.current = true;
+
+    const toPreload = allStatuses
+      .filter((s) => s.type === 'video' && s.content_url && !s.isViewed)
+      .slice(0, 3)
+      .map((s) => s.content_url);
+
+    const doPreload = () => {
+      toPreload.forEach((url) => {
+        // window.fetch (not the component's fetch callback) — full GET, no Range header.
+        // The SW intercepts this, downloads + caches the full video file.
+        window.fetch(url, { priority: 'low' }).catch(() => {});
+      });
+    };
+
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(doPreload, { timeout: 5000 });
+    } else {
+      setTimeout(doPreload, 2000);
+    }
+  }, [followedStatuses, globalStatuses]);
+
   const handleOpen = (status, pool) => {
     const startStory = status.firstUnviewed || status.latestStory || status;
     const startId = startStory?._id;

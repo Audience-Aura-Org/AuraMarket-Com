@@ -14,8 +14,11 @@
 const CACHE_NAME       = 'aura-cache-v12';
 const MEDIA_CACHE_NAME = 'aura-media-v1';
 const API_CACHE_NAME   = 'aura-api-v1';
+const VIDEO_CACHE_NAME = 'aura-video-v1';   // status video files (offline playback)
 const MEDIA_CACHE_MAX  = 250;
 const API_CACHE_MAX    = 300;
+const VIDEO_CACHE_MAX  = 8;                  // keep last 8 videos (≤ 15 MB each)
+const VIDEO_MAX_BYTES  = 15 * 1024 * 1024;  // skip caching videos larger than 15 MB
 
 // Core shell pages — pre-cached on install so they open offline immediately.
 const SHELL_PAGES = [
@@ -59,7 +62,7 @@ self.addEventListener('message', (event) => {
 // ── Activate: clean up old caches ───────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   const keepCaches = new Set([
-    CACHE_NAME, MEDIA_CACHE_NAME, API_CACHE_NAME, 'aura-google-fonts',
+    CACHE_NAME, MEDIA_CACHE_NAME, API_CACHE_NAME, VIDEO_CACHE_NAME, 'aura-google-fonts',
   ]);
   event.waitUntil(
     caches.keys()
@@ -134,6 +137,34 @@ function isCacheableApiPath(url) {
     p.includes('/notifications') ||
     p.includes('/cart')
   );
+}
+
+// Status video files — mp4/webm/mov from CDN (NOT images).
+function isCacheableVideo(url) {
+  return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(url.pathname + url.search);
+}
+
+// Serve a byte-range slice from a cached ArrayBuffer (for <video> seek support).
+function serveRange(buffer, rangeHeader, contentType) {
+  const total = buffer.byteLength;
+  const match = (rangeHeader || '').match(/bytes=(\d*)-(\d*)/);
+  if (!match) {
+    return new Response(buffer, {
+      status: 200,
+      headers: { 'Content-Type': contentType, 'Content-Length': String(total), 'Accept-Ranges': 'bytes' },
+    });
+  }
+  const start = match[1] ? parseInt(match[1], 10) : 0;
+  const end   = match[2] ? Math.min(parseInt(match[2], 10), total - 1) : total - 1;
+  return new Response(buffer.slice(start, end + 1), {
+    status: 206,
+    headers: {
+      'Content-Type':  contentType,
+      'Content-Range': `bytes ${start}-${end}/${total}`,
+      'Content-Length': String(end - start + 1),
+      'Accept-Ranges': 'bytes',
+    },
+  });
 }
 
 // ── Fetch ─────────────────────────────────────────────────────────────────────
@@ -246,6 +277,64 @@ self.addEventListener('fetch', (event) => {
         })
       )
     );
+    return;
+  }
+
+  // ── 5b. Status videos — cache full file, serve ranges offline ────────────
+  // Background prefetch (no Range header): download + cache the full video.
+  // <video> range requests: serve from cached buffer (enables offline playback
+  // and instant seek for already-downloaded statuses — same as WhatsApp).
+  if (isCacheableVideo(url)) {
+    event.respondWith((async () => {
+      const videoCache  = await caches.open(VIDEO_CACHE_NAME);
+      const rangeHeader = event.request.headers.get('range');
+
+      // Cache hit — serve immediately (with byte-range extraction if needed)
+      const cached = await videoCache.match(event.request.url);
+      if (cached) {
+        if (!rangeHeader) return cached.clone();
+        const buf = await cached.clone().arrayBuffer();
+        return serveRange(buf, rangeHeader, cached.headers.get('Content-Type') || 'video/mp4');
+      }
+
+      // Cache miss + background-prefetch request (no Range header):
+      // fetch full video, cache it, return it.
+      if (!rangeHeader) {
+        try {
+          const response = await fetch(new Request(event.request.url, {
+            method: 'GET', mode: 'cors', credentials: 'omit',
+          }));
+          if (response.ok && response.status === 200) {
+            const buf  = await response.arrayBuffer();
+            const type = response.headers.get('Content-Type') || 'video/mp4';
+            if (buf.byteLength > 0 && buf.byteLength <= VIDEO_MAX_BYTES) {
+              // Store full response, then evict oldest if over cap
+              videoCache.put(event.request.url, new Response(buf.slice(0), {
+                status: 200,
+                headers: { 'Content-Type': type, 'Content-Length': String(buf.byteLength), 'Accept-Ranges': 'bytes' },
+              })).then(() =>
+                videoCache.keys().then((keys) => {
+                  if (keys.length > VIDEO_CACHE_MAX)
+                    keys.slice(0, keys.length - VIDEO_CACHE_MAX).forEach((k) => videoCache.delete(k));
+                })
+              );
+            }
+            return new Response(buf, { status: 200, headers: { 'Content-Type': type } });
+          }
+          return response;
+        } catch {
+          return new Response('Video unavailable offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+        }
+      }
+
+      // Cache miss + Range request from <video> element: pass through to network.
+      // (Video will be cached on next background-prefetch cycle.)
+      try {
+        return await fetch(event.request);
+      } catch {
+        return new Response('Video unavailable offline', { status: 503, headers: { 'Content-Type': 'text/plain' } });
+      }
+    })());
     return;
   }
 
