@@ -12,8 +12,10 @@ import {
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
+import socketService from '@/services/socket';
 import Pagination from '@/components/common/Pagination';
 import WithdrawModal from '@/components/wallet/WithdrawModal';
+import DepositModal from '@/components/wallet/DepositModal';
 import StatCard from '@/components/layout/StatCard';
 
 const MIN_WITHDRAW = 500;
@@ -68,7 +70,7 @@ function ReceiptModal({ tx, onClose }) {
 }
 
 export default function LogisticsWalletPage() {
-  const { user, hasHydrated, setWalletBalance } = useAuthStore();
+  const { user, hasHydrated, setWalletBalance, walletBalance: storeWalletBalance } = useAuthStore();
   const router = useRouter();
 
   const [balance, setBalance]         = useState(0);
@@ -78,6 +80,7 @@ export default function LogisticsWalletPage() {
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [showWithdraw, setWithdraw]   = useState(false);
+  const [showDeposit, setDeposit]     = useState(false);
   const [tab, setTab]                 = useState('history');
   const [selectedTx, setSelectedTx]  = useState(null);
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
@@ -136,10 +139,36 @@ export default function LogisticsWalletPage() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [load, user]);
 
+  // Real-time wallet updates via socket
+  useEffect(() => {
+    if (!user?._id) return;
+    const handleCredited = () => load(true);
+    const handleWdPaid   = () => load(true);
+    socketService.on('wallet:credited', handleCredited);
+    socketService.on('withdrawal:paid', handleWdPaid);
+    return () => {
+      socketService.off('wallet:credited', handleCredited);
+      socketService.off('withdrawal:paid', handleWdPaid);
+    };
+  }, [user?._id, load]);
+
+  // Keep local balance in sync with auth store (SocketProvider updates storeWalletBalance
+  // via refreshWalletBalance() on wallet:credited events, even before load() completes)
+  useEffect(() => {
+    if (storeWalletBalance !== null && storeWalletBalance !== undefined) {
+      setBalance(storeWalletBalance);
+    }
+  }, [storeWalletBalance]);
+
   useEffect(() => { setCurrentPage(1); }, [tab]);
 
+  // Total Earned = actual income from deliveries (payout, escrow_release, refund).
+  // Deposits are self-funded wallet top-ups, NOT earnings — excluded intentionally.
   const totalEarned = transactions
-    .filter(t => ['payout', 'deposit', 'refund'].includes(t.type) && t.status === 'completed')
+    .filter(t =>
+      t.status === 'completed' &&
+      (t.type === 'payout' || t.type === 'refund' || t.type === 'escrow_release')
+    )
     .reduce((s, t) => s + t.amount, 0);
   const totalOut = transactions
     .filter(t => t.type === 'withdrawal' && t.status === 'completed')
@@ -166,6 +195,12 @@ export default function LogisticsWalletPage() {
           />
         )}
       </AnimatePresence>
+      <DepositModal
+        open={showDeposit}
+        onClose={() => setDeposit(false)}
+        onSuccess={() => { load(true); setDeposit(false); }}
+        userPhone={user?.phone || ''}
+      />
 
       <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 lg:top-0 z-40 gap-4 md:gap-0">
         <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
@@ -216,7 +251,7 @@ export default function LogisticsWalletPage() {
 
         {/* Actions */}
         <div className="flex gap-4">
-          <button onClick={() => router.push('/wallet?action=deposit')} className="flex-1 h-14 bg-indigo-500 hover:bg-indigo-600 text-white rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">
+          <button onClick={() => setDeposit(true)} className="flex-1 h-14 bg-indigo-500 hover:bg-indigo-600 text-white rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">
             <ArrowDownLeft className="size-5" /> Deposit Funds
           </button>
           <button onClick={() => setWithdraw(true)} disabled={balance < MIN_WITHDRAW} className="flex-1 h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all disabled:opacity-30">
@@ -252,32 +287,46 @@ export default function LogisticsWalletPage() {
                   <div className="py-20 flex justify-center opacity-20"><Loader2 className="animate-spin" /></div>
                 ) : transactions.length === 0 ? (
                   <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No transaction data available</div>
-                ) : transactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((tx, i) => (
-                  <div key={tx._id || i} onClick={() => setSelectedTx(tx)} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all flex items-center gap-4 cursor-pointer group">
-                    <div className={`size-11 rounded-xl flex items-center justify-center ${['payout', 'deposit'].includes(tx.type) ? 'bg-indigo-500/10 text-indigo-500' : 'bg-red-500/10 text-red-500'}`}>
-                      {['payout', 'deposit'].includes(tx.type) ? <ArrowDownLeft className="size-5" /> : <ArrowUpRight className="size-5" />}
+                ) : transactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((tx, i) => {
+                  const isCredit  = tx.type === 'payout' || tx.type === 'escrow_release' || tx.type === 'refund' ||
+                    (tx.type === 'deposit' && !(tx.order_ids?.length > 0));
+                  const isFailed  = tx.status === 'failed';
+                  const isPending = tx.status === 'pending';
+                  return (
+                    <div key={tx._id || i} onClick={() => setSelectedTx(tx)} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all flex items-center gap-4 cursor-pointer group">
+                      <div className={`size-11 rounded-xl flex items-center justify-center ${
+                        isFailed ? 'bg-gray-500/10 text-gray-400' :
+                        isCredit ? 'bg-indigo-500/10 text-indigo-500' : 'bg-red-500/10 text-red-500'
+                      }`}>
+                        {isCredit ? <ArrowDownLeft className="size-5" /> : <ArrowUpRight className="size-5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-bold text-sm text-[var(--text-primary)] truncate">{tx.description || tx.type}</p>
+                          {isPending && <span className="shrink-0 text-[9px] font-bold bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded-md">Pending</span>}
+                          {isFailed  && <span className="shrink-0 text-[9px] font-bold bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded-md">Failed</span>}
+                        </div>
+                        <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-base font-bold ${
+                          isFailed ? 'text-gray-400 line-through opacity-50' :
+                          isCredit ? 'text-indigo-500' : 'text-red-500'
+                        }`}>
+                          {isCredit ? '+' : '-'}{fmt(tx.amount)}
+                        </p>
+                        <p className="text-[10px] font-semibold opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1">
+                          <Printer className="size-2" /> Receipt
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-[var(--text-primary)] truncate">{tx.description || tx.type}</p>
-                      <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-base font-bold ${['payout', 'deposit'].includes(tx.type) ? 'text-indigo-500' : 'text-red-500'}`}>
-                        {['payout', 'deposit'].includes(tx.type) ? '+' : '-'}{fmt(tx.amount)}
-                      </p>
-                      <p className="text-[10px] font-semibold opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1">
-                        <Printer className="size-2" /> Receipt
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {transactions.length > itemsPerPage && (
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={Math.ceil(transactions.length / itemsPerPage)}
-                    onPageChange={setCurrentPage}
-                  />
-                )}
+                  );
+                })}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(transactions.length / itemsPerPage)}
+                  onPageChange={setCurrentPage}
+                />
               </div>
             )}
 
@@ -292,7 +341,7 @@ export default function LogisticsWalletPage() {
                 </div>
                 {escrowTxs.length === 0 ? (
                   <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No escrow transactions</div>
-                ) : escrowTxs.map((tx, i) => (
+                ) : escrowTxs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((tx, i) => (
                   <div key={tx._id || i} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-amber-500/20 flex items-center gap-4">
                     <div className="size-11 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
                       <Clock className="size-5" />
@@ -304,6 +353,11 @@ export default function LogisticsWalletPage() {
                     <p className="text-base font-bold text-amber-500">+{fmt(tx.amount)}</p>
                   </div>
                 ))}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(escrowTxs.length / itemsPerPage)}
+                  onPageChange={setCurrentPage}
+                />
               </div>
             )}
 
@@ -312,7 +366,7 @@ export default function LogisticsWalletPage() {
               <div className="space-y-4">
                 {withdrawalRequests.length === 0 ? (
                   <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No withdrawal requests yet</div>
-                ) : withdrawalRequests.map((wr, i) => {
+                ) : withdrawalRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((wr, i) => {
                   const status = String(wr.status || '').toLowerCase();
                   const isSuccess = ['completed', 'paid', 'successful'].includes(status);
                   const isPending = ['pending', 'processing'].includes(status);
@@ -331,6 +385,11 @@ export default function LogisticsWalletPage() {
                     </div>
                   );
                 })}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={Math.ceil(withdrawalRequests.length / itemsPerPage)}
+                  onPageChange={setCurrentPage}
+                />
               </div>
             )}
           </div>

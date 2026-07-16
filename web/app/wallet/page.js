@@ -466,8 +466,10 @@ export default function WalletPage() {
 
   const filteredTransactions = transactions.filter(tx => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'in') return ['deposit', 'refund', 'payout'].includes(tx.type);
-    if (activeTab === 'out') return ['withdrawal', 'payment'].includes(tx.type);
+    if (activeTab === 'in') return tx.type === 'refund' || tx.type === 'payout' ||
+      (tx.type === 'deposit' && !(tx.order_ids?.length > 0)); // exclude legacy checkout deposits
+    if (activeTab === 'out') return tx.type === 'withdrawal' || tx.type === 'payment' ||
+      (tx.type === 'deposit' && tx.order_ids?.length > 0); // include legacy checkout deposits
     return true;
   });
 

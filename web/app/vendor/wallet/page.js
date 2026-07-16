@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
 import WithdrawModal from '@/components/wallet/WithdrawModal';
+import DepositModal from '@/components/wallet/DepositModal';
 import StatCard from '@/components/layout/StatCard';
 import socketService from '@/services/socket';
 
@@ -82,6 +83,7 @@ export default function VendorWalletPage() {
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [showWithdraw, setWithdraw]   = useState(false);
+  const [showDeposit, setDeposit]     = useState(false);
   const [tab, setTab]                 = useState('history');
   const [selectedTx, setSelectedTx]  = useState(null);
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
@@ -173,11 +175,12 @@ export default function VendorWalletPage() {
   // Reset pagination on tab change
   useEffect(() => { setCurrentPage(1); }, [tab]);
 
+  // Total Earned = actual income from orders (payout, escrow_release, refund).
+  // Deposits are self-funded wallet top-ups, NOT earnings — excluded intentionally.
   const totalEarned = transactions
     .filter(t =>
       t.status === 'completed' &&
-      (t.type === 'payout' || t.type === 'refund' || t.type === 'escrow_release' ||
-       (t.type === 'deposit' && !(t.order_ids?.length > 0))) // exclude legacy checkout deposits
+      (t.type === 'payout' || t.type === 'refund' || t.type === 'escrow_release')
     )
     .reduce((s, t) => s + t.amount, 0);
   const totalOut = transactions
@@ -205,6 +208,12 @@ export default function VendorWalletPage() {
           />
         )}
       </AnimatePresence>
+      <DepositModal
+        open={showDeposit}
+        onClose={() => setDeposit(false)}
+        onSuccess={() => { load(true); setDeposit(false); }}
+        userPhone={user?.phone || ''}
+      />
 
       {/* Header — fixed sticky with proper desktop top override */}
       <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 lg:top-0 z-40 gap-4 md:gap-0">
@@ -257,7 +266,7 @@ export default function VendorWalletPage() {
 
         {/* Actions */}
         <div className="flex gap-4">
-           <button onClick={() => router.push('/wallet?action=deposit')} className="flex-1 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
+           <button onClick={() => setDeposit(true)} className="flex-1 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
               <ArrowDownLeft className="size-5" /> Deposit Funds
            </button>
            <button onClick={() => setWithdraw(true)} disabled={balance < MIN_WITHDRAW} className="flex-1 h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all disabled:opacity-30">
