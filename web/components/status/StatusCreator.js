@@ -1252,10 +1252,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       try {
         const rect = container.getBoundingClientRect();
         const dpr  = window.devicePixelRatio || 1;
+        // viewerMode=true → TextureView placed BEHIND WebView (camera-preview pattern).
+        // This lets all WebView elements (filmstrip, controls, overlays) render ON TOP
+        // of the video via CSS/z-index — identical to the status viewer approach.
         await createNativePlayer({
           x: rect.left * dpr, y: rect.top * dpr,
           width: rect.width * dpr, height: rect.height * dpr,
           muted,
+          viewerMode: true,
         });
         if (!active) { destroyNativePlayer().catch(() => {}); return; }
 
@@ -1895,7 +1899,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                   {isNativePlatform() && nativeVideoUri ? (
                     <div
                       ref={nativeVideoContainerRef}
-                      className="absolute inset-0 w-full h-full bg-black z-10"
+                      className="absolute inset-0 w-full h-full z-10"
                     />
                   ) : (
                   <video
@@ -1930,20 +1934,19 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     }}
                   />
                   )}
-                  {/* Play/pause button — web only. On native the ExoPlayer overlay
-                      has a native ImageButton above the TextureView (WhatsApp-style),
-                      so we skip this WebView element to avoid it being hidden behind
-                      the native layer. stateChange events keep isPlaying in sync. */}
-                  {!(isNativePlatform() && nativeVideoUri) && (
-                    <button
-                      type="button"
-                      onClick={togglePlayPause}
-                      className="absolute bottom-4 right-4 z-30 flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/70"
-                      aria-label={isPlaying ? 'Pause video preview' : 'Play video preview'}
-                    >
-                      {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
-                    </button>
-                  )}
+                  {/* Play/pause button — always rendered in WebView.
+                      In viewerMode=true the native TextureView is BEHIND the WebView,
+                      so WebView buttons are fully visible and interactive. The Java-side
+                      ImageButton is only added for viewerMode=false; here we use the
+                      WebView button instead. stateChange events keep isPlaying in sync. */}
+                  <button
+                    type="button"
+                    onClick={togglePlayPause}
+                    className="absolute bottom-4 right-4 z-30 flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/70"
+                    aria-label={isPlaying ? 'Pause video preview' : 'Play video preview'}
+                  >
+                    {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
+                  </button>
                 </>
               ) : (
                 <img

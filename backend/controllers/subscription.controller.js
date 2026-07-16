@@ -265,7 +265,10 @@ const initializeSubscription = async (req, res, next) => {
       transactionRef,
     });
 
-    if (!result?.success) {
+    // Eversend may return {code:200, data:{...}} or {success:true, data:{...}}.
+    // Axios already throws on HTTP 4xx/5xx, so reaching here means the HTTP call
+    // succeeded. Only reject if the body has an explicit success:false signal.
+    if (!result || result.success === false) {
       transaction.status = 'failed';
       transaction.gateway_response = result;
       await transaction.save();
