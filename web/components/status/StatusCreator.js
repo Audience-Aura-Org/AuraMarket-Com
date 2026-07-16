@@ -23,6 +23,7 @@ import {
   STATUS_VIDEO_MAX_SECONDS,
 } from '@/constants/statusVideo';
 import { prepareStatusVideoForUpload, isAndroidNative } from '@/lib/statusVideoExport';
+import { pickNativeVideo, isNativeVideoPickerAvailable } from '@/lib/nativeVideoCapture';
 import { useUploadQueue } from '@/context/UploadQueueContext';
 
 const DURATION_OPTIONS = [
@@ -468,9 +469,27 @@ const buildVideoSegments = (duration = 0) => {
  */
 async function runVideoUploadTask(snapshot, { onProgress, onPhase }) {
   const {
-    file, type, trimStart, trimEnd, cropMode, videoPostMode,
+    file, nativeVideoUri, nativeVideoName,
+    type, trimStart, trimEnd, cropMode, videoPostMode,
     videoMeta, selectedCategory, caption, linkedProduct, expiryDays,
   } = snapshot;
+
+  // On Android native, the video was picked via the system picker and we have a
+  // content:// URI instead of a File object. Convert it to a Blob/File here so
+  // the rest of the upload pipeline (prepareStatusVideoForUpload) works unchanged.
+  // Capacitor.convertFileSrc maps content:// → https://localhost/_capacitor_content_/…
+  // which is served by the Capacitor bridge's WebView resource interceptor.
+  let resolvedFile = file;
+  if (!resolvedFile && nativeVideoUri) {
+    onPhase('Reading video…');
+    const fetchUrl = Capacitor.convertFileSrc(nativeVideoUri);
+    const resp = await fetch(fetchUrl);
+    if (!resp.ok) throw new Error('Could not read video from device (' + resp.status + ')');
+    const blob = await resp.blob();
+    resolvedFile = new File([blob], nativeVideoName || 'video.mp4', {
+      type: blob.type || 'video/mp4',
+    });
+  }
 
   const createdStatuses = [];
   const expiresAt = new Date();
@@ -506,7 +525,7 @@ async function runVideoUploadTask(snapshot, { onProgress, onPhase }) {
       : 'Preparing video...'
     );
 
-    const preparedVideo = await prepareStatusVideoForUpload(file, {
+    const preparedVideo = await prepareStatusVideoForUpload(resolvedFile, {
       trimStart: segment.start,
       trimEnd: segment.end,
       cropMode,
@@ -621,6 +640,10 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const [showTrimmer, setShowTrimmer]   = useState(true);
   const [fontFamilyIndex, setFontFamilyIndex] = useState(1); // Default to Quicksand (index 1)
   const [timelineFrames, setTimelineFrames] = useState([]);
+  // Native Android: content:// URI returned by the system video picker.
+  // null on web (blob: URL flow) or before any video is picked.
+  const [nativeVideoUri, setNativeVideoUri]   = useState(null);
+  const [nativeVideoName, setNativeVideoName] = useState('video.mp4');
 
   const imageInputRef = useRef(null);
   const videoInputRef = useRef(null);
@@ -649,6 +672,59 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     setTimelineFrames([]);
     setTrimStart(0);
     setTrimEnd(STATUS_VIDEO_MAX_SECONDS);
+    setNativeVideoUri(null);
+    setNativeVideoName('video.mp4');
+  };
+
+  // Handle result returned by the native VideoFramePlugin.pickVideo() call.
+  // Sets all video state including preview URL (content:// works as video.src
+  // in Android Capacitor WebView) and filmstrip frames from MediaMetadataRetriever.
+  const handleNativeVideoSelected = (result) => {
+    const { uri, displayName, size = 0, duration, width, height, frames } = result;
+    if (size > STATUS_VIDEO_INPUT_MAX_BYTES) { setError('Max 500MB source video.'); return; }
+    const needsCompression = size > STATUS_VIDEO_MAX_BYTES;
+    const realDuration = duration || STATUS_VIDEO_MAX_SECONDS;
+    const needsTrim = realDuration > STATUS_VIDEO_MAX_SECONDS + 0.5;
+
+    // Revoke old blob URL if there was one (guard: don't revoke content:// or '')
+    if (previewUrl && !previewUrl.startsWith('content://') && file) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    setNativeVideoUri(uri);
+    setNativeVideoName(displayName || 'video.mp4');
+    setFile(null);
+    setType('video');
+    setVideoMeta({ duration: realDuration, width: width || 0, height: height || 0, needsTrim, needsCompression });
+    setTrimStart(0);
+    setTrimEnd(Math.min(STATUS_VIDEO_MAX_SECONDS, Math.max(1, realDuration)));
+    setVideoPostMode('trim');
+    setEditingVideo(true);
+    setError(needsCompression ? 'Video will be cropped to 9:16 and optimized before upload.' : null);
+    // content:// URIs are natively supported as video.src in Capacitor's Android WebView.
+    setPreviewUrl(uri);
+    // Apply native filmstrip frames immediately — no WebView decoder involved.
+    setTimelineFrames(frames?.length > 0 ? frames : []);
+  };
+
+  // Trigger the appropriate video picker: native plugin on Android (which returns
+  // real MediaMetadataRetriever frames), HTML file input on web.
+  const triggerVideoPick = async () => {
+    if (isNativePlatform() && isNativeVideoPickerAvailable()) {
+      setError(null);
+      try {
+        const result = await pickNativeVideo({ count: 8, quality: 72, maxWidth: 320 });
+        handleNativeVideoSelected(result);
+      } catch (err) {
+        // 'User cancelled' is normal — no error shown.
+        const msg = err?.message || '';
+        if (!msg.toLowerCase().includes('cancel')) {
+          setError('Could not open video picker. Please try again.');
+        }
+      }
+    } else {
+      videoInputRef.current?.click();
+    }
   };
 
   const togglePlayPause = () => {
@@ -948,7 +1024,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     // timeline already has an animated placeholder when this array is empty, and
     // its trim handles/playhead continue to work without image frames.
     if (isNativePlatform()) {
-      setTimelineFrames([]);
+      // Frames are already populated by the native VideoFramePlugin.pickVideo() call
+      // (MediaMetadataRetriever, no WebView decoder contention). Don't clear them.
       return undefined;
     }
 
@@ -1135,7 +1212,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                      : null;
     if (!actualType) { setError('Unsupported file type. Please select a photo or video.'); return; }
 
-    if (previewUrl && file) URL.revokeObjectURL(previewUrl);
+    // Switching to a file-input-based pick clears the native URI state.
+    setNativeVideoUri(null);
+    setNativeVideoName('video.mp4');
+
+    if (previewUrl && file && !previewUrl.startsWith('content://')) URL.revokeObjectURL(previewUrl);
 
     // Sync the type UI to match the actual file that was picked
     if (actualType !== type) setType(actualType);
@@ -1189,11 +1270,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     if (!selectedCategory) { setError('Please select a category.'); return; }
 
     // ── VIDEO: hand off to background queue immediately, close modal ─────────
-    if (type === 'video' && file) {
+    if (type === 'video' && (file || nativeVideoUri)) {
       // Snapshot all state values at click time — the component may unmount
       // before the upload finishes, so we cannot reference React state inside the task.
       const snapshot = {
-        file, type, trimStart, trimEnd, cropMode, videoPostMode,
+        file, nativeVideoUri, nativeVideoName,
+        type, trimStart, trimEnd, cropMode, videoPostMode,
         videoMeta, selectedCategory, caption, linkedProduct, expiryDays,
       };
 
@@ -1911,7 +1993,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                   type="button" 
                   onClick={() => {
                     if (type === 'image') imageInputRef.current?.click();
-                    else videoInputRef.current?.click();
+                    else triggerVideoPick();
                   }}
                   className="w-full py-3 px-4 rounded-2xl bg-[#00a884] text-black text-xs font-black uppercase tracking-wider shadow-lg active:scale-98 transition-all hover:brightness-105"
                 >
