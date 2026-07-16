@@ -7,7 +7,7 @@ import {
   Wallet, ArrowUpRight, ArrowDownLeft, Lock,
   CheckCircle2, AlertCircle, Loader2, Clock,
   RefreshCw, Shield, X, History, Package,
-  Printer, Bot, User2
+  Printer, Bot, User2, RotateCcw, Building2
 } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
@@ -21,6 +21,21 @@ import socketService from '@/services/socket';
 const MIN_WITHDRAW = 500;
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
+
+const TX_ICONS = {
+  payout:         { Icon: ArrowDownLeft, color: 'emerald' },
+  deposit:        { Icon: ArrowDownLeft, color: 'emerald' },
+  escrow_release: { Icon: ArrowDownLeft, color: 'emerald' },
+  refund:         { Icon: ArrowDownLeft, color: 'blue'    },
+  withdrawal:     { Icon: ArrowUpRight,  color: 'red'     },
+  payment:        { Icon: ArrowUpRight,  color: 'amber'   },
+};
+const TX_ICON_STYLES = {
+  emerald: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+  blue:    'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  red:     'bg-red-500/10 text-red-500 border-red-500/20',
+  amber:   'bg-amber-500/10 text-amber-500 border-amber-500/20',
+};
 
 function ReceiptModal({ tx, onClose }) {
   if (!tx) return null;
@@ -88,7 +103,14 @@ export default function VendorWalletPage() {
   const [selectedTx, setSelectedTx]  = useState(null);
   const [withdrawalRequests, setWithdrawalRequests] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [recheckingTxId, setRecheckingTxId] = useState(null);
+  const [toast, setToast] = useState(null);
   const itemsPerPage = 8;
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  };
   const loadingRef = useRef(false);
 
   // ── Auth guard: wait for Zustand to rehydrate before redirecting ──
@@ -175,6 +197,32 @@ export default function VendorWalletPage() {
   // Reset pagination on tab change
   useEffect(() => { setCurrentPage(1); }, [tab]);
 
+  const handleRecheckTx = async (tx) => {
+    setRecheckingTxId(tx._id);
+    try {
+      if (!['eversend', 'payunit'].includes(tx.gateway)) {
+        showToast('This gateway is not supported for recheck.', 'error');
+        return;
+      }
+      const endpoint = `/payments/${tx.gateway}/recheck/${tx.reference}`;
+      const res = await api.get(endpoint);
+      const { status, message, reason } = res.data;
+      if (status === 'SUCCESSFUL') {
+        showToast('Payment confirmed! Your wallet has been credited.', 'success');
+        load(true);
+      } else if (status === 'FAILED') {
+        showToast(reason || message || 'Payment could not be confirmed.', 'error');
+        load(true);
+      } else {
+        showToast('Still processing — your phone may still have a pending prompt.', 'info');
+      }
+    } catch {
+      showToast('Could not reach server. Try again shortly.', 'error');
+    } finally {
+      setRecheckingTxId(null);
+    }
+  };
+
   // Total Earned = actual income from orders (payout, escrow_release, refund).
   // Deposits are self-funded wallet top-ups, NOT earnings — excluded intentionally.
   const totalEarned = transactions
@@ -198,6 +246,21 @@ export default function VendorWalletPage() {
 
   return (
     <>
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+            className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[500] px-5 py-3 rounded-2xl text-xs font-bold shadow-xl ${
+              toast.type === 'success' ? 'bg-emerald-500 text-white' :
+              toast.type === 'error'   ? 'bg-red-500 text-white' :
+              'bg-amber-500 text-white'
+            }`}
+          >
+            {toast.msg}
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {selectedTx && <ReceiptModal tx={selectedTx} onClose={() => setSelectedTx(null)} />}
         {showWithdraw && (
@@ -303,37 +366,59 @@ export default function VendorWalletPage() {
                    ) : transactions.length === 0 ? (
                      <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">No transaction data available</div>
                    ) : transactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((tx, i) => {
-                     const isCredit  = tx.type === 'payout' || tx.type === 'escrow_release' || tx.type === 'refund' ||
+                     const config = TX_ICONS[tx.type] || TX_ICONS.payment;
+                     const iconStyle = TX_ICON_STYLES[config.color] || TX_ICON_STYLES.amber;
+                     const isCredit = tx.type === 'payout' || tx.type === 'escrow_release' || tx.type === 'refund' ||
                        (tx.type === 'deposit' && !(tx.order_ids?.length > 0));
-                     const isFailed  = tx.status === 'failed';
-                     const isPending = tx.status === 'pending';
                      return (
-                       <div key={tx._id || i} onClick={() => setSelectedTx(tx)} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all flex items-center gap-4 cursor-pointer group">
-                          <div className={`size-11 rounded-xl flex items-center justify-center ${
-                            isFailed ? 'bg-gray-500/10 text-gray-400' :
-                            isCredit ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'
-                          }`}>
-                             {isCredit ? <ArrowDownLeft className="size-5" /> : <ArrowUpRight className="size-5" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                             <div className="flex items-center gap-2">
-                               <p className="font-bold text-sm text-[var(--text-primary)] truncate">{tx.description || tx.type}</p>
-                               {isPending && <span className="shrink-0 text-[9px] font-bold bg-amber-500/10 text-amber-500 px-1.5 py-0.5 rounded-md">Pending</span>}
-                               {isFailed  && <span className="shrink-0 text-[9px] font-bold bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded-md">Failed</span>}
-                             </div>
-                             <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{new Date(tx.createdAt).toLocaleDateString()}</p>
-                          </div>
-                          <div className="text-right">
-                             <p className={`text-base font-bold ${
-                               isFailed ? 'text-gray-400 line-through opacity-50' :
-                               isCredit ? 'text-emerald-500' : 'text-red-500'
+                       <div
+                         key={tx._id || i}
+                         onClick={() => setSelectedTx(tx)}
+                         className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
+                           tx.status === 'pending' && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit'
+                             ? 'border-amber-500/30 bg-amber-500/5'
+                             : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30'
+                         }`}
+                       >
+                         <div className={`size-10 rounded-xl flex items-center justify-center border ${iconStyle}`}>
+                           <config.Icon className="size-4" />
+                         </div>
+                         <div className="flex-1 min-w-0">
+                           <p className="text-[11px] font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
+                           <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                           {['pending', 'failed'].includes(tx.status) && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit' && (
+                             <button
+                               onClick={(e) => { e.stopPropagation(); handleRecheckTx(tx); }}
+                               disabled={recheckingTxId === tx._id}
+                               className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
+                             >
+                               {recheckingTxId === tx._id
+                                 ? <><Loader2 className="size-3 animate-spin" /> Checking...</>
+                                 : <><RotateCcw className="size-3" /> Recheck payment</>
+                               }
+                             </button>
+                           )}
+                         </div>
+                         <div className="text-right shrink-0">
+                           <p className={`text-base font-bold tracking-tight ${
+                             tx.status === 'completed'
+                               ? (isCredit ? 'text-emerald-500' : 'text-red-500')
+                               : tx.status === 'failed'
+                                 ? 'text-red-500/50 line-through'
+                                 : 'text-[var(--text-secondary)] opacity-40'
+                           }`}>
+                             {tx.status === 'completed' ? (isCredit ? '+' : '-') : ''}{fmt(tx.amount)}
+                           </p>
+                           <div className="flex items-center justify-end gap-1 mt-0.5">
+                             {tx.status === 'pending' && <Clock className="size-2 text-amber-500 animate-pulse" />}
+                             <p className={`text-[10px] font-semibold tracking-tight ${
+                               tx.status === 'completed' ? 'text-emerald-500/50' :
+                               tx.status === 'failed' ? 'text-red-500' : 'text-amber-500'
                              }`}>
-                               {isCredit ? '+' : '-'}{fmt(tx.amount)}
+                               {tx.status}
                              </p>
-                             <p className="text-[10px] font-semibold opacity-20 group-hover:opacity-100 transition-opacity flex items-center justify-end gap-1">
-                               <Printer className="size-2" /> Receipt
-                             </p>
-                          </div>
+                           </div>
+                         </div>
                        </div>
                      );
                    })}
