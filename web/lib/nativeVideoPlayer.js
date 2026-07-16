@@ -26,13 +26,16 @@ export const isNativePlayerAvailable = () => plugin() !== null;
  * Create the ExoPlayer + TextureView overlay at the given screen rectangle.
  * Coordinates must be in PHYSICAL pixels (CSS rect × devicePixelRatio).
  *
- * @param {{ x: number, y: number, width: number, height: number, muted?: boolean }}
+ * @param {{ x: number, y: number, width: number, height: number, muted?: boolean, viewerMode?: boolean }}
+ *   viewerMode=true  → TextureView placed BEHIND WebView (camera-preview pattern);
+ *                       WebView background is made transparent so video shows through.
+ *   viewerMode=false → TextureView placed ABOVE WebView (creator default).
  */
-export async function createNativePlayer({ x, y, width, height, muted = true }) {
+export async function createNativePlayer({ x, y, width, height, muted = true, viewerMode = false }) {
   return plugin().create({
     x: Math.round(x), y: Math.round(y),
     width: Math.round(width), height: Math.round(height),
-    muted,
+    muted, viewerMode,
   });
 }
 

@@ -1,5 +1,14 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, memo, useMemo, forwardRef } from 'react';
+import { Capacitor } from '@capacitor/core';
+import {
+  isNativePlayerAvailable, createNativePlayer, setNativeSource,
+  playNative, pauseNative, seekNative, setNativeMuted,
+  destroyNativePlayer, addNativePlayerListener,
+} from '@/lib/nativeVideoPlayer';
+
+const isNativePlatform = () =>
+  typeof Capacitor !== 'undefined' && Capacitor.isNativePlatform();
 import { motion } from 'framer-motion';
 import {
   X, Heart, ShoppingBag,
@@ -470,6 +479,16 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
   const onStoryViewedRef = useRef(onStoryViewed);
   useEffect(() => { onStoryViewedRef.current = onStoryViewed; });
 
+  // ── Native viewer player refs ──────────────────────────────────────────────
+  const nativeViewerContainerRef = useRef(null);
+  const nativePlayerActiveRef    = useRef(false);
+  const nativeSegmentStartRef    = useRef(0);
+  const nativeSegmentEndRef      = useRef(null);
+  const nativeDurationRef        = useRef(0);
+  const nativeEndFiredRef        = useRef(false);
+  const goNextRef                = useRef(null);
+  const pausedRef                = useRef(false);
+
   const currentGroup = vendorGroups[vendorIdx];
   const story        = currentGroup?.stories[storyIdx];
   const totalInGroup = currentGroup?.stories.length || 1;
@@ -585,10 +604,110 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
     }
   }, []);
 
+  // Keep stable refs in sync so native-player closures always see latest values
+  useEffect(() => { goNextRef.current = goNext; }, [goNext]);
+  useEffect(() => { pausedRef.current = paused; }, [paused]);
+
+  // ── Native viewer: one-time listener setup ───────────────────────────────
+  useEffect(() => {
+    if (!isNativePlatform() || !isNativePlayerAvailable()) return;
+
+    const timeHandle = addNativePlayerListener('timeUpdate', ({ currentTime }) => {
+      if (!nativePlayerActiveRef.current) return;
+      const segStart = nativeSegmentStartRef.current;
+      const segEnd   = nativeSegmentEndRef.current;
+      const duration = nativeDurationRef.current;
+      const segDur   = segEnd ? segEnd - segStart : Math.max(duration - segStart, 0);
+      const elapsed  = Math.max(0, currentTime - segStart);
+
+      // Drive progress bar directly (same mechanism as handleVideoProgress)
+      if (segDur > 0 && videoBarRef.current) {
+        videoBarRef.current.style.transform = `scaleX(${Math.min(elapsed / segDur, 1)})`;
+      }
+
+      // Detect segment/video end → advance to next story
+      const endPt = segEnd ?? (duration > 0 ? duration : null);
+      if (endPt && currentTime >= endPt - 0.15 && !nativeEndFiredRef.current) {
+        nativeEndFiredRef.current = true;
+        goNextRef.current?.();
+      }
+    });
+
+    const durHandle = addNativePlayerListener('durationUpdate', ({ duration }) => {
+      nativeDurationRef.current = duration;
+    });
+
+    return () => {
+      timeHandle?.remove?.();
+      durHandle?.remove?.();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Native viewer: load video on story change ────────────────────────────
+  useEffect(() => {
+    if (!isNativePlatform() || !isNativePlayerAvailable()) return;
+
+    nativeEndFiredRef.current = false;
+    nativeDurationRef.current = 0;
+
+    if (story?.type !== 'video' || !story.content_url) {
+      if (nativePlayerActiveRef.current) pauseNative().catch(() => {});
+      return;
+    }
+
+    const container = nativeViewerContainerRef.current;
+    if (!container) return;
+
+    const segStart = story.segment_start || 0;
+    const segEnd   = story.segment_end   || null;
+    nativeSegmentStartRef.current = segStart;
+    nativeSegmentEndRef.current   = segEnd;
+
+    let cancelled = false;
+    const setup = async () => {
+      const rect = container.getBoundingClientRect();
+      const dpr  = window.devicePixelRatio || 1;
+
+      if (!nativePlayerActiveRef.current) {
+        await createNativePlayer({
+          x: rect.left * dpr, y: rect.top * dpr,
+          width: rect.width * dpr, height: rect.height * dpr,
+          muted, viewerMode: true,
+        });
+        nativePlayerActiveRef.current = true;
+      }
+      if (cancelled) return;
+      await setNativeSource(story.content_url);
+      await seekNative(segStart * 1000);
+      if (!pausedRef.current) await playNative();
+    };
+
+    setup().catch(console.warn);
+    return () => { cancelled = true; };
+  }, [story?._id, story?.content_url]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Native viewer: pause/resume sync ────────────────────────────────────
+  useEffect(() => {
+    if (!isNativePlatform() || !nativePlayerActiveRef.current || story?.type !== 'video') return;
+    if (paused || isReplying) pauseNative().catch(() => {});
+    else playNative().catch(() => {});
+  }, [paused, isReplying, story?.type]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Native viewer: mute sync ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!isNativePlatform() || !nativePlayerActiveRef.current || story?.type !== 'video') return;
+    setNativeMuted(muted).catch(() => {});
+  }, [muted, story?.type]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     return () => {
       if (holdTimer.current) clearTimeout(holdTimer.current);
       if (transitionUnlockRef.current) clearTimeout(transitionUnlockRef.current);
+      // Destroy native viewer player on unmount
+      if (nativePlayerActiveRef.current) {
+        destroyNativePlayer().catch(() => {});
+        nativePlayerActiveRef.current = false;
+      }
     };
   }, []);
 
@@ -805,17 +924,29 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
                 }`}
               >
                 {isVid ? (
-                  <StoryVideo
-                    src={s.content_url}
-                    poster={s.thumbnail_url}
-                    muted={muted}
-                    active={isActive}
-                    paused={!isActive || paused || isReplying}
-                    onEnded={goNext}
-                    onProgress={isActive ? handleVideoProgress : undefined}
-                    segmentStart={s.segment_start || 0}
-                    segmentEnd={s.segment_end || null}
-                  />
+                  isNativePlatform() && isNativePlayerAvailable() ? (
+                    // Native ExoPlayer (Android): transparent anchor div — the
+                    // TextureView renders behind the WebView and shows through here.
+                    // Only rendered for the active story; inactive stories need no div.
+                    isActive ? (
+                      <div
+                        ref={nativeViewerContainerRef}
+                        className="absolute inset-0"
+                      />
+                    ) : null
+                  ) : (
+                    <StoryVideo
+                      src={s.content_url}
+                      poster={s.thumbnail_url}
+                      muted={muted}
+                      active={isActive}
+                      paused={!isActive || paused || isReplying}
+                      onEnded={goNext}
+                      onProgress={isActive ? handleVideoProgress : undefined}
+                      segmentStart={s.segment_start || 0}
+                      segmentEnd={s.segment_end || null}
+                    />
+                  )
                 ) : isImg ? (
                   <img
                     src={s.content_url}
