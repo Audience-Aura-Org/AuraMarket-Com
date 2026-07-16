@@ -72,7 +72,7 @@ function ReceiptModal({ tx, onClose }) {
 }
 
 export default function VendorWalletPage() {
-  const { user, hasHydrated, setWalletBalance } = useAuthStore();
+  const { user, hasHydrated, setWalletBalance, walletBalance: storeWalletBalance } = useAuthStore();
   const router = useRouter();
 
   const [balance, setBalance]         = useState(0);
@@ -162,11 +162,23 @@ export default function VendorWalletPage() {
     };
   }, [user?._id, load]);
 
+  // Keep local balance in sync with auth store (SocketProvider updates storeWalletBalance
+  // via refreshWalletBalance() when wallet:credited fires, even before load() completes)
+  useEffect(() => {
+    if (storeWalletBalance !== null && storeWalletBalance !== undefined) {
+      setBalance(storeWalletBalance);
+    }
+  }, [storeWalletBalance]);
+
   // Reset pagination on tab change
   useEffect(() => { setCurrentPage(1); }, [tab]);
 
   const totalEarned = transactions
-    .filter(t => ['payout', 'deposit', 'refund'].includes(t.type) && t.status === 'completed')
+    .filter(t =>
+      t.status === 'completed' &&
+      (t.type === 'payout' || t.type === 'refund' ||
+       (t.type === 'deposit' && !(t.order_ids?.length > 0))) // exclude legacy checkout deposits
+    )
     .reduce((s, t) => s + t.amount, 0);
   const totalOut = transactions
     .filter(t => t.type === 'withdrawal' && t.status === 'completed')
