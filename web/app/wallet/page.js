@@ -100,6 +100,8 @@ export default function WalletPage() {
   // Deposit Workflow State
   const [depositStep, setDepositStep] = useState('amount'); // 'amount' | 'phone' | 'processing' | 'result'
   const phoneInitializedRef = useRef(false);
+  // WhatsApp-style guard: synchronous flag set BEFORE any state update to prevent double-tap
+  const depositInProgressRef = useRef(false);
   const [depositGateway, setDepositGateway] = useState('payunit');
   const [depositPhone, setDepositPhone] = useState(user?.phone || '');
   const [depositNetwork, setDepositNetwork] = useState('CM');
@@ -231,8 +233,12 @@ export default function WalletPage() {
     if (!user?._id) return;
 
     const handleWalletCredited = (data) => {
+      setCurrentPage(1); // reset to page 1 so the new transaction is visible at top
       fetchWallet();
-      if (depositStep === 'processing' && data.type === 'deposit') {
+      // Show success result if we triggered a deposit (either waiting in processing OR
+      // already on a timeout/result screen with a ref — covers the case where the
+      // processing frame showed briefly before going to timeout).
+      if (data.type === 'deposit' && (depositStep === 'processing' || depositRef)) {
         setDepositStatus('success');
         setDepositStep('result');
         setDepositMessage('Payment confirmed! Your wallet has been credited.');
@@ -262,15 +268,31 @@ export default function WalletPage() {
   };
 
   const handleDepositInit = async () => {
-    const min = depositGateway === 'eversend' ? 500 : 1;
-    if (!amount || Number(amount) < min) return showToast(`Minimum deposit is ${min} XAF.`, 'error');
-    if (!depositPhone) return showToast('Phone number is required.', 'error');
+    // ── WhatsApp-style double-tap guard (synchronous, before any setState) ──
+    if (depositInProgressRef.current) return;
+    depositInProgressRef.current = true;
 
-    // ── Immediate UI feedback — switch to processing BEFORE the API call ──
+    const min = depositGateway === 'eversend' ? 500 : 1;
+    if (!amount || Number(amount) < min) {
+      depositInProgressRef.current = false;
+      return showToast(`Minimum deposit is ${min} XAF.`, 'error');
+    }
+    if (!depositPhone) {
+      depositInProgressRef.current = false;
+      return showToast('Phone number is required.', 'error');
+    }
+
+    // ── Switch to processing frame BEFORE the API call ──
     setDepositStep('processing');
     setDepositMessage('Sending request to payment gateway...');
     setSubmitting(true);
 
+    // Ensure processing frame is visible for at least 1.5 s (like WhatsApp's send indicator)
+    const processingStart = Date.now();
+    const holdProcessing = (minMs = 1500) =>
+      new Promise(r => setTimeout(r, Math.max(0, minMs - (Date.now() - processingStart))));
+
+    let localRef = null;
     try {
       const payload = {
         amount: Number(amount),
@@ -279,24 +301,26 @@ export default function WalletPage() {
         country: depositNetwork,
         provider: depositGateway === 'payunit' ? depositService : undefined,
       };
-      
+
       const res = await initiateCollection(depositGateway, payload);
+      await holdProcessing(); // guarantee the user sees the processing screen
 
       if (res.success) {
-        const ref = res.data.reference;
-        setDepositRef(ref);
+        localRef = res.data?.reference;
+        setDepositRef(localRef);
         setDepositMessage('Charge request sent. Awaiting approval on your phone...');
 
-        // Poll for up to 110s with 3s intervals (faster fallback; socket push handles the instant case)
+        // Poll every 3 s for up to 110 s; socket push handles the instant-credit case
         pollTransactionStatus(
           depositGateway,
-          ref,
+          localRef,
           {
             onPending: (data) => setDepositMessage(data.message || 'Awaiting mobile money confirmation...'),
             onSuccess: () => {
               setDepositStatus('success');
               setDepositStep('result');
               setDepositMessage('Payment confirmed! Your wallet has been credited.');
+              setCurrentPage(1); // bring user back to page 1 so new transaction is visible
               fetchWallet();
             },
             onFailed: (data) => {
@@ -308,15 +332,13 @@ export default function WalletPage() {
               setDepositStatus('timeout');
               setDepositStep('result');
               setDepositMessage('Verification window ended. Checking payment status one more time...');
-              // Auto-recheck once — the gateway may have confirmed after the polling window
               try {
-                const pendingRef = ref;
-                if (pendingRef) {
-                const endpoint = `/payments/${depositGateway}/recheck/${pendingRef}`;
-                  const r = await api.get(endpoint);
+                if (localRef) {
+                  const r = await api.get(`/payments/${depositGateway}/recheck/${localRef}`);
                   if (r.data?.status === 'SUCCESSFUL') {
                     setDepositStatus('success');
                     setDepositMessage('Payment confirmed! Your wallet has been credited.');
+                    setCurrentPage(1);
                     fetchWallet();
                     return;
                   } else if (r.data?.status === 'FAILED') {
@@ -327,40 +349,32 @@ export default function WalletPage() {
                 }
               } catch { /* silent — show timeout screen as fallback */ }
               setDepositMessage('Could not confirm automatically. If you approved the USSD prompt, tap "Recheck Payment" below.');
-            }
+            },
           },
-          3000,   // poll every 3s (socket push handles instant case; this is fallback)
-          110000  // 110 second max window
+          3000,
+          110000,
         );
       } else {
-        // Gateway returned a non-success response
         setDepositStatus('failed');
         setDepositStep('result');
         setDepositReason(res.message || 'Payment initiation failed. Please try again.');
       }
     } catch (err) {
+      await holdProcessing(); // still show processing screen briefly on error
       const errMsg = err?.response?.data?.message;
-
-      if (depositRef) {
-        // We have a ref — initiation succeeded but something crashed after.
-        // Stay on result/timeout screen so user can recheck.
-        setDepositStatus('timeout');
-        setDepositStep('result');
-        setDepositMessage('Request sent but server confirmation was interrupted. Use "Recheck Payment" below.');
-      } else {
-        // We have NO ref — the API call itself failed (timeout, server error).
-        // Eversend may or may not have received the request.
-        // NEVER go back to 'amount' — user may have already gotten a USSD prompt.
-        setDepositStatus('timeout');
-        setDepositStep('result');
-        setDepositMessage(
-          errMsg
-            ? errMsg
-            : 'Could not reach the payment gateway. If you received and approved a USSD prompt on your phone, your payment may still be processing — check your transaction history below.'
-        );
-      }
+      setDepositStatus('timeout');
+      setDepositStep('result');
+      setDepositMessage(
+        errMsg
+          ? errMsg
+          : localRef
+            ? 'Request sent but server confirmation was interrupted. Use "Recheck Payment" below.'
+            : 'Could not reach the payment gateway. If you received and approved a USSD prompt on your phone, your payment may still be processing — check your transaction history below.',
+      );
+      if (localRef) setDepositRef(localRef);
     } finally {
       setSubmitting(false);
+      // depositInProgressRef stays true until user explicitly goes back to the form
     }
   };
 
@@ -393,6 +407,7 @@ export default function WalletPage() {
     if (type === 'deposit') {
       // Reset ONLY if we're not mid-transaction
       if (!['processing'].includes(depositStep)) {
+        depositInProgressRef.current = false; // allow a fresh deposit attempt
         setDepositStep('amount');
         setDepositGateway('payunit');
         setDepositStatus('pending');
@@ -819,8 +834,8 @@ export default function WalletPage() {
                          </button>
                        )}
 
-                       <button 
-                         onClick={() => { setModal(null); setDepositStep('amount'); setAmount(''); setDepositStatus('pending'); setDepositReason(''); }} 
+                       <button
+                         onClick={() => { depositInProgressRef.current = false; setModal(null); setDepositStep('amount'); setAmount(''); setDepositStatus('pending'); setDepositReason(''); }}
                          className={`w-full h-14 rounded-2xl font-semibold text-[11px] lg:text-[12px] tracking-tight transition-all shadow-lg ${
                             depositStatus === 'success' ? 'bg-emerald-500 text-white shadow-emerald-500/20' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--glass-border)]'
                          }`}

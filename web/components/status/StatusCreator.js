@@ -1887,7 +1887,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </header>
 
         {/* Central Workspace / Media Preview Container */}
-        <div className="flex-1 relative bg-[#09090b] flex items-center justify-center overflow-hidden">
+        {/* bg-[#09090b] is removed when native ExoPlayer is active so the TextureView
+            (placed behind the WebView via viewerMode=true) shows through the transparent HTML layer. */}
+        <div className={`flex-1 relative flex items-center justify-center overflow-hidden ${isNativePlatform() && nativeVideoUri ? '' : 'bg-[#09090b]'}`}>
           {previewUrl ? (
             <div className="absolute inset-0 w-full h-full flex items-center justify-center">
               {type === 'video' ? (
