@@ -1,49 +1,74 @@
 /**
- * Auradime — PWA Service Worker v9
- * Robust background push handling with redundant notification suppression.
- * Fix: RSC / prefetch requests are never intercepted (prevents 404 on dynamic routes).
- * Fix: Asset fallback never returns null to respondWith() (prevents Response TypeError).
- * New: Stale-while-revalidate media cache for CDN images (status thumbnails, product photos).
+ * Auradime — PWA Service Worker v10
+ * Offline-first (WhatsApp-style): users see last-known content when offline.
+ *
+ * Strategy summary:
+ *  Navigation pages    → stale-while-revalidate  (show cache, refresh in bg)
+ *  /_next/static/*     → cache-first             (content-hashed, immutable)
+ *  api.auradime.com    → network-first + cache   (fresh when online, cached when not)
+ *  CDN images / media  → stale-while-revalidate  (instant load, refresh in bg)
+ *  Google Fonts        → cache-first
+ *  Push notifications  → unchanged
  */
 
-const CACHE_NAME       = 'aura-cache-v11';
+const CACHE_NAME       = 'aura-cache-v12';
 const MEDIA_CACHE_NAME = 'aura-media-v1';
-const MEDIA_CACHE_MAX  = 250; // max cached image entries
+const API_CACHE_NAME   = 'aura-api-v1';
+const MEDIA_CACHE_MAX  = 250;
+const API_CACHE_MAX    = 300;
 
-const STATIC_ASSETS = [
+// Core shell pages — pre-cached on install so they open offline immediately.
+const SHELL_PAGES = [
   '/',
+  '/offline',
   '/manifest.json',
   '/icon-192.png',
-  '/icon-512.png'
+  '/icon-512.png',
+  '/shop',
+  '/status',
+  '/discovery',
+  '/discovery/hub',
+  '/notifications',
+  '/login',
+  '/signup',
+  '/orders',
+  '/messages',
+  '/cart',
+  '/profile',
+  '/wallet',
 ];
 
-// ── Install: Cache static shell assets ──────────────────────────────────────
+// ── Install: pre-cache shell pages ──────────────────────────────────────────
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      // allSettled — one slow/missing page never blocks the whole install.
+      Promise.allSettled(SHELL_PAGES.map((url) => cache.add(url).catch(() => {})))
+    )
   );
 });
 
-// ── Message: Handle SKIP_WAITING ────────────────────────────────────────────
+// ── Message: handle SKIP_WAITING ────────────────────────────────────────────
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-// ── Activate: Cleanup old caches ────────────────────────────────────────────
+// ── Activate: clean up old caches ───────────────────────────────────────────
 self.addEventListener('activate', (event) => {
-  const keepCaches = new Set([CACHE_NAME, MEDIA_CACHE_NAME, 'aura-google-fonts']);
+  const keepCaches = new Set([
+    CACHE_NAME, MEDIA_CACHE_NAME, API_CACHE_NAME, 'aura-google-fonts',
+  ]);
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => !keepCaches.has(k)).map((k) => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => !keepCaches.has(k)).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
 });
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
 function normalizeNotificationUrl(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return '/notifications';
 
@@ -73,49 +98,115 @@ function normalizeNotificationUrl(rawUrl) {
   }
 }
 
-// ── Helper: detect cacheable image media (skip videos — too large) ──────────
+// Cacheable image media (skip videos — too large).
 function isCacheableMedia(url) {
-  // Explicit uploads path
   if (url.pathname.startsWith('/uploads/')) return true;
-  // S3/CDN URLs ending with image extensions
   return /\.(jpe?g|png|webp|avif|gif)(\?|$)/i.test(url.pathname + url.search);
 }
 
-// ── Fetch: Network-first for nav, cache-first for assets ────────────────────
+// api.auradime.com GET paths that are safe to serve stale when offline.
+// Excludes auth, payments, mutations, real-time and upload paths.
+function isCacheableApiPath(url) {
+  if (url.hostname !== 'api.auradime.com') return false;
+  const p = url.pathname;
+  if (
+    p.includes('/auth/') ||
+    p.includes('/upload') ||
+    p.includes('/socket') ||
+    p.includes('/payment') ||
+    p.includes('/payout') ||
+    p.includes('/wallet/withdraw') ||
+    p.includes('/wallet/transfer') ||
+    p.includes('/presign') ||
+    p.includes('/process-s3')
+  ) return false;
+  return (
+    p.includes('/statuses') ||
+    p.includes('/products') ||
+    p.includes('/categories') ||
+    p.includes('/homepage') ||
+    p.includes('/discovery') ||
+    p.includes('/stores') ||
+    p.includes('/brands') ||
+    p.includes('/reviews') ||
+    p.includes('/subscriptions/plans') ||
+    p.includes('/orders') ||
+    p.includes('/notifications') ||
+    p.includes('/cart')
+  );
+}
+
+// ── Fetch ─────────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // ── Cache Google Fonts (stylesheets and font files) dynamically ────────────
+  // ── 1. Google Fonts — cache-first ─────────────────────────────────────────
   if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
     event.respondWith(
-      caches.open('aura-google-fonts').then((cache) => {
-        return cache.match(event.request).then((cached) => {
+      caches.open('aura-google-fonts').then((cache) =>
+        cache.match(event.request).then((cached) => {
           if (cached) return cached;
           return fetch(event.request).then((response) => {
             cache.put(event.request, response.clone());
             return response;
-          }).catch(() => {
-            // Silently return network failure if offline and not cached
-          });
-        });
-      })
+          }).catch(() => undefined);
+        })
+      )
     );
     return;
   }
 
-  // ── Never intercept non-GET, API calls, Next internals, or socket traffic ──
+  // ── 2. api.auradime.com content — network-first, cache fallback ───────────
+  // Statuses, products, orders etc. are cached so users see last-known
+  // data when offline, exactly like WhatsApp shows previous messages/statuses.
+  if (
+    url.hostname === 'api.auradime.com' &&
+    event.request.method === 'GET' &&
+    isCacheableApiPath(url)
+  ) {
+    event.respondWith(
+      caches.open(API_CACHE_NAME).then((apiCache) =>
+        fetch(event.request)
+          .then((response) => {
+            if (response.ok) {
+              apiCache.put(event.request, response.clone());
+              apiCache.keys().then((keys) => {
+                if (keys.length > API_CACHE_MAX) {
+                  keys.slice(0, keys.length - API_CACHE_MAX).forEach((k) => apiCache.delete(k));
+                }
+              });
+            }
+            return response;
+          })
+          .catch(() =>
+            apiCache.match(event.request).then(
+              (cached) =>
+                cached ||
+                new Response(
+                  JSON.stringify({ success: true, data: [], offline: true }),
+                  { status: 200, headers: { 'Content-Type': 'application/json' } }
+                )
+            )
+          )
+      )
+    );
+    return;
+  }
+
+  // ── 3. Skip: non-GET, Next.js dynamic data, image-opt, internal API, sockets
+  // NOTE: /_next/static/ is intentionally NOT skipped — those are content-hashed
+  // JS/CSS bundles we cache for offline JS availability.
   if (
     event.request.method !== 'GET' ||
     url.pathname.startsWith('/api/') ||
-    url.pathname.startsWith('/_next/') ||
+    url.pathname.startsWith('/_next/data/') ||
+    url.pathname.startsWith('/_next/image') ||
     url.pathname.startsWith('/socket.io')
   ) {
     return;
   }
 
-  // ── Never intercept Next.js RSC / prefetch / router-state requests ──────────
-  // These carry special headers/params that must reach the Next server unchanged.
-  // Intercepting them corrupts navigation to dynamic routes (e.g. /vendor/products/edit/[id]).
+  // ── 4. Skip RSC / prefetch requests — must reach the server unchanged ──────
   if (
     url.searchParams.has('_rsc') ||
     event.request.headers.get('RSC') === '1' ||
@@ -125,24 +216,40 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // ── Navigation: network-first, fall back to cached shell ────────────────────
+  // ── 5. Navigation — stale-while-revalidate ────────────────────────────────
+  // Show the cached page immediately; fetch fresh in background and update cache.
+  // On offline with no cache for this URL, fall back to /offline page.
   if (
     event.request.mode === 'navigate' ||
     event.request.headers.get('accept')?.includes('text/html')
   ) {
     event.respondWith(
-      fetch(event.request, { cache: 'no-store' }).catch(() =>
-        caches.match('/').then((cached) =>
-          cached || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } })
-        )
+      caches.open(CACHE_NAME).then((cache) =>
+        cache.match(event.request).then((cached) => {
+          const networkFetch = fetch(event.request, { cache: 'no-store' })
+            .then((response) => {
+              if (response.ok) cache.put(event.request, response.clone());
+              return response;
+            })
+            .catch(() =>
+              cached ||
+              caches.match('/offline').then((offlinePage) =>
+                offlinePage ||
+                caches.match('/').then((home) =>
+                  home ||
+                  new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/plain' } })
+                )
+              )
+            );
+          // Serve cache immediately if we have it; otherwise wait for network.
+          return cached || networkFetch;
+        })
       )
     );
     return;
   }
 
-  // ── CDN images: stale-while-revalidate into dedicated media cache ────────────
-  // This makes watched status images, product photos, and avatars load
-  // instantly on repeat views — on both the PWA and the Capacitor APK.
+  // ── 6. CDN images and /uploads/ — stale-while-revalidate ─────────────────
   if (isCacheableMedia(url)) {
     event.respondWith(
       caches.open(MEDIA_CACHE_NAME).then((mediaCache) =>
@@ -150,11 +257,9 @@ self.addEventListener('fetch', (event) => {
           const fetchAndCache = fetch(event.request).then((response) => {
             if (response.ok) {
               mediaCache.put(event.request, response.clone());
-              // Evict oldest entries when over the size limit
               mediaCache.keys().then((keys) => {
                 if (keys.length > MEDIA_CACHE_MAX) {
-                  const toEvict = keys.slice(0, keys.length - MEDIA_CACHE_MAX);
-                  toEvict.forEach((k) => mediaCache.delete(k));
+                  keys.slice(0, keys.length - MEDIA_CACHE_MAX).forEach((k) => mediaCache.delete(k));
                 }
               });
             }
@@ -165,7 +270,6 @@ self.addEventListener('fetch', (event) => {
               headers: { 'Content-Type': 'text/plain' },
             })
           );
-          // Serve cached immediately; revalidate in background
           return cached || fetchAndCache;
         })
       )
@@ -173,17 +277,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // ── Static assets: cache-first, network fallback, never null ────────────────
+  // ── 7. All other static assets — cache-first, network fallback ────────────
+  // Covers /_next/static/ JS and CSS bundles (content-hashed, safe to cache
+  // indefinitely) as well as icons, manifest, and other public files.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request).catch(() =>
-        new Response('Asset unavailable offline', {
-          status: 503,
-          headers: { 'Content-Type': 'text/plain' },
-        })
-      );
-    })
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request)
+          .then((response) => {
+            if (response.ok) cache.put(event.request, response.clone());
+            return response;
+          })
+          .catch(() =>
+            new Response('Asset unavailable offline', {
+              status: 503,
+              headers: { 'Content-Type': 'text/plain' },
+            })
+          );
+      })
+    )
   );
 });
 
@@ -199,13 +312,9 @@ self.addEventListener('push', function (event) {
   }
 
   const baseUrl = self.location.origin;
-
-  // Icon: sender avatar for chat, app logo for everything else
   const iconRaw = data.icon || '/logo-white.png';
   const icon = iconRaw.startsWith('http') ? iconRaw : baseUrl + iconRaw;
   const badge = baseUrl + '/logo-white.png';
-
-  // Large image preview (sender avatar or product photo)
   const image = data.image
     ? (data.image.startsWith('http') ? data.image : baseUrl + data.image)
     : undefined;
@@ -225,34 +334,22 @@ self.addEventListener('push', function (event) {
     data: {
       url: data.data?.url || data.url || '/',
       payload: data,
-      senderData: data.senderData || data.data?.senderData || null
+      senderData: data.senderData || data.data?.senderData || null,
     },
     actions: isChat
-      ? [
-          { action: 'open',  title: 'Reply'   },
-          { action: 'close', title: 'Dismiss' }
-        ]
-      : [
-          { action: 'open',  title: 'View'    },
-          { action: 'close', title: 'Dismiss' }
-        ]
+      ? [{ action: 'open', title: 'Reply' }, { action: 'close', title: 'Dismiss' }]
+      : [{ action: 'open', title: 'View'  }, { action: 'close', title: 'Dismiss' }],
   };
 
   const showOrForward = async () => {
     const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-    const visibleClients = windowClients.filter((client) => client.visibilityState === 'visible');
-
+    const visibleClients = windowClients.filter((c) => c.visibilityState === 'visible');
     if (visibleClients.length > 0) {
-      visibleClients.forEach((client) => {
-        try {
-          client.postMessage({ type: 'push-received', payload: data });
-        } catch (e) {
-          // Ignore failures for individual clients
-        }
+      visibleClients.forEach((c) => {
+        try { c.postMessage({ type: 'push-received', payload: data }); } catch {}
       });
       return;
     }
-
     await self.registration.showNotification(data.title || 'Auradime', options);
   };
 
@@ -276,54 +373,44 @@ self.addEventListener('notificationclick', function (event) {
     null;
   const notificationTitle = event.notification.title || innerPayload.title || null;
 
-  // Cold-start pages cannot receive postMessage; preserve the visible title in the URL.
   if (notificationTitle) {
     try {
       const parsed = new URL(
-        urlToOpen.startsWith('http') ? urlToOpen : self.location.origin + (urlToOpen.startsWith('/') ? '' : '/') + urlToOpen
+        urlToOpen.startsWith('http')
+          ? urlToOpen
+          : self.location.origin + (urlToOpen.startsWith('/') ? '' : '/') + urlToOpen
       );
       if (!parsed.searchParams.has('notificationTitle')) {
         parsed.searchParams.set('notificationTitle', notificationTitle);
       }
       urlToOpen = parsed.toString();
-    } catch (e) {
-      // Keep the original URL if parsing fails.
-    }
+    } catch {}
   }
 
-  // Ensure absolute URL for reliable cross-device opening
   if (!urlToOpen.startsWith('http')) {
     urlToOpen = self.location.origin + (urlToOpen.startsWith('/') ? '' : '/') + urlToOpen;
   }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Focus an existing tab of this origin if one is open
       for (const client of windowClients) {
         if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
           try {
-          client.postMessage({
-            type:       'notification-click',
-            url:        urlToOpen,
-            // Pass the entire notification data object so SocketProvider
-            // can find senderData regardless of where it was nested.
-            payload:    notifData,
-            senderId:   senderId,
-            senderData: notifData.senderData || null,
-          });
-          } catch (e) {
-            console.error('[SW] postMessage failed:', e);
-          }
+            client.postMessage({
+              type:       'notification-click',
+              url:        urlToOpen,
+              payload:    notifData,
+              senderId:   senderId,
+              senderData: notifData.senderData || null,
+            });
+          } catch {}
           return client.focus().then(() => {
             if ('navigate' in client) return client.navigate(urlToOpen);
             return undefined;
           }).catch(() => undefined);
         }
       }
-      // No open tab — open a new one
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
+      if (clients.openWindow) return clients.openWindow(urlToOpen);
     })
   );
 });
