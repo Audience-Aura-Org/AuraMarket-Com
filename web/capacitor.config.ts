@@ -5,7 +5,9 @@ const config: CapacitorConfig = {
   appName: 'Auradime',
   webDir: 'out',
   server: {
+    url: 'https://auradime.com',
     androidScheme: 'https',
+    cleartext: false,
   },
   plugins: {
     Keyboard: {
