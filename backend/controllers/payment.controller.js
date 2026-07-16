@@ -591,7 +591,10 @@ const eversendInitialize = async (req, res) => {
       result = await eversend.initiateCollection(collectionOpts);
     }
 
-    if (!result || !result.success) {
+    // Eversend may return {code:200, data:{...}} or {success:true, data:{...}}.
+    // Axios already throws on HTTP 4xx/5xx, so reaching here means the HTTP call
+    // succeeded. Only reject if the body has an explicit success:false signal.
+    if (!result || result.success === false) {
       console.error('Eversend Collection Failed:', JSON.stringify(result));
       return res.status(400).json({ success: false, message: result?.message || 'Eversend initiation failed.', detail: result });
     }
