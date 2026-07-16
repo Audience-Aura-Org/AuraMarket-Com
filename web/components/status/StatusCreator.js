@@ -1293,6 +1293,21 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nativeVideoUri]); // only recreate the player when the video URI changes
 
+  // When ExoPlayer is active (viewerMode=true, TextureView BEHIND WebView), every
+  // opaque HTML layer between the WebView surface and the TextureView must be cleared.
+  // This includes the document body background which paints before any React elements.
+  useEffect(() => {
+    if (!isNativePlatform() || !nativeVideoUri) return;
+    const prevBg      = document.body.style.background      || '';
+    const prevBgImage = document.body.style.backgroundImage || '';
+    document.body.style.background      = 'transparent';
+    document.body.style.backgroundImage = 'none';
+    return () => {
+      document.body.style.background      = prevBg;
+      document.body.style.backgroundImage = prevBgImage;
+    };
+  }, [nativeVideoUri]);
+
   // Sync trim range into the native player's loop bounds whenever handles are dragged.
   useEffect(() => {
     if (!isNativePlatform() || !nativeVideoUri) return;
@@ -1746,7 +1761,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const previewVideoSrc = buildPreviewVideoSrc(previewUrl);
 
   const layout = (
-    <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/85 backdrop-blur-md overflow-hidden font-[Poppins]">
+    <div className={`fixed inset-0 z-[1100] flex items-center justify-center overflow-hidden font-[Poppins] ${isNativePlatform() && nativeVideoUri ? '' : 'bg-black/85 backdrop-blur-md'}`}>
       <style>{`
         .status-preview-video {
           -webkit-appearance: none;
@@ -1772,7 +1787,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       )}
 
       {/* Central Phone Mockup Container */}
-      <div className="relative z-10 w-full md:w-[428px] h-full md:h-[90vh] md:max-h-[760px] md:aspect-[9/16] md:rounded-[2.5rem] md:border-8 md:border-[#202022] md:shadow-2xl bg-black overflow-hidden flex flex-col">
+      <div className={`relative z-10 w-full md:w-[428px] h-full md:h-[90vh] md:max-h-[760px] md:aspect-[9/16] md:rounded-[2.5rem] md:border-8 md:border-[#202022] md:shadow-2xl overflow-hidden flex flex-col ${isNativePlatform() && nativeVideoUri ? '' : 'bg-black'}`}>
         
         {/* Top Status Bar Mockup (Only on desktop frames for premium detail) */}
         <div className="hidden md:flex justify-between items-center px-6 py-2.5 bg-black/45 text-white/50 text-[10px] font-bold select-none shrink-0 z-30">
@@ -1957,8 +1972,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                   alt="status preview"
                 />
               )}
-              {/* Overlay shadow gradients to keep inputs/headers legible */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60 z-20 pointer-events-none" />
+              {/* Overlay shadow gradients to keep inputs/headers legible — hidden when
+                  ExoPlayer is active so the gradient doesn't paint over the TextureView */}
+              {!(isNativePlatform() && nativeVideoUri) && (
+                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60 z-20 pointer-events-none" />
+              )}
               
               {/* Floating Product Tag (If tagged) */}
               {linkedProduct && (

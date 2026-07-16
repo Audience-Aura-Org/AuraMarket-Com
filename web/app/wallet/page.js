@@ -214,6 +214,9 @@ export default function WalletPage() {
       setDepositReason('');
       setDepositRef(null);
       setDepositMessage('');
+      // Remove ?action=deposit from the URL immediately so this effect can't
+      // re-open the modal when user, router, or other deps change later.
+      router.replace('/wallet', { scroll: false });
     }
   }, [mounted, hasHydrated, user, router]);
 
@@ -225,20 +228,23 @@ export default function WalletPage() {
     }
   }, [user?.phone]);
 
+  // ── Stable refs so socket handler never needs to re-subscribe ───────────
+  const depositStepRef  = useRef(depositStep);
+  const depositRefRef   = useRef(depositRef);
+  useEffect(() => { depositStepRef.current = depositStep; }, [depositStep]);
+  useEffect(() => { depositRefRef.current  = depositRef;  }, [depositRef]);
+
   // ── Socket: instant wallet credit notification ──────────────────────────
-  // When the Eversend webhook fires on the backend, it emits 'wallet:credited'
-  // to the user's socket room. We listen here and immediately show success,
-  // bypassing the need to wait for the next poll cycle (saves up to 3s).
+  // Listener is registered ONCE per user session (dep: user._id only).
+  // It reads depositStep / depositRef through stable refs to avoid
+  // tearing down and re-registering on every step change.
   useEffect(() => {
     if (!user?._id) return;
 
     const handleWalletCredited = (data) => {
-      setCurrentPage(1); // reset to page 1 so the new transaction is visible at top
+      setCurrentPage(1);
       fetchWallet();
-      // Show success result if we triggered a deposit (either waiting in processing OR
-      // already on a timeout/result screen with a ref — covers the case where the
-      // processing frame showed briefly before going to timeout).
-      if (data.type === 'deposit' && (depositStep === 'processing' || depositRef)) {
+      if (data.type === 'deposit' && (depositStepRef.current === 'processing' || depositRefRef.current)) {
         setDepositStatus('success');
         setDepositStep('result');
         setDepositMessage('Payment confirmed! Your wallet has been credited.');
@@ -252,7 +258,7 @@ export default function WalletPage() {
       socketService.off('wallet:credited', handleWalletCredited);
       socketService.off('withdrawal:paid', handleWithdrawalPaid);
     };
-  }, [user?._id, depositStep]);
+  }, [user?._id]); // stable — only re-subscribes when the logged-in user changes
   // ───────────────────────────────────────────────────────────────────────
 
   if (!mounted || !user) return null;

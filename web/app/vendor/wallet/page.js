@@ -15,6 +15,7 @@ import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
 import WithdrawModal from '@/components/wallet/WithdrawModal';
 import StatCard from '@/components/layout/StatCard';
+import socketService from '@/services/socket';
 
 const MIN_WITHDRAW = 500;
 
@@ -147,6 +148,19 @@ export default function VendorWalletPage() {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [load, user]);
+
+  // Real-time balance and transaction updates via socket
+  useEffect(() => {
+    if (!user?._id) return;
+    const handleCredited  = () => load(true);
+    const handleWdPaid    = () => load(true);
+    socketService.on('wallet:credited',  handleCredited);
+    socketService.on('withdrawal:paid',  handleWdPaid);
+    return () => {
+      socketService.off('wallet:credited',  handleCredited);
+      socketService.off('withdrawal:paid',  handleWdPaid);
+    };
+  }, [user?._id, load]);
 
   // Reset pagination on tab change
   useEffect(() => { setCurrentPage(1); }, [tab]);
