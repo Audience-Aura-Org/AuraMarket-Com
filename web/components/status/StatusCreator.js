@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -24,6 +24,11 @@ import {
 } from '@/constants/statusVideo';
 import { prepareStatusVideoForUpload, isAndroidNative } from '@/lib/statusVideoExport';
 import { pickNativeVideo, isNativeVideoPickerAvailable } from '@/lib/nativeVideoCapture';
+import {
+  isNativePlayerAvailable, createNativePlayer, setNativeSource,
+  playNative, pauseNative, seekNative, setNativeMuted,
+  setNativeTrimRange, destroyNativePlayer, addNativePlayerListener,
+} from '@/lib/nativeVideoPlayer';
 import { useUploadQueue } from '@/context/UploadQueueContext';
 
 const DURATION_OPTIONS = [
@@ -650,12 +655,46 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const captionInputRef = useRef(null);
   const previewVideoRef = useRef(null);
   const trimmerTrackRef = useRef(null);
+  // Positioning anchor for the native ExoPlayer TextureView overlay (Android only).
+  // The overlay is sized/positioned from this div's getBoundingClientRect().
+  const nativeVideoContainerRef = useRef(null);
 
   const trimStartRef = useRef(trimStart);
   const trimEndRef = useRef(trimEnd);
   const initialFrameSurfacedRef = useRef(false); // one-shot per video pick — prevents repeated seek
 
   const [isPlaying, setIsPlaying] = useState(true);
+
+  // ── Video abstraction helpers ──────────────────────────────────────────────
+  // Route play / pause / seek to the native ExoPlayer on Android, or to the
+  // WebView <video> element on web. All three read nativeVideoUri at call time
+  // via a ref so the callbacks remain stable (no re-render on URI change).
+  const nativeVideoUriRef = useRef(nativeVideoUri);
+  useEffect(() => { nativeVideoUriRef.current = nativeVideoUri; }, [nativeVideoUri]);
+
+  const videoPlay = useCallback(() => {
+    if (isNativePlatform() && nativeVideoUriRef.current) {
+      playNative().catch(() => {});
+    } else {
+      previewVideoRef.current?.play().catch(() => {});
+    }
+  }, []);
+
+  const videoPause = useCallback(() => {
+    if (isNativePlatform() && nativeVideoUriRef.current) {
+      pauseNative().catch(() => {});
+    } else {
+      previewVideoRef.current?.pause();
+    }
+  }, []);
+
+  const videoSeek = useCallback((seconds) => {
+    if (isNativePlatform() && nativeVideoUriRef.current) {
+      seekNative(seconds * 1000).catch(() => {});
+    } else if (previewVideoRef.current) {
+      previewVideoRef.current.currentTime = seconds;
+    }
+  }, []);
 
   const resetMediaInputs = () => {
     if (imageInputRef.current) imageInputRef.current.value = '';
@@ -728,13 +767,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   };
 
   const togglePlayPause = () => {
-    const video = previewVideoRef.current;
-    if (!video) return;
     if (isPlaying) {
-      video.pause();
+      videoPause();
       setIsPlaying(false);
     } else {
-      video.play().catch(() => {});
+      videoPlay();
       setIsPlaying(true);
     }
   };
@@ -1200,6 +1237,70 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     };
   }, [type, previewUrl, videoMeta?.duration]);
 
+  // ── Native ExoPlayer lifecycle ─────────────────────────────────────────────
+  // Create the TextureView overlay when a native video URI is set; destroy it
+  // when the URI clears (clearSelectedMedia) or when the component unmounts.
+  useEffect(() => {
+    if (!isNativePlatform() || !nativeVideoUri || !isNativePlayerAvailable()) return;
+    const container = nativeVideoContainerRef.current;
+    if (!container) return;
+
+    let active = true;
+    const listenerHandles = [];
+
+    (async () => {
+      try {
+        const rect = container.getBoundingClientRect();
+        const dpr  = window.devicePixelRatio || 1;
+        await createNativePlayer({
+          x: rect.left * dpr, y: rect.top * dpr,
+          width: rect.width * dpr, height: rect.height * dpr,
+          muted,
+        });
+        if (!active) { destroyNativePlayer().catch(() => {}); return; }
+
+        await setNativeSource(nativeVideoUri);
+        if (!active) { destroyNativePlayer().catch(() => {}); return; }
+
+        const durMs = (videoMeta?.duration || 0) * 1000;
+        if (durMs > 0) {
+          await setNativeTrimRange(trimStart * 1000, Math.min(trimEnd * 1000, durMs));
+        }
+
+        // Forward native player events to React state
+        const h1 = await addNativePlayerListener('timeUpdate',     ({ currentTime }) => setCurrentTime(currentTime));
+        const h2 = await addNativePlayerListener('stateChange',    ({ playing })     => setIsPlaying(playing));
+        const h3 = await addNativePlayerListener('durationUpdate', ({ duration })    => {
+          if (duration > 0) setVideoMeta(prev => prev ? { ...prev, duration } : prev);
+        });
+        listenerHandles.push(h1, h2, h3);
+
+        if (active) await playNative();
+      } catch {
+        // player creation may fail if the component unmounts before create() resolves
+      }
+    })();
+
+    return () => {
+      active = false;
+      listenerHandles.forEach(h => h?.remove?.());
+      destroyNativePlayer().catch(() => {});
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nativeVideoUri]); // only recreate the player when the video URI changes
+
+  // Sync trim range into the native player's loop bounds whenever handles are dragged.
+  useEffect(() => {
+    if (!isNativePlatform() || !nativeVideoUri) return;
+    setNativeTrimRange(trimStart * 1000, trimEnd * 1000).catch(() => {});
+  }, [trimStart, trimEnd, nativeVideoUri]);
+
+  // Sync mute state to the native player.
+  useEffect(() => {
+    if (!isNativePlatform() || !nativeVideoUri) return;
+    setNativeMuted(muted).catch(() => {});
+  }, [muted, nativeVideoUri]);
+
   const handleFileChange = async (e) => {
     const f = e.target.files[0];
     e.target.value = '';
@@ -1502,9 +1603,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     if (!track || !videoMeta?.duration) return;
 
     // WhatsApp mechanic: pause video when dragging starts
-    if (previewVideoRef.current) {
-      previewVideoRef.current.pause();
-    }
+    videoPause();
 
     const getClientX = (e) => {
       if (e.touches && e.touches.length > 0) return e.touches[0].clientX;
@@ -1525,18 +1624,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         setTrimStart(nextStart);
         setVideoPostMode('trim');
         // WhatsApp Mechanic: jump to current frame on drag
-        if (previewVideoRef.current) {
-          previewVideoRef.current.currentTime = nextStart;
-        }
+        videoSeek(nextStart);
       } else {
         const maxEnd = Math.min(duration, trimStartRef.current + STATUS_VIDEO_MAX_SECONDS);
         const nextEnd = Math.max(trimStartRef.current + 0.5, Math.min(newTime, maxEnd));
         setTrimEnd(nextEnd);
         setVideoPostMode('trim');
         // WhatsApp Mechanic: jump to current frame on drag
-        if (previewVideoRef.current) {
-          previewVideoRef.current.currentTime = nextEnd;
-        }
+        videoSeek(nextEnd);
       }
     };
 
@@ -1547,10 +1642,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       window.removeEventListener('touchend', endDrag);
 
       // WhatsApp mechanic: play video from trimStart when dragging ends
-      if (previewVideoRef.current) {
-        previewVideoRef.current.currentTime = trimStartRef.current;
-        previewVideoRef.current.play().catch(() => {});
-      }
+      videoSeek(trimStartRef.current);
+      videoPlay();
     };
 
     window.addEventListener('mousemove', onDrag);
@@ -1565,7 +1658,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     const track = trimmerTrackRef.current;
     if (!track || !videoMeta?.duration) return;
 
-    if (previewVideoRef.current) previewVideoRef.current.pause();
+    videoPause();
 
     const getClientX = (e) => {
       if (e.touches && e.touches.length > 0) return e.touches[0].clientX;
@@ -1595,10 +1688,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       setTrimStart(nextStart);
       setTrimEnd(nextEnd);
       setVideoPostMode('trim');
-
-      if (previewVideoRef.current) {
-        previewVideoRef.current.currentTime = nextStart;
-      }
+      videoSeek(nextStart);
     };
 
     const endDrag = () => {
@@ -1607,10 +1697,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       window.removeEventListener('touchmove', onDrag);
       window.removeEventListener('touchend', endDrag);
 
-      if (previewVideoRef.current) {
-        previewVideoRef.current.currentTime = trimStartRef.current;
-        previewVideoRef.current.play().catch(() => {});
-      }
+      videoSeek(trimStartRef.current);
+      videoPlay();
     };
 
     window.addEventListener('mousemove', onDrag);
@@ -1800,6 +1888,16 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             <div className="absolute inset-0 w-full h-full flex items-center justify-center">
               {type === 'video' ? (
                 <>
+                  {/* On Android native + native video URI → ExoPlayer TextureView overlay.
+                      The div acts as a positioning anchor; the actual video renders natively
+                      above the WebView in the Activity's DecorView.
+                      On web (or before native pick) → standard WebView <video> element. */}
+                  {isNativePlatform() && nativeVideoUri ? (
+                    <div
+                      ref={nativeVideoContainerRef}
+                      className="absolute inset-0 w-full h-full bg-black z-10"
+                    />
+                  ) : (
                   <video
                     ref={previewVideoRef}
                     src={previewVideoSrc}
@@ -1831,6 +1929,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                       }
                     }}
                   />
+                  )}
                   <button
                     type="button"
                     onClick={togglePlayPause}
