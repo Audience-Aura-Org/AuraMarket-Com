@@ -1247,14 +1247,21 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     (async () => {
       try {
         const rect = container.getBoundingClientRect();
-        const dpr  = window.devicePixelRatio || 1;
+        const dpr     = window.devicePixelRatio || 1;
+        // Android WebView's getBoundingClientRect() returns layout CSS pixels
+        // (before CSS zoom is applied). globals.css sets html { zoom: 0.7 }, so
+        // we must multiply by cssZoom to get visual CSS pixels, then by dpr for
+        // physical pixels — otherwise ExoPlayer is mis-positioned and oversized.
+        const cssZoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
         // viewerMode=false → TextureView placed ABOVE WebView in DecorView.
         // The filmstrip sits in document flow between the header and this workspace div,
         // so the workspace rect is already below the filmstrip — ExoPlayer covers only
         // the video area and the filmstrip stays fully visible and interactive.
         await createNativePlayer({
-          x: rect.left * dpr, y: rect.top * dpr,
-          width: rect.width * dpr, height: rect.height * dpr,
+          x: Math.round(rect.left * cssZoom * dpr),
+          y: Math.round(rect.top * cssZoom * dpr),
+          width: Math.round(rect.width * cssZoom * dpr),
+          height: Math.round(rect.height * cssZoom * dpr),
           muted,
           viewerMode: false,
         });

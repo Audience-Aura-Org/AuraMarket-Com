@@ -702,13 +702,18 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
 
     let cancelled = false;
     const setup = async () => {
-      const rect = container.getBoundingClientRect();
-      const dpr  = window.devicePixelRatio || 1;
+      const rect    = container.getBoundingClientRect();
+      const dpr     = window.devicePixelRatio || 1;
+      // Android WebView getBoundingClientRect() returns layout CSS px (pre-zoom).
+      // Multiply by cssZoom to get visual CSS px, then by dpr for physical px.
+      const cssZoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
 
       if (!nativePlayerActiveRef.current) {
         await createNativePlayer({
-          x: rect.left * dpr, y: rect.top * dpr,
-          width: rect.width * dpr, height: rect.height * dpr,
+          x: Math.round(rect.left * cssZoom * dpr),
+          y: Math.round(rect.top * cssZoom * dpr),
+          width: Math.round(rect.width * cssZoom * dpr),
+          height: Math.round(rect.height * cssZoom * dpr),
           muted, viewerMode: true,
         });
         nativePlayerActiveRef.current = true;
