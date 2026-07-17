@@ -1984,7 +1984,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                   <button
                     type="button"
                     onClick={togglePlayPause}
-                    className="absolute bottom-4 right-4 z-30 flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white backdrop-blur-md transition-colors hover:bg-black/70"
+                    className="absolute bottom-4 right-4 z-30 flex size-11 items-center justify-center rounded-full border border-white/15 bg-black/55 text-white transition-colors hover:bg-black/70"
                     aria-label={isPlaying ? 'Pause video preview' : 'Play video preview'}
                   >
                     {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
@@ -2005,7 +2005,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
               
               {/* Floating Product Tag (If tagged) */}
               {linkedProduct && (
-                <div className={`absolute left-4 right-4 z-20 p-2.5 rounded-2xl border border-[#20c763]/25 bg-black/75 backdrop-blur-md flex items-center justify-between min-w-0 shadow-xl transition-all duration-300 ${
+                <div className={`absolute left-4 right-4 z-20 p-2.5 rounded-2xl border border-[#20c763]/25 bg-black/75 flex items-center justify-between min-w-0 shadow-xl transition-all duration-300 ${isNativePlatform() && nativeVideoUri ? '' : 'backdrop-blur-md'} ${
                   (type === 'video' && showTrimmer && videoMeta) ? 'top-[96px]' : 'top-4'
                 }`}>
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -2029,7 +2029,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
               {/* WhatsApp-Style top filmstrip trimmer timeline (Video only, overlaying at the top of the video preview screen) */}
               {type === 'video' && videoMeta && previewUrl && showTrimmer && (
-                <div className="absolute top-4 left-4 right-4 z-30 select-none bg-black/60 p-2.5 rounded-2xl border border-white/10 backdrop-blur-md">
+                <div className={`absolute top-4 left-4 right-4 z-30 select-none bg-black/60 p-2.5 rounded-2xl border border-white/10 ${isNativePlatform() && nativeVideoUri ? '' : 'backdrop-blur-md'}`}>
                   <div className="flex items-center justify-between mb-2 text-[10px] font-bold text-white/60 uppercase tracking-wider">
                     <span className="flex items-center gap-1">
                       <Scissors className="size-3 text-[#20c763]" />
@@ -2391,7 +2391,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </div>
 
         {/* Bottom Tool Bar / Input Capsule */}
-        <div className="p-4 flex items-center gap-3 bg-black/45 backdrop-blur-sm z-30 shrink-0">
+        <div className={`p-4 flex items-center gap-3 bg-black/45 z-30 shrink-0 ${isNativePlatform() && nativeVideoUri ? '' : 'backdrop-blur-sm'}`}>
           {type === 'text' ? (
             <>
               {/* Text Mode Bottom bar */}
