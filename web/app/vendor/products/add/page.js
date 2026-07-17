@@ -96,13 +96,14 @@ export default function AddProductPage() {
 
   const preserveMobileScroll = () => {
     if (typeof window === 'undefined' || window.innerWidth >= 768) return;
-    const y = mobileScrollYRef.current || window.scrollY;
-    const restore = () => {
+    const y = mobileScrollYRef.current;
+    if (!y) return;
+    // Only use rAF (fires in the same paint cycle) — setTimeout delays cause the
+    // restore to fire after the user has already scrolled to a new field, snapping
+    // them back to the previous position (and often to the top of the page).
+    window.requestAnimationFrame(() => {
       if (Math.abs(window.scrollY - y) > 24) window.scrollTo(0, y);
-    };
-    window.requestAnimationFrame(restore);
-    setTimeout(restore, 60);
-    setTimeout(restore, 180);
+    });
   };
 
   const updateFormField = (field, value) => {
@@ -287,7 +288,6 @@ export default function AddProductPage() {
         onPointerDownCapture={rememberMobileScroll}
         onTouchStartCapture={rememberMobileScroll}
         onBlurCapture={rememberMobileScroll}
-        onFocusCapture={preserveMobileScroll}
       >
         {/* Header */}
         <header className="h-16 sm:h-20 flex items-center justify-between px-2 sm:px-4 lg:px-10 glass-panel border-b border-[var(--glass-border)] sticky top-0 z-50 bg-[var(--bg-primary)]/80 backdrop-blur-xl text-[var(--text-primary)]">
