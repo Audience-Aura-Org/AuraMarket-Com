@@ -672,21 +672,23 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   // Route play / pause / seek to the native ExoPlayer on Android, or to the
   // WebView <video> element on web. All three read nativeVideoUri at call time
   // via a ref so the callbacks remain stable (no re-render on URI change).
-  const nativeVideoUriRef = useRef(nativeVideoUri);
+  const nativeVideoUriRef    = useRef(nativeVideoUri);
+  const nativePlayerActiveRef = useRef(false);
   useEffect(() => { nativeVideoUriRef.current = nativeVideoUri; }, [nativeVideoUri]);
 
   const videoPlay = useCallback(() => {
-    previewVideoRef.current?.play().catch(() => {});
+    if (nativePlayerActiveRef.current) playNative().catch(() => {});
+    else previewVideoRef.current?.play().catch(() => {});
   }, []);
 
   const videoPause = useCallback(() => {
-    previewVideoRef.current?.pause();
+    if (nativePlayerActiveRef.current) pauseNative().catch(() => {});
+    else previewVideoRef.current?.pause();
   }, []);
 
   const videoSeek = useCallback((seconds) => {
-    if (previewVideoRef.current) {
-      previewVideoRef.current.currentTime = seconds;
-    }
+    if (nativePlayerActiveRef.current) seekNative(seconds * 1000).catch(() => {});
+    else if (previewVideoRef.current) previewVideoRef.current.currentTime = seconds;
   }, []);
 
   const resetMediaInputs = () => {
@@ -1234,30 +1236,27 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   // Create the TextureView overlay when a native video URI is set; destroy it
   // when the URI clears (clearSelectedMedia) or when the component unmounts.
   useEffect(() => {
-    // Native ExoPlayer preview disabled for the creator — viewerMode:true (behind WebView)
-    // is unreliable (emulators, compositor layers). HTML <video> via convertFileSrc works
-    // everywhere. ExoPlayer is kept only in StatusViewer where it runs above the WebView.
-    return;
-    /* eslint-disable no-unreachable */
     if (!isNativePlatform() || !nativeVideoUri || !isNativePlayerAvailable()) return;
     const container = nativeVideoContainerRef.current;
     if (!container) return;
 
     let active = true;
     const listenerHandles = [];
+    nativePlayerActiveRef.current = false;
 
     (async () => {
       try {
         const rect = container.getBoundingClientRect();
         const dpr  = window.devicePixelRatio || 1;
-        // viewerMode=true → TextureView placed BEHIND WebView (camera-preview pattern).
-        // This lets all WebView elements (filmstrip, controls, overlays) render ON TOP
-        // of the video via CSS/z-index — identical to the status viewer approach.
+        // viewerMode=false → TextureView placed ABOVE WebView in DecorView.
+        // The filmstrip sits in document flow between the header and this workspace div,
+        // so the workspace rect is already below the filmstrip — ExoPlayer covers only
+        // the video area and the filmstrip stays fully visible and interactive.
         await createNativePlayer({
           x: rect.left * dpr, y: rect.top * dpr,
           width: rect.width * dpr, height: rect.height * dpr,
           muted,
-          viewerMode: true,
+          viewerMode: false,
         });
         if (!active) { destroyNativePlayer().catch(() => {}); return; }
 
@@ -1277,7 +1276,10 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         });
         listenerHandles.push(h1, h2, h3);
 
-        if (active) await playNative();
+        if (active) {
+          nativePlayerActiveRef.current = true;
+          await playNative();
+        }
       } catch {
         // player creation may fail if the component unmounts before create() resolves
       }
@@ -1285,6 +1287,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
     return () => {
       active = false;
+      nativePlayerActiveRef.current = false;
       listenerHandles.forEach(h => h?.remove?.());
       destroyNativePlayer().catch(() => {});
     };
@@ -1924,14 +1927,65 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           </div>
         </header>
 
+        {/* Filmstrip trim bar — rendered in document flow between header and workspace so
+            ExoPlayer (viewerMode=false, above WebView) covers only the workspace rect and
+            the filmstrip remains visible and interactive in the WebView above it. */}
+        {type === 'video' && videoMeta && previewUrl && showTrimmer && (
+          <div className="mx-4 mt-1 mb-0 shrink-0 select-none bg-black/60 p-2.5 rounded-2xl border border-white/10 backdrop-blur-md">
+            <div className="flex items-center justify-between mb-2 text-[10px] font-bold text-white/60 uppercase tracking-wider">
+              <span className="flex items-center gap-1">
+                <Scissors className="size-3 text-[#20c763]" />
+                <span>Trim Clip: {formatSeconds(trimStart)} - {formatSeconds(trimEnd)}</span>
+              </span>
+              <span>{selectedLength.toFixed(1)}s / {maxClip}s</span>
+            </div>
+            {/* filmstrip track */}
+            <div
+              ref={trimmerTrackRef}
+              onClick={handleTrackClick}
+              className="relative h-12 flex items-center cursor-pointer rounded-lg overflow-hidden border border-white/20 bg-black/40"
+            >
+              <div className="absolute inset-0 flex overflow-hidden rounded-lg pointer-events-none">
+                {timelineFrames.length > 0 ? (
+                  timelineFrames.map((src, i) => (
+                    <img key={i} src={src} className="flex-1 h-full object-cover" alt="" />
+                  ))
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center gap-0.5">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div key={i} className="flex-1 h-full bg-white/15 animate-pulse border-r border-white/10 last:border-r-0" style={{ animationDelay: `${i * 80}ms` }} />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="absolute left-0 top-0 bottom-0 bg-black/70 z-10 pointer-events-none border-y border-transparent" style={{ width: `${(trimStart / (videoMeta?.duration || 1)) * 100}%` }} />
+              <div className="absolute right-0 top-0 bottom-0 bg-black/70 z-10 pointer-events-none border-y border-transparent" style={{ width: `${100 - (trimEnd / (videoMeta?.duration || 1)) * 100}%` }} />
+              <div className="absolute top-0 bottom-0 border-y-2 border-x-2 border-[#20c763] z-10 cursor-grab active:cursor-grabbing" style={{ left: `${(trimStart / (videoMeta?.duration || 1)) * 100}%`, right: `${100 - (trimEnd / (videoMeta?.duration || 1)) * 100}%` }} onMouseDown={(e) => startDragSelection(e)} onTouchStart={(e) => startDragSelection(e)} />
+              <div className="absolute h-full w-0.5 bg-white z-15 pointer-events-none shadow" style={{ left: `${(currentTime / (videoMeta?.duration || 1)) * 100}%` }} />
+              <div className="absolute top-0 bottom-0 w-3 bg-[#20c763] cursor-ew-resize z-20 flex items-center justify-center rounded-l-md shadow-md border-r border-white/20 hover:brightness-110 active:scale-y-95 transition-all" style={{ left: `${(trimStart / (videoMeta?.duration || 1)) * 100}%`, transform: 'translateX(-50%)' }} onMouseDown={(e) => startDrag(e, 'start')} onTouchStart={(e) => startDrag(e, 'start')}>
+                <div className="w-0.5 h-4 bg-white/70 rounded-full" />
+              </div>
+              <div className="absolute top-0 bottom-0 w-3 bg-[#20c763] cursor-ew-resize z-20 flex items-center justify-center rounded-r-md shadow-md border-l border-white/20 hover:brightness-110 active:scale-y-95 transition-all" style={{ left: `${(trimEnd / (videoMeta?.duration || 1)) * 100}%`, transform: 'translateX(-50%)' }} onMouseDown={(e) => startDrag(e, 'end')} onTouchStart={(e) => startDrag(e, 'end')}>
+                <div className="w-0.5 h-4 bg-white/70 rounded-full" />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Central Workspace / Media Preview Container */}
-        {/* bg-[#09090b] is removed when native ExoPlayer is active so the TextureView
-            (placed behind the WebView via viewerMode=true) shows through the transparent HTML layer. */}
         <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-[#09090b]">
           {previewUrl ? (
             <div className="absolute inset-0 w-full h-full flex items-center justify-center">
               {type === 'video' ? (
                 <>
+                  {isNativePlatform() && nativeVideoUri ? (
+                    // ExoPlayer anchor: viewerMode=false puts TextureView above WebView.
+                    // The workspace rect (below filmstrip) is used for exact positioning.
+                    <div
+                      ref={nativeVideoContainerRef}
+                      className="absolute inset-0 w-full h-full z-10"
+                    />
+                  ) : (
                   <video
                     ref={previewVideoRef}
                     src={previewVideoSrc}
@@ -1946,7 +2000,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     preload="auto"
                     onContextMenu={(e) => e.preventDefault()}
                     onLoadedMetadata={(e) => {
-                      // Seek to 0.001s to prime the HW decoder and show first frame
                       e.currentTarget.currentTime = 0.001;
                     }}
                     onCanPlay={undefined}
@@ -1960,6 +2013,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                       }
                     }}
                   />
+                  )}
                   {/* Play/pause button — always rendered in WebView.
                       In viewerMode=true the native TextureView is BEHIND the WebView,
                       so WebView buttons are fully visible and interactive. The Java-side
@@ -2007,91 +2061,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                 </div>
               )}
 
-              {/* WhatsApp-Style top filmstrip trimmer timeline (Video only, overlaying at the top of the video preview screen) */}
-              {type === 'video' && videoMeta && previewUrl && showTrimmer && (
-                <div className="absolute top-4 left-4 right-4 z-30 select-none bg-black/60 p-2.5 rounded-2xl border border-white/10 backdrop-blur-md">
-                  <div className="flex items-center justify-between mb-2 text-[10px] font-bold text-white/60 uppercase tracking-wider">
-                    <span className="flex items-center gap-1">
-                      <Scissors className="size-3 text-[#20c763]" />
-                      <span>Trim Clip: {formatSeconds(trimStart)} - {formatSeconds(trimEnd)}</span>
-                    </span>
-                    <span>{selectedLength.toFixed(1)}s / {maxClip}s</span>
-                  </div>
-                  
-                  {/* filmstrip track */}
-                  <div 
-                    ref={trimmerTrackRef}
-                    onClick={handleTrackClick}
-                    className="relative h-12 flex items-center cursor-pointer rounded-lg overflow-hidden border border-white/20 bg-black/40"
-                  >
-                    {/* Thumbnail Frames Row — full opacity so filmstrip is clearly visible */}
-                    <div className="absolute inset-0 flex overflow-hidden rounded-lg pointer-events-none">
-                      {timelineFrames.length > 0 ? (
-                        timelineFrames.map((src, i) => (
-                          <img key={i} src={src} className="flex-1 h-full object-cover" alt="" />
-                        ))
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center gap-0.5">
-                          {Array.from({ length: 8 }).map((_, i) => (
-                            <div key={i} className="flex-1 h-full bg-white/15 animate-pulse border-r border-white/10 last:border-r-0" style={{ animationDelay: `${i * 80}ms` }} />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Darkened mask: Left of selection */}
-                    <div 
-                      className="absolute left-0 top-0 bottom-0 bg-black/70 z-10 pointer-events-none border-y border-transparent"
-                      style={{ width: `${(trimStart / (videoMeta?.duration || 1)) * 100}%` }}
-                    />
-                    
-                    {/* Darkened mask: Right of selection */}
-                    <div 
-                      className="absolute right-0 top-0 bottom-0 bg-black/70 z-10 pointer-events-none border-y border-transparent"
-                      style={{ width: `${100 - (trimEnd / (videoMeta?.duration || 1)) * 100}%` }}
-                    />
-
-                    {/* Bright selection window — draggable to move the entire clip */}
-                    <div 
-                      className="absolute top-0 bottom-0 border-y-2 border-x-2 border-[#20c763] z-10 cursor-grab active:cursor-grabbing"
-                      style={{
-                        left: `${(trimStart / (videoMeta?.duration || 1)) * 100}%`,
-                        right: `${100 - (trimEnd / (videoMeta?.duration || 1)) * 100}%`
-                      }}
-                      onMouseDown={(e) => startDragSelection(e)}
-                      onTouchStart={(e) => startDragSelection(e)}
-                    />
-                    
-                    {/* Playhead line */}
-                    <div 
-                      className="absolute h-full w-0.5 bg-white z-15 pointer-events-none shadow"
-                      style={{ left: `${(currentTime / (videoMeta?.duration || 1)) * 100}%` }}
-                    />
-                    
-                    {/* Left bracket handle */}
-                    <div 
-                      className="absolute top-0 bottom-0 w-3 bg-[#20c763] cursor-ew-resize z-20 flex items-center justify-center rounded-l-md shadow-md border-r border-white/20 hover:brightness-110 active:scale-y-95 transition-all"
-                      style={{ left: `${(trimStart / (videoMeta?.duration || 1)) * 100}%`, transform: 'translateX(-50%)' }}
-                      onMouseDown={(e) => startDrag(e, 'start')}
-                      onTouchStart={(e) => startDrag(e, 'start')}
-                    >
-                      <div className="w-0.5 h-4 bg-white/70 rounded-full" />
-                    </div>
-                    
-                    {/* Right bracket handle */}
-                    <div 
-                      className="absolute top-0 bottom-0 w-3 bg-[#20c763] cursor-ew-resize z-20 flex items-center justify-center rounded-r-md shadow-md border-l border-white/20 hover:brightness-110 active:scale-y-95 transition-all"
-                      style={{ left: `${(trimEnd / (videoMeta?.duration || 1)) * 100}%`, transform: 'translateX(-50%)' }}
-                      onMouseDown={(e) => startDrag(e, 'end')}
-                      onTouchStart={(e) => startDrag(e, 'end')}
-                    >
-                      <div className="w-0.5 h-4 bg-white/70 rounded-full" />
-                    </div>
-
-
-                  </div>
-                </div>
-              )}
+              {/* Filmstrip moved to document flow between header and workspace */}
             </div>
           ) : type === 'text' ? (
             <div 
