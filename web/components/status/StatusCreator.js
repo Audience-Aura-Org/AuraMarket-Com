@@ -492,8 +492,9 @@ async function runVideoUploadTask(snapshot, { onProgress, onPhase }) {
     const resp = await fetch(fetchUrl);
     if (!resp.ok) throw new Error('Could not read video from device (' + resp.status + ')');
     const blob = await resp.blob();
+    const blobMime = (blob.type && blob.type !== 'application/octet-stream') ? blob.type : 'video/mp4';
     resolvedFile = new File([blob], nativeVideoName || 'video.mp4', {
-      type: blob.type || 'video/mp4',
+      type: blobMime,
     });
   }
 

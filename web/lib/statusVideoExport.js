@@ -231,9 +231,13 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
 
   // ─── Step 1: Get a presigned S3 PUT URL ───────────────────────────────────
   // Small JSON POST — no multipart, no file body, always works on iOS.
+  // On Android, Capacitor.convertFileSrc blobs often arrive as 'application/octet-stream'
+  // even for MP4 files, so we fall back to 'video/mp4' explicitly when needed.
+  const rawMime = file.type || '';
+  const mimeType = (rawMime && rawMime !== 'application/octet-stream') ? rawMime : 'video/mp4';
   const presignRes = await api.post('/upload/presign', {
     fileName: file.name || 'status-video.mp4',
-    contentType: file.type || 'video/mp4',
+    contentType: mimeType,
     fileSize: file.size,
     type: 'status-sources',
   });
@@ -250,7 +254,7 @@ async function uploadStatusVideoWithServerTrim(file, { trimStart, trimEnd, cropM
   // This is the same pattern used by uploadViaPresign() in upload.js.
   await axios.put(uploadUrl, file, {
     headers: {
-      'Content-Type': file.type || 'video/mp4',
+      'Content-Type': mimeType,
       'Cache-Control': 'public, max-age=259200',
       'Content-Disposition': 'inline',
     },

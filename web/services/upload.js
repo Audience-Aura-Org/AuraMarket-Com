@@ -119,7 +119,13 @@ async function withRetry(fn, { maxAttempts = 3, delayMs = 1000 } = {}) {
 
 async function uploadViaPresign(file, folder, onProgress) {
   const isVid = isVideo(file);
-  const contentType = file.type || 'application/octet-stream';
+  // On Android, Capacitor blobs often have type='application/octet-stream'.
+  // Fall back to MIME inferred from extension so the presign endpoint accepts it.
+  const rawType = file?.type || '';
+  const byVideoExt = /\.(mp4|mov|avi|3gp|mkv|webm|m4v)$/i.test(file?.name || '');
+  const contentType = (rawType && rawType !== 'application/octet-stream')
+    ? rawType
+    : byVideoExt ? 'video/mp4' : 'image/jpeg';
   const normalizedFolder = normalizeUploadFolder(folder);
   const cacheControl = cacheControlForUpload(normalizedFolder, file);
   const contentDisposition = isVid ? 'inline' : 'attachment';
