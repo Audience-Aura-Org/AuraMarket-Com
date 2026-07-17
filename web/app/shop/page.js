@@ -685,10 +685,11 @@ function ShopContent() {
 
                 {/* --- Pagination --- */}
                 <div className="mt-8">
-                  <Pagination 
-                    currentPage={page} 
-                    totalPages={totalPages} 
-                    onPageChange={handlePageChange} 
+                  <Pagination
+                    currentPage={page}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                    loading={loading}
                   />
                 </div>
               </>

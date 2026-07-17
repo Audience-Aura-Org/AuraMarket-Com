@@ -111,7 +111,8 @@ export default function VendorWalletPage() {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 4000);
   };
-  const loadingRef = useRef(false);
+  const loadingRef          = useRef(false);
+  const pendingSilentLoad   = useRef(false);
 
   // ── Auth guard: wait for Zustand to rehydrate before redirecting ──
   useEffect(() => {
@@ -127,8 +128,11 @@ export default function VendorWalletPage() {
   if (!hasHydrated || !user || user.role !== 'vendor') return null;
 
   const load = useCallback(async (silent = false) => {
-    // Prevent concurrent loads
-    if (loadingRef.current) return;
+    // Prevent concurrent loads; queue missed silent reloads so credits aren't dropped
+    if (loadingRef.current) {
+      if (silent) pendingSilentLoad.current = true;
+      return;
+    }
     loadingRef.current = true;
     if (silent) setRefreshing(true);
     else setLoading(true);
@@ -156,6 +160,10 @@ export default function VendorWalletPage() {
       setLoading(false);
       setRefreshing(false);
       loadingRef.current = false;
+      if (pendingSilentLoad.current) {
+        pendingSilentLoad.current = false;
+        setTimeout(() => load(true), 100);
+      }
     }
   }, [setWalletBalance]);
 

@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 
-export default function Pagination({ currentPage, totalPages, onPageChange, compact = false }) {
+export default function Pagination({ currentPage, totalPages, onPageChange, compact = false, loading = false }) {
   if (totalPages <= 1) return null;
 
   // Clamp so display is never out of bounds
@@ -16,12 +16,12 @@ export default function Pagination({ currentPage, totalPages, onPageChange, comp
         <PaginationButton
           icon={ChevronsLeft}
           onClick={() => onPageChange(1)}
-          disabled={safePage === 1}
+          disabled={loading || safePage === 1}
         />
         <PaginationButton
           icon={ChevronLeft}
           onClick={() => onPageChange(safePage - 1)}
-          disabled={safePage === 1}
+          disabled={loading || safePage === 1}
         />
 
         <div className="flex items-center px-3 sm:px-6">
@@ -33,12 +33,12 @@ export default function Pagination({ currentPage, totalPages, onPageChange, comp
         <PaginationButton
           icon={ChevronRight}
           onClick={() => onPageChange(safePage + 1)}
-          disabled={safePage >= totalPages}
+          disabled={loading || safePage >= totalPages}
         />
         <PaginationButton
           icon={ChevronsRight}
           onClick={() => onPageChange(totalPages)}
-          disabled={safePage >= totalPages}
+          disabled={loading || safePage >= totalPages}
         />
       </div>
     </div>

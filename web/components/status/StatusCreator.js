@@ -1310,9 +1310,14 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     const prevBg      = document.body.style.background      || '';
     const prevBgImage = document.body.style.backgroundImage || '';
     const prevVis     = document.body.style.visibility      || '';
+    const prevHtmlBg  = document.documentElement.style.background      || '';
+    const prevHtmlImg = document.documentElement.style.backgroundImage || '';
     document.body.style.background      = 'transparent';
     document.body.style.backgroundImage = 'none';
     document.body.style.visibility      = 'hidden';
+    // Also clear html element — globals.css sets a background on it via CSS vars
+    document.documentElement.style.background      = 'transparent';
+    document.documentElement.style.backgroundImage = 'none';
     if (statusCreatorRootRef.current) {
       statusCreatorRootRef.current.style.visibility = 'visible';
     }
@@ -1320,6 +1325,8 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       document.body.style.background      = prevBg;
       document.body.style.backgroundImage = prevBgImage;
       document.body.style.visibility      = prevVis;
+      document.documentElement.style.background      = prevHtmlBg;
+      document.documentElement.style.backgroundImage = prevHtmlImg;
       if (statusCreatorRootRef.current) {
         statusCreatorRootRef.current.style.visibility = '';
       }
@@ -1819,7 +1826,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </div>
 
         {/* Header / Top Tool Bar */}
-        <header className="p-4 flex items-center justify-between bg-black/45 backdrop-blur-sm z-30 border-b border-white/5 shrink-0">
+        <header className={`p-4 flex items-center justify-between bg-black/45 z-30 border-b border-white/5 shrink-0 ${isNativePlatform() && nativeVideoUri ? '' : 'backdrop-blur-sm'}`}>
           <button 
             type="button" 
             onClick={onClose} 

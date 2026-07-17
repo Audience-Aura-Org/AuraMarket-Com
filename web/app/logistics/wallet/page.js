@@ -103,7 +103,8 @@ export default function LogisticsWalletPage() {
   const [recheckingTxId, setRecheckingTxId] = useState(null);
   const [toast, setToast] = useState(null);
   const itemsPerPage = 8;
-  const loadingRef = useRef(false);
+  const loadingRef          = useRef(false);
+  const pendingSilentLoad   = useRef(false);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -122,7 +123,10 @@ export default function LogisticsWalletPage() {
   if (!hasHydrated || !user || user.role !== 'logistics') return null;
 
   const load = useCallback(async (silent = false) => {
-    if (loadingRef.current) return;
+    if (loadingRef.current) {
+      if (silent) pendingSilentLoad.current = true;
+      return;
+    }
     loadingRef.current = true;
     if (silent) setRefreshing(true);
     else setLoading(true);
@@ -148,6 +152,10 @@ export default function LogisticsWalletPage() {
       setLoading(false);
       setRefreshing(false);
       loadingRef.current = false;
+      if (pendingSilentLoad.current) {
+        pendingSilentLoad.current = false;
+        setTimeout(() => load(true), 100);
+      }
     }
   }, [setWalletBalance]);
 
