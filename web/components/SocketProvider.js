@@ -67,6 +67,7 @@ const showNativeNotification = async ({ id, title, body, route, type, senderId, 
           type,
           senderId,
           senderData,
+          title,
         },
       }],
     });
