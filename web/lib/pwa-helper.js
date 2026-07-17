@@ -46,7 +46,10 @@ async function getActiveVapidPublicKey() {
  * Registers the Service Worker and returns the registration.
  */
 export async function registerPWA() {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+  // Only serviceWorker support is required — push capability is checked separately
+  // in subscribeToPush. Gating on PushManager here would prevent the SW from
+  // registering on iOS <16.4 and some older browsers, killing offline caching.
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     return null;
   }
 

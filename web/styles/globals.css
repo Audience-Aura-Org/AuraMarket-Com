@@ -216,6 +216,7 @@ html {
 
 body {
   font-family: var(--aura-font-family, var(--font-display));
+  background-color: #f8fafc; /* raw fallback if CSS vars fail to load */
   background-color: var(--bg-secondary);
   color: var(--text-primary);
   min-height: 100%;
@@ -254,9 +255,12 @@ html.chat-open #chat-root {
   top: var(--chat-shell-offset-top, 0) !important;
   left: 0 !important;
   width: 100% !important;
-  /* JS sets --chat-shell-height when the keyboard is open; otherwise dvh/svh. */
+  /* JS sets --chat-shell-height when the keyboard is open; otherwise dvh/svh.
+     vh is the fallback for iOS <15.4 and any browser without dvh/svh support. */
+  height: var(--chat-shell-height, 100vh) !important;
   height: var(--chat-shell-height, 100dvh) !important;
   height: var(--chat-shell-height, 100svh) !important;
+  max-height: var(--chat-shell-height, 100vh) !important;
   max-height: var(--chat-shell-height, 100svh) !important;
   overflow: hidden !important;
 }
@@ -571,4 +575,14 @@ video::-webkit-media-controls-enclosure {
 video {
   -webkit-media-controls-play-button: none;
   object-fit: cover;
+}
+
+/* ── iOS Safari: zoom on html causes black-screen rendering bug ───────────
+   CSS zoom on the root element is handled correctly by Chrome/Firefox but
+   broken in iOS WebKit — the scaled content renders at 70-80% and the
+   remaining viewport area appears black (especially with dark system theme).
+   -webkit-touch-callout is an iOS-only CSS property so this rule only
+   applies to iOS Safari (iPhone/iPad) without touching Android or desktop. */
+@supports (-webkit-touch-callout: none) {
+  html { zoom: 1 !important; }
 }
