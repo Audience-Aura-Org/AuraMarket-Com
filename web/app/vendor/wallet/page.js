@@ -7,7 +7,7 @@ import {
   Wallet, ArrowUpRight, ArrowDownLeft, Lock,
   CheckCircle2, AlertCircle, Loader2, Clock,
   RefreshCw, Shield, X, History, Package,
-  Printer, Bot, User2, RotateCcw, Building2
+  Bot, User2, RotateCcw, Building2
 } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
@@ -74,10 +74,7 @@ function ReceiptModal({ tx, onClose }) {
           </div>
         </div>
 
-        <div className="flex gap-3">
-          <button onClick={() => window.print()} className="flex-1 h-12 bg-slate-900 text-white rounded-2xl font-semibold text-[11px] tracking-tight flex items-center justify-center gap-2">
-            <Printer className="size-3.5" /> Print
-          </button>
+        <div className="flex justify-end">
           <button onClick={onClose} className="size-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-200">
             <X className="size-5" />
           </button>

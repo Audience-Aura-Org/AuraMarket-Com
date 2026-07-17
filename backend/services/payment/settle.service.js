@@ -24,7 +24,7 @@ const LogisticsCompany = require('../../models/LogisticsCompany.model');
 const Shipment = require('../../models/Shipment.model');
 const PlatformSettings = require('../../models/PlatformSettings.model');
 const logisticsService = require('../logistics.service');
-const { sendNotification } = require('../../utils/notifier');
+const { sendNotification, notifyAdmins } = require('../../utils/notifier');
 const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../../utils/platformFees');
 const crypto = require('crypto');
 
@@ -263,6 +263,13 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
             role: 'customer',
             webUrl,
           }),
+          notifyAdmins(app, {
+            title: 'Order Payment Received',
+            message: `Order #${order._id.toString().slice(-6).toUpperCase()} paid — ${user.name || 'Customer'} · ${order.total_amount?.toLocaleString()} XAF`,
+            type: 'system_alert',
+            metadata: { order_id: order._id, link: '/admin/orders' },
+            sendEmail: true,
+          }),
         ];
         if (vendor) {
           tasks.push(sendNotification(app, vendor.user_id, {
@@ -403,6 +410,13 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
               type: 'order_status',
               metadata: { order_id: order._id, link: '/orders' },
               sendEmail: true, orderDetails: orderObj, role: 'customer', webUrl,
+            }),
+            notifyAdmins(app, {
+              title: 'Order Payment Received',
+              message: `Order #${order._id.toString().slice(-6).toUpperCase()} paid — ${userSnap.name || 'Customer'} · ${order.total_amount?.toLocaleString()} XAF`,
+              type: 'system_alert',
+              metadata: { order_id: order._id, link: '/admin/orders' },
+              sendEmail: true,
             }),
           ];
           if (vendor) {

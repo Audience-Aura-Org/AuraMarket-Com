@@ -7,7 +7,7 @@ const Cart = require('../models/Cart.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const eversend = require('../services/eversend.service');
 const payunit = require('../services/payunit.service');
-const { sendNotification } = require('../utils/notifier');
+const { sendNotification, notifyAdmins } = require('../utils/notifier');
 const { getWebUrl } = require('../utils/url');
 const mongoose = require('mongoose');
 const { PAYSTACK_SECRET_KEY } = require('../config/env');
@@ -78,6 +78,15 @@ const handleWebhook = async (req, res, next) => {
         transaction.gateway_response = event.data;
         await transaction.save();
         await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: amount / 100 } });
+        setImmediate(() => {
+          notifyAdmins(req.app, {
+            title: 'New Wallet Deposit',
+            message: `${(amount / 100).toLocaleString()} XAF deposited via Paystack (ref: ${reference}).`,
+            type: 'system_alert',
+            metadata: { link: '/admin/transactions' },
+            sendEmail: true,
+          }).catch(console.error);
+        });
       }
     }
     res.status(200).send('Webhook processed');
@@ -313,6 +322,15 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
     await session.commitTransaction();
     if (!isSubscriptionTransaction(transaction) && !(transaction.order_ids?.length > 0)) {
       emitWalletCredit(app, transaction);
+      setImmediate(() => {
+        notifyAdmins(app, {
+          title: 'New Wallet Deposit',
+          message: `${transaction.amount.toLocaleString()} XAF deposited via ${paymentGateway || 'gateway'} (ref: ${transaction.reference}).`,
+          type: 'system_alert',
+          metadata: { link: '/admin/transactions' },
+          sendEmail: true,
+        }).catch(console.error);
+      });
     }
   } catch (err) {
     await session.abortTransaction();
@@ -1069,6 +1087,16 @@ const eversendWebhook = async (req, res) => {
             type: 'wallet_update',
             metadata: { link: isSubscription ? '/subscribe' : (isCheckout ? '/orders' : '/wallet') },
           }).catch(console.error);
+          // Admin email for pure wallet top-ups only (checkout orders are notified in settle.service.js)
+          if (!isSubscription && !isCheckout) {
+            notifyAdmins(req.app, {
+              title: 'New Wallet Deposit',
+              message: `${transaction.amount.toLocaleString()} XAF deposited via Eversend (ref: ${transaction.reference}).`,
+              type: 'system_alert',
+              metadata: { link: '/admin/transactions' },
+              sendEmail: true,
+            }).catch(console.error);
+          }
         });
 
         console.log(`? Eversend: ${isSubscription ? 'subscription activated' : (isCheckout ? 'orders settled' : 'wallet credited')} ${transaction.amount} XAF for user ${transaction.user_id}`);

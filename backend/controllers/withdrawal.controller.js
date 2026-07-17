@@ -271,7 +271,7 @@ const submitWithdrawal = async (req, res) => {
               withdrawal_id: withdrawalRequest._id,
               link: '/admin/withdrawals',
             },
-            sendEmail: false,
+            sendEmail: true,
           })
         ));
 

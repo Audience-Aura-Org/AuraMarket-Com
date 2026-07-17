@@ -408,4 +408,18 @@ const notifyFollowers = async (app, vendorId, data) => {
   }
 };
 
-module.exports = { sendNotification, notifyFollowers };
+/**
+ * Send a notification (and email) to every active admin user.
+ * Fire-and-forget — errors are logged but never thrown.
+ */
+const notifyAdmins = async (app, data) => {
+  try {
+    const admins = await User.find({ role: 'admin', is_active: true }).select('_id').lean();
+    if (!admins.length) return;
+    await Promise.allSettled(admins.map(admin => sendNotification(app, admin._id, data)));
+  } catch (err) {
+    console.error('[notifyAdmins] Error:', err.message);
+  }
+};
+
+module.exports = { sendNotification, notifyFollowers, notifyAdmins };
