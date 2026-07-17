@@ -28,6 +28,7 @@ import {
   isNativePlayerAvailable, createNativePlayer, setNativeSource,
   playNative, pauseNative, seekNative, setNativeMuted,
   setNativeTrimRange, destroyNativePlayer, addNativePlayerListener,
+  setNativePlayerVisible,
 } from '@/lib/nativeVideoPlayer';
 import { useUploadQueue } from '@/context/UploadQueueContext';
 
@@ -1353,6 +1354,33 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     setNativeMuted(muted).catch(() => {});
   }, [muted, nativeVideoUri]);
 
+  // Hide native TextureView when WebView modal sheets open so the user can
+  // interact with them — the native view (viewerMode=false, above WebView)
+  // intercepts all touches in the workspace area regardless of CSS z-index.
+  // No nativePlayerActiveRef guard — setVisible is a no-op in Java when
+  // container is null (player still initialising), so always safe to call.
+  useEffect(() => {
+    if (!isNativePlatform()) return;
+    const modalOpen = showProductPicker || showSettingsPicker;
+    setNativePlayerVisible(!modalOpen).catch(() => {});
+  }, [showProductPicker, showSettingsPicker]);
+
+  // Await hide BEFORE opening modals so the ExoPlayer TextureView is gone
+  // before the modal renders. Guard removed — Java handles null container.
+  const handleOpenProductPicker = useCallback(async () => {
+    if (isNativePlatform()) {
+      try { await setNativePlayerVisible(false); } catch (_) {}
+    }
+    setShowProductPicker(true);
+  }, []);
+
+  const handleOpenSettingsPicker = useCallback(async () => {
+    if (isNativePlatform()) {
+      try { await setNativePlayerVisible(false); } catch (_) {}
+    }
+    setShowSettingsPicker(true);
+  }, []);
+
   const handleFileChange = async (e) => {
     const f = e.target.files[0];
     e.target.value = '';
@@ -1777,7 +1805,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const canPost = selectedCategory && (type === 'text' ? textContent.trim() : (file || (isReshare && previewUrl)));
+  const canPost = selectedCategory && (type === 'text' ? textContent.trim() : (file || nativeVideoUri || (isReshare && previewUrl)));
   const videoSegments = useMemo(
     () => buildVideoSegments(videoMeta?.duration || 0),
     [videoMeta?.duration]
@@ -2352,18 +2380,18 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
           {type === 'text' ? (
             <>
               {/* Text Mode Bottom bar */}
-              <button 
-                type="button" 
-                onClick={() => setShowSettingsPicker(true)} 
+              <button
+                type="button"
+                onClick={handleOpenSettingsPicker}
                 className="flex items-center gap-1.5 rounded-full bg-[#1f2c34] px-4 py-2.5 border border-white/5 text-xs text-white/80 hover:bg-[#2a3942] transition-colors"
               >
                 <Sliders className="size-3.5 text-[#20c763]" />
                 <span>{selectedCategory} · {expiryDays}d</span>
               </button>
-              
-              <button 
-                type="button" 
-                onClick={() => setShowProductPicker(true)} 
+
+              <button
+                type="button"
+                onClick={handleOpenProductPicker}
                 className={`flex items-center gap-1.5 rounded-full px-4 py-2.5 border text-xs transition-colors ${
                   linkedProduct 
                     ? 'bg-[#20c763]/10 border-[#20c763]/30 text-[#20c763]' 
@@ -2388,9 +2416,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
             <>
               {/* Media Mode Bottom bar (WhatsApp rounded Capsule) */}
               <div className="flex-1 flex items-center bg-[#1f2c34] border border-white/5 rounded-full px-3 py-1.5 min-w-0">
-                <button 
-                  type="button" 
-                  onClick={() => setShowProductPicker(true)} 
+                <button
+                  type="button"
+                  onClick={handleOpenProductPicker}
                   className={`p-1.5 rounded-full hover:bg-white/5 transition-colors shrink-0 ${linkedProduct ? 'text-[#20c763]' : 'text-white/60'}`}
                   title="Tag Product"
                 >
@@ -2405,9 +2433,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                   className="min-w-0 flex-1 border-0 bg-transparent text-sm text-white outline-none placeholder:text-white/40 focus:ring-0 px-2 py-1" 
                 />
                 
-                <button 
-                  type="button" 
-                  onClick={() => setShowSettingsPicker(true)} 
+                <button
+                  type="button"
+                  onClick={handleOpenSettingsPicker}
                   className="p-1.5 rounded-full hover:bg-white/5 text-white/60 transition-colors shrink-0"
                   title="Status Settings"
                 >

@@ -74,6 +74,15 @@ export async function updateNativeBounds({ x, y, width, height }) {
   });
 }
 
+/**
+ * Show or hide the native container without destroying the player.
+ * Call with visible=false when WebView modal sheets (product picker, settings)
+ * need to receive touch events — the TextureView otherwise intercepts them.
+ */
+export async function setNativePlayerVisible(visible) {
+  return plugin()?.setVisible?.({ visible });
+}
+
 /** Release ExoPlayer and remove the overlay from the screen. */
 export async function destroyNativePlayer() {
   return plugin()?.destroy?.();

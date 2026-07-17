@@ -152,6 +152,7 @@ function ShopContent() {
         setProducts(cached.products);
         setTotalPages(cached.totalPages);
         setPage(targetPage); // confirm page matches fetched data
+        setLoading(false);   // ensure any prior non-cached fetch's loading=true is cleared
         return;
       }
 
@@ -193,7 +194,7 @@ function ShopContent() {
       } catch (err) {
         console.error('Shop fetch error:', err);
       } finally {
-        if (gen === fetchGenRef.current) setLoading(false);
+        setLoading(false); // always reset — prevents permanent stuck state on stale fetches
       }
     };
 

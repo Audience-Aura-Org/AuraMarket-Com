@@ -62,7 +62,7 @@ const colorMap = {
   },
 };
 
-export default function StatCard({ label, value, sub, icon: Icon, color = 'primary', pct, href, progress, footer }) {
+export default function StatCard({ label, value, sub, icon: Icon, color = 'primary', pct, href, progress, footer, loading = false }) {
   const c = colorMap[color] || colorMap.primary;
 
   const content = (
@@ -91,9 +91,18 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'prima
       {/* Content: label, value, sub */}
       <div>
         <p className="mb-0.5 text-[10px] font-medium capitalize tracking-wide text-[var(--text-secondary)] opacity-65">{label}</p>
-        <h3 className="truncate font-mono text-lg font-semibold tracking-tight text-[var(--text-primary)] md:text-2xl">{value}</h3>
-        {sub && (
-          <p className="mt-0.5 truncate text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-55">{sub}</p>
+        {loading ? (
+          <>
+            <div className="h-6 w-24 rounded-lg bg-[var(--bg-secondary)] animate-pulse mt-1" />
+            <div className="h-3 w-16 rounded-md bg-[var(--bg-secondary)] animate-pulse mt-2" />
+          </>
+        ) : (
+          <>
+            <h3 className="truncate font-mono text-lg font-semibold tracking-tight text-[var(--text-primary)] md:text-2xl">{value}</h3>
+            {sub && (
+              <p className="mt-0.5 truncate text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-55">{sub}</p>
+            )}
+          </>
         )}
       </div>
 

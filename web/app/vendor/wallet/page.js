@@ -326,10 +326,10 @@ export default function VendorWalletPage() {
       <div className="p-4 md:p-10 space-y-8 pb-32">
         {/* KPI Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
-          <StatCard label="Available"    value={fmt(balance)}        icon="account_balance_wallet" color="emerald" sub="XAF Ready"         progress={availRatio}    footer={`${escrowRatioW}% held in escrow`} />
-          <StatCard label="In Escrow"   value={fmt(escrow)}          icon="lock_clock"             color="amber"   sub="Pending Delivery"  progress={escrowRatioW}  footer="Pending delivery confirmation" />
-          <StatCard label="Total Earned" value={fmt(totalEarned)}    icon="trending_up"            color="fuchsia" sub="Total earned"       progress={Math.min(withdrawRatio + availRatio, 100)} footer={`${fmt(totalEarned)} lifetime`} />
-          <StatCard label="Withdrawn"   value={fmt(withdrawnTotal)}  icon="arrow_outward"          color="blue"    sub="Successful payouts" progress={withdrawRatio} footer={`${fmt(Math.max(totalEarned - withdrawnTotal, 0))} remaining`} />
+          <StatCard label="Available"    value={fmt(balance)}        icon="account_balance_wallet" color="emerald" sub="XAF Ready"         progress={availRatio}    footer={`${escrowRatioW}% held in escrow`} loading={loading} />
+          <StatCard label="In Escrow"   value={fmt(escrow)}          icon="lock_clock"             color="amber"   sub="Pending Delivery"  progress={escrowRatioW}  footer="Pending delivery confirmation" loading={loading} />
+          <StatCard label="Total Earned" value={fmt(totalEarned)}    icon="trending_up"            color="fuchsia" sub="Total earned"       progress={Math.min(withdrawRatio + availRatio, 100)} footer={`${fmt(totalEarned)} lifetime`} loading={loading} />
+          <StatCard label="Withdrawn"   value={fmt(withdrawnTotal)}  icon="arrow_outward"          color="blue"    sub="Successful payouts" progress={withdrawRatio} footer={`${fmt(Math.max(totalEarned - withdrawnTotal, 0))} remaining`} loading={loading} />
         </div>
 
         {/* Actions */}

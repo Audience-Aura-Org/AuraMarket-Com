@@ -277,6 +277,22 @@ public class NativeVideoPlayerPlugin extends Plugin {
         });
     }
 
+    // ── setVisible ───────────────────────────────────────────────────────────
+    // Show or hide the native container without destroying it.
+    // Used to let WebView modal sheets (product picker, settings) receive
+    // touch events — the native TextureView otherwise intercepts them when
+    // it is positioned above the WebView (viewerMode = false).
+    @PluginMethod
+    public void setVisible(PluginCall call) {
+        boolean visible = Boolean.TRUE.equals(call.getBoolean("visible", true));
+        mainHandler.post(() -> {
+            if (container != null) {
+                container.setVisibility(visible ? View.VISIBLE : View.GONE);
+            }
+            call.resolve();
+        });
+    }
+
     // ── destroy ──────────────────────────────────────────────────────────────
     @PluginMethod
     public void destroy(PluginCall call) {
