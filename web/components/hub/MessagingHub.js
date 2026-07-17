@@ -207,6 +207,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [isTyping, setIsTyping] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const typingTimeoutRef = useRef(null);
+  const typingHeartbeatRef = useRef(null);
   const typingPartnerIdRef = useRef(null);
   const fileInputRef = useRef(null);
   const inputValueRef = useRef('');
@@ -270,6 +271,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     if (previousPartnerId && previousPartnerId !== activePartnerId?.toString?.()) {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
+      if (typingHeartbeatRef.current) clearInterval(typingHeartbeatRef.current);
+      typingHeartbeatRef.current = null;
       if (typingPartnerIdRef.current) {
         socketService.emit('typing_stop', { receiver_id: typingPartnerIdRef.current });
       }
@@ -892,6 +895,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     if (!val.trim()) {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = null;
+      if (typingHeartbeatRef.current) clearInterval(typingHeartbeatRef.current);
+      typingHeartbeatRef.current = null;
       if (typingPartnerIdRef.current) {
         socketService.emit('typing_stop', { receiver_id: typingPartnerIdRef.current });
       }
@@ -903,10 +908,18 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     if (!isTyping || typingPartnerIdRef.current !== targetPartnerId) {
       if (typingPartnerIdRef.current && typingPartnerIdRef.current !== targetPartnerId) {
         socketService.emit('typing_stop', { receiver_id: typingPartnerIdRef.current });
+        if (typingHeartbeatRef.current) clearInterval(typingHeartbeatRef.current);
       }
       setIsTyping(true);
       typingPartnerIdRef.current = targetPartnerId;
       socketService.emit('typing_start', { receiver_id: targetPartnerId });
+      // Heartbeat: re-emit every 2s so the receiver's indicator never expires mid-conversation
+      if (typingHeartbeatRef.current) clearInterval(typingHeartbeatRef.current);
+      typingHeartbeatRef.current = setInterval(() => {
+        if (typingPartnerIdRef.current) {
+          socketService.emit('typing_start', { receiver_id: typingPartnerIdRef.current });
+        }
+      }, 2000);
     }
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -914,6 +927,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       const partnerId = typingPartnerIdRef.current;
       setIsTyping(false);
       typingPartnerIdRef.current = null;
+      if (typingHeartbeatRef.current) clearInterval(typingHeartbeatRef.current);
+      typingHeartbeatRef.current = null;
       if (partnerId) socketService.emit('typing_stop', { receiver_id: partnerId });
     }, 2000);
   };
@@ -980,6 +995,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const sentDraftKey = draftKey;
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    if (typingHeartbeatRef.current) clearInterval(typingHeartbeatRef.current);
+    typingHeartbeatRef.current = null;
     const typingPartnerId = typingPartnerIdRef.current || activePartnerId?.toString?.();
     setIsTyping(false);
     typingPartnerIdRef.current = null;

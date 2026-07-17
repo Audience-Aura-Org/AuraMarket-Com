@@ -647,6 +647,36 @@ export default function SocketProvider({ children }) {
     }
   }, [user]);
 
+  // On Android, the OS can kill the WebSocket while the app is in the background.
+  // The socket doesn't discover the dead connection until pingTimeout fires (up to 15s).
+  // Listening to Capacitor's appStateChange gives us an instant signal to reconnect.
+  useEffect(() => {
+    let appStateListener = null;
+
+    const bindCapacitorAppState = async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform()) return;
+        const { App } = await import('@capacitor/app');
+
+        appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
+          if (!isActive) return;
+          // App returned to foreground — reconnect socket if dropped
+          const currentUser = userRef.current;
+          const currentToken = tokenRef.current;
+          if (currentUser?._id && currentToken && !socketService.isConnected()) {
+            socketService.connect(currentUser._id, currentToken);
+          }
+        });
+      } catch (_) {
+        // Not a Capacitor environment or App plugin unavailable
+      }
+    };
+
+    bindCapacitorAppState();
+    return () => { appStateListener?.remove?.(); };
+  }, []);
+
   // ── Resolve notification display config ──────────────────────────────────
   const resolveConfig = (type) => {
     const key = Object.keys(NOTIF_CONFIG).find(k => type?.includes(k)) || 'default';

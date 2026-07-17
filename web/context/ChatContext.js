@@ -797,7 +797,7 @@ export function ChatProvider({ children }) {
       typingExpiryTimersRef.current[key] = setTimeout(() => {
         delete typingExpiryTimersRef.current[key];
         dispatch({ type: 'TYPING_UPDATE', userId: key, isTyping: false });
-      }, 3500);
+      }, 3000);
     };
     const onStoppedTyping = ({ userId }) => {
       const key = userId?.toString?.();
