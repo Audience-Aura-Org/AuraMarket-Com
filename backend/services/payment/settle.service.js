@@ -241,12 +241,31 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
 
     setImmediate(async () => {
       try {
-        const shipmentDoc = await Shipment.findOne({ order_id: order._id }).lean();
+        // Fetch supporting data in parallel before dispatching notifications
+        const [shipmentDoc, logisticsFirm] = await Promise.all([
+          Shipment.findOne({ order_id: order._id }).lean(),
+          (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
+            ? LogisticsCompany.findById(order.logistics_company_id)
+            : Promise.resolve(null),
+        ]);
         if (shipmentDoc) orderObj.shipment = shipmentDoc;
         orderObj.customer_name = user.name;
 
+        // Dispatch all notifications in parallel so no recipient waits on another
+        const tasks = [
+          sendNotification(app, user._id, {
+            title: 'Order Payment Confirmed',
+            message: `Your payment for order #${order._id.toString().slice(-6).toUpperCase()} has been confirmed.`,
+            type: 'order_status',
+            metadata: { order_id: order._id, link: '/orders' },
+            sendEmail: true,
+            orderDetails: orderObj,
+            role: 'customer',
+            webUrl,
+          }),
+        ];
         if (vendor) {
-          await sendNotification(app, vendor.user_id, {
+          tasks.push(sendNotification(app, vendor.user_id, {
             title: 'Order Paid & Confirmed',
             message: `Payment received for order #${order._id.toString().slice(-6).toUpperCase()} from ${user.name}.`,
             type: 'order_status',
@@ -255,39 +274,23 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
             orderDetails: orderObj,
             role: 'vendor',
             webUrl,
-          });
+          }));
         }
-        await sendNotification(app, user._id, {
-          title: 'Order Payment Confirmed',
-          message: `Your payment for order #${order._id.toString().slice(-6).toUpperCase()} has been confirmed.`,
-          type: 'order_status',
-          metadata: { order_id: order._id, link: '/orders' },
-          sendEmail: true,
-          orderDetails: orderObj,
-          role: 'customer',
-          webUrl,
-        });
-        if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
-          const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
-          if (logisticsFirm) {
-            const logisticsOrderDetails = {
-              ...orderObj,
-              logistics_name: logisticsFirm.company_name,
-            };
-            await sendNotification(app, logisticsFirm.user_id, {
-              title: 'New Shipment Assigned',
-              message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
-              type: 'logistics_update',
-              metadata: { order_id: order._id, link: '/logistics/manifests', status: shipmentDoc?.status || 'assigned' },
-              sendEmail: true,
-              role: 'logistics',
-              webUrl,
-              orderDetails: logisticsOrderDetails,
-              emailLink: `${webUrl}/logistics/manifests`,
-              overrideEmail: logisticsFirm.contact_email,
-            });
-          }
+        if (logisticsFirm) {
+          tasks.push(sendNotification(app, logisticsFirm.user_id, {
+            title: 'New Shipment Assigned',
+            message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
+            type: 'logistics_update',
+            metadata: { order_id: order._id, link: '/logistics/manifests', status: shipmentDoc?.status || 'assigned' },
+            sendEmail: true,
+            role: 'logistics',
+            webUrl,
+            orderDetails: { ...orderObj, logistics_name: logisticsFirm.company_name },
+            emailLink: `${webUrl}/logistics/manifests`,
+            overrideEmail: logisticsFirm.contact_email,
+          }));
         }
+        await Promise.all(tasks);
       } catch (e) {
         console.error('[settleOrder] bg notification error:', e.message);
       }
@@ -382,47 +385,50 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
 
       setImmediate(async () => {
         try {
-          const shipmentDoc = await Shipment.findOne({ order_id: order._id }).lean();
+          // Fetch supporting data in parallel before dispatching notifications
+          const [shipmentDoc, logisticsFirm] = await Promise.all([
+            Shipment.findOne({ order_id: order._id }).lean(),
+            (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
+              ? LogisticsCompany.findById(order.logistics_company_id)
+              : Promise.resolve(null),
+          ]);
           if (shipmentDoc) orderObj.shipment = shipmentDoc;
           orderObj.customer_name = userSnap.name;
 
+          // Dispatch all notifications in parallel so no recipient waits on another
+          const tasks = [
+            sendNotification(app, userSnap._id, {
+              title: 'Order Payment Confirmed',
+              message: `Your payment for order #${order._id.toString().slice(-6).toUpperCase()} has been confirmed.`,
+              type: 'order_status',
+              metadata: { order_id: order._id, link: '/orders' },
+              sendEmail: true, orderDetails: orderObj, role: 'customer', webUrl,
+            }),
+          ];
           if (vendor) {
-            await sendNotification(app, vendor.user_id, {
+            tasks.push(sendNotification(app, vendor.user_id, {
               title: 'Order Paid & Confirmed',
               message: `Payment received for order #${order._id.toString().slice(-6).toUpperCase()}.`,
               type: 'order_status',
               metadata: { order_id: order._id, link: '/vendor/orders' },
               sendEmail: true, orderDetails: orderObj, role: 'vendor', webUrl,
-            });
+            }));
           }
-          await sendNotification(app, userSnap._id, {
-            title: 'Order Payment Confirmed',
-            message: `Your payment for order #${order._id.toString().slice(-6).toUpperCase()} has been confirmed.`,
-            type: 'order_status',
-            metadata: { order_id: order._id, link: '/orders' },
-            sendEmail: true, orderDetails: orderObj, role: 'customer', webUrl,
-          });
-          if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
-            const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id);
-            if (logisticsFirm) {
-              const logisticsOrderDetails = {
-                ...orderObj,
-                logistics_name: logisticsFirm.company_name,
-              };
-              await sendNotification(app, logisticsFirm.user_id, {
-                title: 'New Shipment Assigned',
-                message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
-                type: 'logistics_update',
-                sendEmail: true,
-                role: 'logistics',
-                webUrl,
-                metadata: { order_id: order._id, link: '/logistics/manifests', status: shipmentDoc?.status || 'assigned' },
-                orderDetails: logisticsOrderDetails,
-                emailLink: `${webUrl}/logistics/manifests`,
-                overrideEmail: logisticsFirm.contact_email,
-              });
-            }
+          if (logisticsFirm) {
+            tasks.push(sendNotification(app, logisticsFirm.user_id, {
+              title: 'New Shipment Assigned',
+              message: `Order #${order._id.toString().slice(-6).toUpperCase()} is ready for pickup.`,
+              type: 'logistics_update',
+              sendEmail: true,
+              role: 'logistics',
+              webUrl,
+              metadata: { order_id: order._id, link: '/logistics/manifests', status: shipmentDoc?.status || 'assigned' },
+              orderDetails: { ...orderObj, logistics_name: logisticsFirm.company_name },
+              emailLink: `${webUrl}/logistics/manifests`,
+              overrideEmail: logisticsFirm.contact_email,
+            }));
           }
+          await Promise.all(tasks);
         } catch (e) {
           console.error('[settleOrders] bg notification error:', e.message);
         }

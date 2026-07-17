@@ -232,7 +232,13 @@ const sendNotification = async (app, recipientId, data) => {
       senderAvatar = null,   // chat: sender's avatar for richer OS notification
     } = data;
 
-    const recipientProfile = await User.findById(recipientId).select('preferred_language').lean().catch(() => null);
+    // Fetch user language preference and push subscriptions in parallel to avoid
+    // two sequential DB round-trips before FCM can fire.
+    const PushSubscription = require('../models/PushSubscription.model');
+    const [recipientProfile, pushSubs] = await Promise.all([
+      User.findById(recipientId).select('preferred_language').lean().catch(() => null),
+      PushSubscription.find({ user_id: recipientId }).lean().catch(() => []),
+    ]);
     const recipientLanguage = recipientProfile?.preferred_language === 'fr' ? 'fr' : 'en';
     const localizedTitle = translateNotificationText(title, recipientLanguage);
     const localizedMessage = translateNotificationText(message, recipientLanguage);
@@ -251,14 +257,13 @@ const sendNotification = async (app, recipientId, data) => {
     // ─────────────────────────────────────────────
     // NON-BLOCKING BACKGROUND CHANNELS
     // ─────────────────────────────────────────────
-    
+
     // 🚀 CHANNEL 1: PWA WEB PUSH (ULTRA-FAST PATH)
     enqueueJob('push', async () => {
       try {
-        const PushSubscription = require('../models/PushSubscription.model');
-        const subs = await PushSubscription.find({ user_id: recipientId });
-        const webSubs = subs.filter((sub) => sub.channel !== 'android' && sub.subscription?.endpoint && !String(sub.subscription.endpoint).startsWith('fcm:'));
-        const androidTokens = subs
+        // Use pre-fetched subscriptions — no extra DB query needed here
+        const webSubs = pushSubs.filter((sub) => sub.channel !== 'android' && sub.subscription?.endpoint && !String(sub.subscription.endpoint).startsWith('fcm:'));
+        const androidTokens = pushSubs
           .filter((sub) => sub.channel === 'android' && sub.fcm_token)
           .map((sub) => sub.fcm_token);
 
