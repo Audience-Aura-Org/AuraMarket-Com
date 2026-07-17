@@ -676,25 +676,15 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   useEffect(() => { nativeVideoUriRef.current = nativeVideoUri; }, [nativeVideoUri]);
 
   const videoPlay = useCallback(() => {
-    if (isNativePlatform() && nativeVideoUriRef.current) {
-      playNative().catch(() => {});
-    } else {
-      previewVideoRef.current?.play().catch(() => {});
-    }
+    previewVideoRef.current?.play().catch(() => {});
   }, []);
 
   const videoPause = useCallback(() => {
-    if (isNativePlatform() && nativeVideoUriRef.current) {
-      pauseNative().catch(() => {});
-    } else {
-      previewVideoRef.current?.pause();
-    }
+    previewVideoRef.current?.pause();
   }, []);
 
   const videoSeek = useCallback((seconds) => {
-    if (isNativePlatform() && nativeVideoUriRef.current) {
-      seekNative(seconds * 1000).catch(() => {});
-    } else if (previewVideoRef.current) {
+    if (previewVideoRef.current) {
       previewVideoRef.current.currentTime = seconds;
     }
   }, []);
@@ -1244,6 +1234,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   // Create the TextureView overlay when a native video URI is set; destroy it
   // when the URI clears (clearSelectedMedia) or when the component unmounts.
   useEffect(() => {
+    // Native ExoPlayer preview disabled for the creator — viewerMode:true (behind WebView)
+    // is unreliable (emulators, compositor layers). HTML <video> via convertFileSrc works
+    // everywhere. ExoPlayer is kept only in StatusViewer where it runs above the WebView.
+    return;
+    /* eslint-disable no-unreachable */
     if (!isNativePlatform() || !nativeVideoUri || !isNativePlayerAvailable()) return;
     const container = nativeVideoContainerRef.current;
     if (!container) return;
@@ -1306,6 +1301,9 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   //      restore only the StatusCreator root (visibility:visible) so nothing else
   //      in the WebView paints over the native layer.
   useEffect(() => {
+    // Body/html transparency no longer needed — native player disabled for creator.
+    return;
+    /* eslint-disable no-unreachable */
     if (!isNativePlatform() || !nativeVideoUri) return;
     const prevBg      = document.body.style.background      || '';
     const prevBgImage = document.body.style.backgroundImage || '';
@@ -1786,7 +1784,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
   const previewVideoSrc = buildPreviewVideoSrc(previewUrl);
 
   const layout = (
-    <div ref={statusCreatorRootRef} className={`fixed inset-0 z-[1100] flex items-center justify-center overflow-hidden font-[Poppins] ${isNativePlatform() && nativeVideoUri ? '' : 'bg-black/85 backdrop-blur-md'}`}>
+    <div ref={statusCreatorRootRef} className="fixed inset-0 z-[1100] flex items-center justify-center overflow-hidden font-[Poppins] bg-black/85 backdrop-blur-md">
       <style>{`
         .status-preview-video {
           -webkit-appearance: none;
@@ -1812,7 +1810,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       )}
 
       {/* Central Phone Mockup Container */}
-      <div className={`relative z-10 w-full md:w-[428px] h-full md:h-[90vh] md:max-h-[760px] md:aspect-[9/16] md:rounded-[2.5rem] md:border-8 md:border-[#202022] md:shadow-2xl overflow-hidden flex flex-col ${isNativePlatform() && nativeVideoUri ? '' : 'bg-black'}`}>
+      <div className="relative z-10 w-full md:w-[428px] h-full md:h-[90vh] md:max-h-[760px] md:aspect-[9/16] md:rounded-[2.5rem] md:border-8 md:border-[#202022] md:shadow-2xl overflow-hidden flex flex-col bg-black">
         
         {/* Top Status Bar Mockup (Only on desktop frames for premium detail) */}
         <div className="hidden md:flex justify-between items-center px-6 py-2.5 bg-black/45 text-white/50 text-[10px] font-bold select-none shrink-0 z-30">
@@ -1826,7 +1824,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </div>
 
         {/* Header / Top Tool Bar */}
-        <header className={`p-4 flex items-center justify-between bg-black/45 z-30 border-b border-white/5 shrink-0 ${isNativePlatform() && nativeVideoUri ? '' : 'backdrop-blur-sm'}`}>
+        <header className="p-4 flex items-center justify-between bg-black/45 backdrop-blur-sm z-30 border-b border-white/5 shrink-0">
           <button 
             type="button" 
             onClick={onClose} 
@@ -1929,21 +1927,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         {/* Central Workspace / Media Preview Container */}
         {/* bg-[#09090b] is removed when native ExoPlayer is active so the TextureView
             (placed behind the WebView via viewerMode=true) shows through the transparent HTML layer. */}
-        <div className={`flex-1 relative flex items-center justify-center overflow-hidden ${isNativePlatform() && nativeVideoUri ? '' : 'bg-[#09090b]'}`}>
+        <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-[#09090b]">
           {previewUrl ? (
             <div className="absolute inset-0 w-full h-full flex items-center justify-center">
               {type === 'video' ? (
                 <>
-                  {/* On Android native + native video URI → ExoPlayer TextureView overlay.
-                      The div acts as a positioning anchor; the actual video renders natively
-                      above the WebView in the Activity's DecorView.
-                      On web (or before native pick) → standard WebView <video> element. */}
-                  {isNativePlatform() && nativeVideoUri ? (
-                    <div
-                      ref={nativeVideoContainerRef}
-                      className="absolute inset-0 w-full h-full z-10"
-                    />
-                  ) : (
                   <video
                     ref={previewVideoRef}
                     src={previewVideoSrc}
@@ -1958,10 +1946,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                     preload="auto"
                     onContextMenu={(e) => e.preventDefault()}
                     onLoadedMetadata={(e) => {
-                      if (!isNativePlatform()) return;
-                      // Seek to 0.001s the instant metadata is known (readyState=1).
-                      // Primes the HW decoder pipeline before play() is attempted,
-                      // showing the first frame even if play() is later rejected.
+                      // Seek to 0.001s to prime the HW decoder and show first frame
                       e.currentTarget.currentTime = 0.001;
                     }}
                     onCanPlay={undefined}
@@ -1975,7 +1960,6 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                       }
                     }}
                   />
-                  )}
                   {/* Play/pause button — always rendered in WebView.
                       In viewerMode=true the native TextureView is BEHIND the WebView,
                       so WebView buttons are fully visible and interactive. The Java-side
@@ -1997,15 +1981,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
                   alt="status preview"
                 />
               )}
-              {/* Overlay shadow gradients to keep inputs/headers legible — hidden when
-                  ExoPlayer is active so the gradient doesn't paint over the TextureView */}
-              {!(isNativePlatform() && nativeVideoUri) && (
-                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60 z-20 pointer-events-none" />
-              )}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60 z-20 pointer-events-none" />
               
               {/* Floating Product Tag (If tagged) */}
               {linkedProduct && (
-                <div className={`absolute left-4 right-4 z-20 p-2.5 rounded-2xl border border-[#20c763]/25 bg-black/75 flex items-center justify-between min-w-0 shadow-xl transition-all duration-300 ${isNativePlatform() && nativeVideoUri ? '' : 'backdrop-blur-md'} ${
+                <div className={`absolute left-4 right-4 z-20 p-2.5 rounded-2xl border border-[#20c763]/25 bg-black/75 backdrop-blur-md flex items-center justify-between min-w-0 shadow-xl transition-all duration-300 ${
                   (type === 'video' && showTrimmer && videoMeta) ? 'top-[96px]' : 'top-4'
                 }`}>
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -2029,7 +2009,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
 
               {/* WhatsApp-Style top filmstrip trimmer timeline (Video only, overlaying at the top of the video preview screen) */}
               {type === 'video' && videoMeta && previewUrl && showTrimmer && (
-                <div className={`absolute top-4 left-4 right-4 z-30 select-none bg-black/60 p-2.5 rounded-2xl border border-white/10 ${isNativePlatform() && nativeVideoUri ? '' : 'backdrop-blur-md'}`}>
+                <div className="absolute top-4 left-4 right-4 z-30 select-none bg-black/60 p-2.5 rounded-2xl border border-white/10 backdrop-blur-md">
                   <div className="flex items-center justify-between mb-2 text-[10px] font-bold text-white/60 uppercase tracking-wider">
                     <span className="flex items-center gap-1">
                       <Scissors className="size-3 text-[#20c763]" />
@@ -2391,7 +2371,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         </div>
 
         {/* Bottom Tool Bar / Input Capsule */}
-        <div className={`p-4 flex items-center gap-3 bg-black/45 z-30 shrink-0 ${isNativePlatform() && nativeVideoUri ? '' : 'backdrop-blur-sm'}`}>
+        <div className="p-4 flex items-center gap-3 bg-black/45 backdrop-blur-sm z-30 shrink-0">
           {type === 'text' ? (
             <>
               {/* Text Mode Bottom bar */}

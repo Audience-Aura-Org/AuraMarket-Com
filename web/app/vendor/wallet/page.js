@@ -194,13 +194,10 @@ export default function VendorWalletPage() {
     };
   }, [user?._id, load]);
 
-  // Keep local balance in sync with auth store (SocketProvider updates storeWalletBalance
-  // via refreshWalletBalance() when wallet:credited fires, even before load() completes)
-  useEffect(() => {
-    if (storeWalletBalance !== null && storeWalletBalance !== undefined) {
-      setBalance(storeWalletBalance);
-    }
-  }, [storeWalletBalance]);
+  // Store sync intentionally removed — load() fetches the authoritative API value and
+  // calls setWalletBalance() to update the store. pendingSilentLoad replays any
+  // socket-triggered credits after the current fetch, making the sync redundant.
+  // Keeping it caused the stat card to show stale store data instead of the API value.
 
   // Reset pagination on tab change
   useEffect(() => { setCurrentPage(1); }, [tab]);

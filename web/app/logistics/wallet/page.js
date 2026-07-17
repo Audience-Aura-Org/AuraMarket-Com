@@ -182,13 +182,9 @@ export default function LogisticsWalletPage() {
     };
   }, [user?._id, load]);
 
-  // Keep local balance in sync with auth store (SocketProvider updates storeWalletBalance
-  // via refreshWalletBalance() on wallet:credited events, even before load() completes)
-  useEffect(() => {
-    if (storeWalletBalance !== null && storeWalletBalance !== undefined) {
-      setBalance(storeWalletBalance);
-    }
-  }, [storeWalletBalance]);
+  // Store sync intentionally removed — load() fetches the authoritative API value and
+  // calls setWalletBalance() to update the store. pendingSilentLoad replays any
+  // socket-triggered credits after the current fetch, making the sync redundant.
 
   useEffect(() => { setCurrentPage(1); }, [tab]);
 
