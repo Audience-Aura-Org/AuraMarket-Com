@@ -364,8 +364,9 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
             </div>
             <Pagination
               currentPage={page}
-              totalPages={Math.max(totalPages, products.length === 20 ? page + 1 : page)}
+              totalPages={totalPages}
               onPageChange={handlePageChange}
+              loading={productsLoading}
             />
           </>
         ) : (

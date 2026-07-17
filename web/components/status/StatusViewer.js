@@ -704,16 +704,20 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
     const setup = async () => {
       const rect    = container.getBoundingClientRect();
       const dpr     = window.devicePixelRatio || 1;
-      // Android WebView getBoundingClientRect() returns layout CSS px (pre-zoom).
-      // Multiply by cssZoom to get visual CSS px, then by dpr for physical px.
-      const cssZoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+      // getBoundingClientRect() behaviour changed across Android WebView versions:
+      //   Old WebViews (< Chrome 128): returns layout CSS px (pre-zoom).
+      //   New WebViews (Chrome 128+): already returns visual CSS px.
+      // Compute the correct BCR-to-physical-pixel scale dynamically so both
+      // old and new devices position the TextureView correctly.
+      const htmlBCR       = document.documentElement.getBoundingClientRect();
+      const bcrToPhysical = (window.innerWidth * dpr) / (htmlBCR.width || window.innerWidth);
 
       if (!nativePlayerActiveRef.current) {
         await createNativePlayer({
-          x: Math.round(rect.left * cssZoom * dpr),
-          y: Math.round(rect.top * cssZoom * dpr),
-          width: Math.round(rect.width * cssZoom * dpr),
-          height: Math.round(rect.height * cssZoom * dpr),
+          x: Math.round(rect.left  * bcrToPhysical),
+          y: Math.round(rect.top   * bcrToPhysical),
+          width:  Math.round(rect.width  * bcrToPhysical),
+          height: Math.round(rect.height * bcrToPhysical),
           muted, viewerMode: true,
         });
         nativePlayerActiveRef.current = true;
@@ -764,26 +768,10 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
   const handleViewProduct = useCallback(() => {
     const product = story?.linked_product;
     if (!product) return;
-    const recipientUserId = story?.vendor_id?.user_id?._id || story?.vendor_id?.user_id;
-    // If there's a vendor to chat with, open chat with product context (WhatsApp-like)
-    if (recipientUserId) {
-      const partnerData = {
-        _id: recipientUserId,
-        name: story.vendor_id?.store_name || 'Vendor',
-        avatar: story.vendor_id?.user_id?.branding?.logo || story.vendor_id?.user_id?.avatar || null,
-      };
-      handleClose();
-      openChat(recipientUserId, product, partnerData);
-      window.dispatchEvent(new CustomEvent('aura_chat_focus', {
-        detail: { partnerId: recipientUserId.toString(), partnerData, skipPresence: true },
-      }));
-      return;
-    }
-    // Fallback: navigate to product page
     const productId = product._id || product;
     handleClose();
     router.push(`/products?id=${encodeURIComponent(productId)}`);
-  }, [story, handleClose, router, openChat]);
+  }, [story, handleClose, router]);
 
   const handleVendorClick = useCallback((e, vendorId) => {
     e.stopPropagation();

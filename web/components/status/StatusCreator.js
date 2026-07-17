@@ -1249,21 +1249,26 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     (async () => {
       try {
         const rect = container.getBoundingClientRect();
-        const dpr     = window.devicePixelRatio || 1;
-        // Android WebView's getBoundingClientRect() returns layout CSS pixels
-        // (before CSS zoom is applied). globals.css sets html { zoom: 0.7 }, so
-        // we must multiply by cssZoom to get visual CSS pixels, then by dpr for
-        // physical pixels — otherwise ExoPlayer is mis-positioned and oversized.
-        const cssZoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+        const dpr  = window.devicePixelRatio || 1;
+        // getBoundingClientRect() behaviour changed across Android WebView versions:
+        //   Old WebViews (< Chrome 128): returns layout CSS px (pre-zoom), so we
+        //     need to multiply by cssZoom to convert to visual CSS px.
+        //   New WebViews (Chrome 128+): already returns visual CSS px — applying
+        //     cssZoom again would make the overlay 20 % too small / mis-positioned.
+        // We detect which behaviour is active by comparing htmlBCR.width to
+        // window.innerWidth (always visual CSS px): if they differ, BCR is still
+        // returning layout px and we need the zoom factor; if they match, we don't.
+        const htmlBCR      = document.documentElement.getBoundingClientRect();
+        const bcrToPhysical = (window.innerWidth * dpr) / (htmlBCR.width || window.innerWidth);
         // viewerMode=false → TextureView placed ABOVE WebView in DecorView.
         // The filmstrip sits in document flow between the header and this workspace div,
         // so the workspace rect is already below the filmstrip — ExoPlayer covers only
         // the video area and the filmstrip stays fully visible and interactive.
         await createNativePlayer({
-          x: Math.round(rect.left * cssZoom * dpr),
-          y: Math.round(rect.top * cssZoom * dpr),
-          width: Math.round(rect.width * cssZoom * dpr),
-          height: Math.round(rect.height * cssZoom * dpr),
+          x: Math.round(rect.left  * bcrToPhysical),
+          y: Math.round(rect.top   * bcrToPhysical),
+          width:  Math.round(rect.width  * bcrToPhysical),
+          height: Math.round(rect.height * bcrToPhysical),
           muted,
           viewerMode: false,
         });
