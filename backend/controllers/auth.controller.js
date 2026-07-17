@@ -12,6 +12,7 @@ const User = require('../models/User.model');
 const KYC = require('../models/KYC.model');
 const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/env');
 const { normalizeUserMedia } = require('../utils/media');
+const { notifyAdmins } = require('../utils/notifier');
 const AuthOtp = require('../models/AuthOtp.model');
 const {
   clearAuthCookie,
@@ -376,6 +377,17 @@ const register = async (req, res, next) => {
       referredByUser.loyalty_points += 100;
       await referredByUser.save({ validateBeforeSave: false });
     }
+
+    // Notify admins of the new registration (fire-and-forget)
+    setImmediate(() => {
+      notifyAdmins(req.app, {
+        title: 'New Account Registration',
+        message: `${name} (${userRole}) just registered with ${email}.`,
+        type: 'system_alert',
+        metadata: { link: '/admin/users' },
+        sendEmail: true,
+      }).catch(console.error);
+    });
 
     sendTokenResponse(user, 201, res);
   } catch (error) {
