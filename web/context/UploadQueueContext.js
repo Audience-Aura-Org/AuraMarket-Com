@@ -67,9 +67,10 @@ export function UploadQueueProvider({ children }) {
         setTimeout(() => removeJob(id), 2500);
       })
       .catch((err) => {
-        console.error('[UploadQueue] Upload failed:', err.message);
-        updateJob(id, { status: 'error', error: err.message });
-        toast.error(err.message || 'Story upload failed. Please try again.', {
+        const errMsg = err.response?.data?.message || err.response?.data?.error || err.message || 'Story upload failed.';
+        console.error('[UploadQueue] Upload failed:', errMsg, { status: err.response?.status, data: err.response?.data });
+        updateJob(id, { status: 'error', error: errMsg });
+        toast.error(errMsg, {
           id: `upload-error-${id}`,
           duration: 7000,
           style: { background: '#1a1a2e', color: '#fff', border: '1px solid rgba(239,68,68,0.4)' },

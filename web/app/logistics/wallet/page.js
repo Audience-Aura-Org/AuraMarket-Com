@@ -131,21 +131,21 @@ export default function LogisticsWalletPage() {
     if (silent) setRefreshing(true);
     else setLoading(true);
     try {
-      const [balRes, txRes, escrowRes, wdRes] = await Promise.all([
+      const [balRes, txRes, escrowRes, wdRes] = await Promise.allSettled([
         api.get('/wallet'),
         api.get('/wallet/transactions?limit=50'),
         api.get('/wallet/escrow'),
         api.get('/withdrawals/mine'),
       ]);
-      if (balRes.data.success) {
-        const nextBalance = balRes.data.data.balance || 0;
+      if (balRes.status === 'fulfilled' && balRes.value.data.success) {
+        const nextBalance = balRes.value.data.data.balance || 0;
         setBalance(nextBalance);
         setWalletBalance(nextBalance);
-        setEscrow(balRes.data.data.pending_escrow || 0);
+        setEscrow(balRes.value.data.data.pending_escrow || 0);
       }
-      if (txRes.data.success) setTxs(txRes.data.data.transactions || []);
-      if (escrowRes.data.success) setEscrowTxs(escrowRes.data.data.transactions || []);
-      if (wdRes.data.success) setWithdrawalRequests(wdRes.data.data.withdrawals || []);
+      if (txRes.status === 'fulfilled' && txRes.value.data.success) setTxs(txRes.value.data.data.transactions || []);
+      if (escrowRes.status === 'fulfilled' && escrowRes.value.data.success) setEscrowTxs(escrowRes.value.data.data.transactions || []);
+      if (wdRes.status === 'fulfilled' && wdRes.value.data.success) setWithdrawalRequests(wdRes.value.data.data.withdrawals || []);
     } catch (e) {
       if (e.response?.status !== 401) console.error('Wallet Load Error:', e);
     } finally {
