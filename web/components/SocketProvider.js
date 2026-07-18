@@ -147,7 +147,7 @@ const normalizeAppRoute = (route) => {
 export default function SocketProvider({ children }) {
   const { user, logout, refreshWalletBalance, setWalletBalance, authChecked, hasHydrated, fetchMe, token } = useAuthStore();
   const router = useRouter();
-  const { isOpen, activePartnerId, openChat } = useChat();
+  const { isOpen, activePartnerId, openChat, syncInboxFromServer } = useChat();
 
   // Toast states
   const [chatToast, setChatToast] = useState(null);
@@ -512,17 +512,38 @@ export default function SocketProvider({ children }) {
         const pushType = payload.type || 'default';
 
         if (isAppForeground()) {
-          // If the active chat for this sender is already open, suppress entirely.
+          const socketDown = !socketService.isConnected();
+
+          // If the active chat for this sender is already open —
           if (pushSenderId && activePartnerIdRef.current?.toString() === String(pushSenderId)) {
-            console.log('[SocketProvider] SW push received for active chat; skipping toast.');
+            if (!socketDown) {
+              // Socket is live → it will deliver the message, nothing to do.
+              console.log('[SocketProvider] SW push received for active chat; skipping toast.');
+              return;
+            }
+            // Socket is down → pull the conversation immediately so the message appears.
+            window.dispatchEvent(new CustomEvent('aura:pull-conversation', {
+              detail: { partnerId: pushSenderId.toString() },
+            }));
             return;
           }
 
-          // If socket is connected and delivering messages in real-time, the socket handler
-          // already shows a chatToast — skip the duplicate notifToast from the push.
-          if (pushType === 'message' && socketService.isConnected()) {
+          // Socket is connected and delivering messages in real-time → skip duplicate toast.
+          if (pushType === 'message' && !socketDown) {
             console.log('[SocketProvider] SW push-received skipped: socket handling delivery.');
             return;
+          }
+
+          // Socket is down and user is in a different chat or inbox:
+          // show toast + force-refresh inbox so unread counts stay accurate.
+          if (pushType === 'message' && socketDown) {
+            syncInboxFromServer?.({ force: true });
+            // Also signal MessagingHub in case the user switches to this chat imminently.
+            if (pushSenderId) {
+              window.dispatchEvent(new CustomEvent('aura:pull-conversation', {
+                detail: { partnerId: pushSenderId.toString() },
+              }));
+            }
           }
 
           setNotifToast({

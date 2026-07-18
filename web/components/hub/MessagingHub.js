@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
-import { 
+import {
   Send, X, ArrowLeft, Package,
-  MessageCircle, Check, CheckCheck, Loader2, 
+  MessageCircle, Check, CheckCheck, Loader2, Clock,
   Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical
 } from 'lucide-react';
 import api from '@/services/api';
@@ -21,6 +21,27 @@ import { toast } from 'react-hot-toast';
 const StatusViewer = dynamic(() => import('@/components/status/StatusViewer'), { ssr: false });
 
 const CHAT_FULL_HEIGHT_KEY = 'aura_chat_full_viewport_height';
+
+// ─── Offline Send Queue ───────────────────────────────────────────────────────
+// Messages that failed due to a network error are queued here (localStorage) and
+// retried automatically the moment the connection is restored — identical to
+// how WhatsApp queues messages while offline.
+
+const SEND_QUEUE_KEY = 'aura_send_queue';
+const MAX_QUEUE_RETRIES = 6;
+
+const loadQueue = () => {
+  if (typeof window === 'undefined') return [];
+  try { return JSON.parse(localStorage.getItem(SEND_QUEUE_KEY) || '[]'); } catch { return []; }
+};
+const saveQueue = (q) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SEND_QUEUE_KEY, JSON.stringify(q));
+};
+const enqueueMsg = (item) => saveQueue([...loadQueue(), { ...item, retries: 0, queuedAt: Date.now() }]);
+const dequeueMsg = (clientId) => saveQueue(loadQueue().filter((m) => m.clientId !== clientId));
+const isNetworkError = (err) =>
+  !err?.response && (err?.code === 'ERR_NETWORK' || err?.message === 'Network Error' || !navigator.onLine);
 
 const getStoredChatFullHeight = () => {
   if (typeof window === 'undefined') return 0;
@@ -214,6 +235,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const activePartnerIdRef = useRef(activePartnerId);
   const messagesRef = useRef(activeMessages);
   const initialChatSyncRef = useRef(null);
+  // Tracks when we last fetched messages per partner so we can rate-limit pre-send syncs
+  const lastConvSyncRef = useRef({});
   const loadConversationRef = useRef(null); // always-fresh reference to loadConversation
   const chatRootRef = useRef(null);
   const viewportSyncRef = useRef(null);
@@ -312,10 +335,21 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
     requestPresence();
     const retries = [750, 2000, 5000].map((delay) => setTimeout(requestPresence, delay));
-    socketService.on('connect', requestPresence);
+
+    // On socket reconnect, also pull any messages that arrived while we were disconnected
+    const onReconnect = () => {
+      requestPresence();
+      const pid = activePartnerIdRef.current;
+      if (pid) {
+        lastConvSyncRef.current[pid] = 0; // reset rate-limit so sync always fires on reconnect
+        loadConversationRef.current?.(pid, 1, { silent: true, skipProfile: true, skipPresence: true });
+      }
+    };
+
+    socketService.on('connect', onReconnect);
     return () => {
       retries.forEach(clearTimeout);
-      socketService.off('connect', requestPresence);
+      socketService.off('connect', onReconnect);
     };
   }, [activePartnerId]);
 
@@ -722,6 +756,18 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     return () => document.removeEventListener('visibilitychange', handleVisibilityResume);
   }, []);
 
+  // Pull the active conversation immediately when SocketProvider signals a message arrived
+  // via push while the socket was down (no toast needed — message just appears in-chat).
+  useEffect(() => {
+    const onPullConversation = (e) => {
+      const pid = e.detail?.partnerId?.toString?.();
+      if (!pid || pid !== activePartnerIdRef.current?.toString?.()) return;
+      loadConversationRef.current?.(pid, 1, { silent: true, skipProfile: true, skipPresence: true });
+    };
+    window.addEventListener('aura:pull-conversation', onPullConversation);
+    return () => window.removeEventListener('aura:pull-conversation', onPullConversation);
+  }, []);
+
   const loadInbox = async (options = {}) => {
     const silent = Boolean(options.silent);
     if (!silent) setInboxLoading(true);
@@ -837,6 +883,67 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   // Keep ref current so event handlers never close over a stale copy
   loadConversationRef.current = loadConversation;
+
+  // Fire-and-forget silent refresh of the active conversation, rate-limited to once per 2s per partner.
+  // Called on input focus and just before send to ensure pending messages are visible before the
+  // user's optimistic bubble is added — instant on all platforms (web, PWA, APK).
+  const syncActivePid = (pid) => {
+    if (!pid) return;
+    const now = Date.now();
+    if (now - (lastConvSyncRef.current[pid] || 0) < 2000) return;
+    lastConvSyncRef.current[pid] = now;
+    loadConversationRef.current?.(pid, 1, { silent: true, skipProfile: true, skipPresence: true });
+  };
+
+  // ── Offline queue drain ───────────────────────────────────────────────────
+  // Iterate queued messages and POST them to the server. The backend is idempotent
+  // on client_id so re-submitting a message that already reached the server is safe.
+  const drainSendQueue = useCallback(async () => {
+    const queue = loadQueue();
+    if (queue.length === 0) return;
+    for (const item of queue) {
+      if (item.retries >= MAX_QUEUE_RETRIES) {
+        dequeueMsg(item.clientId);
+        markMessageFailed(item.partnerId, item.tempId);
+        continue;
+      }
+      try {
+        const res = await api.post('/chat', {
+          receiver_id: item.partnerId,
+          text: item.text || '',
+          image_url: item.imageUrl || null,
+          client_id: item.clientId,
+          ...(item.productRef && { product_reference: item.productRef }),
+        });
+        if (res.data.success) {
+          dequeueMsg(item.clientId);
+          const realMsg = res.data.data?.message || res.data.message;
+          reconcileOptimisticMessage(item.partnerId, item.tempId, realMsg, item.clientId);
+        }
+      } catch (err) {
+        if (isNetworkError(err)) {
+          saveQueue(loadQueue().map((m) => m.clientId === item.clientId ? { ...m, retries: m.retries + 1 } : m));
+        } else {
+          dequeueMsg(item.clientId);
+          markMessageFailed(item.partnerId, item.tempId);
+        }
+      }
+    }
+  }, [reconcileOptimisticMessage, markMessageFailed]);
+
+  // Drain on mount (catches messages queued in a previous session), and again
+  // whenever the socket reconnects or the browser goes back online.
+  useEffect(() => {
+    drainSendQueue();
+    const onOnline = () => drainSendQueue();
+    const onConnect = () => drainSendQueue();
+    window.addEventListener('online', onOnline);
+    socketService.on('connect', onConnect);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      socketService.off('connect', onConnect);
+    };
+  }, [drainSendQueue]);
 
   const locallyUpdateInbox = (msg) => {
     if (!msg) return;
@@ -964,24 +1071,59 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const sendPreviewMedia = async () => {
     if (!mediaPreview?.file || !activePartnerId || uploading) return;
 
+    const file = mediaPreview.file;
+    const caption = mediaPreview.caption || '';
+    const objectUrl = mediaPreview.objectUrl;
+    const sendPartnerId = activePartnerId.toString();
+
+    // 1. Show image bubble immediately — exactly like WhatsApp.
+    const sendStamp = Date.now();
+    const tempId = `opt-${sendStamp}-${Math.random().toString(36).slice(2)}`;
+    const clientId = `client-${sendStamp}-${Math.random().toString(36).slice(2)}`;
+    const optimisticImg = {
+      _id: tempId,
+      client_id: clientId,
+      text: caption,
+      image_url: objectUrl,  // blob URL renders instantly
+      _uploading: true,       // triggers spinner overlay
+      sender_id: user?._id,
+      receiver_id: sendPartnerId,
+      createdAt: new Date().toISOString(),
+      status: 'sending',
+      delivered_status: onlineUsersMap[sendPartnerId] === true,
+    };
+    receiveMessage(optimisticImg, { partnerId: sendPartnerId, isActive: true });
+    closeMediaPreview();
+    if (caption) { inputValueRef.current = ''; setInput(''); }
+    queuePinToLatest([0, 80, 180]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    // 2. Upload + send in background — no UI blocking.
     setUploading(true);
     try {
-      const caption = mediaPreview.caption || '';
-      const res = await uploadService.uploadSingle(mediaPreview.file, 'general');
-      if (res.success) {
-        inputValueRef.current = caption;
-        setInput(caption);
-        closeMediaPreview();
-        await handleSend('', res.data.url);
-      } else {
-        throw new Error(res.message || 'Upload failed');
+      const uploadRes = await uploadService.uploadSingle(file, 'general');
+      if (!uploadRes.success) throw new Error(uploadRes.message || 'Upload failed');
+
+      const apiRes = await api.post('/chat', {
+        receiver_id: sendPartnerId,
+        text: caption,
+        image_url: uploadRes.data.url,
+        client_id: clientId,
+      });
+      if (apiRes.data.success) {
+        const realMsg = apiRes.data.data?.message || apiRes.data.message;
+        reconcileOptimisticMessage(sendPartnerId, tempId, realMsg, clientId);
       }
     } catch (err) {
-      console.error('Upload failed:', err);
-      toast.error('Failed to upload image');
+      if (isNetworkError(err)) {
+        // Queue for retry — the spinner stays visible (status remains 'sending')
+        enqueueMsg({ partnerId: sendPartnerId, text: caption, imageUrl: null, clientId, tempId, productRef: null });
+      } else {
+        markMessageFailed(sendPartnerId, tempId);
+        toast.error('Failed to send image');
+      }
     } finally {
       setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -1001,6 +1143,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     setIsTyping(false);
     typingPartnerIdRef.current = null;
     if (typingPartnerId) socketService.emit('typing_stop', { receiver_id: typingPartnerId });
+
+    // Fire-and-forget: pull any pending messages before our optimistic bubble lands.
+    // Non-blocking — the optimistic message still appears instantly.
+    syncActivePid(sendPartnerId);
 
     setPendingSendCount(count => count + 1);
     const sendStamp = Date.now();
@@ -1046,8 +1192,21 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         reconcileOptimisticMessage(sendPartnerId, optimisticMsg._id, realMsg, optimisticMsg.client_id);
       }
     } catch (err) {
-      markMessageFailed(sendPartnerId, optimisticMsg._id);
-      if (sentDraftKey && text && typeof window !== 'undefined') localStorage.setItem(sentDraftKey, text);
+      if (isNetworkError(err)) {
+        // Network is down — queue for automatic retry instead of marking failed.
+        // Message stays as 'sending' (clock icon) until connection returns.
+        enqueueMsg({
+          partnerId: sendPartnerId,
+          text,
+          imageUrl: imageUrl || null,
+          clientId: optimisticMsg.client_id,
+          tempId: optimisticMsg._id,
+          productRef: product?._id || null,
+        });
+      } else {
+        markMessageFailed(sendPartnerId, optimisticMsg._id);
+        if (sentDraftKey && text && typeof window !== 'undefined') localStorage.setItem(sentDraftKey, text);
+      }
     } finally {
       setPendingSendCount(count => Math.max(0, count - 1));
     }
@@ -1629,7 +1788,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                       </div>
                       <div className="flex items-center justify-between gap-2">
                         <p className={`min-w-0 flex-1 truncate text-[12px] leading-snug sm:text-[13px] ${chat.unread_count > 0 ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                          {chat.snippet || 'Tap to open'}
+                          {chat.snippet
+                            ? ((chat.last_message?.sender_id?._id || chat.last_message?.sender_id)?.toString() === user?._id?.toString()
+                                ? `You: ${chat.snippet}`
+                                : chat.snippet)
+                            : 'Tap to open'}
                         </p>
                         {chat.unread_count > 0 && (
                           <span className="flex size-[20px] shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[11px] font-semibold text-white">
@@ -1746,11 +1909,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                           {msg.image_url && (
                             <button
                               type="button"
-                              onClick={() => setMediaPreview({ mode: 'view', url: msg.image_url, caption: msg.text || '' })}
-                              className="-mx-0.5 mb-2 block overflow-hidden rounded-md border border-black/10 text-left"
+                              onClick={() => !msg._uploading && setMediaPreview({ mode: 'view', url: msg.image_url, caption: msg.text || '' })}
+                              className="-mx-0.5 mb-2 block overflow-hidden rounded-md border border-black/10 text-left relative"
                               aria-label="Preview shared image"
                             >
-                              <img src={msg.image_url} className="max-h-60 w-full object-cover" alt="Shared" />
+                              <img src={msg.image_url} className={`max-h-60 w-full object-cover ${msg._uploading ? 'opacity-60' : ''}`} alt="Shared" />
+                              {msg._uploading && (
+                                <span className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                  <Loader2 className="size-7 animate-spin text-white drop-shadow" />
+                                </span>
+                              )}
                             </button>
                           )}
 
@@ -1780,12 +1948,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                             <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             {isOwn && (
                               msg.status === 'failed'
-                                ? <AlertCircle className="size-3.5 text-red-600" />
-                                : msg.read_status
-                                  ? <CheckCheck className="size-3.5 text-emerald-500 drop-shadow-[0_0_2px_rgba(16,185,129,0.3)] transition-colors duration-300" />
-                                  : msg.delivered_status
-                                    ? <CheckCheck className="size-3.5 text-[var(--text-secondary)]/60 transition-colors duration-300" />
-                                    : <Check className="size-3.5 text-[var(--text-secondary)]/60 transition-colors duration-300" />
+                                ? <AlertCircle className="size-3.5 text-red-500" />
+                                : msg.status === 'sending'
+                                  ? <Clock className="size-3 text-[var(--text-secondary)]/50 transition-colors duration-300" />
+                                  : msg.read_status
+                                    ? <CheckCheck className="size-3.5 text-emerald-500 drop-shadow-[0_0_2px_rgba(16,185,129,0.3)] transition-colors duration-300" />
+                                    : msg.delivered_status
+                                      ? <CheckCheck className="size-3.5 text-[var(--text-secondary)]/60 transition-colors duration-300" />
+                                      : <Check className="size-3.5 text-[var(--text-secondary)]/60 transition-colors duration-300" />
                             )}
                           </div>
                         </motion.div>
@@ -1908,6 +2078,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                   setTimeout(() => { viewportSyncRef.current?.(); keepChatInView('auto'); }, 250);
                   // Fully open — catches iOS spring animation finish
                   setTimeout(() => { viewportSyncRef.current?.(); keepChatInView('auto'); }, 520);
+                  // Pull any pending messages the moment the user taps to type — zero send-latency impact
+                  syncActivePid(activePartnerIdRef.current);
                 }}
                 onBlur={() => {
                   setTimeout(() => viewportSyncRef.current?.(), 100);

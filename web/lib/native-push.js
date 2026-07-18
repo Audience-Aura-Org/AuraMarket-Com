@@ -129,6 +129,18 @@ export async function registerNativeAndroidPush() {
       window.dispatchEvent(new CustomEvent('aura:push-notification-click', { detail: intent }));
     });
 
+    // When a push arrives while the APK is foregrounded (socket may still be reconnecting),
+    // signal MessagingHub to pull the active conversation immediately.
+    PushNotifications.addListener('pushNotificationReceived', (notification) => {
+      const senderId = notification?.data?.sender_id || notification?.data?.senderId || null;
+      const type = notification?.data?.type || 'default';
+      if (type === 'message' && senderId) {
+        window.dispatchEvent(new CustomEvent('aura:pull-conversation', {
+          detail: { partnerId: senderId.toString() },
+        }));
+      }
+    });
+
     await PushNotifications.register();
     return { success: true };
   } catch (error) {

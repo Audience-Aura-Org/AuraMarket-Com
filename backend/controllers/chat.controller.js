@@ -259,6 +259,23 @@ const sendMessage = async (req, res, next) => {
 
     console.log(`[API] 📨 sendMessage: ${req.user._id} -> ${receiver_id}`);
 
+    // Idempotent send: if this client_id was already processed, return the saved message
+    // so offline-queue retries never create duplicates.
+    if (client_id) {
+      const existing = await Message.findOne({ sender_id: req.user._id, client_id }).lean();
+      if (existing) {
+        console.log(`[API] ♻️  Duplicate client_id ${client_id} — returning existing message`);
+        const existingPayload = await buildRealtimeMessagePayload({
+          messageDoc: existing,
+          sender: req.user,
+          receiverId: receiver_id,
+          productReference: existing.product_reference,
+          clientId: client_id,
+        });
+        return res.status(201).json({ success: true, data: { message: existingPayload } });
+      }
+    }
+
     const io = req.app.get('io');
     const receiverRoom = receiver_id.toString();
     const receiverOnline = await roomHasSockets(io, receiverRoom);
@@ -271,6 +288,7 @@ const sendMessage = async (req, res, next) => {
       metadata: metadata || null,
       image_url: image_url || null,
       delivered_status: receiverOnline,
+      client_id: client_id || null,
     });
 
     const messagePayload = await buildRealtimeMessagePayload({

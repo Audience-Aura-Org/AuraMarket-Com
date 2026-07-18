@@ -97,9 +97,9 @@ export const buildConversationPreview = (message) => {
   if (!message) return '';
   if (message.deleted_everyone) return 'This message was deleted';
   if (message.text) return message.text;
-  if (message.product_reference) return 'Shared a product';
-  if (message.image_url) return 'Sent a photo';
-  return 'Sent a message';
+  if (message.product_reference) return 'Product';
+  if (message.image_url) return 'Photo';
+  return 'Message';
 };
 
 export const getMessageKey = (message) => {
@@ -410,8 +410,38 @@ function chatReducer(state, action) {
       if (!partnerId) return state;
       const existing = state.messagesByConversation[partnerId] || [];
       const messages = dedupeMessages(existing, action.messages || [], Boolean(action.prepend));
+
+      // Keep the inbox snippet / date in sync with the freshest known message.
+      // Only do this when loading page 1 (not prepend/pagination of older history).
+      let conversationsById = state.conversationsById;
+      let conversationOrder = state.conversationOrder;
+      if (!action.prepend && messages.length > 0) {
+        const latestMsg = messages[messages.length - 1];
+        const existingConv = state.conversationsById[partnerId];
+        const existingDate = existingConv?.date ? new Date(existingConv.date).getTime() : 0;
+        const latestDate = latestMsg?.createdAt ? new Date(latestMsg.createdAt).getTime() : 0;
+        if (latestMsg && latestDate >= existingDate) {
+          conversationsById = {
+            ...state.conversationsById,
+            [partnerId]: {
+              ...(existingConv || { _id: partnerId, partner: { _id: partnerId } }),
+              snippet: buildConversationPreview(latestMsg),
+              last_message: latestMsg,
+              date: latestMsg.createdAt,
+            },
+          };
+          // Re-sort inbox so conversations with newly-arrived messages bubble to the top
+          const ids = conversationOrder.includes(partnerId)
+            ? conversationOrder
+            : [partnerId, ...conversationOrder];
+          conversationOrder = sortByLatest(ids, conversationsById);
+        }
+      }
+
       return {
         ...state,
+        conversationsById,
+        conversationOrder,
         messagesByConversation: {
           ...state.messagesByConversation,
           [partnerId]: messages,

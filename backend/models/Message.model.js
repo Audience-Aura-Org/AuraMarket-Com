@@ -63,6 +63,11 @@ const MessageSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Client-generated idempotency key — prevents duplicate messages on retry
+    client_id: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -71,5 +76,7 @@ const MessageSchema = new mongoose.Schema(
 
 // Compound index to quickly fetch full bidirectional conversations
 MessageSchema.index({ sender_id: 1, receiver_id: 1, createdAt: -1 });
+// Sparse index for idempotent send lookups (client_id is null for legacy messages)
+MessageSchema.index({ sender_id: 1, client_id: 1 }, { sparse: true });
 
 module.exports = mongoose.model('Message', MessageSchema);
