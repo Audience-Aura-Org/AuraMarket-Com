@@ -673,7 +673,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         skipProfile: hasSeedPartnerData,
       });
     } else {
-      loadInbox();
+      loadInbox({ silent: inbox.length > 0 });
     }
   }, [activePartnerId, isSystemWide, hasSeedPartnerData]);
 

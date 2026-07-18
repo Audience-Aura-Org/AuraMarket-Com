@@ -18,7 +18,7 @@ import api from '@/services/api';
 import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 
-const NOTIFICATION_POLL_MS = 120_000;
+const NOTIFICATION_POLL_MS = 30_000;
 
 const getUnreadChatThreadTotal = (chats = []) =>
   chats.reduce((total, chat) => total + (Number(chat?.unread_count || 0) > 0 ? 1 : 0), 0);

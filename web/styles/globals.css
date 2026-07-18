@@ -573,8 +573,17 @@ video {
    CSS zoom on the root element is handled correctly by Chrome/Firefox but
    broken in iOS WebKit — the scaled content renders at 70-80% and the
    remaining viewport area appears black (especially with dark system theme).
-   -webkit-touch-callout is an iOS-only CSS property so this rule only
-   applies to iOS Safari (iPhone/iPad) without touching Android or desktop. */
+   Fix: reset html zoom to 1 (prevents black screen) and apply equivalent
+   scaling via body zoom instead — body zoom does not trigger the compositor
+   bug. -webkit-touch-callout is iOS-only so this block never affects
+   Android or desktop browsers. */
 @supports (-webkit-touch-callout: none) {
   html { zoom: 1 !important; }
+  /* Re-apply compact layout scaling through body to restore 0.7/0.8 scale */
+  body { zoom: 0.7; }
+  @media (max-width: 640px) {
+    body { zoom: 0.8; }
+  }
+  /* Reset body zoom inside chat so dvh/svh and visualViewport are unscaled */
+  html.chat-open body { zoom: 1 !important; }
 }
