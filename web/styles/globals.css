@@ -185,25 +185,17 @@ html {
     font-weight: 400;
   }
 
-  /* Fixed px micro-type stays tiny at 0.7 zoom — lift to readable minimums */
-  :where([class*="text-[10px]"]) {
-    font-size: 0.75rem !important;
-    line-height: 1.35;
-  }
-  :where([class*="text-[11px]"]) {
-    font-size: 0.8125rem !important;
-    line-height: 1.4;
-  }
+  /* Let zoom scale micro-type naturally — only nudge text-[12px] and above */
   :where([class*="text-[12px]"]) {
-    font-size: 0.875rem !important;
+    font-size: 0.75rem !important;
     line-height: 1.45;
   }
   .text-xs {
-    font-size: 0.8125rem !important;
+    font-size: 0.75rem !important;
     line-height: 1.45;
   }
   .text-sm {
-    font-size: 0.9375rem !important;
+    font-size: 0.875rem !important;
     line-height: 1.5;
   }
 }

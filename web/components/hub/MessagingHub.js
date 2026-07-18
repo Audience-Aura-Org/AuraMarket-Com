@@ -709,7 +709,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     };
 
     const warmup = setTimeout(pollIfSocketUnavailable, 1500);
-    const interval = setInterval(pollIfSocketUnavailable, 10000);
+    const interval = setInterval(pollIfSocketUnavailable, 5000);
 
     return () => {
       stopped = true;
@@ -820,14 +820,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             }
           }, 50);
         } else {
-          const previousLastId = messagesRef.current[messagesRef.current.length - 1]?._id ||
-            messagesRef.current[messagesRef.current.length - 1]?.client_id;
-          const incomingLastId = newMsgs[newMsgs.length - 1]?._id || newMsgs[newMsgs.length - 1]?.client_id;
           upsertMessages(pid, newMsgs);
           setHasMore(newMsgs.length < total);
-          if (!silent || (incomingLastId && incomingLastId !== previousLastId)) {
-            scrollToBottom(silent ? 'smooth' : 'auto');
-          }
+          // Always pin to bottom on page-1 load so the user sees the latest messages
+          // regardless of whether the content was cached or already rendered.
+          scrollToBottom(silent ? 'smooth' : 'auto');
+          queuePinToLatest([0, 80, 200, 400]);
           const hasUnreadFromPartner = newMsgs.some((msg) =>
             toId(msg.sender_id) === pid?.toString?.() && !msg.read_status
           );
@@ -884,7 +882,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const syncActivePid = (pid) => {
     if (!pid) return;
     const now = Date.now();
-    if (now - (lastConvSyncRef.current[pid] || 0) < 2000) return;
+    if (now - (lastConvSyncRef.current[pid] || 0) < 500) return;
     lastConvSyncRef.current[pid] = now;
     loadConversationRef.current?.(pid, 1, { silent: true, skipProfile: true, skipPresence: true });
   };

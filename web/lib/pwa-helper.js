@@ -7,6 +7,7 @@
 import api from '@/services/api';
 
 const FALLBACK_VAPID_PUBLIC_KEY = "BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ";
+const VAPID_KEY_STORAGE = 'aura_push_vapid_key';
 
 function isPushServiceUnavailable(err) {
   if (!err) return false;
@@ -120,8 +121,18 @@ export async function subscribeToPush({ promptIfNeeded = true } = {}) {
     const registration = await navigator.serviceWorker.ready;
     const vapidPublicKey = await getActiveVapidPublicKey();
 
-    // Always get or create subscription
+    // Detect VAPID key rotation: if the key changed since this subscription was created,
+    // unsubscribe and start fresh so the push service can verify the new key.
+    let storedVapidKey = null;
+    try { storedVapidKey = localStorage.getItem(VAPID_KEY_STORAGE); } catch {}
+
     let subscription = await registration.pushManager.getSubscription();
+
+    if (subscription && storedVapidKey && storedVapidKey !== vapidPublicKey) {
+      console.log('[PWA] VAPID key rotated — purging stale subscription...');
+      try { await subscription.unsubscribe(); } catch {}
+      subscription = null;
+    }
 
     if (!subscription) {
       console.log('[PWA] No existing subscription found — creating new one...');
@@ -130,6 +141,7 @@ export async function subscribeToPush({ promptIfNeeded = true } = {}) {
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
         });
+        try { localStorage.setItem(VAPID_KEY_STORAGE, vapidPublicKey); } catch {}
       } catch (subscribeErr) {
         if (isPushServiceUnavailable(subscribeErr)) {
           console.info('[PWA] Push service unavailable in this browser/device. Skipping subscription.');
@@ -140,6 +152,7 @@ export async function subscribeToPush({ promptIfNeeded = true } = {}) {
       console.log('[PWA] New push subscription created:', subscription.endpoint.slice(-20));
     } else {
       console.log('[PWA] Existing subscription found — re-syncing with backend...');
+      try { localStorage.setItem(VAPID_KEY_STORAGE, vapidPublicKey); } catch {}
     }
 
     // Always sync the subscription to the backend (handles stale entries)

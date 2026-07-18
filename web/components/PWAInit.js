@@ -42,7 +42,7 @@ export default function PWAInit() {
   const pushDeniedToastedRef = useRef(false);
   const syncInFlightRef = useRef(false);
   const lastSyncRef = useRef({ userId: null, at: 0 });
-  const SYNC_COOLDOWN_MS = 10 * 60 * 1000;
+  const SYNC_COOLDOWN_MS = 3 * 60 * 1000;
 
   const attemptSubscription = async ({ promptIfNeeded = false } = {}) => {
     // If we already hit a definitive sync block this session, don't spam
@@ -215,8 +215,8 @@ export default function PWAInit() {
       if (document.visibilityState === 'visible') {
         // Check current permission state directly from the browser API only if supported
         if (typeof window !== 'undefined' && 'Notification' in window) {
-          if (Notification.permission === 'granted' && !subscribedRef.current) {
-            console.log('[PWAInit] App resumed with granted permission - re-syncing push...');
+          if (Notification.permission === 'granted') {
+            console.log('[PWAInit] App resumed — re-syncing push...');
             attemptSubscription({ promptIfNeeded: false });
           }
         }
