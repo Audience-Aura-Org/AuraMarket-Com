@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import {
@@ -11,8 +11,6 @@ import {
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 import { useAuthStore } from '@/hooks/useAuth';
-import { useKeyboardHeight } from '@/hooks/useKeyboardHeight';
-import { Capacitor } from '@capacitor/core';
 import { toId, useChat } from '@/context/ChatContext';
 import socketService from '@/services/socket';
 import { QUICK_REPLIES, fmtDate, sameDay, sameGroup, bubbleRounding } from './chat/ChatUtils';
@@ -202,8 +200,6 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     deleteMessage,
     syncInboxFromServer,
   } = useChat();
-  const nativeKeyboardHeight = useKeyboardHeight();
-  const isAndroidNative = Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android';
   // -- State --
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -419,9 +415,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }
     };
     const syncViewport = () => {
-      const rawMetrics = isAndroidNative
-        ? getAndroidNativeViewportMetrics(nativeKeyboardHeight)
-        : getChatViewportMetrics();
+      const rawMetrics = getChatViewportMetrics();
       let metrics = stableChatViewport(rawMetrics);
       const isMobileChat = mobileQuery?.matches ?? window.innerWidth < 768;
 
@@ -552,7 +546,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       viewportSyncRef.current = null;
       resetChatRootStyles();
     };
-  }, [isAndroidNative, nativeKeyboardHeight]);
+  }, []);
 
   useEffect(() => {
     if (!mobileLayout || typeof document === 'undefined') return;
