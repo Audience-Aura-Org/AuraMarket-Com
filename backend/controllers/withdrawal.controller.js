@@ -181,37 +181,6 @@ const submitWithdrawal = async (req, res) => {
       });
     }
 
-    const existingPending = await WithdrawalRequest.findOne({
-      requestedBy: userId,
-      status: 'pending',
-    }).session(session);
-    
-    if (existingPending) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({
-        success: false,
-        message: 'You already have a pending withdrawal request. Please wait for it to be processed.',
-        data: { existing_id: existingPending._id, submitted_at: existingPending.createdAt }
-      });
-    }
-
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const successfulWithdrawalsToday = await WithdrawalRequest.countDocuments({
-      requestedBy: userId,
-      createdAt: { $gte: oneDayAgo },
-      status: { $in: ['approved', 'completed'] },
-    }).session(session);
-    
-    if (successfulWithdrawalsToday >= 2) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(429).json({
-        success: false,
-        message: 'You can only complete 2 successful withdrawals per 24 hours. Please try again later.',
-      });
-    }
-
     const role = ['vendor', 'logistics'].includes(userRole) ? userRole : 'user';
 
     // ── Immediate Balance Deduction
