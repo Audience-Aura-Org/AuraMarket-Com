@@ -10,7 +10,6 @@ import {
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import ProductCard from '@/components/ProductCard';
-import Pagination from '@/components/common/Pagination';
 import BlurUpImage from '@/components/common/BlurUpImage';
 import { useFollow } from '@/hooks/useFollow';
 import { useChat } from '@/context/ChatContext';
@@ -37,6 +36,8 @@ function ShopContent() {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [activePrice, setActivePrice] = useState(null);
   const [search, setSearch] = useState(initialQuery);
   const [sortBy, setSortBy] = useState('-purchase_count');
@@ -129,7 +130,7 @@ function ShopContent() {
     if (fetchTimeout.current) clearTimeout(fetchTimeout.current);
 
     const executeFetch = async () => {
-      const params = { page: targetPage, limit: 24 };
+      const params = { page: targetPage, limit: 50 };
       if (activeCategoryName && activeCategoryName !== 'All') params.category = activeCategoryName;
       if (activeCategoryId) params.categoryId = activeCategoryId;
       if (activePrice) {
@@ -149,14 +150,26 @@ function ShopContent() {
       // Serve from cache instantly for non-search queries (including category clicks)
       if (cached && !search) {
         if (gen !== fetchGenRef.current) return; // stale — newer fetch is in progress
-        setProducts(cached.products);
+        if (targetPage === 1) {
+          setProducts(cached.products);
+        } else {
+          setProducts(prev => [...prev, ...cached.products]);
+        }
         setTotalPages(cached.totalPages);
-        setPage(targetPage); // confirm page matches fetched data
-        setLoading(false);   // ensure any prior non-cached fetch's loading=true is cleared
+        setPage(targetPage);
+        setHasMore(cached.products.length === 50);
+        setLoading(false);
+        setLoadingMore(false);
         return;
       }
 
-      setLoading(true);
+      // No cache — start appropriate loading indicator
+      if (targetPage === 1) {
+        setProducts([]);
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
 
       // Fetch matching vendors if searching
       if (search) {
@@ -183,10 +196,15 @@ function ShopContent() {
         if (gen !== fetchGenRef.current) return; // stale — discard response
         if (res.data.success) {
           const nextProducts = res.data.data.products || [];
-          setProducts(nextProducts);
+          if (targetPage === 1) {
+            setProducts(nextProducts);
+          } else {
+            setProducts(prev => [...prev, ...nextProducts]);
+          }
           const total = res.data.pagination?.pages || 1;
           setTotalPages(total);
-          setPage(targetPage); // confirm page matches what was actually fetched
+          setPage(targetPage);
+          setHasMore(nextProducts.length === 50);
           if (!search) {
             productCacheRef.current.set(queryKey, { products: nextProducts, totalPages: total });
           }
@@ -194,7 +212,11 @@ function ShopContent() {
       } catch (err) {
         console.error('Shop fetch error:', err);
       } finally {
-        setLoading(false); // always reset — prevents permanent stuck state on stale fetches
+        if (targetPage === 1) {
+          setLoading(false);
+        } else {
+          setLoadingMore(false);
+        }
       }
     };
 
@@ -210,6 +232,7 @@ function ShopContent() {
   useEffect(() => {
     setPage(1);
     pageRef.current = 1;
+    setHasMore(true);
     fetchProducts(1, true);
   }, [activeCategoryId, activeCategoryName, activePrice, sortBy]);
   // Note: 'fetchProducts' not in deps — it only recreates when filter state changes,
@@ -221,6 +244,7 @@ function ShopContent() {
     if (search !== urlQuery) {
       setPage(1);
       pageRef.current = 1;
+      setHasMore(true);
       fetchProducts(1, false); // debounced
     }
   }, [search]);
@@ -254,13 +278,26 @@ function ShopContent() {
   };
 
   const resultsAnchor = useRef(null);
+  const sentinelRef = useRef(null);
 
-  const handlePageChange = (p) => {
-    setPage(p);
-    pageRef.current = p;
-    fetchProducts(p, true); // call directly — don't rely on an effect to pick up the new page
-    resultsAnchor.current?.scrollIntoView({ behavior: 'instant', block: 'start' });
-  };
+  // Infinite scroll — trigger next page when sentinel enters viewport
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !loading && !loadingMore && hasMore) {
+          const nextPage = pageRef.current + 1;
+          pageRef.current = nextPage;
+          setPage(nextPage);
+          fetchProducts(nextPage, true);
+        }
+      },
+      { rootMargin: '300px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [loading, loadingMore, hasMore, fetchProducts]);
 
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [isPriceOpen, setIsPriceOpen] = useState(false);
@@ -305,12 +342,12 @@ function ShopContent() {
                 placeholder={t('search.productsPlaceholder')}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { setPage(1); fetchProducts(1); } }}
+                onKeyDown={e => { if (e.key === 'Enter') { setPage(1); pageRef.current = 1; setHasMore(true); fetchProducts(1, true); } }}
                 style={{ touchAction: 'manipulation' }}
                 className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[13px] placeholder:text-[11px] placeholder:font-normal outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
               />
               <button 
-                onClick={() => { setPage(1); fetchProducts(1); }}
+                onClick={() => { setPage(1); pageRef.current = 1; setHasMore(true); fetchProducts(1, true); }}
                 className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 transition-all flex items-center justify-center  font-bold"
               >
                 <Search className="size-4" />
@@ -676,7 +713,7 @@ function ShopContent() {
             ) : (
               <>
                 <div
-                  className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4 mb-12" : "flex flex-col gap-4 mb-12 mx-auto max-w-4xl"}
+                  className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4 mb-6" : "flex flex-col gap-4 mb-6 mx-auto max-w-4xl"}
                   style={{ opacity: loading ? 0.45 : 1, transition: 'opacity 0.15s ease' }}
                 >
                   {products.map(product => (
@@ -684,15 +721,22 @@ function ShopContent() {
                   ))}
                 </div>
 
-                {/* --- Pagination --- */}
-                <div className="mt-8">
-                  <Pagination
-                    currentPage={page}
-                    totalPages={totalPages}
-                    onPageChange={handlePageChange}
-                    loading={loading}
-                  />
-                </div>
+                {/* Infinite scroll sentinel — triggers next page when it enters viewport */}
+                <div ref={sentinelRef} className="h-1" />
+
+                {/* Loading more spinner */}
+                {loadingMore && (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="size-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+
+                {/* End of catalogue */}
+                {!hasMore && !loadingMore && products.length > 0 && (
+                  <p className="text-center text-[10px] font-semibold text-[var(--text-secondary)]/40 tracking-widest uppercase py-8">
+                    All products loaded
+                  </p>
+                )}
               </>
             )}
           </div>

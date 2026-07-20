@@ -845,7 +845,16 @@ function CheckoutContent() {
               exit={{ opacity: 0, scale: 0.97 }}
               className="fixed inset-0 z-[220] flex items-center justify-center bg-black/75 p-6 backdrop-blur-md"
             >
-              <div className="w-full max-w-sm rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-8 text-center shadow-2xl">
+              <div className="w-full max-w-sm rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-8 text-center shadow-2xl relative">
+                {/* Close / dismiss button — payment still processes in background */}
+                <button
+                  type="button"
+                  onClick={() => setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' })}
+                  className="absolute top-4 right-4 p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:bg-rose-500/10 hover:text-rose-500 transition-all active:scale-95"
+                  title="Dismiss (payment continues in background)"
+                >
+                  <X className="size-4" />
+                </button>
                 <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-[1.5rem] border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]">
                   <Loader2 className="size-8 animate-spin" />
                 </div>

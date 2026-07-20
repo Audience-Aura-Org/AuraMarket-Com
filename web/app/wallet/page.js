@@ -64,15 +64,16 @@ function CompactStat({ title, value, sub, icon: Icon, color }) {
   );
 }
 
-function ElapsedTimer() {
-  const [secs, setSecs] = useState(0);
+function ElapsedTimer({ startedAt }) {
+  const origin = startedAt || Date.now();
+  const [secs, setSecs] = useState(() => Math.floor((Date.now() - origin) / 1000));
   useEffect(() => {
-    const t = setInterval(() => setSecs(s => s + 1), 1000);
+    const t = setInterval(() => setSecs(Math.floor((Date.now() - origin) / 1000)), 500);
     return () => clearInterval(t);
-  }, []);
+  }, [origin]);
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  const label = m > 0 ? `${m}m ${s}s` : `${s}s`;
+  const label = m > 0 ? `${m}m ${s.toString().padStart(2, '0')}s` : `${s}s`;
   return (
     <div className="mb-6 flex flex-col items-center">
       <div className="text-4xl font-bold tracking-tight text-[var(--accent)] tabular-nums">{label}</div>
@@ -113,6 +114,7 @@ export default function WalletPage() {
   const [depositReason, setDepositReason] = useState('');
   const [recheckingDeposit, setRecheckingDeposit] = useState(false);
   const [recheckingTxId, setRecheckingTxId] = useState(null);
+  const [processingStartedAt, setProcessingStartedAt] = useState(null);
   const itemsPerPage = 10;
 
   // Guard: only open from ?action=deposit ONCE per page load, even if user/router re-render.
@@ -301,6 +303,7 @@ export default function WalletPage() {
 
     // ── Switch to processing frame BEFORE the API call ──
     setDepositStep('processing');
+    setProcessingStartedAt(Date.now());
     setDepositMessage('Sending request to payment gateway...');
     setSubmitting(true);
 
@@ -791,8 +794,17 @@ export default function WalletPage() {
                   {depositStep === 'processing' && (
                     <motion.div key="processing" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-8 flex flex-col items-center text-center">
 
+                      {/* Close button */}
+                      <button
+                        onClick={() => { depositInProgressRef.current = false; setModal(null); setDepositStep('amount'); setDepositStatus('pending'); setDepositMessage(''); setDepositReason(''); }}
+                        className="absolute top-4 right-4 p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:bg-rose-500/10 hover:text-rose-500 transition-all active:scale-95"
+                        title="Dismiss (payment continues in background)"
+                      >
+                        <X className="size-4" />
+                      </button>
+
                       {/* Elapsed timer */}
-                      <ElapsedTimer />
+                      <ElapsedTimer startedAt={processingStartedAt} />
 
                       {/* Gateway badge */}
                       <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] opacity-80">
