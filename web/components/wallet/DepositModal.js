@@ -11,15 +11,16 @@ import api from '@/services/api';
 
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
 
-function ElapsedTimer() {
-  const [secs, setSecs] = useState(0);
+function ElapsedTimer({ startedAt }) {
+  const origin = startedAt || Date.now();
+  const [secs, setSecs] = useState(() => Math.floor((Date.now() - origin) / 1000));
   useEffect(() => {
-    const t = setInterval(() => setSecs(s => s + 1), 1000);
+    const t = setInterval(() => setSecs(Math.floor((Date.now() - origin) / 1000)), 500);
     return () => clearInterval(t);
-  }, []);
+  }, [origin]);
   const m = Math.floor(secs / 60);
   const s = secs % 60;
-  const label = m > 0 ? `${m}m ${s}s` : `${s}s`;
+  const label = m > 0 ? `${m}m ${s.toString().padStart(2, '0')}s` : `${s}s`;
   return (
     <div className="mb-6 flex flex-col items-center">
       <div className="text-4xl font-bold tracking-tight text-[var(--accent)] tabular-nums">{label}</div>
@@ -49,6 +50,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   const [reason, setReason]     = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [rechecking, setRechecking] = useState(false);
+  const [processingStartedAt, setProcessingStartedAt] = useState(null);
 
   const inProgressRef = useRef(false);
 
@@ -93,6 +95,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
     }
 
     setStep('processing');
+    setProcessingStartedAt(Date.now());
     setMessage('Sending request to payment gateway...');
     setSubmitting(true);
 
@@ -345,7 +348,15 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
           {/* ── Step: processing ───────────────────────── */}
           {step === 'processing' && (
             <motion.div key="processing" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-8 flex flex-col items-center text-center">
-              <ElapsedTimer />
+              {/* Close / dismiss — payment continues in background */}
+              <button
+                onClick={() => { inProgressRef.current = false; setStep('amount'); setStatus('pending'); setMessage(''); setReason(''); onClose?.(); }}
+                className="absolute top-4 right-4 p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:bg-rose-500/10 hover:text-rose-500 transition-all active:scale-95"
+                title="Dismiss (payment continues in background)"
+              >
+                <X className="size-4" />
+              </button>
+              <ElapsedTimer startedAt={processingStartedAt} />
               <div className="w-full space-y-2 mb-6">
                 {[
                   { label: 'Request sent to gateway', done: true, active: false },
