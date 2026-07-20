@@ -588,22 +588,56 @@ const getVendorAnalytics = async (req, res, next) => {
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-    // Run all DB calls concurrently. Limits/projections keep this fast:
-    // - products: only fields needed for stats + display (no large text fields)
-    // - orders: last 100 only (dashboard shows ≤10; extra 90 give accurate stat counts)
-    // - salesOverTime: aggregate pipeline — already efficient
-    const [products, orders, escrowStats, followCount, vendorUser, salesOverTime] = await Promise.all([
+    // Run all DB calls concurrently using aggregations for stats (no large doc fetches)
+    // and small find() calls for display data only.
+    const [productStats, orderStats, topProducts, recentOrders, escrowStats, followCount, vendorUser, salesOverTime] = await Promise.all([
+      // Aggregate product counters — no need to pull 200 full product docs
+      Product.aggregate([
+        { $match: { vendor_id: vendorId, status: { $ne: 'archived' } } },
+        {
+          $group: {
+            _id: null,
+            totalProducts: { $sum: 1 },
+            totalViews: { $sum: { $ifNull: ['$view_count', 0] } },
+            inStockProducts: { $sum: { $cond: [{ $gt: ['$stock', 0] }, 1, 0] } },
+            outOfStockProducts: { $sum: { $cond: [{ $lte: ['$stock', 0] }, 1, 0] } },
+            lowStockProducts: { $sum: { $cond: [{ $and: [{ $gt: ['$stock', 0] }, { $lte: ['$stock', 5] }] }, 1, 0] } },
+          }
+        }
+      ]),
+      // Aggregate order counters — no need to pull 100 full order docs
+      Order.aggregate([
+        { $match: { vendor_id: vendorId } },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: {
+              $sum: {
+                $cond: [
+                  { $and: [{ $not: { $in: ['$order_status', ['cancelled', 'refunded']] } }, { $in: ['$payment_status', ['paid', 'completed']] }] },
+                  '$total_amount', 0
+                ]
+              }
+            },
+            totalSales: { $sum: { $cond: [{ $in: ['$order_status', ['delivered', 'completed']] }, 1, 0] } },
+            openOrders: { $sum: { $cond: [{ $not: { $in: ['$order_status', ['delivered', 'completed', 'cancelled', 'refunded']] } }, 1, 0] } },
+            processingOrders: { $sum: { $cond: [{ $eq: ['$order_status', 'processing'] }, 1, 0] } },
+          }
+        }
+      ]),
+      // Top 5 products for display — not 200
       Product.find({ vendor_id: vendorId, status: { $ne: 'archived' } })
         .select('name price images stock view_count purchase_count status')
         .sort('-purchase_count')
-        .limit(200)
+        .limit(5)
         .lean(),
+      // Last 20 orders for display — not 100
       Order.find({ vendor_id: vendorId })
         .select('order_status payment_status total_amount createdAt customer_id products')
         .populate('customer_id', 'name avatar')
         .populate('products.product_id', 'name price images')
         .sort('-createdAt')
-        .limit(100)
+        .limit(20)
         .lean(),
       Escrow.aggregate([
         { $match: { vendor_id: vendorId, status: 'held' } },
@@ -630,37 +664,32 @@ const getVendorAnalytics = async (req, res, next) => {
       ])
     ]);
 
-    const completedOrders = orders.filter(o => ['delivered', 'completed'].includes(o.order_status));
-    const openOrders = orders.filter(o => !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status));
-    const totalRevenue = orders
-      .filter(o => !['cancelled', 'refunded'].includes(o.order_status) && ['paid', 'completed'].includes(o.payment_status))
-      .reduce((sum, o) => sum + (o.total_amount || 0), 0);
-
-    const totalViews = products.reduce((sum, p) => sum + (p.view_count || 0), 0);
-    const totalSales = completedOrders.length;
+    const ps = productStats[0] || {};
+    const os = orderStats[0] || {};
+    const totalViews = ps.totalViews || 0;
+    const totalSales = os.totalSales || 0;
     const conversionRate = totalViews > 0 ? (totalSales / totalViews) * 100 : 0;
 
     res.status(200).json({
       success: true,
       data: {
         stats: {
-          total_revenue: totalRevenue,
+          total_revenue: os.totalRevenue || 0,
           total_sales: totalSales,
-          total_products: products.length,
-          open_orders: openOrders.length,
-          processing_orders: orders.filter(o => o.order_status === 'processing').length,
-          in_stock_products: products.filter(p => Number(p.stock || 0) > 0).length,
-          out_of_stock_products: products.filter(p => Number(p.stock || 0) === 0).length,
-          // low_stock_count included so dashboard never needs /vendor/products
-          low_stock_count: products.filter(p => Number(p.stock || 0) > 0 && Number(p.stock || 0) <= 5).length,
+          total_products: ps.totalProducts || 0,
+          open_orders: os.openOrders || 0,
+          processing_orders: os.processingOrders || 0,
+          in_stock_products: ps.inStockProducts || 0,
+          out_of_stock_products: ps.outOfStockProducts || 0,
+          low_stock_count: ps.lowStockProducts || 0,
           total_views: totalViews,
           pending_escrow: escrowStats[0]?.totalHeld || 0,
           wallet_balance: vendorUser?.wallet_balance || 0,
           follower_count: followCount,
           conversion_rate: parseFloat(conversionRate.toFixed(2))
         },
-        top_products: products.slice(0, 5),
-        recent_orders: orders.slice(0, 20),
+        top_products: topProducts,
+        recent_orders: recentOrders,
         sales_history: salesOverTime
       }
     });

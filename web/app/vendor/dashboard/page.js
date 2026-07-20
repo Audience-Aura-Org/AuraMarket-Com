@@ -320,7 +320,24 @@ export default function VendorDashboard() {
       ? 'bg-amber-500'
       : 'bg-rose-500';
 
-  if (!mounted) return null;
+  if (!mounted) return (
+    <div className="relative bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500 min-h-screen">
+      <div className="h-14 bg-[var(--bg-primary)] border-b border-[var(--glass-border)] animate-pulse" />
+      <div className="p-4 sm:p-6 space-y-6">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-28 rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] animate-pulse" />
+          ))}
+        </div>
+        <div className="h-64 rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-16 rounded-2xl bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] animate-pulse" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
     const monthlySales = buildMonthlySalesSeries(analyticsHistory, paidOrders);
     const hasMonthlySalesData = monthlySales.some((entry) => entry.value > 0);

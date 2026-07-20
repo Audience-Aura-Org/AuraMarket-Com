@@ -86,8 +86,15 @@ const OFFLINE_CACHEABLE_ROUTES = [
   /^vendor\/analytics(?:\/|$)/,
   /^wallet(?:\/|$)/,
   /^subscriptions\/me(?:\/|$)/,
+  /^subscriptions\/admin(?:\/|$)/,
   /^notifications(?:\/|$)/,
   /^chat(?:\/|$)/,
+  // Analytics routes — read-only metrics, safe to cache for 45 s
+  /^admin\/analytics(?:\/|$)/,
+  /^admin\/dashboard(?:\/|$)/,
+  /^logistics\/analytics(?:\/|$)/,
+  /^logistics\/shipments\/firm(?:\/|$)/,
+  /^logistics\/dashboard(?:\/|$)/,
 ];
 
 const getOfflineStorage = () => {
@@ -115,22 +122,28 @@ const normalizeCacheUrl = (url = '') =>
 
 const isOfflineCacheableRoute = (url = '') => {
   const normalized = normalizeCacheUrl(url);
-  if (
-    normalized.startsWith('auth/') ||
-    normalized.startsWith('admin/') ||
-    normalized.startsWith('wallet') ||
-    normalized.startsWith('payments/') ||
-    normalized.startsWith('orders') ||
-    normalized.startsWith('cart') ||
-    normalized.startsWith('checkout') ||
-    normalized.startsWith('notifications') ||
-    normalized.startsWith('users/') ||
-    normalized.startsWith('security/') ||
-    normalized === 'vendors/me'
-  ) {
-    return false;
-  }
+
+  // Block sensitive / mutable routes regardless of what's in OFFLINE_CACHEABLE_ROUTES
+  if (normalized.startsWith('auth/')) return false;
+  if (normalized.startsWith('payments/')) return false;
+  if (normalized.startsWith('orders')) return false;
+  if (normalized.startsWith('cart')) return false;
+  if (normalized.startsWith('checkout')) return false;
+  if (normalized.startsWith('users/')) return false;
+  if (normalized.startsWith('security/')) return false;
+  if (normalized === 'vendors/me') return false;
   if (normalized.startsWith('chat/admin')) return false;
+
+  // Block mutable admin sub-routes but ALLOW analytics/dashboard (read-only metrics)
+  if (normalized.startsWith('admin/')) {
+    const allowedAdminPrefixes = ['admin/analytics', 'admin/dashboard'];
+    if (!allowedAdminPrefixes.some((p) => normalized.startsWith(p))) return false;
+  }
+
+  // wallet and notifications are excluded by default — they must be explicitly in CACHEABLE list
+  if (normalized.startsWith('wallet') && !OFFLINE_CACHEABLE_ROUTES.some((r) => r.test(normalized))) return false;
+  if (normalized.startsWith('notifications') && !OFFLINE_CACHEABLE_ROUTES.some((r) => r.test(normalized))) return false;
+
   return OFFLINE_CACHEABLE_ROUTES.some((route) => route.test(normalized));
 };
 
