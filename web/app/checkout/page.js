@@ -21,6 +21,14 @@ import { toast } from 'react-hot-toast';
 import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 import { applyVariantPricing, formatVariantLabel } from '@/utils/variants';
 import { MOBILE_MONEY_PROVIDERS } from '@/lib/formatting';
+import { Capacitor } from '@capacitor/core';
+
+// Payment gateway return URLs must be public HTTPS URLs, never capacitor://localhost.
+const getPublicWebOrigin = () => {
+  if (typeof window === 'undefined') return 'https://auradime.com';
+  if (Capacitor.isNativePlatform()) return 'https://auradime.com';
+  return window.location.origin;
+};
 
 const cartLineKey = (item) => {
   const productId = item.product_id || item.product?._id || item.product;
@@ -564,7 +572,7 @@ function CheckoutContent() {
            country: gatewayFields.country || 'CM',
            provider: gatewayFields.provider,
            order_ids: finalOrderIds,
-           redirect_url: `${window.location.origin}/wallet/verify?gateway=${gateway}&type=checkout`,
+           redirect_url: `${getPublicWebOrigin()}/wallet/verify?gateway=${gateway}&type=checkout`,
         });
 
         if (!evRes.success) {
