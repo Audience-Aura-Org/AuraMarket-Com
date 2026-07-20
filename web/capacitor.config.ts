@@ -7,6 +7,11 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     cleartext: false,
+    allowNavigation: [
+      '*.eversend.co',
+      '*.payunit.cm',
+      'api.auradime.com',
+    ],
   },
   plugins: {
     Keyboard: {

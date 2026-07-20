@@ -159,6 +159,7 @@ const eversendClient = async (force = false) => {
   const token = await getAccessToken(force);
   const instance = axios.create({
     baseURL: EVERSEND_BASE_URL,
+    timeout: 30000,
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',

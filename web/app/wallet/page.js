@@ -369,7 +369,7 @@ export default function WalletPage() {
             },
           },
           3000,
-          110000,
+          300000,
         );
       } else {
         setDepositStatus('failed');
@@ -794,10 +794,15 @@ export default function WalletPage() {
                       {/* Elapsed timer */}
                       <ElapsedTimer />
 
+                      {/* Gateway badge */}
+                      <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] opacity-80">
+                        via {depositGateway === 'payunit' ? 'PayUnit' : 'Eversend'}
+                      </p>
+
                       {/* Steps */}
                       <div className="w-full space-y-2 mb-6">
                         {[
-                          { label: 'Request sent to gateway', done: true, active: false },
+                          { label: `Request sent to ${depositGateway === 'payunit' ? 'PayUnit' : 'Eversend'}`, done: true, active: false },
                           { label: `Approve prompt on ${depositPhone}`, done: false, active: true },
                           { label: 'Confirming payment', done: false, active: false },
                         ].map((step, i) => (

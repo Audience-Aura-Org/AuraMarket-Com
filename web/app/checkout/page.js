@@ -112,6 +112,8 @@ function CheckoutContent() {
     active: false,
     reference: null,
     message: '',
+    gateway: '',
+    phone: '',
   });
   const [checkoutTotals, setCheckoutTotals] = useState(null);
   const deliveryQuartierTouchedRef = useRef(false);
@@ -551,6 +553,8 @@ function CheckoutContent() {
           active: true,
           reference: null,
           message: `Sending request to ${gatewayLabel}...`,
+          gateway,
+          phone: gatewayFields.phone || formData.phone,
         });
 
         const evRes = await initiateCollection(gateway, {
@@ -567,7 +571,7 @@ function CheckoutContent() {
           await markCreatedOrdersFailed(`${gatewayLabel} collection failed before payment completed.`, finalOrderIds);
           setBlockReason(displayedWalletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
           setError(evRes.message || 'Payment collection failed. Please try a different payment method.');
-          setEversendCheckout({ active: false, reference: null, message: '' });
+          setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' });
           setLoading(false);
           return;
         }
@@ -581,6 +585,8 @@ function CheckoutContent() {
             active: true,
             reference: ref,
             message: 'Charge request sent. Approve the prompt on your phone...',
+            gateway,
+            phone: gatewayFields.phone || formData.phone,
           });
           setLoading(false);
 
@@ -601,22 +607,22 @@ function CheckoutContent() {
                   items: order?.products?.length ? [...(order.products)] : [...currentCartItems]
                 });
                 cartStore.clearCart();
-                setEversendCheckout({ active: false, reference: null, message: '' });
+                setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' });
                 setStep(3);
               },
               onFailed: (data) => {
                 markCreatedOrdersFailed(`${gatewayLabel} collection was declined before payment completed.`, finalOrderIds);
-                setEversendCheckout({ active: false, reference: null, message: '' });
+                setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' });
                 setBlockReason(displayedWalletBalance <= 0 ? 'collection_failed_no_wallet' : 'collection_failed');
                 setError(data.reason || 'Payment was declined by the gateway.');
               },
               onTimeout: () => {
-                setEversendCheckout({ active: false, reference: null, message: '' });
+                setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' });
                 router.push(`/wallet/verify?gateway=${gateway}&type=checkout&ref=${ref}`);
               },
             },
             3000,
-            110000
+            300000
           );
           return;
         }
@@ -624,7 +630,7 @@ function CheckoutContent() {
         setBlockReason('collection_failed');
         await markCreatedOrdersFailed('Payment gateway did not return a transaction reference.', finalOrderIds);
         setError('No transaction reference returned from the payment gateway. Please try again.');
-        setEversendCheckout({ active: false, reference: null, message: '' });
+        setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' });
         setLoading(false);
         return;
       }
@@ -646,7 +652,7 @@ function CheckoutContent() {
     } catch (err) {
       const msg = err?.response?.data?.message || err?.message || 'Checkout failed. Please try again.';
       setError(msg);
-      setEversendCheckout({ active: false, reference: null, message: '' });
+      setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' });
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -836,13 +842,18 @@ function CheckoutContent() {
                   <Loader2 className="size-8 animate-spin" />
                 </div>
                 <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Approve Payment</h2>
+                {eversendCheckout.gateway && (
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] opacity-80">
+                    via {eversendCheckout.gateway === 'payunit' ? 'PayUnit' : 'Eversend'}
+                  </p>
+                )}
                 <p className="mt-2 text-[12px] font-semibold leading-relaxed tracking-tight text-[var(--text-secondary)] opacity-70">
                   {eversendCheckout.message || 'Waiting for mobile money confirmation...'}
                 </p>
                 <div className="mt-6 space-y-2 text-left">
                   {[
-                    'Request sent to gateway',
-                    `Approve prompt on ${formData.eversend.phone || formData.phone}`,
+                    `Request sent to ${eversendCheckout.gateway === 'payunit' ? 'PayUnit' : eversendCheckout.gateway === 'eversend' ? 'Eversend' : 'gateway'}`,
+                    `Approve prompt on ${eversendCheckout.phone || formData.phone}`,
                     'Confirming order payment',
                   ].map((label, index) => (
                     <div key={label} className={`flex items-center gap-3 rounded-xl border p-3 ${
@@ -864,7 +875,7 @@ function CheckoutContent() {
                 {eversendCheckout.reference && (
                   <button
                     type="button"
-                    onClick={() => router.push(`/wallet/verify?gateway=eversend&type=checkout&ref=${eversendCheckout.reference}`)}
+                    onClick={() => router.push(`/wallet/verify?gateway=${eversendCheckout.gateway}&type=checkout&ref=${eversendCheckout.reference}`)}
                     className="mt-6 w-full rounded-2xl border border-[var(--glass-border)] px-4 py-3 text-[11px] font-semibold tracking-tight text-[var(--text-primary)] transition hover:border-[var(--accent)]/40"
                   >
                     Open verification page
