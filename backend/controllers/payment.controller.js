@@ -354,10 +354,17 @@ const payunitInitialize = async (req, res) => {
       return res.status(400).json({ success: false, message: 'PayUnit currently supports XAF collections only.' });
     }
 
-    const webUrl = getWebUrl(req) || process.env.WEB_CLIENT_URL;
+    // Always use the configured public web URL for PayUnit return_url.
+    // PayUnit validates return_url against registered domains — never send
+    // a localhost/capacitor origin (which happens when request comes from APK).
+    const publicWebUrl = process.env.WEB_CLIENT_URL || 'https://auradime.com';
     const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get('host')}`}/api/v1/payments/payunit/webhook`;
     const transactionRef = payunit.cleanTransactionId(`AURAPU${Date.now()}${String(req.user._id).slice(-6)}`);
-    const returnUrl = customRedirect || `${webUrl}/wallet/verify?gateway=payunit&ref=${transactionRef}`;
+    // Strip any localhost/capacitor prefix that might arrive from mobile app redirect_url
+    const safeRedirect = customRedirect && !/localhost|127\.0\.0\.1|capacitor:\/\//i.test(customRedirect)
+      ? customRedirect
+      : null;
+    const returnUrl = safeRedirect || `${publicWebUrl}/wallet/verify?gateway=payunit&ref=${transactionRef}`;
 
     // -----------------------------------------------------------------------
     // Correct PayUnit two-step flow:
