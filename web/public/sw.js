@@ -433,15 +433,41 @@ self.addEventListener('push', function (event) {
   const showOrForward = async () => {
     const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     const visibleClients = windowClients.filter((c) => c.visibilityState === 'visible');
+
+    // Always forward push data to ALL open tabs — visible or background.
+    // Background tabs silently sync message state so the inbox is up-to-date
+    // the moment the user switches back to the app.
+    // Only ONE visible tab shows the in-app toast (prevents duplicate popups).
     if (visibleClients.length > 0) {
-      // Forward to exactly ONE visible client to prevent duplicate toasts across tabs.
       try { visibleClients[0].postMessage({ type: 'push-received', payload: data }); } catch {}
-      return;
     }
-    await self.registration.showNotification(data.title || 'Auradime', options);
+    for (const client of windowClients) {
+      if (visibleClients.includes(client)) continue; // already handled above
+      try { client.postMessage({ type: 'push-received', payload: data }); } catch {}
+    }
+
+    // Show the OS-level notification whenever the app is not in the foreground,
+    // so the user knows a message arrived even if no tab is focused.
+    if (visibleClients.length === 0) {
+      await self.registration.showNotification(data.title || 'Auradime', options);
+    }
   };
 
   event.waitUntil(showOrForward());
+});
+
+// ── Background Sync: offline message queue ────────────────────────────────────
+// Fires when connectivity is restored — even if the tab is in the background.
+// We tell all open clients to drain their send queue; they handle auth and API.
+self.addEventListener('sync', function (event) {
+  if (event.tag !== 'aura-send-queue') return;
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((allClients) => {
+      for (const client of allClients) {
+        try { client.postMessage({ type: 'drain-send-queue' }); } catch {}
+      }
+    })
+  );
 });
 
 // ── Notification Click ───────────────────────────────────────────────────────

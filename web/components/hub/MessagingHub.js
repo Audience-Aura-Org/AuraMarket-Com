@@ -39,7 +39,16 @@ const saveQueue = (q) => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(SEND_QUEUE_KEY, JSON.stringify(q));
 };
-const enqueueMsg = (item) => saveQueue([...loadQueue(), { ...item, retries: 0, lastAttemptAt: 0, queuedAt: Date.now() }]);
+const enqueueMsg = (item) => {
+  saveQueue([...loadQueue(), { ...item, retries: 0, lastAttemptAt: 0, queuedAt: Date.now() }]);
+  // Register a Background Sync tag so the SW wakes this tab when connectivity
+  // returns, even if the tab is backgrounded at the time.
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'SyncManager' in window) {
+    navigator.serviceWorker.ready
+      .then((reg) => reg.sync.register('aura-send-queue'))
+      .catch(() => {});
+  }
+};
 const dequeueMsg = (clientId) => saveQueue(loadQueue().filter((m) => m.clientId !== clientId));
 const isNetworkError = (err) =>
   !err?.response && (err?.code === 'ERR_NETWORK' || err?.message === 'Network Error' || !navigator.onLine);
@@ -955,16 +964,22 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   }, [reconcileOptimisticMessage, markMessageFailed, markMessageQueued]);
 
   // Drain on mount (catches messages queued in a previous session), and again
-  // whenever the socket reconnects or the browser goes back online.
+  // whenever the socket reconnects, the browser goes back online, or the SW
+  // fires a Background Sync event (covers backgrounded tabs).
   useEffect(() => {
     drainSendQueue();
     const onOnline = () => drainSendQueue();
     const onConnect = () => drainSendQueue();
+    const onSWMessage = (event) => {
+      if (event.data?.type === 'drain-send-queue') drainSendQueue();
+    };
     window.addEventListener('online', onOnline);
     socketService.on('connect', onConnect);
+    navigator.serviceWorker?.addEventListener('message', onSWMessage);
     return () => {
       window.removeEventListener('online', onOnline);
       socketService.off('connect', onConnect);
+      navigator.serviceWorker?.removeEventListener('message', onSWMessage);
     };
   }, [drainSendQueue]);
 

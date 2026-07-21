@@ -114,19 +114,44 @@ const mapChatSockets = (server) => {
   // When a receiver is online but doesn't ACK within the 5 s timeout (transient
   // network hiccup, tab background throttle, etc.) we retry up to 3 times before
   // giving up and letting the on-connect handler handle delivery on next login.
+  // Retry state is mirrored to Redis so a server restart doesn't silently drop
+  // pending attempts while the receiver is still online.
   const pendingRetries = new Map(); // messageId -> { timer, populatedMessage, receiverId, attempt }
   const RETRY_DELAYS_MS = [8_000, 20_000, 45_000];
+  // TTL slightly longer than the total retry window (8+20+45 = 73s) to give cleanup time.
+  const RETRY_REDIS_TTL_S = 120;
+  const RETRY_REDIS_PREFIX = 'aura:msg_retry:';
+
+  const redis = getRedis();
+
+  const saveRetryToRedis = (messageId, receiverId, attempt) => {
+    if (!redis || redis.status !== 'ready') return;
+    redis.setex(
+      `${RETRY_REDIS_PREFIX}${messageId}`,
+      RETRY_REDIS_TTL_S,
+      JSON.stringify({ messageId: messageId.toString(), receiverId: receiverId.toString(), attempt })
+    ).catch(() => {});
+  };
+
+  const deleteRetryFromRedis = (messageId) => {
+    if (!redis || redis.status !== 'ready') return;
+    redis.del(`${RETRY_REDIS_PREFIX}${messageId}`).catch(() => {});
+  };
 
   const scheduleMessageRetry = (messageId, populatedMessage, receiverId, attempt = 0) => {
     const msgIdStr = messageId?.toString();
     if (!msgIdStr) return;
     if (attempt >= RETRY_DELAYS_MS.length) {
       pendingRetries.delete(msgIdStr);
+      deleteRetryFromRedis(msgIdStr);
       return;
     }
     // Clear any existing timer for this message before scheduling a new one
     const prev = pendingRetries.get(msgIdStr);
     if (prev?.timer) clearTimeout(prev.timer);
+
+    // Persist to Redis so this attempt survives a server restart
+    saveRetryToRedis(msgIdStr, receiverId, attempt);
 
     const timer = setTimeout(async () => {
       if (!pendingRetries.has(msgIdStr)) return; // cancelled (receiver reconnected)
@@ -134,6 +159,7 @@ const mapChatSockets = (server) => {
       if (receiverSet.size === 0) {
         // Receiver is offline — on-connect handler will deliver when they come back
         pendingRetries.delete(msgIdStr);
+        deleteRetryFromRedis(msgIdStr);
         return;
       }
       let acked = false;
@@ -145,6 +171,7 @@ const mapChatSockets = (server) => {
       }));
       if (acked) {
         pendingRetries.delete(msgIdStr);
+        deleteRetryFromRedis(msgIdStr);
         Message.findByIdAndUpdate(messageId, { delivered_status: true, delivered_at: new Date() }).catch(() => {});
         const senderId = (populatedMessage.sender_id?._id || populatedMessage.sender_id)?.toString();
         if (senderId) {
@@ -161,6 +188,51 @@ const mapChatSockets = (server) => {
 
     pendingRetries.set(msgIdStr, { timer, populatedMessage, receiverId, attempt });
   };
+
+  // On startup, recover any retries that were in-flight when the server last restarted.
+  // We re-fetch the message from DB to get fresh populated data before re-scheduling.
+  const recoverPendingRetries = async () => {
+    if (!redis) return;
+    // Wait for Redis to be ready (it may still be connecting at boot)
+    await waitForRedisReady(redis, 8000);
+    if (redis.status !== 'ready') return;
+    try {
+      let cursor = '0';
+      let recovered = 0;
+      do {
+        const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', `${RETRY_REDIS_PREFIX}*`, 'COUNT', '100');
+        cursor = nextCursor;
+        for (const key of keys) {
+          try {
+            const raw = await redis.get(key);
+            if (!raw) continue;
+            const { messageId, receiverId, attempt } = JSON.parse(raw);
+            const msg = await Message.findById(messageId)
+              .populate('product_reference', PRODUCT_REFERENCE_SELECT)
+              .populate('sender_id', 'name avatar role branding store_name is_online last_seen')
+              .populate('receiver_id', 'name avatar role branding store_name is_online last_seen')
+              .lean();
+            if (!msg || msg.delivered_status) {
+              // Already delivered (maybe on-connect handled it) — clean up stale key
+              await redis.del(key).catch(() => {});
+              continue;
+            }
+            if (msg?.product_reference) {
+              msg.product_reference = sanitizeProductReference(msg.product_reference);
+            }
+            scheduleMessageRetry(messageId, msg, receiverId, Number(attempt) || 0);
+            recovered++;
+          } catch {}
+        }
+      } while (cursor !== '0');
+      if (recovered > 0) console.log(`[Socket] Recovered ${recovered} pending message retries from Redis.`);
+    } catch (err) {
+      console.warn('[Socket] Could not recover pending retries from Redis:', err.message);
+    }
+  };
+
+  // Run recovery after a short delay to let the process stabilise
+  setTimeout(recoverPendingRetries, 5000);
   // ─────────────────────────────────────────────────────────────────────────────
 
   io.use(async (socket, next) => {
@@ -397,7 +469,9 @@ const mapChatSockets = (server) => {
         );
 
         io.to(senderId).emit('messages_read', { partnerId: socket.userId.toString() });
-        socket.emit('messages_read', { partnerId: senderId });
+        // Emit to the reader's FULL room so all their other devices (phone + laptop)
+        // also clear the unread badge for this conversation immediately.
+        io.to(socket.userId.toString()).emit('messages_read', { partnerId: senderId });
       } catch (error) {
         console.error('Socket (mark_messages_read) Error:', error);
       }
