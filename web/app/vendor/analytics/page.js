@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   TrendingUp, TrendingDown, DollarSign, 
   ShoppingBag, Users, Star, ArrowUpRight, 
@@ -21,20 +21,18 @@ import {
 } from 'recharts';
 import StatCard from '@/components/layout/StatCard';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuthStore } from '@/hooks/useAuth';
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
 export default function VendorAnalyticsPage() {
   const router = useRouter();
   const { t, label } = useLanguage();
+  const { user, hasHydrated } = useAuthStore();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get('/vendor/analytics');
@@ -46,7 +44,12 @@ export default function VendorAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydrated || !user || user.role !== 'vendor') return;
+    fetchAnalytics();
+  }, [hasHydrated, user, fetchAnalytics]);
 
   const handleDownloadReport = () => {
     const { stats, sales_history } = data || {};

@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   TrendingUp, Users, Store, Package, 
   Activity, Shield, Zap, Search, 
@@ -44,13 +44,13 @@ const LOG_RAIL_STYLES = {
 
 export default function AdminDashboard() {
   const { t } = useLanguage();
-  const { user } = useAuthStore();
+  const { user, hasHydrated } = useAuthStore();
   const [stats, setStats] = useState({});      // default {} so fmt() shows 0 immediately
   const [loading, setLoading] = useState(true);
   const [subStats, setSubStats] = useState({ revenue: null, total: 0, active: 0 });
   const earnings = stats?.admin_earnings || {};
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     setLoading(true);
     try {
       const [analyticsRes, subRes] = await Promise.all([
@@ -66,11 +66,12 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error('Failed to fetch admin stats:', err);
     } finally { setLoading(false); }
-  };
+  }, []);
 
   useEffect(() => {
+    if (!hasHydrated || !user || user.role !== 'admin') return;
     fetchStats();
-  }, []);
+  }, [hasHydrated, user, fetchStats]);
 
   return (
     <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">

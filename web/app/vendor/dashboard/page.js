@@ -91,6 +91,10 @@ export default function VendorDashboard() {
   const [orderFilter, setOrderFilter] = useState('all');
   const [orders, setOrders] = useState([]);
   const loadingRef = useRef(false);
+  // Keep a ref to user so the load callback never needs user in its dep array
+  // (putting user there would recreate load on every updateUser call → reload loop)
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [pendingEscrow, setPendingEscrow] = useState(0);
   const [analyticsStats, setAnalyticsStats] = useState(null);
@@ -115,7 +119,7 @@ export default function VendorDashboard() {
           if (err.response?.status === 403 || err.response?.status === 404) {
             const msg = err.response?.data?.message?.toLowerCase() || '';
             if (msg.includes('onboarding') || msg.includes('profile not found') || msg.includes('vendor profile not found')) {
-              updateUser({ ...user, onboarded: false });
+              updateUser({ ...userRef.current, onboarded: false });
               router.replace('/onboarding');
               throw new Error('ONBOARDING_REQUIRED');
             }
@@ -172,7 +176,7 @@ export default function VendorDashboard() {
       setLoading(false);
       loadingRef.current = false;
     }
-  }, [router, updateUser, user]);
+  }, [router, updateUser]); // user accessed via userRef — not in deps to avoid reload loop
 
   // Initial load
   useEffect(() => { load(); }, [load]);
