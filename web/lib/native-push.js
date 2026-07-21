@@ -38,6 +38,11 @@ const storePendingPushIntent = (intent) => {
   }));
 };
 
+export function hasPendingPushIntent() {
+  if (typeof window === 'undefined') return false;
+  return Boolean(window.localStorage.getItem(PENDING_PUSH_INTENT_KEY));
+}
+
 export function consumePendingNativePushIntent() {
   if (typeof window === 'undefined') return null;
   const raw = window.localStorage.getItem(PENDING_PUSH_INTENT_KEY);

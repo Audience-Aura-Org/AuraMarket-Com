@@ -14,6 +14,7 @@ import dynamic from 'next/dynamic';
 import SplashScreen from '@/components/layout/SplashScreen';
 import { useAuthStore } from '@/hooks/useAuth';
 import { initFontSettings } from '@/utils/fontSettings';
+import { hasPendingPushIntent } from '@/lib/native-push';
 
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
@@ -40,7 +41,10 @@ export default function Providers({ children }) {
                           normalizedPath.startsWith('/vendor') ||
                           normalizedPath.startsWith('/logistics') ||
                           normalizedPath === '/subscribe';
-  const [showSplash, setShowSplash] = useState(!isDashboardRoute);
+  // Skip splash when the app is opening in response to a notification tap —
+  // the intent is already stored in localStorage and navigation will happen
+  // immediately. Showing the splash here would block the UI for 2+ seconds.
+  const [showSplash, setShowSplash] = useState(!isDashboardRoute && !hasPendingPushIntent());
 
   useEffect(() => {
     initFontSettings();
