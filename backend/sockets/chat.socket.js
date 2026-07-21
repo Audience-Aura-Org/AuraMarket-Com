@@ -276,14 +276,21 @@ const mapChatSockets = (server) => {
       }
     });
 
+    // Per-socket throttle: only forward typing_start once per 1500ms per receiver.
+    // This prevents rapid type/delete cycles from causing indicator flicker on the receiver.
+    const typingThrottle = new Map(); // key: receiverId, value: last-forwarded timestamp
+
     socket.on('typing_start', ({ receiver_id }) => {
-      if (receiver_id) {
-        io.to(receiver_id.toString()).emit('partner_typing', {
-          userId: socket.userId,
-          receiverId: receiver_id.toString(),
-          at: new Date().toISOString(),
-        });
-      }
+      if (!receiver_id) return;
+      const receiverKey = receiver_id.toString();
+      const now = Date.now();
+      if (now - (typingThrottle.get(receiverKey) || 0) < 1500) return;
+      typingThrottle.set(receiverKey, now);
+      io.to(receiverKey).emit('partner_typing', {
+        userId: socket.userId,
+        receiverId: receiverKey,
+        at: new Date().toISOString(),
+      });
     });
 
     socket.on('typing_stop', ({ receiver_id }) => {

@@ -483,6 +483,7 @@ const getSystemWideInbox = async (req, res, next) => {
         };
       });
 
+    res.status(200).json({ success: true, count: activeChats.length, data: { activeChats } });
   } catch (error) {
     next(error);
   }

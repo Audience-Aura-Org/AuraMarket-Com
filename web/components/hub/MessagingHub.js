@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import {
   Send, X, ArrowLeft, Package,
-  MessageCircle, Check, CheckCheck, Loader2, Clock,
+  MessageCircle, Check, CheckCheck, Loader2, Clock, WifiOff,
   Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical
 } from 'lucide-react';
 import api from '@/services/api';
@@ -27,6 +27,9 @@ const CHAT_FULL_HEIGHT_KEY = 'aura_chat_full_viewport_height';
 
 const SEND_QUEUE_KEY = 'aura_send_queue';
 const MAX_QUEUE_RETRIES = 6;
+// Exponential backoff delays (ms) indexed by retry count.
+// retry 0 = immediate, 1 = 3s, 2 = 10s, 3 = 30s, 4 = 60s, 5+ = 120s
+const QUEUE_RETRY_DELAYS = [0, 3000, 10000, 30000, 60000, 120000];
 
 const loadQueue = () => {
   if (typeof window === 'undefined') return [];
@@ -36,7 +39,7 @@ const saveQueue = (q) => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(SEND_QUEUE_KEY, JSON.stringify(q));
 };
-const enqueueMsg = (item) => saveQueue([...loadQueue(), { ...item, retries: 0, queuedAt: Date.now() }]);
+const enqueueMsg = (item) => saveQueue([...loadQueue(), { ...item, retries: 0, lastAttemptAt: 0, queuedAt: Date.now() }]);
 const dequeueMsg = (clientId) => saveQueue(loadQueue().filter((m) => m.clientId !== clientId));
 const isNetworkError = (err) =>
   !err?.response && (err?.code === 'ERR_NETWORK' || err?.message === 'Network Error' || !navigator.onLine);
@@ -196,6 +199,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     receiveMessage,
     reconcileOptimisticMessage,
     markMessageFailed,
+    markMessageQueued,
     markConversationRead,
     deleteMessage,
     syncInboxFromServer,
@@ -299,9 +303,27 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }
       typingPartnerIdRef.current = null;
       setIsTyping(false);
+
+      // Mark the previous thread as read when switching away.
+      // messagesRef.current still holds the previous partner's messages at this point
+      // (the ref-sync effect runs after this one). We check for at least one unread
+      // message to avoid a no-op API call on every thread switch.
+      const prevMsgs = messagesRef.current || [];
+      const hasUnread = prevMsgs.some(
+        (m) => toId(m.sender_id) === previousPartnerId && !m.read_status
+      );
+      if (hasUnread) {
+        // Socket emit gives the sender instant blue-tick feedback.
+        socketService.emit('mark_messages_read', { sender_id: previousPartnerId });
+        // HTTP call persists the read status and emits server-side socket events for
+        // multi-tab sync and any clients not in the same Socket.IO process.
+        api.patch(`/chat/read/${previousPartnerId}`)
+          .then(() => markConversationRead(previousPartnerId))
+          .catch(() => {});
+      }
     }
     activePartnerIdRef.current = activePartnerId;
-  }, [activePartnerId]);
+  }, [activePartnerId, markConversationRead]);
 
   useEffect(() => {
     messagesRef.current = activeMessages;
@@ -901,6 +923,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         markMessageFailed(item.partnerId, item.tempId);
         continue;
       }
+      // Exponential backoff: skip items whose back-off window hasn't elapsed yet.
+      const delay = QUEUE_RETRY_DELAYS[Math.min(item.retries, QUEUE_RETRY_DELAYS.length - 1)];
+      if (Date.now() - (item.lastAttemptAt || 0) < delay) continue;
+
       try {
         const res = await api.post('/chat', {
           receiver_id: item.partnerId,
@@ -916,14 +942,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         }
       } catch (err) {
         if (isNetworkError(err)) {
-          saveQueue(loadQueue().map((m) => m.clientId === item.clientId ? { ...m, retries: m.retries + 1 } : m));
+          saveQueue(loadQueue().map((m) => m.clientId === item.clientId
+            ? { ...m, retries: m.retries + 1, lastAttemptAt: Date.now() }
+            : m));
         } else {
           dequeueMsg(item.clientId);
           markMessageFailed(item.partnerId, item.tempId);
         }
       }
     }
-  }, [reconcileOptimisticMessage, markMessageFailed]);
+  }, [reconcileOptimisticMessage, markMessageFailed, markMessageQueued]);
 
   // Drain on mount (catches messages queued in a previous session), and again
   // whenever the socket reconnects or the browser goes back online.
@@ -1014,16 +1042,20 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       setIsTyping(true);
       typingPartnerIdRef.current = targetPartnerId;
       socketService.emit('typing_start', { receiver_id: targetPartnerId });
-      // Heartbeat: re-emit every 2s so the receiver's indicator never expires mid-conversation
+      // Heartbeat at 1500ms — keeps the receiver's 3s indicator alive during long typing sessions.
+      // Using 1500ms (not 2000ms) so the idle-stop timeout (2500ms) always fires first,
+      // preventing both from co-firing in the same event-loop tick (race → flicker).
       if (typingHeartbeatRef.current) clearInterval(typingHeartbeatRef.current);
       typingHeartbeatRef.current = setInterval(() => {
         if (typingPartnerIdRef.current) {
           socketService.emit('typing_start', { receiver_id: typingPartnerIdRef.current });
         }
-      }, 2000);
+      }, 1500);
     }
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    // 2500ms idle timeout — longer than heartbeat interval so the heartbeat always fires
+    // and clears itself before the idle stop, eliminating the heartbeat/stop race.
     typingTimeoutRef.current = setTimeout(() => {
       const partnerId = typingPartnerIdRef.current;
       setIsTyping(false);
@@ -1031,7 +1063,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       if (typingHeartbeatRef.current) clearInterval(typingHeartbeatRef.current);
       typingHeartbeatRef.current = null;
       if (partnerId) socketService.emit('typing_stop', { receiver_id: partnerId });
-    }, 2000);
+    }, 2500);
   };
 
   const closeMediaPreview = () => {
@@ -1110,8 +1142,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }
     } catch (err) {
       if (isNetworkError(err)) {
-        // Queue for retry — the spinner stays visible (status remains 'sending')
+        // Queue for retry — show offline wifi icon so user knows it's queued, not lost.
         enqueueMsg({ partnerId: sendPartnerId, text: caption, imageUrl: null, clientId, tempId, productRef: null });
+        markMessageQueued(sendPartnerId, tempId);
       } else {
         markMessageFailed(sendPartnerId, tempId);
         toast.error('Failed to send image');
@@ -1187,8 +1220,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }
     } catch (err) {
       if (isNetworkError(err)) {
-        // Network is down — queue for automatic retry instead of marking failed.
-        // Message stays as 'sending' (clock icon) until connection returns.
+        // Network is down — queue for automatic retry and show wifi-off icon so the
+        // user knows the message is queued (not lost) and will send when back online.
         enqueueMsg({
           partnerId: sendPartnerId,
           text,
@@ -1197,6 +1230,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           tempId: optimisticMsg._id,
           productRef: product?._id || null,
         });
+        markMessageQueued(sendPartnerId, optimisticMsg._id);
       } else {
         markMessageFailed(sendPartnerId, optimisticMsg._id);
         if (sentDraftKey && text && typeof window !== 'undefined') localStorage.setItem(sentDraftKey, text);
@@ -1999,7 +2033,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                             {isOwn && (
                               msg.status === 'failed'
                                 ? <AlertCircle className="size-3.5 text-red-500" />
-                                : msg.status === 'sending'
+                                : msg.status === 'queued'
+                                  ? <WifiOff className="size-3 text-amber-500/70 transition-colors duration-300" />
+                                  : msg.status === 'sending'
                                   ? <Clock className="size-3 text-[var(--text-secondary)]/50 transition-colors duration-300" />
                                   : msg.read_status
                                     ? <CheckCheck className="size-3.5 text-emerald-500 drop-shadow-[0_0_2px_rgba(16,185,129,0.3)] transition-colors duration-300" />

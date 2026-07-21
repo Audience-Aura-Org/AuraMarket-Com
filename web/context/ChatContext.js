@@ -394,6 +394,13 @@ function chatReducer(state, action) {
         const normalized = normalizeConversation(conversation, { ...state, conversationsById });
         if (!normalized) continue;
         const partnerId = toId(normalized.partner);
+        // If this conversation is currently open, the user has already seen the messages.
+        // Don't let a stale server unread count (from a sync racing with markAsRead)
+        // re-badge a thread the user is actively viewing.
+        if (state.isOpen && state.activePartnerId === partnerId) {
+          normalized.unread_count = 0;
+          normalized.read_status = true;
+        }
         conversationsById[partnerId] = normalized;
         nextIds.add(partnerId);
       }
@@ -540,6 +547,20 @@ function chatReducer(state, action) {
           ...state.messagesByConversation,
           [partnerId]: (state.messagesByConversation[partnerId] || []).map((m) =>
             m._id === action.tempId ? { ...m, status: 'failed' } : m
+          ),
+        },
+      };
+    }
+
+    case 'MARK_MESSAGE_QUEUED': {
+      const partnerId = action.partnerId?.toString();
+      if (!partnerId) return state;
+      return {
+        ...state,
+        messagesByConversation: {
+          ...state.messagesByConversation,
+          [partnerId]: (state.messagesByConversation[partnerId] || []).map((m) =>
+            m._id === action.tempId ? { ...m, status: 'queued' } : m
           ),
         },
       };
@@ -924,6 +945,10 @@ export function ChatProvider({ children }) {
     dispatch({ type: 'MARK_MESSAGE_FAILED', partnerId, tempId });
   }, []);
 
+  const markMessageQueued = useCallback((partnerId, tempId) => {
+    dispatch({ type: 'MARK_MESSAGE_QUEUED', partnerId, tempId });
+  }, []);
+
   const markConversationRead = useCallback((partnerId) => {
     dispatch({ type: 'MARK_READ', partnerId });
   }, []);
@@ -958,6 +983,7 @@ export function ChatProvider({ children }) {
       receiveMessage,
       reconcileOptimisticMessage,
       markMessageFailed,
+      markMessageQueued,
       markConversationRead,
       updatePresence,
       deleteMessage,
@@ -973,6 +999,7 @@ export function ChatProvider({ children }) {
     receiveMessage,
     reconcileOptimisticMessage,
     markMessageFailed,
+    markMessageQueued,
     markConversationRead,
     updatePresence,
     deleteMessage,

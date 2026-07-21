@@ -301,8 +301,7 @@ export default function OnboardingFlow() {
           vehicle_types: logisticsProfile.vehicle_types,
         });
         if (res.data.success) {
-          const me = await api.get('/auth/me').catch(() => null);
-          if (me?.data?.data?.user) updateUser(me.data.data.user);
+          if (res.data.data?.user) updateUser(res.data.data.user);
           if (consumeSubscriptionIntent('logistics')) {
             router.push('/subscribe?role=logistics');
             return;

@@ -241,12 +241,6 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
         setOtp('');
         setStep('signup');
         router.replace('/signup');
-        window.setTimeout(() => {
-          const path = window.location.pathname.replace(/\/+$/, '') || '/';
-          if (path !== '/signup') {
-            window.location.replace('/signup');
-          }
-        }, 150);
         return;
       }
 
