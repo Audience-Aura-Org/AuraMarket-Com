@@ -244,6 +244,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const lastKeyboardViewportRef = useRef(null);
   const goBackOrCloseRef = useRef(null);  // always-fresh ref — avoids stale closures in back-button effects
   const backViaButtonRef = useRef(false); // true when browser/hardware back triggered the last navigation
+  const suppressPopStateRef = useRef(false); // true during programmatic history.back() — prevents goBackOrClose re-firing
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
     if (typeof window === 'undefined') return {};
@@ -1435,6 +1436,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     window.history.pushState({ chatInterceptor: true }, '');
 
     const onPopState = () => {
+      // Ignore popstates triggered by our own programmatic history.back() calls (cleanup).
+      // Those occur when navigating forward (inbox → thread), and should not call goBackOrClose.
+      if (suppressPopStateRef.current) {
+        suppressPopStateRef.current = false;
+        return;
+      }
       backViaButtonRef.current = true;
       goBackOrCloseRef.current?.();
     };
@@ -1445,6 +1452,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       // If the panel closed via UI (X / backdrop) rather than the back button,
       // clean up the dummy history entry so the browser stack stays clean.
       if (!backViaButtonRef.current && window.history.state?.chatInterceptor) {
+        suppressPopStateRef.current = true; // suppress the resulting popstate in the new listener
         window.history.back();
       }
     };
