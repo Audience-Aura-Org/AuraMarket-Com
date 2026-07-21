@@ -22,6 +22,23 @@ const roomHasSockets = async (io, room) => {
   }
 };
 
+const scheduleRealtimeDelivery = (io, message) => {
+  if (!io || !message) return;
+
+  if (typeof io.deliverChatMessage === 'function') {
+    io.deliverChatMessage(message).catch((error) => {
+      console.error('[Chat] Delivery scheduling failed:', error);
+    });
+    return;
+  }
+
+  // Used only when Socket.IO has not completed its normal bootstrap.
+  const receiverId = (message.receiver_id?._id || message.receiver_id)?.toString();
+  const senderId = (message.sender_id?._id || message.sender_id)?.toString();
+  if (receiverId) io.to(receiverId).emit('receive_message', message);
+  if (senderId) io.to(senderId).emit('sent_message_echo', message);
+};
+
 const buildParticipantSnapshot = (user) => {
   if (!user?._id) return user;
   return {
@@ -291,6 +308,7 @@ const sendMessage = async (req, res, next) => {
         client_id: client_id || null,
         product_reference: productDoc || (existing.product_reference ? { _id: existing.product_reference } : null),
       };
+      if (!existing.delivered_status) scheduleRealtimeDelivery(io, existingPayload);
       return res.status(201).json({ success: true, data: { message: existingPayload } });
     }
 
@@ -301,7 +319,8 @@ const sendMessage = async (req, res, next) => {
       product_reference: product_reference || null,
       metadata: metadata || null,
       image_url: image_url || null,
-      delivered_status: receiverOnline,
+      // Presence alone is not delivery; wait for a receipt from the client.
+      delivered_status: false,
       client_id: client_id || null,
     });
 
@@ -321,11 +340,7 @@ const sendMessage = async (req, res, next) => {
       const senderCount   = io.sockets.adapter.rooms.get(senderRoom)?.size || 0;
       console.log(`[API] 📤 Broadcasting via socket - receiver room: ${receiverRoom} (${receiverCount} connected), sender room: ${senderRoom} (${senderCount} connected)`);
 
-      io.to(receiverRoom).emit('receive_message', messagePayload);
-      io.to(senderRoom).emit('sent_message_echo', messagePayload);
-      if (receiverOnline) {
-        io.to(senderRoom).emit('messages_delivered', { partnerId: receiverRoom });
-      }
+      scheduleRealtimeDelivery(io, messagePayload);
 
       console.log(`✅ [API] Message broadcast: ${req.user._id} -> ${receiver_id}`);
     } else {

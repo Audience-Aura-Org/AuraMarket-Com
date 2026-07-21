@@ -139,6 +139,7 @@ class SocketService {
   connectionAttempts = 0;
   lastError = null;
   warnedUnavailable = false;
+  authToken = null;
 
   async connect(userId, authToken = null) {
     if (!SOCKET_URL) {
@@ -169,8 +170,11 @@ class SocketService {
     }
     console.log(`[SocketService] ✅ Auth token available`);
 
+    this.authToken = token;
+
     if (this.socket) {
       if (this.socket.currentUserId === userId) {
+        this.socket.auth = (cb) => cb({ userId, token: this.authToken });
         if (this.socket.connected) {
           debugLog('[SocketService] Already connected, skipping reconnect.');
           return;
@@ -182,6 +186,7 @@ class SocketService {
 
       debugLog('[SocketService] User changed, reconnecting with new credentials.');
       this.socket.currentUserId = userId;
+      this.socket.auth = (cb) => cb({ userId, token: this.authToken });
       this.socket.disconnect().connect();
       return;
     }
@@ -198,10 +203,10 @@ class SocketService {
         // Backend requires BOTH userId and token in auth object for JWT verification
         const authPayload = {
           userId: this.socket?.currentUserId || userId,
-          token: token || null,
+          token: this.authToken || null,
         };
         
-        if (token) {
+        if (this.authToken) {
           debugLog(`[SocketService] Sending auth: userId + token`);
         } else {
           console.warn(`[SocketService] ⚠️ Sending auth without token - backend JWT verification will fail`);
@@ -369,6 +374,7 @@ class SocketService {
     this.connectionAttempts = 0;
     this.lastError = null;
     this.warnedUnavailable = false;
+    this.authToken = null;
   }
 
   isConnected() {

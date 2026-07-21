@@ -111,15 +111,13 @@ const mapChatSockets = (server) => {
   const disconnectTimers = new Map(); // Grace period before marking offline
 
   // ── Delivery retry queue ─────────────────────────────────────────────────────
-  // When a receiver is online but doesn't ACK within the 5 s timeout (transient
-  // network hiccup, tab background throttle, etc.) we retry up to 3 times before
-  // giving up and letting the on-connect handler handle delivery on next login.
-  // Retry state is mirrored to Redis so a server restart doesn't silently drop
-  // pending attempts while the receiver is still online.
+  // Socket.IO delivery is at-most-once: a socket can disappear between the
+  // server's online check and the actual emit. Keep a short durable retry queue
+  // until the recipient explicitly confirms the message reached its client.
   const pendingRetries = new Map(); // messageId -> { timer, populatedMessage, receiverId, attempt }
-  const RETRY_DELAYS_MS = [8_000, 20_000, 45_000];
-  // TTL slightly longer than the total retry window (8+20+45 = 73s) to give cleanup time.
-  const RETRY_REDIS_TTL_S = 120;
+  const RETRY_DELAYS_MS = [1_000, 3_000, 8_000, 20_000, 60_000];
+  // TTL covers the retry window while MongoDB still provides reconnect recovery.
+  const RETRY_REDIS_TTL_S = 150;
   const RETRY_REDIS_PREFIX = 'aura:msg_retry:';
 
   const redis = getRedis();
@@ -136,6 +134,42 @@ const mapChatSockets = (server) => {
   const deleteRetryFromRedis = (messageId) => {
     if (!redis || redis.status !== 'ready') return;
     redis.del(`${RETRY_REDIS_PREFIX}${messageId}`).catch(() => {});
+  };
+
+  const cancelMessageRetry = (messageId) => {
+    const msgIdStr = messageId?.toString();
+    if (!msgIdStr) return;
+    const pending = pendingRetries.get(msgIdStr);
+    if (pending?.timer) clearTimeout(pending.timer);
+    pendingRetries.delete(msgIdStr);
+    deleteRetryFromRedis(msgIdStr);
+  };
+
+  const confirmMessageDelivery = async (messageId, receiverId) => {
+    const deliveredAt = new Date();
+    const message = await Message.findOneAndUpdate(
+      {
+        _id: messageId,
+        receiver_id: receiverId,
+        delivered_status: { $ne: true },
+      },
+      { $set: { delivered_status: true, delivered_at: deliveredAt } },
+      { new: true }
+    )
+      .select('sender_id receiver_id')
+      .lean();
+
+    // Duplicate receipts are normal when the recipient is signed in on more
+    // than one device. Only the first receipt changes state and notifies sender.
+    if (!message) return false;
+
+    cancelMessageRetry(messageId);
+    io.to(message.sender_id.toString()).emit('message_delivery_ack', {
+      messageId: messageId.toString(),
+      partnerId: receiverId.toString(),
+      at: deliveredAt.toISOString(),
+    });
+    return true;
   };
 
   const scheduleMessageRetry = (messageId, populatedMessage, receiverId, attempt = 0) => {
@@ -155,35 +189,25 @@ const mapChatSockets = (server) => {
 
     const timer = setTimeout(async () => {
       if (!pendingRetries.has(msgIdStr)) return; // cancelled (receiver reconnected)
-      const receiverSet = userSockets.get(String(receiverId)) || new Set();
-      if (receiverSet.size === 0) {
+      const stillUndelivered = await Message.exists({
+        _id: messageId,
+        receiver_id: receiverId,
+        delivered_status: false,
+      });
+      if (!stillUndelivered) {
+        cancelMessageRetry(msgIdStr);
+        return;
+      }
+      const receiverOnline = await roomHasSockets(io, receiverId);
+      if (!receiverOnline) {
         // Receiver is offline — on-connect handler will deliver when they come back
         pendingRetries.delete(msgIdStr);
         deleteRetryFromRedis(msgIdStr);
         return;
       }
-      let acked = false;
-      await Promise.all(Array.from(receiverSet).map(async (sockId) => {
-        try {
-          await io.to(sockId).timeout(5000).emit('receive_message', populatedMessage);
-          acked = true;
-        } catch {}
-      }));
-      if (acked) {
-        pendingRetries.delete(msgIdStr);
-        deleteRetryFromRedis(msgIdStr);
-        Message.findByIdAndUpdate(messageId, { delivered_status: true, delivered_at: new Date() }).catch(() => {});
-        const senderId = (populatedMessage.sender_id?._id || populatedMessage.sender_id)?.toString();
-        if (senderId) {
-          io.to(senderId).emit('message_delivery_ack', {
-            messageId,
-            partnerId: receiverId.toString(),
-            at: new Date().toISOString(),
-          });
-        }
-      } else {
-        scheduleMessageRetry(messageId, populatedMessage, receiverId, attempt + 1);
-      }
+      // The client confirms receipt only after it has stored the payload.
+      io.to(receiverId.toString()).emit('receive_message', populatedMessage);
+      scheduleMessageRetry(messageId, populatedMessage, receiverId, attempt + 1);
     }, RETRY_DELAYS_MS[attempt]);
 
     pendingRetries.set(msgIdStr, { timer, populatedMessage, receiverId, attempt });
@@ -233,6 +257,24 @@ const mapChatSockets = (server) => {
 
   // Run recovery after a short delay to let the process stabilise
   setTimeout(recoverPendingRetries, 5000);
+
+  // Shared by the HTTP and legacy socket send paths. The request can return as
+  // soon as MongoDB saves the message; receipt confirmation happens separately.
+  io.deliverChatMessage = async (message) => {
+    const receiverId = (message?.receiver_id?._id || message?.receiver_id)?.toString();
+    const senderId = (message?.sender_id?._id || message?.sender_id)?.toString();
+    const messageId = message?._id?.toString();
+    if (!receiverId || !senderId || !messageId) return false;
+
+    io.to(senderId).emit('sent_message_echo', message);
+    io.to(receiverId).emit('receive_message', message);
+
+    if (await roomHasSockets(io, receiverId)) {
+      scheduleMessageRetry(messageId, message, receiverId);
+      return true;
+    }
+    return false;
+  };
   // ─────────────────────────────────────────────────────────────────────────────
 
   io.use(async (socket, next) => {
@@ -310,41 +352,25 @@ const mapChatSockets = (server) => {
           }
           return msg;
         });
-        socket.emit('offline_messages', sanitized);
+        sanitized.forEach((message) => {
+          socket.emit('receive_message', message);
+          scheduleMessageRetry(message._id, message, socket.userId);
+        });
 
         // Cancel any in-flight retries — we just delivered these messages.
-        for (const msg of messages) {
-          const msgId = msg._id?.toString();
-          if (msgId && pendingRetries.has(msgId)) {
-            clearTimeout(pendingRetries.get(msgId).timer);
-            pendingRetries.delete(msgId);
-          }
-        }
 
-        await Message.updateMany(
-          { receiver_id: socket.userId, delivered_status: false },
-          { delivered_status: true }
-        );
-        const senderIds = [...new Set(messages.map((msg) => {
-          const sid = msg.sender_id;
-          return (sid?._id || sid)?.toString();
-        }).filter(Boolean))];
-        senderIds.forEach((senderId) => {
-          io.to(senderId).emit('messages_delivered', { partnerId: socket.userId.toString() });
-        });
       })
       .catch((error) => console.error('Failed to mark delivered messages:', error));
 
     socket.on('send_message', async (data) => {
       try {
         const { receiver_id, text, product_reference } = data;
-        const receiverOnline = await roomHasSockets(io, receiver_id.toString());
         const message = await Message.create({
           sender_id: socket.userId,
           receiver_id,
           text,
           product_reference: product_reference || null,
-          delivered_status: receiverOnline,
+          delivered_status: false,
         });
 
         const populatedMessage = await Message.findById(message._id)
@@ -357,45 +383,20 @@ const mapChatSockets = (server) => {
           populatedMessage.product_reference = sanitizeProductReference(populatedMessage.product_reference);
         }
 
-        const receiverSet = userSockets.get(String(receiver_id)) || new Set();
-
         // ── Instant delivery (non-blocking) ────────────────────────────────────
         // Both emits fire immediately so neither the receiver nor the sender
         // has to wait for ACK resolution (which can take up to 5 s on slow
         // networks or when ACK is never called by older clients).
         // The client's dedupeMessages handles the harmless duplicate that the
         // per-socket ackable emit below will also send to in-process sockets.
-        io.to(receiver_id.toString()).emit('receive_message', populatedMessage);
-        io.to(socket.userId.toString()).emit('sent_message_echo', populatedMessage);
+        io.deliverChatMessage(populatedMessage).catch((error) => {
+          console.error('Socket message delivery scheduling failed:', error);
+        });
 
         // ── Delivery confirmation (background, may take up to 5 s) ────────────
         // Per-socket ackable emits are used solely to get a client ACK so we
         // can mark delivered_status = true in the DB and show the sender a
         // double-tick. They do NOT gate the message reaching the receiver.
-        let anyAck = false;
-        if (receiverSet.size > 0) {
-          const emitPromises = Array.from(receiverSet).map(async (sockId) => {
-            try {
-              const res = await io.to(sockId).timeout(5000).emit('receive_message', populatedMessage);
-              return { sockId, ok: true, res };
-            } catch (err) {
-              return { sockId, ok: false, err };
-            }
-          });
-          const results = await Promise.all(emitPromises);
-          anyAck = results.some(r => r && r.ok === true);
-        }
-
-        if (anyAck) {
-          Message.findByIdAndUpdate(populatedMessage._id, { delivered_status: true, delivered_at: new Date() }).catch(() => {});
-          io.to(socket.userId.toString()).emit('message_delivery_ack', { messageId: populatedMessage._id, partnerId: receiver_id.toString(), at: new Date().toISOString() });
-        } else if (receiverOnline) {
-          io.to(socket.userId.toString()).emit('messages_delivered', { partnerId: receiver_id.toString() });
-        }
-
-        if (!anyAck && receiverSet.size > 0) {
-          scheduleMessageRetry(populatedMessage._id?.toString(), populatedMessage, receiver_id);
-        }
 
         setImmediate(() => {
           const sender = populatedMessage.sender_id;
@@ -447,6 +448,18 @@ const mapChatSockets = (server) => {
           receiverId: receiver_id.toString(),
           at: new Date().toISOString(),
         });
+      }
+    });
+
+    // A message is delivered only when the authenticated recipient confirms it
+    // reached their local chat store. This survives missed broadcasts and is
+    // safe to emit repeatedly from multiple devices.
+    socket.on('message_received', async ({ messageId }) => {
+      if (!messageId) return;
+      try {
+        await confirmMessageDelivery(messageId, socket.userId);
+      } catch (error) {
+        console.error('Socket (message_received) Error:', error);
       }
     });
 

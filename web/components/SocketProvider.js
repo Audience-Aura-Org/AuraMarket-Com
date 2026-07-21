@@ -329,13 +329,13 @@ export default function SocketProvider({ children }) {
       // Connect immediately when a user exists to restore instant messaging.
       console.log('[SocketProvider] User authenticated:', user._id);
 
-      // Connect once per user session
+      // Keep the connection's auth token fresh too. A token refresh otherwise
+      // leaves a disconnected Socket.IO instance retrying with stale auth.
       if (connectedUserId.current !== user._id) {
-        // Pass token if available; socket will use cookies with withCredentials: true
         console.log('[SocketProvider] Initiating socket connection for user:', user._id);
-        socketService.connect(user._id, authToken);
-        connectedUserId.current = user._id;
       }
+      socketService.connect(user._id, authToken);
+      connectedUserId.current = user._id;
     };
 
     connectSocket();
@@ -693,6 +693,31 @@ export default function SocketProvider({ children }) {
       connectedUserId.current = null;
     }
   }, [user]);
+
+  // Browsers can suspend a WebSocket in the background without firing a clean
+  // disconnect. Reconnect immediately on return rather than waiting for the
+  // heartbeat timeout, which keeps active chat feeling instant after app swaps.
+  useEffect(() => {
+    const reconnect = () => {
+      if (document.visibilityState === 'hidden') return;
+      const currentUser = userRef.current;
+      const currentToken = tokenRef.current;
+      if (currentUser?._id && currentToken) {
+        socketService.connect(currentUser._id, currentToken);
+      }
+    };
+
+    window.addEventListener('online', reconnect);
+    window.addEventListener('focus', reconnect);
+    window.addEventListener('pageshow', reconnect);
+    document.addEventListener('visibilitychange', reconnect);
+    return () => {
+      window.removeEventListener('online', reconnect);
+      window.removeEventListener('focus', reconnect);
+      window.removeEventListener('pageshow', reconnect);
+      document.removeEventListener('visibilitychange', reconnect);
+    };
+  }, []);
 
   // On Android, the OS can kill the WebSocket while the app is in the background.
   // The socket doesn't discover the dead connection until pingTimeout fires (up to 15s).

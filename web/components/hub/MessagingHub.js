@@ -733,8 +733,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     if (!activePartnerId) return;
 
     let stopped = false;
-    const pollIfSocketUnavailable = () => {
-      if (stopped || socketService.isConnected()) return;
+    const reconcileActiveConversation = () => {
+      if (stopped || document.visibilityState === 'hidden') return;
       loadConversation(activePartnerId, 1, {
         silent: true,
         skipProfile: true,
@@ -742,8 +742,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       });
     };
 
-    const warmup = setTimeout(pollIfSocketUnavailable, 1500);
-    const interval = setInterval(pollIfSocketUnavailable, 5000);
+    // Socket.IO gives the instant path. This small foreground reconciliation
+    // closes the at-most-once gap if a mobile radio drops a single socket frame.
+    const warmup = setTimeout(reconcileActiveConversation, 1200);
+    const interval = setInterval(reconcileActiveConversation, 4000);
 
     return () => {
       stopped = true;
@@ -855,6 +857,19 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           }, 50);
         } else {
           upsertMessages(pid, newMsgs);
+          // A history pull is also a successful receipt. This covers the rare
+          // case where a socket frame was lost but the reconciliation request
+          // restored the message a moment later.
+          const currentUserId = user?._id?.toString?.();
+          newMsgs.forEach((message) => {
+            if (
+              message?._id &&
+              !message.delivered_status &&
+              toId(message.receiver_id) === currentUserId
+            ) {
+              socketService.emit('message_received', { messageId: message._id.toString() });
+            }
+          });
           setHasMore(newMsgs.length < total);
           // Always pin to bottom on page-1 load so the user sees the latest messages
           // regardless of whether the content was cached or already rendered.

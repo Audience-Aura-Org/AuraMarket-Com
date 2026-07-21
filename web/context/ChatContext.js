@@ -841,6 +841,12 @@ export function ChatProvider({ children }) {
 
       dispatch({ type: 'RECEIVE_MESSAGE', message, partnerId, isActive });
 
+      // This is the durable delivery receipt. A room being online is not enough
+      // on mobile: the socket can close while an event is in flight.
+      if (partnerId && message?._id) {
+        socketService.emit('message_received', { messageId: message._id.toString() });
+      }
+
       if (isActive && senderId && senderId !== current.currentUserId) {
         socketService.emit('mark_messages_read', { sender_id: senderId });
       }
@@ -901,6 +907,9 @@ export function ChatProvider({ children }) {
         const partnerId = getConversationIdFromMessage(message, current.currentUserId);
         if (!partnerId) continue;
         dispatch({ type: 'RECEIVE_MESSAGE', message, partnerId, isActive: false });
+        if (message?._id) {
+          socketService.emit('message_received', { messageId: message._id.toString() });
+        }
       }
     };
 
