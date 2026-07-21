@@ -73,9 +73,11 @@ const sendAndroidPush = async (tokens, payload) => {
   });
 
   const invalidTokens = [];
+  const errorCodes = {};
   response.responses.forEach((result, index) => {
     if (!result.success) {
-      const code = result.error?.code || '';
+      const code = result.error?.code || 'unknown';
+      errorCodes[code] = (errorCodes[code] || 0) + 1;
       if (
         code.includes('registration-token-not-registered') ||
         code.includes('invalid-registration-token') ||
@@ -85,6 +87,9 @@ const sendAndroidPush = async (tokens, payload) => {
       }
     }
   });
+  if (Object.keys(errorCodes).length > 0) {
+    console.warn('[FCM] Failure breakdown:', JSON.stringify(errorCodes));
+  }
 
   return { sent: response.successCount, failed: response.failureCount, invalidTokens };
 };

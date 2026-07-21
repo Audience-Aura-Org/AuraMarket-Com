@@ -385,7 +385,7 @@ const updateProduct = async (req, res, next) => {
     product = await Product.findByIdAndUpdate(
       req.params.id,
       { $set: updateData },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     // ── Invalidate server-side cache ───────────────────────────────────

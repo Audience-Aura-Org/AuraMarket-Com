@@ -322,7 +322,7 @@ const sendMessage = async (req, res, next) => {
         },
         // includeResultMetadata (Mongoose 8+/9) replaced the deprecated rawResult option.
         // It returns { value: <doc>, lastErrorObject: { updatedExisting, upserted }, ok }.
-        { upsert: true, new: true, includeResultMetadata: true, setDefaultsOnInsert: true }
+        { upsert: true, returnDocument: 'after', includeResultMetadata: true, setDefaultsOnInsert: true }
       );
       message = rawResult.value;
       isExisting = rawResult.lastErrorObject?.updatedExisting === true;

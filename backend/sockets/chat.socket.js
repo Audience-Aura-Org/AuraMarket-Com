@@ -154,7 +154,7 @@ const mapChatSockets = (server) => {
         delivered_status: { $ne: true },
       },
       { $set: { delivered_status: true, delivered_at: deliveredAt } },
-      { new: true }
+      { returnDocument: 'after' }
     )
       .select('sender_id receiver_id')
       .lean();
