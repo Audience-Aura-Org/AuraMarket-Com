@@ -124,7 +124,31 @@ const normalizeStatus = (payload) => {
   const status = String(payload?.transaction_status || payload?.payment_status || payload?.status || '').toUpperCase();
   if (status === 'SUCCESS' || status === 'SUCCESSFUL' || status === 'COMPLETED') return 'SUCCESSFUL';
   if (status === 'FAILED' || status === 'CANCELLED' || status === 'CANCELED') return 'FAILED';
+  if (status === 'TIMEOUT' || status === 'TIMED_OUT' || status === 'EXPIRED') return 'TIMEOUT';
   return 'PENDING';
+};
+
+// Returns true when an axios error is a network/connection timeout rather than
+// a server-side rejection. A timeout does NOT mean the payment failed — PayUnit
+// may have received the request and will still push to the subscriber's phone.
+const isTimeoutError = (err) =>
+  err?.code === 'ECONNABORTED' ||
+  err?.code === 'ETIMEDOUT' ||
+  /timeout|timed.?out/i.test(err?.message || '');
+
+// Automatically detect the correct PayUnit provider for a Cameroon number.
+// Prefixes (9-digit local):
+//   MTN Mobile Money  → 650–654, 670–689
+//   Orange Money      → 655–659, 690–699
+// Falls back to MTN when the prefix is unrecognised.
+const detectCmProvider = (phone) => {
+  const local = normalizePhone(phone, 'CM');
+  if (!local || local.length < 3) return 'CM_MTNMOMO';
+  const prefix = parseInt(local.slice(0, 3), 10);
+  if ((prefix >= 655 && prefix <= 659) || (prefix >= 690 && prefix <= 699)) {
+    return 'CM_ORANGE';
+  }
+  return 'CM_MTNMOMO';
 };
 
 module.exports = {
@@ -135,5 +159,7 @@ module.exports = {
   normalizePhone,
   normalizePhoneIntl,
   cleanTransactionId,
+  detectCmProvider,
+  isTimeoutError,
   getMode,
 };

@@ -342,7 +342,9 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
 
 const payunitInitialize = async (req, res) => {
   try {
-    let { amount, currency = 'XAF', phone, country = 'CM', provider = 'CM_MTNMOMO', order_ids, redirect_url: customRedirect } = req.body || {};
+    let { amount, currency = 'XAF', phone, country = 'CM', provider, order_ids, redirect_url: customRedirect } = req.body || {};
+    // Auto-detect operator from phone prefix; explicit provider from client always wins
+    const resolvedProvider = provider || (phone ? payunit.detectCmProvider(phone) : 'CM_MTNMOMO');
     const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
     const netAmount = checkoutAmount ?? Number(amount || 0);
     const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'payunit', currency);
@@ -387,16 +389,28 @@ const payunitInitialize = async (req, res) => {
 
     // Step 2: If phone provided, trigger direct mobile push with the SAME transactionRef
     let direct = null;
+    let mobilePaymentTimedOut = false;
     if (phone) {
-      direct = await payunit.makeMobilePayment({
-        amount: feeBreakdown.grossAmount,
-        currency,
-        transactionId: transactionRef,  // our own ID — same as sent to /initialize
-        returnUrl,
-        notifyUrl,
-        phone,  // normalizePhone() in service converts to local 9-digit (e.g. 651188134)
-        provider,
-      });
+      try {
+        direct = await payunit.makeMobilePayment({
+          amount: feeBreakdown.grossAmount,
+          currency,
+          transactionId: transactionRef,  // our own ID — same as sent to /initialize
+          returnUrl,
+          notifyUrl,
+          phone,  // normalizePhone() in service converts to local 9-digit (e.g. 651188134)
+          provider: resolvedProvider,
+        });
+      } catch (mpeError) {
+        if (payunit.isTimeoutError(mpeError)) {
+          // Timeout ≠ failure: PayUnit may have received the request and will still
+          // push the collection prompt to the subscriber's phone.
+          mobilePaymentTimedOut = true;
+          console.warn('[PayUnit makepayment] Timed out — payment may still be processing:', mpeError.message);
+        } else {
+          throw mpeError;
+        }
+      }
     }
 
     const gatewayData = direct?.data || init?.data || {};
@@ -418,14 +432,17 @@ const payunitInitialize = async (req, res) => {
         net_amount: feeBreakdown.netAmount,
         collection_fee: feeBreakdown.collectionFee,
         gross_amount: feeBreakdown.grossAmount,
-        provider,
+        provider: resolvedProvider,
         phone: phone ? payunit.normalizePhoneIntl(phone, country) : null,
+        ...(mobilePaymentTimedOut ? { timed_out: true } : {}),
       },
     });
 
     return res.status(200).json({
       success: true,
-      message: phone ? 'PayUnit collection request sent to your phone.' : 'PayUnit payment initialized.',
+      message: mobilePaymentTimedOut
+        ? 'PayUnit request timed out — payment may still be processing. Please check your phone or poll for status.'
+        : phone ? 'PayUnit collection request sent to your phone.' : 'PayUnit payment initialized.',
       data: {
         checkout_url: gatewayData.transaction_url || init?.data?.transaction_url || returnUrl,
         reference: transactionRef,

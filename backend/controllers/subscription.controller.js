@@ -217,6 +217,8 @@ const initializeSubscription = async (req, res, next) => {
 
     if (payment_method === 'payunit') {
       const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || ''}/api/v1/payments/payunit/webhook`;
+      // Auto-detect operator from phone prefix; explicit provider from client always wins
+      const resolvedProvider = req.body?.provider || payunit.detectCmProvider(normalizedPhone);
       const init = await payunit.initializePayment({
         amount: feeBreakdown.grossAmount,
         currency,
@@ -225,23 +227,42 @@ const initializeSubscription = async (req, res, next) => {
         notifyUrl,
         country,
       });
-      const direct = await payunit.makeMobilePayment({
-        amount: feeBreakdown.grossAmount,
-        currency,
-        transactionId: transactionRef,
-        returnUrl: callbackUrl,
-        notifyUrl,
-        phone: normalizedPhone,
-        provider: req.body?.provider || 'CM_MTNMOMO',
-      });
+      let direct;
+      let mobilePaymentTimedOut = false;
+      try {
+        direct = await payunit.makeMobilePayment({
+          amount: feeBreakdown.grossAmount,
+          currency,
+          transactionId: transactionRef,
+          returnUrl: callbackUrl,
+          notifyUrl,
+          phone: normalizedPhone,
+          provider: resolvedProvider,
+        });
+      } catch (mpeError) {
+        if (payunit.isTimeoutError(mpeError)) {
+          // Timeout ≠ failure: PayUnit may have received the request and will still
+          // push the collection prompt to the subscriber's phone.
+          mobilePaymentTimedOut = true;
+          console.warn('[PayUnit Sub makepayment] Timed out — payment may still be processing:', mpeError.message);
+        } else {
+          throw mpeError;
+        }
+      }
       const responseData = direct?.data || direct || init?.data || init;
       transaction.gateway_transaction_id = responseData?.transaction_id || responseData?.provider_transaction_id || transactionRef;
       transaction.gateway_response = { initialize: init, makepayment: direct };
+      if (mobilePaymentTimedOut) {
+        transaction.metadata = { ...(transaction.metadata || {}), timed_out: true };
+        transaction.markModified('metadata');
+      }
       await transaction.save();
 
       return res.status(200).json({
         success: true,
-        message: 'Subscription payment request sent.',
+        message: mobilePaymentTimedOut
+          ? 'PayUnit request timed out — payment may still be processing. Please check your phone or poll for status.'
+          : 'Subscription payment request sent.',
         data: {
           checkout_url: responseData?.transaction_url || init?.data?.transaction_url || callbackUrl,
           reference: transaction.reference,
