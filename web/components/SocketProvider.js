@@ -346,9 +346,10 @@ export default function SocketProvider({ children }) {
       const senderId = (msg.sender_id?._id || msg.sender_id)?.toString();
       if (senderId && senderId === user?._id?.toString()) return;
 
-      // Suppress chat toasts whenever this exact thread is the active chat surface.
-      // Refs keep this accurate for overlay, full-page chat, and rapid partner switches.
-      if ((isOpenRef.current || activePartnerIdRef.current) && activePartnerIdRef.current?.toString() === senderId) {
+      // Suppress chat toasts only when the user can actually SEE the conversation.
+      // Do NOT suppress when the app is backgrounded (screen off / another app) — the
+      // user still needs a system notification even if that chat was open before.
+      if (isAppForeground() && (isOpenRef.current || activePartnerIdRef.current) && activePartnerIdRef.current?.toString() === senderId) {
         return;
       }
 
@@ -545,9 +546,17 @@ export default function SocketProvider({ children }) {
             return;
           }
 
-          // Socket is connected and delivering messages in real-time → skip duplicate toast.
+          // Socket is connected — trust it to deliver in real-time, but schedule a
+          // 1.2 s safety-net sync in case the socket message was dropped or out of order.
           if (pushType === 'message' && !socketDown) {
-            console.log('[SocketProvider] SW push-received skipped: socket handling delivery.');
+            setTimeout(() => {
+              syncInboxFromServer?.({ force: true });
+              if (pushSenderId) {
+                window.dispatchEvent(new CustomEvent('aura:pull-conversation', {
+                  detail: { partnerId: pushSenderId.toString() },
+                }));
+              }
+            }, 1200);
             return;
           }
 

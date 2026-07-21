@@ -702,6 +702,17 @@ function chatReducer(state, action) {
       return { ...state, messagesByConversation };
     }
 
+    case 'CLEAR_STALE_ONLINE': {
+      // After a socket reconnect, mark every previously-online user as offline until
+      // check_online_status is re-confirmed. Prevents "always online" ghost indicators.
+      const cleared = {};
+      for (const uid of Object.keys(state.onlineUsersMap)) {
+        if (state.onlineUsersMap[uid]) cleared[uid] = false;
+      }
+      if (Object.keys(cleared).length === 0) return state;
+      return { ...state, onlineUsersMap: { ...state.onlineUsersMap, ...cleared } };
+    }
+
     default:
       return state;
   }
@@ -775,7 +786,11 @@ export function ChatProvider({ children }) {
     let stopped = false;
     const tick = () => {
       if (stopped) return;
-      if (!socketService.isConnected()) syncInboxFromServer();
+      // Always poll — not just when socket is down.
+      // A second logged-in device won't receive sent_message_echo events from the first
+      // device, so it relies on this poll to discover new outgoing messages in the inbox.
+      // syncInboxFromServer's own 8-second debounce prevents hammering the API.
+      syncInboxFromServer();
     };
 
     const interval = setInterval(tick, 15000);
@@ -784,8 +799,14 @@ export function ChatProvider({ children }) {
     const onVisible = () => {
       if (document.visibilityState === 'visible') syncInboxFromServer();
     };
-    // When socket reconnects after a drop, immediately fetch any messages missed during downtime.
-    const onSocketReconnect = () => syncInboxFromServer({ force: true });
+    // When socket reconnects after a drop:
+    // 1. Clear stale online-status flags — users who went offline during the gap
+    //    would otherwise remain shown as online.
+    // 2. Re-fetch the inbox to surface any messages missed during downtime.
+    const onSocketReconnect = () => {
+      dispatch({ type: 'CLEAR_STALE_ONLINE' });
+      syncInboxFromServer({ force: true });
+    };
 
     // When a push arrives and the socket is down, SocketProvider dispatches this event.
     // MessagingHub handles it when open, but we also sync the inbox here so the badge
