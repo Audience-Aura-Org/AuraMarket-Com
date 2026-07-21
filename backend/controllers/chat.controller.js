@@ -214,6 +214,8 @@ const getUserInbox = async (req, res, next) => {
               receiver_id: new mongoose.Types.ObjectId(req.user._id),
               sender_id: { $in: partnerIds },
               read_status: false,
+              // Exclude messages the user deleted for themselves — they should not count as unread
+              deleted_for: { $nin: [new mongoose.Types.ObjectId(req.user._id)] },
             },
           },
           {
@@ -280,14 +282,13 @@ const sendMessage = async (req, res, next) => {
     const receiverRoom = receiver_id.toString();
     const senderRoom = req.user._id.toString();
 
-    // Run all three independent operations in parallel to eliminate sequential round-trips:
-    //  a) idempotency check  (only when client_id present — offline-queue retries)
-    //  b) receiver online check
-    //  c) product reference lookup  (only when product_reference present)
-    const [existing, receiverOnline, productDoc] = await Promise.all([
-      client_id
-        ? Message.findOne({ sender_id: req.user._id, client_id }).lean()
-        : Promise.resolve(null),
+    // Run independent operations in parallel to eliminate sequential round-trips:
+    //  a) receiver online check
+    //  b) product reference lookup (only when product_reference present)
+    // Note: idempotency check is handled atomically below (findOneAndUpdate) to prevent
+    // a race condition where two concurrent retries with the same client_id both pass a
+    // sequential check-then-create and insert duplicate messages.
+    const [receiverOnline, productDoc] = await Promise.all([
       roomHasSockets(io, receiverRoom),
       product_reference
         ? Product.findById(product_reference)
@@ -298,31 +299,58 @@ const sendMessage = async (req, res, next) => {
         : Promise.resolve(null),
     ]);
 
+    // Atomically create or find an existing message for this client_id.
+    // findOneAndUpdate with $setOnInsert + upsert is a single atomic MongoDB operation —
+    // no two concurrent requests can both insert a document with the same client_id.
+    let message;
+    let isExisting = false;
+
+    if (client_id) {
+      const rawResult = await Message.findOneAndUpdate(
+        { sender_id: req.user._id, client_id },
+        {
+          $setOnInsert: {
+            sender_id: req.user._id,
+            receiver_id,
+            text: text || null,
+            product_reference: product_reference || null,
+            metadata: metadata || null,
+            image_url: image_url || null,
+            delivered_status: false,
+            client_id,
+          },
+        },
+        { upsert: true, new: true, rawResult: true, setDefaultsOnInsert: true }
+      );
+      message = rawResult.value;
+      isExisting = rawResult.lastErrorObject?.updatedExisting === true;
+    } else {
+      message = await Message.create({
+        sender_id: req.user._id,
+        receiver_id,
+        text,
+        product_reference: product_reference || null,
+        metadata: metadata || null,
+        image_url: image_url || null,
+        // Presence alone is not delivery; wait for a receipt from the client.
+        delivered_status: false,
+        client_id: null,
+      });
+    }
+
     // Idempotent: offline-queue retry — return the already-saved message
-    if (existing) {
+    if (isExisting) {
       console.log(`[API] ♻️  Duplicate client_id ${client_id} — returning existing message`);
       const existingPayload = {
-        ...existing,
+        ...(message.toObject ? message.toObject() : message),
         sender_id: buildParticipantSnapshot(req.user),
         receiver_id: receiver_id.toString(),
         client_id: client_id || null,
-        product_reference: productDoc || (existing.product_reference ? { _id: existing.product_reference } : null),
+        product_reference: productDoc || (message.product_reference ? { _id: message.product_reference } : null),
       };
-      if (!existing.delivered_status) scheduleRealtimeDelivery(io, existingPayload);
+      if (!message.delivered_status) scheduleRealtimeDelivery(io, existingPayload);
       return res.status(201).json({ success: true, data: { message: existingPayload } });
     }
-
-    const message = await Message.create({
-      sender_id: req.user._id,
-      receiver_id,
-      text,
-      product_reference: product_reference || null,
-      metadata: metadata || null,
-      image_url: image_url || null,
-      // Presence alone is not delivery; wait for a receipt from the client.
-      delivered_status: false,
-      client_id: client_id || null,
-    });
 
     // Build the realtime payload from data already in memory — no extra DB round-trip.
     // req.user is populated by auth middleware; productDoc was fetched in parallel above.

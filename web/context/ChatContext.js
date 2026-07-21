@@ -733,6 +733,10 @@ export function ChatProvider({ children }) {
   }, [state]);
 
   useEffect(() => {
+    // Reset rate-limit refs when the user changes so a new user doesn't inherit
+    // a lockout or debounce window that belongs to the previous session.
+    inboxRateLimitedUntilRef.current = 0;
+    lastInboxSyncAtRef.current = 0;
     dispatch({ type: 'SET_CURRENT_USER', userId: user?._id?.toString?.() || null });
   }, [user?._id]);
 

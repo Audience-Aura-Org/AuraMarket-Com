@@ -356,11 +356,13 @@ const mapChatSockets = (server) => {
           return msg;
         });
         sanitized.forEach((message) => {
+          // Cancel any in-flight retry before re-delivering — the on-connect emit
+          // supersedes it. Scheduling a fresh retry below ensures we still get an
+          // ACK if this emit is also dropped.
+          cancelMessageRetry(message._id.toString());
           socket.emit('receive_message', message);
           scheduleMessageRetry(message._id, message, socket.userId);
         });
-
-        // Cancel any in-flight retries — we just delivered these messages.
 
       })
       .catch((error) => console.error('Failed to mark delivered messages:', error));
@@ -429,6 +431,9 @@ const mapChatSockets = (server) => {
 
     // Keep typing responsive while still limiting rapid input-event bursts.
     const typingThrottle = new Map(); // key: receiverId, value: last-forwarded timestamp
+    // Server-side fallback timers: if a client crashes without sending typing_stop,
+    // these fire after 4.5 s and clear the indicator on the receiver's side.
+    const typingTimers = new Map(); // key: receiverId, value: timeout id
 
     socket.on('typing_start', ({ receiver_id }) => {
       if (!receiver_id) return;
@@ -441,13 +446,26 @@ const mapChatSockets = (server) => {
         receiverId: receiverKey,
         at: new Date().toISOString(),
       });
+      // Reset server-side fallback timer on each heartbeat so it only fires
+      // when the client goes silent (crash, tab close, lost connection).
+      clearTimeout(typingTimers.get(receiverKey));
+      typingTimers.set(receiverKey, setTimeout(() => {
+        typingTimers.delete(receiverKey);
+        io.to(receiverKey).emit('partner_stopped_typing', {
+          userId: socket.userId,
+          receiverId: receiverKey,
+        });
+      }, 4500));
     });
 
     socket.on('typing_stop', ({ receiver_id }) => {
       if (receiver_id) {
-        io.to(receiver_id.toString()).emit('partner_stopped_typing', {
+        const receiverKey = receiver_id.toString();
+        clearTimeout(typingTimers.get(receiverKey));
+        typingTimers.delete(receiverKey);
+        io.to(receiverKey).emit('partner_stopped_typing', {
           userId: socket.userId,
-          receiverId: receiver_id.toString(),
+          receiverId: receiverKey,
           at: new Date().toISOString(),
         });
       }
@@ -505,6 +523,15 @@ const mapChatSockets = (server) => {
     });
 
     socket.on('disconnect', () => {
+      // Clear server-side typing fallback timers and notify all receivers that
+      // this user stopped typing — handles the case where the socket closes
+      // without the client sending typing_stop (crash, browser close, etc.).
+      for (const [receiverKey, timer] of typingTimers.entries()) {
+        clearTimeout(timer);
+        io.to(receiverKey).emit('partner_stopped_typing', { userId: socket.userId, receiverId: receiverKey });
+      }
+      typingTimers.clear();
+
       const userSet = userSockets.get(socket.userId);
       if (userSet) {
         userSet.delete(socket.id);

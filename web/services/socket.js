@@ -414,7 +414,12 @@ class SocketService {
         return;
       }
 
-      // Use callback itself as ID to prevent duplicates
+      // Guard: if this exact callback reference is already registered, skip.
+      // Prevents duplicate handlers when React re-runs effects (fast-refresh, navigation).
+      for (const entry of eventMap.values()) {
+        if (entry.callback === callback) return;
+      }
+
       const callbackId = this.callbackCounter++;
       eventMap.set(callbackId, { callback, attached: false });
 

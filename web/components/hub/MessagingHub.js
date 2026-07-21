@@ -260,6 +260,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const goBackOrCloseRef = useRef(null);  // always-fresh ref — avoids stale closures in back-button effects
   const backViaButtonRef = useRef(false); // true when browser/hardware back triggered the last navigation
   const suppressPopStateRef = useRef(false); // true during programmatic history.back() — prevents goBackOrClose re-firing
+  const drainInProgressRef = useRef(false);  // prevents concurrent drain runs when state mutations re-trigger the effect
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
     if (typeof window === 'undefined') return {};
@@ -957,8 +958,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   // Iterate queued messages and POST them to the server. The backend is idempotent
   // on client_id so re-submitting a message that already reached the server is safe.
   const drainSendQueue = useCallback(async () => {
+    if (drainInProgressRef.current) return;
+    // Snapshot the queue once so mutations during the loop (saveQueue, dequeueMsg)
+    // don't cause items to be processed twice or skipped.
     const queue = loadQueue();
     if (queue.length === 0) return;
+    drainInProgressRef.current = true;
+    try {
     for (const item of queue) {
       if (item.retries >= MAX_QUEUE_RETRIES) {
         dequeueMsg(item.clientId);
@@ -992,6 +998,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           markMessageFailed(item.partnerId, item.tempId);
         }
       }
+    }
+    } finally {
+      drainInProgressRef.current = false;
     }
   }, [reconcileOptimisticMessage, markMessageFailed, markMessageQueued]);
 
