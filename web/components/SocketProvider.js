@@ -295,34 +295,47 @@ export default function SocketProvider({ children }) {
       return;
     }
 
-    const getAuthToken = () => {
-      if (token) return token;
-      if (typeof window === 'undefined') return null;
-      try {
-        const storedToken = window.localStorage.getItem('aura_token');
-        return storedToken || null;
-      } catch (e) {
-        console.error('[SocketProvider] localStorage read error:', e);
-        return null;
+    let cancelled = false;
+
+    const connectSocket = async () => {
+      // Sync check first: Zustand token state or localStorage
+      let authToken = token || null;
+      if (!authToken && typeof window !== 'undefined') {
+        try {
+          authToken = window.localStorage.getItem('aura_token') || null;
+        } catch (e) {
+          console.error('[SocketProvider] localStorage read error:', e);
+        }
+      }
+
+      // Async fallback: Capacitor Preferences (native — token not always in localStorage)
+      if (!authToken) {
+        try {
+          const { getStoredAuthToken } = await import('@/services/authStorage');
+          authToken = await getStoredAuthToken();
+        } catch (_) {}
+      }
+
+      if (cancelled) return;
+
+      if (!authToken) {
+        console.warn('[SocketProvider] No auth token found; socket connect skipped for user:', user._id);
+        return;
+      }
+
+      // Connect immediately when a user exists to restore instant messaging.
+      console.log('[SocketProvider] User authenticated:', user._id);
+
+      // Connect once per user session
+      if (connectedUserId.current !== user._id) {
+        // Pass token if available; socket will use cookies with withCredentials: true
+        console.log('[SocketProvider] Initiating socket connection for user:', user._id);
+        socketService.connect(user._id, authToken);
+        connectedUserId.current = user._id;
       }
     };
 
-    const authToken = getAuthToken();
-    if (!authToken) {
-      console.warn('[SocketProvider] No auth token yet; delaying socket connect for user:', user._id);
-      return;
-    }
-
-    // Connect immediately when a user exists to restore instant messaging.
-    console.log('[SocketProvider] User authenticated:', user._id);
-
-    // Connect once per user session
-    if (connectedUserId.current !== user._id) {
-      // Pass token if available; socket will use cookies with withCredentials: true
-      console.log('[SocketProvider] Initiating socket connection for user:', user._id);
-      socketService.connect(user._id, authToken);
-      connectedUserId.current = user._id;
-    }
+    connectSocket();
 
     // ── Handler: new chat message ──────────────────────────────────────────
     const handleNewMessage = (msg) => {
@@ -478,6 +491,7 @@ export default function SocketProvider({ children }) {
     socketService.on('wallet:credited', handleWalletCredited);
 
     return () => {
+      cancelled = true;
       socketService.off('receive_message', handleNewMessage);
       socketService.off('notification', handleNotification);
       socketService.off('account_deleted', handleAccountDeleted);

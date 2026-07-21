@@ -418,7 +418,7 @@ self.addEventListener('push', function (event) {
     vibrate: isChat ? [100, 50, 100] : [200, 100, 200],
     tag: data.tag || 'auradime-notification',
     renotify: true,
-    requireInteraction: !isChat,
+    requireInteraction: false,
     silent: false,
     data: {
       url: data.data?.url || data.url || '/',
@@ -434,9 +434,8 @@ self.addEventListener('push', function (event) {
     const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     const visibleClients = windowClients.filter((c) => c.visibilityState === 'visible');
     if (visibleClients.length > 0) {
-      visibleClients.forEach((c) => {
-        try { c.postMessage({ type: 'push-received', payload: data }); } catch {}
-      });
+      // Forward to exactly ONE visible client to prevent duplicate toasts across tabs.
+      try { visibleClients[0].postMessage({ type: 'push-received', payload: data }); } catch {}
       return;
     }
     await self.registration.showNotification(data.title || 'Auradime', options);

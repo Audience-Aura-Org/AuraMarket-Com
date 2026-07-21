@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../services/api';
 import socketService from '../services/socket';
-import { clearStoredAuthToken, setStoredAuthToken } from '../services/authStorage';
+import { clearStoredAuthToken, setStoredAuthToken, getStoredAuthToken } from '../services/authStorage';
 import { unsubscribeCurrentPushEndpoint } from '../lib/pwa-helper';
 import { unregisterNativeAndroidPushToken } from '../lib/native-push';
 
@@ -192,6 +192,15 @@ export const useAuthStore = create(
           });
           const user = res.data.data?.user;
           if (!user) throw new Error('No user returned');
+          // Restore token into Zustand state if it was cleared (e.g. on native after cold start).
+          // This ensures SocketProvider's `token` dependency fires and the socket can connect.
+          const existingToken = get().token;
+          let restoredToken = existingToken;
+          if (!restoredToken) {
+            try {
+              restoredToken = await getStoredAuthToken();
+            } catch (_) {}
+          }
           set({
             user,
             walletBalance: Number.isFinite(Number(user.wallet_balance)) ? Number(user.wallet_balance) : get().walletBalance,
@@ -200,6 +209,7 @@ export const useAuthStore = create(
             loading: false,
             error: null,
             rememberedEmail: user.email,
+            ...(restoredToken && !existingToken ? { token: restoredToken } : {}),
           });
           lastFetchMeFailureAt = 0;
           return { success: true, user };

@@ -99,7 +99,7 @@ export function useNotifications() {
       if (document.visibilityState === 'visible') fetchCounts();
     };
 
-    // Refresh counts every 120s as a safety net when sockets miss an event.
+    // Refresh counts every 30s as a safety net when sockets miss an event.
     const interval = setInterval(poll, NOTIFICATION_POLL_MS);
     document.addEventListener('visibilitychange', handleVisible);
 
