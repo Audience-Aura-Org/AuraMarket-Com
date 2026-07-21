@@ -766,8 +766,14 @@ export function ChatProvider({ children }) {
     // When socket reconnects after a drop, immediately fetch any messages missed during downtime.
     const onSocketReconnect = () => syncInboxFromServer({ force: true });
 
+    // When a push arrives and the socket is down, SocketProvider dispatches this event.
+    // MessagingHub handles it when open, but we also sync the inbox here so the badge
+    // and conversation list update even when the chat panel is closed.
+    const onPullConversation = () => syncInboxFromServer({ force: true });
+
     window.addEventListener('online', onOnline);
     window.addEventListener('focus', onFocus);
+    window.addEventListener('aura:pull-conversation', onPullConversation);
     document.addEventListener('visibilitychange', onVisible);
     socketService.on('connect', onSocketReconnect);
 
@@ -776,6 +782,7 @@ export function ChatProvider({ children }) {
       clearInterval(interval);
       window.removeEventListener('online', onOnline);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener('aura:pull-conversation', onPullConversation);
       document.removeEventListener('visibilitychange', onVisible);
       socketService.off('connect', onSocketReconnect);
     };

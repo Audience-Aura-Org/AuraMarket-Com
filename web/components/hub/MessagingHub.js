@@ -238,6 +238,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const viewportSyncRef = useRef(null);
   const viewportResumeUntilRef = useRef(0);
   const lastKeyboardViewportRef = useRef(null);
+  const goBackOrCloseRef = useRef(null);  // always-fresh ref — avoids stale closures in back-button effects
+  const backViaButtonRef = useRef(false); // true when browser/hardware back triggered the last navigation
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
     if (typeof window === 'undefined') return {};
@@ -1385,6 +1387,62 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       dismissOverlay();
     }
   };
+
+  // Keep goBackOrClose fresh every render so back-button effects never hold stale closures.
+  goBackOrCloseRef.current = goBackOrClose;
+
+  // ── Browser back button (popstate) ────────────────────────────────────────
+  // Pushes a dummy history entry when the panel mounts or the user moves between
+  // the inbox and a thread. Pressing browser-back calls goBackOrClose() instead
+  // of navigating away — mirrors WhatsApp: thread → inbox → close.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    backViaButtonRef.current = false;
+    window.history.pushState({ chatInterceptor: true }, '');
+
+    const onPopState = () => {
+      backViaButtonRef.current = true;
+      goBackOrCloseRef.current?.();
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      // If the panel closed via UI (X / backdrop) rather than the back button,
+      // clean up the dummy history entry so the browser stack stays clean.
+      if (!backViaButtonRef.current && window.history.state?.chatInterceptor) {
+        window.history.back();
+      }
+    };
+  // Re-run when the user moves between inbox (null) and a thread (partnerId).
+  // Each level of navigation needs its own dummy history entry.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePartnerId]);
+
+  // ── Capacitor Android hardware back button ─────────────────────────────────
+  // The OS fires the hardware back button event before popstate on Android WebView.
+  // Intercept it and mirror browser-back behaviour: thread → inbox → close.
+  useEffect(() => {
+    let listener = null;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (!Capacitor.isNativePlatform() || cancelled) return;
+        const { App } = await import('@capacitor/app');
+        listener = await App.addListener('backButton', () => {
+          goBackOrCloseRef.current?.();
+        });
+        if (cancelled) listener?.remove?.();
+      } catch (_) {}
+    })();
+
+    return () => {
+      cancelled = true;
+      listener?.remove?.();
+    };
+  }, []); // Once only — goBackOrCloseRef is always current
 
   /** Reliable swipe-down dismiss only. Horizontal swipes are ignored to avoid browser-history navigation. */
   const handlePanelTouchStart = (e) => {

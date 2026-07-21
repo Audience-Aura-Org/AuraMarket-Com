@@ -182,7 +182,10 @@ export default function SocketProvider({ children }) {
 
   const isAppForeground = () => {
     if (typeof document === 'undefined') return false;
-    return document.visibilityState === 'visible' && document.hasFocus?.();
+    // visibilityState is the reliable foreground signal on all platforms.
+    // hasFocus() returns false when the keyboard / an input has focus on mobile,
+    // causing spurious push notifications while the user is actively chatting.
+    return document.visibilityState === 'visible';
   };
 
   const ensureSessionForRoute = async (route) => {
