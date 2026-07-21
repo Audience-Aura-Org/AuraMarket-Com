@@ -61,7 +61,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
       </div>
 
       {/* ── Desktop: vertical sticky list ── */}
-      <div className="hidden lg:block sticky top-[160px] space-y-1.5">
+      <div className="hidden lg:block sticky top-6 space-y-1.5">
         {/* Theme toggle chip */}
         <button
           onClick={toggleTheme}

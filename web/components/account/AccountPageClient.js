@@ -454,10 +454,11 @@ export default function AccountPageClient() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] pb-[calc(5rem+env(safe-area-inset-bottom,0px))]">
       <AccountHeader
-        title={t('settings.title')}
         profileBranding={profileBranding}
         canUseBanner={canUseBanner}
         onBannerUpload={(file) => handleBrandingFileUpload('banner', file)}
+        storeName={storeData.store_name}
+        storeDescription={storeData.description}
       />
 
       <div className="w-full px-1.5 sm:px-2 lg:px-3 py-2 grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-3">
