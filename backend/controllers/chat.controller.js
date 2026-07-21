@@ -259,26 +259,40 @@ const sendMessage = async (req, res, next) => {
 
     console.log(`[API] 📨 sendMessage: ${req.user._id} -> ${receiver_id}`);
 
-    // Idempotent send: if this client_id was already processed, return the saved message
-    // so offline-queue retries never create duplicates.
-    if (client_id) {
-      const existing = await Message.findOne({ sender_id: req.user._id, client_id }).lean();
-      if (existing) {
-        console.log(`[API] ♻️  Duplicate client_id ${client_id} — returning existing message`);
-        const existingPayload = await buildRealtimeMessagePayload({
-          messageDoc: existing,
-          sender: req.user,
-          receiverId: receiver_id,
-          productReference: existing.product_reference,
-          clientId: client_id,
-        });
-        return res.status(201).json({ success: true, data: { message: existingPayload } });
-      }
-    }
-
     const io = req.app.get('io');
     const receiverRoom = receiver_id.toString();
-    const receiverOnline = await roomHasSockets(io, receiverRoom);
+    const senderRoom = req.user._id.toString();
+
+    // Run all three independent operations in parallel to eliminate sequential round-trips:
+    //  a) idempotency check  (only when client_id present — offline-queue retries)
+    //  b) receiver online check
+    //  c) product reference lookup  (only when product_reference present)
+    const [existing, receiverOnline, productDoc] = await Promise.all([
+      client_id
+        ? Message.findOne({ sender_id: req.user._id, client_id }).lean()
+        : Promise.resolve(null),
+      roomHasSockets(io, receiverRoom),
+      product_reference
+        ? Product.findById(product_reference)
+            .select(PRODUCT_REFERENCE_SELECT)
+            .lean()
+            .then(sanitizeProductReference)
+            .catch(() => null)
+        : Promise.resolve(null),
+    ]);
+
+    // Idempotent: offline-queue retry — return the already-saved message
+    if (existing) {
+      console.log(`[API] ♻️  Duplicate client_id ${client_id} — returning existing message`);
+      const existingPayload = {
+        ...existing,
+        sender_id: buildParticipantSnapshot(req.user),
+        receiver_id: receiver_id.toString(),
+        client_id: client_id || null,
+        product_reference: productDoc || (existing.product_reference ? { _id: existing.product_reference } : null),
+      };
+      return res.status(201).json({ success: true, data: { message: existingPayload } });
+    }
 
     const message = await Message.create({
       sender_id: req.user._id,
@@ -291,31 +305,29 @@ const sendMessage = async (req, res, next) => {
       client_id: client_id || null,
     });
 
-    const messagePayload = await buildRealtimeMessagePayload({
-      messageDoc: message,
-      sender: req.user,
-      receiverId: receiver_id,
-      productReference: product_reference,
-      clientId: client_id,
-    });
+    // Build the realtime payload from data already in memory — no extra DB round-trip.
+    // req.user is populated by auth middleware; productDoc was fetched in parallel above.
+    const messagePayload = {
+      ...message.toObject(),
+      sender_id: buildParticipantSnapshot(req.user),
+      receiver_id: receiver_id.toString(),
+      client_id: client_id || null,
+      product_reference: productDoc || null,
+    };
 
-    // Emit socket events for real-time updates across clients
+    // Emit to receiver and sender immediately after the DB write
     if (io) {
-      const senderRoom = req.user._id.toString();
-      
       const receiverCount = io.sockets.adapter.rooms.get(receiverRoom)?.size || 0;
-      const senderCount = io.sockets.adapter.rooms.get(senderRoom)?.size || 0;
-      
+      const senderCount   = io.sockets.adapter.rooms.get(senderRoom)?.size || 0;
       console.log(`[API] 📤 Broadcasting via socket - receiver room: ${receiverRoom} (${receiverCount} connected), sender room: ${senderRoom} (${senderCount} connected)`);
-      
+
       io.to(receiverRoom).emit('receive_message', messagePayload);
       io.to(senderRoom).emit('sent_message_echo', messagePayload);
       if (receiverOnline) {
         io.to(senderRoom).emit('messages_delivered', { partnerId: receiverRoom });
       }
-      
-      console.log(`✅ [API] Message broadcast: ${req.user._id} -> ${receiver_id}`);
 
+      console.log(`✅ [API] Message broadcast: ${req.user._id} -> ${receiver_id}`);
     } else {
       console.warn(`⚠️ [API] IO instance not available, socket events not emitted`);
     }
