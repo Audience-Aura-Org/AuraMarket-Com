@@ -269,11 +269,14 @@ const mapChatSockets = (server) => {
     io.to(senderId).emit('sent_message_echo', message);
     io.to(receiverId).emit('receive_message', message);
 
-    if (await roomHasSockets(io, receiverId)) {
-      scheduleMessageRetry(messageId, message, receiverId);
-      return true;
-    }
-    return false;
+    // Always start the retry queue regardless of whether the receiver appears online.
+    // The initial emits above go to every socket in the room across all workers (via
+    // the Redis adapter when available). If an emit is dropped — momentary disconnect,
+    // Redis hiccup, or cross-worker race — the first retry fires after 1 s and
+    // re-delivers. The retry loop checks roomHasSockets internally and stops when the
+    // receiver has gone offline (on-connect delivery handles that path instead).
+    scheduleMessageRetry(messageId, message, receiverId);
+    return true;
   };
   // ─────────────────────────────────────────────────────────────────────────────
 
@@ -424,15 +427,14 @@ const mapChatSockets = (server) => {
       }
     });
 
-    // Per-socket throttle: only forward typing_start once per 1500ms per receiver.
-    // This prevents rapid type/delete cycles from causing indicator flicker on the receiver.
+    // Keep typing responsive while still limiting rapid input-event bursts.
     const typingThrottle = new Map(); // key: receiverId, value: last-forwarded timestamp
 
     socket.on('typing_start', ({ receiver_id }) => {
       if (!receiver_id) return;
       const receiverKey = receiver_id.toString();
       const now = Date.now();
-      if (now - (typingThrottle.get(receiverKey) || 0) < 1500) return;
+      if (now - (typingThrottle.get(receiverKey) || 0) < 350) return;
       typingThrottle.set(receiverKey, now);
       io.to(receiverKey).emit('partner_typing', {
         userId: socket.userId,

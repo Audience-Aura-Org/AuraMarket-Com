@@ -51,7 +51,13 @@ const enqueueMsg = (item) => {
 };
 const dequeueMsg = (clientId) => saveQueue(loadQueue().filter((m) => m.clientId !== clientId));
 const isNetworkError = (err) =>
-  !err?.response && (err?.code === 'ERR_NETWORK' || err?.message === 'Network Error' || !navigator.onLine);
+  !err?.response && (
+    err?.code === 'ERR_NETWORK' ||
+    err?.code === 'ECONNABORTED' ||
+    err?.code === 'ETIMEDOUT' ||
+    err?.message === 'Network Error' ||
+    !navigator.onLine
+  );
 
 const getStoredChatFullHeight = () => {
   if (typeof window === 'undefined') return 0;
@@ -382,6 +388,17 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       socketService.off('connect', onReconnect);
     };
   }, [activePartnerId]);
+
+  useEffect(() => {
+    const restoreTypingAfterReconnect = () => {
+      const partnerId = typingPartnerIdRef.current;
+      if (partnerId && inputValueRef.current.trim()) {
+        socketService.emit('typing_start', { receiver_id: partnerId });
+      }
+    };
+    socketService.on('connect', restoreTypingAfterReconnect);
+    return () => socketService.off('connect', restoreTypingAfterReconnect);
+  }, []);
 
   useEffect(() => {
     if (!draftKey || typeof window === 'undefined') {
@@ -745,7 +762,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     // Socket.IO gives the instant path. This small foreground reconciliation
     // closes the at-most-once gap if a mobile radio drops a single socket frame.
     const warmup = setTimeout(reconcileActiveConversation, 1200);
-    const interval = setInterval(reconcileActiveConversation, 4000);
+    const interval = setInterval(reconcileActiveConversation, 2000);
 
     return () => {
       stopped = true;
@@ -959,7 +976,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           image_url: item.imageUrl || null,
           client_id: item.clientId,
           ...(item.productRef && { product_reference: item.productRef }),
-        });
+        }, { timeout: 12_000, __skipRetry: true });
         if (res.data.success) {
           dequeueMsg(item.clientId);
           const realMsg = res.data.data?.message || res.data.message;
@@ -1081,7 +1098,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         if (typingPartnerIdRef.current) {
           socketService.emit('typing_start', { receiver_id: typingPartnerIdRef.current });
         }
-      }, 1500);
+      }, 800);
     }
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -1094,7 +1111,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       if (typingHeartbeatRef.current) clearInterval(typingHeartbeatRef.current);
       typingHeartbeatRef.current = null;
       if (partnerId) socketService.emit('typing_stop', { receiver_id: partnerId });
-    }, 2500);
+    }, 4500);
   };
 
   const closeMediaPreview = () => {
@@ -1166,7 +1183,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         text: caption,
         image_url: uploadRes.data.url,
         client_id: clientId,
-      });
+      }, { timeout: 12_000, __skipRetry: true });
       if (apiRes.data.success) {
         const realMsg = apiRes.data.data?.message || apiRes.data.message;
         reconcileOptimisticMessage(sendPartnerId, tempId, realMsg, clientId);
@@ -1244,7 +1261,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         image_url: imageUrl,
         client_id: optimisticMsg.client_id,
         ...(product && { product_reference: product._id }),
-      });
+      }, { timeout: 12_000, __skipRetry: true });
       if (res.data.success) {
         const realMsg = res.data.data?.message || res.data.message;
         reconcileOptimisticMessage(sendPartnerId, optimisticMsg._id, realMsg, optimisticMsg.client_id);

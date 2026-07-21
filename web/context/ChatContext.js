@@ -882,10 +882,12 @@ export function ChatProvider({ children }) {
       if (!key || key === stateRef.current.currentUserId) return;
       clearTypingExpiry(key);
       dispatch({ type: 'TYPING_UPDATE', userId: key, isTyping: true });
+      // 5 s window: comfortably longer than the 800 ms sender heartbeat so the
+      // indicator never flickers off between heartbeat arrivals.
       typingExpiryTimersRef.current[key] = setTimeout(() => {
         delete typingExpiryTimersRef.current[key];
         dispatch({ type: 'TYPING_UPDATE', userId: key, isTyping: false });
-      }, 3000);
+      }, 5000);
     };
     const onStoppedTyping = ({ userId }) => {
       const key = userId?.toString?.();
