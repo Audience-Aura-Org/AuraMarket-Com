@@ -320,7 +320,9 @@ const sendMessage = async (req, res, next) => {
             client_id,
           },
         },
-        { upsert: true, new: true, rawResult: true, setDefaultsOnInsert: true }
+        // includeResultMetadata (Mongoose 8+/9) replaced the deprecated rawResult option.
+        // It returns { value: <doc>, lastErrorObject: { updatedExisting, upserted }, ok }.
+        { upsert: true, new: true, includeResultMetadata: true, setDefaultsOnInsert: true }
       );
       message = rawResult.value;
       isExisting = rawResult.lastErrorObject?.updatedExisting === true;
