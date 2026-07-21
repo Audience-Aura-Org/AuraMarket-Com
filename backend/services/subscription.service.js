@@ -204,6 +204,12 @@ const ensureDefaultSubscriptionPlan = async () => {
     { $set: { is_active: false } }
   );
 
+  // Ensure existing PlatformSettings documents have logistics subscription required
+  await PlatformSettings.updateOne(
+    { 'subscription_required_roles.logistics': { $ne: true } },
+    { $set: { 'subscription_required_roles.logistics': true } }
+  ).catch(() => {});
+
   return plans[0];
 };
 
@@ -213,7 +219,7 @@ const getRoleRequirements = async () => {
     required: {
       customer: Boolean(settings.subscription_required_roles?.customer),
       vendor: settings.subscription_required_roles?.vendor !== false,
-      logistics: Boolean(settings.subscription_required_roles?.logistics),
+      logistics: settings.subscription_required_roles?.logistics !== false,
       admin: false,
     },
     grace_days: {

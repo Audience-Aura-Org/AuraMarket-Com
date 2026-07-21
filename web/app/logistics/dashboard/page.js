@@ -12,10 +12,7 @@ import {
   FileStack,
   LineChart,
   Wallet,
-  Clock,
-  CheckCircle2,
   Loader2,
-  AlertTriangle,
 } from "lucide-react";
 import api from "@/services/api";
 import { useAuthStore } from "@/hooks/useAuth";
@@ -49,8 +46,6 @@ export default function LogisticsDashboard() {
   });
   const [subscription, setSubscription] = useState({
     subscribed: false,
-    isTrial: true,
-    daysLeft: 14,
   });
 
   const fetchDashboard = useCallback(async (isBackground = false) => {
@@ -85,17 +80,9 @@ export default function LogisticsDashboard() {
 
       if (subRes?.data?.success) {
         const subData = subRes.data.data;
-        setSubscription({
-          subscribed: subData.subscribed ?? false,
-          isTrial: subData.access_state === "grace" || subData.grace || !subData.subscribed,
-          daysLeft: subData.grace_days_remaining ?? 14,
-        });
+        setSubscription({ subscribed: subData.subscribed ?? false });
       } else {
-        setSubscription({
-          subscribed: false,
-          isTrial: true,
-          daysLeft: 14,
-        });
+        setSubscription({ subscribed: false });
       }
     } catch (err) {
       console.error("Failed to fetch logistics dashboard:", err);
@@ -126,6 +113,12 @@ export default function LogisticsDashboard() {
   useEffect(() => {
     setPage(1);
   }, [filterStatus, sortBy]);
+
+  useEffect(() => {
+    if (!loading && !subscription.subscribed) {
+      router.replace("/subscribe?role=logistics");
+    }
+  }, [loading, subscription.subscribed, router]);
 
   if (user?.role !== "logistics") return null;
 
@@ -185,35 +178,6 @@ export default function LogisticsDashboard() {
       </header>
 
       <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
-        {/* Trial mode indicator banner when no subscription is added by admin */}
-        {!subscription.subscribed && (
-          <div className="relative overflow-hidden rounded-[2rem] border border-amber-500/20 bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-amber-500/5 p-5 md:p-6 shadow-md shadow-amber-500/5 flex flex-col md:flex-row items-center md:items-center justify-between gap-4">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="flex items-center gap-4 relative z-10">
-              <div className="size-11 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
-                <AlertTriangle className="size-5" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-bold text-amber-500">Free Trial active</h4>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-[9px] font-bold text-amber-500 uppercase tracking-wider">
-                    {subscription.daysLeft} days remaining
-                  </span>
-                </div>
-                <p className="mt-1 text-[11px] font-medium leading-relaxed text-[var(--text-secondary)] opacity-85">
-                  Activate a logistics partner plan (including our Welcome package for 500 XAF) to operate without interruption.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => router.push("/subscribe?role=logistics")}
-              className="w-full md:w-auto relative z-10 flex min-h-10 items-center justify-center rounded-xl bg-amber-500 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-amber-500/20 transition hover:bg-amber-600 active:scale-95"
-            >
-              Activate Partner plan
-            </button>
-          </div>
-        )}
-
         {/* Exactly 4 KPI cards */}
         {(() => {
           const totalShipments = counts.active + counts.pending + counts.delivered || 1;

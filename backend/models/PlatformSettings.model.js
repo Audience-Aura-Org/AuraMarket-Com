@@ -49,7 +49,7 @@ const PlatformSettingsSchema = new mongoose.Schema(
     subscription_required_roles: {
       customer: { type: Boolean, default: false },
       vendor: { type: Boolean, default: true },
-      logistics: { type: Boolean, default: false },
+      logistics: { type: Boolean, default: true },
       admin: { type: Boolean, default: false }
     },
     subscription_grace_days: {
