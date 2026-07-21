@@ -472,7 +472,7 @@ const updateRoleRequirements = async (req, res, next) => {
     settings.subscription_required_roles = {
       customer: Boolean(incoming.customer),
       vendor: incoming.vendor !== false,
-      logistics: Boolean(incoming.logistics),
+      logistics: incoming.logistics !== false,
       admin: false,
     };
     settings.subscription_grace_days = {
