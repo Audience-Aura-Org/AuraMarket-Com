@@ -58,7 +58,6 @@ export default function AccountPageClient() {
   const [activeTab, setActiveTab] = useState('general');
   const [viewingOrderId, setViewingOrderId] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileView, setMobileView] = useState('nav'); // 'nav' | 'content'
 
   // ── Notification preferences ─────────────────────────────────────────────
   const [notifPrefs, setNotifPrefs] = useState({
@@ -91,17 +90,13 @@ export default function AccountPageClient() {
   useEffect(() => {
     const tabUrl = searchParams.get('tab');
     const orderId = searchParams.get('orderId');
-    if (tabUrl && TABS.some((t) => t.id === tabUrl)) {
-      setActiveTab(tabUrl);
-      setMobileView('content');
-    }
+    if (tabUrl && TABS.some((t) => t.id === tabUrl)) setActiveTab(tabUrl);
     if (orderId) setViewingOrderId(orderId);
   }, [searchParams]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setViewingOrderId(null);
-    setMobileView('content');
     router.push(`/profile?tab=${tab}`, { scroll: false });
   };
 
@@ -458,42 +453,17 @@ export default function AccountPageClient() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] pb-[calc(5rem+env(safe-area-inset-bottom,0px))]">
-
-      {/* Profile hero — shown in nav view (mobile) + always on desktop */}
-      <div className={mobileView === 'nav' ? '' : 'hidden lg:block'}>
-        <AccountHeader
-          profileBranding={profileBranding}
-          canUseBanner={canUseBanner}
-          onBannerUpload={(file) => handleBrandingFileUpload('banner', file)}
-        />
-      </div>
-
-      {/* Slim mobile back header — content view only, sits below the fixed MobileHeader (top-14) */}
-      {mobileView === 'content' && (
-        <div className="lg:hidden sticky top-14 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-2xl">
-          <div className="flex items-center gap-3 px-4 py-3">
-            <button
-              onClick={() => setMobileView('nav')}
-              className="size-9 flex items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition-all active:scale-95 shrink-0"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-            <span className="text-[14px] font-bold text-[var(--text-primary)]">
-              {TABS.find((tb) => tb.id === activeTab)?.label || 'Settings'}
-            </span>
-          </div>
-        </div>
-      )}
+      <AccountHeader
+        title={t('settings.title')}
+        profileBranding={profileBranding}
+        canUseBanner={canUseBanner}
+        onBannerUpload={(file) => handleBrandingFileUpload('banner', file)}
+      />
 
       <div className="w-full px-1.5 sm:px-2 lg:px-3 py-2 grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-3">
+        <AccountSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
-        {/* Sidebar — visible in nav view (mobile) + always on desktop */}
-        <div className={mobileView === 'nav' ? 'block' : 'hidden lg:block'}>
-          <AccountSidebar activeTab={activeTab} onTabChange={handleTabChange} />
-        </div>
-
-        {/* Content — visible in content view (mobile) + always on desktop */}
-        <div className={`${mobileView === 'content' ? 'block' : 'hidden lg:block'} lg:col-span-3`}>
+        <div className="lg:col-span-3">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
