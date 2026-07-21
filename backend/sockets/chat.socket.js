@@ -357,50 +357,42 @@ const mapChatSockets = (server) => {
           populatedMessage.product_reference = sanitizeProductReference(populatedMessage.product_reference);
         }
 
-        // Attempt per-socket delivery with ACKs where possible
         const receiverSet = userSockets.get(String(receiver_id)) || new Set();
-        let anyAck = false;
 
+        // ── Instant delivery (non-blocking) ────────────────────────────────────
+        // Both emits fire immediately so neither the receiver nor the sender
+        // has to wait for ACK resolution (which can take up to 5 s on slow
+        // networks or when ACK is never called by older clients).
+        // The client's dedupeMessages handles the harmless duplicate that the
+        // per-socket ackable emit below will also send to in-process sockets.
+        io.to(receiver_id.toString()).emit('receive_message', populatedMessage);
+        io.to(socket.userId.toString()).emit('sent_message_echo', populatedMessage);
+
+        // ── Delivery confirmation (background, may take up to 5 s) ────────────
+        // Per-socket ackable emits are used solely to get a client ACK so we
+        // can mark delivered_status = true in the DB and show the sender a
+        // double-tick. They do NOT gate the message reaching the receiver.
+        let anyAck = false;
         if (receiverSet.size > 0) {
-          // Emit to each in-process socket individually and wait for client ack (with timeout)
           const emitPromises = Array.from(receiverSet).map(async (sockId) => {
             try {
-              // Use socket.io v4 timeout ack helper
               const res = await io.to(sockId).timeout(5000).emit('receive_message', populatedMessage);
-              // If client calls ack, consider it delivered
-              anyAck = true;
               return { sockId, ok: true, res };
             } catch (err) {
-              // timeout or other error
               return { sockId, ok: false, err };
             }
           });
-
           const results = await Promise.all(emitPromises);
-          // If any socket acked, mark delivered
           anyAck = results.some(r => r && r.ok === true);
         }
 
-        // Always emit to the full room for cross-worker fallback (multi-process / Redis-adapter
-        // scenario) and for any receiver sockets not tracked in the local userSockets Map.
-        // The client's dedupeMessages handles the harmless duplicate on in-process sockets.
-        io.to(receiver_id.toString()).emit('receive_message', populatedMessage);
-
-        // Echo back to sender (all devices)
-        io.to(socket.userId.toString()).emit('sent_message_echo', populatedMessage);
-
         if (anyAck) {
-          // Update DB message as delivered (acknowledged by a client)
           Message.findByIdAndUpdate(populatedMessage._id, { delivered_status: true, delivered_at: new Date() }).catch(() => {});
           io.to(socket.userId.toString()).emit('message_delivery_ack', { messageId: populatedMessage._id, partnerId: receiver_id.toString(), at: new Date().toISOString() });
         } else if (receiverOnline) {
-          // Receiver was online (room present) but no per-socket ack; still notify sender of delivered status
           io.to(socket.userId.toString()).emit('messages_delivered', { partnerId: receiver_id.toString() });
         }
 
-        // Receiver appeared to be online (in-process sockets found) but none ACK'd —
-        // network hiccup or browser tab throttle. Schedule retries so the message
-        // gets through without waiting for the user to manually refresh.
         if (!anyAck && receiverSet.size > 0) {
           scheduleMessageRetry(populatedMessage._id?.toString(), populatedMessage, receiver_id);
         }
