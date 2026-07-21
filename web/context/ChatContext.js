@@ -833,7 +833,7 @@ export function ChatProvider({ children }) {
   useEffect(() => {
     if (!user?._id) return;
 
-    const onReceiveMessage = (message) => {
+    const onReceiveMessage = (message, ack) => {
       const current = stateRef.current;
       const partnerId = getConversationIdFromMessage(message, current.currentUserId);
       const senderId = toId(message?.sender_id);
@@ -844,6 +844,9 @@ export function ChatProvider({ children }) {
       if (isActive && senderId && senderId !== current.currentUserId) {
         socketService.emit('mark_messages_read', { sender_id: senderId });
       }
+
+      // Acknowledge receipt so the server marks the message as delivered in DB
+      if (typeof ack === 'function') ack();
     };
 
     const onSentEcho = (message) => {
@@ -888,9 +891,23 @@ export function ChatProvider({ children }) {
       dispatch({ type: 'PRESENCE_UPDATE', userId, isOnline: isOnline ?? online, lastSeen: lastSeen || last_seen });
     const onDeleted = (payload) => dispatch({ type: 'DELETE_MESSAGE', ...payload });
 
+    // Batch of messages that arrived while this device was offline/disconnected.
+    // The server pushes these on reconnect so the inbox is immediately up-to-date
+    // without waiting for the next 15s poll.
+    const onOfflineMessages = (messages) => {
+      if (!Array.isArray(messages) || !messages.length) return;
+      const current = stateRef.current;
+      for (const message of messages) {
+        const partnerId = getConversationIdFromMessage(message, current.currentUserId);
+        if (!partnerId) continue;
+        dispatch({ type: 'RECEIVE_MESSAGE', message, partnerId, isActive: false });
+      }
+    };
+
     const eventMap = {
       receive_message: onReceiveMessage,
       sent_message_echo: onSentEcho,
+      offline_messages: onOfflineMessages,
       messages_read: onMessagesRead,
       messages_delivered: onMessagesDelivered,
       message_delivery_ack: onMessageDeliveryAck,

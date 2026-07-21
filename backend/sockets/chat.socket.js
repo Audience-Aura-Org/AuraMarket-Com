@@ -110,6 +110,59 @@ const mapChatSockets = (server) => {
   const userSockets = new Map();
   const disconnectTimers = new Map(); // Grace period before marking offline
 
+  // ── Delivery retry queue ─────────────────────────────────────────────────────
+  // When a receiver is online but doesn't ACK within the 5 s timeout (transient
+  // network hiccup, tab background throttle, etc.) we retry up to 3 times before
+  // giving up and letting the on-connect handler handle delivery on next login.
+  const pendingRetries = new Map(); // messageId -> { timer, populatedMessage, receiverId, attempt }
+  const RETRY_DELAYS_MS = [8_000, 20_000, 45_000];
+
+  const scheduleMessageRetry = (messageId, populatedMessage, receiverId, attempt = 0) => {
+    const msgIdStr = messageId?.toString();
+    if (!msgIdStr) return;
+    if (attempt >= RETRY_DELAYS_MS.length) {
+      pendingRetries.delete(msgIdStr);
+      return;
+    }
+    // Clear any existing timer for this message before scheduling a new one
+    const prev = pendingRetries.get(msgIdStr);
+    if (prev?.timer) clearTimeout(prev.timer);
+
+    const timer = setTimeout(async () => {
+      if (!pendingRetries.has(msgIdStr)) return; // cancelled (receiver reconnected)
+      const receiverSet = userSockets.get(String(receiverId)) || new Set();
+      if (receiverSet.size === 0) {
+        // Receiver is offline — on-connect handler will deliver when they come back
+        pendingRetries.delete(msgIdStr);
+        return;
+      }
+      let acked = false;
+      await Promise.all(Array.from(receiverSet).map(async (sockId) => {
+        try {
+          await io.to(sockId).timeout(5000).emit('receive_message', populatedMessage);
+          acked = true;
+        } catch {}
+      }));
+      if (acked) {
+        pendingRetries.delete(msgIdStr);
+        Message.findByIdAndUpdate(messageId, { delivered_status: true, delivered_at: new Date() }).catch(() => {});
+        const senderId = (populatedMessage.sender_id?._id || populatedMessage.sender_id)?.toString();
+        if (senderId) {
+          io.to(senderId).emit('message_delivery_ack', {
+            messageId,
+            partnerId: receiverId.toString(),
+            at: new Date().toISOString(),
+          });
+        }
+      } else {
+        scheduleMessageRetry(messageId, populatedMessage, receiverId, attempt + 1);
+      }
+    }, RETRY_DELAYS_MS[attempt]);
+
+    pendingRetries.set(msgIdStr, { timer, populatedMessage, receiverId, attempt });
+  };
+  // ─────────────────────────────────────────────────────────────────────────────
+
   io.use(async (socket, next) => {
     try {
       const userId = socket.handshake.auth?.userId?.toString();
@@ -170,15 +223,40 @@ const mapChatSockets = (server) => {
     }
 
     Message.find({ receiver_id: socket.userId, delivered_status: false })
-      .select('sender_id')
+      .populate('product_reference', PRODUCT_REFERENCE_SELECT)
+      .populate('sender_id', 'name avatar role branding store_name is_online last_seen')
+      .populate('receiver_id', 'name avatar role branding store_name is_online last_seen')
       .lean()
       .then(async (messages) => {
         if (!messages.length) return;
+
+        // Push undelivered messages to the reconnected device immediately —
+        // the client handles deduplication so this is safe to emit unconditionally.
+        const sanitized = messages.map((msg) => {
+          if (msg?.product_reference) {
+            return { ...msg, product_reference: sanitizeProductReference(msg.product_reference) };
+          }
+          return msg;
+        });
+        socket.emit('offline_messages', sanitized);
+
+        // Cancel any in-flight retries — we just delivered these messages.
+        for (const msg of messages) {
+          const msgId = msg._id?.toString();
+          if (msgId && pendingRetries.has(msgId)) {
+            clearTimeout(pendingRetries.get(msgId).timer);
+            pendingRetries.delete(msgId);
+          }
+        }
+
         await Message.updateMany(
           { receiver_id: socket.userId, delivered_status: false },
           { delivered_status: true }
         );
-        const senderIds = [...new Set(messages.map((msg) => msg.sender_id?.toString()).filter(Boolean))];
+        const senderIds = [...new Set(messages.map((msg) => {
+          const sid = msg.sender_id;
+          return (sid?._id || sid)?.toString();
+        }).filter(Boolean))];
         senderIds.forEach((senderId) => {
           io.to(senderId).emit('messages_delivered', { partnerId: socket.userId.toString() });
         });
@@ -212,7 +290,7 @@ const mapChatSockets = (server) => {
         let anyAck = false;
 
         if (receiverSet.size > 0) {
-          // Emit to each socket individually and wait for client ack (with timeout)
+          // Emit to each in-process socket individually and wait for client ack (with timeout)
           const emitPromises = Array.from(receiverSet).map(async (sockId) => {
             try {
               // Use socket.io v4 timeout ack helper
@@ -229,16 +307,14 @@ const mapChatSockets = (server) => {
           const results = await Promise.all(emitPromises);
           // If any socket acked, mark delivered
           anyAck = results.some(r => r && r.ok === true);
-        } else {
-          // No active sockets in this process; still attempt room emit for cross-worker delivery
-          try {
-            io.to(receiver_id.toString()).emit('receive_message', populatedMessage);
-          } catch (e) {
-            // ignore
-          }
         }
 
-        // Echo back to sender
+        // Always emit to the full room for cross-worker fallback (multi-process / Redis-adapter
+        // scenario) and for any receiver sockets not tracked in the local userSockets Map.
+        // The client's dedupeMessages handles the harmless duplicate on in-process sockets.
+        io.to(receiver_id.toString()).emit('receive_message', populatedMessage);
+
+        // Echo back to sender (all devices)
         io.to(socket.userId.toString()).emit('sent_message_echo', populatedMessage);
 
         if (anyAck) {
@@ -248,6 +324,13 @@ const mapChatSockets = (server) => {
         } else if (receiverOnline) {
           // Receiver was online (room present) but no per-socket ack; still notify sender of delivered status
           io.to(socket.userId.toString()).emit('messages_delivered', { partnerId: receiver_id.toString() });
+        }
+
+        // Receiver appeared to be online (in-process sockets found) but none ACK'd —
+        // network hiccup or browser tab throttle. Schedule retries so the message
+        // gets through without waiting for the user to manually refresh.
+        if (!anyAck && receiverSet.size > 0) {
+          scheduleMessageRetry(populatedMessage._id?.toString(), populatedMessage, receiver_id);
         }
 
         setImmediate(() => {
