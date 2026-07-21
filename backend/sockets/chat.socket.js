@@ -506,9 +506,18 @@ const mapChatSockets = (server) => {
     socket.on('check_online_status', async (data, callback) => {
       const targetId = (data?.userId || '').toString();
       if (!targetId) return;
-      const isOnline = await roomHasSockets(io, targetId);
-      const user = await User.findById(targetId).select('last_seen is_online').lean().catch(() => null);
-      const lastSeen = user?.last_seen || null;
+      const socketOnline = await roomHasSockets(io, targetId);
+      const dbUser = await User.findById(targetId).select('last_seen is_online').lean().catch(() => null);
+      const lastSeen = dbUser?.last_seen || null;
+
+      // In PM2 cluster mode the Redis adapter may be temporarily unavailable,
+      // causing roomHasSockets to only see sockets on the local worker.
+      // Fall back to the DB is_online flag if last_seen was within the last 90 s —
+      // that window matches the offline-grace period across restarts.
+      const dbOnline = dbUser?.is_online === true;
+      const recentActivity = lastSeen && (Date.now() - new Date(lastSeen).getTime() < 90_000);
+      const isOnline = socketOnline || (dbOnline && recentActivity);
+
       const response = {
         userId: targetId,
         isOnline,
@@ -536,8 +545,10 @@ const mapChatSockets = (server) => {
       if (userSet) {
         userSet.delete(socket.id);
         if (userSet.size === 0) {
-          // Grace period: wait 3 seconds before marking offline
-          // This prevents false offline flickers during page refresh / reconnect
+          // Grace period: wait 8 seconds before marking offline.
+          // Longer window gives the Redis adapter time to recover from a brief
+          // disconnect, so roomHasSockets sees cross-worker sockets before we
+          // incorrectly mark the user offline in the DB.
           const timer = setTimeout(async () => {
             disconnectTimers.delete(socket.userId);
             // Re-check: user might have reconnected during grace period
@@ -553,7 +564,7 @@ const mapChatSockets = (server) => {
             await User.findByIdAndUpdate(socket.userId, { is_online: false, last_seen: lastSeen }).catch(e => console.error(e));
             io.emit('user_presence', { userId: socket.userId, isOnline: false, lastSeen: lastSeen.toISOString() });
             console.log(`🔌 User marked offline: ${socket.userId}`);
-          }, 3000);
+          }, 8000);
           disconnectTimers.set(socket.userId, timer);
         }
       }

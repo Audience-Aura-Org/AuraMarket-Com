@@ -512,6 +512,9 @@ function chatReducer(state, action) {
         createdAt: optimistic?.createdAt || action.message?.createdAt || new Date().toISOString(),
         status: 'sent',
         client_id: action.clientId || action.message?.client_id,
+        // Preserve the optimistic delivered_status so the tick doesn't flicker
+        // single→double→single while waiting for the server's message_delivery_ack.
+        delivered_status: action.message?.delivered_status || optimistic?.delivered_status || false,
       };
       const messages = dedupeMessages(
         current.filter((m) => m._id !== action.tempId),

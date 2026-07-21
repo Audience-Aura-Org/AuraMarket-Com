@@ -261,6 +261,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const backViaButtonRef = useRef(false); // true when browser/hardware back triggered the last navigation
   const suppressPopStateRef = useRef(false); // true during programmatic history.back() — prevents goBackOrClose re-firing
   const drainInProgressRef = useRef(false);  // prevents concurrent drain runs when state mutations re-trigger the effect
+  const silentLoadInFlightRef = useRef(false); // prevents stacked silent reloads from 2s poll + pre-send sync + reconnect
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
     if (typeof window === 'undefined') return {};
@@ -834,6 +835,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   const loadConversation = async (pid, pageNum = 1, options = {}) => {
     const silent = Boolean(options.silent);
+
+    // Skip concurrent silent page-1 loads — the 2s poll, pre-send sync, and
+    // reconnect handler can all fire at once; only the first one needs to run.
+    if (silent && pageNum === 1) {
+      if (silentLoadInFlightRef.current) return;
+      silentLoadInFlightRef.current = true;
+    }
+
     if (!silent) {
       if (pageNum === 1) setLoading(true);
       else setLoadingMore(true);
@@ -933,6 +942,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     } catch (err) {
       console.error('Conversation load error:', err);
     } finally {
+      if (silent && pageNum === 1) silentLoadInFlightRef.current = false;
       if (!silent) {
         setLoading(false);
         setLoadingMore(false);
