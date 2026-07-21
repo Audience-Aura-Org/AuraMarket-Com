@@ -449,9 +449,26 @@ self.addEventListener('push', function (event) {
     // Show the OS-level notification whenever the app is not in the foreground,
     // so the user knows a message arrived even if no tab is focused.
     if (visibleClients.length === 0) {
-      await self.registration.showNotification(data.title || 'Auradime', options);
+      try {
+        await self.registration.showNotification(data.title || 'Auradime', options);
+      } catch (err) {
+        // Some browsers (iOS Safari) reject unsupported options like `image` or `actions`.
+        // Retry with a minimal safe payload so the notification still appears.
+        console.warn('[SW] showNotification failed, retrying minimal:', err && err.message);
+        try {
+          await self.registration.showNotification(data.title || 'Auradime', {
+            body: options.body,
+            icon: options.icon,
+            badge: options.badge,
+            tag: options.tag,
+            renotify: true,
+            data: options.data,
+          });
+        } catch (err2) {
+          console.error('[SW] showNotification minimal also failed:', err2 && err2.message);
+        }
+      }
     }
-  };
 
   event.waitUntil(showOrForward());
 });
