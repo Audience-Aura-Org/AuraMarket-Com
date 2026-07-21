@@ -1,10 +1,19 @@
 "use client";
 
-import { ArrowLeft, Camera, BadgeCheck } from 'lucide-react';
+import { ArrowLeft, Camera, Share2, Users, ShieldCheck, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 
-export default function AccountHeader({ profileBranding, canUseBanner, onBannerUpload, storeName, storeDescription }) {
+export default function AccountHeader({
+  profileBranding,
+  canUseBanner,
+  onBannerUpload,
+  storeName,
+  storeDescription,
+  followerCount = 0,
+  rating = 0,
+  onShare,
+}) {
   const router = useRouter();
   const { user } = useAuthStore();
 
@@ -16,19 +25,18 @@ export default function AccountHeader({ profileBranding, canUseBanner, onBannerU
     user?.verification_status === 'approved' ||
     user?.verification_status === 'verified';
 
-  const subtitle = storeName || user?.branding?.store_name || null;
+  const headingName = storeName || user?.branding?.store_name || displayName;
 
   return (
-    <div className="bg-[var(--bg-primary)]">
+    <div className="bg-[var(--bg-secondary)]">
       {/* ── Banner ── */}
-      <div className="relative h-36 sm:h-44 overflow-hidden bg-gradient-to-br from-[var(--accent)] via-indigo-600 to-purple-700">
+      <div className="relative h-44 sm:h-60 w-full overflow-hidden">
         {bannerSrc ? (
-          <img src={bannerSrc} alt="" className="absolute inset-0 size-full object-cover" />
-        ) : !canUseBanner ? (
-          /* Customer gradient with subtle noise overlay */
-          <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/90 via-indigo-500/80 to-purple-600/90" />
-        ) : null}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/50 pointer-events-none" />
+          <img src={bannerSrc} className="w-full h-full object-cover brightness-[0.8]" alt="" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)] via-indigo-600 to-purple-700" />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-secondary)] via-[var(--bg-secondary)]/20 to-transparent pointer-events-none" />
 
         {/* Back button */}
         <button
@@ -38,7 +46,7 @@ export default function AccountHeader({ profileBranding, canUseBanner, onBannerU
           <ArrowLeft className="w-4 h-4" />
         </button>
 
-        {/* Banner upload — vendors/logistics only */}
+        {/* Banner upload (vendors/logistics only) */}
         {onBannerUpload && canUseBanner && (
           <label className="absolute top-4 right-4 size-9 flex items-center justify-center rounded-xl bg-black/30 backdrop-blur-md border border-white/20 text-white hover:bg-black/50 transition-all cursor-pointer active:scale-95 z-10">
             <Camera className="w-4 h-4" />
@@ -52,40 +60,74 @@ export default function AccountHeader({ profileBranding, canUseBanner, onBannerU
         )}
       </div>
 
-      {/* ── Avatar + info ── */}
-      <div className="px-4 pb-4 border-b border-[var(--glass-border)]">
-        {/* Avatar — overlaps banner with negative margin */}
-        <div className="-mt-[2.75rem] mb-3">
-          <div className="size-[72px] sm:size-20 rounded-full border-[3px] border-[var(--bg-primary)] shadow-xl overflow-hidden bg-[var(--bg-secondary)] shrink-0">
-            {avatarSrc ? (
-              <img src={avatarSrc} alt="" className="size-full object-cover" />
-            ) : (
-              <div className="size-full flex items-center justify-center text-2xl font-black text-[var(--accent)] bg-[var(--accent)]/10">
-                {displayName[0]?.toUpperCase()}
+      {/* ── Identity Card (overlaps banner) ── */}
+      <div className="relative z-10 -mt-8 px-3 sm:px-5 lg:px-8 pb-1">
+        <div className="rounded-2xl sm:rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 backdrop-blur-2xl shadow-xl p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 items-center sm:items-start">
+
+            {/* Logo / Avatar */}
+            <div className="size-20 sm:size-24 rounded-2xl border-2 border-[var(--bg-primary)] overflow-hidden shadow-lg shrink-0 bg-[var(--bg-secondary)]">
+              {avatarSrc ? (
+                <img src={avatarSrc} className="size-full object-cover" alt="" />
+              ) : (
+                <div className="size-full flex items-center justify-center text-2xl font-black text-[var(--accent)] bg-[var(--accent)]/10">
+                  {displayName[0]?.toUpperCase()}
+                </div>
+              )}
+            </div>
+
+            {/* Name + stat chips */}
+            <div className="flex-1 min-w-0 text-center sm:text-left">
+              <h1 className="text-[18px] sm:text-xl font-bold tracking-tight text-[var(--text-primary)] leading-tight">
+                {headingName}
+              </h1>
+
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2.5">
+                {/* Followers */}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-semibold text-[var(--text-secondary)]">
+                  <Users className="size-3 text-[var(--accent)]" />
+                  {followerCount >= 1000
+                    ? `${(followerCount / 1000).toFixed(1)}k`
+                    : followerCount} followers
+                </span>
+
+                {/* Rating (vendors only) */}
+                {Number(rating) > 0 && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--accent)]/8 border border-[var(--accent)]/15 text-[11px] font-semibold text-[var(--text-primary)]">
+                    <Star className="size-3 text-[var(--accent)] fill-[var(--accent)]" />
+                    {Number(rating).toFixed(1)}
+                  </span>
+                )}
+
+                {/* Verified */}
+                {isVerified && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/8 border border-emerald-500/20 text-[11px] font-semibold text-emerald-600">
+                    <ShieldCheck className="size-3" />
+                    Verified
+                  </span>
+                )}
               </div>
-            )}
+
+              {/* Store description / bio */}
+              {storeDescription && (
+                <p className="mt-2 text-[12px] text-[var(--text-secondary)]/75 leading-relaxed line-clamp-2 text-center sm:text-left">
+                  {storeDescription}
+                </p>
+              )}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-row sm:flex-col items-stretch gap-2 w-full sm:w-auto shrink-0 sm:min-w-[120px]">
+              <button
+                onClick={onShare}
+                className="h-10 px-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-all flex items-center justify-center gap-1.5 text-[11px] font-semibold flex-1 sm:flex-none"
+              >
+                <Share2 className="size-3.5" />
+                Share
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Name + verified badge */}
-        <div className="flex items-center gap-1.5 mb-0.5">
-          <h1 className="text-[19px] font-black text-[var(--text-primary)] truncate leading-tight">{displayName}</h1>
-          {isVerified && (
-            <BadgeCheck className="size-5 shrink-0 fill-blue-500 text-white" />
-          )}
-        </div>
-
-        {/* Subtitle: store name or role */}
-        <p className="text-[12px] font-semibold text-[var(--text-secondary)] capitalize leading-tight">
-          {subtitle ? subtitle : `${user?.role || 'user'} account`}
-        </p>
-
-        {/* Store description / bio */}
-        {storeDescription && (
-          <p className="mt-2 text-[12px] text-[var(--text-secondary)]/75 leading-relaxed line-clamp-2">
-            {storeDescription}
-          </p>
-        )}
       </div>
     </div>
   );

@@ -25,19 +25,19 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
 
   return (
     <div className="lg:col-span-1">
-      {/* ── Mobile: horizontal scrollable pill row ── */}
-      <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+      {/* ── Mobile: horizontal scrollable tab bar (store-page style) ── */}
+      <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-1 no-scrollbar px-1">
         {/* Theme toggle pill */}
         <button
           onClick={toggleTheme}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 text-[var(--text-secondary)] transition-all active:scale-95"
+          className="shrink-0 h-10 px-4 flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-all active:scale-97"
         >
           {theme === 'dark' ? (
             <Moon className="w-3.5 h-3.5 text-[var(--accent)]" />
           ) : (
             <Sun className="w-3.5 h-3.5 text-[var(--accent)]" />
           )}
-          <span className="text-[10px] font-semibold">{theme === 'dark' ? 'Dark' : 'Light'}</span>
+          <span className="text-[11px] font-semibold whitespace-nowrap">{theme === 'dark' ? 'Dark' : 'Light'}</span>
         </button>
 
         {filteredTabs.map((tab) => {
@@ -47,14 +47,14 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border transition-all active:scale-95 ${
+              className={`shrink-0 h-10 px-5 flex items-center gap-2 rounded-full border transition-all active:scale-97 ${
                 isActive
-                  ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/25'
-                  : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/70 text-[var(--text-secondary)]'
+                  ? 'bg-[var(--text-primary)] border-[var(--text-primary)] text-[var(--bg-primary)] shadow-md'
+                  : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-[var(--accent)]'}`} />
-              <span className="text-[10px] font-semibold whitespace-nowrap">{t(`tabs.${tab.id}`, tab.label)}</span>
+              <Icon className="w-3.5 h-3.5 shrink-0" />
+              <span className="text-[11px] font-semibold whitespace-nowrap">{t(`tabs.${tab.id}`, tab.label)}</span>
             </button>
           );
         })}

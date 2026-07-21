@@ -94,6 +94,24 @@ export default function AccountPageClient() {
     if (orderId) setViewingOrderId(orderId);
   }, [searchParams]);
 
+  const handleShareProfile = async () => {
+    const storeName = storeData.store_name || user?.name || 'Aura User';
+    const profileUrl = canUseBanner
+      ? `${window.location.origin}/stores/${user?._id}`
+      : window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: storeName, url: profileUrl });
+      } else {
+        await navigator.clipboard.writeText(profileUrl);
+      }
+    } catch (e) {
+      if (e?.name !== 'AbortError') {
+        try { await navigator.clipboard.writeText(profileUrl); } catch {}
+      }
+    }
+  };
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     setViewingOrderId(null);
@@ -130,7 +148,9 @@ export default function AccountPageClient() {
     banner: user?.branding?.banner || '',
     pickup_address: { city: '', quartier: '', address_description: '' },
     delivery_time: '',
-    minimum_order_amount: ''
+    minimum_order_amount: '',
+    follower_count: 0,
+    rating: 0,
   });
 
   const [userData, setUserData] = useState({ 
@@ -253,7 +273,9 @@ export default function AccountPageClient() {
             banner: s.banner || v.banner || user.branding?.banner || '',
             pickup_address: pickupAddress,
             delivery_time: s.delivery_time || '',
-            minimum_order_amount: s.minimum_order_amount ?? ''
+            minimum_order_amount: s.minimum_order_amount ?? '',
+            follower_count: v.follower_count || 0,
+            rating: v.rating || 0,
           });
           setProfileBranding((p) => ({
             logo: s.logo || v.logo || p.logo,
@@ -459,6 +481,9 @@ export default function AccountPageClient() {
         onBannerUpload={(file) => handleBrandingFileUpload('banner', file)}
         storeName={storeData.store_name}
         storeDescription={storeData.description}
+        followerCount={storeData.follower_count}
+        rating={storeData.rating}
+        onShare={handleShareProfile}
       />
 
       <div className="w-full px-1.5 sm:px-2 lg:px-3 py-2 grid grid-cols-1 lg:grid-cols-4 gap-2 lg:gap-3">
