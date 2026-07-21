@@ -27,19 +27,6 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
     <div className="lg:col-span-1">
       {/* ── Mobile: horizontal scrollable tab bar (store-page style) ── */}
       <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-1 no-scrollbar px-1">
-        {/* Theme toggle pill */}
-        <button
-          onClick={toggleTheme}
-          className="shrink-0 h-10 px-4 flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-all active:scale-97"
-        >
-          {theme === 'dark' ? (
-            <Moon className="w-3.5 h-3.5 text-[var(--accent)]" />
-          ) : (
-            <Sun className="w-3.5 h-3.5 text-[var(--accent)]" />
-          )}
-          <span className="text-[11px] font-semibold whitespace-nowrap">{theme === 'dark' ? 'Dark' : 'Light'}</span>
-        </button>
-
         {filteredTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

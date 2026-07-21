@@ -122,8 +122,8 @@ export default function AccountHeader({
                 onClick={onShare}
                 className="h-10 px-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-all flex items-center justify-center gap-1.5 text-[11px] font-semibold flex-1 sm:flex-none"
               >
-                <Share2 className="size-3.5" />
                 Share
+                <Share2 className="size-3.5" />
               </button>
             </div>
           </div>
