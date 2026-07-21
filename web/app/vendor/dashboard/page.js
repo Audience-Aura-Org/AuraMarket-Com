@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
-import api, { getCachedData } from '@/services/api';
+import api from '@/services/api';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import {
@@ -87,10 +87,10 @@ const isOpenOrder = (order) => !['delivered', 'completed', 'cancelled', 'refunde
 export default function VendorDashboard() {
   const router = useRouter();
   const { t } = useLanguage();
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, hasHydrated } = useAuthStore();
   const [orderFilter, setOrderFilter] = useState('all');
-  const [mounted, setMounted] = useState(false);
   const [orders, setOrders] = useState([]);
+  const loadingRef = useRef(false);
   const [walletBalance, setWalletBalance] = useState(0);
   const [pendingEscrow, setPendingEscrow] = useState(0);
   const [analyticsStats, setAnalyticsStats] = useState(null);
@@ -100,159 +100,53 @@ export default function VendorDashboard() {
   const [error, setError] = useState(null);
   const [signalCount, setSignalCount] = useState(null); // active live signals
 
-  useEffect(() => {
-    // Attempt instant render from local cache
-    try {
-      const cachedOrders = getCachedData('/vendor/orders');
-      const cachedWallet = getCachedData('/wallet');
-      const cachedAnalytics = getCachedData('/vendor/analytics');
-      const cachedSubscription = getCachedData('/subscriptions/me', { role: 'vendor' });
-
-      let foundCache = false;
-      if (cachedOrders?.orders) {
-        setOrders(cachedOrders.orders);
-        foundCache = true;
-      }
-      if (cachedWallet) {
-        setWalletBalance(cachedWallet.balance ?? 0);
-        setPendingEscrow(cachedWallet.pending_escrow ?? 0);
-        foundCache = true;
-      }
-      if (cachedAnalytics) {
-        setAnalyticsStats(cachedAnalytics.stats || null);
-        setAnalyticsHistory(cachedAnalytics.sales_history || []);
-        foundCache = true;
-      }
-      if (cachedSubscription) {
-        setSubscriptionStatus(cachedSubscription);
-        foundCache = true;
-      }
-      if (foundCache) setLoading(false);
-    } catch (e) {
-      console.warn('Dashboard instant cache load failed:', e);
-    }
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    let isMounted = true;
-    if (!mounted) return;
+  const load = useCallback(async (silent = false) => {
+    // Prevent concurrent loads
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    if (!silent) setLoading(true);
     setError(null);
 
-    const fetchData = async (isBackground = false) => {
-      try {
-        const hasData = orders.length > 0 || analyticsStats !== null;
-        if (!isBackground && !hasData) setLoading(true);
-        setError(null);
-
-        const safeGet = async (url) => {
-          try {
-            return await api.get(url);
-          } catch (err) {
-            if (err.response?.status === 403 || err.response?.status === 404) {
-              const msg = err.response?.data?.message?.toLowerCase() || '';
-              if (msg.includes('onboarding') || msg.includes('profile not found') || msg.includes('vendor profile not found')) {
-                console.warn('[Dashboard] Authorization failed, redirecting...', url);
-                updateUser({ ...user, onboarded: false });
-                router.replace('/onboarding');
-                throw new Error('ONBOARDING_REQUIRED');
-              }
-            }
-            throw err;
-          }
-        };
-
-        // Only 3 parallel requests instead of 5 — /vendor/products dropped;
-        // analytics already returns all product stats + low_stock_count.
-        const [ordersResult, walletResult, analyticsResult, subscriptionResult, signalResult] = await Promise.allSettled([
-          safeGet('/vendor/orders'),
-          safeGet('/wallet'),
-          safeGet('/vendor/analytics'),
-          api.get('/subscriptions/me', { params: { role: 'vendor' }, skipClientCache: true, silent: true }).catch(() => null),
-          api.get('/statuses/my-statuses', { silent: true }).catch(() => null),
-        ]);
-
-        if (isMounted) {
-          const ordersRes    = fulfilledValue(ordersResult);
-          const walletRes    = fulfilledValue(walletResult);
-          const analyticsRes = fulfilledValue(analyticsResult);
-          const subscriptionRes = fulfilledValue(subscriptionResult);
-          const signalRes    = fulfilledValue(signalResult);
-          if (signalRes?.data?.success) {
-            const now = new Date();
-            const active = (signalRes.data.data || []).filter((s) => new Date(s.expires_at) > now);
-            setSignalCount(active.length);
-          }
-
-          const ordersData    = getResponseData(ordersRes);
-          const walletData    = getResponseData(walletRes);
-          const analyticsData = getResponseData(analyticsRes);
-          const subscriptionData = subscriptionRes?.data?.data || null;
-
-          if (ordersRes?.data?.success) setOrders(ordersData.orders || analyticsData.recent_orders || []);
-          if (walletRes?.data?.success) {
-            setWalletBalance(walletData.balance ?? analyticsData.stats?.wallet_balance ?? 0);
-            setPendingEscrow(walletData.pending_escrow ?? analyticsData.stats?.pending_escrow ?? 0);
-          }
-          if (analyticsRes?.data?.success) {
-            setAnalyticsStats(analyticsData.stats || null);
-            setAnalyticsHistory(analyticsData.sales_history || []);
-            if (!ordersRes?.data?.success) setOrders(analyticsData.recent_orders || []);
-            if (!walletRes?.data?.success) {
-              setWalletBalance(analyticsData.stats?.wallet_balance ?? 0);
-              setPendingEscrow(analyticsData.stats?.pending_escrow ?? 0);
-            }
-          }
-          setSubscriptionStatus(subscriptionData);
-          setLoading(false);
-        }
-      } catch (err) {
-        if (err.message === 'ONBOARDING_REQUIRED') return;
-        console.error('[VendorDashboard] Error:', err);
-        if (isMounted) {
-          setError(err.response?.data?.message || err.message || 'Failed to fetch data');
-          setLoading(false);
-        }
-      }
-    };
-
-    const shouldPoll = () => typeof document === 'undefined' || document.visibilityState === 'visible';
-    const poll = () => {
-      if (shouldPoll()) fetchData(true);
-    };
-    const handleVisible = () => {
-      if (document.visibilityState === 'visible') fetchData(true);
-    };
-
-    fetchData(true);
-    const timer = setInterval(poll, DASHBOARD_POLL_MS);
-    document.addEventListener('visibilitychange', handleVisible);
-    return () => {
-      isMounted = false;
-      clearInterval(timer);
-      document.removeEventListener('visibilitychange', handleVisible);
-    };
-  }, [mounted, router, updateUser, user]);
-
-  const handleRefresh = async () => {
-    setLoading(true);
     try {
+      const safeGet = async (url) => {
+        try {
+          return await api.get(url);
+        } catch (err) {
+          if (err.response?.status === 403 || err.response?.status === 404) {
+            const msg = err.response?.data?.message?.toLowerCase() || '';
+            if (msg.includes('onboarding') || msg.includes('profile not found') || msg.includes('vendor profile not found')) {
+              updateUser({ ...user, onboarded: false });
+              router.replace('/onboarding');
+              throw new Error('ONBOARDING_REQUIRED');
+            }
+          }
+          throw err;
+        }
+      };
+
       const [ordersResult, walletResult, analyticsResult, subscriptionResult, signalResult] = await Promise.allSettled([
-        api.get('/vendor/orders'),
-        api.get('/wallet'),
-        api.get('/vendor/analytics'),
+        safeGet('/vendor/orders'),
+        safeGet('/wallet'),
+        safeGet('/vendor/analytics'),
         api.get('/subscriptions/me', { params: { role: 'vendor' }, skipClientCache: true, silent: true }).catch(() => null),
         api.get('/statuses/my-statuses', { silent: true }).catch(() => null),
       ]);
 
-      const ordersRes    = fulfilledValue(ordersResult);
-      const walletRes    = fulfilledValue(walletResult);
-      const analyticsRes = fulfilledValue(analyticsResult);
+      const ordersRes       = fulfilledValue(ordersResult);
+      const walletRes       = fulfilledValue(walletResult);
+      const analyticsRes    = fulfilledValue(analyticsResult);
       const subscriptionRes = fulfilledValue(subscriptionResult);
-      const signalRes    = fulfilledValue(signalResult);
-      const ordersData    = getResponseData(ordersRes);
-      const walletData    = getResponseData(walletRes);
-      const analyticsData = getResponseData(analyticsRes);
+      const signalRes       = fulfilledValue(signalResult);
+
+      if (signalRes?.data?.success) {
+        const now = new Date();
+        const active = (signalRes.data.data || []).filter((s) => new Date(s.expires_at) > now);
+        setSignalCount(active.length);
+      }
+
+      const ordersData       = getResponseData(ordersRes);
+      const walletData       = getResponseData(walletRes);
+      const analyticsData    = getResponseData(analyticsRes);
       const subscriptionData = subscriptionRes?.data?.data || null;
 
       if (ordersRes?.data?.success) setOrders(ordersData.orders || analyticsData.recent_orders || []);
@@ -269,18 +163,33 @@ export default function VendorDashboard() {
           setPendingEscrow(analyticsData.stats?.pending_escrow ?? 0);
         }
       }
-      if (signalRes?.data?.success) {
-        const now = new Date();
-        const active = (signalRes.data.data || []).filter((s) => new Date(s.expires_at) > now);
-        setSignalCount(active.length);
-      }
       setSubscriptionStatus(subscriptionData);
-      setLoading(false);
     } catch (err) {
-      setError(err.message);
+      if (err.message === 'ONBOARDING_REQUIRED') return;
+      console.error('[VendorDashboard] Error:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to fetch data');
+    } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
-  };
+  }, [router, updateUser, user]);
+
+  // Initial load
+  useEffect(() => { load(); }, [load]);
+
+  // Poll every 60 s when tab is visible
+  useEffect(() => {
+    const poll = () => { if (document.visibilityState === 'visible') load(true); };
+    const handleVisible = () => { if (document.visibilityState === 'visible') load(true); };
+    const timer = setInterval(poll, DASHBOARD_POLL_MS);
+    document.addEventListener('visibilitychange', handleVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisible);
+    };
+  }, [load]);
+
+  const handleRefresh = () => load(false);
 
   const paidOrders = orders.filter(isPaidOrder);
   const completedOrders = orders.filter(isCompletedOrder);
@@ -320,24 +229,7 @@ export default function VendorDashboard() {
       ? 'bg-amber-500'
       : 'bg-rose-500';
 
-  if (!mounted) return (
-    <div className="relative bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500 min-h-screen">
-      <div className="h-14 bg-[var(--bg-primary)] border-b border-[var(--glass-border)] animate-pulse" />
-      <div className="p-4 sm:p-6 space-y-6">
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-28 rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] animate-pulse" />
-          ))}
-        </div>
-        <div className="h-64 rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] animate-pulse" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-16 rounded-2xl bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] animate-pulse" />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  if (!hasHydrated || !user) return null;
 
     const monthlySales = buildMonthlySalesSeries(analyticsHistory, paidOrders);
     const hasMonthlySalesData = monthlySales.some((entry) => entry.value > 0);
