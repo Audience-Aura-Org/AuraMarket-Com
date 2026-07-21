@@ -45,6 +45,17 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
             </button>
           );
         })}
+        {/* Theme toggle — icon only */}
+        <button
+          onClick={toggleTheme}
+          className="shrink-0 h-10 w-10 flex items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] transition-all hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-97"
+        >
+          {theme === 'dark' ? (
+            <Moon className="w-3.5 h-3.5" />
+          ) : (
+            <Sun className="w-3.5 h-3.5" />
+          )}
+        </button>
       </div>
 
       {/* ── Desktop: vertical sticky list ── */}

@@ -641,7 +641,7 @@ export default function AccountPageClient() {
                           <select
                             value={language}
                             onChange={(event) => handleLanguageChange(event.target.value)}
-                            className="h-10 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[11px] md:text-[12px] font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
+                            className="h-10 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[13px] md:text-[14px] font-semibold text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15"
                           >
                             {languages.map((item) => (
                               <option key={item.code} value={item.code}>
@@ -1394,7 +1394,7 @@ function DeleteAccountPanel({ deleteConfirm, setDeleteConfirm, deleteStatus, del
         value={deleteConfirm}
         onChange={(e) => setDeleteConfirm(e.target.value.toUpperCase())}
         placeholder={`Type ${confirmationWord} to confirm`}
-        className="w-full bg-[var(--bg-primary)]/70 border border-rose-500/20 rounded-2xl px-4 py-3 text-[11px] md:text-[12px] font-semibold outline-none focus:ring-2 focus:ring-rose-500/30"
+        className="w-full bg-[var(--bg-primary)]/70 border border-rose-500/20 rounded-2xl px-4 py-3 text-[13px] md:text-[14px] font-semibold outline-none focus:ring-2 focus:ring-rose-500/30"
       />
 
       {deleteStatus && (
@@ -1463,7 +1463,7 @@ function KycUploadCard({ title, image, field, uploading, onUpload }) {
 function FormField({ label, value, onChange, icon: Icon, placeholder, disabled = false, textarea = false, type = "text" }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold mb-1.5 text-[var(--text-secondary)]">{label}</label>
+      <label className="block text-[12px] font-semibold mb-1.5 text-[var(--text-secondary)]">{label}</label>
       {textarea ? (
         <textarea
           value={value ?? ""}
@@ -1471,7 +1471,7 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
           placeholder={placeholder}
           disabled={disabled}
           rows={4}
-          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[11px] md:text-[12px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[13px] md:text-[14px] font-medium text-[var(--text-primary)] placeholder:text-[13px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 resize-none disabled:opacity-50"
         />
       ) : (
         <input
@@ -1480,7 +1480,7 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[11px] md:text-[12px] font-medium text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
+          className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[13px] md:text-[14px] font-medium text-[var(--text-primary)] placeholder:text-[13px] placeholder:font-normal focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50"
         />
       )}
     </div>
@@ -1490,12 +1490,12 @@ function FormField({ label, value, onChange, icon: Icon, placeholder, disabled =
 function FormSelect({ label, value, onChange, options, icon: Icon, placeholder, disabled = false }) {
   return (
     <div>
-      <label className="block text-[11px] font-semibold mb-1.5 text-[var(--text-secondary)]">{label}</label>
+      <label className="block text-[12px] font-semibold mb-1.5 text-[var(--text-secondary)]">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}
-        className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[11px] md:text-[12px] font-medium text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 appearance-none"
+        className="w-full bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-[1.5rem] px-4 py-2 text-[13px] md:text-[14px] font-medium text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 appearance-none"
       >
         <option value="">{placeholder}</option>
         {options.map(opt => (
