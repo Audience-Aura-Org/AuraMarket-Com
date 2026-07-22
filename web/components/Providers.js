@@ -15,6 +15,7 @@ import SplashScreen from '@/components/layout/SplashScreen';
 import { useAuthStore } from '@/hooks/useAuth';
 import { initFontSettings } from '@/utils/fontSettings';
 import { hasPendingPushIntent } from '@/lib/native-push';
+import { Capacitor } from '@capacitor/core';
 
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
@@ -41,17 +42,29 @@ export default function Providers({ children }) {
                           normalizedPath.startsWith('/vendor') ||
                           normalizedPath.startsWith('/logistics') ||
                           normalizedPath === '/subscribe';
-  // Skip splash when the app is opening in response to a notification tap —
-  // the intent is already stored in localStorage and navigation will happen
-  // immediately. Showing the splash here would block the UI for 2+ seconds.
-  const [showSplash, setShowSplash] = useState(!isDashboardRoute && !hasPendingPushIntent());
+  // Chat and messages pages are full-screen immersive — they should open
+  // immediately with no splash delay (same as dashboard routes).
+  const isImmediateRoute = isDashboardRoute ||
+                           normalizedPath.startsWith('/chat') ||
+                           normalizedPath.startsWith('/messages');
+  // APK has its own native Android splash/loader — the web SplashScreen is
+  // redundant there and adds an extra 2-second delay on every cold start.
+  const isNativeApp = typeof window !== 'undefined' && Capacitor.isNativePlatform();
+  // Skip splash when:
+  //  • running as a native APK (Android handles its own splash)
+  //  • the initial route is a dashboard / chat / messages page
+  //  • the app opened from a native push notification tap (APK intent stored in localStorage)
+  //  • the app opened via a PWA push notification that navigated directly to /chat
+  const [showSplash, setShowSplash] = useState(
+    !isNativeApp && !isImmediateRoute && !hasPendingPushIntent()
+  );
 
   useEffect(() => {
     initFontSettings();
   }, []);
 
   useEffect(() => {
-    if (isDashboardRoute) {
+    if (isImmediateRoute) {
       setShowSplash(false);
       return undefined;
     }
@@ -61,7 +74,7 @@ export default function Providers({ children }) {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [isDashboardRoute]);
+  }, [isImmediateRoute]);
 
   useEffect(() => {
     const handleInvalidSession = async () => {
