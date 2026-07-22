@@ -469,6 +469,7 @@ self.addEventListener('push', function (event) {
         }
       }
     }
+  }; // ← close showOrForward
 
   event.waitUntil(showOrForward());
 });

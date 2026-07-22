@@ -1489,6 +1489,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     setChatMenuOpen(false);
     setFloatingMenu(null);
     setActiveConversation(null);
+    // Mark as "intentional close" so the history effect cleanup does not call
+    // history.back() / replaceState after onClose() navigates away.
+    backViaButtonRef.current = true;
     onClose?.();
   };
 
@@ -1529,10 +1532,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     return () => {
       window.removeEventListener('popstate', onPopState);
       // If the panel closed via UI (X / backdrop) rather than the back button,
-      // clean up the dummy history entry so the browser stack stays clean.
+      // remove the chatInterceptor flag from the current history entry.
+      // Use replaceState instead of history.back() — back() fires an async popstate
+      // that can arrive after the component unmounts, where our listener is already
+      // gone, causing Next.js to re-navigate to the chat page (the "pops back up" bug).
       if (!backViaButtonRef.current && window.history.state?.chatInterceptor) {
-        suppressPopStateRef.current = true; // suppress the resulting popstate in the new listener
-        window.history.back();
+        window.history.replaceState({}, '', window.location.href);
       }
     };
   // Re-run when the user moves between inbox (null) and a thread (partnerId).
