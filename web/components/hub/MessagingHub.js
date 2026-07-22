@@ -1145,20 +1145,33 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const file = e.target.files?.[0];
     if (!file || !activePartnerId) return;
 
-    if (!file.type?.startsWith('image/')) {
+    // Android Capacitor gallery files often arrive as 'application/octet-stream'.
+    // Fall back to extension-based detection so valid images aren't rejected.
+    const isImage = file.type?.startsWith('image/') ||
+      /\.(jpe?g|png|gif|webp|heic|heif|bmp|avif)$/i.test(file.name || '');
+    if (!isImage) {
       toast.error('Select an image to send.');
       if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
-    const objectUrl = URL.createObjectURL(file);
-    setMediaPreview({
-      mode: 'compose',
-      file,
-      url: objectUrl,
-      objectUrl,
-      caption: inputValueRef.current || input,
-    });
+    // Use FileReader data URL instead of URL.createObjectURL — blob URLs can fail
+    // to display in Android WebView when the file MIME type is octet-stream.
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setMediaPreview({
+        mode: 'compose',
+        file,
+        url: ev.target.result,
+        objectUrl: null, // no blob URL to revoke
+        caption: inputValueRef.current || input,
+      });
+    };
+    reader.onerror = () => {
+      toast.error('Could not load selected image.');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsDataURL(file);
   };
 
   const sendPreviewMedia = async () => {

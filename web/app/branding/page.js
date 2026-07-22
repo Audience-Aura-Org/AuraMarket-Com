@@ -10,7 +10,13 @@ import api from '@/services/api';
 import { uploadService } from '@/services/upload';
 
 export default function BrandingSuitePage() {
+    // Keep the File separate from the preview URL — calling URL.createObjectURL()
+    // inline in JSX creates a new blob URL on every render and never revokes the old
+    // one, causing broken/blank previews on Android WebView. FileReader data URLs are
+    // stable strings that work reliably across all platforms.
+    const [logoFile, setLogoFile] = useState(null);
     const [logoPreview, setLogoPreview] = useState(null);
+    const [bannerFile, setBannerFile] = useState(null);
     const [bannerPreview, setBannerPreview] = useState(null);
     const [uploading, setUploading] = useState(false);
 
@@ -18,12 +24,21 @@ export default function BrandingSuitePage() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (type === 'logo') setLogoPreview(file);
-        else setBannerPreview(file);
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            if (type === 'logo') {
+                setLogoFile(file);
+                setLogoPreview(ev.target.result);
+            } else {
+                setBannerFile(file);
+                setBannerPreview(ev.target.result);
+            }
+        };
+        reader.readAsDataURL(file);
     };
 
     const handleSave = async () => {
-        if (!logoPreview && !bannerPreview) {
+        if (!logoFile && !bannerFile) {
             toast.error('No changes to synchronize.');
             return;
         }
@@ -32,14 +47,14 @@ export default function BrandingSuitePage() {
         const loadingToast = toast.loading('Synchronizing branding nodes...');
         try {
             const updates = { branding: {} };
-            
-            // 1. Upload files if they are File objects (previews)
-            if (logoPreview instanceof File) {
-                const res = await uploadService.uploadSingle(logoPreview, 'avatars');
+
+            // 1. Upload files
+            if (logoFile) {
+                const res = await uploadService.uploadSingle(logoFile, 'avatars');
                 if (res.success) updates.branding.logo = res.data.url;
             }
-            if (bannerPreview instanceof File) {
-                const res = await uploadService.uploadSingle(bannerPreview, 'banners');
+            if (bannerFile) {
+                const res = await uploadService.uploadSingle(bannerFile, 'banners');
                 if (res.success) updates.branding.banner = res.data.url;
             }
 
@@ -110,10 +125,10 @@ export default function BrandingSuitePage() {
                             <div className="flex flex-col sm:flex-row items-center gap-10">
                                 <div className="size-40 rounded-[48px] border-4 border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)] flex items-center justify-center overflow-hidden shrink-0 relative shadow-inner group-hover:border-[var(--accent)]/40 transition-all duration-500">
                                     {logoPreview ? (
-                                        <img 
-                                            src={logoPreview instanceof File ? URL.createObjectURL(logoPreview) : logoPreview} 
-                                            className="size-full object-cover p-2 rounded-[48px]" 
-                                            alt="Logo Preview" 
+                                        <img
+                                            src={logoPreview}
+                                            className="size-full object-cover p-2 rounded-[48px]"
+                                            alt="Logo Preview"
                                         />
                                     ) : (
                                         <div className="text-center space-y-2 opacity-20 group-hover:opacity-40 transition-opacity">
@@ -170,9 +185,9 @@ export default function BrandingSuitePage() {
                             <div className="relative z-10 flex flex-col h-full">
                                 <div className="aspect-[2/1] w-full rounded-[32px] border-4 border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)] mb-8 overflow-hidden group-hover:border-indigo-500/40 transition-all duration-500 shadow-inner">
                                     {bannerPreview ? (
-                                        <img 
-                                            src={bannerPreview instanceof File ? URL.createObjectURL(bannerPreview) : bannerPreview} 
-                                            className="size-full object-cover transition-transform duration-1000 group-hover:scale-105" 
+                                        <img
+                                            src={bannerPreview}
+                                            className="size-full object-cover transition-transform duration-1000 group-hover:scale-105"
                                             alt="Banner Preview" 
                                         />
                                     ) : (
