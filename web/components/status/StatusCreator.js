@@ -1392,10 +1392,12 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     e.target.value = '';
     if (!f) return;
 
-    // Auto-detect actual file type from MIME — ignores which button triggered
-    // the picker so picking a video while in image mode (or vice versa) just works.
+    // Auto-detect actual file type from MIME, with extension fallback for Android
+    // Capacitor where gallery files often arrive as 'application/octet-stream'.
     const actualType = f.type.startsWith('video/') ? 'video'
                      : f.type.startsWith('image/') ? 'image'
+                     : /\.(mp4|mov|avi|3gp|mkv|webm|m4v)$/i.test(f.name || '') ? 'video'
+                     : /\.(jpe?g|png|gif|webp|heic|heif|bmp|avif)$/i.test(f.name || '') ? 'image'
                      : null;
     if (!actualType) { setError('Unsupported file type. Please select a photo or video.'); return; }
 
@@ -1450,7 +1452,17 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       setError(null);
     }
     setFile(f);
-    setPreviewUrl(URL.createObjectURL(f));
+    if (actualType === 'video') {
+      // Blob URLs work fine as <video src> and are needed for the trimmer timeline.
+      setPreviewUrl(URL.createObjectURL(f));
+    } else {
+      // Use FileReader data URL for image preview — blob URLs whose MIME type is
+      // 'application/octet-stream' (common from Android gallery) render as broken
+      // images in Android WebView.
+      const reader = new FileReader();
+      reader.onload = (ev) => setPreviewUrl(ev.target.result);
+      reader.readAsDataURL(f);
+    }
   };
 
   const handlePost = async () => {

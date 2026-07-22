@@ -410,12 +410,24 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         return;
       }
     } else {
-      if (!f.type.startsWith('image/')) { setError('Select an image file.'); return; }
+      // Android Capacitor gallery images can arrive as 'application/octet-stream'.
+      const isImageFile = f.type.startsWith('image/') ||
+        /\.(jpe?g|png|gif|webp|heic|heif|bmp|avif)$/i.test(f.name || '');
+      if (!isImageFile) { setError('Select an image file.'); return; }
       if (f.size > STATUS_IMAGE_MAX_BYTES) { setError('Max 8MB image.'); return; }
       setVideoMeta(null);
     }
     setFile(f);
-    setPreviewUrl(URL.createObjectURL(f));
+    if (type === 'video') {
+      // Blob URLs work fine as <video src> — keep for video.
+      setPreviewUrl(URL.createObjectURL(f));
+    } else {
+      // Use FileReader data URL for image preview — blob URLs with wrong MIME type
+      // (application/octet-stream) render as broken images on Android WebView.
+      const reader = new FileReader();
+      reader.onload = (ev) => setPreviewUrl(ev.target.result);
+      reader.readAsDataURL(f);
+    }
     if (type !== 'video') setError(null);
   };
 
