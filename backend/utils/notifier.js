@@ -262,10 +262,29 @@ const sendNotification = async (app, recipientId, data) => {
     enqueueJob('push', async () => {
       try {
         // Use pre-fetched subscriptions — no extra DB query needed here
-        const webSubs = pushSubs.filter((sub) => sub.channel !== 'android' && sub.subscription?.endpoint && !String(sub.subscription.endpoint).startsWith('fcm:'));
+        const rawWebSubs = pushSubs.filter((sub) => sub.channel !== 'android' && sub.subscription?.endpoint && !String(sub.subscription.endpoint).startsWith('fcm:'));
         const androidTokens = pushSubs
           .filter((sub) => sub.channel === 'android' && sub.fcm_token)
           .map((sub) => sub.fcm_token);
+
+        // Validate subscription objects — purge any stored as truncated/malformed JSON strings
+        const webSubs = [];
+        for (const sub of rawWebSubs) {
+          let subObj = sub.subscription;
+          if (typeof subObj === 'string') {
+            try { subObj = JSON.parse(subObj); } catch (e) {
+              await PushSubscription.deleteOne({ _id: sub._id }).catch(() => {});
+              console.log(`🗑️ Purged malformed subscription string ${sub._id}: ${e.message}`);
+              continue;
+            }
+          }
+          if (!subObj?.endpoint || !subObj?.keys?.auth || !subObj?.keys?.p256dh) {
+            await PushSubscription.deleteOne({ _id: sub._id }).catch(() => {});
+            console.log(`🗑️ Purged incomplete subscription ${sub._id}`);
+            continue;
+          }
+          webSubs.push({ ...sub, subscription: subObj });
+        }
 
         if (webSubs.length > 0 || androidTokens.length > 0) {
           const notificationUrl = metadata?.link || '/discovery';
