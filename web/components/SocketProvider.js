@@ -513,12 +513,25 @@ export default function SocketProvider({ children }) {
       if (!msg) return;
 
       if (msg.type === 'notification-click') {
-        handleNotificationIntent({
-          route: msg.url,
-          payload: msg.payload || {},
-          senderId: msg.senderId || null,
-          senderData: msg.senderData || null,
-        });
+        const swTarget = normalizeAppRoute(msg.url);
+        if (swTarget?.startsWith('/chat') && msg.senderId) {
+          // The SW already called client.navigate(url) before posting this message.
+          // Calling router.push here would add a duplicate history entry and cause
+          // the chat to "pop back up" after the user closes it.
+          // ChatContent will set up the conversation from the URL params automatically.
+          // We only need to sync the chat context so the sender's name/avatar is ready.
+          const partnerData = msg.senderData || { _id: String(msg.senderId) };
+          openChat(String(msg.senderId), null, partnerData, false, msg.payload?.title || null, false);
+          setChatToast(null);
+          setNotifToast(null);
+        } else {
+          handleNotificationIntent({
+            route: msg.url,
+            payload: msg.payload || {},
+            senderId: msg.senderId || null,
+            senderData: msg.senderData || null,
+          });
+        }
         return;
       }
 
@@ -662,6 +675,9 @@ export default function SocketProvider({ children }) {
     handlePendingIntent(consumePendingNativePushIntent());
 
     const onPushIntent = (event) => {
+      // Clear the localStorage copy immediately so the next effect run (e.g. on auth
+      // refresh) does not consume the same intent a second time and re-open the chat.
+      consumePendingNativePushIntent();
       handlePendingIntent(event.detail);
     };
 

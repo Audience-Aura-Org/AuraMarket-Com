@@ -1489,8 +1489,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     setChatMenuOpen(false);
     setFloatingMenu(null);
     setActiveConversation(null);
+    // Synchronously remove the chatInterceptor flag from the current history entry
+    // before navigating away.  If we leave it, the browser back-button can land on
+    // this entry after onClose() pushes / replaces the route, re-opening the chat.
+    if (typeof window !== 'undefined' && window.history.state?.chatInterceptor) {
+      window.history.replaceState({}, '', window.location.href);
+    }
     // Mark as "intentional close" so the history effect cleanup does not call
-    // history.back() / replaceState after onClose() navigates away.
+    // replaceState a second time after onClose() navigates away.
     backViaButtonRef.current = true;
     onClose?.();
   };

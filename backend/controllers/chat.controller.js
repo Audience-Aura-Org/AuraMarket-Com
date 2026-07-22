@@ -389,47 +389,50 @@ const sendMessage = async (req, res, next) => {
       console.warn(`⚠️ [API] IO instance not available, socket events not emitted`);
     }
 
-    if (!receiverOnline) {
-      // Only fall back to push when the recipient has no active socket session.
-      (async () => {
-        try {
-          const { sendNotification } = require('../utils/notifier');
-          const senderName = req.user.branding?.store_name || req.user.name || 'Someone';
-          const senderAvatar = req.user.avatar || null;
-          const senderData = buildSenderNotificationData(req.user);
+    // Always send push for chat messages so the receiver gets an OS notification
+    // whenever they are backgrounded or their screen is off, even if their socket
+    // is still technically connected.  The service worker decides whether to show
+    // the OS banner (no visible tab) or just forward to the in-app handler (visible tab).
+    // Skip push only when the receiver is confirmed online AND actively viewing THIS chat,
+    // which the SW / client-side handler already suppresses on its own.
+    (async () => {
+      try {
+        const { sendNotification } = require('../utils/notifier');
+        const senderName = req.user.branding?.store_name || req.user.name || 'Someone';
+        const senderAvatar = req.user.avatar || null;
+        const senderData = buildSenderNotificationData(req.user);
 
-          let body;
-          if (text && text.trim()) {
-            body = text.length > 80 ? text.slice(0, 77) + '...' : text;
-          } else if (product_reference) {
-            body = '📦 Shared a product with you';
-          } else if (image_url) {
-            body = '📷 Sent you a photo';
-          } else {
-            body = 'Sent you a message';
-          }
-
-          console.log(`[API] 🔔 Push fallback: sending notification to ${receiver_id} (message ${message._id})`);
-
-          const notifResult = await sendNotification(req.app, receiver_id, {
-            title: senderName,
-            message: body,
-            type: 'message',
-            senderAvatar,
-            metadata: {
-              sender_id: req.user._id,
-              senderData,
-              link: `/chat?vendorId=${req.user._id}`,
-            },
-            emailLink: `${process.env.WEB_CLIENT_URL}/chat?vendorId=${req.user._id}`
-          });
-
-          console.log(`[API] 🔔 Push fallback result for ${receiver_id}:`, notifResult ? 'sent' : 'failed');
-        } catch (err) {
-          console.error(`❌ [Notifier] Dispatch failed:`, err?.message || err);
+        let body;
+        if (text && text.trim()) {
+          body = text.length > 80 ? text.slice(0, 77) + '...' : text;
+        } else if (product_reference) {
+          body = '📦 Shared a product with you';
+        } else if (image_url) {
+          body = '📷 Sent you a photo';
+        } else {
+          body = 'Sent you a message';
         }
-      })();
-    }
+
+        console.log(`[API] 🔔 Push: sending notification to ${receiver_id} (message ${message._id}, receiverOnline=${receiverOnline})`);
+
+        const notifResult = await sendNotification(req.app, receiver_id, {
+          title: senderName,
+          message: body,
+          type: 'message',
+          senderAvatar,
+          metadata: {
+            sender_id: req.user._id,
+            senderData,
+            link: `/chat?vendorId=${req.user._id}`,
+          },
+          emailLink: `${process.env.WEB_CLIENT_URL}/chat?vendorId=${req.user._id}`
+        });
+
+        console.log(`[API] 🔔 Push result for ${receiver_id}:`, notifResult ? 'sent' : 'failed');
+      } catch (err) {
+        console.error(`❌ [Notifier] Dispatch failed:`, err?.message || err);
+      }
+    })();
 
     res.status(201).json({ success: true, data: { message: messagePayload } });
   } catch (error) {

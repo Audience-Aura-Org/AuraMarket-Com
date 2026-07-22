@@ -146,7 +146,7 @@ function ChatContent() {
         initialData={initialData}
         notificationTitle={notificationTitle}
         fullPage={true}
-        onClose={() => router.push(chatExitHref(user?.role))}
+        onClose={() => router.replace(chatExitHref(user?.role))}
       />
     </div>
   );
