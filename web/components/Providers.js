@@ -15,7 +15,6 @@ import SplashScreen from '@/components/layout/SplashScreen';
 import { useAuthStore } from '@/hooks/useAuth';
 import { initFontSettings } from '@/utils/fontSettings';
 import { hasPendingPushIntent } from '@/lib/native-push';
-import { Capacitor } from '@capacitor/core';
 
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
@@ -47,16 +46,13 @@ export default function Providers({ children }) {
   const isImmediateRoute = isDashboardRoute ||
                            normalizedPath.startsWith('/chat') ||
                            normalizedPath.startsWith('/messages');
-  // APK has its own native Android splash/loader — the web SplashScreen is
-  // redundant there and adds an extra 2-second delay on every cold start.
-  const isNativeApp = typeof window !== 'undefined' && Capacitor.isNativePlatform();
+  // APK uses the same web SplashScreen as PWA for a consistent branded experience.
   // Skip splash when:
-  //  • running as a native APK (Android handles its own splash)
   //  • the initial route is a dashboard / chat / messages page
   //  • the app opened from a native push notification tap (APK intent stored in localStorage)
   //  • the app opened via a PWA push notification that navigated directly to /chat
   const [showSplash, setShowSplash] = useState(
-    !isNativeApp && !isImmediateRoute && !hasPendingPushIntent()
+    !isImmediateRoute && !hasPendingPushIntent()
   );
 
   useEffect(() => {
