@@ -72,12 +72,12 @@ const sanitizeProductReference = (product) => {
 
 const buildSenderNotificationData = (sender, fallbackId) => {
   if (!sender && !fallbackId) return null;
+  // Keep this minimal — it goes into the web push payload (4 kB limit).
   return {
     _id: sender?._id || fallbackId,
     name: sender?.branding?.store_name || sender?.store_name || sender?.name || 'Auradime User',
     avatar: sender?.avatar || sender?.branding?.logo || null,
     store_name: sender?.branding?.store_name || sender?.store_name || null,
-    branding: sender?.branding || {},
   };
 };
 
@@ -188,26 +188,30 @@ const mapChatSockets = (server) => {
     saveRetryToRedis(msgIdStr, receiverId, attempt);
 
     const timer = setTimeout(async () => {
-      if (!pendingRetries.has(msgIdStr)) return; // cancelled (receiver reconnected)
-      const stillUndelivered = await Message.exists({
-        _id: messageId,
-        receiver_id: receiverId,
-        delivered_status: false,
-      });
-      if (!stillUndelivered) {
-        cancelMessageRetry(msgIdStr);
-        return;
+      try {
+        if (!pendingRetries.has(msgIdStr)) return; // cancelled (receiver reconnected)
+        const stillUndelivered = await Message.exists({
+          _id: messageId,
+          receiver_id: receiverId,
+          delivered_status: false,
+        });
+        if (!stillUndelivered) {
+          cancelMessageRetry(msgIdStr);
+          return;
+        }
+        const receiverOnline = await roomHasSockets(io, receiverId);
+        if (!receiverOnline) {
+          // Receiver is offline — on-connect handler will deliver when they come back
+          pendingRetries.delete(msgIdStr);
+          deleteRetryFromRedis(msgIdStr);
+          return;
+        }
+        // The client confirms receipt only after it has stored the payload.
+        io.to(receiverId.toString()).emit('receive_message', populatedMessage);
+        scheduleMessageRetry(messageId, populatedMessage, receiverId, attempt + 1);
+      } catch (err) {
+        console.error('[Socket] Message retry timer error:', err.message);
       }
-      const receiverOnline = await roomHasSockets(io, receiverId);
-      if (!receiverOnline) {
-        // Receiver is offline — on-connect handler will deliver when they come back
-        pendingRetries.delete(msgIdStr);
-        deleteRetryFromRedis(msgIdStr);
-        return;
-      }
-      // The client confirms receipt only after it has stored the payload.
-      io.to(receiverId.toString()).emit('receive_message', populatedMessage);
-      scheduleMessageRetry(messageId, populatedMessage, receiverId, attempt + 1);
     }, RETRY_DELAYS_MS[attempt]);
 
     pendingRetries.set(msgIdStr, { timer, populatedMessage, receiverId, attempt });

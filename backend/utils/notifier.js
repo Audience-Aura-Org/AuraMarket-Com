@@ -278,25 +278,24 @@ const sendNotification = async (app, recipientId, data) => {
           const senderId = metadata?.sender_id || metadata?.senderId;
           const senderData = metadata?.senderData || null;
 
+          // Keep the payload compact — web push has a 4 kB encrypted limit.
+          // All runtime data lives inside `data` (the standard SW data envelope).
+          // Top-level keys are only display hints for the SW (title, body, icon…);
+          // the duplicate top-level sender_id/senderData fields have been removed.
           const payload = JSON.stringify({
             title: localizedTitle,
             body: localizedMessage,
             icon: iconUrl,
             image: (type === 'message' && senderAvatar) ? senderAvatar : undefined,
             tag: (type === 'message' && senderId) ? `msg-${senderId}` : `alert-${recipientId}-${Date.now()}`,
-            senderData,
-            data: { 
+            data: {
               url: notificationUrl,
               sender_id: senderId,
               senderId: senderId,
               senderData,
               notification_id: notification._id.toString(),
-              type
+              type,
             },
-            sender_id: senderId,
-            senderId: senderId,
-            notification_id: notification._id.toString(),
-            type
           });
 
           const results = await Promise.allSettled(webSubs.map(sub => 

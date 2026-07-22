@@ -8,6 +8,7 @@
 
 const Message = require('../models/Message.model');
 const Product = require('../models/Product.model');
+const User = require('../models/User.model');
 const mongoose = require('mongoose');
 
 const PRODUCT_REFERENCE_SELECT = '_id name price images';
@@ -54,12 +55,13 @@ const buildParticipantSnapshot = (user) => {
 
 const buildSenderNotificationData = (user) => {
   if (!user?._id) return null;
+  // Keep this minimal — it goes into the web push payload (4 kB limit).
+  // The full branding object is NOT needed for notification display.
   return {
     _id: user._id,
     name: user.branding?.store_name || user.name || 'Auradime User',
     avatar: user.avatar || user.branding?.logo || null,
     store_name: user.branding?.store_name || null,
-    branding: user.branding || {},
   };
 };
 
@@ -283,12 +285,8 @@ const sendMessage = async (req, res, next) => {
     const senderRoom = req.user._id.toString();
 
     // Run independent operations in parallel to eliminate sequential round-trips:
-    //  a) receiver online check
-    //  b) product reference lookup (only when product_reference present)
-    // Note: idempotency check is handled atomically below (findOneAndUpdate) to prevent
-    // a race condition where two concurrent retries with the same client_id both pass a
-    // sequential check-then-create and insert duplicate messages.
-    const [receiverOnline, productDoc] = await Promise.all([
+    //  a) receiver online check  b) product reference lookup
+    const [socketOnline, productDoc] = await Promise.all([
       roomHasSockets(io, receiverRoom),
       product_reference
         ? Product.findById(product_reference)
@@ -298,6 +296,20 @@ const sendMessage = async (req, res, next) => {
             .catch(() => null)
         : Promise.resolve(null),
     ]);
+
+    // In PM2 cluster mode the Redis adapter may not yet have learned about sockets
+    // connected before it was installed, so roomHasSockets can return 0 even when
+    // the receiver is active on another worker.  Fall back to the DB is_online flag
+    // (set by the socket connect handler) to avoid sending unnecessary push
+    // notifications to users who are already receiving the message via socket.
+    let receiverOnline = socketOnline;
+    if (!receiverOnline) {
+      const dbReceiver = await User.findById(receiver_id)
+        .select('is_online last_seen').lean().catch(() => null);
+      if (dbReceiver?.is_online === true && dbReceiver?.last_seen) {
+        receiverOnline = (Date.now() - new Date(dbReceiver.last_seen).getTime()) < 90_000;
+      }
+    }
 
     // Atomically create or find an existing message for this client_id.
     // findOneAndUpdate with $setOnInsert + upsert is a single atomic MongoDB operation —
