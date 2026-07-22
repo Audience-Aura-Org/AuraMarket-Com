@@ -505,6 +505,8 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
   });
   const [replyText,  setReplyText]  = useState('');
   const [isReplying, setIsReplying] = useState(false);
+  // When the native ExoPlayer fails to load a video, fall back to web <video>.
+  const [nativeVideoFailed, setNativeVideoFailed] = useState(false);
 
   const videoBarRef = useRef(null);
   const holdTimer   = useRef(null);
@@ -682,6 +684,9 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
 
   // ── Native viewer: load video on story change ────────────────────────────
   useEffect(() => {
+    // Reset fallback flag for each new story attempt.
+    setNativeVideoFailed(false);
+
     if (!isNativePlatform() || !isNativePlayerAvailable()) return;
 
     nativeEndFiredRef.current = false;
@@ -728,7 +733,17 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
       if (!pausedRef.current) await playNative();
     };
 
-    setup().catch(console.warn);
+    setup().catch((err) => {
+      console.warn('[StatusViewer] Native player failed, falling back to web video:', err?.message || err);
+      if (!cancelled) {
+        // Tear down the native player so the WebView background isn't left transparent.
+        if (nativePlayerActiveRef.current) {
+          destroyNativePlayer().catch(() => {});
+          nativePlayerActiveRef.current = false;
+        }
+        setNativeVideoFailed(true);
+      }
+    });
     return () => { cancelled = true; };
   }, [story?._id, story?.content_url]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -954,10 +969,11 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
                 }`}
               >
                 {isVid ? (
-                  isNativePlatform() && isNativePlayerAvailable() ? (
+                  isNativePlatform() && isNativePlayerAvailable() && !nativeVideoFailed ? (
                     // Native ExoPlayer (Android): transparent anchor div — the
                     // TextureView renders behind the WebView and shows through here.
                     // Only rendered for the active story; inactive stories need no div.
+                    // Falls back to web <StoryVideo> when nativeVideoFailed=true.
                     isActive ? (
                       <div
                         ref={nativeViewerContainerRef}
