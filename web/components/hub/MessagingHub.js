@@ -1180,6 +1180,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     const file = mediaPreview.file;
     const caption = mediaPreview.caption || '';
     const objectUrl = mediaPreview.objectUrl;
+    const previewUrl = mediaPreview.url;  // data URL for immediate display (objectUrl may be null on Android)
     const sendPartnerId = activePartnerId.toString();
 
     // 1. Show image bubble immediately — exactly like WhatsApp.
@@ -1190,7 +1191,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       _id: tempId,
       client_id: clientId,
       text: caption,
-      image_url: objectUrl,  // blob URL renders instantly
+      image_url: previewUrl || objectUrl,  // data URL works on both web and Android
       _uploading: true,       // triggers spinner overlay
       sender_id: user?._id,
       receiver_id: sendPartnerId,

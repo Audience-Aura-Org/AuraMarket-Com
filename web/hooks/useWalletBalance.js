@@ -16,7 +16,13 @@ export function useWalletBalance() {
       refreshWalletBalance().catch(() => {});
     };
 
-    refresh();
+    // Only hit the API on mount when we have no cached balance yet.
+    // When the store already holds a value (set during login / fetchMe),
+    // show it immediately and let the event listeners handle updates.
+    if (walletBalance === null) {
+      refresh();
+    }
+
     window.addEventListener('aura:wallet-updated', refresh);
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
@@ -26,6 +32,8 @@ export function useWalletBalance() {
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
     };
+  // walletBalance intentionally excluded — we only want to run this once on mount.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshWalletBalance]);
 
   return {

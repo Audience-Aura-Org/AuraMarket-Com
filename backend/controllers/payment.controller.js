@@ -307,25 +307,35 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    transaction.status = 'completed';
-    transaction.gateway_response = gatewayData;
-    await transaction.save({ session });
+    // Atomic claim: findOneAndUpdate with status filter ensures only ONE concurrent
+    // call (webhook retry, polling verify, etc.) can ever settle this transaction.
+    // If the document is already 'completed' the update matches nothing and we bail.
+    const claimed = await Transaction.findOneAndUpdate(
+      { _id: transaction._id, status: { $ne: 'completed' } },
+      { $set: { status: 'completed', gateway_response: gatewayData } },
+      { session, new: true }
+    );
+    if (!claimed) {
+      // Another concurrent request already settled this transaction — nothing to do.
+      await session.abortTransaction();
+      return;
+    }
 
-    if (isSubscriptionTransaction(transaction)) {
-      await settleSubscriptionTransaction(transaction, session, app);
-    } else if (transaction.order_ids?.length > 0) {
-      await settleOrdersInSession(transaction.user_id, transaction.order_ids, app, session, true, webUrl, paymentGateway);
+    if (isSubscriptionTransaction(claimed)) {
+      await settleSubscriptionTransaction(claimed, session, app);
+    } else if (claimed.order_ids?.length > 0) {
+      await settleOrdersInSession(claimed.user_id, claimed.order_ids, app, session, true, webUrl, paymentGateway);
     } else {
-      await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
+      await User.findByIdAndUpdate(claimed.user_id, { $inc: { wallet_balance: claimed.amount } }, { session });
     }
 
     await session.commitTransaction();
-    if (!isSubscriptionTransaction(transaction) && !(transaction.order_ids?.length > 0)) {
-      emitWalletCredit(app, transaction);
+    if (!isSubscriptionTransaction(claimed) && !(claimed.order_ids?.length > 0)) {
+      emitWalletCredit(app, claimed);
       setImmediate(() => {
         notifyAdmins(app, {
           title: 'New Wallet Deposit',
-          message: `${transaction.amount.toLocaleString()} XAF deposited via ${paymentGateway || 'gateway'} (ref: ${transaction.reference}).`,
+          message: `${claimed.amount.toLocaleString()} XAF deposited via ${paymentGateway || 'gateway'} (ref: ${claimed.reference}).`,
           type: 'system_alert',
           metadata: { link: '/admin/transactions' },
           sendEmail: true,
@@ -720,13 +730,19 @@ const eversendVerify = async (req, res) => {
 
     // -- Sandbox: auto-succeed instantly ----------------------------------
     if (transaction.metadata?.is_sandbox || transaction.gateway_transaction_id?.startsWith('SBX-')) {
-      transaction.status = 'completed';
-      await transaction.save();
-      if (isSubscriptionTransaction(transaction)) {
-        await settleSubscriptionTransaction(transaction, null, req.app);
+      const sandboxClaimed = await Transaction.findOneAndUpdate(
+        { _id: transaction._id, status: { $ne: 'completed' } },
+        { $set: { status: 'completed' } },
+        { new: true }
+      );
+      if (!sandboxClaimed) {
+        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
+      }
+      if (isSubscriptionTransaction(sandboxClaimed)) {
+        await settleSubscriptionTransaction(sandboxClaimed, null, req.app);
         return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Subscription activated.' });
       }
-      await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
+      await User.findByIdAndUpdate(sandboxClaimed.user_id, { $inc: { wallet_balance: sandboxClaimed.amount } });
       return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
     }
 
@@ -742,21 +758,29 @@ const eversendVerify = async (req, res) => {
       const sess = await mongoose.startSession();
       sess.startTransaction();
       try {
-        transaction.status = 'completed';
-        transaction.gateway_response = gatewayData;
-        if (gatewayTxId && !transaction.gateway_transaction_id) transaction.gateway_transaction_id = gatewayTxId;
-        await transaction.save({ session: sess });
-        if (isSubscriptionTransaction(transaction)) {
-          await settleSubscriptionTransaction(transaction, sess, req.app);
-        } else if (transaction.order_ids?.length > 0) {
-          await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, sess, true, getWebUrl(req), 'eversend');
+        // Atomic claim — prevents double-credit if webhook and verify fire simultaneously.
+        const updateFields = { status: 'completed', gateway_response: gatewayData };
+        if (gatewayTxId && !transaction.gateway_transaction_id) updateFields.gateway_transaction_id = gatewayTxId;
+        const claimed = await Transaction.findOneAndUpdate(
+          { _id: transaction._id, status: { $ne: 'completed' } },
+          { $set: updateFields },
+          { session: sess, new: true }
+        );
+        if (!claimed) {
+          await sess.abortTransaction();
+          return; // Already settled by concurrent request (webhook)
+        }
+        if (isSubscriptionTransaction(claimed)) {
+          await settleSubscriptionTransaction(claimed, sess, req.app);
+        } else if (claimed.order_ids?.length > 0) {
+          await settleOrdersInSession(claimed.user_id, claimed.order_ids, req.app, sess, true, getWebUrl(req), 'eversend');
         } else {
-          await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session: sess });
+          await User.findByIdAndUpdate(claimed.user_id, { $inc: { wallet_balance: claimed.amount } }, { session: sess });
         }
         await sess.commitTransaction();
         // Push real-time notification via Socket.io
         const io = req.app.get('io');
-        if (io) io.to(`user:${transaction.user_id}`).emit('wallet:credited', { amount: transaction.amount, reference });
+        if (io) io.to(`user:${claimed.user_id}`).emit('wallet:credited', { amount: claimed.amount, reference });
       } catch (e) { await sess.abortTransaction(); throw e; }
       finally { sess.endSession(); }
     };
