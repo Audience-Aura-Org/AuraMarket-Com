@@ -41,6 +41,7 @@ function ChatContent() {
     notificationTitle: contextNotificationTitle,
     conversations,
     setActiveConversation,
+    closeChat,
   } = useChat();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -72,6 +73,15 @@ function ChatContent() {
     urlNotificationTitle ||
     pendingNotificationTitle ||
     null;
+
+  // Reset ChatContext when leaving the full-page chat so GlobalChatOverlay
+  // does not reappear on the next page (isOpen was set to true by setActiveConversation).
+  useEffect(() => {
+    return () => {
+      closeChat();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -146,7 +156,7 @@ function ChatContent() {
         initialData={initialData}
         notificationTitle={notificationTitle}
         fullPage={true}
-        onClose={() => router.replace(chatExitHref(user?.role))}
+        onClose={() => { closeChat(); router.replace(chatExitHref(user?.role)); }}
       />
     </div>
   );
