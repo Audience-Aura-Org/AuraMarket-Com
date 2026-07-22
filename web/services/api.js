@@ -88,7 +88,6 @@ const OFFLINE_CACHEABLE_ROUTES = [
   /^subscriptions\/me(?:\/|$)/,
   /^subscriptions\/admin(?:\/|$)/,
   /^notifications(?:\/|$)/,
-  /^chat(?:\/|$)/,
   // Analytics routes — read-only metrics, safe to cache for 45 s
   /^admin\/analytics(?:\/|$)/,
   /^admin\/dashboard(?:\/|$)/,
@@ -130,6 +129,9 @@ const isOfflineCacheableRoute = (url = '') => {
   if (normalized.startsWith('cart')) return false;
   if (normalized.startsWith('checkout')) return false;
   if (normalized.startsWith('users/')) return false;
+  // Conversations are live state. A 45-second client cache can hide a message
+  // that arrived while a WebSocket was reconnecting.
+  if (normalized.startsWith('chat')) return false;
   if (normalized.startsWith('security/')) return false;
   if (normalized === 'vendors/me') return false;
   if (normalized.startsWith('chat/admin')) return false;
