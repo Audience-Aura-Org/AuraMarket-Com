@@ -201,6 +201,7 @@ const stableChatViewport = (() => {
 export default function MessagingHub({ vendorId: initialVendorId, product, initialData, notificationTitle, onClose, fullPage = false }) {
   const { user } = useAuthStore();
   const {
+    isOpen,
     isSystemWide,
     activePartnerId,
     activeMessages,
@@ -1497,7 +1498,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const dismissOverlay = () => {
     setChatMenuOpen(false);
     setFloatingMenu(null);
-    setActiveConversation(null);
+    // NOTE: do NOT call setActiveConversation(null) here.
+    // onClose() → closeChat() dispatches CLOSE_CHAT which atomically sets both
+    // isOpen: false AND activePartnerId: null in a single React update.
+    // Calling setActiveConversation(null) first produces an intermediate render
+    // where activePartnerId=null but isOpen=true, which triggers the history
+    // effect — resetting backViaButtonRef and pushing a spurious chatInterceptor
+    // entry — during the close sequence (mobile-only reopen bug).
     // Synchronously remove the chatInterceptor flag from the current history entry
     // before navigating away.  If we leave it, the browser back-button can land on
     // this entry after onClose() pushes / replaces the route, re-opening the chat.
@@ -1529,6 +1536,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   // of navigating away — mirrors WhatsApp: thread → inbox → close.
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // In overlay mode skip the history push when the overlay is not open.
+    // Without this guard, the close sequence (dismissOverlay → closeChat) can
+    // produce a render where activePartnerId is already null but isOpen is still
+    // transitioning, causing a spurious pushState that resets backViaButtonRef
+    // and leaves a stale chatInterceptor entry — the root of the mobile reopen bug.
+    // fullPage mode always manages history regardless of isOpen.
+    if (!fullPage && !isOpen) return;
     backViaButtonRef.current = false;
     window.history.pushState({ chatInterceptor: true }, '');
 
@@ -1555,10 +1569,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         window.history.replaceState({}, '', window.location.href);
       }
     };
-  // Re-run when the user moves between inbox (null) and a thread (partnerId).
-  // Each level of navigation needs its own dummy history entry.
+  // Re-run when: overlay opens/closes (isOpen), or user moves between inbox (null)
+  // and a thread (partnerId). Each navigation level needs its own dummy history entry.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePartnerId]);
+  }, [activePartnerId, isOpen]);
 
   // ── Capacitor Android hardware back button ─────────────────────────────────
   // The OS fires the hardware back button event before popstate on Android WebView.
