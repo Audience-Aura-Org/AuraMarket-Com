@@ -259,6 +259,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const viewportResumeUntilRef = useRef(0);
   const lastKeyboardViewportRef = useRef(null);
   const goBackOrCloseRef = useRef(null);  // always-fresh ref — avoids stale closures in back-button effects
+  const lastGoBackOrCloseAtRef = useRef(0); // timestamp to debounce dual back-button/popstate triggers
   const backViaButtonRef = useRef(false); // true when browser/hardware back triggered the last navigation
   const suppressPopStateRef = useRef(false); // true during programmatic history.back() — prevents goBackOrClose re-firing
   const drainInProgressRef = useRef(false);  // prevents concurrent drain runs when state mutations re-trigger the effect
@@ -1518,6 +1519,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   };
 
   const goBackOrClose = () => {
+    const now = Date.now();
+    if (now - lastGoBackOrCloseAtRef.current < 350) return;
+    lastGoBackOrCloseAtRef.current = now;
     setChatMenuOpen(false);
     setFloatingMenu(null);
     if (activePartnerId) {

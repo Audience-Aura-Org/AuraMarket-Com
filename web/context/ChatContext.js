@@ -287,6 +287,13 @@ function chatReducer(state, action) {
       return { ...state, currentUserId: action.userId };
 
     case 'OPEN_CHAT': {
+      if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+        console.log('[ChatContext] OPEN_CHAT reducer dispatched', {
+          partnerId: action.partnerId,
+          openOverlay: action.openOverlay,
+          stack: new Error().stack,
+        });
+      }
       const partnerId = action.partnerId ? action.partnerId.toString() : null;
       let conversationsById = state.conversationsById;
       let conversationOrder = state.conversationOrder;
@@ -731,6 +738,7 @@ export function ChatProvider({ children }) {
   const typingExpiryTimersRef = useRef({});
   const lastInboxSyncAtRef = useRef(0);
   const inboxRateLimitedUntilRef = useRef(0);
+  const lastClosedAtRef = useRef(0);
   const { user } = useAuthStore();
   const router = useRouter();
 
@@ -953,6 +961,11 @@ export function ChatProvider({ children }) {
         router.push('/login?from=chat');
         return;
       }
+      // Suppress synthetic 300ms ghost clicks on mobile WebView right after user closed overlay
+      if (openOverlay !== false && Date.now() - lastClosedAtRef.current < 450) {
+        console.warn('[ChatContext] Suppressed ghost openChat call within 450ms of closeChat');
+        return;
+      }
       dispatch({
         type: 'OPEN_CHAT',
         partnerId: partnerId ? partnerId.toString() : null,
@@ -967,6 +980,7 @@ export function ChatProvider({ children }) {
   );
 
   const closeChat = useCallback(() => {
+    lastClosedAtRef.current = Date.now();
     dispatch({ type: 'CLOSE_CHAT' });
   }, []);
 

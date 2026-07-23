@@ -30,7 +30,11 @@ export default function GlobalChatOverlay() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={closeChat}
+            onClick={(e) => {
+              e.stopPropagation();
+              closeChat();
+            }}
+            style={{ touchAction: 'manipulation', pointerEvents: showOverlay ? 'auto' : 'none' }}
             className="fixed inset-0 z-[590] cursor-pointer bg-black/55 backdrop-blur-[4px] max-md:bg-[var(--bg-secondary)] max-md:backdrop-blur-none md:bg-black/35"
           />
           

@@ -175,6 +175,14 @@ export default function SocketProvider({ children }) {
   useEffect(() => { isOpenRef.current = isOpen; }, [isOpen]);
   useEffect(() => { activePartnerIdRef.current = activePartnerId; }, [activePartnerId]);
 
+  // Clear chat toast whenever chat overlay is open or when overlay state changes
+  useEffect(() => {
+    if (chatToast && (isOpen || !isOpen)) {
+      if (chatToastTimer.current) clearTimeout(chatToastTimer.current);
+      setChatToast(null);
+    }
+  }, [isOpen]);
+
   const isProtectedAppRoute = (route = '') => (
     ['/vendor', '/admin', '/logistics', '/messages', '/chat', '/cart', '/checkout', '/orders', '/profile', '/wallet', '/notifications', '/settings']
       .some((prefix) => String(route || '').startsWith(prefix))
