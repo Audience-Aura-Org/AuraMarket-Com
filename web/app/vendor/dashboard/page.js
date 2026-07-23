@@ -268,12 +268,12 @@ export default function VendorDashboard() {
                      <div className={`size-1.5 rounded-full ${subscriptionDotClass} animate-pulse`} />
                      <Link
                        href="/subscribe?role=vendor"
-                       className="text-[10px] lg:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-60 transition-colors hover:text-[var(--accent)] hover:opacity-100 font-[Poppins]"
+                       className="text-[10px] lg:text-xs font-semibold text-[var(--text-secondary)] tracking-tight opacity-60 transition-colors hover:text-[var(--accent)] hover:opacity-100 font-[Poppins]"
                      >
                        {subscriptionLabel}
                      </Link>
                      <span className="hidden sm:inline text-[var(--text-secondary)] opacity-20">·</span>
-                     <span className="hidden sm:inline text-[10px] lg:text-[11px] font-medium text-[var(--text-secondary)] opacity-40 font-[Poppins]">{user?.name || 'Vendor'}</span>
+                     <span className="hidden sm:inline text-[10px] lg:text-xs font-medium text-[var(--text-secondary)] opacity-40 font-[Poppins]">{user?.name || 'Vendor'}</span>
                   </div>
                 </div>
               </div>
@@ -289,7 +289,7 @@ export default function VendorDashboard() {
                 <Link href="/profile?tab=store" className="hidden md:flex items-center gap-3 pl-3 border-l border-[var(--glass-border)]/30">
                    <div className="text-right">
                      <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)] tracking-tight font-[Poppins]">{user?.name || 'Vendor'}</p>
-                     <p className="text-[10px] lg:text-[11px] font-semibold text-[var(--accent)]/60 tracking-tight font-[Poppins]">Store Info</p>
+                     <p className="text-[10px] lg:text-xs font-semibold text-[var(--accent)]/60 tracking-tight font-[Poppins]">Store Info</p>
                    </div>
                    <div className="size-9 rounded-full bg-gradient-to-tr from-[var(--accent)] to-indigo-600 p-0.5 shadow-lg shadow-[var(--accent)]/10 hover:scale-105 transition-all">
                      <div className="size-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center overflow-hidden">
@@ -326,7 +326,7 @@ export default function VendorDashboard() {
                    <p className="text-lg font-bold tracking-tight text-[var(--text-primary)]">
                      {error.toLowerCase().includes('onboarding') || error.toLowerCase().includes('profile not found') ? 'Onboarding Required' : 'Security Alert'}
                    </p>
-                   <p className="text-[11px] lg:text-[12px] font-medium opacity-50 tracking-tight leading-relaxed max-w-md">
+                   <p className="text-[11px] lg:text-[13px] font-medium opacity-50 tracking-tight leading-relaxed max-w-md">
                      {error.toLowerCase().includes('onboarding') || error.toLowerCase().includes('profile not found') 
                        ? 'Your vendor profile is incomplete. Finish setup to access the marketplace and start selling.' 
                        : `Security verification required: ${error}`}
@@ -363,10 +363,10 @@ export default function VendorDashboard() {
                 <div className="size-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shrink-0">
                   <CreditCard className="size-5" />
                 </div>
-                <span className="text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Revenue</span>
+                <span className="text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Revenue</span>
               </div>
               <div>
-                <p className="mb-1 text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Net sales</p>
+                <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Net sales</p>
                 {loading
                   ? <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
                   : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{totalSales.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
@@ -377,7 +377,7 @@ export default function VendorDashboard() {
               </div>
               {loading
                 ? <div className="h-3 w-36 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] lg:text-xs font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">
+                : <p className="text-[10px] lg:text-[13px] font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">
                     {fulfilledOrderCount} {t('dashboard.ordersFulfilled', 'orders fulfilled')}
                   </p>
               }
@@ -392,11 +392,11 @@ export default function VendorDashboard() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   {openOrderCount > 0 && <span className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />}
-                  <span className="text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Live</span>
+                  <span className="text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Live</span>
                 </div>
               </div>
               <div>
-                <p className="mb-1 text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Open orders</p>
+                <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Open orders</p>
                 {loading
                   ? <div className="h-7 w-16 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
                   : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{openOrderCount}</p>
@@ -407,7 +407,7 @@ export default function VendorDashboard() {
               </div>
               {loading
                 ? <div className="h-3 w-40 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] lg:text-xs font-medium tracking-tight text-[var(--accent)]/80">{processingOrders} processing · tap to view →</p>
+                : <p className="text-[10px] lg:text-[13px] font-medium tracking-tight text-[var(--accent)]/80">{processingOrders} processing · tap to view →</p>
               }
             </Link>
 
@@ -419,13 +419,13 @@ export default function VendorDashboard() {
                   <Boxes className="size-5" />
                 </div>
                 {lowStockCount > 0 && (
-                  <span className="text-[10px] lg:text-xs font-medium tracking-wide text-rose-500/90">
+                  <span className="text-[10px] lg:text-[13px] font-medium tracking-wide text-rose-500/90">
                     {lowStockCount} {t('dashboard.lowStock', 'low stock')}
                   </span>
                 )}
               </div>
               <div>
-                <p className="mb-1 text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Inventory</p>
+                <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Inventory</p>
                 {loading
                   ? <div className="h-7 w-20 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
                   : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{totalProducts} <span className="text-sm opacity-50">SKUs</span></p>
@@ -436,7 +436,7 @@ export default function VendorDashboard() {
               </div>
               {loading
                 ? <div className="h-3 w-32 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] lg:text-xs font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">
+                : <p className="text-[10px] lg:text-[13px] font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">
                     {inStockProducts} {t('dashboard.inStock', 'in stock')} · {outOfStockProducts} {t('dashboard.outOfStockShort', 'out')}
                   </p>
               }
@@ -449,12 +449,12 @@ export default function VendorDashboard() {
                 <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
                   <Wallet className="size-5" />
                 </div>
-                <Link href="/vendor/wallet" className="text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-70 transition-colors hover:text-[var(--accent)] hover:opacity-100">
+                <Link href="/vendor/wallet" className="text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70 transition-colors hover:text-[var(--accent)] hover:opacity-100">
                   Withdraw
                 </Link>
               </div>
               <div>
-                <p className="mb-1 text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-65">{t('dashboard.walletBalance', 'Wallet balance')}</p>
+                <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">{t('dashboard.walletBalance', 'Wallet balance')}</p>
                 {loading
                   ? <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
                   : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{walletBalance.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
@@ -465,7 +465,7 @@ export default function VendorDashboard() {
               </div>
               {loading
                 ? <div className="h-3 w-36 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] lg:text-xs font-medium tracking-tight text-[var(--accent)]/80">{pendingEscrow.toLocaleString()} {t('dashboard.xafInEscrow', 'XAF in escrow')}</p>
+                : <p className="text-[10px] lg:text-[13px] font-medium tracking-tight text-[var(--accent)]/80">{pendingEscrow.toLocaleString()} {t('dashboard.xafInEscrow', 'XAF in escrow')}</p>
               }
             </div>
           </div>
@@ -488,7 +488,7 @@ export default function VendorDashboard() {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] lg:text-[12px] text-[var(--text-secondary)] font-semibold opacity-60 tracking-tight mt-0.5">{t('dashboard.storiesManagerSub', 'Broadcast updates · Engage followers · Drive sales')}</p>
+                  <p className="text-[11px] lg:text-[13px] text-[var(--text-secondary)] font-semibold opacity-60 tracking-tight mt-0.5">{t('dashboard.storiesManagerSub', 'Broadcast updates · Engage followers · Drive sales')}</p>
                 </div>
               </div>
               {/* Actions */}
@@ -586,7 +586,7 @@ export default function VendorDashboard() {
             <div className="glass-panel rounded-[2rem] p-6 flex flex-col border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-sm  font-bold text-[var(--text-primary)]  tracking-tighter">{t('dashboard.recentActivity', 'Recent Activity')}</h3>
-                <Link href="/vendor/orders" className="text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold tracking-tight hover:underline">View All</Link>
+                <Link href="/vendor/orders" className="text-[var(--accent)] text-[11px] lg:text-[13px]  font-semibold tracking-tight hover:underline">View All</Link>
               </div>
             <div className="space-y-5 flex-1">
                 {orders.slice(0, 5).map((order, i) => (
@@ -600,7 +600,7 @@ export default function VendorDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm  font-bold text-[var(--text-primary)] truncate tracking-tighter">{getOrderProductName(order)}</p>
-                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">
+                      <p className="text-[11px] lg:text-[13px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">
                         #{order._id?.slice(-5) || i} • {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : '—'}
                       </p>
                     </div>
@@ -642,7 +642,7 @@ export default function VendorDashboard() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)] bg-[var(--bg-secondary)]/50 uppercase">
+                  <tr className="text-[11px] lg:text-[13px] font-semibold tracking-tight text-[var(--text-secondary)] bg-[var(--bg-secondary)]/50 uppercase">
                     <th className="px-6 py-4">Product</th>
                     <th className="px-6 py-4">Order ID</th>
                     <th className="px-6 py-4">Customer</th>
