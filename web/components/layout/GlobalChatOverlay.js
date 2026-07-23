@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useChat } from '@/context/ChatContext';
 import MessagingHub from '@/components/hub/MessagingHub';
@@ -9,7 +10,16 @@ export default function GlobalChatOverlay() {
   const pathname = usePathname();
   const { isOpen, activePartnerId, contextProduct, initialPartnerData, notificationTitle, closeChat } = useChat();
   const onFullPageChat = pathname?.startsWith('/chat');
-  const showOverlay = isOpen && !onFullPageChat;
+
+  // Suppress the overlay for one render when leaving /chat.
+  // Next.js App Router renders the new page before unmounting the old one,
+  // so pathname updates (onFullPageChat → false) before /chat's cleanup
+  // closeChat() fires — producing a one-frame flash of the overlay.
+  const prevOnFullPageChatRef = useRef(onFullPageChat);
+  const justLeftChat = prevOnFullPageChatRef.current && !onFullPageChat;
+  prevOnFullPageChatRef.current = onFullPageChat;
+
+  const showOverlay = isOpen && !onFullPageChat && !justLeftChat;
 
   return (
     <AnimatePresence>

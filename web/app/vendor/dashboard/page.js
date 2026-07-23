@@ -367,14 +367,20 @@ export default function VendorDashboard() {
               </div>
               <div>
                 <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Net sales</p>
-                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{totalSales.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
+                {loading
+                  ? <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
+                  : <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{totalSales.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
+                }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: '70%' }} />
               </div>
-              <p className="text-[10px] font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">
-                {fulfilledOrderCount} {t('dashboard.ordersFulfilled', 'orders fulfilled')}
-              </p>
+              {loading
+                ? <div className="h-3 w-36 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
+                : <p className="text-[10px] font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">
+                    {fulfilledOrderCount} {t('dashboard.ordersFulfilled', 'orders fulfilled')}
+                  </p>
+              }
             </div>
 
             {/* Open Orders */}
@@ -391,12 +397,18 @@ export default function VendorDashboard() {
               </div>
               <div>
                 <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Open orders</p>
-                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{openOrderCount}</p>
+                {loading
+                  ? <div className="h-7 w-16 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
+                  : <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{openOrderCount}</p>
+                }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-[var(--accent)] rounded-full transition-all duration-1000" style={{ width: orders.length ? `${Math.min((openOrderCount / orders.length) * 100, 100)}%` : '0%' }} />
               </div>
-              <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{processingOrders} processing · tap to view →</p>
+              {loading
+                ? <div className="h-3 w-40 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
+                : <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{processingOrders} processing · tap to view →</p>
+              }
             </Link>
 
             {/* Inventory */}
@@ -414,14 +426,20 @@ export default function VendorDashboard() {
               </div>
               <div>
                 <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Inventory</p>
-                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{totalProducts} <span className="text-sm opacity-50">SKUs</span></p>
+                {loading
+                  ? <div className="h-7 w-20 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
+                  : <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{totalProducts} <span className="text-sm opacity-50">SKUs</span></p>
+                }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: totalProducts ? `${Math.min((inStockProducts / totalProducts) * 100, 100)}%` : '0%' }} />
               </div>
-              <p className="text-[10px] font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">
-                {inStockProducts} {t('dashboard.inStock', 'in stock')} · {outOfStockProducts} {t('dashboard.outOfStockShort', 'out')}
-              </p>
+              {loading
+                ? <div className="h-3 w-32 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
+                : <p className="text-[10px] font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">
+                    {inStockProducts} {t('dashboard.inStock', 'in stock')} · {outOfStockProducts} {t('dashboard.outOfStockShort', 'out')}
+                  </p>
+              }
             </div>
 
             {/* Wallet Balance */}
@@ -437,12 +455,18 @@ export default function VendorDashboard() {
               </div>
               <div>
                 <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">{t('dashboard.walletBalance', 'Wallet balance')}</p>
-                <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{walletBalance.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
+                {loading
+                  ? <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
+                  : <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{walletBalance.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
+                }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                 <div className="h-full bg-[var(--accent)] rounded-full" style={{ width: '60%' }} />
               </div>
-              <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{pendingEscrow.toLocaleString()} {t('dashboard.xafInEscrow', 'XAF in escrow')}</p>
+              {loading
+                ? <div className="h-3 w-36 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
+                : <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{pendingEscrow.toLocaleString()} {t('dashboard.xafInEscrow', 'XAF in escrow')}</p>
+              }
             </div>
           </div>
           
