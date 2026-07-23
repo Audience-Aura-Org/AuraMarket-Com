@@ -263,17 +263,17 @@ export default function VendorDashboard() {
                    <img src="/icon-192.png" alt="Auradime" className="size-6 md:size-7 object-contain" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="text-base md:text-lg font-bold text-[var(--text-primary)] tracking-tight font-[Poppins]">Vendor Dashboard</h2>
+                  <h2 className="text-base md:text-lg lg:text-xl font-bold text-[var(--text-primary)] tracking-tight font-[Poppins]">Vendor Dashboard</h2>
                   <div className="flex items-center gap-2 mt-0.5">
                      <div className={`size-1.5 rounded-full ${subscriptionDotClass} animate-pulse`} />
                      <Link
                        href="/subscribe?role=vendor"
-                       className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-60 transition-colors hover:text-[var(--accent)] hover:opacity-100 font-[Poppins]"
+                       className="text-[10px] lg:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-60 transition-colors hover:text-[var(--accent)] hover:opacity-100 font-[Poppins]"
                      >
                        {subscriptionLabel}
                      </Link>
                      <span className="hidden sm:inline text-[var(--text-secondary)] opacity-20">·</span>
-                     <span className="hidden sm:inline text-[10px] font-medium text-[var(--text-secondary)] opacity-40 font-[Poppins]">{user?.name || 'Vendor'}</span>
+                     <span className="hidden sm:inline text-[10px] lg:text-[11px] font-medium text-[var(--text-secondary)] opacity-40 font-[Poppins]">{user?.name || 'Vendor'}</span>
                   </div>
                 </div>
               </div>
@@ -288,8 +288,8 @@ export default function VendorDashboard() {
                 </button>
                 <Link href="/profile?tab=store" className="hidden md:flex items-center gap-3 pl-3 border-l border-[var(--glass-border)]/30">
                    <div className="text-right">
-                     <p className="text-xs font-bold text-[var(--text-primary)] tracking-tight font-[Poppins]">{user?.name || 'Vendor'}</p>
-                     <p className="text-[10px] font-semibold text-[var(--accent)]/60 tracking-tight font-[Poppins]">Store Info</p>
+                     <p className="text-xs lg:text-sm font-bold text-[var(--text-primary)] tracking-tight font-[Poppins]">{user?.name || 'Vendor'}</p>
+                     <p className="text-[10px] lg:text-[11px] font-semibold text-[var(--accent)]/60 tracking-tight font-[Poppins]">Store Info</p>
                    </div>
                    <div className="size-9 rounded-full bg-gradient-to-tr from-[var(--accent)] to-indigo-600 p-0.5 shadow-lg shadow-[var(--accent)]/10 hover:scale-105 transition-all">
                      <div className="size-full rounded-full bg-[var(--bg-primary)] flex items-center justify-center overflow-hidden">
@@ -363,13 +363,13 @@ export default function VendorDashboard() {
                 <div className="size-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shrink-0">
                   <CreditCard className="size-5" />
                 </div>
-                <span className="text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Revenue</span>
+                <span className="text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Revenue</span>
               </div>
               <div>
-                <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Net sales</p>
+                <p className="mb-1 text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Net sales</p>
                 {loading
                   ? <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{totalSales.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
+                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{totalSales.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
                 }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -377,7 +377,7 @@ export default function VendorDashboard() {
               </div>
               {loading
                 ? <div className="h-3 w-36 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">
+                : <p className="text-[10px] lg:text-xs font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">
                     {fulfilledOrderCount} {t('dashboard.ordersFulfilled', 'orders fulfilled')}
                   </p>
               }
@@ -392,14 +392,14 @@ export default function VendorDashboard() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   {openOrderCount > 0 && <span className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />}
-                  <span className="text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Live</span>
+                  <span className="text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Live</span>
                 </div>
               </div>
               <div>
-                <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Open orders</p>
+                <p className="mb-1 text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Open orders</p>
                 {loading
                   ? <div className="h-7 w-16 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{openOrderCount}</p>
+                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{openOrderCount}</p>
                 }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -407,7 +407,7 @@ export default function VendorDashboard() {
               </div>
               {loading
                 ? <div className="h-3 w-40 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{processingOrders} processing · tap to view →</p>
+                : <p className="text-[10px] lg:text-xs font-medium tracking-tight text-[var(--accent)]/80">{processingOrders} processing · tap to view →</p>
               }
             </Link>
 
@@ -419,16 +419,16 @@ export default function VendorDashboard() {
                   <Boxes className="size-5" />
                 </div>
                 {lowStockCount > 0 && (
-                  <span className="text-[10px] font-medium tracking-wide text-rose-500/90">
+                  <span className="text-[10px] lg:text-xs font-medium tracking-wide text-rose-500/90">
                     {lowStockCount} {t('dashboard.lowStock', 'low stock')}
                   </span>
                 )}
               </div>
               <div>
-                <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Inventory</p>
+                <p className="mb-1 text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Inventory</p>
                 {loading
                   ? <div className="h-7 w-20 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{totalProducts} <span className="text-sm opacity-50">SKUs</span></p>
+                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{totalProducts} <span className="text-sm opacity-50">SKUs</span></p>
                 }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -436,7 +436,7 @@ export default function VendorDashboard() {
               </div>
               {loading
                 ? <div className="h-3 w-32 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">
+                : <p className="text-[10px] lg:text-xs font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">
                     {inStockProducts} {t('dashboard.inStock', 'in stock')} · {outOfStockProducts} {t('dashboard.outOfStockShort', 'out')}
                   </p>
               }
@@ -449,15 +449,15 @@ export default function VendorDashboard() {
                 <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
                   <Wallet className="size-5" />
                 </div>
-                <Link href="/vendor/wallet" className="text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70 transition-colors hover:text-[var(--accent)] hover:opacity-100">
+                <Link href="/vendor/wallet" className="text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-70 transition-colors hover:text-[var(--accent)] hover:opacity-100">
                   Withdraw
                 </Link>
               </div>
               <div>
-                <p className="mb-1 text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">{t('dashboard.walletBalance', 'Wallet balance')}</p>
+                <p className="mb-1 text-[10px] lg:text-xs font-medium tracking-wide text-[var(--text-secondary)] opacity-65">{t('dashboard.walletBalance', 'Wallet balance')}</p>
                 {loading
                   ? <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{walletBalance.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
+                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{walletBalance.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
                 }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -465,7 +465,7 @@ export default function VendorDashboard() {
               </div>
               {loading
                 ? <div className="h-3 w-36 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] font-medium tracking-tight text-[var(--accent)]/80">{pendingEscrow.toLocaleString()} {t('dashboard.xafInEscrow', 'XAF in escrow')}</p>
+                : <p className="text-[10px] lg:text-xs font-medium tracking-tight text-[var(--accent)]/80">{pendingEscrow.toLocaleString()} {t('dashboard.xafInEscrow', 'XAF in escrow')}</p>
               }
             </div>
           </div>
@@ -480,7 +480,7 @@ export default function VendorDashboard() {
                 </div>
                 <div>
                   <div className="flex items-center justify-center md:justify-start gap-2">
-                    <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">{t('dashboard.storiesManager', 'Signal Center')}</h3>
+                    <h3 className="text-sm lg:text-base font-bold text-[var(--text-primary)] tracking-tighter">{t('dashboard.storiesManager', 'Signal Center')}</h3>
                     {signalCount !== null && (
                       <span className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-bold border ${signalCount > 0 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
                         <span className={`size-1.5 rounded-full ${signalCount > 0 ? 'bg-emerald-500 animate-pulse' : 'bg-[var(--text-secondary)] opacity-40'}`} />
@@ -511,7 +511,7 @@ export default function VendorDashboard() {
             <div className="lg:col-span-2 glass-panel rounded-[2rem] p-6 border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">{t('dashboard.salesGrowth', 'Sales Growth')}</h3>
+                  <h3 className="text-sm lg:text-base font-bold text-[var(--text-primary)] tracking-tighter">{t('dashboard.salesGrowth', 'Sales Growth')}</h3>
                   <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] font-semibold opacity-50 tracking-tight">{t('dashboard.monthlyRevenueTrends', 'Monthly revenue trends')}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -620,7 +620,7 @@ export default function VendorDashboard() {
           {/* Live Order Tracking Table */}
           <div className="glass-panel rounded-[2rem] overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 shadow-sm">
             <div className="p-5 md:p-6 border-b border-[var(--glass-border)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <h3 className="text-sm font-bold text-[var(--text-primary)] tracking-tighter">Recent Orders</h3>
+              <h3 className="text-sm lg:text-base font-bold text-[var(--text-primary)] tracking-tighter">Recent Orders</h3>
               <div className="flex gap-2 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0">
                 {['all', 'processing', 'shipped'].map(f => (
                   <button
