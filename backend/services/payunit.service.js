@@ -137,10 +137,14 @@ const isTimeoutError = (err) =>
   /timeout|timed.?out/i.test(err?.message || '');
 
 // Automatically detect the correct PayUnit provider for a Cameroon number.
-// Prefixes (9-digit local):
-//   MTN Mobile Money  → 650–654, 670–689
+// Authoritative prefix list (9-digit local) per DusuPay / ITU-T allocation:
+//   MTN Mobile Money  → 650–654, 670–679, 680–689
 //   Orange Money      → 655–659, 690–699
-// Falls back to MTN when the prefix is unrecognised.
+//   Nexttel (66x)     → NOT supported by PayUnit; defaults to MTN but will be
+//                       rejected by the gateway — users with 66x numbers cannot
+//                       use PayUnit mobile money.
+// Phone number is the ground truth: the controller always calls this function
+// and ignores any operator value submitted by the client.
 const detectCmProvider = (phone) => {
   const local = normalizePhone(phone, 'CM');
   if (!local || local.length < 3) return 'CM_MTNMOMO';

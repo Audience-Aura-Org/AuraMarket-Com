@@ -353,8 +353,11 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
 const payunitInitialize = async (req, res) => {
   try {
     let { amount, currency = 'XAF', phone, country = 'CM', provider, order_ids, redirect_url: customRedirect } = req.body || {};
-    // Auto-detect operator from phone prefix; explicit provider from client always wins
-    const resolvedProvider = provider || (phone ? payunit.detectCmProvider(phone) : 'CM_MTNMOMO');
+    // Always auto-detect operator from phone prefix — phone number is the ground truth.
+    // Never trust the client-submitted provider: a user who leaves "MTN" selected but
+    // enters an Orange number (69x) would otherwise cause a hard payment failure at PayUnit.
+    // Only fall back to client value when no phone is provided at all.
+    const resolvedProvider = phone ? payunit.detectCmProvider(phone) : (provider || 'CM_MTNMOMO');
     const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
     const netAmount = checkoutAmount ?? Number(amount || 0);
     const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'payunit', currency);

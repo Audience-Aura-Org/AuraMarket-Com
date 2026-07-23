@@ -60,6 +60,18 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userPhone]);
 
+  // Auto-detect MTN vs Orange from phone prefix as user types.
+  // Cameroon 9-digit local prefixes: Orange = 655-659, 690-699; MTN = everything else.
+  useEffect(() => {
+    if (gateway !== 'payunit' || !phone) return;
+    const local = phone.replace(/[^\d]/g, '').replace(/^237/, '').replace(/^0/, '');
+    if (local.length >= 3) {
+      const prefix = parseInt(local.slice(0, 3), 10);
+      const isOrange = (prefix >= 655 && prefix <= 659) || (prefix >= 690 && prefix <= 699);
+      setService(isOrange ? 'CM_ORANGE' : 'CM_MTNMOMO');
+    }
+  }, [phone, gateway]);
+
   // Reset when modal opens
   useEffect(() => {
     if (open) {
@@ -318,7 +330,10 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <label className="text-[10px] font-semibold tracking-tight opacity-30 ml-1">Network</label>
+                    <div className="flex items-center gap-1.5 ml-1">
+                      <label className="text-[10px] font-semibold tracking-tight opacity-30">Network</label>
+                      {phone && <span className="text-[9px] font-semibold text-emerald-500 opacity-70 tracking-tight">· auto-detected</span>}
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
                       {[{ id: 'CM_MTNMOMO', label: 'MTN MoMo' }, { id: 'CM_ORANGE', label: 'Orange Money' }].map(node => (
                         <button
