@@ -1559,6 +1559,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         suppressPopStateRef.current = false;
         return;
       }
+      // If we haven't pushed a history entry, the overlay is already closed —
+      // ignore this popstate so we don't reopen or double-close.
+      if (!hasPushedHistoryRef.current) return;
       backViaButtonRef.current = true;
 
       if (activePartnerIdRef.current) {
@@ -1567,7 +1570,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         hasPushedHistoryRef.current = true;
       } else {
         hasPushedHistoryRef.current = false;
-        dismissOverlay();
+        // Route through the debounced ref so Android edge swipe (which fires both
+        // Capacitor backButton AND popstate) doesn't close twice or reopen.
+        goBackOrCloseRef.current?.();
       }
     };
 
