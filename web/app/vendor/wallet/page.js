@@ -281,43 +281,28 @@ export default function VendorWalletPage() {
       />
 
       {/* Header — fixed sticky with proper desktop top override */}
-      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 lg:top-0 z-40 gap-4 md:gap-0">
-        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
-          <div className="flex items-center gap-4">
-            <div className="size-10 md:size-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-inner border border-emerald-500/20 shrink-0">
-               <Wallet className="w-5 h-5 md:w-6 md:h-6" />
-            </div>
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Vendor Wallet</h2>
-              <div className="flex items-center gap-2 mt-0.5">
-                 <div className={`size-1.5 rounded-full ${refreshing ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500 animate-pulse'}`} />
-                 <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">
-                   {refreshing ? 'Syncing…' : 'Secure Account'}
-                 </p>
-              </div>
+      <header className="py-3 flex items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)]/40 bg-[var(--bg-secondary)]/40 backdrop-blur-xl sticky top-0 md:top-16 lg:top-0 z-40">
+        <div className="flex items-center gap-3">
+          <div className="size-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/15 shrink-0">
+            <Wallet className="w-4 h-4" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-[var(--text-primary)] tracking-tight">Vendor Wallet</h2>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className={`size-1.5 rounded-full ${refreshing ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500 animate-pulse'}`} />
+              <p className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-40 uppercase">
+                {refreshing ? 'Syncing…' : 'Secure Account'}
+              </p>
             </div>
           </div>
-          <button
-            onClick={() => load()}
-            disabled={loading || refreshing}
-            className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95 disabled:opacity-40"
-          >
-             <RefreshCw className={`w-4 h-4 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
-          </button>
         </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
-           <div className="hidden md:flex items-center gap-3 pr-6 border-r border-[var(--glass-border)]/30">
-              <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-40">Status: Store Active</p>
-           </div>
-           <button
-             onClick={() => load()}
-             disabled={loading || refreshing}
-             className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95 disabled:opacity-40"
-           >
-              <RefreshCw className={`w-4 h-4 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
-           </button>
-        </div>
+        <button
+          onClick={() => load()}
+          disabled={loading || refreshing}
+          className="size-9 rounded-xl border border-[var(--glass-border)]/50 bg-transparent text-[var(--text-secondary)] flex items-center justify-center active:scale-95 disabled:opacity-40 hover:text-[var(--accent)] hover:border-[var(--accent)]/30 transition-all"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+        </button>
       </header>
 
       <div className="p-4 md:p-10 space-y-8 pb-32">

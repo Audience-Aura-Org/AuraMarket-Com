@@ -93,12 +93,12 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'prima
         <p className="mb-0.5 text-[10px] font-medium capitalize tracking-wide text-[var(--text-secondary)] opacity-65">{label}</p>
         {loading ? (
           <>
-            <div className="h-6 w-24 rounded-lg bg-[var(--bg-secondary)] animate-pulse mt-1" />
+            <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse mt-1" />
             <div className="h-3 w-16 rounded-md bg-[var(--bg-secondary)] animate-pulse mt-2" />
           </>
         ) : (
           <>
-            <h3 className="truncate font-mono text-lg font-semibold tracking-tight text-[var(--text-primary)] md:text-2xl">{value}</h3>
+            <h3 className="truncate text-xl md:text-2xl lg:text-3xl font-bold tracking-tighter leading-none text-[var(--text-primary)]">{value}</h3>
             {sub && (
               <p className="mt-0.5 truncate text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-55">{sub}</p>
             )}
