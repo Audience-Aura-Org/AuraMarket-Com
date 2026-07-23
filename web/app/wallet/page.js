@@ -3,64 +3,107 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Wallet, ArrowUpRight, ArrowDownLeft, ShieldCheck,
+  Wallet, ArrowUpRight, ArrowDownLeft,
   Loader2, CheckCircle2, AlertCircle,
-  Lock, Building2,
-  RotateCcw, Clock
+  Lock, Building2, RotateCcw, Clock,
+  RefreshCw, History, X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/hooks/useAuth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/services/api';
 import Pagination from '@/components/common/Pagination';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import { motion, AnimatePresence } from 'framer-motion';
+import StatCard from '@/components/layout/StatCard';
 import WithdrawModal from '@/components/wallet/WithdrawModal';
 import DepositModal from '@/components/wallet/DepositModal';
 import socketService from '@/services/socket';
 import { useLanguage } from '@/context/LanguageContext';
-import StatCard from '@/components/layout/StatCard';
+
+const MIN_WITHDRAW = 500;
+
+function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
 const TX_ICONS = {
-  deposit:    { Icon: ArrowDownLeft,  color: 'emerald' },
-  withdrawal: { Icon: ArrowUpRight,   color: 'red' },
-  payment:    { Icon: ArrowDownLeft,  color: 'amber' },
-  refund:     { Icon: ArrowDownLeft,  color: 'blue' },
-  payout:     { Icon: Building2,      color: 'purple' },
+  deposit:    { Icon: ArrowDownLeft, color: 'emerald' },
+  withdrawal: { Icon: ArrowUpRight,  color: 'red'     },
+  payment:    { Icon: ArrowDownLeft, color: 'amber'   },
+  refund:     { Icon: ArrowDownLeft, color: 'blue'    },
+  payout:     { Icon: Building2,     color: 'purple'  },
 };
-
 const TX_ICON_STYLES = {
   amber:   'bg-amber-500/10 text-amber-500 border-amber-500/20',
   blue:    'bg-blue-500/10 text-blue-500 border-blue-500/20',
   emerald: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
   purple:  'bg-purple-500/10 text-purple-500 border-purple-500/20',
-  red:     'bg-red-500/10 text-red-500 border-red-500/20'
+  red:     'bg-red-500/10 text-red-500 border-red-500/20',
 };
 
-function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
-
+function ReceiptModal({ tx, onClose }) {
+  if (!tx) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[400] flex items-center justify-center p-4"
+    >
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={onClose} />
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        className="relative w-full max-w-sm bg-white text-slate-900 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden"
+      >
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500" />
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="size-16 rounded-3xl bg-slate-100 flex items-center justify-center mb-4 text-slate-400">
+            <Wallet className="size-8" />
+          </div>
+          <h3 className="text-xl font-bold tracking-tight">Aura Dime</h3>
+          <p className="text-[11px] font-semibold text-slate-400 tracking-tight">Official Transaction Receipt</p>
+        </div>
+        <div className="space-y-4 mb-8 text-sm">
+          <div className="flex justify-between border-b border-slate-100 pb-2">
+            <span className="text-slate-400 font-semibold text-[10px]">Reference</span>
+            <span className="font-bold text-slate-800">{tx.reference?.slice(0, 12)}</span>
+          </div>
+          <div className="flex justify-between border-b border-slate-100 pb-2">
+            <span className="text-slate-400 font-semibold text-[10px]">Date</span>
+            <span className="font-bold text-slate-800">{new Date(tx.createdAt).toLocaleString()}</span>
+          </div>
+          <div className="py-4 text-center">
+            <p className="text-[11px] font-semibold text-slate-400 tracking-tight mb-1">Amount</p>
+            <h4 className="text-3xl font-bold text-slate-900">{fmt(tx.amount)} XAF</h4>
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <button onClick={onClose} className="size-12 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-200">
+            <X className="size-5" />
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
 export default function WalletPage() {
-  const { user, hasHydrated, setWalletBalance, walletBalance } = useAuthStore();
+  const { user, hasHydrated, setWalletBalance } = useAuthStore();
   const { t } = useLanguage();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  const [balance, setBalance] = useState(0);
-  const [pendingBalance, setPendingBalance] = useState(0);
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [withdrawalRequests, setWithdrawalRequests] = useState([]);
-  const [modal, setModal] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [activeTab, setActiveTab] = useState('all');
-  const [recheckingTxId, setRecheckingTxId] = useState(null);
-  const itemsPerPage = 10;
 
-  // Concurrent load guard: prevent double-fetching and ensure credits aren't dropped.
+  const [mounted,            setMounted]           = useState(false);
+  const [balance,            setBalance]           = useState(0);
+  const [pendingBalance,     setPendingBalance]    = useState(0);
+  const [transactions,       setTransactions]      = useState([]);
+  const [withdrawalRequests, setWithdrawalRequests]= useState([]);
+  const [loading,            setLoading]           = useState(true);
+  const [refreshing,         setRefreshing]        = useState(false);
+  const [tab,                setTab]               = useState('history');
+  const [selectedTx,         setSelectedTx]        = useState(null);
+  const [modal,              setModal]             = useState(null);
+  const [toast,              setToast]             = useState(null);
+  const [currentPage,        setCurrentPage]       = useState(1);
+  const [recheckingTxId,     setRecheckingTxId]    = useState(null);
+  const itemsPerPage = 8;
+
   const loadingRef        = useRef(false);
   const pendingSilentLoad = useRef(false);
-
-  // Guard: only open from ?action=deposit ONCE per page load.
   const depositActionHandledRef = useRef(false);
 
   const showToast = (msg, type = 'success') => {
@@ -69,13 +112,13 @@ export default function WalletPage() {
   };
 
   const fetchWallet = useCallback(async (silent = false) => {
-    // Prevent concurrent loads; queue any missed silent loads so credits aren't dropped.
     if (loadingRef.current) {
       if (silent) pendingSilentLoad.current = true;
       return;
     }
     loadingRef.current = true;
-    if (!silent) setLoading(true);
+    if (silent) setRefreshing(true);
+    else setLoading(true);
     try {
       const [balRes, txRes, wdRes] = await Promise.allSettled([
         api.get('/wallet'),
@@ -92,8 +135,7 @@ export default function WalletPage() {
         const txList = txRes.value.data.data.transactions || [];
         setTransactions(txList);
 
-        // ── AUTO-RECHECK PENDING DEPOSITS ───────────────────────────────────
-        // Silently re-verify any pending gateway deposit < 30 min old.
+        // Auto-recheck pending gateway deposits < 30 min old
         const pending = txList.filter(
           tx => tx.status === 'pending'
             && ['eversend', 'payunit'].includes(tx.gateway)
@@ -107,17 +149,12 @@ export default function WalletPage() {
             for (const tx of pending) {
               try {
                 const r = await api.get(`/payments/${tx.gateway}/recheck/${tx.reference}`);
-                if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') {
-                  anyChanged = true;
-                }
+                if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') anyChanged = true;
               } catch { /* silent */ }
             }
-            if (anyChanged) {
-              fetchWallet(true);
-            }
+            if (anyChanged) fetchWallet(true);
           }, 2000);
         }
-        // ────────────────────────────────────────────────────────────────────
       }
       if (wdRes.status === 'fulfilled' && wdRes.value.data.success) {
         setWithdrawalRequests(wdRes.value.data.data.withdrawals || []);
@@ -126,6 +163,7 @@ export default function WalletPage() {
       if (err.response?.status !== 401) console.error('Wallet fetch error:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
       loadingRef.current = false;
       if (pendingSilentLoad.current) {
         pendingSilentLoad.current = false;
@@ -134,26 +172,11 @@ export default function WalletPage() {
     }
   }, [setWalletBalance]);
 
-  // Keep local balance in sync with Zustand store (updated on login / top-nav hook).
-  useEffect(() => {
-    if (walletBalance !== null) setBalance(walletBalance);
-  }, [walletBalance]);
-
-  // Refresh when wallet:updated event fires (e.g. from useWalletBalance hook).
-  useEffect(() => {
-    const onWalletUpdated = () => fetchWallet(true);
-    window.addEventListener('aura:wallet-updated', onWalletUpdated);
-    return () => window.removeEventListener('aura:wallet-updated', onWalletUpdated);
-  }, [fetchWallet]);
-
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!mounted || !hasHydrated) return;
-    if (!user) {
-      router.replace('/login?from=wallet');
-      return;
-    }
+    if (!user) { router.replace('/login?from=wallet'); return; }
     if (user.role === 'admin') { router.replace('/admin/withdrawals'); return; }
     fetchWallet();
 
@@ -168,24 +191,18 @@ export default function WalletPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, hasHydrated, user?._id, user?.role]);
 
-  // Real-time balance updates via socket.
   useEffect(() => {
     if (!user?._id) return;
-    const handleWalletCredited = () => {
-      setCurrentPage(1);
-      fetchWallet(true);
-    };
-    const handleWithdrawalPaid = () => fetchWallet(true);
-
-    socketService.on('wallet:credited', handleWalletCredited);
-    socketService.on('withdrawal:paid', handleWithdrawalPaid);
+    const handleCredited = () => { setCurrentPage(1); fetchWallet(true); };
+    const handleWdPaid   = () => fetchWallet(true);
+    socketService.on('wallet:credited', handleCredited);
+    socketService.on('withdrawal:paid', handleWdPaid);
     return () => {
-      socketService.off('wallet:credited', handleWalletCredited);
-      socketService.off('withdrawal:paid', handleWithdrawalPaid);
+      socketService.off('wallet:credited', handleCredited);
+      socketService.off('withdrawal:paid', handleWdPaid);
     };
   }, [user?._id, fetchWallet]);
 
-  // Visibility-based silent refresh.
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === 'visible' && user) fetchWallet(true);
@@ -194,7 +211,8 @@ export default function WalletPage() {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [fetchWallet, user]);
 
-  // Recheck a specific pending transaction from the ledger.
+  useEffect(() => { setCurrentPage(1); }, [tab]);
+
   const handleRecheckTx = async (tx) => {
     setRecheckingTxId(tx._id);
     try {
@@ -202,8 +220,7 @@ export default function WalletPage() {
         showToast('This gateway is not supported for recheck.', 'error');
         return;
       }
-      const endpoint = `/payments/${tx.gateway}/recheck/${tx.reference}`;
-      const res = await api.get(endpoint);
+      const res = await api.get(`/payments/${tx.gateway}/recheck/${tx.reference}`);
       const { status, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
         showToast('Payment confirmed! Your wallet has been credited.', 'success');
@@ -223,197 +240,210 @@ export default function WalletPage() {
 
   if (!mounted || !user) return null;
 
-  const filteredTransactions = transactions.filter(tx => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'in') return tx.type === 'refund' || tx.type === 'payout' ||
-      (tx.type === 'deposit' && !(tx.order_ids?.length > 0));
-    if (activeTab === 'out') return tx.type === 'withdrawal' || tx.type === 'payment' ||
-      (tx.type === 'deposit' && tx.order_ids?.length > 0);
-    return true;
-  });
+  // ── Derived stats ──────────────────────────────────────────────────────────
+  const totalIn = transactions
+    .filter(tx => tx.status === 'completed' &&
+      (tx.type === 'refund' || tx.type === 'payout' ||
+       (tx.type === 'deposit' && !(tx.order_ids?.length > 0))))
+    .reduce((s, tx) => s + (tx.amount || 0), 0);
 
-  const displayItems  = activeTab === 'withdrawals' ? withdrawalRequests : filteredTransactions;
-  const currentItems  = displayItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalOut = transactions
+    .filter(tx => tx.status === 'completed' &&
+      (tx.type === 'withdrawal' || tx.type === 'payment' ||
+       (tx.type === 'deposit' && tx.order_ids?.length > 0)))
+    .reduce((s, tx) => s + (tx.amount || 0), 0);
+
+  const totalFunds   = balance + pendingBalance;
+  const availRatio   = totalFunds > 0 ? Math.round((balance / totalFunds) * 100) : 0;
+  const escrowRatio  = totalFunds > 0 ? Math.round((pendingBalance / totalFunds) * 100) : 0;
+  const spentRatio   = totalIn > 0 ? Math.min(Math.round((totalOut / totalIn) * 100), 100) : 0;
+  const inRatio      = totalIn > 0 ? Math.min(Math.round((balance / totalIn) * 100), 100) : 0;
+
+  // Displayed list for current tab
+  const displayItems = tab === 'withdrawals' ? withdrawalRequests : transactions;
+  const currentItems = displayItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <DashboardLayout role={user?.role || 'customer'} hideSidebar={true}>
-      {/* Toast notification */}
+
+      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            key="toast"
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            className={`fixed top-5 left-1/2 -translate-x-1/2 z-[1001] px-5 py-3 rounded-2xl shadow-2xl font-poppins font-semibold text-sm tracking-tight flex items-center gap-2 border ${
-              toast.type === 'success' ? 'bg-emerald-500 text-white border-emerald-400'
-              : toast.type === 'error'   ? 'bg-rose-500 text-white border-rose-400'
-              : 'bg-[var(--accent)] text-white border-[var(--accent)]'
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+            className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[500] px-5 py-3 rounded-2xl text-xs font-bold shadow-xl ${
+              toast.type === 'success' ? 'bg-emerald-500 text-white' :
+              toast.type === 'error'   ? 'bg-red-500 text-white' :
+              'bg-amber-500 text-white'
             }`}
           >
-            {toast.type === 'success' && <CheckCircle2 className="size-4 shrink-0" />}
-            {toast.type === 'error'   && <AlertCircle  className="size-4 shrink-0" />}
             {toast.msg}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-poppins">
+      {/* Receipt modal */}
+      <AnimatePresence>
+        {selectedTx && <ReceiptModal tx={selectedTx} onClose={() => setSelectedTx(null)} />}
+      </AnimatePresence>
 
-        {/* Header */}
-        <div className="px-6 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-md sticky top-0 z-50">
-          <div className="max-w-[1600px] mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
-                <Wallet className="size-5" />
-              </div>
-              <div>
-                <h1 className="text-lg  font-bold tracking-tight">My Wallet</h1>
-                <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{t('wallet.availableBalance', 'Available Balance')}</p>
-              </div>
+      {/* Header */}
+      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 lg:top-0 z-40 gap-4 md:gap-0">
+        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-4">
+            <div className="size-10 md:size-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-inner border border-emerald-500/20 shrink-0">
+              <Wallet className="w-5 h-5 md:w-6 md:h-6" />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
-                <ShieldCheck className="size-3 text-emerald-500" />
-                <span className="text-[10px] lg:text-[12px]  font-semibold text-emerald-500 tracking-tight">{t('wallet.secureAccount', 'Secure Account')}</span>
+            <div>
+              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">
+                {t('wallet.myWallet', 'My Wallet')}
+              </h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className={`size-1.5 rounded-full ${refreshing ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500 animate-pulse'}`} />
+                <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">
+                  {refreshing ? 'Syncing…' : t('wallet.secureAccount', 'Secure Account')}
+                </p>
               </div>
-              <button onClick={() => fetchWallet()} className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
-                <RotateCcw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-              </button>
             </div>
           </div>
+          <button
+            onClick={() => fetchWallet()}
+            disabled={loading || refreshing}
+            className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95 disabled:opacity-40"
+          >
+            <RefreshCw className={`w-4 h-4 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="hidden md:flex items-center gap-3 pr-6 border-r border-[var(--glass-border)]/30">
+            <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] opacity-40">
+              {t('wallet.availableBalance', 'Available Balance')}
+            </p>
+          </div>
+          <button
+            onClick={() => fetchWallet()}
+            disabled={loading || refreshing}
+            className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95 disabled:opacity-40"
+          >
+            <RefreshCw className={`w-4 h-4 ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+      </header>
+
+      <div className="p-4 md:p-10 space-y-8 pb-32">
+
+        {/* KPI Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
+          <StatCard
+            label={t('wallet.available', 'Available')}
+            value={fmt(balance)}
+            icon="account_balance_wallet"
+            color="emerald"
+            sub="XAF Ready"
+            progress={availRatio}
+            footer={`${escrowRatio}% held in escrow`}
+            loading={loading}
+          />
+          <StatCard
+            label={t('wallet.inEscrow', 'In Escrow')}
+            value={fmt(pendingBalance)}
+            icon="lock_clock"
+            color="amber"
+            sub="Pending Delivery"
+            progress={escrowRatio}
+            footer="Pending delivery confirmation"
+            loading={loading}
+          />
+          <StatCard
+            label="Money In"
+            value={fmt(totalIn)}
+            icon="trending_up"
+            color="fuchsia"
+            sub="Total credited"
+            progress={inRatio}
+            footer={`${fmt(totalIn)} lifetime`}
+            loading={loading}
+          />
+          <StatCard
+            label="Money Out"
+            value={fmt(totalOut)}
+            icon="arrow_outward"
+            color="blue"
+            sub="Total spent"
+            progress={spentRatio}
+            footer={`${fmt(Math.max(totalIn - totalOut, 0))} remaining`}
+            loading={loading}
+          />
         </div>
 
-        <div className="p-6 md:p-8 space-y-8 max-w-[1600px] mx-auto">
+        {/* Action Buttons */}
+        <div className="flex gap-4">
+          <button
+            onClick={() => setModal('deposit')}
+            className="flex-1 h-14 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+          >
+            <ArrowDownLeft className="size-5" /> {t('wallet.depositMoney', 'Deposit Funds')}
+          </button>
+          <button
+            onClick={() => setModal('withdraw')}
+            disabled={balance < MIN_WITHDRAW}
+            className="flex-1 h-14 bg-[var(--accent)] text-white rounded-2xl font-bold text-xs tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-[var(--accent)]/20 active:scale-95 transition-all disabled:opacity-30"
+          >
+            <ArrowUpRight className="size-5" /> {t('wallet.withdrawMoney', 'Withdraw Funds')}
+          </button>
+        </div>
 
-          {/* Stat Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              label={t('wallet.available', 'Available')}
-              value={`${fmt(balance)} XAF`}
-              sub={t('wallet.availableToSpend', 'Available to spend')}
-              icon={Wallet}
-              color="emerald"
-              loading={loading}
-            />
-            <StatCard
-              label={t('wallet.inEscrow', 'In escrow')}
-              value={`${fmt(pendingBalance)} XAF`}
-              sub={t('wallet.heldInEscrow', 'Held in escrow')}
-              icon={Lock}
-              color="amber"
-              loading={loading}
-            />
-            <StatCard
-              label="Money In"
-              value={`${fmt(transactions.filter(tx =>
-                  tx.status === 'completed' &&
-                  (tx.type === 'refund' || tx.type === 'payout' ||
-                   (tx.type === 'deposit' && !(tx.order_ids?.length > 0)))
-                ).reduce((s, tx) => s + (tx.amount || 0), 0))} XAF`}
-              sub={`${transactions.filter(tx =>
-                  tx.status === 'completed' &&
-                  (tx.type === 'refund' || tx.type === 'payout' ||
-                   (tx.type === 'deposit' && !(tx.order_ids?.length > 0)))
-                ).length} credit transaction(s)`}
-              icon={ArrowDownLeft}
-              color="emerald"
-              loading={loading}
-            />
-            <StatCard
-              label="Money Out"
-              value={`${fmt(transactions.filter(tx =>
-                  tx.status === 'completed' &&
-                  (tx.type === 'withdrawal' || tx.type === 'payment' ||
-                   (tx.type === 'deposit' && tx.order_ids?.length > 0))
-                ).reduce((s, tx) => s + (tx.amount || 0), 0))} XAF`}
-              sub={`${transactions.filter(tx => tx.status === 'failed' || tx.status === 'rejected').length} failed transaction(s)`}
-              icon={ArrowUpRight}
-              color="rose"
-              loading={loading}
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-4">
+        {/* Tabs + Ledger */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-6 border-b border-[var(--glass-border)]">
             <button
-              onClick={() => setModal('deposit')}
-              className="h-14 rounded-2xl bg-emerald-500 text-white  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all"
+              onClick={() => setTab('history')}
+              className={`pb-4 text-xs font-bold tracking-tight relative ${tab === 'history' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}
             >
-              <ArrowDownLeft className="size-5" /> {t('wallet.depositMoney', 'Deposit Money')}
+              <div className="flex items-center gap-2"><History className="size-4" /> {t('wallet.transactionHistory', 'Transaction History')}</div>
+              {tab === 'history' && <motion.div layoutId="wallet-tab-line" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />}
             </button>
             <button
-              onClick={() => setModal('withdraw')}
-              className="h-14 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)]  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-3 hover:bg-[var(--bg-secondary)]/80 active:scale-95 transition-all"
+              onClick={() => setTab('withdrawals')}
+              className={`pb-4 text-xs font-bold tracking-tight relative ${tab === 'withdrawals' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-40'}`}
             >
-              <ArrowUpRight className="size-5" /> {t('wallet.withdrawMoney', 'Withdraw Money')}
+              <div className="flex items-center gap-2"><ArrowUpRight className="size-4" /> {t('wallet.tab.withdrawals', 'Withdrawals')}</div>
+              {tab === 'withdrawals' && <motion.div layoutId="wallet-tab-line" className="absolute bottom-0 left-0 right-0 h-1 bg-[var(--accent)] rounded-t-full" />}
             </button>
           </div>
 
-          {/* Activity Ledger */}
-          <section className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-8 shadow-sm">
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-              <div>
-                <h3 className="text-sm  font-bold tracking-tight text-[var(--text-primary)]">{t('wallet.transactionHistory', 'Transaction History')}</h3>
-                <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 mt-1 tracking-tight">{t('wallet.realTimeHistory', 'Real-time transaction history')}</p>
-              </div>
-              <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl p-0.5 overflow-x-auto no-scrollbar">
-                {['all', 'in', 'out', 'withdrawals'].map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
-                    className={`px-4 py-1.5 rounded-lg text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-all capitalize whitespace-nowrap ${activeTab === tab ? 'bg-[var(--accent)] text-white shadow-md' : 'text-[var(--text-secondary)] opacity-40'}`}
-                  >
-                    {t(`wallet.tab.${tab}`, tab)}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <div className="min-h-[400px]">
 
-            <div className="space-y-2 min-h-[400px]">
-              {loading ? <LoadingSpinner /> : currentItems.length === 0 ? (
-                <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-20 text-sm">{t('wallet.noRecords', 'No {type} records found', { type: t(`wallet.tab.${activeTab}`, activeTab) })}</div>
-              ) : activeTab === 'withdrawals' ? (
-                currentItems.map((wr, i) => (
-                  <div key={wr._id || i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group">
-                    <div className={`size-10 rounded-xl flex items-center justify-center ${
-                      wr.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
-                      wr.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
-                      'bg-red-500/10 text-red-500 border-red-500/20'
-                    }`}>
-                      {wr.status === 'completed' ? <CheckCircle2 className="size-4" /> :
-                       wr.status === 'pending' ? <Clock className="size-4" /> :
-                       <AlertCircle className="size-4" />}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate capitalize">{wr.withdrawalMethod} {t('wallet.withdrawal', 'withdrawal')}</p>
-                      <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight capitalize">{new Date(wr.createdAt).toLocaleDateString()} • {wr.status}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-base  font-bold tracking-tight">{fmt(wr.amount)}</p>
-                      <p className="text-[10px] lg:text-[12px]  font-semibold opacity-20">{wr.currency}</p>
-                    </div>
+            {/* Transaction History */}
+            {tab === 'history' && (
+              <div className="space-y-4">
+                {loading ? (
+                  <div className="py-20 flex justify-center opacity-20"><Loader2 className="animate-spin" /></div>
+                ) : transactions.length === 0 ? (
+                  <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">
+                    {t('wallet.noRecords', 'No transaction records found')}
                   </div>
-                ))
-              ) : (
-                currentItems.map((tx, i) => {
+                ) : currentItems.map((tx, i) => {
                   const config = TX_ICONS[tx.type] || TX_ICONS.payment;
                   const iconStyle = TX_ICON_STYLES[config.color] || TX_ICON_STYLES.amber;
                   const isCredit = (tx.type === 'deposit' && !(tx.order_ids?.length > 0))
-                    || tx.type === 'refund'
-                    || tx.type === 'payout';
+                    || tx.type === 'refund' || tx.type === 'payout';
                   return (
-                    <div key={tx._id || i} className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
-                      tx.status === 'pending' && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit'
-                        ? 'border-amber-500/30 bg-amber-500/5'
-                        : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30'
-                    }`}>
+                    <div
+                      key={tx._id || i}
+                      onClick={() => setSelectedTx(tx)}
+                      className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
+                        tx.status === 'pending' && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit'
+                          ? 'border-amber-500/30 bg-amber-500/5'
+                          : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30'
+                      }`}
+                    >
                       <div className={`size-10 rounded-xl flex items-center justify-center border ${iconStyle}`}>
                         <config.Icon className="size-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
-                        <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                        <p className="text-[11px] font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
+                        <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
                         {['pending', 'failed'].includes(tx.status) && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit' && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handleRecheckTx(tx); }}
@@ -421,25 +451,25 @@ export default function WalletPage() {
                             className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
                           >
                             {recheckingTxId === tx._id
-                               ? <><Loader2 className="size-3 animate-spin" /> {t('wallet.checking', 'Checking...')}</>
-                               : <><RotateCcw className="size-3" /> {t('wallet.recheckPayment', 'Recheck payment')}</>
+                              ? <><Loader2 className="size-3 animate-spin" /> {t('wallet.checking', 'Checking...')}</>
+                              : <><RotateCcw className="size-3" /> {t('wallet.recheckPayment', 'Recheck payment')}</>
                             }
                           </button>
                         )}
                       </div>
                       <div className="text-right shrink-0">
-                        <p className={`text-base  font-bold tracking-tight ${
+                        <p className={`text-base font-bold tracking-tight ${
                           tx.status === 'completed'
                             ? (isCredit ? 'text-emerald-500' : 'text-red-500')
                             : tx.status === 'failed'
-                               ? 'text-red-500/50 line-through'
-                               : 'text-[var(--text-secondary)] opacity-40'
+                              ? 'text-red-500/50 line-through'
+                              : 'text-[var(--text-secondary)] opacity-40'
                         }`}>
                           {tx.status === 'completed' ? (isCredit ? '+' : '-') : ''}{fmt(tx.amount)}
                         </p>
                         <div className="flex items-center justify-end gap-1 mt-0.5">
                           {tx.status === 'pending' && <Clock className="size-2 text-amber-500 animate-pulse" />}
-                          <p className={`text-[10px] lg:text-[12px]  font-semibold tracking-tight ${
+                          <p className={`text-[10px] font-semibold tracking-tight ${
                             tx.status === 'completed' ? 'text-emerald-500/50' :
                             tx.status === 'failed' ? 'text-red-500' : 'text-amber-500'
                           }`}>
@@ -449,17 +479,49 @@ export default function WalletPage() {
                       </div>
                     </div>
                   );
-                })
-              )}
-            </div>
-            <div className="pt-8">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={Math.ceil(displayItems.length / itemsPerPage)}
-                onPageChange={setCurrentPage}
-              />
-            </div>
-          </section>
+                })}
+              </div>
+            )}
+
+            {/* Withdrawals */}
+            {tab === 'withdrawals' && (
+              <div className="space-y-2">
+                {withdrawalRequests.length === 0 ? (
+                  <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">
+                    {t('wallet.noWithdrawals', 'No withdrawal requests found')}
+                  </div>
+                ) : currentItems.map((wr) => (
+                  <div key={wr._id} className="p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center gap-4">
+                    <div className={`size-11 rounded-xl flex items-center justify-center ${
+                      wr.status === 'completed' ? 'bg-emerald-500/10 text-emerald-500' :
+                      wr.status === 'pending'   ? 'bg-amber-500/10 text-amber-500' :
+                      'bg-red-500/10 text-red-500'
+                    }`}>
+                      {wr.status === 'completed' ? <CheckCircle2 className="size-5" /> :
+                       wr.status === 'pending'   ? <Clock className="size-5" /> :
+                       <AlertCircle className="size-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm text-[var(--text-primary)] capitalize">{wr.withdrawalMethod} {t('wallet.withdrawal', 'Withdrawal')}</p>
+                      <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{new Date(wr.createdAt).toLocaleDateString()} · {wr.status}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-base font-bold text-[var(--text-primary)]">{fmt(wr.amount)}</p>
+                      <p className="text-[10px] font-semibold opacity-30 capitalize">{wr.currency}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="pt-8">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={Math.ceil(displayItems.length / itemsPerPage)}
+              onPageChange={setCurrentPage}
+            />
+          </div>
         </div>
       </div>
 
