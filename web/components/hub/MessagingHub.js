@@ -262,6 +262,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const lastGoBackOrCloseAtRef = useRef(0); // timestamp to debounce dual back-button/popstate triggers
   const backViaButtonRef = useRef(false); // true when browser/hardware back triggered the last navigation
   const suppressPopStateRef = useRef(false); // true during programmatic history.back() — prevents goBackOrClose re-firing
+  const hasPushedHistoryRef = useRef(false); // tracks if single dummy history entry was pushed for the overlay
   const drainInProgressRef = useRef(false);  // prevents concurrent drain runs when state mutations re-trigger the effect
   const silentLoadInFlightRef = useRef(false); // prevents stacked silent reloads from 2s poll + pre-send sync + reconnect
 
@@ -1499,22 +1500,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const dismissOverlay = () => {
     setChatMenuOpen(false);
     setFloatingMenu(null);
-    // NOTE: do NOT call setActiveConversation(null) here.
-    // onClose() → closeChat() dispatches CLOSE_CHAT which atomically sets both
-    // isOpen: false AND activePartnerId: null in a single React update.
-    // Calling setActiveConversation(null) first produces an intermediate render
-    // where activePartnerId=null but isOpen=true, which triggers the history
-    // effect — resetting backViaButtonRef and pushing a spurious chatInterceptor
-    // entry — during the close sequence (mobile-only reopen bug).
-    // Synchronously remove the chatInterceptor flag from the current history entry
-    // before navigating away.  If we leave it, the browser back-button can land on
-    // this entry after onClose() pushes / replaces the route, re-opening the chat.
-    if (typeof window !== 'undefined' && window.history.state?.chatInterceptor) {
-      window.history.replaceState({}, '', window.location.href);
-    }
-    // Mark as "intentional close" so the history effect cleanup does not call
-    // replaceState a second time after onClose() navigates away.
     backViaButtonRef.current = true;
+    if (typeof window !== 'undefined' && hasPushedHistoryRef.current) {
+      hasPushedHistoryRef.current = false;
+      if (window.history.state?.chatInterceptor) {
+        suppressPopStateRef.current = true;
+        window.history.back();
+      }
+    }
     onClose?.();
   };
 
@@ -1535,48 +1528,52 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   goBackOrCloseRef.current = goBackOrClose;
 
   // ── Browser back button (popstate) ────────────────────────────────────────
-  // Pushes a dummy history entry when the panel mounts or the user moves between
-  // the inbox and a thread. Pressing browser-back calls goBackOrClose() instead
-  // of navigating away — mirrors WhatsApp: thread → inbox → close.
+  // Pushes a single dummy history entry when the overlay opens so pressing browser/hardware-back
+  // calls goBackOrClose() instead of navigating away — mirrors WhatsApp: thread → inbox → close.
+  // Crucial: depends ONLY on [isOpen, fullPage], NOT activePartnerId, so navigating between
+  // conversations does NOT stack 3–5 dummy history entries that force repeated closing.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    // In overlay mode skip the history push when the overlay is not open.
-    // Without this guard, the close sequence (dismissOverlay → closeChat) can
-    // produce a render where activePartnerId is already null but isOpen is still
-    // transitioning, causing a spurious pushState that resets backViaButtonRef
-    // and leaves a stale chatInterceptor entry — the root of the mobile reopen bug.
-    // fullPage mode always manages history regardless of isOpen.
-    if (!fullPage && !isOpen) return;
-    backViaButtonRef.current = false;
-    window.history.pushState({ chatInterceptor: true }, '');
+    if (typeof window === 'undefined' || fullPage) return;
+
+    if (isOpen) {
+      if (!hasPushedHistoryRef.current) {
+        backViaButtonRef.current = false;
+        window.history.pushState({ chatInterceptor: true }, '');
+        hasPushedHistoryRef.current = true;
+      }
+    } else {
+      if (hasPushedHistoryRef.current) {
+        hasPushedHistoryRef.current = false;
+        if (window.history.state?.chatInterceptor) {
+          suppressPopStateRef.current = true;
+          window.history.back();
+        }
+      }
+    }
 
     const onPopState = () => {
-      // Ignore popstates triggered by our own programmatic history.back() calls (cleanup).
-      // Those occur when navigating forward (inbox → thread), and should not call goBackOrClose.
       if (suppressPopStateRef.current) {
         suppressPopStateRef.current = false;
         return;
       }
       backViaButtonRef.current = true;
-      goBackOrCloseRef.current?.();
+
+      if (activePartnerIdRef.current) {
+        setActiveConversation(null);
+        window.history.pushState({ chatInterceptor: true }, '');
+        hasPushedHistoryRef.current = true;
+      } else {
+        hasPushedHistoryRef.current = false;
+        dismissOverlay();
+      }
     };
 
     window.addEventListener('popstate', onPopState);
     return () => {
       window.removeEventListener('popstate', onPopState);
-      // If the panel closed via UI (X / backdrop) rather than the back button,
-      // remove the chatInterceptor flag from the current history entry.
-      // Use replaceState instead of history.back() — back() fires an async popstate
-      // that can arrive after the component unmounts, where our listener is already
-      // gone, causing Next.js to re-navigate to the chat page (the "pops back up" bug).
-      if (!backViaButtonRef.current && window.history.state?.chatInterceptor) {
-        window.history.replaceState({}, '', window.location.href);
-      }
     };
-  // Re-run when: overlay opens/closes (isOpen), or user moves between inbox (null)
-  // and a thread (partnerId). Each navigation level needs its own dummy history entry.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePartnerId, isOpen]);
+  }, [isOpen, fullPage, setActiveConversation]);
 
   // ── Capacitor Android hardware back button ─────────────────────────────────
   // The OS fires the hardware back button event before popstate on Android WebView.
