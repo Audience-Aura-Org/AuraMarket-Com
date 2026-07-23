@@ -559,9 +559,14 @@ export default function SocketProvider({ children }) {
             return;
           }
 
-          // Socket is connected — trust it to deliver in real-time, but schedule a
-          // 1.2 s safety-net sync in case the socket message was dropped or out of order.
-          if (pushType === 'message' && !socketDown) {
+          // Always schedule a safety-net sync so the inbox stays accurate.
+          // Previously we returned early here when the socket appeared connected,
+          // relying on the socket handler to show the toast. But the server-side
+          // room can show 0 connections while the client still reports isConnected()
+          // — in that case the socket message is dropped and no toast fires at all.
+          // Showing the toast here is always correct; if the socket handler also
+          // fires for the same message it will just reset the same state (harmless).
+          if (pushType === 'message') {
             setTimeout(() => {
               syncInboxFromServer?.({ force: true });
               if (pushSenderId) {
@@ -570,14 +575,12 @@ export default function SocketProvider({ children }) {
                 }));
               }
             }, 1200);
-            return;
           }
 
-          // Socket is down and user is in a different chat or inbox:
-          // show toast + force-refresh inbox so unread counts stay accurate.
+          // Socket is down: also force an immediate inbox refresh so unread counts
+          // stay accurate without waiting for the 1.2 s timeout.
           if (pushType === 'message' && socketDown) {
             syncInboxFromServer?.({ force: true });
-            // Also signal MessagingHub in case the user switches to this chat imminently.
             if (pushSenderId) {
               window.dispatchEvent(new CustomEvent('aura:pull-conversation', {
                 detail: { partnerId: pushSenderId.toString() },
