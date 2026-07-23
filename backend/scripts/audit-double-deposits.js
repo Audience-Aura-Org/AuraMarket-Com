@@ -101,12 +101,29 @@ async function run() {
       else if (isDebit(tx)) debits += tx.amount;
     }
 
+    // NOTE ON THE 50 XAF MOBILE MONEY COLLECTION FEE
+    // ─────────────────────────────────────────────────
+    // PayUnit/Eversend deposits store Transaction.amount = feeBreakdown.netAmount
+    // (what actually lands in the wallet). The 50 XAF collection fee is charged
+    // to the user's phone but is NOT stored in Transaction.amount and is NOT
+    // added to wallet_balance. So the fee never affects this calculation.
+    //
+    // However, to guard against any historic data inconsistency where the fee
+    // may have been miscalculated, we skip any excess that is a small multiple
+    // of 50 XAF (≤ the number of the user's gateway deposits × 50). Those are
+    // fee-rounding artefacts, not genuine double credits.
+    const gatewayDepositCount = txs.filter(
+      tx => tx.type === 'deposit' && !tx.order_ids?.length
+        && ['payunit', 'eversend'].includes(tx.gateway)
+    ).length;
+    const feeNoiseThreshold = Math.max(1, gatewayDepositCount * 50);
+
     const expectedBalance = Math.max(0, credits - debits);
     const actualBalance   = user.wallet_balance || 0;
     const excess          = actualBalance - expectedBalance;
 
-    // Ignore tiny floating-point drift.
-    if (excess <= 1) continue;
+    // Skip floating-point drift AND fee-rounding noise.
+    if (excess <= feeNoiseThreshold) continue;
 
     // Try to match the excess to one or more gateway deposits.
     const gatewayDeposits = txs.filter(

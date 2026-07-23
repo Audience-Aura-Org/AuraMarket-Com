@@ -1460,7 +1460,16 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
       // 'application/octet-stream' (common from Android gallery) render as broken
       // images in Android WebView.
       const reader = new FileReader();
-      reader.onload = (ev) => setPreviewUrl(ev.target.result);
+      reader.onload = (ev) => {
+        let url = ev.target.result;
+        // Android gallery often labels files as application/octet-stream.
+        // FileReader then produces data:application/octet-stream;base64,... which
+        // <img> won't render. Force image/jpeg so the preview displays correctly.
+        if (url && url.startsWith('data:application/octet-stream')) {
+          url = url.replace('data:application/octet-stream', 'data:image/jpeg');
+        }
+        setPreviewUrl(url);
+      };
       reader.readAsDataURL(f);
     }
   };

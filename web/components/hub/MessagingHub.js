@@ -1159,10 +1159,18 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     // to display in Android WebView when the file MIME type is octet-stream.
     const reader = new FileReader();
     reader.onload = (ev) => {
+      let url = ev.target.result;
+      // Android gallery often returns MIME type 'application/octet-stream'.
+      // FileReader then produces data:application/octet-stream;base64,... which
+      // <img> refuses to render. Force image/jpeg so the browser treats it as
+      // an image regardless of how Capacitor labelled the file.
+      if (url && url.startsWith('data:application/octet-stream')) {
+        url = url.replace('data:application/octet-stream', 'data:image/jpeg');
+      }
       setMediaPreview({
         mode: 'compose',
         file,
-        url: ev.target.result,
+        url,
         objectUrl: null, // no blob URL to revoke
         caption: inputValueRef.current || input,
       });
