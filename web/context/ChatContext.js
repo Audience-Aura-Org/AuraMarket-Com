@@ -364,7 +364,10 @@ function chatReducer(state, action) {
 
       return {
         ...state,
-        isOpen: true,
+        // Do NOT set isOpen: true here — only OPEN_CHAT (openChat()) opens the overlay.
+        // Any background setActiveConversation() call (socket event, aura_chat_focus
+        // firing after a close, etc.) must not reopen the overlay the user dismissed.
+        isOpen: state.isOpen,
         activePartnerId: partnerId,
         activeConversationId: partnerId,
         initialPartnerData: seededPartner,

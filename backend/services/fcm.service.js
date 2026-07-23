@@ -17,7 +17,16 @@ const initialize = () => {
   if (messaging || initAttempted) return messaging;
   initAttempted = true;
 
-  const serviceAccount = parseServiceAccount();
+  let serviceAccount;
+  try {
+    serviceAccount = parseServiceAccount();
+  } catch (e) {
+    // Credentials are missing or malformed (e.g. truncated JSON in env var).
+    // Disable Android push cleanly rather than crashing the whole push flow.
+    console.error('[FCM] Failed to parse Firebase credentials — Android push disabled:', e.message);
+    console.error('[FCM] Fix: base64-encode the service account JSON and set FIREBASE_SERVICE_ACCOUNT_BASE64 in .env instead of FIREBASE_SERVICE_ACCOUNT_JSON.');
+    return null;
+  }
   if (!serviceAccount) {
     // No Firebase credentials configured — Android push silently disabled
     return null;
