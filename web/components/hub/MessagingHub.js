@@ -1515,16 +1515,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   };
 
   const goBackOrClose = () => {
-    const now = Date.now();
-    if (now - lastGoBackOrCloseAtRef.current < 350) return;
-    lastGoBackOrCloseAtRef.current = now;
-    setChatMenuOpen(false);
-    setFloatingMenu(null);
-    if (activePartnerId) {
-      setActiveConversation(null);
-    } else {
-      dismissOverlay();
-    }
+    dismissOverlay();
   };
 
   // Keep goBackOrClose fresh every render so back-button effects never hold stale closures.
@@ -1559,21 +1550,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         suppressPopStateRef.current = false;
         return;
       }
-      // If we haven't pushed a history entry, the overlay is already closed —
-      // ignore this popstate so we don't reopen or double-close.
+      // Guard: if no history entry is live, the overlay is already closing/closed.
+      // Returning early prevents the Android edge-swipe double-fire (Capacitor backButton
+      // + popstate both arriving) from calling dismissOverlay() a second time.
       if (!hasPushedHistoryRef.current) return;
       backViaButtonRef.current = true;
-
-      if (activePartnerIdRef.current) {
-        setActiveConversation(null);
-        window.history.pushState({ chatInterceptor: true }, '');
-        hasPushedHistoryRef.current = true;
-      } else {
-        hasPushedHistoryRef.current = false;
-        // Route through the debounced ref so Android edge swipe (which fires both
-        // Capacitor backButton AND popstate) doesn't close twice or reopen.
-        goBackOrCloseRef.current?.();
-      }
+      hasPushedHistoryRef.current = false;
+      dismissOverlay();
     };
 
     window.addEventListener('popstate', onPopState);
