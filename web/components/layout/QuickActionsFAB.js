@@ -45,7 +45,7 @@ export default function QuickActionsFAB({ role }) {
                   <button
                     type="button"
                     onClick={() => {
-                      openChat(null, null, null, false);
+                      openChat(null);
                       setIsOpen(false);
                     }}
                     className="flex items-center gap-3"

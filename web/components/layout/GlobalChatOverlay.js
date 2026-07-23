@@ -30,6 +30,11 @@ export default function GlobalChatOverlay() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              closeChat();
+            }}
             onClick={(e) => {
               e.stopPropagation();
               closeChat();

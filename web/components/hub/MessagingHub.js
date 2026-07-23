@@ -1848,6 +1848,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                   </button>
                   <button
                     type="button"
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      dismissOverlay();
+                    }}
                     onClick={dismissOverlay}
                     className="flex size-9 items-center justify-center rounded-full text-[var(--nav-text)]/85 transition-colors hover:bg-white/10 active:bg-white/15"
                     aria-label="Close chat"
@@ -1897,6 +1901,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                 </div>
                 <button
                   type="button"
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    dismissOverlay();
+                  }}
                   onClick={dismissOverlay}
                   className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/90 transition-colors hover:bg-white/10 active:bg-white/15"
                   aria-label="Close"

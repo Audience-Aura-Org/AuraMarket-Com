@@ -90,9 +90,16 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
           {user && (
             <button
               type="button"
-              onClick={() => openChat(null, null, null, false)}
+              disabled={chatOverlayOpen}
+              onClick={(e) => {
+                if (chatOverlayOpen) {
+                  e.preventDefault();
+                  return;
+                }
+                openChat(null);
+              }}
               aria-label="Messages"
-              className={`relative flex size-10 items-center justify-center rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] text-[var(--nav-btn-text)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95 ${chatOverlayOpen ? "ring-2 ring-[var(--accent)]/50" : ""}`}
+              className={`relative flex size-10 items-center justify-center rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] text-[var(--nav-btn-text)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95 ${chatOverlayOpen ? "ring-2 ring-[var(--accent)]/50 pointer-events-none opacity-80" : ""}`}
             >
               <MessageCircle className="size-5" />
               {unreadMessages > 0 && (

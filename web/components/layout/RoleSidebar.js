@@ -215,7 +215,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
                   onClick={(e) => { 
                     if (isMessages && role !== 'logistics') {
                       e.preventDefault();
-                      openChat(null, null, null, false);
+                      openChat(null);
                     }
                     if (isSystemComms) {
                       e.preventDefault();

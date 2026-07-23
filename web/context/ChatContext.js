@@ -961,9 +961,9 @@ export function ChatProvider({ children }) {
         router.push('/login?from=chat');
         return;
       }
-      // Suppress synthetic 300ms ghost clicks on mobile WebView right after user closed overlay
-      if (openOverlay !== false && Date.now() - lastClosedAtRef.current < 450) {
-        console.warn('[ChatContext] Suppressed ghost openChat call within 450ms of closeChat');
+      // Suppress synthetic ghost clicks on mobile WebView right after user closed overlay (1s window)
+      if (openOverlay !== false && Date.now() - lastClosedAtRef.current < 1000) {
+        console.warn('[ChatContext] Suppressed ghost openChat call within 1000ms of closeChat');
         return;
       }
       dispatch({
