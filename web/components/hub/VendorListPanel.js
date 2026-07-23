@@ -146,12 +146,17 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
             {currentVendors.map((vendor, i) => {
               const vendorId = getVendorId(vendor);
               const userId = getVendorUserId(vendor);
+              const vendorStatuses = followedStatuses.filter(s => (s.vendor_id?._id || s.vendor_id)?.toString() === vendorId);
+              const hasStatus = vendorStatuses.length > 0;
+              // hasNewStatus = vendor has at least one story the user hasn't viewed yet
+              const hasNewStatus = hasStatus && vendorStatuses.some(s => !s.isViewed);
               return (
                 <VendorRow
                   key={vendorId}
                   vendor={vendor}
                   index={i}
-                  hasStatus={followedStatuses.some(s => (s.vendor_id?._id || s.vendor_id)?.toString() === vendorId)}
+                  hasStatus={hasStatus}
+                  hasNewStatus={hasNewStatus}
                   onOpenStatus={() => onOpenStatus(vendorId)}
                   onOpenChat={(vData) => openChat(userId, null, vData)}
                   onClick={() => router.push(getStoreHref(vendorId))}
@@ -201,7 +206,7 @@ function formatLastSeen(lastSeenVal, t) {
   return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 }
 
-function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus, t }) {
+function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, hasNewStatus, onOpenStatus, t }) {
   const { onlineUsersMap } = useChat();
   const userInfo = vendor.user_id || vendor.vendor_id?.user_id || {};
   const storeInfo = vendor.store || vendor;
@@ -232,7 +237,13 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, onOpenStatus
     >
       {/* WhatsApp-style Avatar with status bubble */}
       <div className="relative shrink-0" onClick={(e) => { if (hasStatus) { e.stopPropagation(); onOpenStatus(); } }}>
-        <div className={`w-14 h-14 rounded-full bg-[var(--bg-secondary)] overflow-hidden border-2 transition-all shadow-sm ${hasStatus ? 'border-[var(--accent)] p-0.5' : 'border-[var(--glass-border)] group-hover:border-[var(--accent)]/30'}`}>
+        <div className={`w-14 h-14 rounded-full bg-[var(--bg-secondary)] overflow-hidden border-2 transition-all shadow-sm ${
+          hasStatus
+            ? hasNewStatus
+              ? 'border-[var(--accent)] p-0.5'
+              : 'border-[var(--text-secondary)]/30 p-0.5 opacity-70 hover:opacity-100'
+            : 'border-[var(--glass-border)] group-hover:border-[var(--accent)]/30'
+        }`}>
           <div className="size-full rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)]">
             {logoUrl ? (
               <img src={logoUrl} alt={storeName} className="w-full h-full object-cover" />
