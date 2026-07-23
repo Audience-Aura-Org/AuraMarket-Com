@@ -185,13 +185,9 @@ html {
     font-weight: 400;
   }
 
-  /* Let zoom scale micro-type naturally — only nudge text-[12px] and above */
-  :where([class*="text-[12px]"]) {
-    font-size: 0.75rem !important;
-    line-height: 1.45;
-  }
-  .text-xs {
-    font-size: 0.75rem !important;
+  /* Sidebar / micro-type bump on desktop */
+  :where([class*="text-[12px]"]), .text-xs {
+    font-size: 0.95rem !important;
     line-height: 1.45;
   }
   .text-sm {
