@@ -1503,9 +1503,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     backViaButtonRef.current = true;
     if (typeof window !== 'undefined' && hasPushedHistoryRef.current) {
       hasPushedHistoryRef.current = false;
+      // Use replaceState (not history.back()) to clear the chatInterceptor flag.
+      // history.back() fires an async popstate that Next.js's own router intercepts,
+      // causing a spurious re-render / navigation of the page behind the chat.
+      // replaceState silently replaces the current history entry with no event fired.
       if (window.history.state?.chatInterceptor) {
-        suppressPopStateRef.current = true;
-        window.history.back();
+        window.history.replaceState({}, '', window.location.href);
       }
     }
     onClose?.();
@@ -1544,9 +1547,9 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     } else {
       if (hasPushedHistoryRef.current) {
         hasPushedHistoryRef.current = false;
+        // replaceState instead of history.back() — see dismissOverlay() comment.
         if (window.history.state?.chatInterceptor) {
-          suppressPopStateRef.current = true;
-          window.history.back();
+          window.history.replaceState({}, '', window.location.href);
         }
       }
     }
