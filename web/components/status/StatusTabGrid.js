@@ -65,10 +65,10 @@ const PremiumCard = memo(function PremiumCard({ status, statusesCount = 1, unvie
       )}
 
       {/* Main Card */}
-      <div className={`relative w-full h-full overflow-hidden rounded-[1.5rem] shadow-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 transition-all duration-300 ${
+      <div className={`relative w-full h-full overflow-hidden rounded-[1.5rem] shadow-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 transition-all duration-300 ring-2 ring-offset-2 ring-offset-[var(--bg-secondary)] ${
         isNew
-          ? 'ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg-secondary)]'
-          : 'opacity-75 hover:opacity-100'
+          ? 'ring-[var(--accent)]'
+          : 'ring-[var(--text-secondary)]/25 opacity-70 hover:opacity-100'
       }`}>
 
         {/* Progress dots */}

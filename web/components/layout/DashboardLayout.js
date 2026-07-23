@@ -45,7 +45,7 @@ export default function DashboardLayout({ children, role, hideSidebar = false, h
           />
         )}
         
-        <main className="relative z-10 flex min-h-0 w-full flex-1 flex-col pb-24 pt-[calc(56px+env(safe-area-inset-top,0px))] lg:pb-8 lg:pt-0">
+        <main className={`relative z-10 flex min-h-0 w-full flex-1 flex-col pb-24 lg:pb-8 lg:pt-0 ${!hideSidebar ? 'pt-[calc(56px+env(safe-area-inset-top,0px))]' : ''}`}>
           {!hideSidebar && <SubscriptionAccessNotice disabled />}
           {!hideSidebar && <Breadcrumbs role={role} />}
           {children}
