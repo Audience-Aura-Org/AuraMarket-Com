@@ -18,6 +18,7 @@ import WithdrawModal from '@/components/wallet/WithdrawModal';
 import DepositModal from '@/components/wallet/DepositModal';
 import socketService from '@/services/socket';
 import { useLanguage } from '@/context/LanguageContext';
+import StatCard from '@/components/layout/StatCard';
 
 const TX_ICONS = {
   deposit:    { Icon: ArrowDownLeft,  color: 'emerald' },
@@ -37,29 +38,6 @@ const TX_ICON_STYLES = {
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
-function CompactStat({ title, value, sub, icon: Icon, color }) {
-  const colors = {
-    emerald: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    amber: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-    blue: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-    purple: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-    fuchsia: 'bg-fuchsia-500/10 text-fuchsia-500 border-fuchsia-500/20',
-    red: 'bg-red-500/10 text-red-500 border-red-500/20',
-  };
-
-  return (
-    <div className="bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-2xl p-4 hover:border-[var(--accent)]/30 transition-all group font-poppins">
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`size-8 rounded-lg flex items-center justify-center border ${colors[color] || colors.blue}`}>
-          <Icon className="size-4" />
-        </div>
-        <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-50">{title}</p>
-      </div>
-      <h3 className="text-xl  font-bold text-[var(--text-primary)] tracking-tighter">{value}</h3>
-      {sub && <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 mt-1 tracking-tight">{sub}</p>}
-    </div>
-  );
-}
 
 export default function WalletPage() {
   const { user, hasHydrated, setWalletBalance, walletBalance } = useAuthStore();
@@ -310,33 +288,49 @@ export default function WalletPage() {
 
           {/* Stat Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <CompactStat title={t('wallet.available', 'Available')} value={fmt(balance)} sub={t('wallet.availableToSpend', 'Available to spend')} icon={Wallet} color="emerald" />
-            <CompactStat title={t('wallet.inEscrow', 'In escrow')} value={fmt(pendingBalance)} sub={t('wallet.heldInEscrow', 'Held in escrow')} icon={Lock} color="amber" />
-            <CompactStat
-              title="Money In"
+            <StatCard
+              label={t('wallet.available', 'Available')}
+              value={`${fmt(balance)} XAF`}
+              sub={t('wallet.availableToSpend', 'Available to spend')}
+              icon={Wallet}
+              color="emerald"
+              loading={loading}
+            />
+            <StatCard
+              label={t('wallet.inEscrow', 'In escrow')}
+              value={`${fmt(pendingBalance)} XAF`}
+              sub={t('wallet.heldInEscrow', 'Held in escrow')}
+              icon={Lock}
+              color="amber"
+              loading={loading}
+            />
+            <StatCard
+              label="Money In"
               value={`${fmt(transactions.filter(tx =>
                   tx.status === 'completed' &&
                   (tx.type === 'refund' || tx.type === 'payout' ||
                    (tx.type === 'deposit' && !(tx.order_ids?.length > 0)))
-                ).reduce((s, tx) => s + Number(tx.amount || 0), 0))} XAF`}
+                ).reduce((s, tx) => s + (tx.amount || 0), 0))} XAF`}
               sub={`${transactions.filter(tx =>
                   tx.status === 'completed' &&
                   (tx.type === 'refund' || tx.type === 'payout' ||
                    (tx.type === 'deposit' && !(tx.order_ids?.length > 0)))
-                ).length} credit transactions`}
+                ).length} credit transaction(s)`}
               icon={ArrowDownLeft}
               color="emerald"
+              loading={loading}
             />
-            <CompactStat
-              title="Money Out"
+            <StatCard
+              label="Money Out"
               value={`${fmt(transactions.filter(tx =>
                   tx.status === 'completed' &&
                   (tx.type === 'withdrawal' || tx.type === 'payment' ||
                    (tx.type === 'deposit' && tx.order_ids?.length > 0))
-                ).reduce((s, tx) => s + Number(tx.amount || 0), 0))} XAF`}
-              sub={`${transactions.filter(tx => tx.status === 'failed' || tx.status === 'rejected').length} failed transactions`}
+                ).reduce((s, tx) => s + (tx.amount || 0), 0))} XAF`}
+              sub={`${transactions.filter(tx => tx.status === 'failed' || tx.status === 'rejected').length} failed transaction(s)`}
               icon={ArrowUpRight}
-              color="red"
+              color="rose"
+              loading={loading}
             />
           </div>
 
