@@ -575,10 +575,10 @@ export default function AddProductPage() {
                     {images.map((img, i) => (
                       <div key={i} className="relative aspect-square rounded-2xl overflow-hidden group border border-[var(--glass-border)] shadow-sm">
                         <img src={img.url} className="w-full h-full object-cover" />
-                        <button 
+                        <button
                           type="button"
                           onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))}
-                          className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
                         >
                           <X className="w-3 h-3" />
                         </button>

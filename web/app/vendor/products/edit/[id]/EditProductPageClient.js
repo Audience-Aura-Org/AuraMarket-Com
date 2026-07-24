@@ -270,7 +270,6 @@ export default function EditProductPage() {
       } catch { /* non-fatal */ }
 
       toast.success('Product updated successfully.');
-      router.push('/vendor/products');
     } catch (err) {
       console.error('Product update error:', err);
       toast.error(err?.response?.data?.message || 'Failed to update product. Please try again.');
@@ -584,7 +583,7 @@ export default function EditProductPage() {
                         <button
                           type="button"
                           onClick={() => setImages(prev => prev.filter((_, idx) => idx !== i))}
-                          className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
                         >
                           <X className="w-3 h-3" />
                         </button>
