@@ -74,7 +74,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 40;
   const { markAllRead: clearBadge } = useNotifications();
 
   const fetchNotifications = useCallback(async () => {
