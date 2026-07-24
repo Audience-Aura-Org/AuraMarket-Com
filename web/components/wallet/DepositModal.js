@@ -15,30 +15,34 @@ const COUNTDOWN_SECS = 180; // 3 minutes
 /**
  * CountdownTimer — counts down from totalSecs to 0.
  * Calls onExpire() exactly once when it reaches 0.
- * Uses setTimeout-per-tick so each decrement is independent.
+ * Uses a wall-clock setInterval so parent re-renders can't cancel the tick.
  */
 function CountdownTimer({ totalSecs = COUNTDOWN_SECS, onExpire }) {
   const [remaining, setRemaining] = useState(totalSecs);
   const onExpireRef = useRef(onExpire);
-  const firedRef = useRef(false);
+  const firedRef    = useRef(false);
+  // Always keep ref pointing at latest callback — no stale closure
   useEffect(() => { onExpireRef.current = onExpire; });
 
   useEffect(() => {
+    // Calculate absolute end time so drift doesn't accumulate
+    const endAt = Date.now() + totalSecs * 1000;
     firedRef.current = false;
     setRemaining(totalSecs);
-  }, [totalSecs]);
 
-  useEffect(() => {
-    if (remaining <= 0) {
-      if (!firedRef.current) {
+    const t = setInterval(() => {
+      const left = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+      setRemaining(left);
+      if (left <= 0 && !firedRef.current) {
         firedRef.current = true;
+        clearInterval(t);
         onExpireRef.current?.();
       }
-      return;
-    }
-    const t = setTimeout(() => setRemaining(r => r - 1), 1000);
-    return () => clearTimeout(t);
-  }, [remaining]);
+    }, 500); // 500 ms tick → display updates every second, feels smooth
+
+    return () => clearInterval(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalSecs]); // restart only if duration prop changes
 
   const m = Math.floor(remaining / 60);
   const s = remaining % 60;
