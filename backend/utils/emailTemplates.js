@@ -4,7 +4,14 @@
  * Professional design with logo, clean aesthetic, minimal colors
  */
 
-const WEB_URL = process.env.WEB_CLIENT_URL || 'https://auradime.com/';
+// Never let localhost slip into a live email — always fall back to the prod domain.
+const sanitizeUrl = (url) => {
+  if (!url) return 'https://auradime.com';
+  if (/localhost|127\.0\.0\.1|0\.0\.0\.0/.test(String(url))) return 'https://auradime.com';
+  return String(url).replace(/\/+$/, '');
+};
+
+const WEB_URL = sanitizeUrl(process.env.WEB_CLIENT_URL || 'https://auradime.com');
 const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://auradime.com/icon-512.png';
 const SUPPORT_EMAIL = process.env.EMAIL_USER || 'support@auradime.com';
 
@@ -473,41 +480,55 @@ const shipmentStatusChanged = ({ shipment, order, recipient, status, webUrl, das
 
 /* ─── REFUND APPROVED (Customer) ─── */
 const refundApproved = ({ order, customer, webUrl }) => {
-  const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
+  const baseUrl = sanitizeUrl(webUrl || WEB_URL);
+  const ref = orderRef(order);
   const subject = `✅ Refund Approved — #${ref}`;
   const body = `
-    <p>Hi <strong>${customer.name || 'there'}</strong>,</p>
-    <p>Your refund has been processed and returned to your wallet.</p>
-    
-    <div class="card">
-      <div class="card-row"><span class="card-label">Amount</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
-    </div>
-    
-    <a href="${baseUrl}/wallet" class="btn">View Wallet</a>
+    <p>Hi <strong>${customer?.name || resolveCustomerName(order) || 'there'}</strong>,</p>
+    <p>Your refund for Order <strong>#${ref}</strong> has been approved and credited to your Auradime wallet.</p>
+
+    ${orderSummaryCard({
+      order,
+      status: 'refunded',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Refund Amount</span><span class="card-value" style="color:${COLORS.accent};font-weight:700;">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>`,
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(order)}</span></div>`,
+      ],
+      includeProducts: true,
+    })}
+
+    <p style="font-size:12px;color:${COLORS.textMuted};margin-top:4px;">Funds are available in your wallet and can be used for future purchases or withdrawn at any time.</p>
+    ${dashboardButton(`${baseUrl}/wallet`, 'View Wallet')}
   `;
-  const html = wrap(subject, 'Refund Processed', body);
-  return { subject, html, text: `Refund approved for Order #${ref}.` };
+  const html = wrap(subject, 'Refund Approved', body);
+  return { subject, html, text: `Refund of XAF ${(order.total_amount || 0).toLocaleString()} approved for Order #${ref}. Funds credited to your wallet.` };
 };
 
 /* ─── ORDER COMPLETED / ESCROW RELEASED (Vendor) ─── */
 const orderCompleted = ({ order, vendor, webUrl }) => {
-  const baseUrl = webUrl || WEB_URL;
-  const ref = order._id.toString().slice(-6).toUpperCase();
+  const baseUrl = sanitizeUrl(webUrl || WEB_URL);
+  const ref = orderRef(order);
   const subject = `🎉 Order Completed & Payment Released — #${ref}`;
   const body = `
-    <p>Hi <strong>${vendor.store_name || 'there'}</strong>,</p>
-    <p>Order completed! Funds have been released to your wallet.</p>
-    
-    <div class="card">
-      <div class="card-row"><span class="card-label">Ref</span><span class="card-value">#${ref}</span></div>
-      <div class="card-row"><span class="card-label">Amount</span><span class="card-value">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>
-    </div>
-    
-    <a href="${baseUrl}/vendor/wallet" class="btn">View Wallet</a>
+    <p>Hi <strong>${vendor?.store_name || resolveVendorName(order) || 'there'}</strong>,</p>
+    <p>Great news — Order <strong>#${ref}</strong> is complete and funds have been released to your wallet.</p>
+
+    ${orderSummaryCard({
+      order,
+      status: 'completed',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(order)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Amount Released</span><span class="card-value" style="color:${COLORS.accent};font-weight:700;">XAF ${(order.total_amount || 0).toLocaleString()}</span></div>`,
+        `<div class="card-row"><span class="card-label">Payment</span><span class="card-value">${badge('completed')}</span></div>`,
+        order.shipping_address ? `<div class="card-row"><span class="card-label">Delivered To</span><span class="card-value" style="text-align:right;">${formatAddress(order.shipping_address)}</span></div>` : '',
+      ].filter(Boolean),
+      includeProducts: true,
+    })}
+
+    ${dashboardButton(`${baseUrl}/vendor/wallet`, 'View Wallet')}
   `;
   const html = wrap(subject, 'Payment Released', body);
-  return { subject, html, text: `Order #${ref} completed. Payment released.` };
+  return { subject, html, text: `Order #${ref} completed. XAF ${(order.total_amount || 0).toLocaleString()} released to your wallet. Customer: ${resolveCustomerName(order)}.` };
 };
 
 /* ─── NEW ORDER FOR VENDOR ─── */
@@ -715,6 +736,47 @@ const orderStatusUpdated = ({ order, customer, qrCode, webUrl }) => {
   };
 };
 
+/* ─── ADMIN NOTIFICATION (Platform Admins) ─── */
+const adminNotification = ({ title, message, orderDetails, metadata, link, webUrl }) => {
+  const baseUrl = sanitizeUrl(webUrl || WEB_URL);
+  const subject = `🔔 [Admin] ${title}`;
+
+  const orderSection = orderDetails ? `
+    ${orderSummaryCard({
+      order: orderDetails,
+      status: orderDetails.order_status || 'pending',
+      extraRows: [
+        `<div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(orderDetails)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Vendor</span><span class="card-value">${resolveVendorName(orderDetails)}</span></div>`,
+        `<div class="card-row"><span class="card-label">Payment</span><span class="card-value">${badge(orderDetails.payment_status || 'pending')}</span></div>`,
+        orderDetails.shipping_address ? `<div class="card-row"><span class="card-label">Delivery To</span><span class="card-value" style="text-align:right;">${formatAddress(orderDetails.shipping_address)}</span></div>` : '',
+      ].filter(Boolean),
+      includeProducts: true,
+    })}
+  ` : '';
+
+  // Render safe scalar metadata fields as extra detail rows
+  const metaRows = metadata
+    ? Object.entries(metadata)
+        .filter(([k, v]) => !['sender_id', 'senderId', 'senderData', 'shipment', 'link'].includes(k) && v != null && typeof v !== 'object')
+        .map(([k, v]) => `<div class="card-row"><span class="card-label">${k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span><span class="card-value">${v}</span></div>`)
+        .join('')
+    : '';
+  const metaSection = metaRows ? `<div class="card">${metaRows}</div>` : '';
+
+  const actionLink = sanitizeUrl(link) || `${baseUrl}/admin`;
+
+  const body = `
+    <div class="highlight"><p><strong>Platform Admin Alert</strong> — this notification was sent automatically by the Auradime system.</p></div>
+    <p>${message || 'A platform event requires your attention.'}</p>
+    ${orderSection}
+    ${metaSection}
+    ${dashboardButton(actionLink, 'Open Admin Panel')}
+  `;
+  const html = wrap(subject, `Admin: ${title}`, body);
+  return { subject, html, text: `[Admin] ${title}: ${message}` };
+};
+
 module.exports = {
   welcomeEmail,
   otpEmail,
@@ -731,6 +793,8 @@ module.exports = {
   orderNotificationFallback,
   refundRequested,
   orderStatusUpdated,
+  adminNotification,
+  sanitizeUrl,
   wrap,
   orderRef,
   resolveCustomerName,

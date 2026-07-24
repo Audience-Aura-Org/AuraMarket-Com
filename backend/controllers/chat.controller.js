@@ -404,14 +404,20 @@ const sendMessage = async (req, res, next) => {
 
         let body;
         if (text && text.trim()) {
-          body = text.length > 80 ? text.slice(0, 77) + '...' : text;
-        } else if (product_reference) {
-          body = '📦 Shared a product with you';
+          // Trim to 100 chars for a cleaner banner — long texts get cut at 97
+          body = text.length > 100 ? text.slice(0, 97) + '…' : text;
         } else if (image_url) {
-          body = '📷 Sent you a photo';
+          body = '📷 Photo';
+        } else if (product_reference) {
+          body = '📦 Product';
         } else {
-          body = 'Sent you a message';
+          body = '💬 New message';
         }
+
+        // Sanitize base URL so the email link is never localhost
+        const chatBaseUrl = /localhost|127\.0\.0\.1/.test(process.env.WEB_CLIENT_URL || '')
+          ? 'https://auradime.com'
+          : (process.env.WEB_CLIENT_URL || 'https://auradime.com').replace(/\/+$/, '');
 
         console.log(`[API] 🔔 Push: sending notification to ${receiver_id} (message ${message._id}, receiverOnline=${receiverOnline})`);
 
@@ -425,7 +431,7 @@ const sendMessage = async (req, res, next) => {
             senderData,
             link: `/chat?vendorId=${req.user._id}`,
           },
-          emailLink: `${process.env.WEB_CLIENT_URL}/chat?vendorId=${req.user._id}`
+          emailLink: `${chatBaseUrl}/chat?vendorId=${req.user._id}`,
         });
 
         console.log(`[API] 🔔 Push result for ${receiver_id}:`, notifResult ? 'sent' : 'failed');

@@ -106,8 +106,15 @@ const translateNotificationText = (text, language = 'en') => {
 
 const normalizeTitle = (title = '') => String(title).toLowerCase();
 
+// Strip localhost from any URL that might slip in from dev environment variables.
+const sanitizeUrl = (url) => {
+  if (!url) return 'https://auradime.com';
+  if (/localhost|127\.0\.0\.1|0\.0\.0\.0/.test(String(url))) return 'https://auradime.com';
+  return String(url).replace(/\/+$/, '');
+};
+
 const buildOrderEmailHtml = (title, message, orderDetails, role, emailLink, qrCode, webUrl, context = {}) => {
-  const baseUrl = webUrl || process.env.WEB_CLIENT_URL || 'https://auradime.com';
+  const baseUrl = sanitizeUrl(webUrl || process.env.WEB_CLIENT_URL || 'https://auradime.com');
   const dashboardLink = emailLink || (context.metadata?.link ? `${baseUrl}${context.metadata.link}` : null);
   const titleKey = normalizeTitle(title);
   const shipment = orderDetails?.shipment || context.shipment || null;
@@ -427,14 +434,36 @@ const notifyFollowers = async (app, vendorId, data) => {
 };
 
 /**
- * Send a notification (and email) to every active admin user.
+ * Send a notification (and rich email) to every active admin user.
+ * Always includes email with the admin-specific template so admins get
+ * full event details — order info, customer, vendor, metadata — in one place.
  * Fire-and-forget — errors are logged but never thrown.
  */
 const notifyAdmins = async (app, data) => {
   try {
     const admins = await User.find({ role: 'admin', is_active: true }).select('_id').lean();
     if (!admins.length) return;
-    await Promise.allSettled(admins.map(admin => sendNotification(app, admin._id, data)));
+
+    // Build rich admin email template once for all admins
+    const prodUrl = sanitizeUrl(data.webUrl || process.env.WEB_CLIENT_URL || 'https://auradime.com');
+    const adminEmailResult = templates.adminNotification({
+      title: data.title,
+      message: data.message,
+      orderDetails: data.orderDetails || null,
+      metadata: data.metadata || null,
+      link: sanitizeUrl(data.emailLink || data.metadata?.link ? `${prodUrl}${data.metadata.link}` : null) || `${prodUrl}/admin`,
+      webUrl: prodUrl,
+    });
+
+    const adminData = {
+      ...data,
+      sendEmail: true,
+      role: 'admin',
+      webUrl: prodUrl,
+      emailTemplate: data.emailTemplate || adminEmailResult,
+    };
+
+    await Promise.allSettled(admins.map(admin => sendNotification(app, admin._id, adminData)));
   } catch (err) {
     console.error('[notifyAdmins] Error:', err.message);
   }
