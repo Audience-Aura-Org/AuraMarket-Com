@@ -83,13 +83,15 @@ export default function AccountHeader({
               </h1>
 
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2.5">
-                {/* Followers */}
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-semibold text-[var(--text-secondary)]">
-                  <Users className="size-3 text-[var(--accent)]" />
-                  {followerCount >= 1000
-                    ? `${(followerCount / 1000).toFixed(1)}k`
-                    : followerCount} followers
-                </span>
+                {/* Followers — vendors only; regular users cannot be followed */}
+                {user?.role === 'vendor' && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[11px] font-semibold text-[var(--text-secondary)]">
+                    <Users className="size-3 text-[var(--accent)]" />
+                    {followerCount >= 1000
+                      ? `${(followerCount / 1000).toFixed(1)}k`
+                      : followerCount} followers
+                  </span>
+                )}
 
                 {/* Rating (vendors only) */}
                 {Number(rating) > 0 && (

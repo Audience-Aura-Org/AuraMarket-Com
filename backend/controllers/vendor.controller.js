@@ -488,12 +488,15 @@ const followVendor = async (req, res, next) => {
     if (existing) return res.status(400).json({ success: false, message: 'Already connected to this node.' });
 
     await Follow.create({ user_id: userId, vendor_id: vendorId });
-    
-    // Atomically increment follower count
-    vendor.follower_count = (vendor.follower_count || 0) + 1;
-    await vendor.save();
 
-    res.status(201).json({ success: true, message: `Now following ${vendor.store_name}.`, follower_count: vendor.follower_count });
+    // Use $inc so concurrent follow requests don't overwrite each other
+    const updated = await Vendor.findByIdAndUpdate(
+      vendorId,
+      { $inc: { follower_count: 1 } },
+      { new: true, select: 'store_name follower_count' }
+    );
+
+    res.status(201).json({ success: true, message: `Now following ${updated.store_name}.`, follower_count: updated.follower_count });
   } catch (error) {
     next(error);
   }
@@ -512,13 +515,14 @@ const unfollowVendor = async (req, res, next) => {
     const follow = await Follow.findOneAndDelete({ user_id: userId, vendor_id: vendorId });
     if (!follow) return res.status(400).json({ success: false, message: 'Relation not found mapping.' });
 
-    const vendor = await Vendor.findById(vendorId);
-    if (vendor) {
-      vendor.follower_count = Math.max(0, (vendor.follower_count || 0) - 1);
-      await vendor.save();
-    }
+    // Decrement atomically; the $max aggregate expression floors the result at 0
+    const updated = await Vendor.findByIdAndUpdate(
+      vendorId,
+      [{ $set: { follower_count: { $max: [0, { $subtract: ['$follower_count', 1] }] } } }],
+      { new: true, select: 'follower_count' }
+    );
 
-    res.status(200).json({ success: true, message: 'Unfollowed successfully.', follower_count: vendor?.follower_count || 0 });
+    res.status(200).json({ success: true, message: 'Unfollowed successfully.', follower_count: updated?.follower_count ?? 0 });
   } catch (error) {
     next(error);
   }

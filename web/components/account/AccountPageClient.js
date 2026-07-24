@@ -311,6 +311,24 @@ export default function AccountPageClient() {
     return () => window.removeEventListener('fontsizechange', handleFontSizeChange);
   }, []);
 
+  // Re-fetch follower count whenever the vendor returns to this tab/app so the
+  // number stays current even if other users followed/unfollowed while away.
+  useEffect(() => {
+    if (!user || user.role !== 'vendor' || !user.onboarded) return;
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        api.get('/vendors/me', { skipClientCache: true }).then(res => {
+          if (res.data?.success) {
+            const v = res.data.data.vendor;
+            setStoreData(prev => ({ ...prev, follower_count: v.follower_count || 0, rating: v.rating || 0 }));
+          }
+        }).catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [user]);
+
   const fontSizeOptions = [
     { value: FONT_SIZES.sm, label: 'S', helper: 'Small', size: '14px' },
     { value: FONT_SIZES.md, label: 'M', helper: 'Medium', size: '16px', badge: 'Default' },
