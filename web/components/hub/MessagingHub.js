@@ -1515,11 +1515,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   };
 
   const goBackOrClose = () => {
-    if (activePartnerId) {
-      setActiveConversation(null);
-    } else {
-      dismissOverlay();
-    }
+    dismissOverlay();
   };
 
   // Keep goBackOrClose fresh every render so back-button effects never hold stale closures.
@@ -1560,17 +1556,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       if (!hasPushedHistoryRef.current) return;
       backViaButtonRef.current = true;
 
-      if (activePartnerIdRef.current) {
-        // Thread → inbox: clear the active conversation, re-push the interceptor
-        // so the NEXT back gesture can close the overlay.
-        setActiveConversation(null);
-        window.history.pushState({ chatInterceptor: true }, '');
-        hasPushedHistoryRef.current = true;
-      } else {
-        // Inbox → close.
-        hasPushedHistoryRef.current = false;
-        dismissOverlay();
-      }
+      hasPushedHistoryRef.current = false;
+      dismissOverlay();
     };
 
     window.addEventListener('popstate', onPopState);
