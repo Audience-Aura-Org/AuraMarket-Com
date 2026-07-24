@@ -4,9 +4,8 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Bell, Package, CreditCard, MessageCircle,
-  Trash2, ArrowLeft, CheckCheck,
-  Sparkles, Store, Truck,
+  Package, CreditCard, MessageCircle, Trash2, CheckCheck,
+  Sparkles, Store, Truck, ShoppingBag, Wallet2, Radio,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
@@ -15,22 +14,38 @@ import { notificationService } from '@/services/notifications';
 import Pagination from '@/components/common/Pagination';
 import { normalizeAppRoute } from '@/lib/navigation';
 
-// ── Icon map (matches backend enum) ─────────────────────────────────────────
-const ICON_MAP = {
-  order:            { Icon: Package,       color: 'text-indigo-500',        bg: 'bg-indigo-500/10'        },
-  order_status:     { Icon: Package,       color: 'text-indigo-500',        bg: 'bg-indigo-500/10'        },
-  order_update:     { Icon: Package,       color: 'text-indigo-500',        bg: 'bg-indigo-500/10'        },
-  payment:          { Icon: CreditCard,    color: 'text-emerald-500',       bg: 'bg-emerald-500/10'       },
-  payment_received: { Icon: CreditCard,    color: 'text-emerald-500',       bg: 'bg-emerald-500/10'       },
-  wallet_update:    { Icon: CreditCard,    color: 'text-emerald-500',       bg: 'bg-emerald-500/10'       },
-  chat:             { Icon: MessageCircle, color: 'text-[var(--accent)]',   bg: 'bg-[var(--accent)]/10'   },
-  chat_alert:       { Icon: MessageCircle, color: 'text-[var(--accent)]',   bg: 'bg-[var(--accent)]/10'   },
-  system:           { Icon: Sparkles,      color: 'text-amber-500',         bg: 'bg-amber-500/10'         },
-  system_alert:     { Icon: Sparkles,      color: 'text-amber-500',         bg: 'bg-amber-500/10'         },
-  vendor_update:    { Icon: Store,         color: 'text-sky-500',           bg: 'bg-sky-500/10'           },
-  logistics:        { Icon: Truck,         color: 'text-purple-500',        bg: 'bg-purple-500/10'        },
+// ── Type → visual config ─────────────────────────────────────────────────────
+const TYPE_CONFIG = {
+  order:            { label: 'SHOPPING HUB',  borderCls: 'border-l-blue-500',    iconBg: 'bg-blue-100 dark:bg-blue-500/15',    iconCls: 'text-blue-600 dark:text-blue-400',    Icon: ShoppingBag },
+  order_status:     { label: 'SHOPPING HUB',  borderCls: 'border-l-blue-500',    iconBg: 'bg-blue-100 dark:bg-blue-500/15',    iconCls: 'text-blue-600 dark:text-blue-400',    Icon: Package },
+  order_update:     { label: 'SHOPPING HUB',  borderCls: 'border-l-blue-500',    iconBg: 'bg-blue-100 dark:bg-blue-500/15',    iconCls: 'text-blue-600 dark:text-blue-400',    Icon: Package },
+  payment:          { label: 'WALLET',         borderCls: 'border-l-emerald-500', iconBg: 'bg-emerald-100 dark:bg-emerald-500/15', iconCls: 'text-emerald-600 dark:text-emerald-400', Icon: CreditCard },
+  payment_received: { label: 'WALLET',         borderCls: 'border-l-emerald-500', iconBg: 'bg-emerald-100 dark:bg-emerald-500/15', iconCls: 'text-emerald-600 dark:text-emerald-400', Icon: Wallet2 },
+  wallet_update:    { label: 'WALLET',         borderCls: 'border-l-emerald-500', iconBg: 'bg-emerald-100 dark:bg-emerald-500/15', iconCls: 'text-emerald-600 dark:text-emerald-400', Icon: Wallet2 },
+  chat:             { label: 'MESSAGES',       borderCls: 'border-l-[var(--accent)]', iconBg: 'bg-[var(--accent)]/10',          iconCls: 'text-[var(--accent)]',                Icon: MessageCircle },
+  chat_alert:       { label: 'MESSAGES',       borderCls: 'border-l-[var(--accent)]', iconBg: 'bg-[var(--accent)]/10',          iconCls: 'text-[var(--accent)]',                Icon: MessageCircle },
+  system:           { label: 'SYSTEM',         borderCls: 'border-l-amber-500',   iconBg: 'bg-amber-100 dark:bg-amber-500/15',   iconCls: 'text-amber-600 dark:text-amber-400',  Icon: Sparkles },
+  system_alert:     { label: 'SYSTEM',         borderCls: 'border-l-amber-500',   iconBg: 'bg-amber-100 dark:bg-amber-500/15',   iconCls: 'text-amber-600 dark:text-amber-400',  Icon: Sparkles },
+  vendor_update:    { label: 'STORE UPDATE',   borderCls: 'border-l-sky-500',     iconBg: 'bg-sky-100 dark:bg-sky-500/15',       iconCls: 'text-sky-600 dark:text-sky-400',      Icon: Store },
+  logistics:        { label: 'LOGISTICS',      borderCls: 'border-l-violet-500',  iconBg: 'bg-violet-100 dark:bg-violet-500/15', iconCls: 'text-violet-600 dark:text-violet-400', Icon: Truck },
+  message:          { label: 'MESSAGES',       borderCls: 'border-l-[var(--accent)]', iconBg: 'bg-[var(--accent)]/10',          iconCls: 'text-[var(--accent)]',                Icon: MessageCircle },
 };
 
+const DEFAULT_CONFIG = { label: 'NOTIFICATION', borderCls: 'border-l-[var(--glass-border)]', iconBg: 'bg-[var(--bg-secondary)]', iconCls: 'text-[var(--text-secondary)]', Icon: Sparkles };
+
+const getConfig = (type = '') => {
+  const key = Object.keys(TYPE_CONFIG).find(k => type === k || type?.includes(k));
+  return key ? TYPE_CONFIG[key] : DEFAULT_CONFIG;
+};
+
+// ── Filter tabs ───────────────────────────────────────────────────────────────
+const FILTERS = [
+  { id: 'all',    label: 'All' },
+  { id: 'orders', label: 'Orders',   match: (t) => ['order','order_status','order_update','payment','payment_received','wallet_update','logistics'].some(k => t?.includes(k)) },
+  { id: 'offers', label: 'Offers',   match: (t) => ['vendor_update','system','system_alert'].some(k => t?.includes(k)) },
+];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000;
   if (diff < 60)    return 'Just now';
@@ -43,32 +58,30 @@ function groupNotifs(items) {
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const yesterdayStart = new Date(todayStart - 86_400_000);
   const buckets = { Today: [], Yesterday: [], Earlier: [] };
-
   for (const n of items) {
     const t = new Date(n.createdAt);
-    if (t >= todayStart)     buckets.Today.push(n);
+    if (t >= todayStart)         buckets.Today.push(n);
     else if (t >= yesterdayStart) buckets.Yesterday.push(n);
-    else                     buckets.Earlier.push(n);
+    else                          buckets.Earlier.push(n);
   }
-
   return Object.entries(buckets).filter(([, notifs]) => notifs.length > 0);
 }
 
-// ── Page ────────────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function NotificationsPage() {
   const router = useRouter();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 15;
   const { markAllRead: clearBadge } = useNotifications();
 
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await api.get('/notifications');
       if (res.data.success) setNotifications(res.data.data.notifications || []);
-    } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+    } catch {
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -100,124 +113,126 @@ export default function NotificationsPage() {
   };
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
-  const totalPages  = Math.ceil(notifications.length / itemsPerPage);
-  const current     = notifications.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const groups      = groupNotifs(current);
+
+  // Apply active filter
+  const filtered = activeFilter === 'all'
+    ? notifications
+    : notifications.filter(n => {
+        const f = FILTERS.find(f => f.id === activeFilter);
+        return f?.match?.(n.type) ?? true;
+      });
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const current   = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const groups    = groupNotifs(current);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] pb-32 transition-colors duration-500">
+    <div className="min-h-screen bg-[var(--bg-secondary)] pb-32 transition-colors duration-300">
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-50 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/80 backdrop-blur-3xl">
-        <div className="flex items-center gap-3 px-4 py-3 sm:px-6">
-
-          {/* Back */}
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="size-9 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-primary)] hover:border-[var(--accent)]/40 transition-all shadow-sm shrink-0"
-          >
-            <ArrowLeft className="size-4" />
-          </button>
-
-          {/* Title */}
-          <div className="flex-1 flex items-center gap-2.5 min-w-0">
+      {/* ── Sticky header ──────────────────────────────────────────────── */}
+      <div className="sticky top-0 z-50 bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 sm:px-5">
+          <div className="flex items-center gap-2.5">
+            {/* Signal icon */}
             <div className="size-8 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
-              <Bell className="size-4 text-[var(--accent)]" />
+              <Radio className="size-[17px] text-[var(--accent)]" />
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="text-[13px] font-bold tracking-tight text-[var(--text-primary)]">Signals</h1>
-                {unreadCount > 0 && (
-                  <span className="h-4 px-1.5 rounded-full bg-[var(--accent)] text-white text-[9px] font-bold flex items-center justify-center tabular-nums">
-                    {unreadCount}
-                  </span>
-                )}
-              </div>
-              <p className="text-[10px] font-semibold tracking-[0.15em] text-[var(--text-secondary)] opacity-40 uppercase">
-                Notification Center
-              </p>
+            <div>
+              <h1 className="text-[15px] font-bold tracking-tight text-[var(--text-primary)] leading-none">
+                Notifications
+              </h1>
+              {unreadCount > 0 && (
+                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                  {unreadCount} unread
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Mark all read */}
           {unreadCount > 0 && (
             <button
               type="button"
               onClick={markAllRead}
-              className="flex items-center gap-1.5 px-3 h-8 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-semibold hover:bg-[var(--accent)] hover:text-white transition-all border border-[var(--accent)]/20 shrink-0"
+              className="flex items-center gap-1.5 text-[var(--accent)] text-[12px] font-semibold"
             >
               <CheckCheck className="size-3.5" />
-              <span className="hidden sm:inline">Mark all read</span>
+              Mark all as read
             </button>
           )}
         </div>
+
+        {/* Filter tabs */}
+        <div className="flex gap-2 px-4 pb-3 sm:px-5">
+          {FILTERS.map(f => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => { setActiveFilter(f.id); setCurrentPage(1); }}
+              className={`h-8 px-4 rounded-full text-[12px] font-semibold transition-all ${
+                activeFilter === f.id
+                  ? 'bg-[var(--accent)] text-white shadow-sm'
+                  : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* ── Body ────────────────────────────────────────────────────────── */}
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+      {/* ── Body ───────────────────────────────────────────────────────── */}
+      <main className="max-w-xl mx-auto px-3 sm:px-4 pt-4">
 
-        {/* Loading skeletons */}
+        {/* Skeletons */}
         {loading && (
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="h-[74px] rounded-2xl bg-[var(--bg-primary)]/40 border border-[var(--glass-border)] animate-pulse"
-                style={{ animationDelay: `${i * 60}ms` }}
-              />
+              <div key={i} className="h-[80px] rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] animate-pulse"
+                style={{ animationDelay: `${i * 55}ms` }} />
             ))}
           </div>
         )}
 
-        {/* Empty state */}
-        {!loading && notifications.length === 0 && (
-          <div className="py-24 flex flex-col items-center text-center gap-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="size-20 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center shadow-sm">
-              <Bell className="size-8 text-[var(--text-secondary)] opacity-20" />
+        {/* Empty */}
+        {!loading && filtered.length === 0 && (
+          <div className="py-24 flex flex-col items-center text-center gap-4 animate-in fade-in duration-400">
+            <div className="size-20 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center">
+              <Radio className="size-8 text-[var(--text-secondary)] opacity-20" />
             </div>
-            <div className="space-y-1.5">
-              <h3 className="text-base font-bold text-[var(--text-primary)] tracking-tight">You&apos;re all caught up</h3>
-              <p className="text-[12px] text-[var(--text-secondary)] opacity-40 max-w-[200px] mx-auto leading-relaxed">
-                No notifications yet. We&apos;ll let you know when something happens.
+            <div>
+              <h3 className="text-[14px] font-bold text-[var(--text-primary)]">All caught up</h3>
+              <p className="text-[12px] text-[var(--text-secondary)] opacity-50 mt-1 max-w-[180px] mx-auto leading-relaxed">
+                No {activeFilter !== 'all' ? activeFilter : ''} notifications yet.
               </p>
             </div>
           </div>
         )}
 
-        {/* Notification groups */}
-        {!loading && notifications.length > 0 && (
-          <div className="space-y-6 animate-in fade-in duration-500">
+        {/* Groups */}
+        {!loading && filtered.length > 0 && (
+          <div className="space-y-5 animate-in fade-in duration-300">
             {groups.map(([label, notifs]) => (
               <section key={label}>
-                {/* Group label */}
-                <div className="flex items-center gap-3 mb-3 px-1">
-                  <span className="text-[10px] font-bold tracking-[0.15em] uppercase text-[var(--text-secondary)] opacity-40 shrink-0">
+                {/* Date label */}
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <span className="text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-secondary)] opacity-40 shrink-0">
                     {label}
                   </span>
                   <div className="flex-1 h-px bg-[var(--glass-border)]" />
                 </div>
 
-                {/* Cards */}
                 <div className="space-y-2">
-                  {notifs.map((n) => {
-                    const typeKey = Object.keys(ICON_MAP).find(k => n.type?.includes(k)) ?? 'system_alert';
-                    const { Icon, color, bg } = ICON_MAP[typeKey];
-                    return (
-                      <NotifCard
-                        key={n._id}
-                        n={n}
-                        Icon={Icon}
-                        iconColor={color}
-                        iconBg={bg}
-                        onDelete={() => deleteNotif(n._id)}
-                        onNavigate={() => {
-                          if (!n.is_read) markRead(n._id);
-                          if (n.metadata?.link) router.push(normalizeAppRoute(n.metadata.link));
-                        }}
-                      />
-                    );
-                  })}
+                  {notifs.map(n => (
+                    <NotifCard
+                      key={n._id}
+                      n={n}
+                      onDelete={() => deleteNotif(n._id)}
+                      onNavigate={() => {
+                        if (!n.is_read) markRead(n._id);
+                        if (n.metadata?.link) router.push(normalizeAppRoute(n.metadata.link));
+                      }}
+                    />
+                  ))}
                 </div>
               </section>
             ))}
@@ -226,71 +241,72 @@ export default function NotificationsPage() {
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={(p) => {
-              setCurrentPage(p);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            compact
-          />
+          <div className="mt-6">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={(p) => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              compact
+            />
+          </div>
         )}
       </main>
     </div>
   );
 }
 
-// ── Notification card ────────────────────────────────────────────────────────
-function NotifCard({ n, Icon, iconColor, iconBg, onDelete, onNavigate }) {
+// ── Notification card ─────────────────────────────────────────────────────────
+function NotifCard({ n, onDelete, onNavigate }) {
+  const { Icon, iconBg, iconCls, borderCls, label } = getConfig(n.type);
+
   return (
     <div
       onClick={onNavigate}
-      className={`relative overflow-hidden rounded-2xl border transition-all duration-200 group cursor-pointer ${
-        !n.is_read
-          ? 'bg-[var(--bg-primary)] border-[var(--accent)]/20 shadow-sm'
-          : 'bg-[var(--bg-primary)]/40 border-[var(--glass-border)] hover:bg-[var(--bg-primary)]/70'
-      }`}
+      className={`relative group cursor-pointer bg-[var(--bg-primary)] rounded-2xl border-l-[3.5px] border border-[var(--glass-border)] overflow-hidden transition-all duration-200 hover:shadow-sm active:scale-[0.99] ${borderCls} ${!n.is_read ? 'shadow-sm' : 'opacity-80'}`}
     >
-      {/* Unread left accent bar */}
-      {!n.is_read && (
-        <div className="absolute left-0 top-3 bottom-3 w-[3px] bg-[var(--accent)] rounded-r-full" />
-      )}
+      <div className="flex items-start gap-3 px-3.5 py-3">
 
-      <div className="flex items-start gap-3 px-4 py-3.5 pl-5">
-        {/* Type icon */}
-        <div className={`size-9 rounded-xl flex-shrink-0 flex items-center justify-center ${iconBg} mt-0.5`}>
-          <Icon className={`size-[18px] ${iconColor}`} />
+        {/* Icon with optional unread dot */}
+        <div className="relative shrink-0 mt-0.5">
+          <div className={`size-10 rounded-xl flex items-center justify-center ${iconBg}`}>
+            <Icon className={`size-[18px] ${iconCls}`} />
+          </div>
+          {!n.is_read && (
+            <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-orange-500 border-2 border-[var(--bg-primary)]" />
+          )}
         </div>
 
-        {/* Text content */}
-        <div className="flex-1 min-w-0 space-y-0.5">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className={`text-[12px] font-bold leading-snug ${!n.is_read ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-60'}`}>
-              {n.title}
-            </h3>
-            <span className="text-[10px] font-medium text-[var(--text-secondary)] opacity-35 shrink-0 mt-px">
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          {/* Category + time */}
+          <div className="flex items-center justify-between gap-2 mb-0.5">
+            <span className={`text-[9.5px] font-bold tracking-[0.12em] uppercase ${iconCls} opacity-80`}>
+              {label}
+            </span>
+            <span className="text-[10px] text-[var(--text-secondary)] opacity-40 shrink-0">
               {timeAgo(n.createdAt)}
             </span>
           </div>
-          <p className={`text-[11px] leading-relaxed line-clamp-2 ${!n.is_read ? 'text-[var(--text-secondary)]' : 'text-[var(--text-secondary)] opacity-40'}`}>
+
+          {/* Title */}
+          <h3 className={`text-[12.5px] font-bold leading-snug line-clamp-1 ${!n.is_read ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+            {n.title}
+          </h3>
+
+          {/* Message */}
+          <p className="text-[11.5px] text-[var(--text-secondary)] opacity-70 leading-relaxed line-clamp-1 mt-0.5">
             {n.message}
           </p>
         </div>
-
-        {/* Unread dot */}
-        {!n.is_read && (
-          <div className="size-1.5 rounded-full bg-[var(--accent)] shrink-0 mt-1.5 animate-pulse" />
-        )}
       </div>
 
-      {/* Delete — reveals on hover */}
+      {/* Delete (hover) */}
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        className="absolute right-2.5 bottom-2.5 opacity-0 group-hover:opacity-100 size-7 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/15 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center"
+        className="absolute right-2.5 bottom-2.5 opacity-0 group-hover:opacity-100 size-6 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center"
       >
-        <Trash2 className="size-3.5" />
+        <Trash2 className="size-3" />
       </button>
     </div>
   );
