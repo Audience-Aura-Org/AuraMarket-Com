@@ -259,7 +259,7 @@ export default function OrdersTab({ user, onViewOrder }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('search.ordersPlaceholder')}
-              className="h-10 w-full rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 pl-9 pr-3 text-[12px] outline-none transition focus:border-[var(--accent)]/45"
+              className="h-10 w-full rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 pl-9 pr-3 text-[12px] placeholder:text-[10px] sm:placeholder:text-[12px] outline-none transition focus:border-[var(--accent)]/45"
             />
           </div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
