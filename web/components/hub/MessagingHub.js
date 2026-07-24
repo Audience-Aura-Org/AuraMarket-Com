@@ -1515,7 +1515,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   };
 
   const goBackOrClose = () => {
-    dismissOverlay();
+    if (activePartnerId) {
+      setActiveConversation(null);
+    } else {
+      dismissOverlay();
+    }
   };
 
   // Keep goBackOrClose fresh every render so back-button effects never hold stale closures.
@@ -1550,13 +1554,23 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         suppressPopStateRef.current = false;
         return;
       }
-      // Guard: if no history entry is live, the overlay is already closing/closed.
-      // Returning early prevents the Android edge-swipe double-fire (Capacitor backButton
-      // + popstate both arriving) from calling dismissOverlay() a second time.
+      // Guard: if no history entry is live the overlay is already closing/closed.
+      // This prevents the Android edge-swipe double-fire (Capacitor backButton +
+      // popstate both arriving) from triggering dismissOverlay() a second time.
       if (!hasPushedHistoryRef.current) return;
       backViaButtonRef.current = true;
-      hasPushedHistoryRef.current = false;
-      dismissOverlay();
+
+      if (activePartnerIdRef.current) {
+        // Thread → inbox: clear the active conversation, re-push the interceptor
+        // so the NEXT back gesture can close the overlay.
+        setActiveConversation(null);
+        window.history.pushState({ chatInterceptor: true }, '');
+        hasPushedHistoryRef.current = true;
+      } else {
+        // Inbox → close.
+        hasPushedHistoryRef.current = false;
+        dismissOverlay();
+      }
     };
 
     window.addEventListener('popstate', onPopState);
