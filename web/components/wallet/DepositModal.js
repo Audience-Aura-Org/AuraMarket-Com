@@ -10,62 +10,6 @@ import { initiateCollection, pollTransactionStatus } from '@/services/paymentPro
 import api from '@/services/api';
 
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
-const COUNTDOWN_SECS = 180; // 3 minutes
-
-/**
- * CountdownTimer — counts down from totalSecs to 0.
- * Calls onExpire() exactly once when it reaches 0.
- * Uses a wall-clock setInterval so parent re-renders can't cancel the tick.
- */
-function CountdownTimer({ totalSecs = COUNTDOWN_SECS, onExpire }) {
-  const [remaining, setRemaining] = useState(totalSecs);
-  const onExpireRef = useRef(onExpire);
-  const firedRef    = useRef(false);
-  // Always keep ref pointing at latest callback — no stale closure
-  useEffect(() => { onExpireRef.current = onExpire; });
-
-  useEffect(() => {
-    // Calculate absolute end time so drift doesn't accumulate
-    const endAt = Date.now() + totalSecs * 1000;
-    firedRef.current = false;
-    setRemaining(totalSecs);
-
-    const t = setInterval(() => {
-      const left = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
-      setRemaining(left);
-      if (left <= 0 && !firedRef.current) {
-        firedRef.current = true;
-        clearInterval(t);
-        onExpireRef.current?.();
-      }
-    }, 500); // 500 ms tick → display updates every second, feels smooth
-
-    return () => clearInterval(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalSecs]); // restart only if duration prop changes
-
-  const m = Math.floor(remaining / 60);
-  const s = remaining % 60;
-  const label = `${m}:${s.toString().padStart(2, '0')}`;
-  const pct = totalSecs > 0 ? remaining / totalSecs : 0;
-  const isUrgent   = remaining <= 30;
-  const isCritical = remaining <= 10;
-  const color = isCritical ? 'text-rose-500' : isUrgent ? 'text-amber-500' : 'text-[var(--accent)]';
-  const barColor  = isCritical ? 'bg-rose-500'  : isUrgent ? 'bg-amber-500'  : 'bg-[var(--accent)]';
-
-  return (
-    <div className="mb-6 flex flex-col items-center w-full">
-      <div className={`text-4xl font-bold tracking-tight tabular-nums ${color}`}>{label}</div>
-      <p className="text-[10px] font-semibold opacity-30 tracking-tight mt-1">remaining</p>
-      <div className="w-full h-1 bg-[var(--bg-secondary)] rounded-full mt-3 overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-1000 ${barColor}`}
-          style={{ width: `${pct * 100}%` }}
-        />
-      </div>
-    </div>
-  );
-}
 
 /**
  * DepositModal — shared deposit flow for all wallet roles.
@@ -92,8 +36,6 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   const inProgressRef  = useRef(false);
   // Holds the stop-polling function returned by pollTransactionStatus
   const stopPollingRef = useRef(null);
-  // Holds the latest timeout handler so CountdownTimer can trigger it
-  const onTimeoutRef   = useRef(null);
 
   // Pre-fill phone when userPhone prop changes (e.g. after auth loads)
   useEffect(() => {
@@ -118,7 +60,6 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
     if (open) {
       stopPollingRef.current?.();
       stopPollingRef.current = null;
-      onTimeoutRef.current = null;
       inProgressRef.current = false;
       setStep('amount');
       setGateway('payunit');
@@ -136,15 +77,14 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   const collectionFee  = netAmount > 0 ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
   const approvalAmount = netAmount + collectionFee;
 
-  // Called when the countdown hits 0 OR pollTransactionStatus times out
+  // Shared timeout handler — called by polling onTimeout
   const triggerTimeout = async (localRef, gw) => {
-    // Stop the background poller so it doesn't race with this handler
     stopPollingRef.current?.();
     stopPollingRef.current = null;
 
     setStatus('timeout');
     setStep('result');
-    setMessage('Time expired. Checking payment status one last time...');
+    setMessage('Verification window ended. Checking payment status one last time...');
     try {
       if (localRef) {
         const r = await api.get(`/payments/${gw}/recheck/${localRef}`);
@@ -161,11 +101,6 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
       }
     } catch { /* silent — show timeout screen */ }
     setMessage('Could not confirm automatically. If you approved the USSD prompt, tap "Recheck Payment" below.');
-  };
-
-  // Called by CountdownTimer when the 3-minute window expires
-  const handleCountdownExpire = () => {
-    onTimeoutRef.current?.();
   };
 
   const handleInit = async () => {
@@ -191,7 +126,6 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
       new Promise(r => setTimeout(r, Math.max(0, minMs - (Date.now() - processingStart))));
 
     let localRef = null;
-    // Capture gateway in a local so closures don't see stale state
     const gw = gateway;
 
     try {
@@ -211,11 +145,6 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
         setRef(localRef);
         setMessage('Charge request sent. Awaiting approval on your phone...');
 
-        // Register the timeout handler for CountdownTimer to call
-        onTimeoutRef.current = () => triggerTimeout(localRef, gw);
-
-        // Poll in the background — maxDuration is set high (200 s) so
-        // the 3-minute UI countdown is the authoritative cancellation trigger.
         const stopFn = pollTransactionStatus(
           gw,
           localRef,
@@ -237,7 +166,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
             onTimeout: () => triggerTimeout(localRef, gw),
           },
           3000,   // poll every 3 seconds
-          200000, // 200 s safety net — UI countdown at 180 s is authoritative
+          110000, // 110 s before polling times out
         );
         stopPollingRef.current = stopFn;
       } else {
@@ -289,7 +218,6 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
       inProgressRef.current = false;
       stopPollingRef.current?.();
       stopPollingRef.current = null;
-      onTimeoutRef.current = null;
       onClose?.();
     }
   };
@@ -297,7 +225,6 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   const handleRetry = () => {
     stopPollingRef.current?.();
     stopPollingRef.current = null;
-    onTimeoutRef.current = null;
     inProgressRef.current = false;
     setStep('amount');
     setAmount('');
@@ -435,12 +362,11 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
           {/* ── Step: processing ───────────────────────── */}
           {step === 'processing' && (
             <motion.div key="processing" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-8 flex flex-col items-center text-center">
-              {/* Close / dismiss — payment continues in background */}
+              {/* Cancel button */}
               <button
                 onClick={() => {
                   stopPollingRef.current?.();
                   stopPollingRef.current = null;
-                  onTimeoutRef.current = null;
                   inProgressRef.current = false;
                   setStep('amount');
                   setStatus('pending');
@@ -453,7 +379,21 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
               >
                 <X className="size-4" />
               </button>
-              <CountdownTimer totalSecs={COUNTDOWN_SECS} onExpire={handleCountdownExpire} />
+
+              {/* Waiting header — pulsing ring + label */}
+              <div className="mb-6 flex flex-col items-center gap-3">
+                <div className="relative flex items-center justify-center">
+                  <div className="size-16 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center">
+                    <Loader2 className="size-7 text-[var(--accent)] animate-spin" />
+                  </div>
+                  <div className="absolute inset-0 rounded-full border-2 border-[var(--accent)]/20 animate-ping" />
+                </div>
+                <div>
+                  <p className="text-base font-bold tracking-tight text-[var(--text-primary)]">Awaiting confirmation</p>
+                  <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 mt-0.5">Check your phone for the payment prompt</p>
+                </div>
+              </div>
+
               <div className="w-full space-y-2 mb-6">
                 {[
                   { label: 'Request sent to gateway', done: true, active: false },
@@ -478,7 +418,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                 <div className="size-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
                 <p className="text-[11px] font-semibold tracking-tight text-[var(--accent)] text-left">{message || 'Waiting for mobile money confirmation...'}</p>
               </div>
-              <p className="text-[10px] font-semibold tracking-tight opacity-20 mt-4">Approve the prompt on your phone within the time shown above</p>
+              <p className="text-[10px] font-semibold tracking-tight opacity-20 mt-4">Keep the app open until your payment is confirmed</p>
             </motion.div>
           )}
 
