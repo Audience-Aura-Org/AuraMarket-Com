@@ -173,7 +173,16 @@ const initializeSubscription = async (req, res, next) => {
     const transactionRef = payment_method === 'payunit'
       ? payunit.cleanTransactionId(generateSubscriptionRef(req.user._id))
       : generateSubscriptionRef(req.user._id);
-    const callbackUrl = redirect_url || `${process.env.WEB_CLIENT_URL}/wallet/verify?gateway=${payment_method}&type=subscription&ref=${transactionRef}`;
+
+    // Always use the configured public web URL — never allow localhost/capacitor origins
+    // (which arrive from APK requests) to reach PayUnit, as they are rejected by the gateway.
+    const publicWebUrl = (process.env.WEB_CLIENT_URL && !/localhost|127\.0\.0\.1/i.test(process.env.WEB_CLIENT_URL))
+      ? process.env.WEB_CLIENT_URL.replace(/\/$/, '')
+      : 'https://auradime.com';
+    const safeRedirect = redirect_url && !/localhost|127\.0\.0\.1|capacitor:\/\//i.test(redirect_url)
+      ? redirect_url
+      : null;
+    const callbackUrl = safeRedirect || `${publicWebUrl}/wallet/verify?gateway=${payment_method}&type=subscription&ref=${transactionRef}`;
     const [firstName, ...rest] = String(req.user.name || 'Aura User').split(' ');
     const lastName = rest.join(' ') || 'User';
 
@@ -216,7 +225,7 @@ const initializeSubscription = async (req, res, next) => {
     }
 
     if (payment_method === 'payunit') {
-      const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || ''}/api/v1/payments/payunit/webhook`;
+      const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get('host')}`}/api/v1/payments/payunit/webhook`;
       // Auto-detect operator from phone prefix; explicit provider from client always wins
       const resolvedProvider = req.body?.provider || payunit.detectCmProvider(normalizedPhone);
       const init = await payunit.initializePayment({

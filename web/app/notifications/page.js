@@ -9,10 +9,12 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
+import { useAuthStore } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { notificationService } from '@/services/notifications';
 import Pagination from '@/components/common/Pagination';
 import { normalizeAppRoute } from '@/lib/navigation';
+import DashboardLayout from '@/components/layout/DashboardLayout';
 
 // ── Type → visual config ─────────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -70,6 +72,7 @@ function groupNotifs(items) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function NotificationsPage() {
   const router = useRouter();
+  const user = useAuthStore(s => s.user);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
@@ -126,10 +129,12 @@ export default function NotificationsPage() {
   const groups    = groupNotifs(current);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] pb-24 lg:pb-12 transition-colors duration-300">
+    <DashboardLayout role={user?.role || 'customer'} hideFooter>
+    <div className="transition-colors duration-300">
 
-      {/* ── Sticky header ──────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-50 bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
+      {/* ── Sticky header — mobile scrolls (MobileHeader is always on top),
+               desktop sticks below the fixed sidebar ──────────────────── */}
+      <div className="lg:sticky top-0 z-[60] bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between px-4 pt-4 pb-3 sm:px-5 lg:px-8">
             <div className="flex items-center gap-3">
@@ -256,6 +261,7 @@ export default function NotificationsPage() {
         )}
       </main>
     </div>
+    </DashboardLayout>
   );
 }
 
