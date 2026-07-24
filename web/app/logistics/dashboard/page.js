@@ -33,7 +33,7 @@ export default function LogisticsDashboard() {
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
   const [shipments, setShipments] = useState([]);
-  const { displayedBalance: walletBalance, refreshWalletBalance } = useWalletBalance();
+  const { displayedBalance: walletBalance } = useWalletBalance();
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -61,8 +61,7 @@ export default function LogisticsDashboard() {
             sortBy,
           },
         }),
-        api.get("/subscriptions/me", { params: { role: "logistics" }, silent: true }).catch(() => null),
-        refreshWalletBalance().catch(() => {}),
+        api.get("/subscriptions/me", { params: { role: "logistics" }, skipClientCache: true, silent: true }).catch(() => null),
       ]);
 
       if (shipRes.data.success) {
@@ -90,7 +89,7 @@ export default function LogisticsDashboard() {
     } finally {
       if (!isBackground) setLoading(false);
     }
-  }, [page, filterStatus, sortBy, refreshWalletBalance]);
+  }, [page, filterStatus, sortBy]);
 
   useEffect(() => {
     if (!user || user.role !== "logistics") return;

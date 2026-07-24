@@ -328,7 +328,6 @@ const getSubscriptionStatus = async (user, role = null) => {
   const required = Boolean(requirements.required?.[activeRole]);
   const graceDays = Number(requirements.grace_days?.[activeRole] || 0);
   const subscription = await getActiveSubscription(user._id, activeRole);
-  const plan = await getDefaultPlanForRole(activeRole);
 
   if (!required) {
     return {
