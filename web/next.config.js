@@ -36,18 +36,72 @@ const nextConfig = {
         // Aggressive static asset caching. Not emitted by static export builds.
         async headers() {
           return [
+            // ── Immutable static bundles (content-hashed filenames) ──────────
             {
               source: '/_next/static/:path*',
               headers: [
                 { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
               ],
             },
+
+            // ── Service worker — MUST NOT be cached by browser or CDN ────────
+            // Browsers check for a new sw.js on every navigation; a cached copy
+            // means users never receive PWA or push-notification updates.
+            {
+              source: '/sw.js',
+              headers: [
+                { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
+                { key: 'Service-Worker-Allowed', value: '/' },
+              ],
+            },
+
+            // ── PWA manifest — short TTL so name/icon changes propagate fast ─
+            {
+              source: '/manifest.json',
+              headers: [
+                { key: 'Cache-Control', value: 'public, max-age=3600' },
+              ],
+            },
+
+            // ── App icons — moderate cache (filename stays the same) ─────────
+            {
+              source: '/icon-:size.png',
+              headers: [
+                { key: 'Cache-Control', value: 'public, max-age=604800, stale-while-revalidate=2592000' },
+              ],
+            },
+            {
+              source: '/apple-touch-icon.png',
+              headers: [
+                { key: 'Cache-Control', value: 'public, max-age=604800, stale-while-revalidate=2592000' },
+              ],
+            },
+
+            // ── User-uploaded content ────────────────────────────────────────
             {
               source: '/uploads/:path*',
               headers: [
                 { key: 'Cache-Control', value: 'public, max-age=86400, stale-while-revalidate=604800' },
               ],
             },
+
+            // ── APK downloads — never cache; always serve the latest build ───
+            {
+              source: '/downloads/:path*',
+              headers: [
+                { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
+              ],
+            },
+
+            // ── API routes — never cached by browser or CDN ──────────────────
+            {
+              source: '/api/:path*',
+              headers: [
+                { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate' },
+              ],
+            },
+
+            // ── Security headers for all routes ──────────────────────────────
             {
               source: '/:path*',
               headers: [
