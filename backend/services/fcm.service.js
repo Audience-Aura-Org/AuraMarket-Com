@@ -28,7 +28,12 @@ const initialize = () => {
     return null;
   }
   if (!serviceAccount) {
-    // No Firebase credentials configured — Android push silently disabled
+    console.warn(
+      '[FCM] ⚠️  No Firebase credentials found — Android push notifications are DISABLED.\n' +
+      '       To enable: add FIREBASE_SERVICE_ACCOUNT_BASE64 (recommended) or\n' +
+      '       FIREBASE_SERVICE_ACCOUNT_JSON to your .env file.\n' +
+      '       Generate a key in Firebase Console → Project Settings → Service Accounts.'
+    );
     return null;
   }
 

@@ -42,6 +42,8 @@ export default function PWAInit() {
   const pushDeniedToastedRef = useRef(false);
   const syncInFlightRef = useRef(false);
   const lastSyncRef = useRef({ userId: null, at: 0 });
+  // Always-current ref so event handlers with stable closures can call the latest attempt
+  const attemptSubscriptionRef = useRef(null);
   const SYNC_COOLDOWN_MS = 3 * 60 * 1000;
 
   const attemptSubscription = async ({ promptIfNeeded = false } = {}) => {
@@ -83,6 +85,10 @@ export default function PWAInit() {
       syncInFlightRef.current = false;
     }
   };
+
+  // Keep the ref pointing at the latest attemptSubscription so stable-closure handlers
+  // (visibilitychange, gesture) always call the version that sees current auth state.
+  attemptSubscriptionRef.current = attemptSubscription;
 
   const dismissInstallPrompt = () => {
     setShowInstallPrompt(false);
@@ -175,6 +181,10 @@ export default function PWAInit() {
 
   // Browser notification prompts are most reliable when started by a real tap/click.
   // This keeps PWA push registration alive even when the initial timer cannot ask.
+  // NOTE: We do NOT use { once: true } here — if the first attempt fires while the
+  // mount timer's API call is in-flight (syncInFlightRef.current = true), the gesture
+  // would be swallowed with { once: true } and the user would never be prompted again
+  // until a page reload. Instead we rely on subscribedRef + syncInFlightRef to gate.
   useEffect(() => {
     if (!isAuthenticated) return;
 
@@ -184,11 +194,11 @@ export default function PWAInit() {
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'denied') return;
       }
-      attemptSubscription({ promptIfNeeded: true });
+      attemptSubscriptionRef.current?.({ promptIfNeeded: true });
     };
 
-    window.addEventListener('pointerdown', handleUserGesture, { once: true });
-    window.addEventListener('keydown', handleUserGesture, { once: true });
+    window.addEventListener('pointerdown', handleUserGesture);
+    window.addEventListener('keydown', handleUserGesture);
 
     return () => {
       window.removeEventListener('pointerdown', handleUserGesture);
@@ -210,6 +220,8 @@ export default function PWAInit() {
   // 3. On app resume (coming back from background), check and re-subscribe.
   // This is the CRITICAL FIX: handles permission granted while app was backgrounded
   // and ensures the device always has a valid, live subscription registered.
+  // Uses attemptSubscriptionRef so the handler always sees current auth state even
+  // though the effect dependency array is empty (stable listener, no re-registrations).
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -217,7 +229,7 @@ export default function PWAInit() {
         if (typeof window !== 'undefined' && 'Notification' in window) {
           if (Notification.permission === 'granted') {
             console.log('[PWAInit] App resumed — re-syncing push...');
-            attemptSubscription({ promptIfNeeded: false });
+            attemptSubscriptionRef.current?.({ promptIfNeeded: false });
           }
         }
       }

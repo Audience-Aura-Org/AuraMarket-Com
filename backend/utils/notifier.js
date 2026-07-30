@@ -296,10 +296,12 @@ const sendNotification = async (app, recipientId, data) => {
         if (webSubs.length > 0 || androidTokens.length > 0) {
           const notificationUrl = metadata?.link || '/discovery';
 
-          // Use sender avatar for chat notifications, app logo for everything else
+          // Use sender avatar for chat notifications, app logo for everything else.
+          // Absolute URL required so push services (FCM, Mozilla, etc.) can fetch the icon.
+          const appOrigin = sanitizeUrl(process.env.WEB_CLIENT_URL || 'https://auradime.com');
           const iconUrl = (type === 'message' && senderAvatar)
             ? senderAvatar
-            : '/logo-white.png';
+            : `${appOrigin}/logo-white.png`;
 
           const senderId = metadata?.sender_id || metadata?.senderId;
           const senderData = metadata?.senderData || null;
