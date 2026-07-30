@@ -364,7 +364,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
   useEffect(() => {
     if (!activePartnerId || loadingMore || loading) return;
-    scrollToBottom(mobileLayout ? 'auto' : 'smooth');
+    // Only pin to bottom if the user is already near the bottom.
+    // If they have scrolled up to read history, don't yank them down on
+    // incoming socket messages or typing-indicator appearance.
+    const scrollEl = scrollRef.current;
+    const distanceFromBottom = scrollEl
+      ? scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight
+      : 0;
+    if (distanceFromBottom < 120) {
+      scrollToBottom(mobileLayout ? 'auto' : 'smooth');
+    }
   }, [activePartnerId, latestMessageKey, partnerTyping, loading, loadingMore, mobileLayout]);
 
   useEffect(() => {
