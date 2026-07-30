@@ -901,10 +901,19 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             }
           });
           setHasMore(newMsgs.length < total);
-          // Always pin to bottom on page-1 load so the user sees the latest messages
-          // regardless of whether the content was cached or already rendered.
-          scrollToBottom(silent ? 'smooth' : 'auto');
-          queuePinToLatest([0, 80, 200, 400]);
+          // Only pin to bottom if the user is already near the bottom (or this
+          // is an explicit non-silent load). Silent background syncs (syncActivePid,
+          // pre-send refresh, socket reconnect) must not yank the user away from
+          // old messages they are currently reading.
+          const scrollEl = scrollRef.current;
+          const distanceFromBottom = scrollEl
+            ? scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight
+            : 0;
+          const userIsNearBottom = distanceFromBottom < 120;
+          if (!silent || userIsNearBottom) {
+            scrollToBottom(silent ? 'smooth' : 'auto');
+            queuePinToLatest([0, 80, 200, 400]);
+          }
           const hasUnreadFromPartner = newMsgs.some((msg) =>
             toId(msg.sender_id) === pid?.toString?.() && !msg.read_status
           );
