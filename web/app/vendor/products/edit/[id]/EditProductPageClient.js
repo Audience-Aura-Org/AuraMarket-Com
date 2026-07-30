@@ -5,7 +5,7 @@ import {
   Upload, X, Plus, Package, Image as ImageIcon,
   ArrowLeft
 } from 'lucide-react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import api from '@/services/api';
 import CategoryPicker from '@/components/CategoryPicker';
 import { toast } from 'react-hot-toast';
@@ -16,7 +16,10 @@ import {
 
 export default function EditProductPage() {
   const router = useRouter();
-  const { id } = useParams();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  // Support both ?id=xxx (static APK route) and /edit/[id] (dynamic web route)
+  const id = searchParams?.get('id') || params?.id;
   const fileInputRef = useRef(null);
   const mobileScrollYRef = useRef(0);
   const [loading, setLoading] = useState(false);

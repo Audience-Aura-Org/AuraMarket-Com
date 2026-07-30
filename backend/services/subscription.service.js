@@ -493,6 +493,12 @@ const activateSubscription = async ({
     ? await UserSubscription.create([payload], { session })
     : await UserSubscription.create(payload);
 
+  // Auto-verify the logistics company profile when a logistics subscription is activated
+  if (role === 'logistics') {
+    const LogisticsCompany = require('../models/LogisticsCompany.model');
+    await LogisticsCompany.updateOne({ user_id: userId }, { $set: { is_verified: true } });
+  }
+
   return Array.isArray(created) ? created[0] : created;
 };
 

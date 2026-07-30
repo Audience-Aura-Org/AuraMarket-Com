@@ -283,7 +283,7 @@ function ManagementCard({ product, onDelete, t }) {
   return (
     <div
       className="group relative overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] cursor-pointer active:scale-[0.98] transition-transform"
-      onClick={() => router.push(`/vendor/products/edit/${product._id}`)}
+      onClick={() => router.push(`/vendor/products/edit?id=${product._id}`)}
     >
       <div className="relative aspect-[4/3] bg-[var(--bg-secondary)]">
         {getProductImageUrl(product) ? (
@@ -365,7 +365,7 @@ function ListRow({ product, onDelete, t }) {
   return (
     <div
       className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2.5 cursor-pointer active:scale-[0.99] transition-transform"
-      onClick={() => router.push(`/vendor/products/edit/${product._id}`)}
+      onClick={() => router.push(`/vendor/products/edit?id=${product._id}`)}
     >
       <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-secondary)]">
         {getProductImageUrl(product) ? (

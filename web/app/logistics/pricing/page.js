@@ -83,12 +83,14 @@ export default function LogisticsPricingPage() {
       .map((q) => ({ quartier: q, price: Number(newPrice) }));
     if (newEntries.length === 0)
       return toast.error("All selected zones already have a rate.");
+    const savedScrollY = window.scrollY;
     setProfile({
       ...profile,
       quartier_prices: [...profile.quartier_prices, ...newEntries],
     });
     setSelectedQuartiers([]);
     setNewPrice("");
+    requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
   };
 
   const handleRemoveQuartierByName = (quartierName) => {

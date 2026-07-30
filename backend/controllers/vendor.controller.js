@@ -189,10 +189,13 @@ const getVendorProfile = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Vendor profile not found.' });
     }
 
-    // Calculate pending escrow balance
-    const escrowStats = await Escrow.aggregate([
-      { $match: { vendor_id: vendor._id, status: 'held' } },
-      { $group: { _id: null, totalHeld: { $sum: '$amount' } } }
+    // Calculate pending escrow balance and real follower count in parallel
+    const [escrowStats, realFollowerCount] = await Promise.all([
+      Escrow.aggregate([
+        { $match: { vendor_id: vendor._id, status: 'held' } },
+        { $group: { _id: null, totalHeld: { $sum: '$amount' } } }
+      ]),
+      Follow.countDocuments({ vendor_id: vendor._id }),
     ]);
     const escrowBalance = escrowStats.length > 0 ? escrowStats[0].totalHeld : 0;
     const platformSettings = await PlatformSettings.getSettings();
@@ -201,9 +204,15 @@ const getVendorProfile = async (req, res, next) => {
       ? Number(storeCommissionRate)
       : Number(platformSettings.commission_value ?? platformSettings.commission_rate ?? 0);
 
+    // Sync stored counter if it has drifted from the actual Follow collection
+    if (vendor.follower_count !== realFollowerCount) {
+      vendor.follower_count = realFollowerCount;
+      Vendor.findByIdAndUpdate(vendor._id, { follower_count: realFollowerCount }).catch(() => {});
+    }
+
     res.status(200).json({
       success: true,
-      data: { 
+      data: {
         vendor,
         escrow_balance: escrowBalance,
         effective_commission_rate: effectiveCommissionRate,
@@ -401,6 +410,15 @@ const getStore = async (req, res, next) => {
         select: 'store_name description rating verified user_id follower_count',
         populate: { path: 'user_id', select: 'branding avatar is_online last_seen' }
       });
+    }
+
+    // Ensure follower_count on the populated vendor reflects the real Follow count
+    if (store?.vendor_id?._id) {
+      const realFollowerCount = await Follow.countDocuments({ vendor_id: store.vendor_id._id });
+      if (store.vendor_id.follower_count !== realFollowerCount) {
+        store.vendor_id.follower_count = realFollowerCount;
+        Vendor.findByIdAndUpdate(store.vendor_id._id, { follower_count: realFollowerCount }).catch(() => {});
+      }
     }
 
     res.status(200).json({
