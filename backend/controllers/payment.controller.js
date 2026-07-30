@@ -1089,16 +1089,19 @@ const eversendWebhook = async (req, res) => {
         gateway: 'eversend',
       });
       if (transaction && (transaction.status === 'pending' || transaction.status === 'failed')) {
-        transaction.status = 'completed';
-        transaction.gateway_response = data;
-        await transaction.save();
-
         const isCheckout = transaction.order_ids?.length > 0;
         const isSubscription = isSubscriptionTransaction(transaction);
+
+        // Mark transaction as completed INSIDE each settlement session so that
+        // if settlement rolls back, the transaction is NOT left as 'completed' with
+        // unsettled orders (which would prevent the webhook from re-processing it).
         if (isSubscription) {
           const session = await mongoose.startSession();
           session.startTransaction();
           try {
+            transaction.status = 'completed';
+            transaction.gateway_response = data;
+            await transaction.save({ session });
             await settleSubscriptionTransaction(transaction, session, req.app);
             await session.commitTransaction();
           } catch (err) {
@@ -1109,6 +1112,9 @@ const eversendWebhook = async (req, res) => {
           const session = await mongoose.startSession();
           session.startTransaction();
           try {
+            transaction.status = 'completed';
+            transaction.gateway_response = data;
+            await transaction.save({ session });
             await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, '', 'eversend');
             await session.commitTransaction();
           } catch (err) {
@@ -1116,8 +1122,11 @@ const eversendWebhook = async (req, res) => {
             console.error('Webhook Settlement Error:', err.message);
           } finally { session.endSession(); }
         } else {
-          // Pure wallet top-up
+          // Pure wallet top-up — no session needed, save atomically after credit
+          transaction.status = 'completed';
+          transaction.gateway_response = data;
           await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
+          await transaction.save();
         }
 
         // -- Instant Socket.io push ? frontend shows success immediately --

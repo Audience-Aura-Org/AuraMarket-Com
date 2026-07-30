@@ -650,16 +650,18 @@ const refundFunds = async (req, res, next) => {
       }
     }
 
-    // 1. Credit Buyer's Wallet
+    // 1. Credit Buyer's Wallet — refund the FULL order.total_amount (subtotal + shipping + collection fee),
+    //    not just escrow.amount which only holds the vendor base portion after commission.
+    const refundAmount = order.total_amount || escrow.amount;
     const buyerUser = await User.findById(escrow.buyer_id).session(session);
-    buyerUser.wallet_balance += escrow.amount;
+    buyerUser.wallet_balance += refundAmount;
     await buyerUser.save({ session });
 
     // 2. Log Buyer's Refund Receipt
     await Transaction.create([{
       user_id: buyerUser._id,
       type: 'refund',
-      amount: escrow.amount,
+      amount: refundAmount,
       reference: generateTxRef(),
       status: 'completed',
       description: `Escrow Refunded for Order #${order._id.toString().slice(-6).toUpperCase()}`,

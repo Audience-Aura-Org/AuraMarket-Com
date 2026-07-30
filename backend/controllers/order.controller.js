@@ -1016,7 +1016,10 @@ const approveRefund = async (req, res, next) => {
 
     const escrow = await Escrow.findOne({ order_id: order._id }).session(session);
     if (escrow && escrow.status === 'held') {
-      await User.findByIdAndUpdate(order.customer_id, { $inc: { wallet_balance: escrow.amount } }).session(session);
+      // Refund the full order.total_amount (what the buyer actually paid), not just escrow.amount
+      // (escrow.amount is the vendor base portion only and excludes shipping + collection fees).
+      const refundAmount = order.total_amount || escrow.amount;
+      await User.findByIdAndUpdate(order.customer_id, { $inc: { wallet_balance: refundAmount } }, { session });
       escrow.status = 'refunded';
       await escrow.save({ session });
     }
@@ -1167,15 +1170,20 @@ const createOrdersFromCart = async (req, res, next) => {
       });
 
       for (const it of items) {
-        // Find product to update stock
+        // Re-fetch product within the session so stock is current (prevents negative stock on concurrent orders)
         const p = await Product.findById(it.product._id).session(session);
         if (p) {
           const quantity = Number(it.quantity || 1);
           if (p.has_variants) {
             const vMatch = findSelectedVariant(p, it.variant);
             if (!vMatch) throw new Error(`Please select a valid variant for ${p.name}.`);
+            if (vMatch.stock < quantity) {
+              throw new Error(`Insufficient stock for ${p.name} (${variantLabel(it.variant)}). Available: ${vMatch.stock}`);
+            }
             vMatch.stock -= quantity;
             p.markModified('sku_variants');
+          } else if (p.stock < quantity) {
+            throw new Error(`Insufficient stock for ${p.name}. Available: ${p.stock}`);
           }
           p.stock -= quantity;
           p.purchase_count = (p.purchase_count || 0) + quantity;
