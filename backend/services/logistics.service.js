@@ -33,38 +33,53 @@ const generateTrackingCode = async () => {
  * Filters logistics companies based on quartier support and vendor pickup regions
  */
 const getCompatibleFirms = async (quartier, vendorIds) => {
+  const UserSubscription = require('../models/UserSubscription.model');
+
   // 1. Get all vendors to find their pickup regions
   const vendors = await Vendor.find({ _id: { $in: vendorIds } });
   const pickupRegions = [...new Set(vendors.map(v => v.pickup_address?.region).filter(Boolean))];
 
   // 2. Find information about the target zone (case-insensitive)
   const LogisticZone = require('../models/LogisticZone.model');
-  const targetZone = await LogisticZone.findOne({ name: new RegExp(`^${escapeRegExp(quartier)}$`, 'i') }).populate('parent_id');
+  const [targetZone, activeSubUserIds] = await Promise.all([
+    LogisticZone.findOne({ name: new RegExp(`^${escapeRegExp(quartier)}$`, 'i') }).populate('parent_id'),
+    // Collect user IDs with an active logistics subscription — covers companies
+    // that paid before the auto-verify fix was deployed (is_verified still false)
+    UserSubscription.distinct('user_id', {
+      role: 'logistics',
+      status: 'active',
+    }),
+  ]);
   const districtName = targetZone?.parent_id?.name;
 
-  // 3. Find firms that:
-  // - Are verified
-  // - Have a price defined for the specific quartier OR its parent district (case-insensitive)
-  const quartierPattern  = new RegExp(`^${escapeRegExp(quartier)}$`, 'i');
-  const districtPattern  = districtName ? new RegExp(`^${escapeRegExp(districtName)}$`, 'i') : null;
-
-  const query = {
-    is_verified: true,
+  // 3. A firm is eligible if it is admin-verified OR has an active subscription
+  const eligibilityClause = {
     $or: [
-      { 'quartier_prices.quartier': quartierPattern }
-    ]
+      { is_verified: true },
+      { user_id: { $in: activeSubUserIds } },
+    ],
   };
 
+  // 4. Build the delivery-zone price match conditions
+  const quartierPattern = new RegExp(`^${escapeRegExp(quartier)}$`, 'i');
+  const districtPattern = districtName ? new RegExp(`^${escapeRegExp(districtName)}$`, 'i') : null;
+
+  const priceOrConditions = [{ 'quartier_prices.quartier': quartierPattern }];
   if (districtPattern) {
-    query.$or.push({ 'quartier_prices.quartier': districtPattern });
+    priceOrConditions.push({ 'quartier_prices.quartier': districtPattern });
+  }
+  if (pickupRegions.length > 0) {
+    priceOrConditions.push({ supported_pickup_regions: { $in: pickupRegions } });
+    priceOrConditions.push({ supported_pickup_regions: { $exists: false } });
+    priceOrConditions.push({ supported_pickup_regions: { $size: 0 } });
   }
 
-  // Only filter by pickup regions if vendors have them set; don't exclude firms that haven't set this field
-  if (pickupRegions.length > 0) {
-    query.$or.push({ supported_pickup_regions: { $in: pickupRegions } });
-    query.$or.push({ supported_pickup_regions: { $exists: false } });
-    query.$or.push({ supported_pickup_regions: { $size: 0 } });
-  }
+  const query = {
+    $and: [
+      eligibilityClause,
+      { $or: priceOrConditions },
+    ],
+  };
 
   return LogisticsCompany.find(query).populate('user_id', 'name email avatar branding');
 };

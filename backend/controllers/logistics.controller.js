@@ -98,11 +98,26 @@ const getSearchCompatibleFirms = async (req, res, next) => {
     }
 
     const vendors = Array.isArray(vendor_ids) ? vendor_ids : vendor_ids.split(',');
-    const firms   = quartier
-      ? await logisticsService.getCompatibleFirms(quartier, vendors)
-      : await LogisticsCompany.find({ is_verified: true })
-          .populate('user_id', 'name email avatar branding')
-          .sort('company_name');
+
+    let firms;
+    if (quartier) {
+      firms = await logisticsService.getCompatibleFirms(quartier, vendors);
+    } else {
+      // No zone selected — return all eligible firms (verified OR active subscription)
+      const UserSubscription = require('../models/UserSubscription.model');
+      const activeSubUserIds = await UserSubscription.distinct('user_id', {
+        role: 'logistics',
+        status: 'active',
+      });
+      firms = await LogisticsCompany.find({
+        $or: [
+          { is_verified: true },
+          { user_id: { $in: activeSubUserIds } },
+        ],
+      })
+        .populate('user_id', 'name email avatar branding')
+        .sort('company_name');
+    }
 
     res.status(200).json({ success: true, count: firms.length, data: { firms } });
   } catch (error) {
@@ -666,8 +681,27 @@ const getZones = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getProfile = async (req, res, next) => {
   try {
-    const firm = await LogisticsCompany.findOne({ user_id: req.user._id });
+    let firm = await LogisticsCompany.findOne({ user_id: req.user._id });
     if (!firm) return res.status(404).json({ success: false, message: 'Logistics profile not found.' });
+
+    // Auto-heal: if the company paid their subscription but is_verified was never set
+    // (e.g. paid before the auto-verify fix), set it now so they appear at checkout.
+    if (!firm.is_verified) {
+      const UserSubscription = require('../models/UserSubscription.model');
+      const activeSub = await UserSubscription.findOne({
+        user_id: req.user._id,
+        role: 'logistics',
+        status: 'active',
+      });
+      if (activeSub) {
+        firm = await LogisticsCompany.findByIdAndUpdate(
+          firm._id,
+          { $set: { is_verified: true } },
+          { new: true }
+        );
+      }
+    }
+
     res.status(200).json({ success: true, data: { firm } });
   } catch (error) {
     next(error);
