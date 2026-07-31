@@ -383,7 +383,16 @@ export default function SocketProvider({ children }) {
         text 
       });
 
-      if (!isAppForeground()) {
+      // WhatsApp model: suppress system notification only when the user is
+      // actively viewing this exact conversation.  If they are in the app but
+      // on any other screen, they still get a system notification.
+      const isViewingThisChat = isAppForeground()
+        && (isOpenRef.current || activePartnerIdRef.current)
+        && activePartnerIdRef.current?.toString() === senderId;
+
+      // Native APK: showNativeNotification is a no-op on PWA (guarded inside).
+      // Show whenever the user is NOT in this chat — including foreground-on-other-screen.
+      if (!isViewingThisChat) {
         showNativeNotification({
           id: msg._id || `${senderId}-${Date.now()}`,
           title: senderName,
@@ -398,6 +407,10 @@ export default function SocketProvider({ children }) {
             store_name: msg.sender_id?.branding?.store_name || msg.sender_id?.store_name,
           },
         });
+      }
+      // PWA: OS notification when app is backgrounded — the SW push event handles
+      // the foreground case with the activeChatPartnerId suppression logic.
+      if (!isAppForeground()) {
         showBrowserNotification({
           id: msg._id || `${senderId}-${Date.now()}`,
           title: senderName,
@@ -413,8 +426,6 @@ export default function SocketProvider({ children }) {
           },
           icon: senderAvatar || '/logo-white.png',
         });
-      } else {
-        console.log('[SocketProvider] Foreground app detected; skipping push notifications for active chat.');
       }
 
       if (chatToastTimer.current) clearTimeout(chatToastTimer.current);

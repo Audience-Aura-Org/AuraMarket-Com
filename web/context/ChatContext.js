@@ -746,6 +746,15 @@ export function ChatProvider({ children }) {
     stateRef.current = state;
   }, [state]);
 
+  // Notify the service worker which conversation is currently active so it can
+  // apply WhatsApp-style suppression: show OS notification unless the user is
+  // in that exact chat.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator?.serviceWorker?.controller) return;
+    const partnerId = state.isOpen && state.activePartnerId ? state.activePartnerId : null;
+    navigator.serviceWorker.controller.postMessage({ type: 'set-active-chat', partnerId });
+  }, [state.isOpen, state.activePartnerId]);
+
   useEffect(() => {
     // Reset rate-limit refs when the user changes so a new user doesn't inherit
     // a lockout or debounce window that belongs to the previous session.

@@ -389,6 +389,19 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// ── Active-chat tracking (for WhatsApp-style notification suppression) ───────
+// The client posts { type: 'set-active-chat', partnerId } whenever the user
+// opens or closes a conversation.  We remember it here so the push handler
+// can decide whether to show an OS notification or stay silent.
+let activeChatPartnerId = null;
+
+self.addEventListener('message', function (event) {
+  if (!event.data) return;
+  if (event.data.type === 'set-active-chat') {
+    activeChatPartnerId = event.data.partnerId || null;
+  }
+});
+
 // ── Push Notifications ───────────────────────────────────────────────────────
 self.addEventListener('push', function (event) {
   if (!event.data) return;
@@ -446,9 +459,28 @@ self.addEventListener('push', function (event) {
       try { client.postMessage({ type: 'push-received', payload: data }); } catch {}
     }
 
-    // Show the OS-level notification whenever the app is not in the foreground,
-    // so the user knows a message arrived even if no tab is focused.
-    if (visibleClients.length === 0) {
+    // WhatsApp-style: show OS notification unless the user is actively viewing
+    // this exact conversation.
+    //
+    // Chat messages  → suppress only when (visible tab) AND (active partner === sender).
+    //                  In every other case — app backgrounded, or open on a different
+    //                  screen, or open on a different chat — the notification fires.
+    // Non-chat alerts → keep the old behaviour: suppress when any tab is visible
+    //                   (the in-app toast handles it).
+    let suppress = false;
+    if (isChat) {
+      const senderId = data.tag
+        ? data.tag.replace(/^msg-/, '')
+        : (data.data?.sender_id || data.data?.senderId || '');
+      suppress = visibleClients.length > 0
+        && !!activeChatPartnerId
+        && !!senderId
+        && activeChatPartnerId.toString() === senderId.toString();
+    } else {
+      suppress = visibleClients.length > 0;
+    }
+
+    if (!suppress) {
       try {
         await self.registration.showNotification(data.title || 'Auradime', options);
       } catch (err) {
