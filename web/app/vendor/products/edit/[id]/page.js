@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import EditProductPageClient from './EditProductPageClient';
 
 export function generateStaticParams() {
@@ -5,5 +6,9 @@ export function generateStaticParams() {
 }
 
 export default function EditProductPage() {
-  return <EditProductPageClient />;
+  return (
+    <Suspense>
+      <EditProductPageClient />
+    </Suspense>
+  );
 }
