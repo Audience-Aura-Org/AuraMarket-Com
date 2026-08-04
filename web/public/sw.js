@@ -11,9 +11,9 @@
  *  Push notifications  → unchanged
  */
 
-const CACHE_NAME       = 'aura-cache-v12';
-const MEDIA_CACHE_NAME = 'aura-media-v1';
-const API_CACHE_NAME   = 'aura-api-v1';
+const CACHE_NAME       = 'aura-cache-v13';
+const MEDIA_CACHE_NAME = 'aura-media-v2';   // bumped: evicts stale deleted-status media
+const API_CACHE_NAME   = 'aura-api-v2';     // bumped: evicts stale expired-status responses
 const VIDEO_CACHE_NAME = 'aura-video-v1';   // status video files (offline playback)
 const MEDIA_CACHE_MAX  = 250;
 const API_CACHE_MAX    = 300;
@@ -209,16 +209,35 @@ self.addEventListener('fetch', (event) => {
             }
             return response;
           })
-          .catch(() =>
-            apiCache.match(event.request).then(
-              (cached) =>
-                cached ||
-                new Response(
-                  JSON.stringify({ success: true, data: [], offline: true }),
-                  { status: 200, headers: { 'Content-Type': 'application/json' } }
-                )
-            )
-          )
+          .catch(async () => {
+            const cached = await apiCache.match(event.request);
+            if (!cached) {
+              return new Response(
+                JSON.stringify({ success: true, data: [], offline: true }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } }
+              );
+            }
+            // For the public status feed, filter out entries whose expiry has
+            // already passed so the offline cache never surfaces expired stories.
+            // (my-statuses intentionally returns all — vendors see expired ones in
+            // their archive to allow reposting.)
+            if (url.pathname.includes('/statuses') && !url.pathname.includes('/my-statuses')) {
+              try {
+                const body = await cached.clone().json();
+                if (Array.isArray(body?.data)) {
+                  const now = Date.now();
+                  body.data = body.data.filter(
+                    (s) => !s.expires_at || new Date(s.expires_at).getTime() > now
+                  );
+                  return new Response(JSON.stringify(body), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                  });
+                }
+              } catch { /* fall through to returning cached as-is */ }
+            }
+            return cached;
+          })
       )
     );
     return;
@@ -351,6 +370,10 @@ self.addEventListener('fetch', (event) => {
                   keys.slice(0, keys.length - MEDIA_CACHE_MAX).forEach((k) => mediaCache.delete(k));
                 }
               });
+            } else if (response.status === 403 || response.status === 404) {
+              // File was deleted from S3 (or access revoked) — evict the stale cache
+              // entry so subsequent requests don't keep serving the old copy.
+              mediaCache.delete(event.request).catch(() => {});
             }
             return response;
           }).catch(() =>
@@ -397,8 +420,26 @@ let activeChatPartnerId = null;
 
 self.addEventListener('message', function (event) {
   if (!event.data) return;
+
   if (event.data.type === 'set-active-chat') {
     activeChatPartnerId = event.data.partnerId || null;
+    return;
+  }
+
+  // Evict specific media URLs from the media and video caches.
+  // Called by the app after a status is deleted so the deleted
+  // image/video is no longer served stale to the same or other users.
+  if (event.data.type === 'evict-media') {
+    const urls = Array.isArray(event.data.urls) ? event.data.urls : [];
+    if (!urls.length) return;
+    Promise.all([
+      caches.open(MEDIA_CACHE_NAME).then((cache) =>
+        Promise.all(urls.map((u) => cache.delete(new Request(u))))
+      ),
+      caches.open(VIDEO_CACHE_NAME).then((cache) =>
+        Promise.all(urls.map((u) => cache.delete(new Request(u))))
+      ),
+    ]).catch(() => {});
   }
 });
 

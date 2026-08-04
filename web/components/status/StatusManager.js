@@ -110,8 +110,21 @@ export default function StatusManager() {
   const handleDelete = async (id) => {
     if (!confirm('Are you sure you want to delete this story?')) return;
     setDeletingId(id);
+    // Capture media URLs before removing from state so we can evict them from cache.
+    const target = statuses.find((s) => s._id === id);
     try {
       await api.delete(`/statuses/${id}`);
+
+      // Tell the service worker to evict this status's media from the media /
+      // video caches immediately so no one (including the current user) is
+      // served a stale copy of a deleted or expired status image or video.
+      if (target && typeof navigator !== 'undefined' && navigator.serviceWorker?.controller) {
+        const urlsToEvict = [target.content_url, target.thumbnail_url].filter(Boolean);
+        if (urlsToEvict.length) {
+          navigator.serviceWorker.controller.postMessage({ type: 'evict-media', urls: urlsToEvict });
+        }
+      }
+
       setStatuses((prev) => prev.filter((status) => status._id !== id));
       toast.success('Story deleted');
     } catch (e) {
