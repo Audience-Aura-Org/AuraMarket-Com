@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Compass, User, House, Store, Activity, LayoutDashboard, Lock
+  Compass, User, Utensils, Store, Activity, LayoutDashboard, Lock
 } from "lucide-react";
 import { useAuthStore } from '@/hooks/useAuth';
 import { useChat } from '@/context/ChatContext';
@@ -33,7 +33,7 @@ export default function BottomNav() {
     pathname?.startsWith('/stores') ||
     pathname?.startsWith('/cart') ||
     pathname?.startsWith('/checkout');
-  
+
   if (!mounted) return null;
 
   if (chatOpen || isChatPage || isAuthPage) return null;
@@ -46,27 +46,27 @@ export default function BottomNav() {
   const storiesHref = user?.role === 'vendor' ? "/vendor/stories" : "/discovery?tab=status";
 
   const guestMenu = [
-    { label: t('bottomNav.discovery', 'Discovery'), href: "/shop",               icon: Compass,       locked: false },
-    { label: t('bottomNav.vendors',   'Vendors'),   href: "/discovery?tab=vendors", icon: Store,       locked: true  },
-    { label: t('bottomNav.stories',   'Stories'),   href: "/status",             icon: Activity,       locked: true  },
-    { label: t('bottomNav.overtime',  'Overtime'),  href: "/overtime",           icon: House,          locked: true  },
-    { label: t('bottomNav.profile',   'Profile'),   href: "/profile",            icon: User,           locked: true  },
+    { label: t('bottomNav.discovery', 'Discovery'), href: "/shop",                  icon: Compass,    locked: false },
+    { label: t('bottomNav.vendors',   'Vendors'),   href: "/discovery?tab=vendors", icon: Store,      locked: true  },
+    { label: t('bottomNav.dine',      'Dine'),      href: "/dine",                  icon: Utensils,   locked: false },
+    { label: t('bottomNav.stories',   'Stories'),   href: "/status",                icon: Activity,   locked: true  },
+    { label: t('bottomNav.profile',   'Profile'),   href: "/profile",               icon: User,       locked: true  },
   ];
 
   const customerMenu = [
-    { label: t('bottomNav.discovery', 'Discovery'), href: "/shop",               icon: Compass },
-    { label: t('bottomNav.vendors',   'Vendors'),   href: "/discovery?tab=vendors", icon: Store },
-    { label: t('bottomNav.stories',   'Stories'),   href: "/discovery?tab=status", icon: Activity },
-    { label: t('bottomNav.overtime',  'Overtime'),  href: "/overtime",           icon: House },
-    { label: t('bottomNav.profile',   'Profile'),   href: "/profile",            icon: User },
+    { label: t('bottomNav.discovery', 'Discovery'), href: "/shop",                  icon: Compass  },
+    { label: t('bottomNav.vendors',   'Vendors'),   href: "/discovery?tab=vendors", icon: Store    },
+    { label: t('bottomNav.dine',      'Dine'),      href: "/dine",                  icon: Utensils },
+    { label: t('bottomNav.stories',   'Stories'),   href: "/discovery?tab=status",  icon: Activity },
+    { label: t('bottomNav.profile',   'Profile'),   href: "/profile",               icon: User     },
   ];
 
   const vendorMenu = [
-    { label: t('bottomNav.dashboard', 'Dashboard'), href: dashboardHref,         icon: LayoutDashboard },
-    { label: t('bottomNav.discovery', 'Discovery'), href: "/shop",               icon: Compass },
-    { label: t('bottomNav.stories',   'Stories'),   href: storiesHref,           icon: Activity },
-    { label: t('bottomNav.overtime',  'Overtime'),  href: "/overtime",           icon: House },
-    { label: t('bottomNav.profile',   'Profile'),   href: "/profile",            icon: User },
+    { label: t('bottomNav.dashboard', 'Dashboard'), href: dashboardHref,            icon: LayoutDashboard },
+    { label: t('bottomNav.discovery', 'Discovery'), href: "/shop",                  icon: Compass         },
+    { label: t('bottomNav.dine',      'Dine'),      href: "/dine",                  icon: Utensils        },
+    { label: t('bottomNav.stories',   'Stories'),   href: storiesHref,              icon: Activity        },
+    { label: t('bottomNav.profile',   'Profile'),   href: "/profile",               icon: User            },
   ];
 
   const menu = !user ? guestMenu : isCustomer ? customerMenu : vendorMenu;
