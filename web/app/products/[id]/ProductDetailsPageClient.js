@@ -7,10 +7,11 @@ import {
   ArrowLeft, Heart, MessageCircle, Share2, Star,
   ShoppingBag, Zap, Plus, Minus, Loader2, CheckCircle2,
   ChevronRight, Truck, Shield, RefreshCw, Package,
-  AlertCircle, Award, Store
+  AlertCircle, Award, Store, UserPlus, UserCheck
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useFollow } from '@/hooks/useFollow';
 import { trackView, trackCart } from '@/services/tracking';
 import ProductCard from '@/components/ProductCard';
 import cartStore from '@/services/cartStore';
@@ -31,6 +32,10 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Follow — resolves after product loads (hook handles null gracefully)
+  const followVendorId = product?.vendor_id?._id?.toString() || null;
+  const { isFollowing, toggleFollow, loading: followLoading } = useFollow(followVendorId);
   const [reviews, setReviews] = useState([]);
   const [related, setRelated] = useState([]);
   const [activeImg, setActiveImg] = useState(0);
@@ -588,7 +593,22 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 pt-2">
+                {/* Follow button — full width */}
+                <button
+                  onClick={toggleFollow}
+                  disabled={followLoading}
+                  className={`w-full h-11 rounded-2xl text-[13px] font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-60 ${
+                    isFollowing
+                      ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/15'
+                      : 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/20 hover:brightness-105'
+                  }`}
+                >
+                  {isFollowing
+                    ? <><UserCheck className="size-4 shrink-0" /> Following</>
+                    : <><UserPlus className="size-4 shrink-0" /> Follow {vendor.store_name}</>
+                  }
+                </button>
+                <div className="grid grid-cols-2 gap-3">
                   <Link href={`/stores?id=${encodeURIComponent(vendor._id)}`}
                     className="h-10 flex items-center justify-center gap-2 bg-[var(--bg-secondary)] rounded-full text-xs  font-bold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]/80 transition-all">
                     <Store className="size-3.5" /> {t('product.visitStore')}

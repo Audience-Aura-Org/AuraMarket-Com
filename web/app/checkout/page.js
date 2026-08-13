@@ -5,11 +5,12 @@ export const dynamic = 'force-dynamic';
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { flushSync } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  ShieldCheck, MapPin, CreditCard, ArrowRight, 
+import {
+  ShieldCheck, MapPin, CreditCard, ArrowRight,
   Lock, CheckCircle2, Plus, Loader2, ChevronDown,
   Smartphone, Wallet, ArrowLeft, Gem, AlertCircle,
-  Truck, Package, Info, ShieldAlert, Search, X, RotateCcw, Trash2
+  Truck, Package, Info, ShieldAlert, Search, X, RotateCcw, Trash2,
+  Utensils, CalendarClock, ShoppingBag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
@@ -72,6 +73,7 @@ function CheckoutContent() {
   const quantity = parseInt(searchParams.get('quantity') || '1');
   const variantStr = searchParams.get('variant');
   const variant = variantStr ? JSON.parse(decodeURIComponent(variantStr)) : null;
+  const bookingTypeParam = searchParams.get('bookingType'); // set by MealDetailModal Buy Now
   const { user, setWalletBalance: setSharedWalletBalance, walletBalance, refreshWalletBalance } = useAuthStore();
   const displayedWalletBalance = Number(walletBalance ?? 0);
   
@@ -82,11 +84,15 @@ function CheckoutContent() {
     phone: '',
     address: '',
     city: '',
+    landmark: '',
+    recipient_name: '',
+    recipient_phone: '',
     paymentMethod: 'payunit',
     escrowEnabled: true,
     logistics_company_id: VENDOR_MANAGED_LOGISTICS_ID,
     payunit: { phone: '', provider: 'CM_MTNMOMO', country: 'CM', currency: 'XAF' },
     eversend: { phone: '', country: 'CM', currency: 'XAF' },
+    fulfilment_type: null,   // set from cart.context_booking_type for food orders
   });
     
   // Eversend Country/Currency Mapping
@@ -113,6 +119,7 @@ function CheckoutContent() {
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [zones, setZones] = useState([]);
   const [deliveryQuartier, setDeliveryQuartier] = useState('');
+  const [isIntercityRoute, setIsIntercityRoute] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [removingItemKey, setRemovingItemKey] = useState(null);
   const [minimumWarningsDismissed, setMinimumWarningsDismissed] = useState(false);
@@ -124,6 +131,7 @@ function CheckoutContent() {
     phone: '',
   });
   const [checkoutTotals, setCheckoutTotals] = useState(null);
+  const [preOrderDate, setPreOrderDate] = useState('');
   const deliveryQuartierTouchedRef = useRef(false);
   const profileHydratedRef = useRef(false);
 
@@ -134,11 +142,29 @@ function CheckoutContent() {
     setDeliveryQuartier(normalized);
   };
 
+  const applySavedAddress = (addr) => {
+    setFormData((f) => ({
+      ...f,
+      name: addr.recipient_name || f.name,
+      phone: addr.contact_phone || f.phone,
+      city: addr.city || f.city,
+      address: addr.street || f.address,
+    }));
+    if (addr.quartier) {
+      const normalized = normalizeZoneName(addr.quartier);
+      if (normalized) {
+        deliveryQuartierTouchedRef.current = true;
+        setDeliveryQuartier(normalized);
+      }
+    }
+  };
+
   const sumLineItems = (items = []) =>
-    items.reduce(
-      (acc, it) => acc + (Number(it.price || it.product_id?.price || 0) * Number(it.quantity || 1)),
-      0
-    );
+    items.reduce((acc, it) => {
+      const base = Number(it.price || it.product_id?.price || 0);
+      const optionDelta = (it.selected_options || []).reduce((s, o) => s + (Number(o.price_delta) || 0), 0);
+      return acc + ((base + optionDelta) * Number(it.quantity || 1));
+    }, 0);
 
   const isVendorManagedDelivery = formData.logistics_company_id === VENDOR_MANAGED_LOGISTICS_ID;
   const defaultLogisticsOption = {
@@ -260,7 +286,8 @@ function CheckoutContent() {
         if (res.data.success) {
            const firms = res.data.data.firms || [];
            setLogisticsFirms(firms);
-           
+           setIsIntercityRoute(!!res.data.data.is_intercity);
+
            if (
               formData.logistics_company_id &&
               formData.logistics_company_id !== VENDOR_MANAGED_LOGISTICS_ID &&
@@ -271,9 +298,15 @@ function CheckoutContent() {
                 logistics_company_id: VENDOR_MANAGED_LOGISTICS_ID,
               }));
            }
+
+           // Intercity routes cannot use pay-on-delivery — auto-switch to payunit
+           if (res.data.data.is_intercity && formData.paymentMethod === 'pay_on_delivery') {
+              setFormData(prev => ({ ...prev, paymentMethod: 'payunit', escrowEnabled: true }));
+              toast('Pay on delivery is not available for intercity orders.', { icon: 'ℹ️' });
+           }
         }
       })
-      .catch(err => toast.error("Logistics node lookup failed"))
+      .catch(() => toast.error("Logistics node lookup failed"))
       .finally(() => setLogisticsLoading(false));
   }, [deliveryQuartier, order, cartItems]);
 
@@ -308,7 +341,7 @@ function CheckoutContent() {
     ]).then(([profileRes, addressRes]) => {
       const u = profileRes?.data?.success ? profileRes.data.data.user : null;
       const addrs = addressRes?.data?.success ? addressRes.data.data.addresses || [] : [];
-      const def = addrs.find((a) => a.is_default) || addrs[0];
+      const def = addrs.find((a) => a.isDefault) || addrs[0];
 
       if (u) {
         const freshBalance = Number(u.wallet_balance ?? 0);
@@ -321,13 +354,13 @@ function CheckoutContent() {
 
       setFormData((f) => ({
         ...f,
-        name: f.name || def?.name || u?.name || user.name || '',
+        name: f.name || def?.recipient_name || u?.name || user.name || '',
         email: f.email || u?.email || user.email || '',
-        phone: f.phone || def?.phone || u?.phone || user.phone || '',
+        phone: f.phone || def?.contact_phone || u?.phone || user.phone || '',
         city: f.city || def?.city || u?.onboarding_location?.city || user.onboarding_location?.city || '',
         address:
           f.address
-          || def?.address_line
+          || def?.street
           || u?.onboarding_location?.address_description
           || user.onboarding_location?.address_description
           || '',
@@ -365,6 +398,9 @@ function CheckoutContent() {
         });
     } else if (productId) {
       // Direct product checkout
+      if (bookingTypeParam) {
+        setFormData(prev => ({ ...prev, fulfilment_type: bookingTypeParam }));
+      }
       api.get(`/products/${productId}`)
         .then(res => {
           if (res.data.success) {
@@ -389,7 +425,8 @@ function CheckoutContent() {
       api.get('/cart')
         .then(res => {
           if (res.data.success && res.data.data.cart?.items) {
-             const items = res.data.data.cart.items.map(i => {
+             const cart = res.data.data.cart;
+             const items = cart.items.map(i => {
                const priced = applyVariantPricing(i.product, i.variant);
                 return {
                 id: i._id,
@@ -403,9 +440,15 @@ function CheckoutContent() {
                 compare_at_price: priced.compare_at_price,
                 quantity: i.quantity,
                 image: priced.image,
-                variant: i.variant || null
+                variant: i.variant || null,
+                selected_options: i.selected_options || [],
+                is_meal: !!(i.product?.meal),
              };
              });
+             // Persist booking type for food orders so it's included in the order payload
+             if (cart.context_booking_type) {
+               setFormData(prev => ({ ...prev, fulfilment_type: cart.context_booking_type }));
+             }
 
              setCartItems(mergeCheckoutItems(items));
              
@@ -468,13 +511,18 @@ function CheckoutContent() {
       return;
     }
 
-    if (!deliveryQuartier) {
+    if (!isPickupOrDineIn && !deliveryQuartier) {
       toast.error('Please select your delivery zone.');
       return;
     }
 
-    if (!isVendorManagedDelivery && !formData.logistics_company_id) {
+    if (!isPickupOrDineIn && !isVendorManagedDelivery && !formData.logistics_company_id) {
       toast.error('Please select a logistics partner or choose vendor-managed delivery.');
+      return;
+    }
+
+    if (isPreOrder && !preOrderDate) {
+      toast.error('Please select a scheduled date/time for your pre-order.');
       return;
     }
     
@@ -503,7 +551,9 @@ function CheckoutContent() {
                city: formData.city,
                quartier: deliveryQuartier,
                email: formData.email,
-               phone: formData.phone
+               phone: formData.recipient_phone || formData.phone,
+               full_name: formData.recipient_name || formData.name,
+               landmark: formData.landmark || undefined,
             },
             escrow_enabled: !isPayOnDelivery && formData.escrowEnabled,
             payment_method: isPayOnDelivery ? 'pay_on_delivery'
@@ -512,7 +562,9 @@ function CheckoutContent() {
               : (formData.escrowEnabled ? 'escrow' : 'wallet'),
             shipping_method: isVendorManagedDelivery ? 'vendor_managed' : 'logistics_partner',
             logistics_company_id: isVendorManagedDelivery ? null : formData.logistics_company_id,
-            delivery_quartier: deliveryQuartier
+            delivery_quartier: deliveryQuartier,
+            ...(formData.fulfilment_type && { fulfilment_type: formData.fulfilment_type }),
+            ...(isPreOrder && preOrderDate && { scheduled_for: preOrderDate }),
          };
 
          // If direct checkout, pass the items manually to bypass cart DB
@@ -520,7 +572,8 @@ function CheckoutContent() {
             orderPayload.items = cartItems.map(it => ({
                product_id: it.product_id,
                quantity: it.quantity,
-               variant: it.variant || variant
+               variant: it.variant || variant,
+               selected_options: it.selected_options || [],
             }));
          }
 
@@ -529,7 +582,10 @@ function CheckoutContent() {
         if (splitRes.data.success) {
             finalOrderIds = splitRes.data.data.orderIds;
             setCreatedOrderIds(finalOrderIds); // Cache orders for transaction persistence
-            if (!productId) {
+            // For external (mobile-money) payments, don't clear the local cart yet —
+            // the verify page will clear it once the gateway confirms the payment.
+            // For all other methods the order is already confirmed at this point.
+            if (!productId && !isExternal) {
               cartStore.clearCart();
             }
          } else {
@@ -615,6 +671,9 @@ function CheckoutContent() {
                   items: order?.products?.length ? [...(order.products)] : [...currentCartItems]
                 });
                 cartStore.clearCart();
+                // Server cart was intentionally preserved at order creation for external
+                // payments — clear it now that the gateway has confirmed success.
+                api.delete('/cart/clear').catch(() => {});
                 setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' });
                 setStep(3);
               },
@@ -725,7 +784,9 @@ function CheckoutContent() {
         minimum: null,
       };
 
-      existing.subtotal += Number(item.price || item.product_id?.price || item.product?.price || 0) * Number(item.quantity || 1);
+      const _base = Number(item.price || item.product_id?.price || item.product?.price || 0);
+      const _optionDelta = (item.selected_options || []).reduce((s, o) => s + (Number(o.price_delta) || 0), 0);
+      existing.subtotal += (_base + _optionDelta) * Number(item.quantity || 1);
       const rawMinimum = item.vendor_minimum_order_amount ?? item.vendor_id?.store?.minimum_order_amount ?? item.product?.vendor_id?.store?.minimum_order_amount;
       const minimum = Number(rawMinimum);
       if (Number.isFinite(minimum) && minimum > 0) existing.minimum = minimum;
@@ -735,7 +796,20 @@ function CheckoutContent() {
     return Array.from(grouped.values()).filter((entry) => entry.minimum && entry.subtotal < entry.minimum);
   }, [matrixItems]);
 
-  const checkoutBlocked = !deliveryQuartier || (!isVendorManagedDelivery && !formData.logistics_company_id) || vendorMinimumErrors.length > 0;
+  // Fulfillment mode helpers — drive which sections are visible and which are required
+  const fulfilmentType = formData.fulfilment_type;
+  // In a mixed cart (food + retail) retail items always need an address/delivery zone,
+  // so we only suppress those fields when ALL items are food on pickup/dine-in.
+  const hasRetailItems = cartItems.some(it => !it.is_meal);
+  const isPickupOrDineIn = ['pickup', 'dine_in'].includes(fulfilmentType) && !hasRetailItems;
+  const isPreOrder = fulfilmentType === 'pre_order';
+  const isFoodOrder = !!fulfilmentType; // any non-null type = food order
+
+  const checkoutBlocked =
+    (!isPickupOrDineIn && !deliveryQuartier) ||
+    (!isPickupOrDineIn && !isVendorManagedDelivery && !formData.logistics_company_id) ||
+    (isPreOrder && !preOrderDate) ||
+    vendorMinimumErrors.length > 0;
 
   const vendorTracking = matrixItems.reduce((acc, item) => {
      const vId = item.vendor_id?._id || item.vendor_id || item.product?.vendor_id;
@@ -773,16 +847,14 @@ function CheckoutContent() {
       description: 'Mobile money collection with a 500 XAF minimum.',
       icon: Smartphone,
     },
-    {
-      id: 'pay_on_delivery',
-      label: 'Pay on Delivery',
-      badge: 'Delivery',
-      description: 'Settle payment when delivery is confirmed.',
-      icon: Truck,
-    },
   ];
   const selectedPayment = paymentOptions.find((option) => option.id === formData.paymentMethod) || paymentOptions[0];
   const SelectedPaymentIcon = selectedPayment.icon;
+  // Sort so the active method is always first in the dropdown
+  const sortedPaymentOptions = [
+    selectedPayment,
+    ...paymentOptions.filter((o) => o.id !== selectedPayment.id),
+  ];
 
   const selectPaymentMethod = (method) => {
     setPaymentOpen(false);
@@ -800,9 +872,6 @@ function CheckoutContent() {
           paymentMethod: 'eversend',
           eversend: { ...current.eversend, phone: current.eversend.phone || current.phone },
         };
-      }
-      if (method === 'pay_on_delivery') {
-        return { ...current, escrowEnabled: false, paymentMethod: 'pay_on_delivery' };
       }
       return { ...current, paymentMethod: 'wallet' };
     });
@@ -948,7 +1017,7 @@ function CheckoutContent() {
                     Top Up Wallet
                   </button>
                   <button
-                    onClick={() => { setBlockReason(null); setError(null); setFormData(f => ({ ...f, paymentMethod: 'pay_on_delivery' })); }}
+                    onClick={() => { setBlockReason(null); setError(null); }}
                     className="w-full h-12 rounded-2xl border border-[var(--glass-border)] text-[var(--text-secondary)]  font-semibold text-[11px] lg:text-[12px] tracking-tight flex items-center justify-center gap-2 hover:border-[var(--accent)]/40 transition-all"
                   >
                     Use Different Method
@@ -992,14 +1061,80 @@ function CheckoutContent() {
                 <section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                   <div className="space-y-5">
                     <div className="flex items-center gap-3">
-                       <div className="flex size-11 items-center justify-center rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm sm:size-12"><MapPin className="size-5 sm:size-6" /></div>
+                       <div className="flex size-11 items-center justify-center rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm sm:size-12">
+                         {fulfilmentType === 'pickup'    ? <Package   className="size-5 sm:size-6" />
+                         : fulfilmentType === 'dine_in'  ? <Utensils  className="size-5 sm:size-6" />
+                         : fulfilmentType === 'pre_order'? <CalendarClock className="size-5 sm:size-6" />
+                         : <MapPin className="size-5 sm:size-6" />}
+                       </div>
                        <div>
-                          <h2 className="text-xl font-bold tracking-tight leading-tight sm:text-2xl">Delivery Details</h2>
-                          <p className="mt-1 text-[11px] font-medium text-[var(--text-secondary)] sm:text-[12px]">Confirm your address, logistics partner, and payment method.</p>
+                          <h2 className="text-xl font-bold tracking-tight leading-tight sm:text-2xl">
+                            {fulfilmentType === 'pickup'    ? 'Pickup Details'
+                            : fulfilmentType === 'dine_in'  ? 'Dine-In Details'
+                            : fulfilmentType === 'pre_order'? 'Pre-Order Details'
+                            : 'Delivery Details'}
+                          </h2>
+                          <p className="mt-1 text-[11px] font-medium text-[var(--text-secondary)] sm:text-[12px]">
+                            {fulfilmentType === 'pickup'    ? 'Confirm contact details and payment. Pick up at the restaurant.'
+                            : fulfilmentType === 'dine_in'  ? 'Confirm contact details and payment. Enjoy at the restaurant.'
+                            : fulfilmentType === 'pre_order'? 'Schedule your order and confirm payment details.'
+                            : 'Confirm your address, logistics partner, and payment method.'}
+                          </p>
                        </div>
                     </div>
+                    {/* Order mode badge */}
+                    {isFoodOrder && (
+                      <div className="flex items-center gap-2 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/8 px-3 py-2">
+                        {fulfilmentType === 'pickup'    && <Package    className="size-3.5 text-[var(--accent)] shrink-0" />}
+                        {fulfilmentType === 'dine_in'   && <Utensils   className="size-3.5 text-[var(--accent)] shrink-0" />}
+                        {fulfilmentType === 'pre_order' && <CalendarClock className="size-3.5 text-[var(--accent)] shrink-0" />}
+                        {fulfilmentType === 'delivery'  && <ShoppingBag className="size-3.5 text-[var(--accent)] shrink-0" />}
+                        <span className="text-[11px] font-bold text-[var(--accent)] capitalize">
+                          {fulfilmentType.replace('_', ' ')} order
+                        </span>
+                      </div>
+                    )}
 
                     <div className="glass-panel space-y-5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-4 sm:p-5 md:p-6">
+
+                       {/* Saved address quick-select — shown when user has addresses on file */}
+                       {savedAddresses.length > 0 && !isPickupOrDineIn && (
+                         <div className="space-y-2">
+                           <p className="text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight ml-1">Saved Addresses</p>
+                           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
+                             {savedAddresses.map((addr) => {
+                               const isActive =
+                                 formData.city === addr.city &&
+                                 formData.address === addr.street;
+                               return (
+                                 <button
+                                   key={addr._id}
+                                   type="button"
+                                   onClick={() => applySavedAddress(addr)}
+                                   className={`snap-start shrink-0 flex flex-col gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-all min-w-[140px] max-w-[180px] ${
+                                     isActive
+                                       ? 'border-[var(--accent)] bg-[var(--accent)]/10'
+                                       : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40'
+                                   }`}
+                                 >
+                                   <div className="flex items-center gap-1.5">
+                                     <MapPin className={`size-3 shrink-0 ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                                     <span className={`text-[11px] font-bold truncate ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
+                                       {addr.label || 'Address'}
+                                     </span>
+                                     {addr.isDefault && (
+                                       <span className="ml-auto text-[9px] font-bold text-[var(--accent)] bg-[var(--accent)]/10 rounded px-1">Default</span>
+                                     )}
+                                   </div>
+                                   <p className="text-[10px] text-[var(--text-secondary)] truncate">{addr.city}{addr.region ? `, ${addr.region}` : ''}</p>
+                                   {addr.street && <p className="text-[10px] text-[var(--text-secondary)] truncate opacity-70">{addr.street}</p>}
+                                 </button>
+                               );
+                             })}
+                           </div>
+                         </div>
+                       )}
+
                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
                           <div className="space-y-2 md:space-y-3">
                             <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Consignee Name</label>
@@ -1031,30 +1166,66 @@ function CheckoutContent() {
                           </div>
                           
 
-                          <div className="md:col-span-2 space-y-3 md:space-y-4">
-                            <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Delivery Quartier (Zone)</label>
+                          {/* Pre-order date/time — only for pre_order mode */}
+                          {isPreOrder && (
+                            <div className="md:col-span-2 space-y-2 md:space-y-3">
+                              <label className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight ml-1">
+                                Scheduled Date &amp; Time <span className="text-orange-500">*</span>
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={preOrderDate}
+                                min={new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16)}
+                                onChange={e => setPreOrderDate(e.target.value)}
+                                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
+                              />
+                            </div>
+                          )}
 
-                            <ZonePickerField
-                              value={deliveryQuartier}
-                              onChange={handleQuartierChange}
-                              zones={zones}
-                            />
-                          </div>
+                          {/* Pickup/Dine-in notice — no address needed */}
+                          {isPickupOrDineIn && (
+                            <div className="md:col-span-2 rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-4 py-3 flex items-start gap-3">
+                              {fulfilmentType === 'dine_in'
+                                ? <Utensils className="size-4 text-[var(--accent)] shrink-0 mt-0.5" />
+                                : <Package  className="size-4 text-[var(--accent)] shrink-0 mt-0.5" />}
+                              <p className="text-[11px] font-semibold text-[var(--accent)] leading-relaxed">
+                                {fulfilmentType === 'dine_in'
+                                  ? 'No delivery address needed — you will dine at the restaurant. Show your order confirmation on arrival.'
+                                  : 'No delivery address needed — you will collect your order at the restaurant. Show your order confirmation to the staff.'}
+                              </p>
+                            </div>
+                          )}
 
-                          <div className="md:col-span-2 space-y-2 md:space-y-3">
-                            <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Precise Landing Details (Build/Street No.)</label>
-                            <textarea 
-                              placeholder="House number, color of gate, or specific landmarks..."
-                              rows={3}
-                              value={formData.address}
-                              onChange={e => setFormData(prev => ({...prev, address: e.target.value}))}
-                              className="w-full resize-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
-                            />
-                          </div>
+                          {/* Delivery zone — hidden for pickup/dine-in */}
+                          {!isPickupOrDineIn && (
+                            <div className="md:col-span-2 space-y-3 md:space-y-4">
+                              <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Delivery Quartier (Zone)</label>
+                              <ZonePickerField
+                                value={deliveryQuartier}
+                                onChange={handleQuartierChange}
+                                zones={zones}
+                              />
+                            </div>
+                          )}
+
+                          {/* Street address — hidden for pickup/dine-in */}
+                          {!isPickupOrDineIn && (
+                            <div className="md:col-span-2 space-y-2 md:space-y-3">
+                              <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Precise Landing Details (Build/Street No.)</label>
+                              <textarea
+                                placeholder="House number, color of gate, or specific landmarks..."
+                                rows={3}
+                                value={formData.address}
+                                onChange={e => setFormData(prev => ({...prev, address: e.target.value}))}
+                                className="w-full resize-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
+                              />
+                            </div>
+                          )}
 
                        </div>
 
-                       <div className="pt-4 space-y-4">
+                       {/* Logistics section — hidden for pickup/dine-in */}
+                       {!isPickupOrDineIn && <div className="pt-4 space-y-4">
                           <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Delivery Option</label>
                           <div className="relative">
                              <button 
@@ -1098,7 +1269,7 @@ function CheckoutContent() {
                                 <ChevronDown className={`size-4 opacity-40 transition-transform ${logisticsOpen ? 'rotate-180' : ''}`} />
                              </button>
 
-                             <SearchableLogisticsDropdown 
+                             <SearchableLogisticsDropdown
                                 firms={logisticsOptions}
                                 selectedId={formData.logistics_company_id}
                                 onSelect={(id) => setFormData(prev => ({...prev, logistics_company_id: id}))}
@@ -1108,15 +1279,16 @@ function CheckoutContent() {
                              />
                           </div>
 
-                       </div>
+                       </div>}
 
                        <div className="pt-4 space-y-4">
                            <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Payment Strategy</label>
                            <div className="relative">
                               <button
+                                key={formData.paymentMethod}
                                 type="button"
                                 onClick={() => setPaymentOpen((open) => !open)}
-                                className={`flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-all ${paymentOpen ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}
+                                className={`flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-all ${paymentOpen ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--accent)]/40 bg-[var(--bg-secondary)]'}`}
                               >
                                 <div className="flex min-w-0 items-center gap-3">
                                   <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--accent)]">
@@ -1144,15 +1316,16 @@ function CheckoutContent() {
                                     transition={{ duration: 0.16 }}
                                     className="absolute left-0 right-0 top-full z-[120] mt-2 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl"
                                   >
-                                    {paymentOptions.map((option) => {
+                                    {sortedPaymentOptions.map((option) => {
                                       const Icon = option.icon;
                                       const active = option.id === formData.paymentMethod;
                                       return (
                                         <button
                                           key={option.id}
                                           type="button"
-                                          onClick={() => selectPaymentMethod(option.id)}
-                                          className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-all hover:bg-[var(--accent)]/5 ${active ? 'bg-[var(--accent)]/10' : ''}`}
+                                          onClick={() => !option.disabled && selectPaymentMethod(option.id)}
+                                          disabled={option.disabled}
+                                          className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-all ${option.disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-[var(--accent)]/5'} ${active ? 'bg-[var(--accent)]/10' : ''}`}
                                         >
                                           <div className={`flex size-10 shrink-0 items-center justify-center rounded-2xl border ${active ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}>
                                             <Icon className="size-4" />
@@ -1160,8 +1333,8 @@ function CheckoutContent() {
                                           <div className="min-w-0 flex-1">
                                             <div className="flex items-center gap-2">
                                               <p className="truncate text-[11px] font-semibold text-[var(--text-primary)] sm:text-[12px]">{option.label}</p>
-                                              <span className="shrink-0 rounded-full bg-[var(--bg-secondary)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-                                                {option.badge}
+                                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${active ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}>
+                                                {active ? 'Selected' : option.badge}
                                               </span>
                                             </div>
                                             <p className="mt-0.5 line-clamp-1 text-[10px] font-medium text-[var(--text-secondary)]">{option.description}</p>
@@ -1388,6 +1561,9 @@ function CheckoutContent() {
                     const itemImage = item.image || item.product?.images?.[0]?.url || item.product?.images?.[0] || item.product_id?.images?.[0]?.url || item.product_id?.images?.[0] || '/placeholder.png';
                     const canRemove = !orderId;
                     const hasSale = item.compare_at_price && Number(item.compare_at_price) > Number(item.price);
+                    const itemOptions = item.selected_options || [];
+                    const optionDelta = itemOptions.reduce((s, o) => s + (Number(o.price_delta) || 0), 0);
+                    const effectivePrice = Number(item.price || 0) + optionDelta;
                     return (
                       <div key={itemKey} className="group flex items-start gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/55 p-2.5">
                          <img src={itemImage} className="size-12 rounded-2xl object-cover border border-[var(--glass-border)]" alt="" />
@@ -1398,9 +1574,14 @@ function CheckoutContent() {
                                 {variantLabel}
                               </p>
                             )}
+                            {itemOptions.length > 0 && (
+                              <p className="mt-0.5 text-[10px] font-medium text-[var(--text-secondary)] leading-snug">
+                                {itemOptions.map(o => o.option_label).join(' · ')}
+                              </p>
+                            )}
                             <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] font-semibold text-[var(--text-secondary)]">
                                <span className={hasSale ? 'text-[var(--accent)] font-bold' : ''}>
-                                 {Number(item.price || 0).toLocaleString()} XAF
+                                 {effectivePrice.toLocaleString()} XAF
                                </span>
                                {hasSale && (
                                  <>
