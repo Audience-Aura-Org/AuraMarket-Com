@@ -70,6 +70,49 @@ app.set('io', io);
 
 const { startEscrowAutoReleaseWorker } = require('./services/escrowAutoRelease.service');
 startEscrowAutoReleaseWorker(app);
+const { startFoodAcceptanceTimeoutWorker } = require('./services/foodAcceptanceTimeout.service');
+startFoodAcceptanceTimeoutWorker(app);
+const { startDisputeWindowWorker } = require('./services/disputeWindowEnforcement.service');
+startDisputeWindowWorker(app);
+const { startCancelRateMonitor } = require('./services/cancelRateMonitor.service');
+startCancelRateMonitor(app);
+const { startOrphanDetector } = require('./services/orphanDetector.service');
+startOrphanDetector(app);
+const { startIntercityDispatchTimeoutWorker } = require('./services/intercityDispatchTimeout.service');
+startIntercityDispatchTimeoutWorker(app);
+const { startAvgDeliveryMinutesJob } = require('./services/avgDeliveryMinutes.service');
+startAvgDeliveryMinutesJob();
+const { startDelayedRiderDispatchWorker } = require('./services/delayedRiderDispatch.service');
+startDelayedRiderDispatchWorker(app);
+const { startIntercityArrivalLapseWorker } = require('./services/intercityArrivalLapse.service');
+startIntercityArrivalLapseWorker(app);
+
+// Phase 3 Step 11 — Hourly dine-feed cache invalidation
+// open_status / next_status_change_at is computed at cache-write time (Africa/Douala).
+// Clear all dine:* keys every hour so the feed never shows a stale open/closed badge
+// longer than one cache TTL (5 min) after the hour turns.
+(function startDineCacheInvalidationWorker() {
+  const cache = require('./utils/cache');
+  const clearDineCache = () => {
+    try {
+      for (const key of cache.keys()) {
+        if (key.startsWith('dine:')) cache.delete(key);
+      }
+    } catch (err) {
+      console.error('[dineCacheInvalidation] failed:', err.message);
+    }
+  };
+
+  // Align to the top of the next full hour, then repeat every 60 min
+  const now = new Date();
+  const msUntilNextHour = (60 - now.getMinutes()) * 60 * 1000 - now.getSeconds() * 1000 - now.getMilliseconds();
+  setTimeout(() => {
+    clearDineCache();
+    const t = setInterval(clearDineCache, 60 * 60 * 1000);
+    if (t.unref) t.unref();
+  }, msUntilNextHour);
+})();
+
 const { drainQueues } = require('./services/jobQueue.service');
 const { getRedisStatus, closeRedis } = require('./config/redis');
 

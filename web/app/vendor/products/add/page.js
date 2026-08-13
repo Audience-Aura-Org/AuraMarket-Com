@@ -4,9 +4,9 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Upload, X, Plus, Package, Image as ImageIcon,
-  ArrowLeft
+  ArrowLeft,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
@@ -35,6 +35,9 @@ const getProductCreateErrorMessage = (err) => {
   if (status === 402 || code === 'SUBSCRIPTION_REQUIRED') {
     return 'Please activate a vendor package before uploading products. Go to Subscribe and choose a vendor package, then try again.';
   }
+  if (code === 'PRODUCT_LIMIT_REACHED') {
+    return err?.response?.data?.message || 'You have reached your plan\'s product limit. Upgrade your package to add more listings.';
+  }
   const message = err?.response?.data?.message || err?.response?.data?.error || '';
   if (/file too large|limit_file_size|maximum size/i.test(message)) {
     return 'One or more product images are too large. Choose smaller images or let the app compress them, then try again.';
@@ -60,6 +63,7 @@ export default function AddProductPage() {
     name: '', description: '', price: '', sale_price: '', stock: '',
     category: '', specifications: '', long_description: ''
   });
+  const [parcelClass, setParcelClass] = useState('small'); // 'small' | 'oversize'
   const [showStoryPrompt, setShowStoryPrompt] = useState(false);
   const [createdProduct, setCreatedProduct] = useState(null);
 
@@ -86,8 +90,7 @@ export default function AddProductPage() {
   const [hasVariants, setHasVariants] = useState(false);
   const [variantTypes, setVariantTypes] = useState([{ name: 'Color', options: [], metadata: {} }]);
   const [skuVariants, setSkuVariants] = useState([]);
-
-
+  const [optionInputs, setOptionInputs] = useState({});
 
   const rememberMobileScroll = () => {
     if (typeof window === 'undefined' || window.innerWidth >= 768) return;
@@ -198,6 +201,13 @@ export default function AddProductPage() {
     generateSKUs(newTypes);
   };
 
+  const handleAddOption = (tIdx) => {
+    const val = (optionInputs[tIdx] || '').trim();
+    if (!val) return;
+    addOption(tIdx, val);
+    setOptionInputs(prev => ({ ...prev, [tIdx]: '' }));
+  };
+
   const generateSKUs = (types) => {
     const validTypes = types.filter(t => t.name && t.options.length > 0);
     if (validTypes.length === 0) {
@@ -251,7 +261,9 @@ export default function AddProductPage() {
       images.forEach(img => formData.append('images', img.file));
       formData.append('tags', JSON.stringify(tags));
       formData.append('type', 'products');
-      
+
+      formData.append('parcel_class', parcelClass);
+
       if (hasVariants) {
         formData.append('has_variants', 'true');
         formData.append('variant_types', JSON.stringify(variantTypes.filter(t => t.name && t.options.length > 0)));
@@ -322,7 +334,7 @@ export default function AddProductPage() {
             <div className="xl:col-span-8 space-y-3 sm:space-y-6 lg:space-y-8 w-full">
               
               {/* Product Type Selector */}
-              <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
+              <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 space-y-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-4">
                     <div className="p-3 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
@@ -334,14 +346,14 @@ export default function AddProductPage() {
                     </div>
                   </div>
                   <div className="flex p-1 bg-[var(--bg-secondary)] rounded-2xl border border-[var(--glass-border)]">
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setHasVariants(false)}
                       className={`flex-1 px-3 sm:px-6 py-2 rounded-xl text-xs font-bold tracking-tight transition-all ${!hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                     >
                       Simple
                     </button>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setHasVariants(true)}
                       className={`flex-1 px-3 sm:px-6 py-2 rounded-xl text-xs font-bold tracking-tight transition-all ${hasVariants ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
@@ -350,6 +362,7 @@ export default function AddProductPage() {
                     </button>
                   </div>
                 </div>
+
               </section>
 
               {/* Variations Configuration (Only if Variable is selected) */}
@@ -364,7 +377,7 @@ export default function AddProductPage() {
                     {/* Define Types */}
                     <div className="space-y-6">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <h3 className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] text-[var(--accent)]">1. Define Attributes (Color, Size, etc.)</h3>
+                        <h3 className="text-[12px] font-semibold font-[Poppins] text-[var(--accent)]">1. Define Attributes (Color, Size, etc.)</h3>
                         <button 
                           type="button"
                           onClick={addVariantType}
@@ -376,54 +389,70 @@ export default function AddProductPage() {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {variantTypes.map((type, tIdx) => (
-                          <div key={tIdx} className="p-6 bg-[var(--bg-secondary)]/50 rounded-3xl border border-[var(--glass-border)] space-y-4 relative group">
-                            <button 
-                              type="button"
-                              onClick={() => setVariantTypes(prev => prev.filter((_, i) => i !== tIdx))}
-                              className="absolute top-4 right-4 p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                            <div className="space-y-1">
-                              <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-50">Attribute Name</label>
-                              <input 
-                                placeholder="e.g. Color"
+                          <div key={tIdx} className="p-4 bg-[var(--bg-secondary)]/50 rounded-2xl border border-[var(--glass-border)] space-y-3">
+                            {/* Header row: name input + delete */}
+                            <div className="flex items-center gap-2">
+                              <input
+                                placeholder="Attribute name (e.g. Color, Size)"
                                 value={type.name}
                                 onChange={e => updateVariantType(tIdx, e.target.value)}
-                                className="w-full bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-4 py-2 text-xs sm:text-sm font-medium placeholder:text-[11px] placeholder:font-normal focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                                className="flex-1 min-w-0 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-3 py-2 text-[12px] font-medium placeholder:text-[11px] placeholder:font-normal focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
                               />
+                              <button
+                                type="button"
+                                onClick={() => setVariantTypes(prev => prev.filter((_, i) => i !== tIdx))}
+                                className="shrink-0 p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
                             </div>
-                            <div className="space-y-2">
-                              <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-50">Options</label>
-                              <div className="flex flex-wrap gap-2">
+
+                            {/* Existing option chips */}
+                            {type.options.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5">
                                 {type.options.map((opt, oIdx) => (
-                                  <div key={oIdx} className="flex flex-col gap-2">
-                                    <span className="flex items-center gap-1.5 px-3 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold  rounded-full border border-[var(--accent)]/20">
+                                  <div key={oIdx} className="flex flex-col items-center gap-1">
+                                    <span className="flex items-center gap-1.5 px-2.5 py-1 bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] font-semibold rounded-full border border-[var(--accent)]/20">
                                       {type.name.toLowerCase() === 'color' && (
-                                        <div 
-                                          className="size-3 rounded-full border border-black/10" 
-                                          style={{ backgroundColor: type.metadata?.[opt] || '#000' }} 
+                                        <div
+                                          className="size-3 rounded-full border border-black/10"
+                                          style={{ backgroundColor: type.metadata?.[opt] || '#000' }}
                                         />
                                       )}
                                       {opt}
-                                      <X className="w-3 h-3 cursor-pointer hover:scale-110" onClick={() => removeOption(tIdx, oIdx)} />
+                                      <button type="button" onClick={() => removeOption(tIdx, oIdx)}>
+                                        <X className="w-3 h-3" />
+                                      </button>
                                     </span>
                                     {type.name.toLowerCase() === 'color' && (
-                                      <input 
-                                        type="color" 
+                                      <input
+                                        type="color"
                                         value={type.metadata?.[opt] || '#000000'}
-                                        onChange={(e) => updateColorMetadata(tIdx, opt, e.target.value)}
-                                        className="w-full h-4 bg-transparent border-none cursor-pointer p-0"
+                                        onChange={e => updateColorMetadata(tIdx, opt, e.target.value)}
+                                        className="w-8 h-5 bg-transparent border-none cursor-pointer p-0 rounded"
                                       />
                                     )}
                                   </div>
                                 ))}
-                                <input 
-                                  placeholder="Add option..."
-                                  onKeyDown={e => { if(e.key === 'Enter') { addOption(tIdx, e.target.value); e.target.value = ''; } }}
-                                  className="bg-transparent border-none outline-none text-[11px] font-normal text-[var(--text-primary)] w-24 placeholder:font-normal placeholder:text-[var(--text-secondary)]/35"
-                                />
                               </div>
+                            )}
+
+                            {/* Add option row — works on Android (button tap) + desktop (Enter) */}
+                            <div className="flex gap-2">
+                              <input
+                                value={optionInputs[tIdx] || ''}
+                                onChange={e => setOptionInputs(prev => ({ ...prev, [tIdx]: e.target.value }))}
+                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddOption(tIdx); } }}
+                                placeholder={type.name.toLowerCase() === 'color' ? 'e.g. Red' : type.name ? `e.g. Small` : 'Option value'}
+                                className="flex-1 min-w-0 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-3 py-2 text-[12px] font-normal placeholder:text-[11px] focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleAddOption(tIdx)}
+                                className="shrink-0 px-3 py-2 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] hover:bg-[var(--accent)]/20 active:scale-95 transition-all"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -433,7 +462,7 @@ export default function AddProductPage() {
                     {/* Matrix */}
                     {skuVariants.length > 0 && (
                       <div className="space-y-6">
-                        <h3 className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] text-[var(--accent)]">2. Variant Matrix (Prices & Stock)</h3>
+                        <h3 className="text-[12px] font-semibold font-[Poppins] text-[var(--accent)]">2. Variant Matrix (Prices & Stock)</h3>
                         <div className="overflow-x-auto rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-xl shadow-black/5 sm:rounded-[2rem]">
                           <table className="w-full text-left border-collapse">
                             <thead className="bg-[var(--bg-secondary)] text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] border-b border-[var(--glass-border)]">
@@ -642,6 +671,44 @@ export default function AddProductPage() {
                 </div>
               </section>
 
+              {/* Parcel size — intercity shipping eligibility */}
+              <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
+                <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[var(--glass-border)]">
+                  <h2 className="font-bold tracking-tight text-[var(--text-primary)] text-sm">Shipping size</h2>
+                </div>
+                <p className="text-[11px] text-[var(--text-secondary)] mb-4 leading-relaxed">
+                  Does this product fit in a box about <span className="font-bold text-[var(--text-primary)]">40 × 30 × 20 cm</span> and can one person carry it?
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setParcelClass('small')}
+                    className={`flex flex-col items-center gap-1.5 rounded-2xl border px-3 py-4 text-center transition-all active:scale-95 ${
+                      parcelClass === 'small'
+                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                        : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    <span className="text-xl">📦</span>
+                    <span className="text-[11px] font-bold">Yes, fits in a box</span>
+                    <span className="text-[9px] opacity-60">Eligible for intercity shipping</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setParcelClass('oversize')}
+                    className={`flex flex-col items-center gap-1.5 rounded-2xl border px-3 py-4 text-center transition-all active:scale-95 ${
+                      parcelClass === 'oversize'
+                        ? 'bg-rose-500/10 border-rose-500/40 text-rose-400'
+                        : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    <span className="text-xl">🛋️</span>
+                    <span className="text-[11px] font-bold">No, it is too large</span>
+                    <span className="text-[9px] opacity-60">Local delivery only</span>
+                  </button>
+                </div>
+              </section>
+
               {/* Category & Tags */}
               <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
@@ -651,6 +718,7 @@ export default function AddProductPage() {
                   <div>
                     <label className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight mb-2 block   font-bold">Category *</label>
                     <CategoryPicker
+                      appliesTo="retail"
                       value={form.category}
                       onChange={(name) => updateFormField('category', name)}
                     />

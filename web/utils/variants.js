@@ -11,7 +11,10 @@ export function findSelectedVariant(product = {}, selected = null) {
 
 export function applyVariantPricing(product = {}, selected = null) {
   const selectedVariant = findSelectedVariant(product, selected);
-  const productImage = product.images?.[0]?.url || product.images?.[0] || null;
+  // images[0] may be a string URL (legacy) or an object { url, public_id }.
+  // Never fall through to the raw object — always extract a string or null.
+  const rawImg = product.images?.[0];
+  const productImage = (typeof rawImg === 'string' ? rawImg : rawImg?.url) || null;
 
   let price;
   let compare_at_price;

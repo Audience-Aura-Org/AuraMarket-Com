@@ -19,15 +19,16 @@ const HomepageSectionSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: [
-        'hero', 
-        'categories', 
-        'featured_products', 
-        'trending', 
-        'promo_banner', 
-        'stores', 
-        'collection', 
-        'recommendations', 
-        'footer_promo'
+        'hero',
+        'categories',
+        'featured_products',
+        'trending',
+        'promo_banner',
+        'stores',
+        'collection',
+        'recommendations',
+        'footer_promo',
+        'restaurants',  // Phase 3 Step 11 — restaurant widget on the main discovery/homepage feed
       ],
     },
     order: {

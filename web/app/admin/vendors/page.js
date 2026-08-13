@@ -29,7 +29,7 @@ export default function AdminVendorsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [mounted, setMounted] = useState(false);
   const [editingVendor, setEditingVendor] = useState(null);
-  const [mediaForm, setMediaForm] = useState({ logo: '', banner: '', commission_rate: '', delivery_time: '', minimum_order_amount: '' });
+  const [mediaForm, setMediaForm] = useState({ logo: '', banner: '', commission_rate: '', delivery_time: '', minimum_order_amount: '', vendor_type: 'retail' });
   const [mediaSaving, setMediaSaving] = useState(false);
   const [mediaUploading, setMediaUploading] = useState(null);
   const itemsPerPage = 12;
@@ -91,12 +91,13 @@ export default function AdminVendorsPage() {
       commission_rate: vendor?.store?.commission_rate ?? '',
       delivery_time: vendor?.store?.delivery_time || '',
       minimum_order_amount: vendor?.store?.minimum_order_amount ?? '',
+      vendor_type: vendor?.vendor_type || 'retail',
     });
   };
 
   const closeMediaEditor = () => {
     setEditingVendor(null);
-    setMediaForm({ logo: '', banner: '', commission_rate: '', delivery_time: '', minimum_order_amount: '' });
+    setMediaForm({ logo: '', banner: '', commission_rate: '', delivery_time: '', minimum_order_amount: '', vendor_type: 'retail' });
     setMediaUploading(null);
   };
 
@@ -135,6 +136,7 @@ export default function AdminVendorsPage() {
         commission_rate: mediaForm.commission_rate,
         delivery_time: mediaForm.delivery_time,
         minimum_order_amount: mediaForm.minimum_order_amount,
+        vendor_type: mediaForm.vendor_type,
       });
       updatedVendor = res.data?.data?.vendor || updatedVendor;
       if (res.data?.success && updatedVendor) {
@@ -368,6 +370,33 @@ export default function AdminVendorsPage() {
                 </div>
 
                 <div className="space-y-4 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm md:p-6">
+                  {/* Vendor type */}
+                  <div className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-4">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-orange-600">Vendor Type</label>
+                    <p className="text-[10px] text-[var(--text-secondary)] opacity-60 mt-0.5 mb-3">Changes what tools the vendor sees in their dashboard.</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {[
+                        { value: 'retail',     label: 'Retail',      icon: '🛒' },
+                        { value: 'restaurant', label: 'Restaurant',   icon: '🍽️' },
+                        { value: 'digital',    label: 'Digital',      icon: '💻' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setMediaForm(prev => ({ ...prev, vendor_type: opt.value }))}
+                          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border text-[12px] font-bold transition-all ${
+                            mediaForm.vendor_type === opt.value
+                              ? 'border-orange-500 bg-orange-500 text-white'
+                              : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:border-orange-500/40'
+                          }`}
+                        >
+                          <span>{opt.icon}</span>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     {[
                       { field: 'commission_rate', label: 'Commission override (%)', placeholder: 'e.g. 10', hint: 'Blank uses platform default.', type: 'number' },

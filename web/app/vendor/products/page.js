@@ -81,9 +81,32 @@ export default function VendorProductsPage() {
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const currentProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const activeCount = products.filter((p) => p.stock > 0).length;
-  const lowStockCount = products.filter((p) => p.stock <= 5 && p.stock > 0).length;
-  const onSaleCount = products.filter((p) => p.compare_at_price != null && p.compare_at_price > p.price).length;
+  // Meals don't track stock — consider them "in stock" when status is active.
+  // Variant products track stock per-variant; sum the variants for accurate counts.
+  const activeCount = products.filter((p) => {
+    if (p.is_meal || p.meal) return p.status === 'active';
+    if (p.has_variants && p.sku_variants?.length)
+      return p.sku_variants.some((v) => (v.stock || 0) > 0);
+    return (p.stock || 0) > 0;
+  }).length;
+
+  const lowStockCount = products.filter((p) => {
+    if (p.is_meal || p.meal) return false; // no stock concept for meals
+    if (p.has_variants && p.sku_variants?.length) {
+      const variantTotal = p.sku_variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+      return variantTotal > 0 && variantTotal <= 5;
+    }
+    return (p.stock || 0) > 0 && (p.stock || 0) <= 5;
+  }).length;
+
+  const onSaleCount = products.filter((p) => {
+    // Top-level sale price
+    if (p.sale_price != null && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price)) return true;
+    // Variant-level sale price
+    if (p.has_variants && p.sku_variants?.length)
+      return p.sku_variants.some(v => v.sale_price != null && Number(v.sale_price) > 0 && Number(v.sale_price) < Number(v.price));
+    return false;
+  }).length;
 
   const handleDeleteProduct = async (id) => {
     if (!window.confirm(t('products.deleteConfirm', 'Are you sure you want to delete this product? This action cannot be undone.'))) return;

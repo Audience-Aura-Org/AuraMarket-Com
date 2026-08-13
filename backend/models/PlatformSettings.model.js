@@ -57,7 +57,53 @@ const PlatformSettingsSchema = new mongoose.Schema(
       vendor: { type: Number, default: 7, min: 0, max: 365 },
       logistics: { type: Number, default: 3, min: 0, max: 365 },
       admin: { type: Number, default: 0, min: 0, max: 365 }
-    }
+    },
+
+    // ── Phase 3 — Restaurant-specific settings ──────────────────────────────
+
+    // Kitchen acceptance window: minutes the restaurant has to accept before auto-cancel.
+    food_acceptance_timeout_minutes: {
+      type: Number,
+      default: 10,
+      min: 1,
+      max: 60,
+    },
+
+    // New-restaurant hold: number of successfully delivered food orders before
+    // a restaurant graduates to instant settlement.
+    new_restaurant_hold_order_count: {
+      type: Number,
+      default: 5,
+      min: 0,
+    },
+
+    // Restaurant withdrawal gate
+    restaurant_min_withdrawal_orders: {
+      type: Number,
+      default: 5,
+      min: 0,
+    },
+    restaurant_min_withdrawal_age_days: {
+      type: Number,
+      default: 7,
+      min: 0,
+    },
+
+    // Cancellation-rate monitor
+    // Float 0–1 representing the max acceptable cancel+refund rate.
+    // Vendors above this threshold are automatically flipped to held settlement.
+    restaurant_cancel_rate_threshold: {
+      type: Number,
+      default: 0.25,
+      min: 0,
+      max: 1,
+    },
+    // Rolling window in days for the cancel-rate computation.
+    restaurant_cancel_rate_window_days: {
+      type: Number,
+      default: 30,
+      min: 1,
+    },
   },
   {
     timestamps: true

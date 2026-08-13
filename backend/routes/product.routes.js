@@ -31,7 +31,8 @@ const {
   getRecentlyViewed,
   watchProduct,
   getRelatedProducts,
-  getHubFeed
+  getHubFeed,
+  getProductDeliveryInfo,
 } = require('../controllers/product.controller');
 
 const { protect, restrictTo, loadVendor, protectOptional, loadVendorOptional } = require('../middleware/auth.middleware');
@@ -47,6 +48,7 @@ router.get('/history', protect, getRecentlyViewed);
 // own pending/archived product from the edit form without blocking public buyers.
 router.get('/:id', protectOptional, loadVendorOptional, getProductById);
 router.get('/:id/related', getRelatedProducts);
+router.get('/:id/delivery-info', getProductDeliveryInfo);
 router.post('/:id/view', protect, trackProductView);
 router.post('/:id/watch', protect, watchProduct);
 

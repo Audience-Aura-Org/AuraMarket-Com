@@ -14,6 +14,7 @@ import { pollTransactionStatus, recheckTransaction } from '@/services/paymentPro
 import Link from 'next/link';
 import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
+import api from '@/services/api';
 
 // â”€â”€ Payment State Machine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // States: 'loading' | 'pending' | 'successful' | 'failed' | 'timeout' | 'recheck'
@@ -63,7 +64,12 @@ function VerifyContent() {
             setMessage(msg || (isSubscription ? 'Subscription activated! Your workspace is ready.' : 'Payment confirmed! Your transaction is complete.'));
             setBalanceAdded(data?.balance_added || 0);
             refreshWalletBalance?.();
-            if (type === 'checkout') cartStore.clearCart();
+            if (type === 'checkout') {
+              cartStore.clearCart();
+              // Also clear the server-side cart (external payments skip the clear at order
+              // creation so the customer can retry if the mobile-money prompt is declined)
+              api.delete('/cart/clear').catch(() => {});
+            }
           },
           onFailed: ({ reason: r }) => {
             setState('failed');
@@ -111,7 +117,10 @@ function VerifyContent() {
       setMessage(result.message || (isSubscription ? 'Subscription activated!' : 'Payment confirmed!'));
       setBalanceAdded(result.data?.balance_added || 0);
       refreshWalletBalance?.();
-      if (type === 'checkout') cartStore.clearCart();
+      if (type === 'checkout') {
+        cartStore.clearCart();
+        api.delete('/cart/clear').catch(() => {});
+      }
     } else if (result.status === 'FAILED') {
       setState('failed');
       setReason(result.reason || result.message || 'Payment failed.');

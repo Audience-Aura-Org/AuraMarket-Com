@@ -8,7 +8,7 @@ const Store = require('../models/Store.model');
  */
 const getNewArrivals = async (req, res, next) => {
   try {
-    const products = await Product.find({ status: 'active' })
+    const products = await Product.find({ status: 'active', meal: null })
       .sort({ createdAt: -1 })
       .limit(12)
       .populate({
@@ -28,7 +28,7 @@ const getNewArrivals = async (req, res, next) => {
  */
 const getTrending = async (req, res, next) => {
   try {
-    const products = await Product.find({ status: 'active' })
+    const products = await Product.find({ status: 'active', meal: null })
       .sort({ view_count: -1, wishlist_count: -1 })
       .limit(12)
       .populate({
@@ -48,7 +48,7 @@ const getTrending = async (req, res, next) => {
  */
 const getPopular = async (req, res, next) => {
   try {
-    const products = await Product.find({ status: 'active' })
+    const products = await Product.find({ status: 'active', meal: null })
       .sort({ purchase_count: -1, rating: -1 })
       .limit(12)
       .populate({
@@ -71,7 +71,7 @@ const getRecommended = async (req, res, next) => {
     const userId = req.user ? req.user._id : null;
     
     if (!userId) {
-      const products = await Product.find({ status: 'active' })
+      const products = await Product.find({ status: 'active', meal: null })
         .sort({ view_count: -1, rating: -1 })
         .limit(12)
         .populate({
@@ -91,7 +91,7 @@ const getRecommended = async (req, res, next) => {
       ? categories.reduce((a, b) => (categories.filter(v => v === a).length >= categories.filter(v => v === b).length ? a : b))
       : null;
 
-    let query = { status: 'active' };
+    let query = { status: 'active', meal: null };
     if (favCategory) query.category = favCategory;
 
     const products = await Product.find(query)
@@ -143,7 +143,7 @@ const getDiscoveryFeed = async (req, res, next) => {
     }
 
     const products = await Product.aggregate([
-      { $match: { status: 'active' } },
+      { $match: { status: 'active', meal: null } },
       {
         $addFields: {
           popularity_score: { $add: ["$purchase_count", { $divide: ["$view_count", 10] }] },

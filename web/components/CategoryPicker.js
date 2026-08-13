@@ -13,20 +13,21 @@ import { useLanguage } from '@/context/LanguageContext';
  *   onChange: (name) => void
  *   className: string (optional, applied to container)
  */
-export default function CategoryPicker({ value, onChange, className = '' }) {
+export default function CategoryPicker({ value, onChange, className = '', appliesTo }) {
   const { t, label } = useLanguage();
   const [tree, setTree] = useState([]);
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [loadingTree, setLoadingTree] = useState(true);
 
   useEffect(() => {
-    api.get('/categories/tree')
+    const url = appliesTo ? `/categories/tree?applies_to=${appliesTo}` : '/categories/tree';
+    api.get(url)
       .then(res => {
         if (res.data.success) setTree(res.data.data);
       })
       .catch(console.error)
       .finally(() => setLoadingTree(false));
-  }, []);
+  }, [appliesTo]);
 
   const currentLevel = breadcrumb.length === 0
     ? tree

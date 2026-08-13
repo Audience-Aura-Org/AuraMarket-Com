@@ -17,6 +17,7 @@ const PlatformSettings = require('../models/PlatformSettings.model');
 const mongoose = require('mongoose');
 const Follow = require('../models/Follow.model');
 const { escapeRegExp } = require('../middleware/security.middleware');
+const { notifyAdmins } = require('../utils/notifier');
 
 const normalizeNullableXafAmount = (value) => {
   if (value === undefined) return undefined;
@@ -46,6 +47,7 @@ const normalizePickupAddress = (incoming = {}, previous = {}) => {
 
   return {
     city: incoming.city ?? previous.city ?? '',
+    district: incoming.district ?? previous.district ?? '',
     quartier: incoming.quartier ?? previous.quartier ?? '',
     street: description,
     address_description: description,
@@ -64,8 +66,10 @@ const onboardVendor = async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const { store_name, description, categories, phone, location } = req.body;
-    console.log(`📦 [ONBOARD] Payload:`, { store_name, phone, location_city: location?.city });
+    const { store_name, description, categories, phone, location, vendor_type } = req.body;
+    const allowedVendorTypes = ['retail', 'restaurant', 'digital'];
+    const resolvedVendorType = allowedVendorTypes.includes(vendor_type) ? vendor_type : null;
+    console.log(`📦 [ONBOARD] Payload:`, { store_name, phone, location_city: location?.city, vendor_type: resolvedVendorType });
 
     // 1. Check if vendor profile already exists for this user (WITHIN SESSION)
     let vendor = await Vendor.findOne({ user_id: req.user._id }).session(session);
@@ -82,6 +86,7 @@ const onboardVendor = async (req, res, next) => {
         vendor.pickup_address = normalizePickupAddress(location, vendor.pickup_address);
       }
       
+      if (resolvedVendorType) vendor.vendor_type = resolvedVendorType;
       vendor.is_onboarded = true;
       vendor.onboarding_step = 'complete';
       await vendor.save({ session });
@@ -108,6 +113,7 @@ const onboardVendor = async (req, res, next) => {
             description,
             phone: phone || req.user.phone || '000000000',
             pickup_address: location ? normalizePickupAddress(location) : {},
+            ...(resolvedVendorType ? { vendor_type: resolvedVendorType } : {}),
             is_onboarded: true,
             onboarding_step: 'complete'
           },
@@ -129,6 +135,29 @@ const onboardVendor = async (req, res, next) => {
       store = storeArray[0];
     }
 
+    // 4a. Auto-create RestaurantProfile for restaurant vendors (idempotent)
+    if (resolvedVendorType === 'restaurant') {
+      const RestaurantProfile = require('../models/RestaurantProfile.model');
+      const LogisticZone      = require('../models/LogisticZone.model');
+      const existingRProfile  = await RestaurantProfile.findOne({ vendor_id: vendor._id }).session(session);
+      if (!existingRProfile) {
+        let cityZoneId = null;
+        if (location?.city) {
+          const cityZone = await LogisticZone.findOne({
+            name: new RegExp(`^${location.city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+            type: { $in: ['city', 'region'] },
+          }).select('_id').session(session).lean();
+          if (cityZone) cityZoneId = cityZone._id;
+        }
+        if (cityZoneId) {
+          await RestaurantProfile.create([{ vendor_id: vendor._id, city_zone_id: cityZoneId }], { session });
+          console.log(`[ONBOARD] Auto-created RestaurantProfile for vendor ${vendor._id} in city zone ${cityZoneId}`);
+        } else {
+          console.warn(`[ONBOARD] Could not auto-create RestaurantProfile — city zone not found for "${location?.city}"`);
+        }
+      }
+    }
+
     // 4. Force mark user as onboarded and sync initial branding (if any)
     const User = require('../models/User.model');
     const brandingUpdates = {};
@@ -141,6 +170,7 @@ const onboardVendor = async (req, res, next) => {
       phone: phone || req.user.phone || '',
       onboarding_location: location ? {
         city: location.city || '',
+        zone: location.zone || '',
         quartier: location.quartier || '',
         address_description: location.address_description || ''
       } : req.user.onboarding_location,
@@ -153,6 +183,16 @@ const onboardVendor = async (req, res, next) => {
 
     // Fetch updated user to return
     const updatedUser = await User.findById(req.user._id);
+
+    // Notify admins — fire-and-forget so onboarding response is not delayed
+    setImmediate(() => {
+      notifyAdmins(req.app, {
+        title:   'New Vendor Onboarded',
+        message: `${store_name || req.user.name} has completed vendor onboarding (${vendor.vendor_type || 'retail'}). Review and verify their profile.`,
+        type:    'system_alert',
+        metadata: { vendor_id: vendor._id, link: `/admin/vendors/${vendor._id}` },
+      }).catch(console.error);
+    });
 
     res.status(200).json({
       success: true,
@@ -338,7 +378,7 @@ const getPublicStores = async (req, res, next) => {
     // We fetch base Vendors and populate their Stores
     // Used for store directories and discovery feeds
     const stores = await Vendor.find(query)
-      .select('store_name rating verified description user_id follower_count createdAt')
+      .select('store_name rating verified description user_id follower_count createdAt vendor_type')
       .populate('store', 'logo banner categories delivery_time minimum_order_amount') // only fetch visible assets
       .populate('user_id', 'branding avatar is_online last_seen') // fetch user-level branding for fallbacks
       .skip(startIndex)
@@ -477,6 +517,16 @@ const submitKYC = async (req, res, next) => {
         selfie_url
       });
     }
+
+    // Notify admins to review the new KYC submission
+    setImmediate(() => {
+      notifyAdmins(req.app, {
+        title:   'KYC Submission — Review Required',
+        message: `Vendor ${req.user.name} has submitted identity documents (${kyc.document_type || 'document'}) and is awaiting verification.`,
+        type:    'system_alert',
+        metadata: { vendor_id: kyc.vendor_id, link: `/admin/vendors/${kyc.vendor_id}` },
+      }).catch(console.error);
+    });
 
     res.status(200).json({
       success: true,

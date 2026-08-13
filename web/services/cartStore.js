@@ -41,7 +41,7 @@ function parseItems(raw) {
       price: priced.price,
       compare_at_price: priced.compare_at_price,
       quantity: i.quantity || 1,
-      image: priced.image || '',
+      image: priced.image || null,
       variant: i.variant || null,
       vendor_name: i.product?.vendor_id?.store_name || 'Vendor',
       vendor_id: i.product?.vendor_id?._id || i.product?.vendor_id || null,
@@ -235,7 +235,7 @@ export const cartStore = {
       compare_at_price: priced.compare_at_price,
       variant: product.variant || null,
       quantity,
-      image: priced.image || '',
+      image: priced.image || null,
       vendor_name: product.vendor_id?.store_name || 'Vendor',
       vendor_id: product.vendor_id?._id || product.vendor_id || null,
     };

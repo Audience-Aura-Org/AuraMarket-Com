@@ -32,7 +32,18 @@ const CategorySchema = new mongoose.Schema(
     is_active: {
       type: Boolean,
       default: true,
-    }
+    },
+
+    // Phase 3-D: Surface discriminator.
+    // 'retail'     — appears on retail product browse / search only
+    // 'restaurant' — appears on /dine page only (cuisine types + meal categories)
+    // 'both'       — appears on both surfaces
+    applies_to: {
+      type: String,
+      enum: ['retail', 'restaurant', 'both'],
+      default: 'retail',
+      index: true,
+    },
   },
   {
     timestamps: true,

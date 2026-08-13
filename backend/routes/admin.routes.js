@@ -53,7 +53,20 @@ const {
   fulfillOrderFromTransaction,
   syncWithEversend,
   syncGatewayTransactions,
-  getQueueStats
+  getQueueStats,
+  setCancelRateHoldOverride,
+  listIntercityRates,
+  createIntercityRate,
+  updateIntercityRate,
+  deleteIntercityRate,
+  listPickupPoints,
+  createPickupPoint,
+  updatePickupPoint,
+  deletePickupPoint,
+  listZones,
+  createZone,
+  updateZone,
+  deleteZone,
 } = require('../controllers/admin.controller');
 
 const { getAuditLogs } = require('../controllers/audit.controller');
@@ -151,9 +164,27 @@ router.get('/vendors', getAllVendors);
 router.patch('/vendors/:id/media', updateVendorMedia);
 router.patch('/vendors/:id/store-settings', updateVendorStoreSettings);
 router.patch('/vendors/:id/status', updateVendorStatus);
+router.patch('/vendors/:id/cancel-rate-hold', setCancelRateHoldOverride);
 router.get('/products', getAllProducts);
 router.patch('/products/:id', upload.array('images', 5), updateProductAdmin);
 router.post('/users/bulk-delete', bulkDeleteUsers);
 router.post('/products/bulk-delete', bulkDeleteProducts);
+
+// ── Phase 4: Intercity Rates + Pickup Points ───────────────────────────────
+router.get('/intercity/rates', listIntercityRates);
+router.post('/intercity/rates', createIntercityRate);
+router.patch('/intercity/rates/:id', updateIntercityRate);
+router.delete('/intercity/rates/:id', deleteIntercityRate);
+
+router.get('/intercity/pickup-points', listPickupPoints);
+router.post('/intercity/pickup-points', createPickupPoint);
+router.patch('/intercity/pickup-points/:id', updatePickupPoint);
+router.delete('/intercity/pickup-points/:id', deletePickupPoint);
+
+// ── Phase 1-D Step 9: Zone CRUD (city / district / quartier) ───────────────
+router.get('/zones', listZones);
+router.post('/zones', createZone);
+router.patch('/zones/:id', updateZone);
+router.delete('/zones/:id', deleteZone);
 
 module.exports = router;

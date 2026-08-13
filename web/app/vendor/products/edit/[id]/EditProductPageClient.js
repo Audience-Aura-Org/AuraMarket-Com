@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import {
   Upload, X, Plus, Package, Image as ImageIcon,
-  ArrowLeft
+  ArrowLeft, Utensils, ShoppingBag, CalendarClock, Check,
 } from 'lucide-react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import api from '@/services/api';
@@ -13,6 +13,28 @@ import {
   MAX_PRODUCT_IMAGES,
   prepareProductImageEntries,
 } from '@/lib/productImageUpload';
+
+const MEAL_BOOKING_MODES = [
+  { value: 'delivery',  label: 'Delivery',  icon: ShoppingBag   },
+  { value: 'pickup',    label: 'Pickup',    icon: Package       },
+  { value: 'dine_in',   label: 'Dine-In',  icon: Utensils      },
+  { value: 'pre_order', label: 'Pre-Order', icon: CalendarClock },
+];
+
+const PREP_UNITS = [
+  { value: 'minutes', label: 'Mins',  factor: 1     },
+  { value: 'hours',   label: 'Hours', factor: 60    },
+  { value: 'days',    label: 'Days',  factor: 1440  },
+  { value: 'weeks',   label: 'Weeks', factor: 10080 },
+];
+
+function minutesToDisplay(mins) {
+  if (!mins) return { value: '', unit: 'minutes' };
+  if (mins % 10080 === 0) return { value: String(mins / 10080), unit: 'weeks' };
+  if (mins % 1440  === 0) return { value: String(mins / 1440),  unit: 'days'  };
+  if (mins % 60    === 0) return { value: String(mins / 60),    unit: 'hours' };
+  return { value: String(mins), unit: 'minutes' };
+}
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -38,6 +60,25 @@ export default function EditProductPage() {
   const [hasVariants, setHasVariants] = useState(false);
   const [variantTypes, setVariantTypes] = useState([{ name: 'Color', options: [], metadata: {} }]);
   const [skuVariants, setSkuVariants] = useState([]);
+  const [optionInputs, setOptionInputs] = useState({});
+
+  const [parcelClass, setParcelClass] = useState('small'); // 'small' | 'oversize'
+
+  // Meal / Food item state
+  const [isRestaurantVendor, setIsRestaurantVendor] = useState(false);
+  const [isMeal, setIsMeal] = useState(false);
+  const [mealBookingOptions, setMealBookingOptions] = useState(['delivery']);
+  const [prepTimeValue, setPrepTimeValue] = useState('');
+  const [prepTimeUnit, setPrepTimeUnit] = useState('minutes');
+
+  // Option groups (meal customisation — Sauce, Size, Add-ons, etc.)
+  const [optionGroups, setOptionGroups] = useState([]);
+  const addOptionGroup    = () => setOptionGroups(prev => [...prev, { name: '', is_required: false, min_select: 1, max_select: 1, options: [] }]);
+  const removeOptionGroup = (gi) => setOptionGroups(prev => prev.filter((_, i) => i !== gi));
+  const updateOptionGroup = (gi, field, val) => setOptionGroups(prev => prev.map((g, i) => i === gi ? { ...g, [field]: val } : g));
+  const addGroupOption    = (gi) => setOptionGroups(prev => prev.map((g, i) => i === gi ? { ...g, options: [...g.options, { label: '', price_delta: 0, is_default: false, is_available: true }] } : g));
+  const updateGroupOption = (gi, oi, field, val) => setOptionGroups(prev => prev.map((g, i) => i === gi ? { ...g, options: g.options.map((o, j) => j === oi ? { ...o, [field]: val } : o) } : g));
+  const removeGroupOption = (gi, oi) => setOptionGroups(prev => prev.map((g, i) => i === gi ? { ...g, options: g.options.filter((_, j) => j !== oi) } : g));
 
   // ── Load product ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -75,10 +116,36 @@ export default function EditProductPage() {
           setVariantTypes(p.variant_types || [{ name: 'Color', options: [], metadata: {} }]);
           setSkuVariants(p.sku_variants  || []);
         }
+        if (p.meal || p.is_meal) {
+          setIsMeal(true);
+          const opts = (p.meal?.booking_options || []).map(o =>
+            typeof o === 'string' ? o : o.type
+          ).filter(Boolean);
+          if (opts.length) setMealBookingOptions(opts);
+          if (p.meal?.prep_time_minutes) {
+            const { value, unit } = minutesToDisplay(p.meal.prep_time_minutes);
+            setPrepTimeValue(value);
+            setPrepTimeUnit(unit);
+          }
+          if (Array.isArray(p.meal?.option_groups)) setOptionGroups(p.meal.option_groups);
+        }
+        setParcelClass(p.parcel_class || 'small');
       })
       .catch(err => console.error('Could not fetch product', err))
       .finally(() => setFetching(false));
   }, [id]);
+
+  // ── Detect restaurant vendor ─────────────────────────────────────────────────
+  useEffect(() => {
+    api.get('/vendors/me')
+      .then(res => {
+        if (res.data?.data?.vendor?.vendor_type === 'restaurant') {
+          setIsRestaurantVendor(true);
+          setIsMeal(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // ── Mobile scroll preservation ──────────────────────────────────────────────
   const rememberMobileScroll = () => {
@@ -184,6 +251,13 @@ export default function EditProductPage() {
     generateSKUs(next);
   };
 
+  const handleAddOption = (tIdx) => {
+    const val = (optionInputs[tIdx] || '').trim();
+    if (!val) return;
+    addOption(tIdx, val);
+    setOptionInputs(prev => ({ ...prev, [tIdx]: '' }));
+  };
+
   const generateSKUs = (types) => {
     const valid = types.filter(t => t.name && t.options.length > 0);
     if (!valid.length) { setSkuVariants([]); return; }
@@ -216,6 +290,12 @@ export default function EditProductPage() {
     setSkuVariants(next);
   };
 
+  const toggleMealBookingMode = (value) => {
+    setMealBookingOptions(prev =>
+      prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
+    );
+  };
+
   // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -227,6 +307,7 @@ export default function EditProductPage() {
     if (!hasVariants && form.sale_price && Number(form.sale_price) >= Number(form.price))
       return toast.error('Sale price must be less than the regular price.');
     if (!form.category) return toast.error('Please select a category.');
+    if (isMeal && !mealBookingOptions.length) return toast.error('Select at least one order mode for this meal.');
 
     setLoading(true);
     try {
@@ -244,6 +325,7 @@ export default function EditProductPage() {
 
       formData.append('tags', JSON.stringify(tags));
       formData.append('type', 'products');
+      formData.append('parcel_class', parcelClass);
 
       if (hasVariants) {
         formData.append('has_variants', 'true');
@@ -253,6 +335,19 @@ export default function EditProductPage() {
         formData.append('sku_variants', JSON.stringify(skuVariants));
       } else {
         formData.append('has_variants', 'false');
+      }
+
+      if (isMeal) {
+        formData.append('is_meal', 'true');
+        formData.append('meal', JSON.stringify({
+          booking_options:   mealBookingOptions.map(v => ({ type: v })),
+          prep_time_minutes: prepTimeValue
+            ? Number(prepTimeValue) * (PREP_UNITS.find(u => u.value === prepTimeUnit)?.factor ?? 1)
+            : null,
+          option_groups:     optionGroups,
+        }));
+      } else {
+        formData.append('is_meal', 'false');
       }
 
       await api.patch(`/products/${id}`, formData, {
@@ -365,6 +460,106 @@ export default function EditProductPage() {
                 </div>
               </section>
 
+              {/* Meal toggle — hidden for restaurant vendors (all their products are meals) */}
+              {!isRestaurantVendor && (
+                <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
+                  <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[var(--glass-border)]">
+                    <div className="p-2 rounded-xl bg-orange-500/10 text-orange-500">
+                      <Utensils className="w-5 h-5" />
+                    </div>
+                    <h2 className="font-bold tracking-tight text-[var(--text-primary)] text-sm">Meal / Food Item</h2>
+                  </div>
+                  <div
+                    className={`flex items-center justify-between rounded-2xl border px-4 py-3 cursor-pointer transition-all ${isMeal ? 'border-orange-500/40 bg-orange-500/8' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}
+                    onClick={() => setIsMeal(v => !v)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Utensils className={`w-4 h-4 ${isMeal ? 'text-orange-500' : 'text-[var(--text-secondary)] opacity-40'}`} />
+                      <div>
+                        <p className="text-[12px] font-semibold text-[var(--text-primary)]">This is a food / meal item</p>
+                        <p className="text-[11px] text-[var(--text-secondary)] opacity-60">Enable booking modes and prep time</p>
+                      </div>
+                    </div>
+                    <div className={`relative w-10 h-6 rounded-full border transition-colors shrink-0 ${isMeal ? 'bg-orange-500 border-orange-500' : 'bg-[var(--bg-primary)] border-[var(--glass-border)]'}`}>
+                      <span className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform ${isMeal ? 'translate-x-4' : 'translate-x-0'}`} />
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Meal fields (prep time + order modes) */}
+              {(isMeal || isRestaurantVendor) && (
+                <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-orange-500/20 bg-orange-500/5 animate-in fade-in slide-in-from-top-4 duration-300 space-y-5">
+                  <div className="flex items-center gap-3 pb-3 border-b border-orange-500/15">
+                    <Utensils className="w-4 h-4 text-orange-500" />
+                    <h2 className="text-sm font-bold text-orange-600">Meal Details</h2>
+                  </div>
+
+                  {/* Prep Time */}
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-semibold text-[var(--text-secondary)]">
+                      Prep Time <span className="font-normal opacity-60">— how long to prepare this item</span>
+                    </label>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <input
+                        type="number"
+                        min="0"
+                        value={prepTimeValue}
+                        onChange={e => setPrepTimeValue(e.target.value)}
+                        placeholder="e.g. 15"
+                        className="w-24 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-3 py-3 text-[12px] font-medium outline-none focus:ring-2 focus:ring-orange-500/30 transition-all"
+                      />
+                      <div className="flex gap-1.5 flex-wrap">
+                        {PREP_UNITS.map(u => (
+                          <button
+                            key={u.value}
+                            type="button"
+                            onClick={() => setPrepTimeUnit(u.value)}
+                            className={`px-3 py-2.5 rounded-xl text-[11px] font-bold transition-all active:scale-95 ${
+                              prepTimeUnit === u.value
+                                ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
+                                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-orange-500/30'
+                            }`}
+                          >
+                            {u.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-[var(--text-secondary)] opacity-60 leading-relaxed">
+                      Leave blank to use your restaurant&apos;s default prep time. Set a value here to override it for this item only.
+                    </p>
+                  </div>
+
+                  {/* Order modes */}
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Order Modes *</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {MEAL_BOOKING_MODES.map(mode => {
+                        const Icon = mode.icon;
+                        const selected = mealBookingOptions.includes(mode.value);
+                        return (
+                          <button
+                            key={mode.value}
+                            type="button"
+                            onClick={() => toggleMealBookingMode(mode.value)}
+                            className={`flex flex-col items-center gap-2 rounded-xl border py-3 px-2 text-[11px] font-bold transition-all active:scale-95 ${
+                              selected
+                                ? 'border-orange-500/50 bg-orange-500/10 text-orange-600'
+                                : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            <Icon className={`size-4 ${selected ? 'text-orange-500' : 'opacity-40'}`} />
+                            {mode.label}
+                            {selected && <Check className="size-3 text-orange-500" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </section>
+              )}
+
               {/* Variations Configuration */}
               {hasVariants && (
                 <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -431,14 +626,26 @@ export default function EditProductPage() {
                                     )}
                                   </div>
                                 ))}
-                                <input
-                                  placeholder="Add option..."
-                                  onKeyDown={e => { if (e.key === 'Enter') { addOption(tIdx, e.target.value); e.target.value = ''; } }}
-                                  className="bg-transparent border-none outline-none text-[11px] font-normal text-[var(--text-primary)] w-24 placeholder:font-normal placeholder:text-[var(--text-secondary)]/35"
-                                />
                               </div>
                             </div>
-                          </div>
+                            {/* Add option row — works on Android (button tap) + desktop (Enter) */}
+                            <div className="flex gap-2">
+                              <input
+                                value={optionInputs[tIdx] || ''}
+                                onChange={e => setOptionInputs(prev => ({ ...prev, [tIdx]: e.target.value }))}
+                                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddOption(tIdx); } }}
+                                placeholder={type.name.toLowerCase() === 'color' ? 'e.g. Red' : type.name ? 'e.g. Small' : 'Option value'}
+                                className="flex-1 min-w-0 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl px-3 py-2 text-[12px] font-normal placeholder:text-[11px] focus:ring-2 focus:ring-[var(--accent)]/20 outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleAddOption(tIdx)}
+                                className="shrink-0 px-3 py-2 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 text-[var(--accent)] hover:bg-[var(--accent)]/20 active:scale-95 transition-all"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                              </div>
+                            </div>
                         ))}
                       </div>
                     </div>
@@ -647,6 +854,44 @@ export default function EditProductPage() {
                 </div>
               </section>
 
+              {/* Shipping size */}
+              <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
+                <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[var(--glass-border)]">
+                  <h2 className="font-bold tracking-tight text-[var(--text-primary)] text-sm">Shipping size</h2>
+                </div>
+                <p className="text-[11px] text-[var(--text-secondary)] mb-4 leading-relaxed">
+                  Does this product fit in a box about <span className="font-bold text-[var(--text-primary)]">40 × 30 × 20 cm</span> and can one person carry it?
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setParcelClass('small')}
+                    className={`flex flex-col items-center gap-1.5 rounded-2xl border px-3 py-4 text-center transition-all active:scale-95 ${
+                      parcelClass === 'small'
+                        ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                        : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    <span className="text-xl">📦</span>
+                    <span className="text-[11px] font-bold">Yes, fits in a box</span>
+                    <span className="text-[9px] opacity-60">Eligible for intercity shipping</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setParcelClass('oversize')}
+                    className={`flex flex-col items-center gap-1.5 rounded-2xl border px-3 py-4 text-center transition-all active:scale-95 ${
+                      parcelClass === 'oversize'
+                        ? 'bg-rose-500/10 border-rose-500/40 text-rose-400'
+                        : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]'
+                    }`}
+                  >
+                    <span className="text-xl">🛋️</span>
+                    <span className="text-[11px] font-bold">No, it is too large</span>
+                    <span className="text-[9px] opacity-60">Local delivery only</span>
+                  </button>
+                </div>
+              </section>
+
               {/* Category & Tags */}
               <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
                 <div className="flex items-center gap-3 mb-8 pb-4 border-b border-[var(--glass-border)]">
@@ -658,6 +903,7 @@ export default function EditProductPage() {
                     <CategoryPicker
                       value={form.category}
                       onChange={name => updateFormField('category', name)}
+                      appliesTo={isRestaurantVendor ? 'restaurant' : undefined}
                     />
                   </div>
                   <div>

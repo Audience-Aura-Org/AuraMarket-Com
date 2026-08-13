@@ -14,6 +14,7 @@ const PlatformSettings = require('../models/PlatformSettings.model');
 const mongoose = require('mongoose');
 const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
 const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../utils/platformFees');
+const { clawbackFoodRefund } = require('../services/payment/settle.service');
 
 const getEffectivePlatformSettings = async (vendorId, session) => {
   const platformSettings = await PlatformSettings.getSettings(session);
@@ -29,7 +30,7 @@ const getEffectivePlatformSettings = async (vendorId, session) => {
 // @access  Private (Role: customer)
 const createDispute = async (req, res, next) => {
   try {
-    const { sendNotification } = require('../utils/notifier');
+    const { sendNotification, notifyAdmins } = require('../utils/notifier');
     const { order_id, reason, description, evidence_urls } = req.body;
 
     const order = await Order.findById(order_id);
@@ -69,9 +70,21 @@ const createDispute = async (req, res, next) => {
       await sendNotification(req.app, vendor.user_id, {
         title: 'Dispute Raised',
         message: `A dispute has been raised for Order #${order._id.toString().slice(-6)}.`,
-        type: 'system_alert'
+        type: 'system_alert',
+        sendEmail: true,
+        emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders/${order._id}`,
       });
     }
+
+    // Notify all admins — disputes need immediate attention
+    setImmediate(() => {
+      notifyAdmins(req.app, {
+        title:   'New Dispute Filed',
+        message: `Customer ${req.user.name} opened a dispute on Order #${order._id.toString().slice(-6).toUpperCase()} — Reason: ${reason}. Immediate review required.`,
+        type:    'system_alert',
+        metadata: { dispute_id: dispute._id, order_id: order._id, link: `/admin/disputes` },
+      }).catch(console.error);
+    });
 
     res.status(201).json({
       success: true,
@@ -205,6 +218,36 @@ const resolveDispute = async (req, res, next) => {
         updatedBy: req.user._id,
         note: 'Dispute resolved: payment released to vendor.',
       });
+
+    // ── Phase 3 Step 5c: Food refund resolutions ────────────────────────────
+    // Food orders have no Escrow. Vendor was paid at capture. Clawback debits
+    // the restaurant's wallet (which may go negative) and credits the buyer.
+    } else if (resolution_type === 'food_full_refund') {
+      const refundAmount = order.total_amount - (order.shipping_fee || 0); // refund order value, not delivery
+      await clawbackFoodRefund(order, refundAmount, session, admin_notes || 'Full refund (food dispute)');
+      await syncShipmentsToOrderStatus(order, 'refunded', {
+        session,
+        updatedBy: req.user._id,
+        note: 'Food dispute resolved: full refund clawed back from restaurant.',
+      });
+
+    } else if (resolution_type === 'food_partial_refund') {
+      const { partial_refund_amount } = req.body;
+      if (!partial_refund_amount || partial_refund_amount <= 0 || partial_refund_amount > order.total_amount) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ success: false, message: 'partial_refund_amount is required and must be between 1 and the order total.' });
+      }
+      await clawbackFoodRefund(order, partial_refund_amount, session, admin_notes || 'Partial refund (food dispute)');
+      // Partial refund — order stays 'completed' (meal was partially consumed / delivered)
+      order.order_status   = 'completed';
+      order.payment_status = 'paid';
+      await order.save({ session });
+
+    } else if (resolution_type === 'food_no_refund') {
+      // Admin reviewed and rejected — no money moves, update dispute only
+      order.order_status = 'completed';
+      await order.save({ session });
     }
 
     const { logAction } = require('./audit.controller');
@@ -229,6 +272,48 @@ const resolveDispute = async (req, res, next) => {
 
     notifyOrderStatusChange(req.app, order, order.order_status, {
       message: `Dispute resolved: ${resolution_type.replace(/_/g, ' ')}.`,
+    });
+
+    // Send email to customer and vendor about the resolution outcome
+    setImmediate(async () => {
+      const { sendNotification: notify } = require('../utils/notifier');
+      const resolutionLabel = {
+        full_refund:        'Full refund issued',
+        release_payment:    'Payment released to vendor',
+        food_full_refund:   'Full refund issued',
+        food_partial_refund:'Partial refund issued',
+        food_no_refund:     'No refund — claim rejected',
+        rejected:           'No refund — claim rejected',
+      }[resolution_type] || resolution_type.replace(/_/g, ' ');
+
+      // Customer
+      try {
+        await notify(req.app, order.customer_id, {
+          title:   'Dispute Resolved',
+          message: `Your dispute for Order #${order._id.toString().slice(-6).toUpperCase()} has been resolved: ${resolutionLabel}.${admin_notes ? ` Admin note: ${admin_notes}` : ''}`,
+          type:    'order_status',
+          sendEmail: true,
+          emailLink: `${process.env.WEB_CLIENT_URL}/orders/${order._id}`,
+          metadata: { order_id: order._id, link: `/orders/${order._id}` },
+          role:    'customer',
+        });
+      } catch (_) {}
+
+      // Vendor
+      try {
+        const vendor = await Vendor.findById(order.vendor_id).select('user_id').lean();
+        if (vendor) {
+          await notify(req.app, vendor.user_id, {
+            title:   'Dispute Resolved',
+            message: `The dispute for Order #${order._id.toString().slice(-6).toUpperCase()} has been resolved: ${resolutionLabel}.${admin_notes ? ` Admin note: ${admin_notes}` : ''}`,
+            type:    'order_status',
+            sendEmail: true,
+            emailLink: `${process.env.WEB_CLIENT_URL}/vendor/orders/${order._id}`,
+            metadata: { order_id: order._id, link: `/vendor/orders/${order._id}` },
+            role:    'vendor',
+          });
+        }
+      } catch (_) {}
     });
 
     res.status(200).json({

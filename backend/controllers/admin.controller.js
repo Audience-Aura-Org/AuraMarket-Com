@@ -363,7 +363,14 @@ const updateSettings = async (req, res, next) => {
       escrow_fee_type,
       escrow_fee_value,
       withdrawal_fee,
-      min_withdrawal_amount
+      min_withdrawal_amount,
+      // Restaurant-specific
+      food_acceptance_timeout_minutes,
+      new_restaurant_hold_order_count,
+      restaurant_min_withdrawal_orders,
+      restaurant_min_withdrawal_age_days,
+      restaurant_cancel_rate_threshold,
+      restaurant_cancel_rate_window_days,
     } = req.body;
     const settings = await PlatformSettings.getSettings();
 
@@ -383,6 +390,15 @@ const updateSettings = async (req, res, next) => {
     if (escrow_fee_value !== undefined) settings.escrow_fee_value = toNonNegativeNumber(escrow_fee_value);
     if (withdrawal_fee !== undefined) settings.withdrawal_fee = withdrawal_fee;
     if (min_withdrawal_amount !== undefined) settings.min_withdrawal_amount = min_withdrawal_amount;
+
+    // Restaurant-specific settings
+    if (food_acceptance_timeout_minutes !== undefined) settings.food_acceptance_timeout_minutes = Number(food_acceptance_timeout_minutes);
+    if (new_restaurant_hold_order_count !== undefined) settings.new_restaurant_hold_order_count = Number(new_restaurant_hold_order_count);
+    if (restaurant_min_withdrawal_orders !== undefined) settings.restaurant_min_withdrawal_orders = Number(restaurant_min_withdrawal_orders);
+    if (restaurant_min_withdrawal_age_days !== undefined) settings.restaurant_min_withdrawal_age_days = Number(restaurant_min_withdrawal_age_days);
+    if (restaurant_cancel_rate_threshold !== undefined) settings.restaurant_cancel_rate_threshold = Number(restaurant_cancel_rate_threshold);
+    if (restaurant_cancel_rate_window_days !== undefined) settings.restaurant_cancel_rate_window_days = Number(restaurant_cancel_rate_window_days);
+
     await settings.save();
     await clearApiCache();
     res.status(200).json({ success: true, message: 'Settings updated successfully.', data: { settings } });
@@ -758,24 +774,38 @@ const updateVendorStoreSettings = async (req, res, next) => {
     const vendor = await Vendor.findById(req.params.id);
     if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found.' });
 
-    const updates = {};
+    const storeUpdates = {};
     const commissionRate = normalizeNullablePercentage(req.body.commission_rate);
     const minimumOrderAmount = normalizeNullableXafAmount(req.body.minimum_order_amount, 'Minimum order amount');
     const deliveryTime = normalizeNullableText(req.body.delivery_time);
 
-    if (commissionRate !== undefined) updates.commission_rate = commissionRate;
-    if (minimumOrderAmount !== undefined) updates.minimum_order_amount = minimumOrderAmount;
-    if (deliveryTime !== undefined) updates.delivery_time = deliveryTime;
+    if (commissionRate !== undefined) storeUpdates.commission_rate = commissionRate;
+    if (minimumOrderAmount !== undefined) storeUpdates.minimum_order_amount = minimumOrderAmount;
+    if (deliveryTime !== undefined) storeUpdates.delivery_time = deliveryTime;
 
-    if (Object.keys(updates).length === 0) {
+    // vendor_type lives on the Vendor doc, not the Store sub-doc
+    const ALLOWED_VENDOR_TYPES = ['retail', 'restaurant', 'digital'];
+    const vendorDocUpdates = {};
+    if (req.body.vendor_type && ALLOWED_VENDOR_TYPES.includes(req.body.vendor_type)) {
+      vendorDocUpdates.vendor_type = req.body.vendor_type;
+    }
+
+    if (Object.keys(storeUpdates).length === 0 && Object.keys(vendorDocUpdates).length === 0) {
       return res.status(400).json({ success: false, message: 'Provide at least one store setting to update.' });
     }
 
-    await Store.findOneAndUpdate(
-      { vendor_id: vendor._id },
-      { $set: updates, $setOnInsert: { vendor_id: vendor._id } },
-      { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, runValidators: true }
-    );
+    if (Object.keys(storeUpdates).length > 0) {
+      await Store.findOneAndUpdate(
+        { vendor_id: vendor._id },
+        { $set: storeUpdates, $setOnInsert: { vendor_id: vendor._id } },
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, runValidators: true }
+      );
+    }
+
+    if (Object.keys(vendorDocUpdates).length > 0) {
+      await Vendor.findByIdAndUpdate(vendor._id, { $set: vendorDocUpdates });
+    }
+
     await clearApiCache();
 
     const populated = await Vendor.findById(vendor._id)
@@ -962,6 +992,117 @@ const updateLogisticsFirm = async (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 1-D Step 9 — Full zone CRUD (city / district / quartier)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// GET /api/admin/zones?type=city|district|quartier&parent_id=<id>&city_id=<id>&is_active=true
+const listZones = async (req, res, next) => {
+  try {
+    const filter = {};
+    if (req.query.type)      filter.type      = req.query.type;
+    if (req.query.parent_id) filter.parent_id = req.query.parent_id;
+    if (req.query.city_id)   filter.ancestors = req.query.city_id;
+    if (req.query.is_active !== undefined) filter.is_active = req.query.is_active !== 'false';
+
+    const zones = await LogisticZone.find(filter)
+      .populate('parent_id', 'name type code')
+      .sort({ level: 1, name: 1 })
+      .lean();
+
+    res.json({ success: true, count: zones.length, data: zones });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// POST /api/admin/zones — auto-derives level + ancestors from parent
+const createZone = async (req, res, next) => {
+  try {
+    const { name, type, parent_id, code, centroid } = req.body;
+    if (!name || !type) {
+      return res.status(400).json({ success: false, message: 'name and type are required.' });
+    }
+    if (!['city', 'district', 'quartier'].includes(type)) {
+      return res.status(400).json({ success: false, message: 'type must be city, district, or quartier.' });
+    }
+
+    let level = 1;
+    let ancestors = [];
+
+    if (parent_id) {
+      const parent = await LogisticZone.findById(parent_id).lean();
+      if (!parent) {
+        return res.status(400).json({ success: false, message: 'parent_id not found.' });
+      }
+      level     = (parent.level || 1) + 1;
+      ancestors = [...(parent.ancestors || []), parent._id];
+    }
+
+    const zoneData = { name: name.trim(), type, level, ancestors };
+    if (parent_id) zoneData.parent_id = parent_id;
+    if (code)      zoneData.code      = code.trim().toUpperCase();
+    if (centroid?.coordinates) zoneData.centroid = centroid;
+
+    const zone = await LogisticZone.create(zoneData);
+    res.status(201).json({ success: true, data: zone });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// PATCH /api/admin/zones/:id — allowed: name, is_active, code, centroid
+const updateZone = async (req, res, next) => {
+  try {
+    const allowed = {};
+    if (req.body.name      !== undefined) allowed.name      = req.body.name.trim();
+    if (req.body.is_active !== undefined) allowed.is_active = !!req.body.is_active;
+    if (req.body.code      !== undefined) allowed.code      = req.body.code.trim().toUpperCase();
+    if (req.body.centroid?.coordinates)   allowed.centroid  = req.body.centroid;
+
+    if (Object.keys(allowed).length === 0) {
+      return res.status(400).json({ success: false, message: 'Provide at least one of: name, is_active, code, centroid.' });
+    }
+
+    const zone = await LogisticZone.findByIdAndUpdate(
+      req.params.id,
+      { $set: allowed },
+      { new: true, runValidators: true }
+    );
+    if (!zone) return res.status(404).json({ success: false, message: 'Zone not found.' });
+
+    res.json({ success: true, data: zone });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// DELETE /api/admin/zones/:id — soft deactivate by default; ?hard=true for permanent
+const deleteZone = async (req, res, next) => {
+  try {
+    const zone = await LogisticZone.findById(req.params.id).lean();
+    if (!zone) return res.status(404).json({ success: false, message: 'Zone not found.' });
+
+    if (req.query.hard === 'true') {
+      const childCount = await LogisticZone.countDocuments({ parent_id: req.params.id });
+      if (childCount > 0) {
+        return res.status(409).json({
+          success: false,
+          message: `Cannot hard-delete: ${childCount} child zone(s) exist. Deactivate children first.`,
+        });
+      }
+      await LogisticZone.findByIdAndDelete(req.params.id);
+      return res.json({ success: true, message: 'Zone permanently deleted.' });
+    }
+
+    await LogisticZone.findByIdAndUpdate(req.params.id, { $set: { is_active: false } });
+    res.json({ success: true, message: 'Zone deactivated.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Legacy stub — kept so existing /api/admin/logistics/zones callers don't 404
 const addLogisticZone = async (req, res, next) => {
   try {
     const { name, parent_id, type } = req.body;
@@ -1627,6 +1768,10 @@ module.exports = {
   toggleLogisticsVerified,
   updateLogisticsFirm,
   addLogisticZone,
+  listZones,
+  createZone,
+  updateZone,
+  deleteZone,
   getAdvancedAnalytics,
   getEmailLogs,
   deleteUser,
@@ -1638,4 +1783,171 @@ module.exports = {
   fulfillOrderFromTransaction,
   syncWithEversend,
   syncGatewayTransactions,
+  setCancelRateHoldOverride,
+  // Phase 4: intercity CRUD
+  listIntercityRates,
+  createIntercityRate,
+  updateIntercityRate,
+  deleteIntercityRate,
+  listPickupPoints,
+  createPickupPoint,
+  updatePickupPoint,
+  deletePickupPoint,
 };
+
+// ─────────────────────────────────────────────
+// @route   PATCH /api/admin/vendors/:id/cancel-rate-hold
+// @desc    Admin override for the cancel-rate hold on a restaurant vendor.
+//          Body: { override: true|false }  — true = exempt from monitor, false = re-enable it.
+//          Body: { clear_hold: true }      — manually release the current hold regardless of rate.
+// @access  Private (admin only)
+// ─────────────────────────────────────────────
+async function setCancelRateHoldOverride(req, res, next) {
+  try {
+    const { override, clear_hold } = req.body;
+    const vendor = await Vendor.findById(req.params.id).select('vendor_type cancel_rate_hold cancel_rate_hold_since cancel_rate_hold_override');
+
+    if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found.' });
+    if (vendor.vendor_type !== 'restaurant') {
+      return res.status(400).json({ success: false, message: 'Cancel-rate hold only applies to restaurant vendors.' });
+    }
+
+    const update = {};
+    if (typeof override === 'boolean') {
+      update.cancel_rate_hold_override = override;
+    }
+    if (clear_hold === true) {
+      update.cancel_rate_hold       = false;
+      update.cancel_rate_hold_since = null;
+    }
+
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ success: false, message: 'Provide at least one of: override (boolean), clear_hold (true).' });
+    }
+
+    Object.assign(vendor, update);
+    await vendor.save();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        vendor_id:                  vendor._id,
+        cancel_rate_hold:           vendor.cancel_rate_hold,
+        cancel_rate_hold_since:     vendor.cancel_rate_hold_since,
+        cancel_rate_hold_override:  vendor.cancel_rate_hold_override,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Phase 4 — IntercityRate + PickupPoint Admin CRUD
+// Cache keys (Phase 4 Steps 1-2): bust on every write so the resolver sees fresh data.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const IntercityRate = require('../models/IntercityRate.model');
+const PickupPoint   = require('../models/PickupPoint.model');
+
+const INTERCITY_RATES_PREFIX = 'intercity:rates:v1';
+const INTERCITY_POINTS_KEY   = 'intercity:points:v1';
+
+// GET  /api/admin/intercity/rates
+async function listIntercityRates(req, res, next) {
+  try {
+    const rates = await IntercityRate.find()
+      .populate('origin_city_zone_id destination_city_zone_id', 'name')
+      .populate('default_pickup_point_id', 'branch_name street_address')
+      .sort({ agency_name: 1, createdAt: -1 })
+      .lean();
+    res.json({ success: true, data: rates });
+  } catch (e) { next(e); }
+}
+
+// Bust all per-route cache entries for intercity rates.
+// The resolver caches each origin+dest pair separately under `intercity:rates:v1:{o}:{d}`.
+// On any write we bust all keys with this prefix so stale rates are never served.
+async function bustIntercityRateCache() {
+  const allKeys = cache.keys().filter(k => k.startsWith(INTERCITY_RATES_PREFIX));
+  await Promise.all(allKeys.map(k => cache.delete(k)));
+}
+
+// POST /api/admin/intercity/rates
+async function createIntercityRate(req, res, next) {
+  try {
+    const rate = await IntercityRate.create(req.body);
+    await bustIntercityRateCache();
+    res.status(201).json({ success: true, data: rate });
+  } catch (e) { next(e); }
+}
+
+// PATCH /api/admin/intercity/rates/:id
+async function updateIntercityRate(req, res, next) {
+  try {
+    const rate = await IntercityRate.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    if (!rate) return res.status(404).json({ success: false, message: 'Rate not found.' });
+    await bustIntercityRateCache();
+    res.json({ success: true, data: rate });
+  } catch (e) { next(e); }
+}
+
+// DELETE /api/admin/intercity/rates/:id
+async function deleteIntercityRate(req, res, next) {
+  try {
+    const rate = await IntercityRate.findByIdAndDelete(req.params.id);
+    if (!rate) return res.status(404).json({ success: false, message: 'Rate not found.' });
+    await bustIntercityRateCache();
+    res.json({ success: true, message: 'Rate deleted.' });
+  } catch (e) { next(e); }
+}
+
+// GET  /api/admin/intercity/pickup-points
+async function listPickupPoints(req, res, next) {
+  try {
+    const filter = {};
+    if (req.query.agency_name) filter.agency_name = req.query.agency_name;
+    if (req.query.city_zone_id) filter.city_zone_id = req.query.city_zone_id;
+    const points = await PickupPoint.find(filter)
+      .populate('city_zone_id district_zone_id', 'name')
+      .sort({ agency_name: 1, branch_name: 1 })
+      .lean();
+    res.json({ success: true, data: points });
+  } catch (e) { next(e); }
+}
+
+// POST /api/admin/intercity/pickup-points
+async function createPickupPoint(req, res, next) {
+  try {
+    const point = await PickupPoint.create(req.body);
+    await cache.delete(INTERCITY_POINTS_KEY);
+    res.status(201).json({ success: true, data: point });
+  } catch (e) { next(e); }
+}
+
+// PATCH /api/admin/intercity/pickup-points/:id
+async function updatePickupPoint(req, res, next) {
+  try {
+    const point = await PickupPoint.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+    if (!point) return res.status(404).json({ success: false, message: 'Pickup point not found.' });
+    await cache.delete(INTERCITY_POINTS_KEY);
+    res.json({ success: true, data: point });
+  } catch (e) { next(e); }
+}
+
+// DELETE /api/admin/intercity/pickup-points/:id
+async function deletePickupPoint(req, res, next) {
+  try {
+    const point = await PickupPoint.findByIdAndDelete(req.params.id);
+    if (!point) return res.status(404).json({ success: false, message: 'Pickup point not found.' });
+    res.json({ success: true, message: 'Pickup point deleted.' });
+  } catch (e) { next(e); }
+}

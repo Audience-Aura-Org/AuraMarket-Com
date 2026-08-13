@@ -90,6 +90,22 @@ const onboardLogistics = async (req, res, next) => {
 // @route   GET /api/logistics/compatible-firms
 // @desc    Search for firms compatible with cart vendors and delivery quartier
 // ─────────────────────────────────────────────
+// Lightweight intercity detection for the checkout UI.
+// Walks zone ancestors to find the city node. Returns null on any failure.
+const _resolveCityId = async (zoneId) => {
+  if (!zoneId) return null;
+  try {
+    const zone = await LogisticZone.findById(zoneId).select('type ancestors').lean();
+    if (!zone) return null;
+    if (zone.type === 'city') return zone._id.toString();
+    for (const ancestorId of (zone.ancestors || [])) {
+      const anc = await LogisticZone.findById(ancestorId).select('type _id').lean();
+      if (anc?.type === 'city') return anc._id.toString();
+    }
+  } catch (_) {}
+  return null;
+};
+
 const getSearchCompatibleFirms = async (req, res, next) => {
   try {
     const { quartier, vendor_ids } = req.query;
@@ -97,11 +113,42 @@ const getSearchCompatibleFirms = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'vendor_ids required.' });
     }
 
-    const vendors = Array.isArray(vendor_ids) ? vendor_ids : vendor_ids.split(',');
+    const vendorUserIds = Array.isArray(vendor_ids) ? vendor_ids : vendor_ids.split(',');
 
     let firms;
+    let is_intercity = false;
+
     if (quartier) {
-      firms = await logisticsService.getCompatibleFirms(quartier, vendors);
+      firms = await logisticsService.getCompatibleFirms(quartier, vendorUserIds);
+
+      // --- Intercity detection ---
+      // Only run when INTERCITY_ENABLED=true to avoid extra DB round-trips in local deployments
+      if (String(process.env.INTERCITY_ENABLED || '').toLowerCase() === 'true') {
+        try {
+          const deliveryZone = await LogisticZone.findOne({
+            name: { $regex: new RegExp(`^${quartier.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') },
+            type: 'quartier',
+          }).select('_id ancestors type').lean();
+
+          if (deliveryZone) {
+            const destCityId = await _resolveCityId(deliveryZone._id);
+            if (destCityId) {
+              const vendorDocs = await Vendor.find({ user_id: { $in: vendorUserIds } })
+                .select('pickup_address.zone_id')
+                .lean();
+              for (const vd of vendorDocs) {
+                const originCityId = await _resolveCityId(vd.pickup_address?.zone_id);
+                if (originCityId && originCityId !== destCityId) {
+                  is_intercity = true;
+                  break;
+                }
+              }
+            }
+          }
+        } catch (_) {
+          // Non-fatal — fall back to is_intercity: false
+        }
+      }
     } else {
       // No zone selected — return all eligible firms (verified OR active subscription)
       const UserSubscription = require('../models/UserSubscription.model');
@@ -119,7 +166,23 @@ const getSearchCompatibleFirms = async (req, res, next) => {
         .sort('company_name');
     }
 
-    res.status(200).json({ success: true, count: firms.length, data: { firms } });
+    // Annotate fee_estimate (per shipment) and total_fee_estimate on each firm so the
+    // cart and checkout pages can display a delivery estimate without a second request.
+    const numVendors = vendorUserIds.length;
+    const annotatedFirms = firms.map(f => {
+      const raw = typeof f.toObject === 'function' ? f.toObject() : { ...f };
+      const match = (f.quartier_prices || []).find(
+        p => p.quartier && p.quartier.toLowerCase() === (quartier || '').toLowerCase()
+      );
+      const feeEstimate = match?.price ?? null;
+      return {
+        ...raw,
+        fee_estimate: feeEstimate,
+        total_fee_estimate: feeEstimate != null ? feeEstimate * numVendors : null,
+      };
+    });
+
+    res.status(200).json({ success: true, count: annotatedFirms.length, data: { firms: annotatedFirms, is_intercity } });
   } catch (error) {
     next(error);
   }

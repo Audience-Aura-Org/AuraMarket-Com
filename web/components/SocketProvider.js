@@ -301,6 +301,10 @@ export default function SocketProvider({ children }) {
   };
 
   useEffect(() => {
+    // Wait for Zustand to fully rehydrate — without this guard the effect fires
+    // with user._id from a stale render while token is still null (hydration race).
+    if (!hasHydrated) return;
+
     if (!user?._id) {
       console.log('[SocketProvider] Waiting for user auth...');
       return;
@@ -324,6 +328,16 @@ export default function SocketProvider({ children }) {
         try {
           const { getStoredAuthToken } = await import('@/services/authStorage');
           authToken = await getStoredAuthToken();
+        } catch (_) {}
+      }
+
+      // Final fallback: read directly from Zustand's persisted localStorage payload.
+      // Handles the case where the reactive `token` state hasn't populated yet (hydration
+      // timing) but the token IS in the persisted store under 'aura-auth-storage'.
+      if (!authToken && typeof window !== 'undefined') {
+        try {
+          const persisted = JSON.parse(window.localStorage.getItem('aura-auth-storage') || '{}');
+          authToken = persisted?.state?.token || null;
         } catch (_) {}
       }
 

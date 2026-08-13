@@ -483,7 +483,7 @@ export default function VendorWalletPage() {
                              <AlertCircle className="size-5" />}
                          </div>
                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm text-[var(--text-primary)] capitalize">{wr.withdrawalMethod} Withdrawal</p>
+                            <p className="font-bold text-sm text-[var(--text-primary)] capitalize">{wr.withdrawal_method} Withdrawal</p>
                             <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{new Date(wr.createdAt).toLocaleDateString()} · {wr.status}</p>
                          </div>
                          <div className="text-right">

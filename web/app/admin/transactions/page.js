@@ -197,11 +197,11 @@ const formatWalletName = (person, fallback = 'User wallet') => {
 };
 
 const getWithdrawalDestination = (tx) => {
-  const details = tx?.gateway_response?.details || tx?.metadata?.recipientDetails || {};
-  if (details.phoneNumber || details.phone) return `Mobile wallet ${details.phoneNumber || details.phone}`;
-  if (details.accountNumber || details.account_number) return `Bank account ${details.accountNumber || details.account_number}`;
-  if (details.eversendTag) return `Eversend tag ${details.eversendTag}`;
-  if (details.beneficiaryId) return `Beneficiary ${details.beneficiaryId}`;
+  const details = tx?.gateway_response?.details || tx?.metadata?.recipient_details || {};
+  if (details.phone_number || details.phone) return `Mobile wallet ${details.phone_number || details.phone}`;
+  if (details.account_number) return `Bank account ${details.account_number}`;
+  if (details.eversend_tag) return `Eversend tag ${details.eversend_tag}`;
+  if (details.beneficiary_id) return `Beneficiary ${details.beneficiary_id}`;
   const match = tx?.description?.match(/\b(?:to|via)\s+(.+)$/i);
   return match?.[1] || 'Payout account awaiting gateway details';
 };

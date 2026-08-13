@@ -12,6 +12,7 @@ import {
   ShoppingBag,
   Store,
   Truck,
+  UtensilsCrossed,
   User,
   WalletCards,
 } from 'lucide-react';
@@ -55,6 +56,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
     name: '',
     phone: '',
     role: 'customer',
+    vendor_type: null,
   });
   const [subscriptionIntent, setSubscriptionIntent] = useState(true);
 
@@ -247,9 +249,9 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
       try {
         sessionStorage.removeItem(OTP_PENDING_KEY);
         sessionStorage.removeItem(SIGNUP_STATE_KEY);
-        if (['vendor', 'logistics'].includes(profile.role) && subscriptionIntent) {
+        if (['vendor', 'logistics', 'restaurant'].includes(profile.role) && subscriptionIntent) {
           sessionStorage.setItem(SUBSCRIPTION_AFTER_ONBOARDING_KEY, JSON.stringify({
-            role: profile.role,
+            role: profile.role === 'restaurant' ? 'vendor' : profile.role,
             savedAt: Date.now(),
           }));
         } else {
@@ -281,13 +283,21 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
 
     setSubmitting(true);
     try {
+      // 'restaurant' is a vendor sub-type; the backend only knows 'vendor'
+      const apiRole = profile.role === 'restaurant' ? 'vendor' : profile.role;
+      if (profile.role === 'restaurant') {
+        try { sessionStorage.setItem('aura_vendor_type', 'restaurant'); } catch {}
+      } else {
+        try { sessionStorage.removeItem('aura_vendor_type'); } catch {}
+      }
+
       const result = await withLoginTimeout(
         verifyOtp({
           email,
           signupToken,
           name: profile.name,
           phone: profile.phone ? profile.phone.replace(/[\s-]/g, '') : '',
-          role: profile.role,
+          role: apiRole,
         }),
         t('login.setupTimeout')
       );
@@ -325,7 +335,8 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
 
   const updateProfile = (patch) => setProfile((current) => {
     const next = { ...current, ...patch };
-    if (patch.role && ['vendor', 'logistics'].includes(patch.role)) {
+    // 'restaurant' is a vendor sub-type — treat subscription intent same as vendor
+    if (patch.role && ['vendor', 'logistics', 'restaurant'].includes(patch.role)) {
       setSubscriptionIntent(true);
     }
     if (patch.role === 'customer') {
@@ -335,12 +346,12 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
   });
 
   const subscriptionHint =
-    profile.role === 'vendor'
+    profile.role === 'vendor' || profile.role === 'restaurant'
       ? t('login.vendorSubscriptionHint')
       : profile.role === 'logistics'
         ? t('login.logisticsSubscriptionHint')
         : t('login.customerSubscriptionHint');
-  const showSignupSubscriptionChoice = ['vendor', 'logistics'].includes(profile.role);
+  const showSignupSubscriptionChoice = ['vendor', 'logistics', 'restaurant'].includes(profile.role);
 
   return (
     <div className="w-full max-w-[420px] mx-auto transition-all duration-700">
@@ -523,12 +534,13 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
 
               <div className="space-y-2">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]/50">{t('login.continueAs')}</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {[
-                    ['customer', ShoppingBag],
-                    ['vendor', Store],
-                    ['logistics', Truck],
-                  ].map(([role, Icon]) => (
+                    ['customer',   ShoppingBag, 'Customer'],
+                    ['vendor',     Store,        'Vendor'],
+                    ['restaurant', UtensilsCrossed, 'Restaurant'],
+                    ['logistics',  Truck,        'Logistics'],
+                  ].map(([role, Icon, label]) => (
                     <button
                       key={role}
                       type="button"
@@ -540,7 +552,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
                       }`}
                     >
                       <Icon className="w-4 h-4" />
-                      <span className="text-[11px] font-semibold tracking-tighter capitalize">{t(`role.${role}`, label(role))}</span>
+                      <span className="text-[11px] font-semibold tracking-tighter">{label}</span>
                     </button>
                   ))}
                 </div>

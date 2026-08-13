@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
-  Compass, User, Store, Activity, LayoutDashboard, House
+  Compass, User, Store, Activity, LayoutDashboard, Utensils
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -64,13 +64,13 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
     { id: 'discover', label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },
     { id: 'vendors', label: t('bottomNav.vendors', 'Vendors'), icon: Store },
     { id: 'status', label: t('bottomNav.stories', 'Stories'), icon: Activity },
-    { id: 'overtime', label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House },
+    { id: 'dine', label: t('bottomNav.dine', 'Dine'), href: "/dine", icon: Utensils },
     { id: 'profile', label: t('bottomNav.profile', 'Profile'), icon: User }
   ] : [
     { id: 'dashboard', label: t('bottomNav.dashboard', 'Dashboard'), href: dashboardHref, icon: LayoutDashboard },
     { id: 'discover', label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },
     { id: 'status', label: t('bottomNav.stories', 'Stories'), icon: Activity },
-    { id: 'overtime', label: t('bottomNav.overtime', 'Overtime'), href: "/overtime", icon: House },
+    { id: 'dine', label: t('bottomNav.dine', 'Dine'), href: "/dine", icon: Utensils },
     { id: 'profile', label: t('bottomNav.profile', 'Profile'), icon: User }
   ];
 

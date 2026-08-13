@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { 
-  Search, X, ChevronRight, Package, 
+import {
+  Search, X, ChevronRight, Package,
   Star, MapPin, CheckCircle2, ArrowLeft,
-  Heart, ShoppingCart, MessageCircle, RefreshCw
+  Heart, ShoppingCart, MessageCircle, RefreshCw, BadgeCheck
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -19,7 +19,12 @@ const getVendorId = (vendor) => (vendor?.vendor_id?._id || vendor?.vendor_id || 
 const getVendorUserId = (vendor) => (vendor?.user_id?._id || vendor?.user_id || vendor?.vendor_id?.user_id?._id || vendor?.vendor_id?.user_id)?.toString();
 const getVendorName = (vendor) => vendor?.store_name || vendor?.vendor_id?.store_name || 'Store';
 const getVendorDescription = (vendor) => vendor?.description || vendor?.vendor_id?.description || '';
-const getStoreHref = (vendorId) => `/stores?id=${encodeURIComponent(vendorId)}`;
+const getStoreHref = (vendor) => {
+  const vendorId = getVendorId(vendor);
+  // Restaurants have their own dedicated menu page; all other vendors go to the store page.
+  if (vendor?.vendor_type === 'restaurant') return `/dine/restaurant/${vendorId}`;
+  return `/stores?id=${encodeURIComponent(vendorId)}`;
+};
 
 /**
  * VendorListPanel
@@ -159,7 +164,7 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
                   hasNewStatus={hasNewStatus}
                   onOpenStatus={() => onOpenStatus(vendorId)}
                   onOpenChat={(vData) => openChat(userId, null, vData)}
-                  onClick={() => router.push(getStoreHref(vendorId))}
+                  onClick={() => router.push(getStoreHref(vendor))}
                   t={t}
                 />
               );
@@ -218,6 +223,7 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, hasNewStatus
   const isOnline = typeof liveOnline === 'boolean' ? liveOnline : (userInfo?.is_online ?? false);
   const lastSeen = formatLastSeen(userInfo?.last_seen, t);
   const snippet = vendor.latest_product?.name || getVendorDescription(vendor) || t('vendor.browseCatalog', 'Browse our latest catalog');
+  const isVerified = vendor.verified || false;
 
   return (
     <motion.div
@@ -262,9 +268,14 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, hasNewStatus
       {/* Contact Info (WhatsApp Style) */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
-          <h3 className=" font-bold text-base text-[var(--text-primary)] truncate">
-            {storeName}
-          </h3>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <h3 className="font-bold text-base text-[var(--text-primary)] truncate">
+              {storeName}
+            </h3>
+            {isVerified && (
+              <BadgeCheck className="size-4 text-blue-500 shrink-0" title="Verified vendor" />
+            )}
+          </div>
           <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight whitespace-nowrap">
             {isOnline ? t('presence.online', 'Online') : lastSeen}
           </span>

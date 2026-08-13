@@ -22,6 +22,11 @@ const {
   getInvoice,
   payDirectly,
   createOrdersFromCart,
+  updateFoodStatus,
+  reorder,
+  dispatchIntercityParcel,
+  markIntercityArrived,
+  markIntercityCollected,
 } = require('../controllers/order.controller');
 
 const { protect, restrictTo, loadVendor } = require('../middleware/auth.middleware');
@@ -44,6 +49,20 @@ router.post('/:id/pay-direct', restrictTo('customer', 'vendor', 'logistics'), pa
 router.get('/vendor-orders', restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, getVendorOrders);
 router.patch('/:id/status', restrictTo('vendor', 'admin'), requireActiveSubscription(), loadVendor, updateOrderStatus);
 router.patch('/:id/approve-refund', restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, approveRefund);
+
+// ── Food / Kitchen Routes ──────────────────────────────────────────────────
+// Vendor (restaurant) advances kitchen status; logistics advances pickup/delivery.
+router.patch('/:id/food-status', restrictTo('vendor', 'logistics', 'admin'), updateFoodStatus);
+// Reorder: buyer recreates cart from a previous food order (Step 13b)
+router.post('/:id/reorder', restrictTo('customer', 'vendor', 'logistics'), reorder);
+
+// ── Phase 4: Intercity Transit Routes ─────────────────────────────────────
+// Vendor dispatches parcel to intercity agency
+router.patch('/:id/transit/dispatch', restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, dispatchIntercityParcel);
+// Admin marks parcel arrived at destination pickup point
+router.patch('/:id/transit/arrive', restrictTo('admin'), markIntercityArrived);
+// Buyer (or admin) confirms parcel collection — triggers escrow release
+router.patch('/:id/transit/collect', restrictTo('customer', 'admin'), markIntercityCollected);
 
 // ── Shared Endpoints ───────────────────────────────────────────────────────
 // Accessible by any authenticated party viewing their order/invoice

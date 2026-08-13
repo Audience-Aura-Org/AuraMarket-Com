@@ -30,8 +30,10 @@ import AccountSidebar from './AccountSidebar';
 import { useLanguage } from '@/context/LanguageContext';
 import { setFontSize, getFontSize, resetFontSettings, FONT_SIZES } from '@/utils/fontSettings';
 
+
 const normalizePickupAddress = (pickup = {}, fallback = {}) => ({
   city: pickup.city || fallback.city || '',
+  district: pickup.district || fallback.district || fallback.zone || '',
   quartier: pickup.quartier || fallback.quartier || '',
   address_description:
     pickup.address_description ||
@@ -146,21 +148,22 @@ export default function AccountPageClient() {
     description: '',
     logo: user?.branding?.logo || '',
     banner: user?.branding?.banner || '',
-    pickup_address: { city: '', quartier: '', address_description: '' },
+    pickup_address: { city: '', district: '', quartier: '', address_description: '' },
     delivery_time: '',
     minimum_order_amount: '',
     follower_count: 0,
     rating: 0,
+    vendor_type: '',
   });
 
-  const [userData, setUserData] = useState({ 
-    name: '', 
+  const [userData, setUserData] = useState({
+    name: '',
     phone: '',
-    onboarding_location: { city: '', quartier: '', address_description: '' }
+    onboarding_location: { city: '', zone: '', quartier: '', address_description: '' }
   });
   
   const [zones, setZones] = useState([]);
-  
+
   useEffect(() => {
     const fetchZones = async () => {
       try {
@@ -170,6 +173,31 @@ export default function AccountPageClient() {
     };
     fetchZones();
   }, []);
+
+  // Auto-resolve city from stored district/quartier for existing users who didn't have city saved
+  useEffect(() => {
+    if (!zones.length) return;
+    const findCityFor = (subName) => {
+      if (!subName) return null;
+      const sub = zones.find(z => z.name === subName);
+      if (!sub) return null;
+      return zones.find(z =>
+        (z.type === 'city' || z.type === 'region') &&
+        (sub.ancestors?.some(a => String(a) === String(z._id)) ||
+         String(sub.parent_id?._id ?? sub.parent_id) === String(z._id))
+      );
+    };
+    // Store pickup address
+    if (!storeData.pickup_address.city) {
+      const city = findCityFor(storeData.pickup_address.district) || findCityFor(storeData.pickup_address.quartier);
+      if (city) setStoreData(p => ({ ...p, pickup_address: { ...p.pickup_address, city: city.name } }));
+    }
+    // Onboarding location
+    if (!userData.onboarding_location.city) {
+      const city = findCityFor(userData.onboarding_location.zone) || findCityFor(userData.onboarding_location.quartier);
+      if (city) setUserData(p => ({ ...p, onboarding_location: { ...p.onboarding_location, city: city.name } }));
+    }
+  }, [zones, storeData.pickup_address.city, storeData.pickup_address.district, storeData.pickup_address.quartier, userData.onboarding_location.city, userData.onboarding_location.zone, userData.onboarding_location.quartier]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [kycData, setKycData] = useState({ full_name: '', id_type: 'national_id', id_number: '', file_url_front: '', file_url_back: '' });
   const [kycStatus, setKycStatus] = useState(null);
@@ -248,6 +276,7 @@ export default function AccountPageClient() {
       phone: user.phone || '',
       onboarding_location: {
         city: user.onboarding_location?.city || '',
+        zone: user.onboarding_location?.zone || '',
         quartier: user.onboarding_location?.quartier || '',
         address_description: user.onboarding_location?.address_description || ''
       }
@@ -276,11 +305,14 @@ export default function AccountPageClient() {
             minimum_order_amount: s.minimum_order_amount ?? '',
             follower_count: v.follower_count || 0,
             rating: v.rating || 0,
+            vendor_type: v.vendor_type || '',
           });
           setProfileBranding((p) => ({
             logo: s.logo || v.logo || p.logo,
             banner: s.banner || v.banner || p.banner,
           }));
+
+
         }
       }).catch(() => {});
     }
@@ -397,6 +429,19 @@ export default function AccountPageClient() {
         delivery_time: updatedStore?.delivery_time || '',
         minimum_order_amount: updatedStore?.minimum_order_amount ?? '',
       }));
+
+      // For restaurant vendors: sync city_zone_id on RestaurantProfile
+      if (storeData.vendor_type === 'restaurant') {
+        const restaurantUpdate = {};
+        if (pickupAddress.city) {
+          const cityZone = zones.find(z => (z.type === 'city' || z.type === 'region') && z.name === pickupAddress.city);
+          if (cityZone?._id) restaurantUpdate.city_zone_id = cityZone._id;
+        }
+        if (Object.keys(restaurantUpdate).length > 0) {
+          api.patch('/restaurant/profile', restaurantUpdate).catch(() => {});
+        }
+      }
+
       setSaveStatus('Store updated successfully.');
       setTimeout(() => setSaveStatus(''), 3000);
     } catch (err) {
@@ -688,50 +733,52 @@ export default function AccountPageClient() {
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <FormSelect
-                                label="City"
-                                value={userData.onboarding_location.city}
-                                onChange={(v) =>
-                                  setUserData({
-                                    ...userData,
-                                    onboarding_location: {
-                                      ...userData.onboarding_location,
-                                      city: v,
-                                      quartier: '',
-                                    },
-                                  })
-                                }
-                                options={zones
-                                  .filter((z) => z.type === 'region')
-                                  .map((z) => ({ label: z.name, value: z.name }))}
-                                icon={MapPin}
-                                placeholder="Select city"
-                              />
-                              <FormSelect
-                                label="Quartier"
-                                value={userData.onboarding_location.quartier}
-                                onChange={(v) =>
-                                  setUserData({
-                                    ...userData,
-                                    onboarding_location: {
-                                      ...userData.onboarding_location,
-                                      quartier: v,
-                                    },
-                                  })
-                                }
-                                options={zones
-                                  .filter(
-                                    (z) =>
-                                      z.type === 'quartier' &&
-                                      z.parent_id?.name === userData.onboarding_location.city,
-                                  )
-                                  .map((z) => ({ label: z.name, value: z.name }))}
-                                icon={MapPin}
-                                placeholder="Select quartier"
-                                disabled={!userData.onboarding_location.city}
-                              />
-                            </div>
+                            {(() => {
+                              const obCityZone = zones.find(z => (z.type === 'city' || z.type === 'region') && z.name === userData.onboarding_location.city);
+                              const obDistrictOpts = obCityZone
+                                ? zones.filter(z => (z.type === 'district' || z.type === 'quartier') && String(z.parent_id?._id ?? z.parent_id) === String(obCityZone._id))
+                                : [];
+                              const obDistrictZone = obDistrictOpts.find(z => z.name === userData.onboarding_location.zone);
+                              const obQuartierOpts = obDistrictZone
+                                ? zones.filter(z => z.type === 'quartier' && String(z.parent_id?._id ?? z.parent_id) === String(obDistrictZone._id))
+                                : [];
+                              return (
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <FormSelect
+                                      label="City"
+                                      value={userData.onboarding_location.city}
+                                      onChange={(v) => setUserData({ ...userData, onboarding_location: { ...userData.onboarding_location, city: v, zone: '', quartier: '' } })}
+                                      options={zones.filter(z => z.type === 'city' || z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
+                                      icon={MapPin}
+                                      placeholder="Select city"
+                                    />
+                                    {obDistrictOpts.length > 0 && (
+                                      <FormSelect
+                                        label="District"
+                                        value={userData.onboarding_location.zone}
+                                        onChange={(v) => setUserData({ ...userData, onboarding_location: { ...userData.onboarding_location, zone: v, quartier: '' } })}
+                                        options={obDistrictOpts.map(z => ({ label: z.name, value: z.name }))}
+                                        icon={MapPin}
+                                        placeholder="Select district"
+                                        disabled={!userData.onboarding_location.city}
+                                      />
+                                    )}
+                                  </div>
+                                  {obQuartierOpts.length > 0 && (
+                                    <FormSelect
+                                      label="Quartier"
+                                      value={userData.onboarding_location.quartier}
+                                      onChange={(v) => setUserData({ ...userData, onboarding_location: { ...userData.onboarding_location, quartier: v } })}
+                                      options={obQuartierOpts.map(z => ({ label: z.name, value: z.name }))}
+                                      icon={MapPin}
+                                      placeholder="Select quartier"
+                                      disabled={!userData.onboarding_location.zone}
+                                    />
+                                  )}
+                                </div>
+                              );
+                            })()}
 
                             <FormField
                               label="Street / Landmark"
@@ -858,6 +905,8 @@ export default function AccountPageClient() {
                         placeholder="Describe your store..."
                         textarea={true}
                       />
+
+
                                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                         <FormField
                           label="Estimated Delivery Time"
@@ -899,35 +948,66 @@ export default function AccountPageClient() {
                       <div className="space-y-3">
                         <div className="flex items-center gap-4">
                           <MapPin className="size-4 text-[var(--accent)]" />
-                          <h4 className="text-[11px] font-semibold tracking-tight  text-[var(--text-secondary)]">Store Pickup Address Configuration</h4>
-                        </div>
-                        
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                          <FormSelect
-                            label="City"
-                            value={storeData.pickup_address.city}
-                            onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, city: v, quartier: ''}})}
-                            options={zones.filter(z => z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
-                            icon={MapPin}
-                            placeholder="Select city"
-                          />
-                          <FormSelect
-                            label="Quartier"
-                            value={storeData.pickup_address.quartier}
-                            onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, quartier: v}})}
-                            options={zones.filter(z => z.type === 'quartier' && z.parent_id?.name === storeData.pickup_address.city).map(z => ({ label: z.name, value: z.name }))}
-                            icon={MapPin}
-                            placeholder="Select quartier"
-                            disabled={!storeData.pickup_address.city}
-                          />
+                          <h4 className="text-[11px] font-semibold tracking-tight text-[var(--text-secondary)]">
+                            {storeData.vendor_type === 'restaurant' ? 'Restaurant Location' : 'Store Pickup Address Configuration'}
+                          </h4>
                         </div>
 
+                        {(() => {
+                          const cityZoneObj = zones.find(z => (z.type === 'city' || z.type === 'region') && z.name === storeData.pickup_address.city);
+                          const districtOpts = cityZoneObj
+                            ? zones.filter(z => (z.type === 'district' || z.type === 'quartier') && String(z.parent_id?._id ?? z.parent_id) === String(cityZoneObj._id))
+                            : [];
+                          const districtZoneObj = districtOpts.find(z => z.name === storeData.pickup_address.district);
+                          const quartierOpts = districtZoneObj
+                            ? zones.filter(z => z.type === 'quartier' && String(z.parent_id?._id ?? z.parent_id) === String(districtZoneObj._id))
+                            : [];
+                          return (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                                <FormSelect
+                                  label="City"
+                                  value={storeData.pickup_address.city}
+                                  onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, city: v, district: '', quartier: ''}})}
+                                  options={zones.filter(z => z.type === 'city' || z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
+                                  icon={MapPin}
+                                  placeholder="Select city"
+                                />
+                                {districtOpts.length > 0 && (
+                                  <FormSelect
+                                    label="District"
+                                    value={storeData.pickup_address.district}
+                                    onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, district: v, quartier: ''}})}
+                                    options={districtOpts.map(z => ({ label: z.name, value: z.name }))}
+                                    icon={MapPin}
+                                    placeholder="Select district"
+                                    disabled={!storeData.pickup_address.city}
+                                  />
+                                )}
+                              </div>
+                              {quartierOpts.length > 0 && (
+                                <FormSelect
+                                  label="Quartier"
+                                  value={storeData.pickup_address.quartier}
+                                  onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, quartier: v}})}
+                                  options={quartierOpts.map(z => ({ label: z.name, value: z.name }))}
+                                  icon={MapPin}
+                                  placeholder="Select quartier"
+                                  disabled={!storeData.pickup_address.district}
+                                />
+                              )}
+                            </div>
+                          );
+                        })()}
+
                         <FormField
-                          label="Store Pickup Address Description"
+                          label={storeData.vendor_type === 'restaurant' ? 'Restaurant Address Description' : 'Store Pickup Address Description'}
                           value={storeData.pickup_address.address_description}
                           onChange={(v) => setStoreData({ ...storeData, pickup_address: { ...storeData.pickup_address, address_description: v } })}
                           icon={MapPin}
-                          placeholder="Describe the exact store pickup point, landmark, building, floor, or gate..."
+                          placeholder={storeData.vendor_type === 'restaurant'
+                            ? 'Exact restaurant address — building name, street, landmark, floor, or entrance...'
+                            : 'Describe the exact store pickup point, landmark, building, floor, or gate...'}
                           textarea={true}
                         />
                       </div>
@@ -1343,46 +1423,79 @@ export default function AccountPageClient() {
 
               {activeTab === 'install' && <InstallAppTab />}
 
-              {activeTab === 'wishlist' && (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 px-1 md:px-2">
-                    <h3 className="text-[11px] font-semibold tracking-tight text-[var(--accent)]">Saved Items</h3>
-                    <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
-                  </div>
-
-                  <div className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)] md:rounded-[3rem]">
-                    <div className="px-4 md:px-8 lg:px-12 py-6">
-                      {wishlistLoading ? (
-                        <div className="flex items-center justify-center py-16">
-                          <RefreshCw className="size-8 text-[var(--accent)] animate-spin" />
-                        </div>
-                      ) : wishlist.length === 0 ? (
-                        <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-12 text-center shadow-inner">
-                          <Heart className="mx-auto mb-4 size-12 text-[var(--accent)] opacity-40" />
-                          <p className="text-[11px] font-semibold tracking-tight text-[var(--text-secondary)]">Your wishlist is empty</p>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {wishlist.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((product) => (
-                              <ProductCard key={product._id} product={product} layout="grid" />
-                            ))}
+              {activeTab === 'wishlist' && (() => {
+                const savedMeals    = wishlist.filter(p => !!p.meal);
+                const savedProducts = wishlist.filter(p => !p.meal);
+                return (
+                  <div className="space-y-5">
+                    {wishlistLoading ? (
+                      <div className="flex items-center justify-center py-16">
+                        <RefreshCw className="size-8 text-[var(--accent)] animate-spin" />
+                      </div>
+                    ) : wishlist.length === 0 ? (
+                      <div className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)] md:rounded-[3rem]">
+                        <div className="px-4 md:px-8 lg:px-12 py-6">
+                          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-12 text-center shadow-inner">
+                            <Heart className="mx-auto mb-4 size-12 text-[var(--accent)] opacity-40" />
+                            <p className="text-[11px] font-semibold tracking-tight text-[var(--text-secondary)]">Your wishlist is empty</p>
                           </div>
-                          {wishlist.length > itemsPerPage && (
-                            <div className="mt-4 flex justify-center">
-                              <Pagination
-                                currentPage={currentPage}
-                                totalPages={Math.ceil(wishlist.length / itemsPerPage)}
-                                onPageChange={setCurrentPage}
-                              />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* ── Saved Meals ── */}
+                        {savedMeals.length > 0 && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 px-1 md:px-2">
+                              <h3 className="text-[11px] font-semibold tracking-tight text-orange-400">Saved Meals</h3>
+                              <div className="h-px flex-1 bg-gradient-to-r from-orange-500/30 to-transparent" />
+                              <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50">{savedMeals.length}</span>
                             </div>
-                          )}
-                        </>
-                      )}
-                    </div>
+                            <div className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)] md:rounded-[3rem]">
+                              <div className="px-4 md:px-8 lg:px-12 py-6">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                  {savedMeals.map((product) => (
+                                    <ProductCard key={product._id} product={product} layout="grid" />
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ── Saved Products ── */}
+                        {savedProducts.length > 0 && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3 px-1 md:px-2">
+                              <h3 className="text-[11px] font-semibold tracking-tight text-[var(--accent)]">Saved Products</h3>
+                              <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
+                              <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50">{savedProducts.length}</span>
+                            </div>
+                            <div className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)] md:rounded-[3rem]">
+                              <div className="px-4 md:px-8 lg:px-12 py-6">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                  {savedProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((product) => (
+                                    <ProductCard key={product._id} product={product} layout="grid" />
+                                  ))}
+                                </div>
+                                {savedProducts.length > itemsPerPage && (
+                                  <div className="mt-4 flex justify-center">
+                                    <Pagination
+                                      currentPage={currentPage}
+                                      totalPages={Math.ceil(savedProducts.length / itemsPerPage)}
+                                      onPageChange={setCurrentPage}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </motion.div>
           </AnimatePresence>
         </div>

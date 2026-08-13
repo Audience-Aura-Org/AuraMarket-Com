@@ -324,6 +324,12 @@ export default function VendorOrdersPage() {
                                              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${payment.bg} ${payment.color} ${payment.border}`}>
                                                 {payment.label}
                                              </span>
+                                             {order.food_status && !['delivered', 'completed'].includes(order.food_status) && (
+                                               <span className="inline-flex items-center gap-1 rounded-full border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-[10px] font-medium text-orange-600">
+                                                 <span className="size-1 rounded-full bg-orange-500" />
+                                                 {order.food_status.replace(/_/g, ' ')}
+                                               </span>
+                                             )}
                                           </div>
                                           <p className="mt-1 truncate text-[11px] text-[var(--text-secondary)]">
                                              {customer?.name || 'Guest'} • {order.shipping_address?.quartier || 'No area'}

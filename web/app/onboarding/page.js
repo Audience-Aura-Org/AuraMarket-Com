@@ -3,11 +3,12 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Users, Heart, MapPin, CheckCircle2, 
-  ArrowRight, ArrowLeft, Loader2, Store, 
+import {
+  Users, Heart, MapPin, CheckCircle2,
+  ArrowRight, ArrowLeft, Loader2, Store,
   LayoutGrid, Check, Search, SkipForward, Globe,
-  Phone, Sparkles, Zap, Star, ChevronRight, ShieldCheck, Plus, Truck
+  Phone, Sparkles, Zap, Star, ChevronRight, ShieldCheck, Plus, Truck,
+  Utensils, Download,
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -59,6 +60,7 @@ export default function OnboardingFlow() {
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
   const [citySearch, setCitySearch] = useState('');
   const [zoneSearch, setZoneSearch] = useState('');
+  const [quartierSearch, setQuartierSearch] = useState('');
   const [fetching, setFetching] = useState(true);
   const [syncing, setSyncing] = useState(null);
 
@@ -71,10 +73,11 @@ export default function OnboardingFlow() {
   // Selections
   const [followedVendors, setFollowedVendors] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [location, setLocation] = useState({ city: '', quartier: '', address_description: '' });
+  const [location, setLocation] = useState({ city: '', zone: '', quartier: '', address_description: '' });
   const [phone, setPhone] = useState('');
   const [visibleCategoriesCount, setVisibleCategoriesCount] = useState(30);
   const [vendorProfile, setVendorProfile] = useState({ store_name: '', description: '' });
+  const [vendorType, setVendorType] = useState('retail');
   const [logisticsProfile, setLogisticsProfile] = useState({
     company_name: '',
     service_regions: [],
@@ -104,8 +107,19 @@ export default function OnboardingFlow() {
   useEffect(() => {
     if (!user) return;
     if (user.liked_categories?.length > 0) setSelectedCategories(user.liked_categories.map(c => c._id || c));
-    if (user.onboarding_location) setLocation({ city: user.onboarding_location.city || '', quartier: user.onboarding_location.quartier || '', address_description: user.onboarding_location.address_description || '' });
+    if (user.onboarding_location) {
+      const ol = user.onboarding_location;
+      // Backward compat: old data stored district name in `quartier`; new model has `zone` + `quartier`
+      const zone = ol.zone || (!ol.zone && ol.quartier ? ol.quartier : '');
+      const quartier = ol.zone ? (ol.quartier || '') : '';
+      setLocation({ city: ol.city || '', zone, quartier, address_description: ol.address_description || '' });
+    }
     if (user.phone) setPhone(user.phone);
+    // Read vendor_type intent stored during signup
+    try {
+      const storedType = sessionStorage.getItem('aura_vendor_type');
+      if (storedType) setVendorType(storedType);
+    } catch {}
   }, [user]);
 
   // Initial fast fetch — vendors (TOP) + categories + follows only (no zones)
@@ -167,6 +181,7 @@ export default function OnboardingFlow() {
               const v = vpRes.data.data.vendor;
               setVendorProfile({ store_name: v.store_name || '', description: v.description || '' });
               if (v.phone) setPhone(v.phone);
+              if (v.vendor_type) setVendorType(v.vendor_type);
             }
           } catch (e) {}
         }
@@ -240,8 +255,8 @@ export default function OnboardingFlow() {
     if (isVendor) {
       if (step === 0 && (!vendorProfile.store_name || !vendorProfile.description || !phone))
         return toast.error('Store name, description and phone are required.');
-      if (step === 1 && (!location.city || !location.quartier || !location.address_description))
-        return toast.error('City, zone and store pickup address details are required.');
+      if (step === 1 && (!location.city || !location.address_description))
+        return toast.error('City and store pickup address details are required.');
     } else if (isLogistics) {
       if (step === 0 && (!logisticsProfile.company_name || !phone || logisticsProfile.vehicle_types.length === 0))
         return toast.error('Company name, phone and fleet type are required.');
@@ -249,8 +264,8 @@ export default function OnboardingFlow() {
         return toast.error('Select at least 1 service region.');
     } else {
       // Customer steps: Location (0) -> Vendors (1) -> done (2)
-      if (step === 0 && (!location.city || !location.quartier || !phone)) 
-        return toast.error('City, zone and phone are required.');
+      if (step === 0 && (!location.city || !phone))
+        return toast.error('City and phone are required.');
       if (step === 1 && followedVendors.length < 2) 
         return toast.error('Follow at least 2 vendors.');
     }
@@ -283,7 +298,9 @@ export default function OnboardingFlow() {
           categories: selectedCategories,
           location,
           phone,
+          vendor_type: vendorType || 'retail',
         });
+        try { sessionStorage.removeItem('aura_vendor_type'); } catch {}
         if (res.data.success) {
           if (res.data.data?.user) updateUser(res.data.data.user);
           if (consumeSubscriptionIntent('vendor')) {
@@ -390,7 +407,8 @@ export default function OnboardingFlow() {
       .filter((zone) => {
         const type = String(zone?.type || '').toLowerCase();
         const name = getZoneName(zone);
-        if (!name || (type && !['quartier', 'zone', 'neighbourhood', 'neighborhood'].includes(type))) return false;
+        // Include district, quartier, and neighbourhood-type zones
+        if (!name || (type && !['district', 'quartier', 'zone', 'neighbourhood', 'neighborhood'].includes(type))) return false;
 
         const parentName = getZoneParentName(zone);
         return parentName === location.city || zone?.city === location.city || zone?.region === location.city;
@@ -398,6 +416,27 @@ export default function OnboardingFlow() {
       .map((zone) => ({ ...zone, name: getZoneName(zone) }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [zones, location.city]);
+
+  // District zone selected by the user (needed to filter sub-quartiers)
+  const selectedDistrictZone = useMemo(() => {
+    if (!location.zone) return null;
+    return quartiers.find(z => z.name === location.zone) || null;
+  }, [quartiers, location.zone]);
+
+  // Sub-quartiers: zones whose parent_id matches the selected district
+  const subQuartiers = useMemo(() => {
+    if (!selectedDistrictZone) return [];
+    const districtId = selectedDistrictZone._id?.toString();
+    if (!districtId) return [];
+    return zones
+      .filter(z => {
+        const parentId = (z.parent_id?._id || z.parent_id)?.toString();
+        return parentId === districtId;
+      })
+      .map(z => ({ ...z, name: getZoneName(z) }))
+      .filter(z => z.name)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [zones, selectedDistrictZone]);
 
   const isLastStep = step === STEPS_ACTIVE.length - 1;
 
@@ -416,66 +455,67 @@ export default function OnboardingFlow() {
       {/* Header / Step Progress */}
       <header className="sticky top-0 z-20 shrink-0 pt-[calc(0.75rem+env(safe-area-inset-top,0px))] pb-3 px-3 sm:px-4 md:px-6 md:py-5">
         <div className="relative mx-auto flex w-full max-w-6xl items-center justify-between gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 px-3 py-2.5 shadow-lg backdrop-blur-2xl sm:rounded-[1.5rem] sm:px-5">
-          {/* Back / Logo */}
-          <div className="flex items-center gap-4">
-            {step > 0 ? (
-              <button onClick={goBack} className="size-10 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center hover:border-[var(--accent)]/40 transition-all group">
-                <ArrowLeft className="size-4 text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-all" />
-              </button>
-            ) : (
-              <div className="size-10 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center p-2">
-                <img src="/icon-512.png" className="w-full h-auto" alt="" />
-              </div>
-            )}
+          {/* Logo / Brand */}
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center p-1.5 shrink-0">
+              <img src="/icon-512.png" className="w-full h-auto" alt="" />
+            </div>
             <div className="flex min-w-0 flex-col">
-              <span className="truncate text-sm font-bold text-[var(--text-primary)]">Onboarding</span>
-              <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">
-                {step + 1}/{STEPS_ACTIVE.length}
-              </span>
+              <span className="text-[13px] font-black text-[var(--text-primary)] tracking-tight">Auradime</span>
+              <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-wide">Setup</span>
             </div>
           </div>
 
-          {/* Step Pills (Integrated) */}
-          <div className="absolute inset-x-4 bottom-0 flex translate-y-1/2 items-center gap-1.5 sm:static sm:translate-y-0 sm:px-4 md:flex md:border-x md:border-[var(--glass-border)]">
+          {/* Step Pills — numbered circles on desktop, thin bars on mobile */}
+          <div className="hidden sm:flex items-center gap-0.5 sm:px-4 md:border-x md:border-[var(--glass-border)] md:py-0.5">
             {STEPS_ACTIVE.map((s, i) => {
               const done = i < step;
               const active = i === step;
               return (
-                <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-700 sm:flex-none ${active ? 'sm:w-10 bg-[var(--accent)] shadow-[0_0_15px_var(--accent)]' : done ? 'sm:w-3 bg-emerald-500/60' : 'sm:w-3 bg-[var(--glass-border)]'}`} />
+                <div key={i} className="flex items-center gap-0.5">
+                  <div className={`size-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all duration-500 shrink-0 ${
+                    active ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/40 scale-110'
+                    : done ? 'bg-emerald-500 text-white'
+                    : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40'
+                  }`}>
+                    {done ? <Check className="size-3" /> : <span>{i + 1}</span>}
+                  </div>
+                  {active && (
+                    <span className="text-[10px] font-bold text-[var(--accent)] pl-1 pr-1 whitespace-nowrap">{s.title}</span>
+                  )}
+                  {i < STEPS_ACTIVE.length - 1 && (
+                    <div className={`w-5 h-px mx-0.5 rounded-full transition-all duration-500 ${done ? 'bg-emerald-500' : 'bg-[var(--glass-border)]'}`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {/* Mobile: thin progress bars at bottom of header */}
+          <div className="absolute inset-x-4 bottom-0 translate-y-full flex items-center gap-1 sm:hidden pt-1 pb-0.5">
+            {STEPS_ACTIVE.map((_, i) => {
+              const done = i < step;
+              const active = i === step;
+              return (
+                <div key={i} className={`flex-1 h-[3px] rounded-full transition-all duration-500 ${
+                  active ? 'bg-[var(--accent)] shadow-[0_0_8px_var(--accent)]' : done ? 'bg-emerald-500/70' : 'bg-[var(--glass-border)]'
+                }`} />
               );
             })}
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-2">
             {!isLastStep && !isVendor && !isLogistics && (
-              <button 
-                onClick={skip} 
-                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold tracking-[0.12em] text-[var(--accent)] transition-all hover:opacity-70 sm:text-[11px]"
+              <button
+                onClick={skip}
+                className="flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 hover:opacity-100 hover:text-[var(--accent)] transition-all"
               >
-                Skip <SkipForward className="size-3 opacity-60" />
+                Skip <SkipForward className="size-3" />
               </button>
             )}
-            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1.5 text-[10px] font-semibold tracking-tight text-emerald-500 sm:px-3 sm:text-[11px]">
-              Verified
-            </div>
           </div>
         </div>
       </header>
 
-      {/* Step Title */}
-      <div className="shrink-0 px-4 pb-4 pt-5 sm:px-5 md:px-6 md:pb-6 md:pt-8">
-        <div className="mx-auto w-full max-w-6xl">
-          <div className="flex items-center gap-3 md:gap-5">
-            <div className={`size-12 md:size-16 rounded-xl md:rounded-2xl ${colors.bg} border ${colors.border} flex items-center justify-center shadow-lg ${colors.glow}`}>
-              {currentStepMeta && <currentStepMeta.icon className={`size-6 md:size-7 ${colors.text}`} />}
-            </div>
-            <div className="min-w-0 space-y-0.5 md:space-y-1">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight tracking-tight">{currentStepMeta?.title}</h1>
-              <p className={`text-[11px] font-semibold leading-relaxed opacity-80 md:text-sm ${colors.text}`}>{currentStepMeta?.subtitle}</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {subscriptionGuide && !isLastStep && (
         <div className="mx-auto w-full max-w-6xl px-4 pb-2 md:px-6 md:pb-4">
@@ -646,215 +686,281 @@ export default function OnboardingFlow() {
 
               {/* Customer-only: phone field */}
               {!isVendor && (
-                <div className="group relative overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-xl p-5">
-                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent)]/0 via-[var(--accent)]/50 to-[var(--accent)]/0 rounded-t-3xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
-                  <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all duration-200 mb-1.5 block">
-                    Primary Contact Number
-                  </label>
-                  <div className="relative flex items-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 group-focus-within:border-[var(--accent)]/50 transition-all duration-300">
-                    <Phone className="absolute left-4 size-4.5 text-[var(--text-secondary)] opacity-30 group-focus-within:text-[var(--accent)] group-focus-within:opacity-80 transition-all duration-200" />
+                <div className="rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm overflow-hidden group">
+                  <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]">
+                    <div className="size-7 rounded-lg bg-[var(--accent)] flex items-center justify-center shrink-0">
+                      <Phone className="size-3.5 text-white" />
+                    </div>
+                    <span className="text-[12px] font-semibold text-[var(--text-secondary)] font-[Poppins]">Contact Number</span>
+                  </div>
+                  <div className="relative flex items-center px-1">
                     <input
                       type="tel"
                       placeholder="+237 6XX XXX XXX"
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
-                      className="w-full bg-transparent pl-11 pr-4 py-3.5 text-[15px] font-bold outline-none placeholder:text-[var(--text-secondary)]/25 text-[var(--text-primary)]"
+                      className="w-full bg-transparent px-4 py-3.5 text-[15px] font-bold outline-none placeholder:text-[var(--text-secondary)]/30 text-[var(--text-primary)]"
                     />
                   </div>
                 </div>
               )}
 
               {/* City Picker Card */}
-              <div className="relative overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-2xl p-5 sm:p-6">
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500/50 via-[var(--accent)]/70 to-indigo-500/50 rounded-t-3xl" />
-
-                {/* Header */}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="size-9 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-[var(--accent)]/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                    <MapPin className="size-4 text-emerald-400" />
+              <div className="rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm overflow-hidden">
+                {/* Card header strip */}
+                <div className="bg-emerald-500 px-4 py-3.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="size-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                      <MapPin className="size-3.5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold text-white/70 font-[Poppins]">
+                        {isVendor ? 'Store Pickup City' : 'Your City'}
+                      </p>
+                      <p className="text-[14px] font-bold text-white leading-none font-[Poppins]">
+                        {location.city || 'Choose a city'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-[0.15em]">
-                      {isVendor ? 'Store Pickup City' : 'Your City'}
-                    </p>
-                    {location.city ? (
-                      <p className="text-[13px] font-black text-[var(--text-primary)] mt-0.5 leading-none">{location.city}</p>
-                    ) : (
-                      <p className="text-[12px] text-[var(--text-secondary)] opacity-45 font-medium mt-0.5">Choose your city below</p>
-                    )}
-                  </div>
+                  {location.city && (
+                    <div className="size-6 rounded-full bg-white/20 flex items-center justify-center">
+                      <Check className="size-3.5 text-white" />
+                    </div>
+                  )}
                 </div>
 
-                {/* City chips */}
-                {zonesLoading ? (
-                  <div className="flex items-center gap-3 py-3">
-                    <Loader2 className="size-4 animate-spin text-[var(--accent)]" />
-                    <span className="text-xs font-bold opacity-40">Loading cities...</span>
-                  </div>
-                ) : cities.length === 0 ? (
-                  <p className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-[11px] font-semibold text-amber-500">
-                    No cities available yet. Try again in a moment.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {/* City search */}
-                    <div className="relative">
-                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
-                      <input
-                        type="text"
-                        placeholder="Search cities..."
-                        value={citySearch}
-                        onChange={e => setCitySearch(e.target.value)}
-                        className="w-full bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl pl-9 pr-3 py-2.5 text-[12px] font-semibold outline-none focus:border-emerald-500/40 transition-all placeholder:text-[var(--text-secondary)]/25"
-                      />
+                {/* Content */}
+                <div className="p-4">
+                  {zonesLoading ? (
+                    <div className="flex items-center gap-2 py-3 text-[var(--text-secondary)]">
+                      <Loader2 className="size-4 animate-spin" />
+                      <span className="text-[12px] font-semibold">Loading cities...</span>
                     </div>
-                    {/* City list — one per line */}
-                    <div className="flex flex-col max-h-52 overflow-y-auto rounded-2xl border border-[var(--glass-border)] divide-y divide-[var(--glass-border)]">
-                      {cities
-                        .filter(z => !citySearch || z.name.toLowerCase().includes(citySearch.toLowerCase()))
-                        .map((z) => {
-                          const active = location.city === z.name;
-                          return (
-                            <button
-                              key={z._id || z.id || z.name}
-                              type="button"
-                              onClick={() => { setLocation(p => ({ ...p, city: z.name, quartier: '' })); setCitySearch(''); }}
-                              className={`w-full flex items-center gap-3 px-4 py-3 text-left text-[13px] font-semibold transition-colors ${
-                                active
-                                  ? 'bg-emerald-500/10 text-emerald-300'
-                                  : 'bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]'
-                              }`}
-                            >
-                              <div className={`size-5 rounded-full border flex items-center justify-center shrink-0 ${
-                                active
-                                  ? 'bg-emerald-500 border-emerald-500'
-                                  : 'border-[var(--glass-border)]'
-                              }`}>
-                                {active && <Check className="size-3 text-white" />}
-                              </div>
-                              <span className="flex-1">{z.name}</span>
-                            </button>
-                          );
-                        })}
+                  ) : cities.length === 0 ? (
+                    <p className="text-[12px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">No cities available yet.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)] pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="Search cities..."
+                          value={citySearch}
+                          onChange={e => setCitySearch(e.target.value)}
+                          className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-9 pr-3 py-2.5 text-[12px] font-semibold outline-none focus:border-emerald-500 transition-all placeholder:text-[var(--text-secondary)]/40"
+                        />
+                      </div>
+                      {(() => {
+                        const filtered = cities.filter(z => !citySearch || z.name.toLowerCase().includes(citySearch.toLowerCase()));
+                        return filtered.length === 0 ? (
+                          <p className="text-[11px] text-[var(--text-secondary)] font-medium py-1">No cities match "{citySearch}"</p>
+                        ) : (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {filtered.map((z) => {
+                              const active = location.city === z.name;
+                              return (
+                                <button
+                                  key={z._id || z.id || z.name}
+                                  type="button"
+                                  onClick={() => { setLocation(p => ({ ...p, city: z.name, zone: '', quartier: '' })); setCitySearch(''); }}
+                                  className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 text-left transition-all active:scale-[0.96] ${
+                                    active
+                                      ? 'bg-emerald-500 border-emerald-500 text-white shadow-md shadow-emerald-500/25'
+                                      : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-primary)] hover:border-emerald-400 hover:bg-[var(--bg-primary)]'
+                                  }`}
+                                >
+                                  <MapPin className={`size-3.5 shrink-0 ${active ? 'text-white' : 'text-[var(--text-secondary)]'}`} />
+                                  <span className="flex-1 text-[12px] font-semibold font-[Poppins] truncate">{z.name}</span>
+                                  {active && <Check className="size-3.5 text-white shrink-0" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </div>
-                    {citySearch && cities.filter(z => z.name.toLowerCase().includes(citySearch.toLowerCase())).length === 0 && (
-                      <p className="text-[11px] text-[var(--text-secondary)] opacity-40 font-medium">No cities match "{citySearch}"</p>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
-              {/* Zone Picker — appears after city is selected */}
+              {/* Zone Picker */}
               <AnimatePresence mode="wait">
                 {location.city && (
                   <motion.div
                     key="zone-card"
-                    initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                    transition={{ duration: 0.25, ease: 'easeOut' }}
-                    className="relative overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-xl p-5 sm:p-6"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className="rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm overflow-hidden"
                   >
-                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500/50 via-[var(--accent)]/60 to-purple-500/40 rounded-t-3xl" />
-
-                    {/* Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="size-9 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 flex items-center justify-center shrink-0">
-                        <Globe className="size-4 text-indigo-400" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.15em]">Neighbourhood / Zone</p>
-                        {location.quartier ? (
-                          <p className="text-[13px] font-black text-[var(--text-primary)] mt-0.5 leading-none">{location.quartier}</p>
-                        ) : (
-                          <p className="text-[12px] text-[var(--text-secondary)] opacity-45 font-medium mt-0.5">Pick your area in {location.city}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Zone chips */}
-                    {zonesLoading ? (
-                      <div className="flex items-center gap-3 py-2">
-                        <Loader2 className="size-4 animate-spin text-indigo-400" />
-                        <span className="text-xs font-bold opacity-40">Loading zones...</span>
-                      </div>
-                    ) : quartiers.length === 0 ? (
-                      <p className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-[11px] font-semibold text-amber-500">
-                        No zones found for {location.city}. Try another city.
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {/* Zone search */}
-                        <div className="relative">
-                          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)] opacity-40 pointer-events-none" />
-                          <input
-                            type="text"
-                            placeholder="Search zones..."
-                            value={zoneSearch}
-                            onChange={e => setZoneSearch(e.target.value)}
-                            className="w-full bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-xl pl-9 pr-3 py-2.5 text-[12px] font-semibold outline-none focus:border-indigo-500/40 transition-all placeholder:text-[var(--text-secondary)]/25"
-                          />
+                    <div className="bg-indigo-500 px-4 py-3.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="size-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                          <Globe className="size-3.5 text-white" />
                         </div>
-                        {/* Zone list — one per line */}
-                        <div className="flex flex-col max-h-52 overflow-y-auto rounded-2xl border border-[var(--glass-border)] divide-y divide-[var(--glass-border)]">
-                          {quartiers
-                            .filter(z => !zoneSearch || z.name.toLowerCase().includes(zoneSearch.toLowerCase()))
-                            .map((z) => {
+                        <div>
+                          <p className="text-[11px] font-semibold text-white/70 font-[Poppins]">District / Zone <span className="text-white/40">(optional)</span></p>
+                          <p className="text-[14px] font-bold text-white leading-none font-[Poppins]">
+                            {location.zone || `Districts in ${location.city}`}
+                          </p>
+                        </div>
+                      </div>
+                      {location.zone && (
+                        <div className="size-6 rounded-full bg-white/20 flex items-center justify-center">
+                          <Check className="size-3.5 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      {zonesLoading ? (
+                        <div className="flex items-center gap-2 py-3 text-[var(--text-secondary)]">
+                          <Loader2 className="size-4 animate-spin" />
+                          <span className="text-[12px] font-semibold">Loading zones...</span>
+                        </div>
+                      ) : quartiers.length === 0 ? (
+                        <p className="text-[12px] font-semibold text-amber-600">No zones found for {location.city}.</p>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)] pointer-events-none" />
+                            <input
+                              type="text"
+                              placeholder="Search zones..."
+                              value={zoneSearch}
+                              onChange={e => setZoneSearch(e.target.value)}
+                              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-9 pr-3 py-2.5 text-[12px] font-semibold outline-none focus:border-indigo-500 transition-all placeholder:text-[var(--text-secondary)]/40"
+                            />
+                          </div>
+                          {(() => {
+                            const filtered = quartiers.filter(z => !zoneSearch || z.name.toLowerCase().includes(zoneSearch.toLowerCase()));
+                            return filtered.length === 0 ? (
+                              <p className="text-[11px] text-[var(--text-secondary)] font-medium py-1">No zones match "{zoneSearch}"</p>
+                            ) : (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {filtered.map((z) => {
+                                  const active = location.zone === z.name;
+                                  return (
+                                    <button
+                                      key={z._id || z.id || z.name}
+                                      type="button"
+                                      disabled={zonesLoading}
+                                      onClick={() => { setLocation(p => ({ ...p, zone: z.name, quartier: '' })); setZoneSearch(''); setQuartierSearch(''); }}
+                                      className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 text-left transition-all active:scale-[0.96] disabled:opacity-40 ${
+                                        active
+                                          ? 'bg-indigo-500 border-indigo-500 text-white shadow-md shadow-indigo-500/25'
+                                          : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-primary)] hover:border-indigo-400 hover:bg-[var(--bg-primary)]'
+                                      }`}
+                                    >
+                                      <Globe className={`size-3.5 shrink-0 ${active ? 'text-white' : 'text-[var(--text-secondary)]'}`} />
+                                      <span className="flex-1 text-[12px] font-semibold font-[Poppins] truncate">{z.name}</span>
+                                      {active && <Check className="size-3.5 text-white shrink-0" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Quartier Picker */}
+              <AnimatePresence mode="wait">
+                {location.zone && subQuartiers.length > 0 && (
+                  <motion.div
+                    key="quartier-card"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className="rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm overflow-hidden"
+                  >
+                    <div className="bg-purple-500 px-4 py-3.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="size-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                          <MapPin className="size-3.5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-white/70 font-[Poppins]">Quartier <span className="text-white/40">(optional)</span></p>
+                          <p className="text-[14px] font-bold text-white leading-none font-[Poppins]">
+                            {location.quartier || `Quartiers in ${location.zone}`}
+                          </p>
+                        </div>
+                      </div>
+                      {location.quartier && (
+                        <div className="size-6 rounded-full bg-white/20 flex items-center justify-center">
+                          <Check className="size-3.5 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 space-y-3">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)] pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="Search quartiers..."
+                          value={quartierSearch}
+                          onChange={e => setQuartierSearch(e.target.value)}
+                          className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl pl-9 pr-3 py-2.5 text-[12px] font-semibold outline-none focus:border-purple-500 transition-all placeholder:text-[var(--text-secondary)]/40"
+                        />
+                      </div>
+                      {(() => {
+                        const filtered = subQuartiers.filter(z => !quartierSearch || z.name.toLowerCase().includes(quartierSearch.toLowerCase()));
+                        return filtered.length === 0 ? (
+                          <p className="text-[11px] text-[var(--text-secondary)] font-medium py-1">No quartiers match "{quartierSearch}"</p>
+                        ) : (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {filtered.map((z) => {
                               const active = location.quartier === z.name;
                               return (
                                 <button
                                   key={z._id || z.id || z.name}
                                   type="button"
-                                  disabled={zonesLoading}
-                                  onClick={() => { setLocation(p => ({ ...p, quartier: z.name })); setZoneSearch(''); }}
-                                  className={`w-full flex items-center gap-3 px-4 py-3 text-left text-[13px] font-semibold transition-colors disabled:opacity-40 ${
+                                  onClick={() => { setLocation(p => ({ ...p, quartier: z.name })); setQuartierSearch(''); }}
+                                  className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2.5 text-left transition-all active:scale-[0.96] ${
                                     active
-                                      ? 'bg-indigo-500/10 text-indigo-300'
-                                      : 'bg-[var(--bg-primary)]/40 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]'
+                                      ? 'bg-purple-500 border-purple-500 text-white shadow-md shadow-purple-500/25'
+                                      : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-primary)] hover:border-purple-400 hover:bg-[var(--bg-primary)]'
                                   }`}
                                 >
-                                  <div className={`size-5 rounded-full border flex items-center justify-center shrink-0 ${
-                                    active
-                                      ? 'bg-indigo-500 border-indigo-500'
-                                      : 'border-[var(--glass-border)]'
-                                  }`}>
-                                    {active && <Check className="size-3 text-white" />}
-                                  </div>
-                                  <span className="flex-1">{z.name}</span>
+                                  <MapPin className={`size-3.5 shrink-0 ${active ? 'text-white' : 'text-[var(--text-secondary)]'}`} />
+                                  <span className="flex-1 text-[12px] font-semibold font-[Poppins] truncate">{z.name}</span>
+                                  {active && <Check className="size-3.5 text-white shrink-0" />}
                                 </button>
                               );
                             })}
-                        </div>
-                        {zoneSearch && quartiers.filter(z => z.name.toLowerCase().includes(zoneSearch.toLowerCase())).length === 0 && (
-                          <p className="text-[11px] text-[var(--text-secondary)] opacity-40 font-medium">No zones match "{zoneSearch}"</p>
-                        )}
-                      </div>
-                    )}
+                          </div>
+                        );
+                      })()}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Address Notes — appears after city */}
+              {/* Address Notes */}
               <AnimatePresence mode="wait">
                 {location.city && (
                   <motion.div
                     key="address-card"
-                    initial={{ opacity: 0, y: 12 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 8 }}
-                    transition={{ duration: 0.25, delay: 0.05, ease: 'easeOut' }}
-                    className="relative group overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-xl p-5 sm:p-6 transition-all duration-300 focus-within:border-[var(--accent)]/30"
+                    exit={{ opacity: 0, y: 6 }}
+                    transition={{ duration: 0.2, delay: 0.05, ease: 'easeOut' }}
+                    className="rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] shadow-sm overflow-hidden group focus-within:border-[var(--accent)]/50 transition-colors"
                   >
-                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent)]/0 via-[var(--accent)]/40 to-[var(--accent)]/0 rounded-t-3xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="size-7 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 flex items-center justify-center shrink-0">
-                        <MapPin className="size-3.5 text-[var(--accent)] opacity-70" />
+                    <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]">
+                      <div className="size-7 rounded-lg bg-[var(--accent)] flex items-center justify-center shrink-0">
+                        <MapPin className="size-3.5 text-white" />
                       </div>
                       <div>
-                        <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all duration-200 block">
-                          {isVendor ? 'Pickup Address Notes' : 'Address Notes'}
-                        </label>
-                        <p className="text-[11px] text-[var(--text-secondary)] opacity-35 font-medium">Landmarks, floor, gate — anything helpful</p>
+                        <p className="text-[12px] font-semibold text-[var(--text-secondary)] font-[Poppins]">
+                          {isVendor ? 'Pickup address notes' : 'Address notes'}
+                        </p>
+                        <p className="text-[11px] text-[var(--text-secondary)] opacity-50 font-medium">Landmarks, floor, gate...</p>
                       </div>
                     </div>
                     <textarea
@@ -862,7 +968,7 @@ export default function OnboardingFlow() {
                       value={location.address_description}
                       onChange={e => setLocation(p => ({ ...p, address_description: e.target.value }))}
                       rows={3}
-                      className="w-full bg-transparent text-[13px] font-medium outline-none resize-none placeholder:text-[11px] placeholder:font-normal placeholder:opacity-20 text-[var(--text-primary)] leading-relaxed min-h-[72px]"
+                      className="w-full bg-transparent px-4 py-3.5 text-[13px] font-medium outline-none resize-none placeholder:text-[var(--text-secondary)]/30 text-[var(--text-primary)] leading-relaxed"
                     />
                   </motion.div>
                 )}
@@ -939,75 +1045,77 @@ export default function OnboardingFlow() {
             <div className="mx-auto w-full max-w-2xl space-y-4">
 
               {/* Brand Identity Hero Card */}
-              <div className="relative overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-2xl p-5 sm:p-6">
-                {/* Decorative gradient bar */}
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500/60 via-[var(--accent)]/80 to-indigo-500/60 rounded-t-3xl" />
+              <div className="relative overflow-hidden rounded-3xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-[var(--bg-primary)]/80 backdrop-blur-2xl shadow-2xl p-6">
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-amber-500/60 via-[var(--accent)]/80 to-indigo-500/60 rounded-t-3xl" />
+                <div className="absolute -top-10 -right-10 size-40 rounded-full bg-amber-500/5 blur-2xl pointer-events-none" />
 
-                <div className="flex items-start gap-4">
-                  {/* Store Avatar */}
+                {/* Avatar + header row */}
+                <div className="flex items-center gap-4 mb-6">
                   <div className="relative shrink-0">
-                    <div className="size-[56px] sm:size-[64px] rounded-2xl bg-gradient-to-br from-amber-500/20 to-[var(--accent)]/20 border border-amber-500/30 flex items-center justify-center shadow-lg">
+                    <div className="size-16 rounded-2xl bg-gradient-to-br from-amber-500/25 to-[var(--accent)]/25 border border-amber-500/30 flex items-center justify-center shadow-xl shadow-amber-500/10">
                       {vendorProfile.store_name ? (
-                        <span className="text-xl sm:text-2xl font-black text-amber-400 uppercase leading-none">
-                          {vendorProfile.store_name[0]}
+                        <span className="text-2xl font-black text-amber-400 leading-none">
+                          {vendorProfile.store_name[0].toUpperCase()}
                         </span>
                       ) : (
-                        <Store className="size-6 sm:size-7 text-amber-400/60" />
+                        <Store className="size-7 text-amber-400/60" />
                       )}
                     </div>
-                    <div className="absolute -bottom-1 -right-1 size-4 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)] shadow-sm" />
+                    <div className="absolute -bottom-1 -right-1 size-5 rounded-full bg-emerald-500 border-2 border-[var(--bg-primary)] flex items-center justify-center shadow">
+                      <Check className="size-2.5 text-white" />
+                    </div>
                   </div>
-
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-amber-400 uppercase tracking-[0.15em] mb-0.5">Your Brand Identity</p>
-                    <p className="text-[12px] text-[var(--text-secondary)] opacity-60 font-medium leading-relaxed">
-                      Set up your store so customers can recognize and trust you.
+                    <p className="text-[11px] font-semibold text-amber-400 font-[Poppins]">Brand Identity</p>
+                    <p className="text-[14px] font-bold text-[var(--text-primary)] mt-0.5 leading-tight truncate font-[Poppins]">
+                      {vendorProfile.store_name || 'Your Store Name'}
                     </p>
+                    <p className="text-[11px] text-[var(--text-secondary)] opacity-40 font-medium mt-0.5 font-[Poppins]">Complete your profile below</p>
                   </div>
                 </div>
 
                 {/* Store Name Field */}
-                <div className="mt-5 group">
-                  <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60 group-focus-within:text-amber-400 group-focus-within:opacity-100 transition-all duration-200 mb-1.5 block">
+                <div className="group space-y-1.5">
+                  <label className="text-[12px] font-semibold text-[var(--text-secondary)] opacity-60 group-focus-within:text-amber-400 group-focus-within:opacity-100 transition-all duration-200 block font-[Poppins]">
                     Store Name
                   </label>
-                  <div className="relative flex items-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 group-focus-within:border-amber-500/50 group-focus-within:bg-[var(--bg-primary)]/80 transition-all duration-300 shadow-inner">
-                    <Store className="absolute left-4 size-4.5 text-[var(--text-secondary)] opacity-30 group-focus-within:text-amber-400 group-focus-within:opacity-80 transition-all duration-200 shrink-0" />
+                  <div className="relative flex items-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 group-focus-within:border-amber-500/50 group-focus-within:bg-[var(--bg-primary)]/80 transition-all duration-300">
+                    <Store className="absolute left-4 size-4 text-[var(--text-secondary)] opacity-30 group-focus-within:text-amber-400 group-focus-within:opacity-80 transition-all duration-200 shrink-0" />
                     <input
                       type="text"
                       placeholder="e.g. Aura Fashion House"
                       value={vendorProfile.store_name}
                       onChange={e => setVendorProfile(p => ({ ...p, store_name: e.target.value }))}
-                      className="w-full bg-transparent pl-11 pr-4 py-3.5 text-[15px] font-bold outline-none placeholder:text-[var(--text-secondary)]/25 text-[var(--text-primary)]"
+                      className="w-full bg-transparent pl-11 pr-4 py-3.5 text-[15px] font-bold outline-none placeholder:text-[var(--text-secondary)]/20 text-[var(--text-primary)]"
                     />
                   </div>
                 </div>
 
                 {/* Phone Field */}
-                <div className="mt-3 group">
-                  <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all duration-200 mb-1.5 block">
-                    Customer Support Number
+                <div className="mt-3 group space-y-1.5">
+                  <label className="text-[12px] font-semibold text-[var(--text-secondary)] opacity-60 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all duration-200 block font-[Poppins]">
+                    Support Phone
                   </label>
-                  <div className="relative flex items-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 group-focus-within:border-[var(--accent)]/50 group-focus-within:bg-[var(--bg-primary)]/80 transition-all duration-300 shadow-inner">
-                    <Phone className="absolute left-4 size-4.5 text-[var(--text-secondary)] opacity-30 group-focus-within:text-[var(--accent)] group-focus-within:opacity-80 transition-all duration-200 shrink-0" />
+                  <div className="relative flex items-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 group-focus-within:border-[var(--accent)]/50 group-focus-within:bg-[var(--bg-primary)]/80 transition-all duration-300">
+                    <Phone className="absolute left-4 size-4 text-[var(--text-secondary)] opacity-30 group-focus-within:text-[var(--accent)] group-focus-within:opacity-80 transition-all duration-200 shrink-0" />
                     <input
                       type="tel"
                       placeholder="+237 6XX XXX XXX"
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
-                      className="w-full bg-transparent pl-11 pr-4 py-3.5 text-[15px] font-bold outline-none placeholder:text-[var(--text-secondary)]/25 text-[var(--text-primary)]"
+                      className="w-full bg-transparent pl-11 pr-4 py-3.5 text-[15px] font-bold outline-none placeholder:text-[var(--text-secondary)]/20 text-[var(--text-primary)]"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Brand Story Card */}
-              <div className="relative group overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-xl p-5 sm:p-6 transition-all duration-300 focus-within:border-[var(--accent)]/30">
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[var(--accent)]/0 via-[var(--accent)]/40 to-[var(--accent)]/0 rounded-t-3xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
+              <div className="relative group overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-2xl shadow-xl p-5 sm:p-6 transition-all duration-300 focus-within:border-[var(--accent)]/40">
+                <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/50 to-transparent rounded-t-3xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
 
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <label className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all duration-200 block">
+                    <label className="text-[12px] font-semibold text-[var(--text-secondary)] opacity-60 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all duration-200 block font-[Poppins]">
                       Brand Story
                     </label>
                     <p className="text-[11px] text-[var(--text-secondary)] opacity-40 mt-0.5 font-medium">What makes your store stand out?</p>
@@ -1024,6 +1132,56 @@ export default function OnboardingFlow() {
                   className="w-full bg-transparent text-[13px] font-medium outline-none resize-none placeholder:text-[11px] placeholder:font-normal placeholder:opacity-20 text-[var(--text-primary)] leading-relaxed min-h-[100px]"
                 />
               </div>
+
+              {/* Store Type Card */}
+              <div className="rounded-3xl border border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-[var(--bg-primary)]/80 backdrop-blur-2xl shadow-xl p-5 sm:p-6">
+                <div className="mb-4">
+                  <p className="text-[12px] font-semibold text-orange-500 font-[Poppins]">Store Type</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] opacity-50 mt-0.5 font-medium">This unlocks the right tools for your business</p>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { value: 'retail',     label: 'Retail',      sub: 'Products & goods',   Icon: Store,     color: 'amber'  },
+                    { value: 'restaurant', label: 'Restaurant',  sub: 'Food & dining',       Icon: Utensils,  color: 'orange' },
+                    { value: 'digital',    label: 'Digital',     sub: 'Downloads & services', Icon: Download,  color: 'blue'   },
+                  ].map(({ value, label, sub, Icon, color }) => {
+                    const selected = vendorType === value;
+                    const colorMap = {
+                      amber:  { border: 'border-amber-500/50',  bg: 'bg-amber-500/10',  text: 'text-amber-400',  ring: 'shadow-amber-500/20'  },
+                      orange: { border: 'border-orange-500/50', bg: 'bg-orange-500/10', text: 'text-orange-400', ring: 'shadow-orange-500/20' },
+                      blue:   { border: 'border-blue-500/50',   bg: 'bg-blue-500/10',   text: 'text-blue-400',   ring: 'shadow-blue-500/20'   },
+                    };
+                    const c = colorMap[color];
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setVendorType(value)}
+                        className={`relative flex flex-col items-center gap-2.5 rounded-2xl border-2 p-4 text-center transition-all active:scale-[0.97] ${
+                          selected
+                            ? `${c.border} ${c.bg} shadow-lg ${c.ring}`
+                            : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 hover:border-[var(--glass-border)]/80'
+                        }`}
+                      >
+                        {selected && (
+                          <div className="absolute top-2 right-2 size-4 rounded-full bg-emerald-500 flex items-center justify-center">
+                            <Check className="size-2.5 text-white" />
+                          </div>
+                        )}
+                        <div className={`size-10 rounded-xl border flex items-center justify-center transition-all ${
+                          selected ? `${c.bg} ${c.border}` : 'bg-[var(--bg-primary)] border-[var(--glass-border)]'
+                        }`}>
+                          <Icon className={`size-5 ${selected ? c.text : 'text-[var(--text-secondary)] opacity-40'}`} />
+                        </div>
+                        <div>
+                          <p className={`text-[12px] font-bold font-[Poppins] ${selected ? c.text : 'text-[var(--text-primary)]'}`}>{label}</p>
+                          <p className="text-[9px] font-medium text-[var(--text-secondary)] opacity-50 mt-0.5 leading-tight">{sub}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
 
@@ -1035,7 +1193,7 @@ export default function OnboardingFlow() {
                 <div className="group relative">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
                   <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Company Name</label>
+                    <label className="text-[12px] font-semibold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] mb-2 block transition-colors duration-200 opacity-80 font-[Poppins]">Company Name</label>
                     <div className="relative flex items-center">
                       <Truck className="absolute left-3 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
                       <input
@@ -1052,7 +1210,7 @@ export default function OnboardingFlow() {
                 <div className="group relative">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--accent)] to-indigo-500 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-500" />
                   <div className="relative p-4 rounded-2xl bg-[var(--bg-primary)]/40 backdrop-blur-xl border border-white/10 shadow-2xl transition-all group-focus-within:border-[var(--accent)]/40">
-                    <label className="text-[10px] font-bold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] uppercase tracking-widest mb-2 block transition-colors duration-200 opacity-80">Dispatch Phone</label>
+                    <label className="text-[12px] font-semibold text-[var(--text-secondary)] group-focus-within:text-[var(--accent)] mb-2 block transition-colors duration-200 opacity-80 font-[Poppins]">Dispatch Phone</label>
                     <div className="relative flex items-center">
                       <Phone className="absolute left-3 size-5 text-[var(--text-secondary)] opacity-40 group-focus-within:text-[var(--accent)] group-focus-within:opacity-100 transition-all" />
                       <input
@@ -1068,7 +1226,7 @@ export default function OnboardingFlow() {
               </div>
 
               <div className="space-y-3">
-                <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest opacity-60 px-1">Fleet Type</p>
+                <p className="text-[12px] font-semibold text-[var(--text-secondary)] opacity-60 px-1 font-[Poppins]">Fleet type</p>
                 <div className="grid grid-cols-2 gap-3">
                   {VEHICLE_TYPES.map(type => {
                     const selected = logisticsProfile.vehicle_types.includes(type);
@@ -1084,8 +1242,8 @@ export default function OnboardingFlow() {
                         }))}
                         className={`p-4 rounded-2xl border text-left transition-all ${selected ? 'bg-amber-500/10 border-amber-500/40 text-amber-300' : 'bg-[var(--bg-primary)]/40 border-white/10 text-[var(--text-secondary)] hover:border-amber-500/30'}`}
                       >
-                        <span className="block text-sm font-bold capitalize">{type}</span>
-                        <span className="block text-[10px] opacity-50 mt-1">Available for delivery</span>
+                        <span className="block text-sm font-bold font-[Poppins]">{type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                        <span className="block text-[10px] opacity-50 mt-1 font-[Poppins]">Available for delivery</span>
                       </button>
                     );
                   })}
@@ -1139,71 +1297,73 @@ export default function OnboardingFlow() {
           )}
 
           {isLastStep && (
-            <div className="space-y-12 max-w-md mx-auto text-center py-10">
-              {/* Refined Header */}
-              <div className="space-y-4">
-                 <div className="relative size-16 rounded-full bg-[var(--accent)]/5 border border-[var(--accent)]/20 flex items-center justify-center mx-auto">
-                    <div className="absolute inset-0 rounded-full border border-[var(--accent)]/40 animate-pulse scale-125" />
-                    <ShieldCheck className="size-8 text-[var(--accent)]" />
-                 </div>
-                 <div className="space-y-1">
-                    <h1 className="text-3xl font-light text-[var(--text-primary)] tracking-tight">Your Profile is Ready</h1>
-                    <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-50 tracking-tight ">Everything syncronized perfectly</p>
-                 </div>
-              </div>
+            <div className="max-w-md mx-auto text-center py-6 space-y-8">
 
-              {/* Elegant Summary Pills */}
-              <div className="space-y-3 px-4">
-                <div className="group flex items-center justify-between p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-white/5 backdrop-blur-xl transition-all hover:border-[var(--accent)]/20">
-                   <div className="flex items-center gap-4">
-                      <div className="size-10 rounded-xl bg-[var(--accent)]/5 flex items-center justify-center text-[var(--accent)]">
-                         {isLogistics ? <Truck className="size-5" /> : isVendor ? <Store className="size-5" /> : <Users className="size-5" />}
-                      </div>
-                      <div className="text-left">
-                         <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-normal opacity-40">Primary Identity</p>
-                         <p className="text-sm font-medium">{isLogistics ? logisticsProfile.company_name : isVendor ? vendorProfile.store_name : `${followedVendors.length} vendors followed`}</p>
-                      </div>
-                   </div>
-                   <Check className="size-4 text-[var(--accent)] opacity-40" />
+              {/* Hero — big animated icon */}
+              <div className="flex flex-col items-center gap-5">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute size-36 rounded-full bg-[var(--accent)]/5 animate-ping" style={{ animationDuration: '3s' }} />
+                  <div className="absolute size-28 rounded-full bg-gradient-to-br from-[var(--accent)]/10 to-blue-500/10 border border-[var(--accent)]/10" />
+                  <div className="relative size-20 rounded-2xl bg-gradient-to-br from-[var(--accent)]/20 to-blue-500/20 border border-[var(--accent)]/30 flex items-center justify-center shadow-2xl shadow-[var(--accent)]/20">
+                    {isVendor ? <Store className="size-9 text-[var(--accent)]" /> : isLogistics ? <Truck className="size-9 text-[var(--accent)]" /> : <ShieldCheck className="size-9 text-[var(--accent)]" />}
+                  </div>
                 </div>
-
-                <div className="group flex items-center justify-between p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-white/5 backdrop-blur-xl transition-all hover:border-[var(--accent)]/20">
-                   <div className="flex items-center gap-4">
-                      <div className="size-10 rounded-xl bg-[var(--accent)]/5 flex items-center justify-center text-[var(--accent)]">
-                         {isLogistics ? <Truck className="size-5" /> : <Heart className="size-5" />}
-                      </div>
-                      <div className="text-left">
-                         <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-normal opacity-40">{isLogistics ? 'Fleet Types' : 'Discovery Filters'}</p>
-                         <p className="text-sm font-medium">{isLogistics ? logisticsProfile.vehicle_types.join(', ') : `${selectedCategories.length} categories selected`}</p>
-                      </div>
-                   </div>
-                   <Check className="size-4 text-[var(--accent)] opacity-40" />
-                </div>
-
-                <div className="group flex items-center justify-between p-4 rounded-2xl bg-[var(--bg-primary)]/40 border border-white/5 backdrop-blur-xl transition-all hover:border-[var(--accent)]/20">
-                   <div className="flex items-center gap-4">
-                      <div className="size-10 rounded-xl bg-[var(--accent)]/5 flex items-center justify-center text-[var(--accent)]">
-                         <MapPin className="size-5" />
-                      </div>
-                      <div className="text-left">
-                         <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-normal opacity-40">Service Zone</p>
-                         <p className="text-sm font-medium">{isLogistics ? `${logisticsProfile.service_regions.length} regions selected` : `${location.city || 'Global'}${location.quartier ? `, ${location.quartier}` : ''}`}</p>
-                      </div>
-                   </div>
-                   <Check className="size-4 text-[var(--accent)] opacity-40" />
+                <div className="space-y-1.5">
+                  <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-tight leading-none">
+                    {isVendor ? 'Store is Live!' : isLogistics ? 'Ready to Deliver!' : 'You\'re All Set!'}
+                  </h1>
+                  <p className="text-[12px] font-medium text-[var(--text-secondary)] opacity-50 font-[Poppins]">Everything synced perfectly</p>
                 </div>
               </div>
 
-              {/* Sophisticated Action */}
-              <div className="pt-8 px-6 space-y-6">
+              {/* Summary cards */}
+              <div className="space-y-2.5 text-left">
+                {[
+                  {
+                    icon: isLogistics ? Truck : isVendor ? Store : Users,
+                    color: 'text-[var(--accent)] bg-[var(--accent)]/10 border-[var(--accent)]/20',
+                    label: 'Identity',
+                    value: isLogistics ? logisticsProfile.company_name : isVendor ? vendorProfile.store_name : `${followedVendors.length} vendors followed`,
+                  },
+                  {
+                    icon: MapPin,
+                    color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+                    label: 'Location',
+                    value: isLogistics
+                      ? `${logisticsProfile.service_regions.length} region${logisticsProfile.service_regions.length !== 1 ? 's' : ''}`
+                      : [location.city, location.zone, location.quartier].filter(Boolean).join(' › ') || 'Global',
+                  },
+                  ...(!isLogistics ? [{
+                    icon: Phone,
+                    color: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+                    label: 'Contact',
+                    value: phone || 'Not set',
+                  }] : []),
+                ].map(({ icon: Icon, color, label, value }) => (
+                  <div key={label} className="flex items-center gap-3.5 p-3.5 rounded-2xl bg-[var(--bg-primary)]/50 border border-[var(--glass-border)] backdrop-blur-xl">
+                    <div className={`size-9 rounded-xl border flex items-center justify-center shrink-0 ${color}`}>
+                      <Icon className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-50 font-[Poppins]">{label}</p>
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate mt-0.5 font-[Poppins]">{value}</p>
+                    </div>
+                    <div className="size-5 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                      <Check className="size-3 text-emerald-400" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <div className="px-2">
                 <button
                   onClick={finish}
                   disabled={loading}
-                  className="w-full py-4 rounded-xl font-bold text-sm tracking-tight shadow-xl hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-white"
-                  style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)' }}
+                  className="w-full py-4 rounded-2xl font-black text-[14px] tracking-tight shadow-2xl shadow-[var(--accent)]/25 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-white border border-white/10"
+                  style={{ background: 'linear-gradient(135deg, var(--accent) 0%, #2563eb 100%)' }}
                 >
-                  {loading ? <Loader2 className="size-3.5 animate-spin" /> : 'Enter Auradime'}
-                  {!loading && <ArrowRight className="size-4" />}
+                  {loading ? <Loader2 className="size-4 animate-spin" /> : <>Enter Auradime <ArrowRight className="size-4" /></>}
                 </button>
               </div>
             </div>
@@ -1213,15 +1373,22 @@ export default function OnboardingFlow() {
       {/* Navigation Footer */}
       {!isLastStep && (
         <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none">
-          {/* Frosted glass panel — separates button from content */}
-          <div className="pointer-events-auto bg-[var(--bg-primary)]/80 backdrop-blur-2xl border-t border-[var(--glass-border)] shadow-[0_-8px_32px_rgba(0,0,0,0.18)] px-4 pt-3.5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-4 sm:pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-            <div className="max-w-md mx-auto">
+          <div className="pointer-events-auto bg-[var(--bg-primary)]/85 backdrop-blur-2xl border-t border-[var(--glass-border)] shadow-[0_-12px_40px_rgba(0,0,0,0.2)] px-4 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-4 sm:pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+            <div className="max-w-md mx-auto flex items-center gap-3">
+              {step > 0 && (
+                <button
+                  onClick={goBack}
+                  className="size-12 shrink-0 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent)]/30 transition-all active:scale-95"
+                >
+                  <ArrowLeft className="size-4" />
+                </button>
+              )}
               <button
                 onClick={goNext}
-                className="w-full py-3.5 rounded-2xl font-bold text-[13px] tracking-tight flex items-center justify-center gap-2.5 transition-all shadow-xl shadow-[var(--accent)]/20 border border-white/10 hover:opacity-90 active:scale-[0.98]"
-                style={{ background: 'linear-gradient(90deg, var(--accent) 0%, #2563eb 100%)', color: 'white' }}
+                className="flex-1 py-3.5 rounded-2xl font-black text-[13px] tracking-tight flex items-center justify-center gap-2 transition-all shadow-xl shadow-[var(--accent)]/20 border border-white/10 hover:opacity-90 active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, var(--accent) 0%, #2563eb 100%)', color: 'white' }}
               >
-                {step === STEPS_ACTIVE.length - 2 ? 'Final Review' : 'Continue'}
+                {step === STEPS_ACTIVE.length - 2 ? 'Review & Finish' : 'Continue'}
                 <ArrowRight className="size-4" />
               </button>
             </div>

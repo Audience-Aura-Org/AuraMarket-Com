@@ -187,7 +187,7 @@ const processEscrowAutoReleases = async (app) => {
 };
 
 const startEscrowAutoReleaseWorker = (app) => {
-  if (timer || process.env.DISABLE_ESCROW_AUTO_RELEASE === 'true') return;
+  if (timer || String(process.env.DISABLE_ESCROW_AUTO_RELEASE || '').toLowerCase() === 'true') return;
 
   setTimeout(() => {
     processEscrowAutoReleases(app).catch((error) => {

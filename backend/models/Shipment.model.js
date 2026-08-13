@@ -50,13 +50,15 @@ const ShipmentSchema = new mongoose.Schema(
       region: String,
       quartier: String,
       phone: String,
+      zone_id: { type: mongoose.Schema.Types.ObjectId, ref: 'LogisticZone', default: null },
     },
     delivery_address: {
       street: String,
-      city: String, 
+      city: String,
       region: String,
       quartier: String, // The "delivery quartier" selected
       phone: String,
+      zone_id: { type: mongoose.Schema.Types.ObjectId, ref: 'LogisticZone', default: null },
     },
     delivery_description: {
       type: String,

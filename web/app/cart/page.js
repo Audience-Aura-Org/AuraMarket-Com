@@ -6,7 +6,7 @@ import {
   Trash2, Plus, Minus, ArrowRight,
   ShoppingBag, ShieldCheck, Truck, Tag,
   X, Loader2, CheckCircle2, ChevronLeft,
-  AlertTriangle, Store
+  AlertTriangle, Store, MessageSquare, Zap
 } from 'lucide-react';
 import api from '@/services/api';
 import { useRouter } from 'next/navigation';
@@ -14,10 +14,12 @@ import { cartStore } from '@/services/cartStore';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { useChat } from '@/context/ChatContext';
 import { formatVariantLabel } from '@/utils/variants';
+import { useAuthStore } from '@/hooks/useAuth';
 
 export default function CartPage() {
   const router = useRouter();
   const { openChat } = useChat();
+  const { user } = useAuthStore();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [couponCode, setCouponCode] = useState('');
@@ -25,6 +27,10 @@ export default function CartPage() {
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState('');
   const [vendorMinimums, setVendorMinimums] = useState({});
+  // null = no user location / unknown
+  // { fee: number } = logistics firm found with a price for this quartier
+  // { fee: null, vendorManaged: true } = no logistics firm covers this area
+  const [deliveryInfo, setDeliveryInfo] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -59,6 +65,27 @@ export default function CartPage() {
         .catch(() => {});
     });
   }, [cartItems.length]); // re-run when item count changes (vendor set may change)
+
+  // Fetch delivery info: price only shown when a logistics firm actually serves this quartier
+  useEffect(() => {
+    const quartier = user?.location?.quartier;
+    if (!quartier || !cartItems.length) { setDeliveryInfo(null); return; }
+    const vendorIds = [...new Set(cartItems.map(i => i.vendor_id).filter(Boolean))].join(',');
+    if (!vendorIds) return;
+    const params = new URLSearchParams({ vendor_ids: vendorIds, quartier });
+    api.get(`/logistics/compatible-firms?${params.toString()}`)
+      .then(res => {
+        const firms = res.data?.data?.firms || [];
+        if (firms.length === 0) {
+          // No logistics company covers this quartier — vendor handles their own delivery
+          setDeliveryInfo({ fee: null, vendorManaged: true });
+        } else {
+          const cheapest = firms[0];
+          setDeliveryInfo({ fee: cheapest?.total_fee_estimate ?? null, vendorManaged: false });
+        }
+      })
+      .catch(() => setDeliveryInfo(null));
+  }, [user?.location?.quartier, cartItems.length]);
 
   const updateCartQty = async (id, delta) => {
     cartStore.startMutation();
@@ -185,51 +212,41 @@ export default function CartPage() {
             {cartItems.map((item, idx) => (
               <div key={`${item.id || item.productId || item.name}-${idx}`} className="p-3 sm:p-4 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex flex-col sm:flex-row gap-3 sm:gap-4 hover:border-[var(--accent)]/30 transition-all duration-300 group glass-panel shadow-sm">
                 <div className="w-full sm:w-28 h-28 sm:h-28 rounded-2xl overflow-hidden bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex-shrink-0 relative">
-                  <img src={item.image} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  {item.image ? (
+                    <img src={item.image} loading="lazy" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[var(--text-secondary)] opacity-30 text-3xl font-black select-none">
+                      {(item.name || '?')[0].toUpperCase()}
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-secondary)]/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
-                
+
                 <div className="flex-1 flex flex-col justify-between py-1">
                   <div>
                     <div className="flex justify-between items-start mb-1 gap-2">
-                       <h3 className="text-sm sm:text-lg  font-bold text-[var(--text-primary)] leading-tight group-hover:text-[var(--accent)] transition-colors line-clamp-2">{item.name}</h3>
-                       <div className="flex gap-2">
-                         <button
-                           type="button"
-                           onClick={() => {
-                             const pid = item.id || item.productId;
-                             const productRef =
-                               pid != null
-                                 ? {
-                                     _id: pid,
-                                     name: item.name,
-                                     price: item.price,
-                                     images: item.image ? [{ url: item.image }] : [],
-                                   }
-                                 : null;
-                             openChat(item.vendor_id || null, productRef, null, false);
-                           }}
-                           className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm"
-                           title="Message vendor"
-                         >
-                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5">
-                             <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v7.5A2.25 2.25 0 0 1 19.5 16.5h-7.818a.75.75 0 0 0-.53.22l-3.53 3.53A.75.75 0 0 1 6 19.5v-3a.75.75 0 0 0-.75-.75H4.5A2.25 2.25 0 0 1 2.25 13.5v-7.5A2.25 2.25 0 0 1 4.5 3.75h15A2.25 2.25 0 0 1 21.75 6.75Z" />
-                           </svg>
-                         </button>
-                         <button onClick={() => removeCartItem(item.id)} className="text-[var(--text-secondary)] hover:text-red-500 transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm hover:border-red-500/30"><Trash2 className="w-4 h-4" /></button>
-                       </div>
+                      <h3 className="text-sm sm:text-lg font-bold text-[var(--text-primary)] leading-tight group-hover:text-[var(--accent)] transition-colors line-clamp-2">{item.name}</h3>
+                      <button
+                        onClick={() => removeCartItem(item.id)}
+                        className="text-[var(--text-secondary)] hover:text-red-500 transition-colors p-2 bg-[var(--bg-secondary)] rounded-lg border border-[var(--glass-border)] shadow-sm hover:border-red-500/30 shrink-0"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-2">Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span></p>
+                    <p className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight mb-2">
+                      Sold by <span className="text-[var(--accent)]">{item.vendor_name}</span>
+                    </p>
                     {item.variant && (
                       <p className="text-[10px] font-semibold text-[var(--accent)]/85 mb-3 leading-relaxed">
                         {formatVariantLabel(item.variant)}
                       </p>
                     )}
                   </div>
-                  
+
+                  {/* Price + qty stepper */}
                   <div className="flex items-center justify-between mt-2">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-xl sm:text-2xl  font-bold text-[var(--text-primary)] font-mono">{item.price.toLocaleString()} XAF</span>
+                      <span className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] font-mono">{item.price.toLocaleString()} XAF</span>
                       {item.compare_at_price && Number(item.compare_at_price) > Number(item.price) && (
                         <span className="text-xs font-semibold text-[var(--text-secondary)] line-through font-mono opacity-50">
                           {Number(item.compare_at_price).toLocaleString()} XAF
@@ -238,9 +255,45 @@ export default function CartPage() {
                     </div>
                     <div className="flex items-center gap-3 bg-[var(--bg-secondary)] p-1.5 px-3 rounded-xl border border-[var(--glass-border)] shadow-inner">
                       <button onClick={() => updateCartQty(item.id, -1)} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><Minus className="w-4 h-4" /></button>
-                      <span className=" font-bold text-base w-5 text-center">{item.quantity}</span>
+                      <span className="font-bold text-base w-5 text-center">{item.quantity}</span>
                       <button onClick={() => updateCartQty(item.id, 1)} className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors"><Plus className="w-4 h-4" /></button>
                     </div>
+                  </div>
+
+                  {/* ── 3 action buttons — same style as shop/ProductCard ── */}
+                  <div className="grid grid-cols-3 items-center gap-1 md:gap-1.5 mt-3 pt-3 border-t border-[var(--glass-border)]">
+                    {/* Add to Cart (primary — accent) */}
+                    <button
+                      onClick={() => updateCartQty(item.id, 1)}
+                      title="Add one more"
+                      className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--accent)] text-white flex items-center justify-center gap-1 text-[9px] md:text-[10px] font-bold shadow-lg shadow-[var(--accent)]/25 hover:brightness-110 active:scale-95 transition-all px-1"
+                    >
+                      <Plus strokeWidth={3} className="size-3 md:size-3.5 shrink-0" />
+                    </button>
+
+                    {/* Message vendor (icon only) */}
+                    <button
+                      type="button"
+                      title="Message vendor"
+                      onClick={() => {
+                        const pid = item.id || item.productId;
+                        const productRef = pid != null
+                          ? { _id: pid, name: item.name, price: item.price, images: item.image ? [{ url: item.image }] : [] }
+                          : null;
+                        openChat(item.vendor_id || null, productRef, null, false);
+                      }}
+                      className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all"
+                    >
+                      <MessageSquare className="size-3.5 md:size-4 shrink-0" />
+                    </button>
+
+                    {/* Buy Now (secondary) */}
+                    <Link
+                      href="/checkout"
+                      className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[9px] md:text-[10px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all px-1"
+                    >
+                      <span className="truncate">Buy Now</span>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -379,6 +432,20 @@ export default function CartPage() {
                     <span className="font-mono  font-bold">- {discount.toLocaleString()} XAF</span>
                   </div>
                 )}
+                <div className="flex justify-between text-[var(--text-secondary)] text-[11px] lg:text-[12px] font-semibold tracking-tight">
+                  <span className="flex items-center gap-1.5"><Truck className="w-3 h-3 text-[var(--accent)]" /> Delivery</span>
+                  <span className="font-mono font-bold">
+                    {deliveryInfo == null ? (
+                      <span className="text-[var(--text-secondary)] opacity-50 font-normal">At checkout</span>
+                    ) : deliveryInfo.vendorManaged ? (
+                      <span className="text-[var(--text-secondary)] font-semibold font-sans">Vendor managed</span>
+                    ) : deliveryInfo.fee != null ? (
+                      <span className="text-[var(--text-primary)]">~{deliveryInfo.fee.toLocaleString()} XAF</span>
+                    ) : (
+                      <span className="text-[var(--text-secondary)] opacity-50 font-normal">At checkout</span>
+                    )}
+                  </span>
+                </div>
                 <div className="h-px bg-[var(--glass-border)] my-6" />
                 <div className="flex justify-between items-baseline">
                    <span className="text-xs  font-bold text-[var(--text-secondary)] tracking-tight ">Total</span>

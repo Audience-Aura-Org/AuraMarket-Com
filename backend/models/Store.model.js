@@ -24,12 +24,6 @@ const StoreSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    followers: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-      },
-    ],
     categories: [
       {
         type: String,
@@ -47,6 +41,25 @@ const StoreSchema = new mongoose.Schema(
       trim: true,
       maxlength: [80, 'Delivery time cannot exceed 80 characters'],
       default: null,
+    },
+    // Numeric range replacing the legacy free-text delivery_time string.
+    // delivery_time_days_min = best-case, delivery_time_days_max = worst-case (in days).
+    delivery_time_days_min: {
+      type: Number,
+      default: null,
+      min: [0, 'Min delivery days cannot be below 0'],
+    },
+    delivery_time_days_max: {
+      type: Number,
+      default: null,
+      min: [0, 'Max delivery days cannot be below 0'],
+    },
+    // Phase 4 Step 6: order subtotal threshold above which the vendor waives
+    // the intercity transit fee. Null = no free-shipping offer.
+    free_shipping_threshold: {
+      type: Number,
+      default: null,
+      min: [0, 'Free-shipping threshold cannot be below 0'],
     },
     minimum_order_amount: {
       type: Number,

@@ -283,7 +283,7 @@ const deleteAccount = async (req, res, next) => {
       require('../models/Question.model').deleteMany({ user_id: userId }),
       require('../models/Review.model').deleteMany({ user_id: userId }),
       require('../models/Transaction.model').deleteMany({ user_id: userId }),
-      require('../models/WithdrawalRequest.model').deleteMany({ requestedBy: userId }),
+      require('../models/WithdrawalRequest.model').deleteMany({ requested_by: userId }),
       require('../models/Order.model').deleteMany({ customer_id: userId }),
       require('../models/RefundRequest.model').deleteMany({ customer_id: userId }),
     ];

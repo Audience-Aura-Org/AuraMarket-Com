@@ -13,6 +13,7 @@ const Category = require('../models/Category.model');
 const { sendNotification } = require('../utils/notifier');
 const cache = require('../utils/cache');
 const { normalizeUserMedia, normalizeMediaUrl } = require('../utils/media');
+const { getActiveSubscription } = require('../services/subscription.service');
 
 const PRODUCT_DETAIL_SELECT = [
   '_id',
@@ -23,6 +24,7 @@ const PRODUCT_DETAIL_SELECT = [
   'sale_price',
   'images',
   'category',
+  'category_id',
   'tags',
   'stock',
   'featured',
@@ -33,6 +35,8 @@ const PRODUCT_DETAIL_SELECT = [
   'has_variants',
   'variant_types',
   'sku_variants',
+  'is_meal',
+  'meal',
   'createdAt',
   'updatedAt',
 ].join(' ');
@@ -159,11 +163,57 @@ const createProduct = async (req, res, next) => {
     if (req.body.sku_variants && typeof req.body.sku_variants === 'string') {
       try { productData.sku_variants = JSON.parse(req.body.sku_variants); } catch (e) {}
     }
+    // FormData sends meal as a JSON string — parse it so Mongoose sees an object
+    if (req.body.meal && typeof req.body.meal === 'string') {
+      try { productData.meal = JSON.parse(req.body.meal); } catch (e) {}
+    }
     if (req.body.has_variants === 'true') productData.has_variants = true;
     if (req.body.has_variants === 'false') productData.has_variants = false;
+    if (req.body.is_meal === 'true') productData.is_meal = true;
+    if (req.body.is_meal === 'false') productData.is_meal = false;
     normalizePricing(productData);
 
+    // Resolve category name → category_id so menu grouping works correctly.
+    // CategoryPicker sends the name string; we look up the ObjectId here.
+    if (productData.category && !productData.category_id) {
+      const cat = await Category.findOne({ name: productData.category }).select('_id').lean();
+      if (cat) productData.category_id = cat._id;
+    }
+
+    // D-2: If this is a meal product, validate that category_id is restaurant-scoped
+    if (productData.meal && productData.category_id) {
+      const cat = await Category.findById(productData.category_id).select('applies_to').lean();
+      if (cat && !['restaurant', 'both'].includes(cat.applies_to)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Meal products must use a category with applies_to: restaurant or both.',
+        });
+      }
+    }
+
+    // Enforce max_products limit from the vendor's active subscription plan
+    const sub = await getActiveSubscription(req.user._id, 'vendor');
+    if (sub?.plan_id) {
+      const maxProducts = sub.plan_id.features?.find(f => f.key === 'max_products')?.value;
+      if (typeof maxProducts === 'number' && maxProducts < 9999) {
+        const currentCount = await Product.countDocuments({
+          vendor_id: vendor._id,
+          status: { $ne: 'deleted' },
+        });
+        if (currentCount >= maxProducts) {
+          return res.status(403).json({
+            success: false,
+            code: 'PRODUCT_LIMIT_REACHED',
+            message: `Your ${sub.plan_id.name} plan allows up to ${maxProducts} listing${maxProducts !== 1 ? 's' : ''}. Upgrade your plan to add more.`,
+          });
+        }
+      }
+    }
+
     const product = await Product.create(productData);
+
+    // Bust restaurant dine menu cache so new meal appears with correct category immediately
+    try { await cache.delete(`dine:menu:${vendor._id}`); } catch (_) {}
 
     const { notifyFollowers } = require('../utils/notifier');
 
@@ -213,6 +263,7 @@ const getProducts = async (req, res, next) => {
 
     const parsedQuery = JSON.parse(queryStr);
     parsedQuery.status = 'active';
+    parsedQuery.meal = null; // Exclude meal products from retail product listings (Step 10)
 
     if (req.query.minPrice !== undefined || req.query.maxPrice !== undefined) {
       const priceQuery = {};
@@ -372,7 +423,42 @@ const updateProduct = async (req, res, next) => {
     }
     if (req.body.has_variants === 'true') updateData.has_variants = true;
     if (req.body.has_variants === 'false') updateData.has_variants = false;
+    if (req.body.meal && typeof req.body.meal === 'string') {
+      try {
+        const mealPatch = JSON.parse(req.body.meal);
+        // Use dotted-path keys so $set merges into the meal subdoc rather than
+        // replacing it entirely — this preserves option_groups and other fields
+        // that the edit form doesn't touch.
+        for (const [k, v] of Object.entries(mealPatch)) {
+          if (v !== undefined) updateData[`meal.${k}`] = v;
+        }
+        // MUST delete the raw 'meal' string that was copied by the { ...req.body }
+        // spread above — otherwise $set sees both 'meal' and 'meal.*' paths and
+        // throws "conflict at 'meal'".
+        delete updateData.meal;
+      } catch (e) {}
+    }
+    if (req.body.is_meal === 'true')  updateData.is_meal = true;
+    if (req.body.is_meal === 'false') updateData.is_meal = false;
     normalizePricing(updateData, product);
+
+    // Resolve category name → category_id when category is being changed.
+    if (updateData.category && !updateData.category_id) {
+      const cat = await Category.findOne({ name: updateData.category }).select('_id').lean();
+      if (cat) updateData.category_id = cat._id;
+    }
+
+    // D-2: If category_id is being changed on a meal product, validate restaurant scope
+    const isMealProduct = updateData.meal !== undefined ? updateData.meal : product.meal;
+    if (isMealProduct && updateData.category_id) {
+      const cat = await Category.findById(updateData.category_id).select('applies_to').lean();
+      if (cat && !['restaurant', 'both'].includes(cat.applies_to)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Meal products must use a category with applies_to: restaurant or both.',
+        });
+      }
+    }
 
     delete updateData.featured;
     delete updateData.existing_images;
@@ -395,6 +481,8 @@ const updateProduct = async (req, res, next) => {
       for (const key of cache.keys()) {
         if (key.startsWith('products_')) await cache.delete(key);
       }
+      // Also bust the restaurant's dine menu cache so category tabs update immediately
+      await cache.delete(`dine:menu:${req.vendor._id}`);
     } catch (_cacheErr) {
       // Non-fatal — stale entries expire on their own TTL
     }
@@ -407,7 +495,8 @@ const updateProduct = async (req, res, next) => {
       metadata: { target_id: product._id, link: `/products/${product._id}` }
     });
 
-    if (oldStock === 0 && newStock > 0) {
+    // StockWatch alerts are meaningless for meals — meals don't use the stock field.
+    if (!product.meal && oldStock === 0 && newStock > 0) {
       const watchers = await StockWatch.find({ product_id: product._id });
       for (const watch of watchers) {
         await sendNotification(req.app, watch.user_id, {
@@ -561,6 +650,7 @@ const getRelatedProducts = async (req, res, next) => {
     const related = await Product.find({
       _id: { $ne: product._id },
       status: 'active',
+      meal: null, // Never cross-sell meal products on retail product pages (Step 10)
       $or: [{ category: product.category }, { vendor_id: product.vendor_id }]
     })
       .populate({
@@ -615,7 +705,8 @@ const getHubFeed = async (req, res, next) => {
     }
 
     // 2. Prepare query based on followedOnly parameter
-    let query = { status: 'active' };
+    // meal: null — never show restaurant meal products in the retail hub feed (Step 10)
+    let query = { status: 'active', meal: null };
     
     if (isFollowedOnly) {
       // When showing followed-only feed, include ONLY followed vendors
@@ -635,8 +726,17 @@ const getHubFeed = async (req, res, next) => {
       });
       query.category = categoryNames?.length ? { $in: categoryNames } : '__NO_MATCH__';
     } else if (categoryIds.length > 0 && !isFollowedOnly) {
-      // Only apply generic liked_categories if NOT viewing followed-only feed
-      query.category = { $in: categoryIds };
+      // liked_categories holds ObjectIds — resolve to names for the legacy string field,
+      // and also match on category_id (ObjectId) for products backfilled by migration 06.
+      // Using $or means the feed works correctly both before and after the migration runs.
+      const resolvedCats = await Category.find({ _id: { $in: categoryIds } })
+        .select('name')
+        .lean();
+      const likedNames = resolvedCats.map(c => c.name).filter(Boolean);
+      const catConditions = [];
+      if (likedNames.length) catConditions.push({ category: { $in: likedNames } });
+      catConditions.push({ category_id: { $in: categoryIds } });
+      query.$or = catConditions;
     }
 
     // Add search filter
@@ -710,6 +810,71 @@ const getHubFeed = async (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// @route   GET /api/products/:id/delivery-info
+// @desc    Returns intercity delivery resolution for a product (display surface only).
+//          Auth optional. Not called at checkout — checkout re-validates authoritatively.
+// @query   buyer_zone_id  — LogisticZone ObjectId for the buyer's area (required for intercity check)
+//          buyer_quartier — quartier string (for last-mile estimate)
+// @access  Public
+// ─────────────────────────────────────────────
+const getProductDeliveryInfo = async (req, res, next) => {
+  try {
+    const { resolveDelivery, isIntercityEnabled } = require('../services/intercityResolver.service');
+
+    const product = await Product.findById(req.params.id).select('vendor_id parcel_class status').lean();
+    if (!product || product.status !== 'active') {
+      return res.status(404).json({ success: false, message: 'Product not found.' });
+    }
+
+    const vendor = await Vendor.findById(product.vendor_id).select('pickup_address').lean();
+
+    const { buyer_zone_id, buyer_quartier } = req.query;
+
+    if (!isIntercityEnabled() || !buyer_zone_id) {
+      return res.json({
+        success: true,
+        data: {
+          is_intercity: false,
+          transit_fee: 0,
+          transit_fee_waived: false,
+          blocked: false,
+          blocked_reason: null,
+          intercity_enabled: isIntercityEnabled(),
+        },
+      });
+    }
+
+    const result = await resolveDelivery({
+      vendorZoneId:          vendor?.pickup_address?.zone_id,
+      buyerZoneId:           buyer_zone_id,
+      buyerQuartier:         buyer_quartier || '',
+      vendorId:              product.vendor_id,
+      subtotal:              0,
+      freeShippingThreshold: null,
+      items:                 [{ parcel_class: product.parcel_class || 'small' }],
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        is_intercity:            result.is_intercity,
+        transit_fee:             result.transit_fee,
+        transit_fee_waived:      result.transit_fee_waived,
+        agency_name:             result.agency_name,
+        pickup_point:            result.pickup_point,
+        estimated_transit_hours: result.estimated_transit_hours,
+        last_mile_fee_estimate:  result.last_mile_fee_estimate,
+        blocked:                 result.blocked,
+        blocked_reason:          result.blocked_reason,
+        intercity_enabled:       true,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   createProduct,
   getProducts,
@@ -724,4 +889,5 @@ module.exports = {
   getHubFeed,
   getVendorProducts,
   getRelatedProducts,
+  getProductDeliveryInfo,
 };

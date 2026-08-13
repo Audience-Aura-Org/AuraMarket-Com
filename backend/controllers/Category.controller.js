@@ -1,14 +1,30 @@
 const Category = require('../models/Category.model');
 const Product = require('../models/Product.model');
 
-const CATEGORY_UPDATE_FIELDS = ['name', 'parent_id', 'slug', 'icon', 'description', 'is_active'];
+// D-1: applies_to is now a first-class update field so admin CRUD can set it.
+const CATEGORY_UPDATE_FIELDS = ['name', 'parent_id', 'slug', 'icon', 'description', 'is_active', 'applies_to'];
 
 // @desc    Get all categories with popularity metrics
+// D-1: Retail surfaces should pass no ?applies_to param (defaults to retail+both).
+//      Dine/restaurant surfaces pass ?applies_to=restaurant.
+//      Admin passes ?applies_to=all to see everything.
 exports.getAllCategories = async (req, res) => {
   try {
-    // 1. Get all active categories
-    const categories = await Category.find({ is_active: true })
-      .select('name parent_id slug icon')
+    // 1. Resolve surface filter
+    const appliesToParam = req.query.applies_to;
+    const surfaceFilter = {};
+    if (appliesToParam === 'all') {
+      // Admin: no filter — return every category
+    } else if (appliesToParam === 'restaurant') {
+      surfaceFilter.applies_to = { $in: ['restaurant', 'both'] };
+    } else {
+      // Default: retail surfaces only see retail + both
+      surfaceFilter.applies_to = { $in: ['retail', 'both'] };
+    }
+
+    // 1b. Get active categories for the resolved surface
+    const categories = await Category.find({ is_active: true, ...surfaceFilter })
+      .select('name parent_id slug icon applies_to')
       .lean();
 
     // Fast path: skip heavy aggregations for high-throughput screens like onboarding
@@ -50,13 +66,17 @@ exports.getAllCategories = async (req, res) => {
 };
 
 // @desc    Get hierarchical tree filtered to only categories with products (for shop sidebar)
+// D-1: Only retail categories appear in the retail sidebar.
 exports.getCategoriesWithProducts = async (req, res) => {
   try {
-    // 1. Get all active categories at once
-    const allCategories = await Category.find({ is_active: true }).sort('name').lean();
+    // 1. Get active retail categories only (meals have their own dine sidebar)
+    const allCategories = await Category.find({
+      is_active: true,
+      applies_to: { $in: ['retail', 'both'] },
+    }).sort('name').lean();
     
-    // 2. Get distinct categories that have active products
-    const productCategoryNames = await Product.distinct('category', { status: 'active' });
+    // 2. Get distinct categories from active non-meal products (exclude meal products from retail sidebar)
+    const productCategoryNames = await Product.distinct('category', { status: 'active', meal: null });
     const productCatSet = new Set(productCategoryNames.map(c => c?.toLowerCase()));
 
     // 3. Map categories for quick lookup
@@ -111,10 +131,20 @@ exports.getCategoriesWithProducts = async (req, res) => {
   }
 };
 
-// @desc    Get hierarchical tree (for admin management)
+// @desc    Get hierarchical tree (for pickers and admin management)
+// Supports ?applies_to=restaurant|retail|all  (default: all)
 exports.getCategoryTree = async (req, res) => {
   try {
-    const categories = await Category.find({ is_active: true }).sort('order name');
+    const appliesToParam = req.query.applies_to;
+    const surfaceFilter = {};
+    if (appliesToParam === 'restaurant') {
+      surfaceFilter.applies_to = { $in: ['restaurant', 'both'] };
+    } else if (appliesToParam === 'retail') {
+      surfaceFilter.applies_to = { $in: ['retail', 'both'] };
+    }
+    // else: no filter — return everything (admin / default)
+
+    const categories = await Category.find({ is_active: true, ...surfaceFilter }).sort('order name');
 
     const buildTree = (items, parentId = null) => {
       return items
@@ -147,15 +177,17 @@ exports.getCategoryChildren = async (req, res) => {
 };
 
 // @desc    Create category (Admin only)
+// D-1: applies_to must be exposed in admin CRUD — defaults to 'retail' in the model if omitted.
 exports.createCategory = async (req, res) => {
   try {
-    const { name, parent_id, slug, icon, description } = req.body;
-    const category = await Category.create({ 
-      name, 
-      parent_id: parent_id || null, 
+    const { name, parent_id, slug, icon, description, applies_to } = req.body;
+    const category = await Category.create({
+      name,
+      parent_id: parent_id || null,
       slug: slug || name.toLowerCase().replace(/ /g, '-'),
       icon,
-      description
+      description,
+      ...(applies_to !== undefined ? { applies_to } : {}),
     });
     res.status(201).json({ success: true, data: category });
   } catch (err) {

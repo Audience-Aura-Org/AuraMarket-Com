@@ -54,7 +54,8 @@ const UserSchema = new mongoose.Schema(
     wallet_balance: {
       type: Number,
       default: 0,
-      min: [0, 'Wallet balance cannot be negative'],
+      // No min constraint — Phase 3 Step 5: restaurant refund clawbacks can drive
+      // balance negative. Withdrawals are blocked when balance < 0 (withdrawal.controller.js).
     },
 
     // ── Verification ─────────────────────────────
@@ -90,13 +91,30 @@ const UserSchema = new mongoose.Schema(
     },
     addresses: [
       {
-        label: String, // 'Home', 'Office', etc.
+        label: String,           // 'Home', 'Office', etc.
         street: String,
         city: String,
         region: String,
-        isDefault: { type: Boolean, default: false }
+        quartier: String,        // Neighbourhood / zone name
+        isDefault: { type: Boolean, default: false },
+        // Phase 3 Step 3 additions
+        zone_id: {               // District-level LogisticZone — set at first checkout
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'LogisticZone',
+          default: null,
+        },
+        landmark_description: String, // Required at first checkout, not at signup
+        contact_phone: String,        // Delivery contact (may differ from account phone)
+        recipient_name: String,       // Name of person receiving the order
       }
     ],
+    // User's home district — set during signup zone grid (skippable).
+    // Used to personalise the discovery feed without asking for GPS.
+    default_zone_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'LogisticZone',
+      default: null,
+    },
     preferred_currency: {
       type: String,
       default: 'XAF',
@@ -129,7 +147,8 @@ const UserSchema = new mongoose.Schema(
     }],
     onboarding_location: {
       city: String,
-      quartier: String,
+      zone: String,            // District / Zone level (e.g. "Bastos")
+      quartier: String,        // Sub-quartier under the zone
       address_description: String,
     },
 

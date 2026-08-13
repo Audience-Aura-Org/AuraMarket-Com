@@ -60,11 +60,27 @@ const LogisticsCompanySchema = new mongoose.Schema(
       {
         quartier: { type: String, required: true },
         price: { type: Number, required: true },
+        // zone_id added in Phase 1 migration — backfilled by 05_zone_firm_pricing.js
+        // After Phase 1 verification, zone_id becomes the primary key and 'quartier'
+        // string field is kept only for human readability / admin display.
+        zone_id: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'LogisticZone',
+          default: null,
+        },
       }
     ],
     supported_pickup_regions: [
       {
-        type: String, // Regions/Cities where the company can pick up from vendors
+        type: String, // Legacy string field; keep during Phase 1 transition
+      }
+    ],
+    // Phase 1: zone_id-based pickup coverage — replaces supported_pickup_regions
+    // Empty array = pickup-agnostic (firm picks up from anywhere in its service area)
+    supported_pickup_zone_ids: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'LogisticZone',
       }
     ],
     logo: {
@@ -73,6 +89,17 @@ const LogisticsCompanySchema = new mongoose.Schema(
     },
     banner: {
       type: String,
+      default: null,
+    },
+    // Background job [B §2.8] — computed daily from delivered Shipment records.
+    // null until at least one completed delivery exists for this firm.
+    // Used to rank eligible firms on speed for food delivery (lower = faster).
+    avg_delivery_minutes: {
+      type: Number,
+      default: null,
+    },
+    avg_delivery_minutes_updated_at: {
+      type: Date,
       default: null,
     },
   },

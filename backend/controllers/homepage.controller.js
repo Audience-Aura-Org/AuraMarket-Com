@@ -168,7 +168,14 @@ const getHomepage = async (req, res, next) => {
       logHomepageDebug('fallback-legacy', '[homepage] no modular CMS sections found; retrying legacy homepage layout');
       sections = await getLegacyHomepageSections();
     }
-    
+
+    // Step 10: strip meal products from retail homepage sections — meals must not appear on the
+    // main homepage/discovery feed. Admins may have accidentally pinned a meal via the CMS.
+    sections = sections.map(section => ({
+      ...section,
+      data: (section.data || []).filter(item => !item.product_id?.meal),
+    }));
+
     const normalizedSections = normalizeHomepageMedia(sections);
     logHomepageDebug('count', `[homepage] fetched sections count: ${normalizedSections.length}`);
 

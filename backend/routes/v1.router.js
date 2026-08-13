@@ -36,6 +36,9 @@ const pushRoutes = require('./push.routes');
 const statusRoutes = require('./status.routes');
 const withdrawalRoutes = require('./withdrawal.routes');
 const subscriptionRoutes = require('./subscription.routes');
+const restaurantRoutes = require('./restaurant.routes');
+const dineRoutes = require('./dine.routes');
+const reservationRoutes = require('./reservation.routes');
 
 // Mount routes
 router.use('/auth', strictLimiter, authRoutes);
@@ -72,6 +75,9 @@ router.use('/statuses', statusRoutes);
 router.use('/status', statusRoutes);
 router.use('/withdrawals', withdrawalRoutes);
 router.use('/subscriptions', subscriptionRoutes);
+router.use('/dine', publicLimiter, dineRoutes);       // GET /api/dine and /api/dine/restaurant/:id
+router.use('/restaurant', restaurantRoutes);           // GET/POST/PATCH /api/restaurant/profile
+router.use('/reservations', reservationRoutes);        // Phase 3 Step 14 — dine-in reservations
 
 if (process.env.ENABLE_DEBUG_ROUTES === 'true') {
   router.use('/debug', debugRoutes);

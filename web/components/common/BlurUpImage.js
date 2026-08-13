@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, forwardRef } from 'react';
+import { useState, useEffect, useRef, forwardRef } from 'react';
 
 /**
  * BlurUpImage — WhatsApp-style progressive image loading.
@@ -30,13 +30,19 @@ const BlurUpImage = forwardRef(({
   ...props
 }, ref) => {
   const [sharp, setSharp] = useState(() => loadedImages.has(src));
+  const imgNodeRef = useRef(null);
 
-  // If src changes and it's not in cache, reset sharp
+  // Handle src changes and also catch images already loaded from browser cache
   useEffect(() => {
-    if (src && !loadedImages.has(src)) {
-      setSharp(false);
-    } else if (src && loadedImages.has(src)) {
+    if (!src) return;
+    if (loadedImages.has(src)) {
       setSharp(true);
+    } else if (imgNodeRef.current?.complete) {
+      // Image was served from browser cache — onLoad won't fire, check directly
+      loadedImages.add(src);
+      setSharp(true);
+    } else {
+      setSharp(false);
     }
   }, [src]);
 
@@ -44,6 +50,13 @@ const BlurUpImage = forwardRef(({
 
   const fitClass = objectFit === 'contain' ? 'object-contain' : 'object-cover';
   const imageLoading = loading || (priority === 'high' ? 'eager' : 'lazy');
+
+  // Combine internal ref (for .complete check) with forwarded ref
+  const assignRef = (el) => {
+    imgNodeRef.current = el;
+    if (typeof ref === 'function') ref(el);
+    else if (ref) ref.current = el;
+  };
 
   return (
     <div className={`relative overflow-hidden ${className}`} style={style}>
@@ -61,13 +74,13 @@ const BlurUpImage = forwardRef(({
           filter: 'blur(18px) brightness(0.85)',
           transform: 'scale(1.08)',
           willChange: 'opacity',
-          opacity: sharp ? 0 : 0.8, 
+          opacity: sharp ? 0 : 0.8,
         }}
       />
 
       {/* ── Layer 2: sharp image (fades in on load) ───────────── */}
       <img
-        ref={ref}
+        ref={assignRef}
         src={src}
         alt={alt}
         draggable={draggable}
@@ -77,11 +90,15 @@ const BlurUpImage = forwardRef(({
         className={`relative w-full h-full ${fitClass} transition-opacity duration-500 ${
           sharp ? 'opacity-100' : 'opacity-0'
         } ${imgClassName}`}
-        style={{ ...props.style, willChange: 'opacity' }}
+        style={{ willChange: 'opacity' }}
         onLoad={() => {
           if (src) loadedImages.add(src);
           setSharp(true);
           onLoad?.();
+        }}
+        onError={() => {
+          // Image failed to load — clear the blur layer so we don't get stuck
+          setSharp(true);
         }}
         {...props}
       />

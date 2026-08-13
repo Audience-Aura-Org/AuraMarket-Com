@@ -86,9 +86,14 @@ const creditLogistics = async (order, session) => {
 const handleVendorPayout = async (order, session, overrideAmount = null) => {
   const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(order.vendor_id, session);
 
-  // Vendor base excludes payment collection fees. Logistics shipping is paid separately to the carrier.
+  // Vendor base excludes payment collection fees.
+  // - logistics_partner: shipping_fee is paid separately to the logistics carrier after delivery.
+  // - intercity_agency:  transit_fee is credited to vendor immediately below so they can pay the
+  //                      agency at dropoff. Commission only applies to subtotal.
+  // - vendor_managed:    vendor keeps subtotal + shipping_fee (shipping is their revenue).
   const vendorBaseAmount = overrideAmount ?? (
-    (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
+    (order.shipping_method === 'logistics_partner' && order.logistics_company_id) ||
+    order.shipping_method === 'intercity_agency'
       ? order.subtotal
       : order.subtotal + (order.shipping_fee || 0)
   );
@@ -116,18 +121,43 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
       status: 'held',
     }], { session, ordered: true });
 
+    // BUG-03 fix: store GROSS amount (vendorBaseAmount), not net-of-fees (vendorPayout).
+    // The admin audit trail must show what the vendor earned before the platform deducted its fees,
+    // otherwise the pending record looks like the vendor is owed more than they actually are.
+    // The fee breakdown is preserved in metadata so the escrow release step can recalculate correctly.
     const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
     await Transaction.create([{
       user_id: vendorRecord.user_id,
       type: 'payout',
-      amount: vendorPayout,
+      amount: vendorBaseAmount,
       reference: genRef('PAYOUT-PEND'),
       status: 'pending',
-      description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow, ${feeDescription})`,
+      description: `Pending payout for Order #${order._id.toString().slice(-6).toUpperCase()} (Escrow held — fees deducted on release)`,
       order_id: order._id,
       gateway: 'escrow',
       metadata: { platform_fee_breakdown: platformFeeBreakdown },
     }], { session, ordered: true });
+
+  } else if (order.new_restaurant_hold) {
+    // ── NEW-RESTAURANT HOLD PATH ─────────────────────────────────────────
+    // Phase 3 Step 5b: Vendor is a new restaurant below the completed-order threshold.
+    // Do NOT credit the wallet at capture. Record a pending payout; the hold will be
+    // released when food_status transitions to 'delivered' (see releaseRestaurantHold).
+    const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
+    await Transaction.create([{
+      user_id:     vendorRecord.user_id,
+      type:        'payout',
+      amount:      vendorPayout,
+      reference:   genRef('PAYOUT-HELD'),
+      status:      'pending',
+      description: `Held payout for Order #${order._id.toString().slice(-6).toUpperCase()} (new restaurant — releases on delivery)`,
+      order_id:    order._id,
+      gateway:     'wallet',
+      metadata:    { platform_fee_breakdown: platformFeeBreakdown },
+    }], { session, ordered: true });
+    // Platform fee is pre-committed at capture regardless of hold
+    platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
+    await platformSettings.save({ session });
 
   } else {
     // ── DIRECT PATH: credit vendor immediately ───────────────────────────
@@ -168,9 +198,37 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
 
     await Transaction.create(transactionEntries, { session, ordered: true });
 
-    // NOTE: Logistics company is NO LONGER credited here. 
+    // NOTE: Logistics company is NO LONGER credited here.
     // They are credited in logistics.controller.js ONLY after successful delivery.
     // This ensures couriers are only paid for completed work. ───
+  }
+
+  // ── Phase 4: Intercity transit-fee credit ────────────────────────────────
+  // Credit transit_fee to the vendor wallet immediately at capture.
+  // The vendor uses these funds to pay the intercity agency at parcel dropoff.
+  // If transit_fee_waived, nothing to credit. Applies regardless of escrow/hold path.
+  if (
+    order.shipping_method === 'intercity_agency' &&
+    !order.transit_fee_waived &&
+    order.transit_fee > 0
+  ) {
+    const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
+    const vendorUser   = await User.findById(vendorRecord.user_id).session(session);
+
+    vendorUser.wallet_balance += order.transit_fee;
+    await vendorUser.save({ session });
+
+    await Transaction.create([{
+      user_id:     vendorUser._id,
+      type:        'payout',
+      amount:      order.transit_fee,
+      reference:   genRef('TRANSIT'),
+      status:      'completed',
+      description: `Intercity transit fee advance for Order #${order._id.toString().slice(-6).toUpperCase()} (${order.transit_carrier || 'agency'})`,
+      order_id:    order._id,
+      gateway:     'wallet',
+      metadata:    { transit_carrier: order.transit_carrier, transit_rate_id: order.transit_rate_id },
+    }], { session, ordered: true });
   }
 };
 
@@ -463,4 +521,109 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
   console.log(`✅ [settle.service] Settled ${orderIds.length} order(s) for user ${userId}`);
 };
 
-module.exports = { settleOrder, settleOrders, handleVendorPayout, creditLogistics };
+/**
+ * clawbackFoodRefund — Phase 3 Step 5 clawback
+ *
+ * For food orders (no escrow) the vendor was paid at capture. On refund:
+ *   1. Debit the restaurant vendor's wallet by `refundAmount` (can go negative — Step 5 allows it)
+ *   2. Credit the buyer's wallet by `refundAmount`
+ *   3. Log two Transaction records for the audit trail
+ *   4. Update the order's payment_status to 'refunded' and order_status to 'refunded'
+ *
+ * Called from dispute.controller.js when admin resolves with 'food_full_refund' or 'food_partial_refund'.
+ *
+ * @param {Object}  order           - Mongoose Order document (already fetched, within session)
+ * @param {number}  refundAmount    - Amount to clawback in XAF (positive number)
+ * @param {Object}  session         - Mongoose ClientSession
+ * @param {string}  [reason]        - Human-readable reason for logs
+ */
+const clawbackFoodRefund = async (order, refundAmount, session, reason = 'Food order refund') => {
+  if (!order || refundAmount <= 0) throw new Error('clawbackFoodRefund: invalid order or amount.');
+  if (order.escrow_enabled) throw new Error('clawbackFoodRefund: called on an escrow order. Use finalizeEscrowPayout instead.');
+
+  const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
+  if (!vendorRecord) throw new Error('clawbackFoodRefund: vendor record not found.');
+
+  const [vendorUser, buyerUser] = await Promise.all([
+    User.findById(vendorRecord.user_id).session(session),
+    User.findById(order.customer_id).session(session),
+  ]);
+  if (!vendorUser || !buyerUser) throw new Error('clawbackFoodRefund: user record(s) not found.');
+
+  const ref = genRef('FOOD-CLBK');
+  const orderLabel = `Order #${order._id.toString().slice(-6).toUpperCase()}`;
+
+  // Debit vendor (balance may go negative — Step 5 allows this)
+  vendorUser.wallet_balance -= refundAmount;
+  await vendorUser.save({ session });
+
+  // Credit buyer
+  buyerUser.wallet_balance += refundAmount;
+  await buyerUser.save({ session });
+
+  // Audit trail
+  await Transaction.create([
+    {
+      user_id:     vendorUser._id,
+      type:        'payment',
+      amount:      refundAmount,
+      reference:   ref,
+      status:      'completed',
+      gateway:     'platform',
+      description: `Clawback — ${reason} (${orderLabel})`,
+      order_id:    order._id,
+    },
+    {
+      user_id:     buyerUser._id,
+      type:        'refund',
+      amount:      refundAmount,
+      reference:   `${ref}-REF`,
+      status:      'completed',
+      gateway:     'platform',
+      description: `Food order refund — ${reason} (${orderLabel})`,
+      order_id:    order._id,
+    },
+  ], { session, ordered: true });
+
+  // Update order state
+  order.payment_status = 'refunded';
+  order.order_status   = 'refunded';
+  await order.save({ session });
+};
+
+/**
+ * Release the new-restaurant hold on a food order.
+ * Called when food_status transitions to 'delivered'.
+ * Credits the vendor wallet and marks the pending Transaction as completed.
+ *
+ * @param {Object} order   — Mongoose Order document (within session)
+ * @param {Object} session — Active mongoose session
+ */
+const releaseRestaurantHold = async (order, session) => {
+  if (!order.new_restaurant_hold) return;
+
+  const { effectiveSettings } = await getEffectivePlatformSettings(order.vendor_id, session);
+
+  const vendorBaseAmount = (
+    (order.shipping_method === 'logistics_partner' && order.logistics_company_id) ||
+    order.shipping_method === 'intercity_agency'
+  ) ? order.subtotal
+    : order.subtotal + (order.shipping_fee || 0);
+
+  const { vendorPayout } = calculatePlatformFees(vendorBaseAmount, effectiveSettings, { includeEscrowFee: false });
+
+  const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
+  const vendorUser   = await User.findById(vendorRecord.user_id).session(session);
+
+  vendorUser.wallet_balance += vendorPayout;
+  await vendorUser.save({ session });
+
+  // Mark the pending Transaction as completed
+  await Transaction.findOneAndUpdate(
+    { order_id: order._id, status: 'pending', reference: /^PAYOUT-HELD/ },
+    { $set: { status: 'completed', description: `Held payout released on delivery — Order #${order._id.toString().slice(-6).toUpperCase()}` } },
+    { session }
+  );
+};
+
+module.exports = { settleOrder, settleOrders, handleVendorPayout, creditLogistics, clawbackFoodRefund, releaseRestaurantHold };

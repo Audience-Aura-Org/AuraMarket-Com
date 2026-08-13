@@ -67,8 +67,17 @@ const VendorSchema = new mongoose.Schema(
       street: String,
       address_description: String,
       city: String,
+      district: String,
       region: String,
-      quartier: String, // Neighborhood for routing
+      quartier: String,
+      // zone_id added in Phase 1 migration — backfilled by 04_zone_vendor_pickup.js
+      // Points to the district-level LogisticZone (vendors confirmed to store
+      // their city = district name). String fields kept for rollback / display.
+      zone_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'LogisticZone',
+        default: null,
+      },
     },
     phone: {
       type: String,
@@ -77,6 +86,31 @@ const VendorSchema = new mongoose.Schema(
     average_response_time: {
       type: String,
       default: '⚡ < 5m', // e.g., "15m", "1h", "⚡ < 5m"
+    },
+    // Discriminator added in Phase 3 — no restaurant/digital fields live here.
+    // All type-specific data goes in RestaurantProfile (1:1 with vendor_id).
+    vendor_type: {
+      type: String,
+      enum: ['retail', 'restaurant', 'digital'],
+      default: 'retail',
+    },
+
+    // Phase 3 Step 5b — cancellation-rate hold
+    // When the cancellation/refund rate monitor finds a high cancel rate, it sets
+    // cancel_rate_hold = true. New food orders for this vendor then settle on delivery
+    // (same as the new-restaurant hold) until admin clears the flag or the rate recovers.
+    // cancel_rate_hold_override = true disables the monitor's auto-flip for this vendor.
+    cancel_rate_hold: {
+      type: Boolean,
+      default: false,
+    },
+    cancel_rate_hold_since: {
+      type: Date,
+      default: null,
+    },
+    cancel_rate_hold_override: {
+      type: Boolean,
+      default: false,
     },
   },
   {

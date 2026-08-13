@@ -117,15 +117,16 @@ const holdFunds = async (req, res, next) => {
       description: `Funds secured in Escrow for Order #${order._id.toString().slice(-6).toUpperCase()}`,
       order_id: order._id,
     }, {
+      // BUG-03 fix: amount is gross (pre-fee) here; fees are deducted at release
+      // by finalizeEscrowPayout which overwrites this record's amount and metadata.
       user_id: vendorAccount.user_id,
       type: 'payout',
-      amount: vendorPayout,
+      amount: vendorBaseAmount,
       reference: `IN-${generateTxRef()}`,
       status: 'pending',
       gateway: 'escrow',
-      description: `Incoming Payment Held (Order #${order._id.toString().slice(-6).toUpperCase()}, ${feeDescription})`,
+      description: `Incoming Payment Held (Order #${order._id.toString().slice(-6).toUpperCase()}) — fees deducted at release`,
       order_id: order._id,
-      metadata: { platform_fee_breakdown: platformFeeBreakdown },
     }], { session, ordered: true });
 
     // 4. Create the Escrow Vault log
@@ -150,9 +151,13 @@ const holdFunds = async (req, res, next) => {
     }
 
     // Auto-create shipment tickets when logistics delivery is selected
+    // BREAK-02/05 fix: guard against duplicate shipment on escrow retry
     const quartier = order.shipping_address?.quartier;
     if (order.shipping_method === 'logistics_partner' && order.logistics_company_id && quartier) {
-      await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id, session);
+      const existingShipment = await Shipment.findOne({ order_id: order._id }).session(session);
+      if (!existingShipment) {
+        await logisticsService.createShipmentsForOrder(order, quartier, order.logistics_company_id, session);
+      }
     }
 
     await session.commitTransaction();

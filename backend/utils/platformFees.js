@@ -88,6 +88,38 @@ const applyCommissionOverride = (settings = {}, commissionRate) => {
   return effectiveSettings;
 };
 
+// ── Float rounding helpers (Phase 2) ─────────────────────────────────────────
+// Rule: round to whole XAF at every WRITE, never at read.
+// All order totals must be integers; never accumulate float errors across fee fields.
+
+/**
+ * Round a monetary value to the nearest whole XAF integer.
+ * Use at every point where a money value is written to the DB.
+ */
+const toXAF = (value) => Math.round(toNonNegativeNumber(value));
+
+/**
+ * Assert that subtotal + shipping_fee + collection_fee - discount === total_amount.
+ * Throws if the reconciliation fails. Call before every Order.create / Order.save.
+ * @param {{ subtotal, shipping_fee, collection_fee, discount, total_amount }} fields
+ */
+const assertOrderTotal = ({ subtotal = 0, shipping_fee = 0, collection_fee = 0, discount = 0, total_amount }) => {
+  const expected = Math.round(
+    toNonNegativeNumber(subtotal) +
+    toNonNegativeNumber(shipping_fee) +
+    toNonNegativeNumber(collection_fee) -
+    toNonNegativeNumber(discount)
+  );
+  const actual = Math.round(toNonNegativeNumber(total_amount));
+  if (expected !== actual) {
+    throw new Error(
+      `Order total reconciliation failed: ` +
+      `subtotal(${subtotal}) + shipping_fee(${shipping_fee}) + collection_fee(${collection_fee}) - discount(${discount}) = ${expected} ` +
+      `but total_amount is ${actual}.`
+    );
+  }
+};
+
 module.exports = {
   applyCommissionOverride,
   calculateFee,
@@ -97,5 +129,7 @@ module.exports = {
   describeFee,
   getCommissionValue,
   normalizeFeeType,
-  toNonNegativeNumber
+  toNonNegativeNumber,
+  toXAF,
+  assertOrderTotal,
 };

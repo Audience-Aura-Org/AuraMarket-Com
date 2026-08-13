@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Package, ChevronLeft, MapPin,
   ShoppingBag, ShieldCheck, Truck, CheckCircle2,
   AlertTriangle, Loader2, XCircle, Star,
   CreditCard, Clock, Share2,
   Printer, Scale, Phone, Layers,
-  Fingerprint, History, Zap, User, MessageCircle
+  Fingerprint, History, Zap, User, MessageCircle,
+  RotateCcw, AlertCircle, ArrowRight,
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -17,7 +19,32 @@ import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatVariantLabel } from '@/utils/variants';
 
+// ── Food-order helpers (mirrors kitchen page) ────────────────────────────────
+const FOOD_STATUS_LABELS = {
+  pending_acceptance: 'Awaiting Acceptance',
+  preparing:          'Preparing',
+  ready:              'Ready for Pickup',
+  rider_arrived:      'Rider Arrived',
+  picked_up:          'Picked Up',
+  delivered:          'Delivered',
+};
+const FOOD_OVERRIDE_MS = 10 * 60_000; // 10 minutes
+
+function getFoodReadyElapsed(order) {
+  if (order?.food_status !== 'ready') return null;
+  const log = [...(order.status_logs || [])].reverse().find(l => l.status === 'ready');
+  return log ? Date.now() - new Date(log.timestamp).getTime() : null;
+}
+
+function isFoodLogisticsOverdue(order) {
+  if (order?.shipping_method !== 'logistics_partner') return false;
+  const elapsed = getFoodReadyElapsed(order);
+  return elapsed !== null && elapsed >= FOOD_OVERRIDE_MS;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function SingleOrderView({ orderId, onBack }) {
+  const router = useRouter();
   const [order, setOrder] = useState(null);
   const [shipments, setShipments] = useState([]);
   const [escrow, setEscrow] = useState(null);
@@ -30,6 +57,9 @@ export default function SingleOrderView({ orderId, onBack }) {
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '', product_id: null, order_id: null, product_name: '' });
   const [reviewLoading, setReviewLoading] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(null);
+
+  const [reorderLoading, setReorderLoading] = useState(false);
+  const [reorderResult, setReorderResult] = useState(null);
 
   const { user } = useAuthStore();
   const { openChat } = useChat();
@@ -139,6 +169,27 @@ export default function SingleOrderView({ orderId, onBack }) {
     }
   };
 
+  const handleReorder = async () => {
+    setReorderLoading(true);
+    try {
+      const res = await api.post(`/orders/${orderId}/reorder`);
+      if (res.data.success) {
+        const result = res.data.data;
+        const hasIssues = (result.items_changed?.length || 0) > 0 || (result.items_unavailable?.length || 0) > 0;
+        if (hasIssues) {
+          setReorderResult(result);
+        } else {
+          toast.success('Items added to cart!');
+          router.push('/checkout');
+        }
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not reorder.');
+    } finally {
+      setReorderLoading(false);
+    }
+  };
+
   const applyManifestPayload = (data) => {
     if (!data) return;
     if (data.order) setOrder(data.order);
@@ -214,6 +265,29 @@ export default function SingleOrderView({ orderId, onBack }) {
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Delivery confirmation failed.", { id: toastId });
+    }
+  };
+
+  const handleUpdateFoodStatus = async (newStatus) => {
+    if (statusUpdating) return;
+    setStatusUpdating(newStatus);
+    const toastId = toast.loading('Updating kitchen status...');
+    try {
+      const res = await api.patch(`/orders/${orderId}/food-status`, { food_status: newStatus });
+      if (res.data.success) {
+        const msgs = {
+          preparing: 'Order accepted — cooking!',
+          ready:     'Marked ready for pickup',
+          picked_up: 'Rider dispatched — in transit',
+          delivered: 'Order delivered!',
+        };
+        toast.success(msgs[newStatus] || 'Kitchen status updated', { id: toastId });
+        fetchOrderManifest();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Kitchen update failed.', { id: toastId });
+    } finally {
+      setStatusUpdating(null);
     }
   };
 
@@ -408,6 +482,27 @@ export default function SingleOrderView({ orderId, onBack }) {
     ) &&
     !['picked_up', 'in_transit', 'out_for_delivery', 'delivered'].includes(shipmentStatusNorm);
 
+  // ── Food order derived state ─────────────────────────────────────────────────
+  const isFoodOrder = !!order.food_status;
+  const isVendorManagedFood = order.shipping_method === 'vendor_managed';
+  const foodLogisticsOverdue = isFoodOrder && isFoodLogisticsOverdue(order);
+  const foodNextStatus = isFoodOrder ? (({
+    pending_acceptance: 'preparing',
+    preparing:          'ready',
+    ready:              (isVendorManagedFood || foodLogisticsOverdue) ? 'picked_up' : null,
+    picked_up:          'delivered',
+  })[order.food_status] ?? null) : null;
+  const foodActionLabel = (() => {
+    if (!isFoodOrder || !foodNextStatus) return null;
+    if (order.food_status === 'pending_acceptance') return 'Accept & Start Cooking';
+    if (order.food_status === 'preparing')          return 'Mark Ready for Pickup';
+    if (order.food_status === 'ready' && isVendorManagedFood)   return 'Rider Picked Up';
+    if (order.food_status === 'ready' && foodLogisticsOverdue)  return 'No Rider — Take Over';
+    if (order.food_status === 'picked_up') return 'Mark as Delivered';
+    return null;
+  })();
+  // ─────────────────────────────────────────────────────────────────────────────
+
   // ── Logistics chat ──────────────────────────────────────────────────────────
   const logisticsUser = shipment?.logistics_id?.user_id || shipment?.logistics_company_id?.user_id;
   const logisticsUserId = logisticsUser?._id || logisticsUser;
@@ -489,6 +584,14 @@ export default function SingleOrderView({ orderId, onBack }) {
   const paymentMeta = (() => {
     const method = order.payment_method;
     const statusValue = order.payment_status;
+
+    if (order.order_status === 'cancelled') {
+      return {
+        label: 'Order cancelled',
+        detail: 'No payment collected',
+        classes: 'border-rose-500/25 bg-rose-500/10 text-rose-600 dark:text-rose-400',
+      };
+    }
 
     if (statusValue === 'refunded' || order.order_status === 'refunded') {
       return {
@@ -594,6 +697,17 @@ export default function SingleOrderView({ orderId, onBack }) {
             <Share2 className="size-3.5 opacity-70" />
             Share
           </button>
+          {!isVendor && ['completed', 'delivered', 'cancelled'].includes(order.order_status) && (
+            <button
+              type="button"
+              onClick={handleReorder}
+              disabled={reorderLoading}
+              className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/8 px-3 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/20 disabled:opacity-60 sm:min-h-10 sm:flex-initial sm:px-3.5 sm:hover:bg-[var(--accent)]/15"
+            >
+              {reorderLoading ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
+              Reorder
+            </button>
+          )}
           <div
             className={`col-span-2 hidden min-h-10 items-center justify-center gap-2 rounded-xl border px-3.5 sm:col-span-1 sm:inline-flex ${tone.pill}`}
           >
@@ -616,6 +730,12 @@ export default function SingleOrderView({ orderId, onBack }) {
             </div>
             <div>
               <p className={`text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${tone.headline}`}>{status.label}</p>
+              {isFoodOrder && (
+                <div className="mt-2 inline-flex items-center gap-2 rounded-xl border border-orange-500/25 bg-orange-500/10 px-3 py-2 text-[11px] font-semibold text-orange-600">
+                  <span className="size-1.5 rounded-full bg-orange-500 animate-pulse" />
+                  Kitchen: {FOOD_STATUS_LABELS[order.food_status] || order.food_status?.replace(/_/g, ' ')}
+                </div>
+              )}
               <p className="mt-2 max-w-xl text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-90 sm:text-[12px]">
                 Track fulfillment, carrier updates, and settlement from this workspace.
               </p>
@@ -627,7 +747,34 @@ export default function SingleOrderView({ orderId, onBack }) {
           </div>
 
           <div className="flex w-full flex-col gap-2 xs:flex-row xs:flex-wrap sm:w-auto sm:gap-2 lg:max-w-md lg:justify-end">
-            {isVendor && order.order_status === 'placed' && logisticsGraceActive && (
+            {/* ── Food order actions (restaurant vendors) ── */}
+            {isVendor && isFoodOrder && foodNextStatus && (
+              <button
+                type="button"
+                onClick={() => handleUpdateFoodStatus(foodNextStatus)}
+                disabled={!!statusUpdating}
+                className={`inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md transition active:opacity-90 disabled:cursor-wait disabled:opacity-60 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95 ${
+                  foodLogisticsOverdue && order.food_status === 'ready'
+                    ? 'bg-amber-500 shadow-amber-500/25'
+                    : order.food_status === 'picked_up'
+                      ? 'bg-emerald-600 shadow-emerald-600/25'
+                      : order.food_status === 'pending_acceptance'
+                        ? 'bg-purple-600 shadow-purple-600/25'
+                        : 'bg-orange-500 shadow-orange-500/25'
+                }`}
+              >
+                {statusUpdating === foodNextStatus ? <Loader2 className="size-4 animate-spin" /> : <Package className="size-4" />}
+                {foodActionLabel}
+              </button>
+            )}
+            {isVendor && isFoodOrder && !foodNextStatus && order.food_status === 'ready' && (
+              <div className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-blue-500/25 bg-blue-500/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-blue-600 xs:w-auto sm:min-h-[44px] sm:py-2.5">
+                <Clock className="size-4" />
+                Awaiting logistics rider
+              </div>
+            )}
+            {/* ── Retail order actions (hidden for food orders) ── */}
+            {!isFoodOrder && isVendor && order.order_status === 'placed' && logisticsGraceActive && (
               <div className="flex w-full flex-col gap-2 xs:flex-row xs:flex-wrap xs:items-stretch">
                 <div className="inline-flex min-h-[48px] w-full flex-1 items-center gap-2 rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-[11px] font-medium leading-snug text-[var(--text-primary)] xs:min-h-0 sm:py-2.5">
                   <Clock className="size-4 shrink-0 text-sky-600 dark:text-sky-400" />
@@ -651,7 +798,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                 </button>
               </div>
             )}
-            {isVendor && order.order_status === 'placed' && !logisticsGraceActive && (
+            {!isFoodOrder && isVendor && order.order_status === 'placed' && !logisticsGraceActive && (
               <button
                 type="button"
                 onClick={() => handleUpdateStatus('processing')}
@@ -661,7 +808,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                 {statusUpdating === 'processing' ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />} Start processing
               </button>
             )}
-            {isVendor && order.order_status === 'processing' && (!isLogisticsOrder || !carrierLaunched) && (
+            {!isFoodOrder && isVendor && order.order_status === 'processing' && (!isLogisticsOrder || !carrierLaunched) && (
               <button
                 type="button"
                 onClick={() => handleUpdateStatus('shipped')}
@@ -687,7 +834,7 @@ export default function SingleOrderView({ orderId, onBack }) {
             )}
 
             {/* VENDOR ACTION: confirm delivery/request customer escrow release, regardless of finalized order status. */}
-            {isVendor && vendorCanRequestEscrowRelease && (
+            {!isFoodOrder && isVendor && vendorCanRequestEscrowRelease && (
               <button
                 type="button"
                 onClick={handleVendorConfirmDelivery}
@@ -698,7 +845,7 @@ export default function SingleOrderView({ orderId, onBack }) {
             )}
 
             {/* VENDOR ACTION: Mark Delivered (For self-managed/non-logistics shipments) */}
-            {vendorCanMarkDelivered && (
+            {!isFoodOrder && vendorCanMarkDelivered && (
               <button
                 type="button"
                 onClick={handleVendorConfirmDelivery}
@@ -718,13 +865,15 @@ export default function SingleOrderView({ orderId, onBack }) {
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={() => setDisputeModal(true)}
-              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-rose-600 transition active:bg-rose-500 active:text-white xs:w-auto sm:min-h-[44px] sm:py-2.5 dark:text-rose-400 sm:hover:bg-rose-500 sm:hover:text-white"
-            >
-              <Scale className="size-4" /> Open dispute
-            </button>
+            {order.order_status !== 'cancelled' && (
+              <button
+                type="button"
+                onClick={() => setDisputeModal(true)}
+                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-rose-600 transition active:bg-rose-500 active:text-white xs:w-auto sm:min-h-[44px] sm:py-2.5 dark:text-rose-400 sm:hover:bg-rose-500 sm:hover:text-white"
+              >
+                <Scale className="size-4" /> Open dispute
+              </button>
+            )}
           </div>
         </div>
 
@@ -878,6 +1027,7 @@ export default function SingleOrderView({ orderId, onBack }) {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {order.products.map((item, idx) => {
                 const variantLabel = formatVariantLabel(item.variant);
+                const itemOptions = item.selected_options || [];
                 return (
                 <div
                   key={item._id || idx}
@@ -894,6 +1044,11 @@ export default function SingleOrderView({ orderId, onBack }) {
                     <h3 className="truncate text-[12px] font-semibold leading-snug text-[var(--text-primary)]">{item.name}</h3>
                     {variantLabel && (
                       <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--accent)]/80">{variantLabel}</p>
+                    )}
+                    {itemOptions.length > 0 && (
+                      <p className="mt-0.5 text-[10px] text-[var(--text-secondary)] leading-snug">
+                        {itemOptions.map(o => o.option_label).join(' · ')}
+                      </p>
                     )}
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] font-medium text-[var(--text-secondary)]">
                       <span className="font-mono text-[var(--accent)]">{(item.price || 0).toLocaleString()} XAF</span>
@@ -1230,6 +1385,106 @@ export default function SingleOrderView({ orderId, onBack }) {
               </form>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Reorder confirmation sheet */}
+      <AnimatePresence>
+        {reorderResult && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[900] bg-black/60 backdrop-blur-sm"
+              onClick={() => setReorderResult(null)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-[1000] max-h-[85vh] overflow-y-auto rounded-t-[24px] border-t border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl flex flex-col pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-center pt-3 pb-2 shrink-0">
+                <div className="h-1 w-10 rounded-full bg-[var(--glass-border)]" />
+              </div>
+              <div className="px-5 pb-2 border-b border-[var(--glass-border)]">
+                <h2 className="text-[15px] font-bold text-[var(--text-primary)] font-[Poppins]">Review your reorder</h2>
+                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Some items have changed since your last order.</p>
+              </div>
+              <div className="px-5 py-4 space-y-4 flex-1">
+                {reorderResult.items_unavailable?.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="size-4 text-rose-500 shrink-0" />
+                      <p className="text-[11px] font-bold text-rose-600 uppercase tracking-wide">Unavailable items (skipped)</p>
+                    </div>
+                    <div className="space-y-2">
+                      {reorderResult.items_unavailable.map((item, i) => (
+                        <div key={i} className="flex items-center gap-3 rounded-xl border border-rose-500/20 bg-rose-500/5 px-3 py-2.5">
+                          <div className="size-8 rounded-lg bg-rose-500/10 flex items-center justify-center shrink-0">
+                            <XCircle className="size-4 text-rose-500" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-semibold text-[var(--text-primary)] truncate">{item.name}</p>
+                            <p className="text-[10px] text-rose-500 mt-0.5">{item.reason || 'No longer available'}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {reorderResult.items_changed?.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="size-4 text-amber-500 shrink-0" />
+                      <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wide">Price changes</p>
+                    </div>
+                    <div className="space-y-2">
+                      {reorderResult.items_changed.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5">
+                          <p className="text-[12px] font-semibold text-[var(--text-primary)] truncate min-w-0">{item.name}</p>
+                          <div className="flex items-center gap-2 shrink-0 text-[11px]">
+                            <span className="line-through text-[var(--text-secondary)]">{(item.old_price || 0).toLocaleString()} XAF</span>
+                            <ArrowRight className="size-3 text-[var(--text-secondary)]" />
+                            <span className="font-bold text-amber-600">{(item.new_price || 0).toLocaleString()} XAF</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {reorderResult.items_added?.length > 0 && (
+                  <div>
+                    <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wide mb-2">
+                      {reorderResult.items_added.length} item{reorderResult.items_added.length > 1 ? 's' : ''} added to cart
+                    </p>
+                  </div>
+                )}
+              </div>
+              <div className="px-5 pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setReorderResult(null)}
+                  className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] py-3 text-[12px] font-semibold text-[var(--text-secondary)]"
+                >
+                  Cancel
+                </button>
+                {(reorderResult.items_added?.length || 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => { setReorderResult(null); router.push('/checkout'); }}
+                    className="flex-[1.4] inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-3 text-[12px] font-bold text-white shadow-md shadow-[var(--accent)]/25"
+                  >
+                    <ShoppingBag className="size-4" />
+                    Go to checkout
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

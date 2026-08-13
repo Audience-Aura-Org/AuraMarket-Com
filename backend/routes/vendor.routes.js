@@ -67,6 +67,7 @@ router.get('/me', getVendorProfile);
 router.patch('/profile', updateVendorProfile);
 router.patch('/store', updateStore);
 router.post('/kyc', submitKYC);
+router.get('/:id/followers', getFollowers);
 
 // ── Active operations require active subscription ────────────────
 router.use(requireActiveSubscription('vendor'));
@@ -77,6 +78,5 @@ router.get('/orders', getVendorOrders);
 router.get('/disputes', getVendorDisputes);
 router.get('/reviews', getVendorReviews);
 router.get('/analytics', getVendorAnalytics);
-router.get('/:id/followers', getFollowers);
 
 module.exports = router;
