@@ -229,10 +229,9 @@ const initializeSubscription = async (req, res, next) => {
       // Always auto-detect operator from phone prefix — never trust client-submitted provider.
       // The subscribe page defaults to CM_MTNMOMO; an Orange user would silently get an MTN
       // push sent to their Orange number which PayUnit immediately rejects as FAILED.
+      // Live testing confirmed Orange (CM_ORANGE) now works through makeMobilePayment —
+      // PayUnit returns PENDING and falls back to "dial #150*50# to confirm".
       const resolvedProvider = payunit.detectCmProvider(normalizedPhone);
-      // Orange Money does not support server-initiated STK push — skip makeMobilePayment
-      // and return a hosted payment URL the subscriber must open on their device instead.
-      const supportsMobilePush = resolvedProvider !== 'CM_ORANGE';
       const init = await payunit.initializePayment({
         amount: feeBreakdown.grossAmount,
         currency,
@@ -243,56 +242,46 @@ const initializeSubscription = async (req, res, next) => {
       });
       let direct;
       let mobilePaymentTimedOut = false;
-      if (supportsMobilePush) {
-        try {
-          direct = await payunit.makeMobilePayment({
-            amount: feeBreakdown.grossAmount,
-            currency,
-            transactionId: transactionRef,
-            returnUrl: callbackUrl,
-            notifyUrl,
-            phone: normalizedPhone,
-            provider: resolvedProvider,
-          });
-        } catch (mpeError) {
-          if (payunit.isTimeoutError(mpeError)) {
-            mobilePaymentTimedOut = true;
-            console.warn('[PayUnit Sub makepayment] Timed out — payment may still be processing:', mpeError.message);
-          } else {
-            throw mpeError;
-          }
+      try {
+        direct = await payunit.makeMobilePayment({
+          amount: feeBreakdown.grossAmount,
+          currency,
+          transactionId: transactionRef,
+          returnUrl: callbackUrl,
+          notifyUrl,
+          phone: normalizedPhone,
+          provider: resolvedProvider,
+        });
+      } catch (mpeError) {
+        if (payunit.isTimeoutError(mpeError)) {
+          mobilePaymentTimedOut = true;
+          console.warn('[PayUnit Sub makepayment] Timed out — payment may still be processing:', mpeError.message);
+        } else {
+          throw mpeError;
         }
       }
       const responseData = direct?.data || direct || init?.data || init;
       transaction.gateway_transaction_id = responseData?.transaction_id || responseData?.provider_transaction_id || transactionRef;
       transaction.gateway_response = { initialize: init, makepayment: direct || null };
-      const metaPatch = {};
-      if (mobilePaymentTimedOut) metaPatch.timed_out = true;
-      if (!supportsMobilePush) metaPatch.orange_hosted_flow = true;
-      if (Object.keys(metaPatch).length) {
-        transaction.metadata = { ...(transaction.metadata || {}), ...metaPatch };
+      if (mobilePaymentTimedOut) {
+        transaction.metadata = { ...(transaction.metadata || {}), timed_out: true };
         transaction.markModified('metadata');
       }
       await transaction.save();
-
-      const orangeHosted = !supportsMobilePush;
-      const hostedUrl = init?.data?.transaction_url || responseData?.transaction_url || callbackUrl;
 
       return res.status(200).json({
         success: true,
         message: mobilePaymentTimedOut
           ? 'PayUnit request timed out — payment may still be processing. Please check your phone or poll for status.'
-          : orangeHosted
-            ? 'Please complete your Orange Money subscription via the payment page.'
-            : 'Subscription payment request sent.',
+          : 'Subscription payment request sent.',
         data: {
-          checkout_url: hostedUrl,
+          checkout_url: init?.data?.transaction_url || responseData?.transaction_url || callbackUrl,
           reference: transaction.reference,
           transaction_id: transaction.gateway_transaction_id,
           amount: feeBreakdown.netAmount,
           collection_fee: feeBreakdown.collectionFee,
           gross_amount: feeBreakdown.grossAmount,
-          orange_hosted: orangeHosted,
+          orange_hosted: false,
         },
       });
     }
