@@ -369,6 +369,40 @@ const payunitInitialize = async (req, res) => {
       return res.status(400).json({ success: false, message: 'PayUnit currently supports XAF collections only.' });
     }
 
+    // Idempotency guard: if the user already has a pending PayUnit collection
+    // for this phone within the last 15 minutes, return that reference so the
+    // frontend can poll it. This avoids hitting Orange Money's "one active
+    // collection per subscriber" rule (which returns 422 on duplicate requests).
+    if (phone) {
+      const normalizedPhone = payunit.normalizePhoneIntl(phone, country);
+      const recentCutoff = new Date(Date.now() - 15 * 60 * 1000);
+      const existingPending = await Transaction.findOne({
+        user_id: req.user._id,
+        gateway: 'payunit',
+        status: 'pending',
+        'metadata.phone': normalizedPhone,
+        createdAt: { $gte: recentCutoff },
+      }).sort({ createdAt: -1 });
+      if (existingPending) {
+        const publicWebUrl = process.env.WEB_CLIENT_URL || 'https://auradime.com';
+        const resumeUrl = `${publicWebUrl}/wallet/verify?gateway=payunit&ref=${existingPending.reference}`;
+        return res.status(200).json({
+          success: true,
+          message: 'A payment request is already pending for this number. Please approve the USSD prompt on your phone.',
+          data: {
+            checkout_url:   resumeUrl,
+            reference:      existingPending.reference,
+            transaction_id: existingPending.gateway_transaction_id || existingPending.reference,
+            amount:         existingPending.metadata?.net_amount || existingPending.amount,
+            collection_fee: existingPending.metadata?.collection_fee || 0,
+            gross_amount:   existingPending.metadata?.gross_amount || existingPending.amount,
+            orange_hosted:  false,
+            pending_resume: true,
+          },
+        });
+      }
+    }
+
     // Always use the configured public web URL for PayUnit return_url.
     // PayUnit validates return_url against registered domains — never send
     // a localhost/capacitor origin (which happens when request comes from APK).

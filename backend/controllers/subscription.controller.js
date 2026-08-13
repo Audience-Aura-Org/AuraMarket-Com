@@ -186,6 +186,37 @@ const initializeSubscription = async (req, res, next) => {
     const [firstName, ...rest] = String(req.user.name || 'Aura User').split(' ');
     const lastName = rest.join(' ') || 'User';
 
+    // Idempotency guard for PayUnit: if user already has a recent pending
+    // subscription payment for this plan, return that reference instead of
+    // creating a duplicate that Orange Money will reject with 422.
+    if (payment_method === 'payunit') {
+      const recentCutoff = new Date(Date.now() - 15 * 60 * 1000);
+      const existingPending = await Transaction.findOne({
+        user_id: req.user._id,
+        gateway: 'payunit',
+        status: 'pending',
+        'metadata.purpose': 'subscription',
+        'metadata.plan_id': plan._id,
+        createdAt: { $gte: recentCutoff },
+      }).sort({ createdAt: -1 });
+      if (existingPending) {
+        return res.status(200).json({
+          success: true,
+          message: 'A payment request is already pending. Please approve the USSD prompt on your phone.',
+          data: {
+            checkout_url: callbackUrl,
+            reference: existingPending.reference,
+            transaction_id: existingPending.gateway_transaction_id || existingPending.reference,
+            amount: existingPending.metadata?.net_amount || existingPending.amount,
+            collection_fee: existingPending.metadata?.collection_fee || 0,
+            gross_amount: existingPending.metadata?.gross_amount || existingPending.amount,
+            orange_hosted: false,
+            pending_resume: true,
+          },
+        });
+      }
+    }
+
     const transaction = await Transaction.create({
       user_id: req.user._id,
       type: 'subscription',
@@ -203,6 +234,7 @@ const initializeSubscription = async (req, res, next) => {
         net_amount: feeBreakdown.netAmount,
         collection_fee: feeBreakdown.collectionFee,
         gross_amount: feeBreakdown.grossAmount,
+        ...(payment_method === 'payunit' ? { phone: payunit.normalizePhoneIntl(phone || req.user.phone, country) } : {}),
       },
     });
 
