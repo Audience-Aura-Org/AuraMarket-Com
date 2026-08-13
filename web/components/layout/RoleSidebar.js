@@ -2,14 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useTheme } from "@/context/ThemeContext";
 import { useNotifications } from '@/hooks/useNotifications';
 import { useChat } from '@/context/ChatContext';
 import { useLanguage } from '@/context/LanguageContext';
+import api from '@/services/api';
 
 const VENDOR_NAV = [
   { icon: 'home',                     label: 'Marketplace',      href: '/shop' },
+  { icon: 'restaurant',               label: 'Dine',             href: '/dine' },
   { icon: 'dashboard',                label: 'Dashboard',        href: '/vendor/dashboard' },
   { icon: 'workspace_premium',        label: 'Subscription',     href: '/subscribe?role=vendor' },
   { icon: 'inventory_2',              label: 'Products',         href: '/vendor/products' },
@@ -49,6 +52,7 @@ const ADMIN_NAV = [
 
 const CUSTOMER_NAV = [
   { icon: 'home',                     label: 'Marketplace',      href: '/shop' },
+  { icon: 'restaurant',               label: 'Dine',             href: '/dine' },
   { icon: 'shopping_bag',             label: 'Orders',           href: '/profile?tab=orders' },
   { icon: 'favorite',                 label: 'Wishlist',         href: '/wishlist' },
   { icon: 'chat',                     label: 'Messages',         href: '/chat',             badge: 'messages' },
@@ -108,6 +112,12 @@ const ROLE_CONFIG = {
   },
 };
 
+const RESTAURANT_NAV = [
+  { icon: 'restaurant', label: 'Kitchen',  href: '/vendor/kitchen',   exact: true },
+  { icon: 'menu_book',  label: 'My Meals', href: '/vendor/meals'                  },
+  { icon: 'add_circle', label: 'Add Meal', href: '/vendor/meals/add', exact: true },
+];
+
 export default function RoleSidebar({ role, isOpen, onClose }) {
   const pathname = usePathname();
   const { user } = useAuthStore();
@@ -117,6 +127,15 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
 
   const { unreadCount, unreadMessages } = useNotifications();
   const { openChat, isOpen: chatOverlayOpen } = useChat();
+
+  // Detect restaurant vendors to show Kitchen / Meals links
+  const [isRestaurantVendor, setIsRestaurantVendor] = useState(false);
+  useEffect(() => {
+    if (role !== 'vendor') return;
+    api.get('/vendors/me').then(res => {
+      if (res.data?.data?.vendor?.vendor_type === 'restaurant') setIsRestaurantVendor(true);
+    }).catch(() => {});
+  }, [role]);
 
   const getBadge = (item) => {
     if (item.badge === 'messages') return unreadMessages;
@@ -172,8 +191,46 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto no-scrollbar">
-          {/* Main Navigation */}
-          {[...config.nav, ...ACCOUNT_NAV].map(item => {
+
+          {/* Restaurant section — pinned at the top for restaurant vendors */}
+          {role === 'vendor' && isRestaurantVendor && (
+            <>
+              <div className="pb-2 px-4">
+                <p className="text-[10px] font-bold tracking-widest text-orange-500 opacity-70 uppercase">Restaurant</p>
+              </div>
+              {RESTAURANT_NAV.map(item => {
+                const isActive = item.exact
+                  ? pathname === item.href
+                  : pathname === item.href || pathname?.startsWith(item.href + '/');
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => { if (window.innerWidth < 1024) onClose(); }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all group text-left ${
+                      isActive ? 'border-l-[3px]' : 'hover:bg-orange-500/5 border-l-[3px] border-transparent'
+                    }`}
+                    style={isActive ? { background: 'linear-gradient(90deg,rgba(249,115,22,.14) 0%,transparent 100%)', borderLeftColor: '#f97316' } : {}}
+                  >
+                    <span className="material-symbols-outlined text-xl transition-colors" style={{ color: isActive ? '#f97316' : 'var(--text-secondary)' }}>
+                      {item.icon}
+                    </span>
+                    <span className={`text-[11px] lg:text-[12px] font-semibold tracking-tight transition-colors truncate flex-1 ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'}`}>
+                      {item.label}
+                    </span>
+                  </Link>
+                );
+              })}
+              <div className="pt-4 pb-2 px-4">
+                <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">General</p>
+              </div>
+            </>
+          )}
+
+          {/* Main Navigation
+              For restaurant vendors, drop generic "Products" — My Meals covers it.
+              Normal retail/digital vendors keep the full VENDOR_NAV unchanged. */}
+          {[...(isRestaurantVendor ? config.nav.filter(i => i.label !== 'Products') : config.nav), ...ACCOUNT_NAV].map(item => {
             const itemPath = item.href.split('?')[0];
             
             // Re-evaluating isActive more simply for the profile tabs
