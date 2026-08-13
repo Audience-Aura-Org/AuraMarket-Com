@@ -256,6 +256,14 @@ const initializeSubscription = async (req, res, next) => {
         if (payunit.isTimeoutError(mpeError)) {
           mobilePaymentTimedOut = true;
           console.warn('[PayUnit Sub makepayment] Timed out — payment may still be processing:', mpeError.message);
+        } else if (mpeError.response?.status === 422) {
+          // Orange/MTN enforces one active collection per subscriber at a time.
+          await transaction.deleteOne();
+          return res.status(400).json({
+            success: false,
+            message: 'A payment request is already pending for this number. Please approve the prompt on your phone, or wait a few minutes and try again.',
+            detail: mpeError.response?.data,
+          });
         } else {
           throw mpeError;
         }
