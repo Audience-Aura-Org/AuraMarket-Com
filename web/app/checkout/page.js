@@ -462,6 +462,23 @@ function CheckoutContent() {
     }
   }, [orderId, productId, quantity, router]);
 
+  // Auto-detect MTN vs Orange for PayUnit from phone prefix (mirrors DepositModal logic)
+  useEffect(() => {
+    if (formData.paymentMethod !== 'payunit') return;
+    const phone = formData.payunit.phone;
+    if (!phone) return;
+    const local = phone.replace(/[^\d]/g, '').replace(/^237/, '').replace(/^0/, '');
+    if (local.length >= 3) {
+      const prefix = parseInt(local.slice(0, 3), 10);
+      const isOrange = (prefix >= 655 && prefix <= 659) || (prefix >= 690 && prefix <= 699);
+      const detected = isOrange ? 'CM_ORANGE' : 'CM_MTNMOMO';
+      setFormData(prev => {
+        if (prev.payunit.provider === detected) return prev;
+        return { ...prev, payunit: { ...prev.payunit, provider: detected } };
+      });
+    }
+  }, [formData.payunit.phone, formData.paymentMethod]);
+
   const handlePlaceOrder = async () => {
     const currentCartItems = [...cartItems];
     const currentOrder = order;
