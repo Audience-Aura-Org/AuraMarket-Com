@@ -13,24 +13,24 @@ const mongoose = require('mongoose');
 
 const recipientDetailsSchema = new mongoose.Schema({
   // MoMo
-  phoneNumber: { type: String, default: null },
+  phone_number: { type: String, default: null },
   // Bank
-  bankCode:      { type: String, default: null },
-  accountNumber: { type: String, default: null },
+  bank_code:      { type: String, default: null },
+  account_number: { type: String, default: null },
   // Eversend wallet-to-wallet
-  eversendTag:   { type: String, default: null },
+  eversend_tag:   { type: String, default: null },
   // Saved Beneficiary
-  beneficiaryId: { type: String, default: null },
+  beneficiary_id: { type: String, default: null },
   // Common
-  firstName:  { type: String, required: true },
-  lastName:   { type: String, required: true },
+  first_name: { type: String, required: true },
+  last_name:  { type: String, required: true },
   country:    { type: String, required: true }, // ISO 2-letter e.g. UG, KE, CM
 }, { _id: false });
 
 const WithdrawalRequestSchema = new mongoose.Schema(
   {
     // ── Requester ───────────────────────────────
-    requestedBy: {
+    requested_by: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
@@ -55,12 +55,12 @@ const WithdrawalRequestSchema = new mongoose.Schema(
     },
 
     // ── Method ──────────────────────────────────
-    withdrawalMethod: {
+    withdrawal_method: {
       type: String,
-      enum: ['momo', 'bank', 'eversend'],
+      enum: ['momo', 'eversend'],
       required: true,
     },
-    recipientDetails: {
+    recipient_details: {
       type: recipientDetailsSchema,
       required: true,
     },
@@ -74,17 +74,17 @@ const WithdrawalRequestSchema = new mongoose.Schema(
     },
 
     // ── Payout Gateway Linkage ───────────────────
-    payoutGateway: { type: String, enum: ['eversend', 'payunit', 'manual'], default: null },
-    eversendTransactionId: { type: String, default: null },
-    eversendQuotationToken: { type: String, default: null, select: false },
-    eversendStatus: { type: String, default: null },
-    balanceDeducted: { type: Boolean, default: false },
+    payout_gateway:           { type: String, enum: ['eversend', 'payunit', 'manual'], default: null },
+    eversend_transaction_id:  { type: String, default: null },
+    eversend_quotation_token: { type: String, default: null, select: false },
+    eversend_status:          { type: String, default: null },
+    balance_deducted:         { type: Boolean, default: false },
 
     // ── Admin Review ─────────────────────────────
-    rejectionReason: { type: String, default: null },
-    failureReason:   { type: String, default: null },
-    reviewedBy:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
-    reviewedAt:  { type: Date, default: null },
+    rejection_reason: { type: String, default: null },
+    failure_reason:   { type: String, default: null },
+    reviewed_by:  { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    reviewed_at:  { type: Date, default: null },
 
     // ── Optional Note from Requester ─────────────
     note: { type: String, default: null, maxlength: 300 },
@@ -96,6 +96,6 @@ const WithdrawalRequestSchema = new mongoose.Schema(
 
 // Index for quick admin queue lookups
 WithdrawalRequestSchema.index({ status: 1, createdAt: -1 });
-WithdrawalRequestSchema.index({ requestedBy: 1, status: 1 });
+WithdrawalRequestSchema.index({ requested_by: 1, status: 1 });
 
 module.exports = mongoose.model('WithdrawalRequest', WithdrawalRequestSchema);

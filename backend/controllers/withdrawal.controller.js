@@ -53,7 +53,7 @@ const toE164 = (phone, countryIso = 'CM') => {
   return `+${dialCode}${v}`;
 };
 
-const VALID_WITHDRAWAL_METHODS = ['momo', 'bank'];
+const VALID_WITHDRAWAL_METHODS = ['momo'];
 const VALID_PAYOUT_GATEWAYS = ['payunit', 'eversend'];
 const PAYUNIT_CASHOUT_MIN_XAF = 5000;
 
@@ -171,7 +171,7 @@ const submitWithdrawal = async (req, res) => {
     if (!VALID_WITHDRAWAL_METHODS.includes(withdrawal_method)) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ success: false, message: 'Invalid withdrawal method. Choose mobile wallet or bank transfer.' });
+      return res.status(400).json({ success: false, message: 'Invalid withdrawal method. Only Mobile Wallet (MoMo) is supported.' });
     }
 
     const platformSettings = await PlatformSettings.getSettings(session);
@@ -193,11 +193,6 @@ const submitWithdrawal = async (req, res) => {
       await session.abortTransaction();
       session.endSession();
       return res.status(400).json({ success: false, message: 'Phone number is required for Mobile Money withdrawal.' });
-    }
-    if (withdrawal_method === 'bank' && (!recipient_details?.bank_code || !recipient_details?.account_number)) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(400).json({ success: false, message: 'Bank code and account number are required for bank withdrawal.' });
     }
     const user = await User.findById(userId).session(session);
     if (!user.is_active) {
@@ -294,8 +289,6 @@ const submitWithdrawal = async (req, res) => {
       payout_gateway: null,
       recipient_details: {
         phone_number:   recipient_details.phone_number   || null,
-        bank_code:      recipient_details.bank_code      || null,
-        account_number: recipient_details.account_number || null,
         eversend_tag:   recipient_details.eversend_tag   || null,
         beneficiary_id: recipient_details.beneficiary_id || null,
         first_name,
@@ -560,8 +553,6 @@ const adminApproveWithdrawal = async (req, res) => {
 
       if (eversendMethod === 'momo') {
         payoutResult = await eversend.executeMomoPayout(quotationToken, toE164(recipient_details.phone_number, recipient_details.country), recipient_details.first_name, recipient_details.last_name, recipient_details.country, txRef);
-      } else if (eversendMethod === 'bank') {
-        payoutResult = await eversend.executeBankPayout(quotationToken, recipient_details.bank_code, recipient_details.account_number, recipient_details.first_name, recipient_details.last_name, recipient_details.country, txRef);
       } else if (eversendMethod === 'eversend') {
         if (recipient_details.beneficiary_id) {
           payoutResult = await eversend.executeBeneficiaryPayout(quotationToken, recipient_details.beneficiary_id, txRef);

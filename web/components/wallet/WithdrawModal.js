@@ -11,7 +11,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X, CheckCircle2, Phone, Building2,
+  X, CheckCircle2, Phone,
   Globe, ArrowRight, ArrowLeft, Wallet, AlertCircle, Loader2
 } from 'lucide-react';
 import api from '@/services/api';
@@ -20,7 +20,6 @@ const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
 
 const METHODS = [
   { id: 'momo', label: 'Mobile Wallet', sub: 'MTN or Orange Money number', icon: Phone, color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
-  { id: 'bank', label: 'Bank Transfer', sub: 'Direct to a bank account', icon: Building2, color: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
 ];
 
 const COUNTRIES = [
@@ -46,8 +45,6 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             lastName: parsed.lastName || '',
             country: parsed.country || 'CM',
             phoneNumber: parsed.phoneNumber || '',
-            bankCode: parsed.bankCode || '',
-            accountNumber: parsed.accountNumber || '',
             note: ''
           };
         }
@@ -55,7 +52,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
         console.error('Failed to parse saved withdrawal form:', e);
       }
     }
-    return { firstName: '', lastName: '', country: 'CM', phoneNumber: '', bankCode: '', accountNumber: '', note: '' };
+    return { firstName: '', lastName: '', country: 'CM', phoneNumber: '', note: '' };
   });
 
   const [loading, setLoading] = useState(false);
@@ -94,16 +91,14 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
       const res = await api.post('/withdrawals', {
         amount: amtNum,
         currency: 'XAF',
-        withdrawalMethod: method.id,
-        recipientDetails: {
-          firstName: form.firstName,
-          lastName:  form.lastName,
-          country:   form.country,
-          phoneNumber:   method.id === 'momo' ? form.phoneNumber : null,
-          bankCode:      method.id === 'bank'     ? form.bankCode      : null,
-          accountNumber: method.id === 'bank'     ? form.accountNumber : null,
-          eversendTag:   null,
-          beneficiaryId: null,
+        withdrawal_method: method.id,
+        recipient_details: {
+          first_name: form.firstName,
+          last_name:  form.lastName,
+          country:    form.country,
+          phone_number:   form.phoneNumber || null,
+          eversend_tag:   null,
+          beneficiary_id: null,
         },
         note: form.note || null,
       });
@@ -115,8 +110,6 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
           lastName: form.lastName,
           country: form.country,
           phoneNumber: form.phoneNumber,
-          bankCode: form.bankCode,
-          accountNumber: form.accountNumber,
         };
         localStorage.setItem('aura_withdrawal_form', JSON.stringify(toSave));
       }
@@ -263,15 +256,10 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                 {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
               </select>
             </div>
-            {method.id === 'momo' && field('phoneNumber', 'MOBILE WALLET NUMBER', '+237...', 'tel')}
-            {method.id === 'bank'     && field('bankCode',      'BANK CODE',       'e.g. GTB')}
-            {method.id === 'bank'     && field('accountNumber', 'ACCOUNT NUMBER',  '0123456789')}
+            {field('phoneNumber', 'MOBILE WALLET NUMBER', '+237...', 'tel')}
             {field('note', 'NOTE (OPTIONAL)', 'Reason for withdrawal...')}
             <button onClick={() => {
-              const missing =
-                !form.firstName || !form.lastName ||
-                (method.id === 'momo' && !form.phoneNumber) ||
-                (method.id === 'bank' && (!form.bankCode || !form.accountNumber));
+              const missing = !form.firstName || !form.lastName || !form.phoneNumber;
               if (missing) { setError('Please fill all required fields.'); return; }
               setError(''); setStep(4);
             }}
