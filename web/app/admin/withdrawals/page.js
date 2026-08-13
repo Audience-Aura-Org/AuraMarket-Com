@@ -39,10 +39,10 @@ const STATUS_TABS = ['all', 'pending', 'approved', 'completed', 'rejected', 'fai
 
 function getRequesterProfile(withdrawal) {
   const profile = withdrawal?.requesterProfile || {};
-  const person = withdrawal?.requestedBy || {};
+  const person = withdrawal?.requested_by || {};
   const branding = person.branding || {};
-  const recipient = withdrawal?.recipientDetails || {};
-  const recipientName = [recipient.firstName, recipient.lastName].filter(Boolean).join(' ');
+  const recipient = withdrawal?.recipient_details || {};
+  const recipientName = [recipient.first_name, recipient.last_name].filter(Boolean).join(' ');
   const name =
     profile.name ||
     profile.storeName ||
@@ -67,7 +67,7 @@ function getRequesterProfile(withdrawal) {
     person.avatar ||
     null;
   const contact =
-    profile.email || profile.phone || person.email || person.phone || recipient.phoneNumber || '—';
+    profile.email || profile.phone || person.email || person.phone || recipient.phone_number || '—';
   const initial = String(name || 'A').trim().charAt(0).toUpperCase();
 
   return {
@@ -142,7 +142,7 @@ export default function AdminWithdrawalsPage() {
   const handleApprove = async (id) => {
     setProc('approve');
     try {
-      const res = await api.post(`/withdrawals/admin/${id}/approve`, { payoutGateway: approveGateway });
+      const res = await api.post(`/withdrawals/admin/${id}/approve`, { payout_gateway: approveGateway });
       toast.success(res.data.message || `Approved via ${approveGateway}.`);
       setSelected(null);
       load();
@@ -160,7 +160,7 @@ export default function AdminWithdrawalsPage() {
     }
     setProc('reject');
     try {
-      await api.post(`/withdrawals/admin/${id}/reject`, { rejectionReason: reason });
+      await api.post(`/withdrawals/admin/${id}/reject`, { rejection_reason: reason });
       toast.success('Withdrawal rejected.');
       setSelected(null);
       load();
@@ -349,7 +349,7 @@ export default function AdminWithdrawalsPage() {
                 const S = STATUS[w.status] || STATUS.pending;
                 const requester = getRequesterProfile(w);
                 const isPending = w.status === 'pending';
-                const payoutGateway = w.payoutGateway || w.withdrawalMethod;
+                const payoutGateway = w.payout_gateway || w.withdrawal_method;
 
                 return (
                   <button
@@ -370,7 +370,7 @@ export default function AdminWithdrawalsPage() {
                       badge={
                         <GatewayBrand
                           gateway={payoutGateway}
-                          method={w.withdrawalMethod}
+                          method={w.withdrawal_method}
                           size="sm"
                           className="ring-2 ring-[var(--bg-primary)]"
                         />
@@ -392,7 +392,7 @@ export default function AdminWithdrawalsPage() {
                           <p className="mt-0.5 flex flex-wrap items-center gap-1 text-[9px] text-[var(--text-secondary)] sm:gap-1.5 sm:text-[10px]">
                             <span className="capitalize">{w.role}</span>
                             <span className="hidden opacity-40 sm:inline">·</span>
-                            <span className="hidden capitalize sm:inline">{w.withdrawalMethod}</span>
+                            <span className="hidden capitalize sm:inline">{w.withdrawal_method}</span>
                             <span className="font-mono">#{w._id.slice(-6).toUpperCase()}</span>
                           </p>
                         </div>
@@ -497,7 +497,7 @@ export default function AdminWithdrawalsPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-lg border border-[var(--glass-border)] p-3">
                     <p className="text-[10px] text-[var(--text-secondary)]">Method</p>
-                    <p className="mt-1 text-[12px] font-semibold capitalize">{selected.withdrawalMethod}</p>
+                    <p className="mt-1 text-[12px] font-semibold capitalize">{selected.withdrawal_method}</p>
                   </div>
                   <div className="rounded-lg border border-[var(--glass-border)] p-3">
                     <p className="text-[10px] text-[var(--text-secondary)]">Status</p>
@@ -510,30 +510,30 @@ export default function AdminWithdrawalsPage() {
                   <div className="flex justify-between text-[12px]">
                     <span className="text-[var(--text-secondary)]">Name</span>
                     <span>
-                      {(selected.recipientDetails || {}).firstName}{' '}
-                      {(selected.recipientDetails || {}).lastName}
+                      {(selected.recipient_details || {}).first_name}{' '}
+                      {(selected.recipient_details || {}).last_name}
                     </span>
                   </div>
                   <div className="flex justify-between text-[12px]">
                     <span className="text-[var(--text-secondary)]">Country</span>
-                    <span>{(selected.recipientDetails || {}).country || '—'}</span>
+                    <span>{(selected.recipient_details || {}).country || '—'}</span>
                   </div>
                   <div className="flex items-center justify-between gap-2 text-[12px]">
                     <span className="text-[var(--text-secondary)]">Endpoint</span>
                     <div className="flex items-center gap-1">
                       <span className="font-mono text-[11px] text-[var(--accent)]">
-                        {(selected.recipientDetails || {}).phoneNumber ||
-                          (selected.recipientDetails || {}).accountNumber ||
-                          (selected.recipientDetails || {}).eversendTag ||
+                        {(selected.recipient_details || {}).phone_number ||
+                          (selected.recipient_details || {}).account_number ||
+                          (selected.recipient_details || {}).eversend_tag ||
                           '—'}
                       </span>
                       <button
                         type="button"
                         onClick={() => {
                           const val =
-                            (selected.recipientDetails || {}).phoneNumber ||
-                            (selected.recipientDetails || {}).accountNumber ||
-                            (selected.recipientDetails || {}).eversendTag ||
+                            (selected.recipient_details || {}).phone_number ||
+                            (selected.recipient_details || {}).account_number ||
+                            (selected.recipient_details || {}).eversend_tag ||
                             '';
                           if (val) navigator.clipboard.writeText(val);
                         }}
@@ -545,13 +545,13 @@ export default function AdminWithdrawalsPage() {
                   </div>
                 </div>
 
-                {(selected.rejectionReason || selected.failureReason) && (
+                {(selected.rejection_reason || selected.failure_reason) && (
                   <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
                     <p className="mb-1 flex items-center gap-1 text-[11px] font-semibold text-rose-500">
                       <AlertCircle className="size-3.5" /> Note
                     </p>
                     <p className="text-[11px] text-[var(--text-secondary)]">
-                      {selected.rejectionReason || selected.failureReason}
+                      {selected.rejection_reason || selected.failure_reason}
                     </p>
                   </div>
                 )}
@@ -563,20 +563,21 @@ export default function AdminWithdrawalsPage() {
                     <p className="text-[10px] font-medium text-[var(--text-secondary)]">Payout gateway</p>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { id: 'payunit', label: 'PayUnit' },
-                        { id: 'eversend', label: 'Eversend' },
+                        { id: 'payunit', label: 'PayUnit', min: '5,000 XAF min' },
+                        { id: 'eversend', label: 'Eversend', min: '1,000 XAF min' },
                       ].map((g) => (
                         <button
                           key={g.id}
                           type="button"
                           onClick={() => setApproveGateway(g.id)}
-                          className={`rounded-lg border p-2.5 text-[11px] font-semibold transition ${
+                          className={`rounded-lg border p-2.5 text-left transition ${
                             approveGateway === g.id
                               ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600'
                               : 'border-[var(--glass-border)]'
                           }`}
                         >
-                          {g.label}
+                          <p className="text-[11px] font-semibold">{g.label}</p>
+                          <p className="text-[9px] opacity-60 mt-0.5">{g.min}</p>
                         </button>
                       ))}
                     </div>
@@ -591,7 +592,7 @@ export default function AdminWithdrawalsPage() {
                       ) : (
                         <CheckCircle2 className="size-4" />
                       )}
-                      Approve via {approveGateway}
+                      Approve
                     </button>
                     <button
                       type="button"
@@ -607,21 +608,6 @@ export default function AdminWithdrawalsPage() {
                 )}
                 {(selected.status === 'approved' || selected.status === 'processing_error') && (
                   <div className="space-y-2">
-                    {selected.payoutGateway === 'payunit' && selected.status === 'approved' && (
-                      <button
-                        type="button"
-                        onClick={() => handleCompleteManual(selected._id)}
-                        disabled={!!processing}
-                        className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 text-[12px] font-semibold text-white disabled:opacity-50"
-                      >
-                        {processing === 'complete' ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <CheckCircle2 className="size-4" />
-                        )}
-                        Mark PayUnit cashout complete
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={() => handleRecheck(selected._id)}

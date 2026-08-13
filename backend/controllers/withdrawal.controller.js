@@ -55,7 +55,8 @@ const toE164 = (phone, countryIso = 'CM') => {
 
 const VALID_WITHDRAWAL_METHODS = ['momo'];
 const VALID_PAYOUT_GATEWAYS = ['payunit', 'eversend'];
-const PAYUNIT_CASHOUT_MIN_XAF = 5000;
+const PAYUNIT_CASHOUT_MIN_XAF  = 5000;
+const EVERSEND_MIN_XAF         = 1000;
 
 const getWithdrawalDestination = (wr) => {
   const d = wr.recipient_details || {};
@@ -523,6 +524,16 @@ const adminApproveWithdrawal = async (req, res) => {
         success: true,
         message: 'Withdrawal approved for PayUnit. Complete the cashout in the PayUnit dashboard.',
         data: { withdrawal: wr, payoutGateway, payoutTransactionId: manualRef, manual: true },
+      });
+    }
+
+    // Eversend minimum check
+    if (String(wr.currency || 'XAF').toUpperCase() === 'XAF' && Number(wr.amount || 0) < EVERSEND_MIN_XAF) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: `Eversend requires at least ${EVERSEND_MIN_XAF.toLocaleString()} XAF. This withdrawal is below the minimum.`,
       });
     }
 
