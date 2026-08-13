@@ -288,12 +288,14 @@ const initializeSubscription = async (req, res, next) => {
         if (payunit.isTimeoutError(mpeError)) {
           mobilePaymentTimedOut = true;
           console.warn('[PayUnit Sub makepayment] Timed out — payment may still be processing:', mpeError.message);
-        } else if (mpeError.response?.status === 422) {
-          // Orange/MTN enforces one active collection per subscriber at a time.
+        } else if (mpeError.response?.status === 422 || mpeError.response?.status === 417) {
+          // 422 = duplicate pending collection from Orange/MTN (one active USSD at a time)
+          // 417 = PayUnit wraps Orange Money's 422 as HTTP 417 in some response paths
           await transaction.deleteOne();
           return res.status(400).json({
             success: false,
-            message: 'A payment request is already pending for this number. Please approve the prompt on your phone, or wait a few minutes and try again.',
+            code: 'PENDING_COLLECTION',
+            message: 'Your mobile money payment could not be processed. If you have a pending USSD prompt on your phone, please approve it — or wait a few minutes and try again.',
             detail: mpeError.response?.data,
           });
         } else {
