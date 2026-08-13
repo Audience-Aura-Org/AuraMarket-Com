@@ -109,6 +109,17 @@ function SubscribeContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id, role]);
 
+  // Auto-detect Orange vs MTN from phone prefix (mirrors checkout + deposit modal logic)
+  useEffect(() => {
+    if (method !== 'payunit' || !phone) return;
+    const local = phone.replace(/[^\d]/g, '').replace(/^237/, '').replace(/^0/, '');
+    if (local.length >= 3) {
+      const prefix = parseInt(local.slice(0, 3), 10);
+      const isOrange = (prefix >= 655 && prefix <= 659) || (prefix >= 690 && prefix <= 699);
+      setProvider(isOrange ? 'CM_ORANGE' : 'CM_MTNMOMO');
+    }
+  }, [phone, method]);
+
   const pay = async () => {
     if (!selectedPlan) return;
     if (selectedPlan.contact_required) {
@@ -142,8 +153,16 @@ function SubscribeContent() {
       }
 
       const ref = res.data?.data?.reference;
+      const isOrangeHosted = res.data?.data?.orange_hosted || false;
+      const hostedUrl = res.data?.data?.checkout_url || null;
       if (ref) {
-        router.push(`/wallet/verify?gateway=${method}&type=subscription&ref=${encodeURIComponent(ref)}`);
+        if (isOrangeHosted && hostedUrl) {
+          // Orange Money doesn't support phone push — open PayUnit hosted page in new tab
+          // so the user can authorize via USSD, then poll on our verify page for confirmation.
+          window.open(hostedUrl, '_blank', 'noopener,noreferrer');
+          toast.success(t('subscription.orangeHosted', 'Orange payment page opened. Complete payment there, then wait here.'));
+        }
+        router.push(`/wallet/verify?gateway=${method}&type=subscription&ref=${encodeURIComponent(ref)}&role=${encodeURIComponent(role)}`);
       } else {
         toast.success(t('subscription.requestSent', 'Payment request sent.'));
       }

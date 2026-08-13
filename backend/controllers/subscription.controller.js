@@ -226,8 +226,13 @@ const initializeSubscription = async (req, res, next) => {
 
     if (payment_method === 'payunit') {
       const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get('host')}`}/api/v1/payments/payunit/webhook`;
-      // Auto-detect operator from phone prefix; explicit provider from client always wins
-      const resolvedProvider = req.body?.provider || payunit.detectCmProvider(normalizedPhone);
+      // Always auto-detect operator from phone prefix — never trust client-submitted provider.
+      // The subscribe page defaults to CM_MTNMOMO; an Orange user would silently get an MTN
+      // push sent to their Orange number which PayUnit immediately rejects as FAILED.
+      const resolvedProvider = payunit.detectCmProvider(normalizedPhone);
+      // Orange Money does not support server-initiated STK push — skip makeMobilePayment
+      // and return a hosted payment URL the subscriber must open on their device instead.
+      const supportsMobilePush = resolvedProvider !== 'CM_ORANGE';
       const init = await payunit.initializePayment({
         amount: feeBreakdown.grossAmount,
         currency,
@@ -238,47 +243,56 @@ const initializeSubscription = async (req, res, next) => {
       });
       let direct;
       let mobilePaymentTimedOut = false;
-      try {
-        direct = await payunit.makeMobilePayment({
-          amount: feeBreakdown.grossAmount,
-          currency,
-          transactionId: transactionRef,
-          returnUrl: callbackUrl,
-          notifyUrl,
-          phone: normalizedPhone,
-          provider: resolvedProvider,
-        });
-      } catch (mpeError) {
-        if (payunit.isTimeoutError(mpeError)) {
-          // Timeout ≠ failure: PayUnit may have received the request and will still
-          // push the collection prompt to the subscriber's phone.
-          mobilePaymentTimedOut = true;
-          console.warn('[PayUnit Sub makepayment] Timed out — payment may still be processing:', mpeError.message);
-        } else {
-          throw mpeError;
+      if (supportsMobilePush) {
+        try {
+          direct = await payunit.makeMobilePayment({
+            amount: feeBreakdown.grossAmount,
+            currency,
+            transactionId: transactionRef,
+            returnUrl: callbackUrl,
+            notifyUrl,
+            phone: normalizedPhone,
+            provider: resolvedProvider,
+          });
+        } catch (mpeError) {
+          if (payunit.isTimeoutError(mpeError)) {
+            mobilePaymentTimedOut = true;
+            console.warn('[PayUnit Sub makepayment] Timed out — payment may still be processing:', mpeError.message);
+          } else {
+            throw mpeError;
+          }
         }
       }
       const responseData = direct?.data || direct || init?.data || init;
       transaction.gateway_transaction_id = responseData?.transaction_id || responseData?.provider_transaction_id || transactionRef;
-      transaction.gateway_response = { initialize: init, makepayment: direct };
-      if (mobilePaymentTimedOut) {
-        transaction.metadata = { ...(transaction.metadata || {}), timed_out: true };
+      transaction.gateway_response = { initialize: init, makepayment: direct || null };
+      const metaPatch = {};
+      if (mobilePaymentTimedOut) metaPatch.timed_out = true;
+      if (!supportsMobilePush) metaPatch.orange_hosted_flow = true;
+      if (Object.keys(metaPatch).length) {
+        transaction.metadata = { ...(transaction.metadata || {}), ...metaPatch };
         transaction.markModified('metadata');
       }
       await transaction.save();
+
+      const orangeHosted = !supportsMobilePush;
+      const hostedUrl = init?.data?.transaction_url || responseData?.transaction_url || callbackUrl;
 
       return res.status(200).json({
         success: true,
         message: mobilePaymentTimedOut
           ? 'PayUnit request timed out — payment may still be processing. Please check your phone or poll for status.'
-          : 'Subscription payment request sent.',
+          : orangeHosted
+            ? 'Please complete your Orange Money subscription via the payment page.'
+            : 'Subscription payment request sent.',
         data: {
-          checkout_url: responseData?.transaction_url || init?.data?.transaction_url || callbackUrl,
+          checkout_url: hostedUrl,
           reference: transaction.reference,
           transaction_id: transaction.gateway_transaction_id,
           amount: feeBreakdown.netAmount,
           collection_fee: feeBreakdown.collectionFee,
           gross_amount: feeBreakdown.grossAmount,
+          orange_hosted: orangeHosted,
         },
       });
     }
