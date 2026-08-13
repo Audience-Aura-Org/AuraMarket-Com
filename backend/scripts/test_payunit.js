@@ -20,11 +20,18 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }
 
 const payunit = require('../services/payunit.service');
 
-const AMOUNT      = 100;          // XAF — smallest useful test amount
+const NET_AMOUNT   = 100;         // XAF net (what the user pays)
+const COLLECTION_FEE = 50;        // XAF — same as MOBILE_MONEY_COLLECTION_FEE_XAF in .env
+const AMOUNT       = NET_AMOUNT + COLLECTION_FEE; // 150 XAF gross — matches production
 const RETURN_URL  = 'https://auradime.com/wallet/verify?gateway=payunit';
 const NOTIFY_URL  = 'https://auradime.com/api/payments/payunit/webhook';
 
-// ── Change these to real numbers if you want the STK push to actually fire ──
+// ── IMPORTANT: use dummy/non-existent numbers by default ─────────────────────
+// These are placeholder numbers that let us verify the API flow without sending
+// a real USSD prompt to a live subscriber. If a real USSD push is needed,
+// pass TEST_MTN_PHONE / TEST_ORANGE_PHONE env vars — but be aware that an
+// unapproved pending collection will block new requests for ~10 minutes.
+// NEVER use the same number here that real users are depositing from.
 const MTN_PHONE    = process.env.TEST_MTN_PHONE    || '651000001'; // 9-digit local
 const ORANGE_PHONE = process.env.TEST_ORANGE_PHONE || '655000001'; // 9-digit local
 
