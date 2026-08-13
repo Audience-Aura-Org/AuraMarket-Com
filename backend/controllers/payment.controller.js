@@ -767,14 +767,18 @@ const eversendVerify = async (req, res) => {
       return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
     }
 
-    // -- SLOW PATH: Webhook hasn't fired yet â€” wait 40s before asking Eversend
-    // Avoids hammering Eversend API every 5s when the webhook is just delayed.
+    // -- SLOW PATH: Webhook hasn't fired yet — wait 90s before querying Eversend
+    // Eversend can return SUCCESSFUL from their status API briefly before sending a
+    // failure webhook (MTN reversal, fraud hold, etc.). The previous 40s window was
+    // too short: it raced with Eversend's own state machine and caused ghost credits
+    // when the collection ultimately failed. 90s gives the webhook enough time to
+    // settle the transaction correctly before we fall back to active API polling.
     const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
-    if (ageSeconds < 40) {
+    if (ageSeconds < 90) {
       return res.status(200).json({ success: true, status: 'PENDING', message: 'Awaiting mobile money confirmation. Please approve the prompt on your phone.' });
     }
 
-    // -- After 40s: actively query Eversend by reference ------------------
+    // -- After 90s: actively query Eversend by reference ------------------
     const settleTransaction = async (gatewayData, gatewayTxId) => {
       const sess = await mongoose.startSession();
       sess.startTransaction();
@@ -1182,18 +1186,57 @@ const eversendWebhook = async (req, res) => {
     }
 
     if (type === 'transaction.failed' || type === 'collection.failed' || type === 'payout.failed') {
-      const transaction = await Transaction.findOneAndUpdate(
-        { reference: data?.transactionRef, gateway: 'eversend' },
-        { status: 'failed', gateway_response: data },
-        { returnDocument: 'after' }
-      );
-      if (transaction?.order_ids?.length) {
-        await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
-      }
-      // If it was a payout, we might want to alert the admin or notify the vendor
-      if (type === 'payout.failed') {
-        console.error(`? Eversend Payout Failed: ${data?.transactionRef}`, data?.message);
-        // TODO: Trigger admin alert/email
+      // CRITICAL GUARD: never silently flip an already-completed (credited) transaction
+      // to failed without an admin review. Eversend can send a delayed failure webhook
+      // after we already credited the wallet via the verify polling endpoint — the status
+      // flip without a corresponding wallet debit creates a ghost credit.
+      // Instead: keep the completed status, emit a CRITICAL admin alert for manual review.
+      const existing = await Transaction.findOne({
+        reference: data?.transactionRef,
+        gateway: 'eversend',
+      });
+
+      if (existing?.status === 'completed') {
+        console.error(
+          `[Eversend Webhook] CRITICAL: failure event arrived for already-completed transaction ` +
+          `${data?.transactionRef}. Wallet was already credited. Manual review required — ` +
+          `check if Eversend Eversend balance reflects the reversal.`
+        );
+        setImmediate(() => {
+          notifyAdmins(req.app, {
+            title: '⚠️ Payment Reversal Alert',
+            message:
+              `Eversend sent a failure event for transaction ${data?.transactionRef} ` +
+              `that was already marked completed and wallet credited. ` +
+              `Check the Eversend dashboard and manually review whether to debit the user's wallet.`,
+            type: 'system_alert',
+            metadata: { link: '/admin/transactions' },
+            sendEmail: true,
+          }).catch(console.error);
+        });
+        // Do NOT override status — keep 'completed' so the DB matches what the user experienced.
+        // Admin can use the recover/manual-debit flow if needed.
+      } else {
+        const transaction = await Transaction.findOneAndUpdate(
+          { reference: data?.transactionRef, gateway: 'eversend', status: { $ne: 'completed' } },
+          { status: 'failed', gateway_response: data },
+          { returnDocument: 'after' }
+        );
+        if (transaction?.order_ids?.length) {
+          await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
+        }
+        if (type === 'payout.failed') {
+          console.error(`❌ Eversend Payout Failed: ${data?.transactionRef}`, data?.message);
+          setImmediate(() => {
+            notifyAdmins(req.app, {
+              title: '❌ Eversend Payout Failed',
+              message: `Payout ${data?.transactionRef} failed: ${data?.message || 'No reason given'}.`,
+              type: 'system_alert',
+              metadata: { link: '/admin/withdrawals' },
+              sendEmail: true,
+            }).catch(console.error);
+          });
+        }
       }
     }
 
