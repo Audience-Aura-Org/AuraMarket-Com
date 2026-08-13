@@ -400,10 +400,15 @@ const payunitInitialize = async (req, res) => {
       country,
     });
 
-    // Step 2: If phone provided, trigger direct mobile push with the SAME transactionRef
+    // Step 2: If phone provided, trigger direct mobile push with the SAME transactionRef.
+    // NOTE: Orange Money (CM_ORANGE) does not support server-initiated STK push — subscribers
+    // must self-authorize via USSD (*150#) or the PayUnit hosted payment page. Attempting
+    // makepayment for Orange returns 417 "Payment request failed." Skip the push and return
+    // the checkout_url so the user can complete payment through the hosted page.
     let direct = null;
     let mobilePaymentTimedOut = false;
-    if (phone) {
+    const supportsMobilePush = resolvedProvider !== 'CM_ORANGE';
+    if (phone && supportsMobilePush) {
       try {
         direct = await payunit.makeMobilePayment({
           amount: feeBreakdown.grossAmount,
@@ -448,21 +453,34 @@ const payunitInitialize = async (req, res) => {
         provider: resolvedProvider,
         phone: phone ? payunit.normalizePhoneIntl(phone, country) : null,
         ...(mobilePaymentTimedOut ? { timed_out: true } : {}),
+        ...((!supportsMobilePush && phone) ? { orange_hosted_flow: true } : {}),
       },
     });
 
+    const successMessage = mobilePaymentTimedOut
+      ? 'PayUnit request timed out — payment may still be processing. Please check your phone or poll for status.'
+      : !supportsMobilePush
+        ? 'PayUnit payment initialized. Please complete the payment via the link sent or use *150# on your Orange phone.'
+        : phone ? 'PayUnit collection request sent to your phone.' : 'PayUnit payment initialized.';
+
+    // For Orange Money, PayUnit does not support server-initiated STK push.
+    // makepayment is skipped; the user must authorize via the hosted payment page.
+    // Flag this so the frontend can show an "Open Payment Page" button instead of
+    // "Approve prompt on your phone" (which never arrives for Orange).
+    const orangeHosted = !supportsMobilePush && !!phone;
+    const resolvedCheckoutUrl = init?.data?.transaction_url || gatewayData.transaction_url || returnUrl;
+
     return res.status(200).json({
       success: true,
-      message: mobilePaymentTimedOut
-        ? 'PayUnit request timed out — payment may still be processing. Please check your phone or poll for status.'
-        : phone ? 'PayUnit collection request sent to your phone.' : 'PayUnit payment initialized.',
+      message: successMessage,
       data: {
-        checkout_url: gatewayData.transaction_url || init?.data?.transaction_url || returnUrl,
-        reference: transactionRef,
+        checkout_url:   resolvedCheckoutUrl,
+        reference:      transactionRef,
         transaction_id: gatewayData.transaction_id || transactionRef,
-        amount: feeBreakdown.netAmount,
+        amount:         feeBreakdown.netAmount,
         collection_fee: feeBreakdown.collectionFee,
-        gross_amount: feeBreakdown.grossAmount,
+        gross_amount:   feeBreakdown.grossAmount,
+        orange_hosted:  orangeHosted,
       },
     });
   } catch (error) {

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck, Loader2, X, CheckCircle2, AlertTriangle,
-  XCircle, RotateCcw, Smartphone,
+  XCircle, RotateCcw, Smartphone, ExternalLink,
 } from 'lucide-react';
 import { initiateCollection, pollTransactionStatus } from '@/services/paymentProvider';
 import api from '@/services/api';
@@ -32,6 +32,8 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   const [reason, setReason]     = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [rechecking, setRechecking] = useState(false);
+  const [orangeHosted, setOrangeHosted] = useState(false);
+  const [checkoutUrl, setCheckoutUrl]   = useState(null);
 
   const inProgressRef  = useRef(false);
   // Holds the stop-polling function returned by pollTransactionStatus
@@ -68,6 +70,8 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
       setReason('');
       setRef(null);
       setMessage('');
+      setOrangeHosted(false);
+      setCheckoutUrl(null);
     }
   }, [open]);
 
@@ -143,7 +147,15 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
       if (res.success) {
         localRef = res.data?.reference;
         setRef(localRef);
-        setMessage('Charge request sent. Awaiting approval on your phone...');
+        const isOrange = res.data?.orange_hosted || false;
+        const hostedUrl = res.data?.checkout_url || null;
+        setOrangeHosted(isOrange);
+        setCheckoutUrl(hostedUrl);
+        setMessage(
+          isOrange
+            ? 'Open the payment page below to authorize your Orange Money payment.'
+            : 'Charge request sent. Awaiting approval on your phone...'
+        );
 
         const stopFn = pollTransactionStatus(
           gw,
@@ -232,6 +244,8 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
     setReason('');
     setRef(null);
     setMessage('');
+    setOrangeHosted(false);
+    setCheckoutUrl(null);
   };
 
   return (
@@ -394,10 +408,10 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                 </div>
               </div>
 
-              <div className="w-full space-y-2 mb-6">
+              <div className="w-full space-y-2 mb-4">
                 {[
                   { label: 'Request sent to gateway', done: true, active: false },
-                  { label: `Approve prompt on ${phone}`, done: false, active: true },
+                  { label: orangeHosted ? 'Authorize via Orange payment page' : `Approve prompt on ${phone}`, done: false, active: true },
                   { label: 'Confirming payment', done: false, active: false },
                 ].map((s, i) => (
                   <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
@@ -414,11 +428,27 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                   </div>
                 ))}
               </div>
+
+              {/* Orange Money: show hosted payment page button */}
+              {orangeHosted && checkoutUrl && (
+                <a
+                  href={checkoutUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-[11px] tracking-tight flex items-center justify-center gap-2 mb-2 active:scale-95 transition-all shadow-lg shadow-orange-500/20"
+                >
+                  <ExternalLink className="size-4" />
+                  Open Orange Payment Page
+                </a>
+              )}
+
               <div className="w-full bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--glass-border)] flex items-center gap-3">
                 <div className="size-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
                 <p className="text-[11px] font-semibold tracking-tight text-[var(--accent)] text-left">{message || 'Waiting for mobile money confirmation...'}</p>
               </div>
-              <p className="text-[10px] font-semibold tracking-tight opacity-20 mt-4">Keep the app open until your payment is confirmed</p>
+              <p className="text-[10px] font-semibold tracking-tight opacity-20 mt-4">
+                {orangeHosted ? 'After authorizing on the page, return here — payment is confirmed automatically.' : 'Keep the app open until your payment is confirmed'}
+              </p>
             </motion.div>
           )}
 

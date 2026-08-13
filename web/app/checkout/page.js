@@ -10,7 +10,7 @@ import {
   Lock, CheckCircle2, Plus, Loader2, ChevronDown,
   Smartphone, Wallet, ArrowLeft, Gem, AlertCircle,
   Truck, Package, Info, ShieldAlert, Search, X, RotateCcw, Trash2,
-  Utensils, CalendarClock, ShoppingBag
+  Utensils, CalendarClock, ShoppingBag, ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
@@ -619,6 +619,8 @@ function CheckoutContent() {
           message: `Sending request to ${gatewayLabel}...`,
           gateway,
           phone: gatewayFields.phone || formData.phone,
+          orangeHosted: false,
+          checkoutUrl: null,
         });
 
         const evRes = await initiateCollection(gateway, {
@@ -645,12 +647,17 @@ function CheckoutContent() {
 
         if (ref) {
           toast.success('Payment request sent to your phone. Please approve to complete.');
+          const isOrange = evRes.data?.orange_hosted || false;
           setEversendCheckout({
             active: true,
             reference: ref,
-            message: 'Charge request sent. Approve the prompt on your phone...',
+            message: isOrange
+              ? 'Open the payment page below to authorize your Orange Money payment.'
+              : 'Charge request sent. Approve the prompt on your phone...',
             gateway,
             phone: gatewayFields.phone || formData.phone,
+            orangeHosted: isOrange,
+            checkoutUrl: evRes.data?.checkout_url || null,
           });
           setLoading(false);
 
@@ -939,7 +946,7 @@ function CheckoutContent() {
                 <div className="mt-6 space-y-2 text-left">
                   {[
                     `Request sent to ${eversendCheckout.gateway === 'payunit' ? 'PayUnit' : eversendCheckout.gateway === 'eversend' ? 'Eversend' : 'gateway'}`,
-                    `Approve prompt on ${eversendCheckout.phone || formData.phone}`,
+                    eversendCheckout.orangeHosted ? 'Authorize via Orange payment page' : `Approve prompt on ${eversendCheckout.phone || formData.phone}`,
                     'Confirming order payment',
                   ].map((label, index) => (
                     <div key={label} className={`flex items-center gap-3 rounded-xl border p-3 ${
@@ -958,7 +965,21 @@ function CheckoutContent() {
                     </div>
                   ))}
                 </div>
-                {eversendCheckout.reference && (
+
+                {/* Orange Money: open hosted payment page */}
+                {eversendCheckout.orangeHosted && eversendCheckout.checkoutUrl && (
+                  <a
+                    href={eversendCheckout.checkoutUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-orange-500 px-4 py-3 text-[11px] font-semibold tracking-tight text-white transition hover:bg-orange-600 active:scale-95 shadow-lg shadow-orange-500/20"
+                  >
+                    <ExternalLink className="size-4" />
+                    Open Orange Payment Page
+                  </a>
+                )}
+
+                {eversendCheckout.reference && !eversendCheckout.orangeHosted && (
                   <button
                     type="button"
                     onClick={() => router.push(`/wallet/verify?gateway=${eversendCheckout.gateway}&type=checkout&ref=${eversendCheckout.reference}`)}
