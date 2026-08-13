@@ -19,7 +19,8 @@ import api from '@/services/api';
 const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
 
 const METHODS = [
-  { id: 'momo', label: 'Mobile Wallet', sub: 'MTN or Orange Money number', icon: Phone, color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
+  { id: 'momo',     label: 'Mobile Wallet',   sub: 'MTN or Orange Money number',  icon: Phone,  color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
+  { id: 'eversend', label: 'Eversend Wallet',  sub: 'Transfer to Eversend account', icon: Globe,  color: 'bg-purple-500/10 text-purple-500 border-purple-500/20' },
 ];
 
 const COUNTRIES = [
@@ -45,6 +46,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             lastName: parsed.lastName || '',
             country: parsed.country || 'CM',
             phoneNumber: parsed.phoneNumber || '',
+            eversendTag: parsed.eversendTag || '',
             note: ''
           };
         }
@@ -52,7 +54,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
         console.error('Failed to parse saved withdrawal form:', e);
       }
     }
-    return { firstName: '', lastName: '', country: 'CM', phoneNumber: '', note: '' };
+    return { firstName: '', lastName: '', country: 'CM', phoneNumber: '', eversendTag: '', note: '' };
   });
 
   const [loading, setLoading] = useState(false);
@@ -96,8 +98,8 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
           first_name: form.firstName,
           last_name:  form.lastName,
           country:    form.country,
-          phone_number:   form.phoneNumber || null,
-          eversend_tag:   null,
+          phone_number:   method.id === 'momo'     ? form.phoneNumber  || null : null,
+          eversend_tag:   method.id === 'eversend' ? form.eversendTag  || null : null,
           beneficiary_id: null,
         },
         note: form.note || null,
@@ -110,6 +112,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
           lastName: form.lastName,
           country: form.country,
           phoneNumber: form.phoneNumber,
+          eversendTag: form.eversendTag,
         };
         localStorage.setItem('aura_withdrawal_form', JSON.stringify(toSave));
       }
@@ -256,10 +259,14 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                 {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.label}</option>)}
               </select>
             </div>
-            {field('phoneNumber', 'MOBILE WALLET NUMBER', '+237...', 'tel')}
+            {method.id === 'momo'     && field('phoneNumber',  'MOBILE WALLET NUMBER', '+237...', 'tel')}
+            {method.id === 'eversend' && field('eversendTag',  'EVERSEND TAG / PHONE', '@tag or phone')}
             {field('note', 'NOTE (OPTIONAL)', 'Reason for withdrawal...')}
             <button onClick={() => {
-              const missing = !form.firstName || !form.lastName || !form.phoneNumber;
+              const missing =
+                !form.firstName || !form.lastName ||
+                (method.id === 'momo'     && !form.phoneNumber) ||
+                (method.id === 'eversend' && !form.eversendTag);
               if (missing) { setError('Please fill all required fields.'); return; }
               setError(''); setStep(4);
             }}
@@ -280,7 +287,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                 ['Method',     method.label],
                 ['Recipient',  `${form.firstName} ${form.lastName}`],
                 ['Country',    COUNTRIES.find(c => c.code === form.country)?.label || form.country],
-                ['Destination', form.phoneNumber || form.accountNumber || '—'],
+                ['Destination', form.phoneNumber || form.eversendTag || '—'],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between text-xs">
                   <span className="text-[var(--text-secondary)] opacity-50 font-semibold">{k}</span>
