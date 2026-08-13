@@ -62,9 +62,11 @@ const normalizePhoneIntl = (phone, country = 'CM') => {
   return `+${prefixes[country] || '237'}${local}`;
 };
 
+// Orange Money CM rejects hyphens and underscores in transaction IDs (422 integrity error).
+// Strip to alphanumeric only to be safe across all PayUnit providers.
 const cleanTransactionId = (value) =>
   String(value || '')
-    .replace(/[^a-zA-Z0-9_-]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
     .slice(0, 64);
 
 const parseData = (response) => response?.data?.data || response?.data || response;
