@@ -89,7 +89,16 @@ const initializePayment = async ({
   };
 
   const res = await client().post('/api/gateway/initialize', payload);
-  return { raw: res.data, data: parseData(res) };
+  const raw = res.data;
+  // PayUnit occasionally returns HTTP 200 with status:'FAILED' in the body
+  // instead of a 4xx HTTP code. Throw a synthetic error so callers' catch
+  // blocks handle it the same way as a real HTTP 4xx response.
+  if (raw?.status === 'FAILED') {
+    const err = new Error(raw?.message || 'Payment initialization failed');
+    err.response = { status: raw?.statusCode || 400, data: raw };
+    throw err;
+  }
+  return { raw, data: parseData(res) };
 };
 
 const makeMobilePayment = async ({
@@ -114,7 +123,15 @@ const makeMobilePayment = async ({
   };
 
   const res = await client().post('/api/gateway/makepayment', payload);
-  return { raw: res.data, data: parseData(res) };
+  const raw = res.data;
+  // Same guard as initializePayment: throw on HTTP 200 + FAILED body so
+  // callers don't create phantom pending transactions for rejected payments.
+  if (raw?.status === 'FAILED') {
+    const err = new Error(raw?.message || 'Mobile payment failed');
+    err.response = { status: raw?.statusCode || 400, data: raw };
+    throw err;
+  }
+  return { raw, data: parseData(res) };
 };
 
 const getPaymentStatus = async (transactionId) => {

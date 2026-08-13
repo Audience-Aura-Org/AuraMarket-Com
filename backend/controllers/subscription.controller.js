@@ -264,14 +264,26 @@ const initializeSubscription = async (req, res, next) => {
       // Live testing confirmed Orange (CM_ORANGE) now works through makeMobilePayment —
       // PayUnit returns PENDING and falls back to "dial #150*50# to confirm".
       const resolvedProvider = payunit.detectCmProvider(normalizedPhone);
-      const init = await payunit.initializePayment({
-        amount: feeBreakdown.grossAmount,
-        currency,
-        transactionId: transactionRef,
-        returnUrl: callbackUrl,
-        notifyUrl,
-        country,
-      });
+      let init;
+      try {
+        init = await payunit.initializePayment({
+          amount: feeBreakdown.grossAmount,
+          currency,
+          transactionId: transactionRef,
+          returnUrl: callbackUrl,
+          notifyUrl,
+          country,
+        });
+      } catch (initErr) {
+        console.error('[PayUnit Sub initialize]', initErr.response?.data || initErr.message);
+        await transaction.deleteOne();
+        return res.status(400).json({
+          success: false,
+          code: 'INIT_FAILED',
+          message: 'Payment service is temporarily unavailable. Please try again in a moment.',
+          detail: initErr.response?.data,
+        });
+      }
       let direct;
       let mobilePaymentTimedOut = false;
       try {

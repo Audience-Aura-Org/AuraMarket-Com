@@ -425,15 +425,28 @@ const payunitInitialize = async (req, res) => {
     //      phone_number   = local 9-digit format, e.g. 651188134 (not +237...)
     // -----------------------------------------------------------------------
 
-    // Step 1: Always initialize first
-    const init = await payunit.initializePayment({
-      amount: feeBreakdown.grossAmount,
-      currency,
-      transactionId: transactionRef,
-      returnUrl,
-      notifyUrl,
-      country,
-    });
+    // Step 1: Always initialize first.
+    // Wrapped in its own try-catch so a 417/FAILED from /initialize returns a
+    // clean 400 to the client rather than the raw 417 or a generic 500.
+    let init;
+    try {
+      init = await payunit.initializePayment({
+        amount: feeBreakdown.grossAmount,
+        currency,
+        transactionId: transactionRef,
+        returnUrl,
+        notifyUrl,
+        country,
+      });
+    } catch (initErr) {
+      console.error('[PayUnit initialize]', initErr.response?.data || initErr.message);
+      return res.status(400).json({
+        success: false,
+        code: 'INIT_FAILED',
+        message: 'Payment service is temporarily unavailable. Please try again in a moment.',
+        detail: initErr.response?.data,
+      });
+    }
 
     // Step 2: If phone provided, trigger direct mobile push with the SAME transactionRef.
     // Both MTN and Orange are sent through makeMobilePayment — live testing confirmed
