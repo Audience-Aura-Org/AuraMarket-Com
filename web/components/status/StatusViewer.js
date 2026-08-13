@@ -229,13 +229,14 @@ const StoryVideo = memo(function StoryVideo({
     }
     waitTimeoutRef.current = setTimeout(() => {
       console.warn('[Video] Wait timeout reached, reloading story video:', src);
-      const v = ref.current;
       if (!didRetryCacheBust) {
         setDidRetryCacheBust(true);
         setPlaybackSrc(addCacheBust(playbackSrc || src));
       } else {
-        v?.load();
-        setReloadToken(t => t + 1);
+        // Both URL variants tried and video is still stalling — give up and
+        // advance to the next story rather than looping the reload forever.
+        console.warn('[Video] All retries exhausted, skipping story:', src);
+        onEnded();
       }
     }, VIDEO_WAIT_TIMEOUT_MS);
     return () => {
@@ -244,7 +245,7 @@ const StoryVideo = memo(function StoryVideo({
         waitTimeoutRef.current = null;
       }
     };
-  }, [active, paused, isWaiting, src, playbackSrc, didRetryCacheBust]);
+  }, [active, paused, isWaiting, src, playbackSrc, didRetryCacheBust, onEnded]);
 
   // Mute
   useEffect(() => {
@@ -323,8 +324,6 @@ const StoryVideo = memo(function StoryVideo({
           setIsWaiting(false);
           setHasStarted(true);
         }}
-        onSeeking={() => setIsWaiting(true)}
-        onSeeked={() => setIsWaiting(false)}
         onStalled={() => setIsWaiting(true)}
         onWaiting={() => setIsWaiting(true)}
         onLoadedData={handleReady}
@@ -507,6 +506,8 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
   const [isReplying, setIsReplying] = useState(false);
   // When the native ExoPlayer fails to load a video, fall back to web <video>.
   const [nativeVideoFailed, setNativeVideoFailed] = useState(false);
+  // True while ExoPlayer is setting up (shows spinner instead of black void).
+  const [nativePlayerLoading, setNativePlayerLoading] = useState(false);
 
   const videoBarRef = useRef(null);
   const holdTimer   = useRef(null);
@@ -686,6 +687,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
   useEffect(() => {
     // Reset fallback flag for each new story attempt.
     setNativeVideoFailed(false);
+    setNativePlayerLoading(false);
 
     if (!isNativePlatform() || !isNativePlayerAvailable()) return;
 
@@ -706,6 +708,22 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
     nativeSegmentEndRef.current   = segEnd;
 
     let cancelled = false;
+    setNativePlayerLoading(true);
+
+    // If ExoPlayer setup hangs (network stall, bad URL), fall back to web
+    // <video> after 8 seconds rather than leaving a black transparent void.
+    const setupTimeoutId = setTimeout(() => {
+      if (!cancelled) {
+        console.warn('[StatusViewer] Native player setup timed out, falling back to web video');
+        if (nativePlayerActiveRef.current) {
+          destroyNativePlayer().catch(() => {});
+          nativePlayerActiveRef.current = false;
+        }
+        setNativePlayerLoading(false);
+        setNativeVideoFailed(true);
+      }
+    }, 8000);
+
     const setup = async () => {
       const rect    = container.getBoundingClientRect();
       const dpr     = window.devicePixelRatio || 1;
@@ -731,9 +749,12 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
       await setNativeSource(story.content_url);
       await seekNative(segStart * 1000);
       if (!pausedRef.current) await playNative();
+      clearTimeout(setupTimeoutId);
+      if (!cancelled) setNativePlayerLoading(false);
     };
 
     setup().catch((err) => {
+      clearTimeout(setupTimeoutId);
       console.warn('[StatusViewer] Native player failed, falling back to web video:', err?.message || err);
       if (!cancelled) {
         // Tear down the native player so the WebView background isn't left transparent.
@@ -741,10 +762,14 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
           destroyNativePlayer().catch(() => {});
           nativePlayerActiveRef.current = false;
         }
+        setNativePlayerLoading(false);
         setNativeVideoFailed(true);
       }
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      clearTimeout(setupTimeoutId);
+    };
   }, [story?._id, story?.content_url]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Native viewer: pause/resume sync ────────────────────────────────────
@@ -978,7 +1003,22 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
                       <div
                         ref={nativeViewerContainerRef}
                         className="absolute inset-0"
-                      />
+                      >
+                        {/* Show poster + spinner while ExoPlayer sets up so users
+                            never see a bare black void during the setup phase.     */}
+                        {nativePlayerLoading && (
+                          <div className="absolute inset-0 z-10 bg-black flex items-center justify-center">
+                            {s.thumbnail_url && (
+                              <img
+                                src={s.thumbnail_url}
+                                alt=""
+                                className="absolute inset-0 w-full h-full object-cover opacity-40"
+                              />
+                            )}
+                            <Loader2 className="relative z-10 size-10 text-white/60 animate-spin" />
+                          </div>
+                        )}
+                      </div>
                     ) : null
                   ) : (
                     <StoryVideo
@@ -1000,6 +1040,7 @@ export default function StatusViewer({ initialStatuses, initialStoryId, onClose,
                     fetchPriority={isActive ? 'high' : 'low'}
                     decoding="async"
                     className="absolute inset-0 w-full h-full object-cover"
+                    onError={isActive ? goNext : undefined}
                   />
                 ) : (
                   <div
