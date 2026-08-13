@@ -374,7 +374,8 @@ const payunitInitialize = async (req, res) => {
     // a localhost/capacitor origin (which happens when request comes from APK).
     const publicWebUrl = process.env.WEB_CLIENT_URL || 'https://auradime.com';
     const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get('host')}`}/api/v1/payments/payunit/webhook`;
-    const transactionRef = payunit.cleanTransactionId(`AURAPU${Date.now()}${String(req.user._id).slice(-6)}`);
+    // Must be fully uppercase — Orange Money CM returns 422 on transaction IDs with lowercase letters.
+    const transactionRef = payunit.cleanTransactionId(`AURAPU${Date.now()}${String(req.user._id).slice(-6)}`.toUpperCase());
     // Strip any localhost/capacitor prefix that might arrive from mobile app redirect_url
     const safeRedirect = customRedirect && !/localhost|127\.0\.0\.1|capacitor:\/\//i.test(customRedirect)
       ? customRedirect
