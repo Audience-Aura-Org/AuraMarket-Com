@@ -257,7 +257,10 @@ const initializeSubscription = async (req, res, next) => {
     }
 
     if (payment_method === 'payunit') {
-      const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get('host')}`}/api/v1/payments/payunit/webhook`;
+      // req.hostname uses X-Forwarded-Host (via trust proxy) — the public domain.
+      // req.get('host') returns the nginx internal proxy address (localhost:3000 etc.)
+      // which PayUnit rejects as an invalid notify_url.
+      const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.hostname}`}/api/v1/payments/payunit/webhook`;
       // Always auto-detect operator from phone prefix — never trust client-submitted provider.
       // The subscribe page defaults to CM_MTNMOMO; an Orange user would silently get an MTN
       // push sent to their Orange number which PayUnit immediately rejects as FAILED.
