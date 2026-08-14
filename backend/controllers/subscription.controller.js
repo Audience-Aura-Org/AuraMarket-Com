@@ -170,8 +170,10 @@ const initializeSubscription = async (req, res, next) => {
     }
 
     const feeBreakdown = applyMobileMoneyCollectionFee(plan.price, payment_method, currency);
+    // Orange Money CM hard-rejects transaction IDs longer than 20 characters (returns HTTP 417).
+    // PayUnit ref: SU(2) + ms-timestamp(13) + userId-tail(5) = 20 chars exactly. Uppercase required.
     const transactionRef = payment_method === 'payunit'
-      ? payunit.cleanTransactionId(generateSubscriptionRef(req.user._id))
+      ? payunit.cleanTransactionId(('SU' + Date.now() + String(req.user._id).slice(-5)).toUpperCase())
       : generateSubscriptionRef(req.user._id);
 
     // Always use the configured public web URL — never allow localhost/capacitor origins

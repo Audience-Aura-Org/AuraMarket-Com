@@ -411,8 +411,9 @@ const payunitInitialize = async (req, res) => {
     // req.get('host') returns the nginx internal proxy address (localhost:3000 etc.)
     // which PayUnit rejects as an invalid notify_url.
     const notifyUrl = `${process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.hostname}`}/api/v1/payments/payunit/webhook`;
-    // Must be fully uppercase — Orange Money CM returns 422 on transaction IDs with lowercase letters.
-    const transactionRef = payunit.cleanTransactionId(`AURAPU${Date.now()}${String(req.user._id).slice(-6)}`.toUpperCase());
+    // Orange Money CM hard-rejects transaction IDs longer than 20 characters (returns HTTP 417).
+    // Format: AU(2) + ms-timestamp(13) + userId-tail(5) = 20 chars exactly. Uppercase required.
+    const transactionRef = payunit.cleanTransactionId(('AU' + Date.now() + String(req.user._id).slice(-5)).toUpperCase());
     // Strip any localhost/capacitor prefix that might arrive from mobile app redirect_url
     const safeRedirect = customRedirect && !/localhost|127\.0\.0\.1|capacitor:\/\//i.test(customRedirect)
       ? customRedirect
