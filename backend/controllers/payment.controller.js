@@ -158,11 +158,39 @@ const markCheckoutOrdersFailed = async (userId, orderIds = []) => {
   const ids = normalizeOrderIds(orderIds);
   if (ids.length === 0) return;
 
+  // For food orders in 'awaiting_payment', also cancel the food_status so they
+  // don't remain stuck in a non-terminal state after the gateway rejects payment.
   await Order.updateMany(
     {
       _id: { $in: ids },
       customer_id: userId,
       payment_status: 'pending',
+      food_status: 'awaiting_payment',
+    },
+    {
+      $set: {
+        payment_status: 'failed',
+        order_status:   'cancelled',
+        food_status:    'timed_out',
+      },
+      $push: {
+        status_logs: {
+          status:    'timed_out',
+          actor_id:  null,
+          timestamp: new Date(),
+          note:      'Gateway payment failed — order cancelled automatically.',
+        },
+      },
+    }
+  );
+
+  // Non-food orders: just mark payment as failed
+  await Order.updateMany(
+    {
+      _id: { $in: ids },
+      customer_id: userId,
+      payment_status: 'pending',
+      food_status: { $ne: 'awaiting_payment' },
     },
     { $set: { payment_status: 'failed' } }
   );

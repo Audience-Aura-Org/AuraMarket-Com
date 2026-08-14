@@ -434,14 +434,24 @@ const createOrder = async (req, res, next) => {
       // Intercity fields (spread is empty object for non-intercity orders)
       ...intercityOrderFields,
       // Restaurant-specific fields
+      // Gateway-paid food orders (Payunit/Eversend) start as 'awaiting_payment' so the
+      // restaurant is NOT notified until the payment webhook confirms funds were captured.
+      // Wallet and POD orders are already confirmed at creation, so they go straight to
+      // 'pending_acceptance' and the acceptance window opens immediately.
       ...(isFoodOrder && {
         fulfilment_type:           fulfilment_type || 'delivery',
-        food_status:               'pending_acceptance',
-        acceptance_deadline:       new Date(Date.now() + ACCEPTANCE_TIMEOUT_MINUTES * 60 * 1000),
+        food_status:               (payment_method === 'wallet' || payment_method === 'pay_on_delivery')
+                                     ? 'pending_acceptance'
+                                     : 'awaiting_payment',
+        acceptance_deadline:       (payment_method === 'wallet' || payment_method === 'pay_on_delivery')
+                                     ? new Date(Date.now() + ACCEPTANCE_TIMEOUT_MINUTES * 60 * 1000)
+                                     : null,
         new_restaurant_hold:       newRestaurantHold,
         dispute_window_closes_at:  new Date(Date.now() + 48 * 60 * 60 * 1000), // 48h from placement
         status_logs: [{
-          status:    'pending_acceptance',
+          status:    (payment_method === 'wallet' || payment_method === 'pay_on_delivery')
+                       ? 'pending_acceptance'
+                       : 'awaiting_payment',
           actor_id:  req.user._id,
           timestamp: new Date(),
           note:      'Order placed by customer.',
@@ -1589,12 +1599,18 @@ const createOrdersFromCart = async (req, res, next) => {
         ...cartIntercityFields,
         ...(isFoodOrderCart && {
           fulfilment_type:          fulfilment_type || 'delivery',
-          food_status:              'pending_acceptance',
-          acceptance_deadline:      new Date(Date.now() + ACCEPTANCE_TIMEOUT_MINUTES_CART * 60 * 1000),
+          food_status:              (payment_method === 'wallet' || payment_method === 'pay_on_delivery')
+                                      ? 'pending_acceptance'
+                                      : 'awaiting_payment',
+          acceptance_deadline:      (payment_method === 'wallet' || payment_method === 'pay_on_delivery')
+                                      ? new Date(Date.now() + ACCEPTANCE_TIMEOUT_MINUTES_CART * 60 * 1000)
+                                      : null,
           new_restaurant_hold:      cartNewRestaurantHold,
           dispute_window_closes_at: new Date(Date.now() + 48 * 60 * 60 * 1000),
           status_logs: [{
-            status:    'pending_acceptance',
+            status:    (payment_method === 'wallet' || payment_method === 'pay_on_delivery')
+                         ? 'pending_acceptance'
+                         : 'awaiting_payment',
             actor_id:  req.user._id,
             timestamp: new Date(),
             note:      'Order placed by customer.',

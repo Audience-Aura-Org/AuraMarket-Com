@@ -280,6 +280,24 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
   // Handle vendor payout (escrow or direct)
   await handleVendorPayout(order, session);
 
+  // Food orders that started as 'awaiting_payment' (gateway checkout):
+  // Now that payment is confirmed, open the kitchen acceptance window.
+  if (order.food_status === 'awaiting_payment') {
+    const PlatformSettings = require('../../models/PlatformSettings.model');
+    const ps = await PlatformSettings.getSettings();
+    const timeoutMins = ps.food_acceptance_timeout_minutes ?? 30;
+    order.food_status = 'pending_acceptance';
+    order.acceptance_deadline = new Date(Date.now() + timeoutMins * 60 * 1000);
+    order.status_logs = order.status_logs || [];
+    order.status_logs.push({
+      status:    'pending_acceptance',
+      actor_id:  null,
+      timestamp: new Date(),
+      note:      'Payment confirmed via gateway — kitchen acceptance window opened.',
+    });
+    await order.save({ session });
+  }
+
   // Create logistics shipment if needed
   if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
     const quartier = order.shipping_address?.quartier;
@@ -430,6 +448,24 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
     }], { session, ordered: true });
 
     await handleVendorPayout(order, session);
+
+    // Food orders that started as 'awaiting_payment' (gateway checkout):
+    // Now that payment is confirmed, open the kitchen acceptance window.
+    if (order.food_status === 'awaiting_payment') {
+      const PlatformSettings = require('../../models/PlatformSettings.model');
+      const ps = await PlatformSettings.getSettings();
+      const timeoutMins = ps.food_acceptance_timeout_minutes ?? 30;
+      order.food_status = 'pending_acceptance';
+      order.acceptance_deadline = new Date(Date.now() + timeoutMins * 60 * 1000);
+      order.status_logs = order.status_logs || [];
+      order.status_logs.push({
+        status:    'pending_acceptance',
+        actor_id:  null,
+        timestamp: new Date(),
+        note:      'Payment confirmed via gateway — kitchen acceptance window opened.',
+      });
+      await order.save({ session });
+    }
 
     if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
       const quartier = order.shipping_address?.quartier;

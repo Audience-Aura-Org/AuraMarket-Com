@@ -149,11 +149,12 @@ const OrderSchema = new mongoose.Schema(
 
     // Kitchen-specific status track. Runs parallel to order_status.
     // Not added to order_status enum to avoid contaminating retail GMV/payout queries.
-    // pending_acceptance → preparing → ready → rider_arrived → picked_up → delivered
+    // awaiting_payment → pending_acceptance → preparing → ready → rider_arrived → picked_up → delivered
+    // awaiting_payment: gateway payment (Payunit/Eversend) not yet confirmed; restaurant not notified yet.
     // Terminal failure states: timed_out (system auto-cancel), rejected (vendor decline)
     food_status: {
       type: String,
-      enum: ['pending_acceptance', 'preparing', 'ready', 'rider_arrived', 'picked_up', 'delivered', 'timed_out', 'rejected'],
+      enum: ['awaiting_payment', 'pending_acceptance', 'preparing', 'ready', 'rider_arrived', 'picked_up', 'delivered', 'timed_out', 'rejected'],
       default: null, // null for retail orders
     },
 
