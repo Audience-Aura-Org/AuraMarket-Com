@@ -186,7 +186,7 @@ export default function AddMealPage() {
       const res = await api.post('/products', fd);
       if (res.data.success) {
         toast.success(`"${form.name}" added to menu!`);
-        router.push('/vendor/kitchen');
+        router.push('/vendor/meals');
       }
     } catch (err) {
       const code = err?.response?.data?.code;
