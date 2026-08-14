@@ -413,24 +413,16 @@ export default function DinePage() {
 
                 {isSearching ? (
                   /* Search results → circle grid */
-                  <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-4 lg:gap-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6">
                     {filteredRestaurants.map(r => (
                       <RestaurantCard key={r.vendor_id} restaurant={r} />
                     ))}
                   </div>
                 ) : (
-                  /* Browse → horizontal circle carousel, max 6 */
-                  <div
-                    ref={carouselRef}
-                    className="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-4 lg:gap-6 pb-2"
-                  >
+                  /* Browse → circle grid, max 6 */
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 lg:gap-6">
                     {restaurants.slice(0, 6).map(r => (
-                      <div
-                        key={r.vendor_id}
-                        className="shrink-0 snap-start w-36 md:w-40"
-                      >
-                        <RestaurantCard restaurant={r} />
-                      </div>
+                      <RestaurantCard key={r.vendor_id} restaurant={r} />
                     ))}
                   </div>
                 )}
