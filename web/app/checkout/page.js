@@ -88,7 +88,7 @@ function CheckoutContent() {
     recipient_name: '',
     recipient_phone: '',
     paymentMethod: 'payunit',
-    escrowEnabled: true,
+    escrowEnabled: false,
     logistics_company_id: VENDOR_MANAGED_LOGISTICS_ID,
     payunit: { phone: '', provider: 'CM_MTNMOMO', country: 'CM', currency: 'XAF' },
     eversend: { phone: '', country: 'CM', currency: 'XAF' },
@@ -301,7 +301,7 @@ function CheckoutContent() {
 
            // Intercity routes cannot use pay-on-delivery — auto-switch to payunit
            if (res.data.data.is_intercity && formData.paymentMethod === 'pay_on_delivery') {
-              setFormData(prev => ({ ...prev, paymentMethod: 'payunit', escrowEnabled: true }));
+              setFormData(prev => ({ ...prev, paymentMethod: 'payunit' }));
               toast('Pay on delivery is not available for intercity orders.', { icon: 'ℹ️' });
            }
         }
