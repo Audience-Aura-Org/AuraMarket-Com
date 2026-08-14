@@ -256,30 +256,59 @@ export default function AddMealPage() {
             className="hidden"
             onChange={(e) => handleImageFiles(e.target.files)}
           />
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-            {images.map((img, i) => (
-              <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-[var(--glass-border)]">
-                <img src={img.preview} alt="" className="size-full object-cover" />
+          {images.length === 0 ? (
+            /* Empty state — full-width drop zone */
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full aspect-video rounded-2xl border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center gap-2 text-[var(--text-secondary)] hover:border-orange-500/50 hover:text-orange-500 transition-all"
+            >
+              <Upload className="size-7" />
+              <span className="text-[11px] font-semibold">Upload meal photo</span>
+              <span className="text-[10px] opacity-50">Tap to select — up to {MAX_PRODUCT_IMAGES} images</span>
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              {/* Hero — first image, large */}
+              <div className="relative rounded-2xl overflow-hidden border border-[var(--glass-border)] flex-shrink-0" style={{ width: '56%', aspectRatio: '4/3' }}>
+                <img src={images[0].url} alt="Main photo" className="size-full object-cover" />
                 <button
                   type="button"
-                  onClick={() => setImages(prev => prev.filter((_, j) => j !== i))}
-                  className="absolute top-1 right-1 size-5 rounded-full bg-black/60 flex items-center justify-center text-white"
+                  onClick={() => setImages(prev => prev.filter((_, j) => j !== 0))}
+                  className="absolute top-1.5 right-1.5 size-6 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/80 transition-colors"
                 >
-                  <X className="size-3" />
+                  <X className="size-3.5" />
                 </button>
+                <span className="absolute bottom-1.5 left-1.5 text-[9px] font-bold text-white/80 bg-black/40 backdrop-blur-sm rounded px-1.5 py-0.5">Main</span>
               </div>
-            ))}
-            {images.length < MAX_PRODUCT_IMAGES && (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="aspect-square rounded-xl border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center gap-1 text-[var(--text-secondary)] hover:border-orange-500/50 hover:text-orange-500 transition-all"
-              >
-                <Upload className="size-5" />
-                <span className="text-[10px] font-medium">Add</span>
-              </button>
-            )}
-          </div>
+
+              {/* Side stack — extra images + add button */}
+              <div className="flex flex-col gap-2 flex-1">
+                {images.slice(1).map((img, i) => (
+                  <div key={i + 1} className="relative rounded-xl overflow-hidden border border-[var(--glass-border)] flex-1">
+                    <img src={img.url} alt="" className="size-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setImages(prev => prev.filter((_, j) => j !== i + 1))}
+                      className="absolute top-1 right-1 size-5 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+                {images.length < MAX_PRODUCT_IMAGES && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 min-h-[52px] rounded-xl border-2 border-dashed border-[var(--glass-border)] flex flex-col items-center justify-center gap-1 text-[var(--text-secondary)] hover:border-orange-500/50 hover:text-orange-500 transition-all"
+                  >
+                    <Upload className="size-4" />
+                    <span className="text-[10px] font-medium">Add</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Basics */}
