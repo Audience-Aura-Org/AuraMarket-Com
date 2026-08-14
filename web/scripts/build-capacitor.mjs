@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -18,7 +18,10 @@ const moveIfExists = (from, to) => {
   if (!existsSync(absFrom)) return false;
   mkdirSync(dirname(absTo), { recursive: true });
   if (existsSync(absTo)) rmSync(absTo, { recursive: true, force: true });
-  renameSync(absFrom, absTo);
+  // Use copy+delete instead of rename — Windows file watchers (e.g. VS Code)
+  // hold directory handles that block MoveFile (rename) but not copy/delete.
+  cpSync(absFrom, absTo, { recursive: true });
+  rmSync(absFrom, { recursive: true, force: true });
   return true;
 };
 
@@ -28,7 +31,8 @@ const restoreIfExists = (from, to) => {
   if (!existsSync(absFrom)) return;
   mkdirSync(dirname(absTo), { recursive: true });
   if (existsSync(absTo)) rmSync(absTo, { recursive: true, force: true });
-  renameSync(absFrom, absTo);
+  cpSync(absFrom, absTo, { recursive: true });
+  rmSync(absFrom, { recursive: true, force: true });
 };
 
 const moved = [];
