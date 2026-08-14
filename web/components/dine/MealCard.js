@@ -106,7 +106,11 @@ export default function MealCard({
       </div>
 
       {/* ── Image ── */}
-      <div className="relative overflow-hidden bg-[var(--accent)]/5" style={{ aspectRatio: '4 / 3' }}>
+      <div
+        className="relative overflow-hidden bg-[var(--accent)]/5 cursor-pointer"
+        style={{ aspectRatio: '4 / 3' }}
+        onClick={() => !unavailable && onSelect && onSelect(meal)}
+      >
         {thumbnail ? (
           <img
             src={thumbnail}
@@ -148,7 +152,10 @@ export default function MealCard({
       <div className="p-2 sm:p-2.5 md:p-3.5 flex flex-col flex-1 gap-2 md:gap-3">
 
         <div className="space-y-0.5 md:space-y-1">
-          <h4 className="line-clamp-2 text-[11px] sm:text-[12px] md:text-[13px] font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight">
+          <h4
+            className={`line-clamp-2 text-[11px] sm:text-[12px] md:text-[13px] font-semibold leading-snug text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors tracking-tight${onSelect && !unavailable ? ' cursor-pointer' : ''}`}
+            onClick={() => !unavailable && onSelect && onSelect(meal)}
+          >
             {meal.name}
           </h4>
 
