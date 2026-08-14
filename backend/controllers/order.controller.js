@@ -285,11 +285,11 @@ const createOrder = async (req, res, next) => {
     //   a) Restaurant has fewer completed orders than the threshold (initial hold), OR
     //   b) Cancellation-rate monitor auto-flipped cancel_rate_hold (and not admin-overridden)
     let newRestaurantHold = false;
-    let ACCEPTANCE_TIMEOUT_MINUTES = 10;
+    let ACCEPTANCE_TIMEOUT_MINUTES = 30;
     if (isFoodOrder) {
       const PlatformSettings = require('../models/PlatformSettings.model');
       const platformSettings = await PlatformSettings.getSettings();
-      ACCEPTANCE_TIMEOUT_MINUTES = platformSettings.food_acceptance_timeout_minutes ?? 10;
+      ACCEPTANCE_TIMEOUT_MINUTES = platformSettings.food_acceptance_timeout_minutes ?? 30;
       const holdThreshold = platformSettings.new_restaurant_hold_order_count ?? 5;
       const completedCount = await Order.countDocuments({
         vendor_id: vendor_id,
@@ -430,7 +430,7 @@ const createOrder = async (req, res, next) => {
       payment_status:  'pending',
       order_status:    'placed',
       // Food orders never use escrow — commission is taken at capture via handleVendorPayout direct path
-      escrow_enabled:  isFoodOrder ? false : (escrow_enabled !== undefined ? escrow_enabled : true),
+      escrow_enabled:  isFoodOrder ? false : (escrow_enabled !== undefined ? escrow_enabled : false),
       // Intercity fields (spread is empty object for non-intercity orders)
       ...intercityOrderFields,
       // Restaurant-specific fields
@@ -450,6 +450,32 @@ const createOrder = async (req, res, next) => {
     };
 
     const [createdOrder] = await Order.create([orderData], { session, ordered: true });
+
+    // For wallet-paid food orders: capture payment immediately at placement
+    if (isFoodOrder && payment_method === 'wallet') {
+      const buyer = await User.findById(req.user._id).session(session);
+      if ((buyer.wallet_balance || 0) < total_amount) {
+        throw new Error('Insufficient wallet balance to place this food order.');
+      }
+      buyer.wallet_balance -= total_amount;
+      await buyer.save({ session });
+
+      await Transaction.create([{
+        user_id:     buyer._id,
+        type:        'payment',
+        amount:      total_amount,
+        reference:   `FOOD-${Date.now()}`,
+        status:      'completed',
+        description: `Food order payment — Order #${createdOrder._id.toString().slice(-6).toUpperCase()}`,
+        order_id:    createdOrder._id,
+      }], { session, ordered: true });
+
+      createdOrder.payment_status = 'paid';
+      createdOrder.order_status   = 'processing';
+      await createdOrder.save({ session });
+
+      await handleVendorPayout(createdOrder, session);
+    }
 
     // 5. Create shipment for logistics_partner orders (POD or wallet)
     let logisticsCompForNotify = null;
@@ -1298,7 +1324,7 @@ const createOrdersFromCart = async (req, res, next) => {
       buyer_zone_id,
     } = req.body;
     // Read timeout from PlatformSettings — will be resolved per-vendor below; default 10 min
-    let ACCEPTANCE_TIMEOUT_MINUTES_CART = 10;
+    let ACCEPTANCE_TIMEOUT_MINUTES_CART = 30;
     const payment_method = normalizePaymentMethod(rawPaymentMethod);
 
     // Validate fulfilment_type for cart food orders
@@ -1394,7 +1420,7 @@ const createOrdersFromCart = async (req, res, next) => {
       if (isFoodOrderCart) {
         const PlatformSettings = require('../models/PlatformSettings.model');
         const ps = await PlatformSettings.getSettings();
-        ACCEPTANCE_TIMEOUT_MINUTES_CART = ps.food_acceptance_timeout_minutes ?? 10;
+        ACCEPTANCE_TIMEOUT_MINUTES_CART = ps.food_acceptance_timeout_minutes ?? 30;
         const holdThreshold = ps.new_restaurant_hold_order_count ?? 5;
         const completedCount = await Order.countDocuments({
           vendor_id: vendorId,
@@ -1551,7 +1577,7 @@ const createOrdersFromCart = async (req, res, next) => {
         delivery_description,
         payment_status: 'pending',
         order_status: 'placed',
-        escrow_enabled: isFoodOrderCart ? false : (escrow_enabled !== undefined ? escrow_enabled : true),
+        escrow_enabled: isFoodOrderCart ? false : (escrow_enabled !== undefined ? escrow_enabled : false),
         // Intercity fields (empty spread for non-intercity)
         ...cartIntercityFields,
         ...(isFoodOrderCart && {
@@ -1568,6 +1594,34 @@ const createOrdersFromCart = async (req, res, next) => {
           }],
         }),
       }], { session, ordered: true });
+
+      // For wallet-paid food orders: capture payment immediately at placement so the
+      // vendor is paid at capture and any timeout/rejection triggers clawbackFoodRefund
+      // which credits the amount back to the buyer's wallet.
+      if (isFoodOrderCart && payment_method === 'wallet') {
+        const buyer = await User.findById(req.user._id).session(session);
+        if ((buyer.wallet_balance || 0) < orderTotal) {
+          throw new Error('Insufficient wallet balance to place this food order.');
+        }
+        buyer.wallet_balance -= orderTotal;
+        await buyer.save({ session });
+
+        await Transaction.create([{
+          user_id:     buyer._id,
+          type:        'payment',
+          amount:      orderTotal,
+          reference:   `FOOD-${Date.now()}`,
+          status:      'completed',
+          description: `Food order payment — Order #${newOrder._id.toString().slice(-6).toUpperCase()}`,
+          order_id:    newOrder._id,
+        }], { session, ordered: true });
+
+        newOrder.payment_status = 'paid';
+        newOrder.order_status   = 'processing';
+        await newOrder.save({ session });
+
+        await handleVendorPayout(newOrder, session);
+      }
 
       createdOrderIds.push(newOrder._id);
 
