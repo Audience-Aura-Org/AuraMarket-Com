@@ -97,7 +97,7 @@ export default function DineMealCard({ meal, onSelect = null }) {
           className="flex min-w-0 items-center gap-1.5 overflow-hidden group/vendor"
           onClick={e => e.stopPropagation()}
         >
-          <div className="size-5 md:size-6 rounded-md md:rounded-lg overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm flex items-center justify-center">
+          <div className="size-5 md:size-6 rounded-full overflow-hidden border border-[var(--glass-border)] bg-[var(--bg-secondary)] shrink-0 shadow-sm flex items-center justify-center">
             {restaurant_logo_url ? (
               <img src={restaurant_logo_url} alt={restaurant_name} className="size-full object-cover" />
             ) : (

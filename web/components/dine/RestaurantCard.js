@@ -163,7 +163,7 @@ export default function RestaurantCard({ restaurant }) {
         </div>
 
         {/* Restaurant initial / logo avatar */}
-        <div className="absolute bottom-3 left-3 size-11 lg:size-12 rounded-2xl border-2 border-white/30 bg-white/15 backdrop-blur-md flex items-center justify-center overflow-hidden shadow-xl">
+        <div className="absolute bottom-3 left-3 size-11 lg:size-12 rounded-full border-2 border-white/30 bg-white/15 backdrop-blur-md flex items-center justify-center overflow-hidden shadow-xl">
           {logo_url ? (
             <img src={logo_url} alt={store_name} className="h-full w-full object-cover" />
           ) : (
