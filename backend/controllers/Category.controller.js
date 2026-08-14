@@ -132,17 +132,19 @@ exports.getCategoriesWithProducts = async (req, res) => {
 };
 
 // @desc    Get hierarchical tree (for pickers and admin management)
-// Supports ?applies_to=restaurant|retail|all  (default: all)
+// Supports ?applies_to=restaurant|retail|all  (default: retail+both)
 exports.getCategoryTree = async (req, res) => {
   try {
     const appliesToParam = req.query.applies_to;
     const surfaceFilter = {};
-    if (appliesToParam === 'restaurant') {
+    if (appliesToParam === 'all') {
+      // Admin: no filter — return every category regardless of surface
+    } else if (appliesToParam === 'restaurant') {
       surfaceFilter.applies_to = { $in: ['restaurant', 'both'] };
-    } else if (appliesToParam === 'retail') {
+    } else {
+      // Default (retail or no param): retail surfaces only see retail + both
       surfaceFilter.applies_to = { $in: ['retail', 'both'] };
     }
-    // else: no filter — return everything (admin / default)
 
     const categories = await Category.find({ is_active: true, ...surfaceFilter }).sort('order name');
 

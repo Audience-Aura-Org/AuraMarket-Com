@@ -64,22 +64,6 @@ export default function EditProductPage() {
 
   const [parcelClass, setParcelClass] = useState('small'); // 'small' | 'oversize'
 
-  // Meal / Food item state
-  const [isRestaurantVendor, setIsRestaurantVendor] = useState(false);
-  const [isMeal, setIsMeal] = useState(false);
-  const [mealBookingOptions, setMealBookingOptions] = useState(['delivery']);
-  const [prepTimeValue, setPrepTimeValue] = useState('');
-  const [prepTimeUnit, setPrepTimeUnit] = useState('minutes');
-
-  // Option groups (meal customisation — Sauce, Size, Add-ons, etc.)
-  const [optionGroups, setOptionGroups] = useState([]);
-  const addOptionGroup    = () => setOptionGroups(prev => [...prev, { name: '', is_required: false, min_select: 1, max_select: 1, options: [] }]);
-  const removeOptionGroup = (gi) => setOptionGroups(prev => prev.filter((_, i) => i !== gi));
-  const updateOptionGroup = (gi, field, val) => setOptionGroups(prev => prev.map((g, i) => i === gi ? { ...g, [field]: val } : g));
-  const addGroupOption    = (gi) => setOptionGroups(prev => prev.map((g, i) => i === gi ? { ...g, options: [...g.options, { label: '', price_delta: 0, is_default: false, is_available: true }] } : g));
-  const updateGroupOption = (gi, oi, field, val) => setOptionGroups(prev => prev.map((g, i) => i === gi ? { ...g, options: g.options.map((o, j) => j === oi ? { ...o, [field]: val } : o) } : g));
-  const removeGroupOption = (gi, oi) => setOptionGroups(prev => prev.map((g, i) => i === gi ? { ...g, options: g.options.filter((_, j) => j !== oi) } : g));
-
   // ── Load product ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!id) return;
@@ -116,36 +100,11 @@ export default function EditProductPage() {
           setVariantTypes(p.variant_types || [{ name: 'Color', options: [], metadata: {} }]);
           setSkuVariants(p.sku_variants  || []);
         }
-        if (p.meal || p.is_meal) {
-          setIsMeal(true);
-          const opts = (p.meal?.booking_options || []).map(o =>
-            typeof o === 'string' ? o : o.type
-          ).filter(Boolean);
-          if (opts.length) setMealBookingOptions(opts);
-          if (p.meal?.prep_time_minutes) {
-            const { value, unit } = minutesToDisplay(p.meal.prep_time_minutes);
-            setPrepTimeValue(value);
-            setPrepTimeUnit(unit);
-          }
-          if (Array.isArray(p.meal?.option_groups)) setOptionGroups(p.meal.option_groups);
-        }
         setParcelClass(p.parcel_class || 'small');
       })
       .catch(err => console.error('Could not fetch product', err))
       .finally(() => setFetching(false));
   }, [id]);
-
-  // ── Detect restaurant vendor ─────────────────────────────────────────────────
-  useEffect(() => {
-    api.get('/vendors/me')
-      .then(res => {
-        if (res.data?.data?.vendor?.vendor_type === 'restaurant') {
-          setIsRestaurantVendor(true);
-          setIsMeal(true);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   // ── Mobile scroll preservation ──────────────────────────────────────────────
   const rememberMobileScroll = () => {
@@ -307,7 +266,6 @@ export default function EditProductPage() {
     if (!hasVariants && form.sale_price && Number(form.sale_price) >= Number(form.price))
       return toast.error('Sale price must be less than the regular price.');
     if (!form.category) return toast.error('Please select a category.');
-    if (isMeal && !mealBookingOptions.length) return toast.error('Select at least one order mode for this meal.');
 
     setLoading(true);
     try {
@@ -335,19 +293,6 @@ export default function EditProductPage() {
         formData.append('sku_variants', JSON.stringify(skuVariants));
       } else {
         formData.append('has_variants', 'false');
-      }
-
-      if (isMeal) {
-        formData.append('is_meal', 'true');
-        formData.append('meal', JSON.stringify({
-          booking_options:   mealBookingOptions.map(v => ({ type: v })),
-          prep_time_minutes: prepTimeValue
-            ? Number(prepTimeValue) * (PREP_UNITS.find(u => u.value === prepTimeUnit)?.factor ?? 1)
-            : null,
-          option_groups:     optionGroups,
-        }));
-      } else {
-        formData.append('is_meal', 'false');
       }
 
       await api.patch(`/products/${id}`, formData, {
@@ -459,106 +404,6 @@ export default function EditProductPage() {
                   </div>
                 </div>
               </section>
-
-              {/* Meal toggle — hidden for restaurant vendors (all their products are meals) */}
-              {!isRestaurantVendor && (
-                <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-[var(--glass-border)] bg-[var(--bg-primary)]/40">
-                  <div className="flex items-center gap-3 mb-4 pb-4 border-b border-[var(--glass-border)]">
-                    <div className="p-2 rounded-xl bg-orange-500/10 text-orange-500">
-                      <Utensils className="w-5 h-5" />
-                    </div>
-                    <h2 className="font-bold tracking-tight text-[var(--text-primary)] text-sm">Meal / Food Item</h2>
-                  </div>
-                  <div
-                    className={`flex items-center justify-between rounded-2xl border px-4 py-3 cursor-pointer transition-all ${isMeal ? 'border-orange-500/40 bg-orange-500/8' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}
-                    onClick={() => setIsMeal(v => !v)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Utensils className={`w-4 h-4 ${isMeal ? 'text-orange-500' : 'text-[var(--text-secondary)] opacity-40'}`} />
-                      <div>
-                        <p className="text-[12px] font-semibold text-[var(--text-primary)]">This is a food / meal item</p>
-                        <p className="text-[11px] text-[var(--text-secondary)] opacity-60">Enable booking modes and prep time</p>
-                      </div>
-                    </div>
-                    <div className={`relative w-10 h-6 rounded-full border transition-colors shrink-0 ${isMeal ? 'bg-orange-500 border-orange-500' : 'bg-[var(--bg-primary)] border-[var(--glass-border)]'}`}>
-                      <span className={`absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow transition-transform ${isMeal ? 'translate-x-4' : 'translate-x-0'}`} />
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* Meal fields (prep time + order modes) */}
-              {(isMeal || isRestaurantVendor) && (
-                <section className="p-3 sm:p-5 lg:p-8 rounded-2xl lg:rounded-[32px] glass-panel border border-orange-500/20 bg-orange-500/5 animate-in fade-in slide-in-from-top-4 duration-300 space-y-5">
-                  <div className="flex items-center gap-3 pb-3 border-b border-orange-500/15">
-                    <Utensils className="w-4 h-4 text-orange-500" />
-                    <h2 className="text-sm font-bold text-orange-600">Meal Details</h2>
-                  </div>
-
-                  {/* Prep Time */}
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-semibold text-[var(--text-secondary)]">
-                      Prep Time <span className="font-normal opacity-60">— how long to prepare this item</span>
-                    </label>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <input
-                        type="number"
-                        min="0"
-                        value={prepTimeValue}
-                        onChange={e => setPrepTimeValue(e.target.value)}
-                        placeholder="e.g. 15"
-                        className="w-24 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-3 py-3 text-[12px] font-medium outline-none focus:ring-2 focus:ring-orange-500/30 transition-all"
-                      />
-                      <div className="flex gap-1.5 flex-wrap">
-                        {PREP_UNITS.map(u => (
-                          <button
-                            key={u.value}
-                            type="button"
-                            onClick={() => setPrepTimeUnit(u.value)}
-                            className={`px-3 py-2.5 rounded-xl text-[11px] font-bold transition-all active:scale-95 ${
-                              prepTimeUnit === u.value
-                                ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/30'
-                                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-orange-500/30'
-                            }`}
-                          >
-                            {u.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-[var(--text-secondary)] opacity-60 leading-relaxed">
-                      Leave blank to use your restaurant&apos;s default prep time. Set a value here to override it for this item only.
-                    </p>
-                  </div>
-
-                  {/* Order modes */}
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Order Modes *</label>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {MEAL_BOOKING_MODES.map(mode => {
-                        const Icon = mode.icon;
-                        const selected = mealBookingOptions.includes(mode.value);
-                        return (
-                          <button
-                            key={mode.value}
-                            type="button"
-                            onClick={() => toggleMealBookingMode(mode.value)}
-                            className={`flex flex-col items-center gap-2 rounded-xl border py-3 px-2 text-[11px] font-bold transition-all active:scale-95 ${
-                              selected
-                                ? 'border-orange-500/50 bg-orange-500/10 text-orange-600'
-                                : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                            }`}
-                          >
-                            <Icon className={`size-4 ${selected ? 'text-orange-500' : 'opacity-40'}`} />
-                            {mode.label}
-                            {selected && <Check className="size-3 text-orange-500" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </section>
-              )}
 
               {/* Variations Configuration */}
               {hasVariants && (
@@ -903,7 +748,7 @@ export default function EditProductPage() {
                     <CategoryPicker
                       value={form.category}
                       onChange={name => updateFormField('category', name)}
-                      appliesTo={isRestaurantVendor ? 'restaurant' : undefined}
+                      appliesTo="retail"
                     />
                   </div>
                   <div>
