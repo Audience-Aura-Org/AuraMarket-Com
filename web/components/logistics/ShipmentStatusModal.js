@@ -13,8 +13,10 @@ import {
   ClipboardList,
   ChevronRight,
   ChevronLeft,
+  MessageCircle,
 } from "lucide-react";
 import { formatVariantLabel } from "@/utils/variants";
+import { useChat } from "@/context/ChatContext";
 
 const FAILURE_OPTIONS = [
   { value: "unreachable", label: "Customer Unreachable" },
@@ -59,12 +61,32 @@ export default function ShipmentStatusModal({
   onBack,
   onSubmit,
 }) {
+  // Hook must run before any early returns (React rules)
+  const { openChat } = useChat();
+
   const visible = embedded ? !!shipment : open && !!shipment;
   if (!visible) return null;
 
   const order = shipment.order_id;
   const vendor = shipment.vendor_id;
   const customer = typeof order?.customer_id === "object" ? order.customer_id : null;
+
+  // ── 3-way messaging helpers ──────────────────────────────────────────────
+  // vendor.user_id is populated by the logistics controller
+  const vendorUserId = vendor?.user_id?._id || vendor?.user_id || null;
+  const vendorName = vendor?.store_name || vendor?.name || "Vendor";
+  const customerId = customer?._id || (typeof order?.customer_id === "string" ? order.customer_id : null);
+  const orderLabel = `Shipment #${String(shipment.tracking_code || shipment._id).slice(-8).toUpperCase()}`;
+  const isTerminal = ["delivered", "failed", "cancelled"].includes(shipment.status);
+
+  const openVendorChat = () => {
+    if (!vendorUserId) return;
+    openChat(vendorUserId, null, { store_name: vendorName }, false, orderLabel);
+  };
+  const openCustomerChat = () => {
+    if (!customerId) return;
+    openChat(customerId, null, { name: customer?.name || "Customer" }, false, orderLabel);
+  };
   const pickup = formatAddress(shipment.pickup_address);
   const drop = formatAddress(shipment.delivery_address);
   const noteBlock =
@@ -294,6 +316,31 @@ export default function ShipmentStatusModal({
                 {recipientLines.length > 0 && (
                   <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70 pt-2 border-t border-[var(--glass-border)]">
                     {recipientLines.join(", ")}
+                  </div>
+                )}
+                {/* Logistics → Customer + Vendor messaging */}
+                {!isTerminal && (
+                  <div className="flex flex-col gap-2 pt-2 border-t border-[var(--glass-border)]">
+                    {customerId && (
+                      <button
+                        type="button"
+                        onClick={openCustomerChat}
+                        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
+                      >
+                        <MessageCircle className="size-4" />
+                        Message Customer
+                      </button>
+                    )}
+                    {vendorUserId && (
+                      <button
+                        type="button"
+                        onClick={openVendorChat}
+                        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
+                      >
+                        <MessageCircle className="size-4" />
+                        Message Vendor
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

@@ -986,13 +986,21 @@ const cancelOrder = async (req, res, next) => {
       throw new Error('This order has already moved into fulfilment and cannot be cancelled here.');
     }
 
+    // Food orders: customer can only cancel before the restaurant accepts.
+    // Once food_status moves past 'pending_acceptance' the kitchen is already working.
+    if (order.food_status && order.food_status !== 'pending_acceptance') {
+      throw new Error('Food orders can only be cancelled before the restaurant accepts. Please open a dispute instead.');
+    }
+
     const paidCancellation = order.payment_status === 'paid';
     const pendingCancellation = order.payment_status === 'pending';
     if (!paidCancellation && !pendingCancellation) {
       throw new Error(`Cannot cancel an order with payment status ${order.payment_status}.`);
     }
 
-    if (paidCancellation) {
+    // Non-food paid orders: honour a 30-minute grace window.
+    // Food orders skip this check — the food_status guard above is the only gate.
+    if (paidCancellation && !order.food_status) {
       const ageMs = Date.now() - new Date(order.createdAt).getTime();
       const thirtyMinutesMs = 30 * 60 * 1000;
       if (ageMs > thirtyMinutesMs) {
@@ -1000,12 +1008,11 @@ const cancelOrder = async (req, res, next) => {
       }
     }
 
-    const activeShipment = await Shipment.findOne({
-      order_id: order._id,
-      status: { $in: ['picked_up', 'in_transit', 'out_for_delivery', 'delivered'] },
-    }).session(session);
-    if (activeShipment) {
-      throw new Error('The shipment has already started. Please open a dispute or refund request instead.');
+    // Block cancellation as soon as a logistics carrier has been assigned (any status).
+    // Once a Shipment ticket exists, the order is in the carrier's hands.
+    const anyShipment = await Shipment.findOne({ order_id: order._id }).session(session);
+    if (anyShipment) {
+      throw new Error('A logistics carrier has been assigned to this order. Please open a dispute or contact support.');
     }
 
     await restoreOrderInventory(order, session);

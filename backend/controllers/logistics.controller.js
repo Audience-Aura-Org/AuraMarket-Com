@@ -268,7 +268,7 @@ const getFirmShipments = async (req, res, next) => {
       } else {
         const unordered = await Shipment.find({ _id: { $in: ids } })
           .populate(populateOrder)
-          .populate('vendor_id', 'store_name phone branding.logo')
+          .populate('vendor_id', 'store_name phone branding.logo user_id')
           .populate('order_id.products.product_id', 'name images');
         const map = new Map(unordered.map((s) => [s._id.toString(), s]));
         shipments = ids.map((id) => map.get(id.toString())).filter(Boolean);

@@ -480,7 +480,8 @@ export default function SingleOrderView({ orderId, onBack }) {
       order.payment_status === 'pending' ||
       (order.payment_status === 'paid' && cancellationWindowOpen)
     ) &&
-    !['picked_up', 'in_transit', 'out_for_delivery', 'delivered'].includes(shipmentStatusNorm);
+    !shipment &&   // blocked once any logistics carrier is assigned
+    (!isFoodOrder || order.food_status === 'pending_acceptance');  // food: pre-acceptance only
 
   // ── Food order derived state ─────────────────────────────────────────────────
   const isFoodOrder = !!order.food_status;
@@ -529,6 +530,45 @@ export default function SingleOrderView({ orderId, onBack }) {
       false,
       `Order #${order._id.slice(-8).toUpperCase()}`,
     );
+  };
+
+  // ── Vendor chat (customer → vendor) ─────────────────────────────────────
+  const vendorUserId = order.vendor_id?.user_id?._id || order.vendor_id?.user_id || null;
+  const vendorStoreName = order.vendor_id?.branding?.store_name || order.vendor_id?.name || 'Vendor';
+  const canMessageVendor =
+    !isVendor &&
+    !!vendorUserId &&
+    !['cancelled', 'refunded', 'failed'].includes(order.order_status);
+  const openVendorChat = () => {
+    const firstProduct = order.products?.[0];
+    const contextProduct = firstProduct ? {
+      _id: firstProduct.product_id?._id || firstProduct._id,
+      name: firstProduct.name,
+      images: firstProduct.image ? [firstProduct.image] : [],
+      price: firstProduct.price,
+    } : null;
+    openChat(vendorUserId, contextProduct, { store_name: vendorStoreName }, false, `Order #${order._id.slice(-8).toUpperCase()}`);
+  };
+
+  // ── Customer chat (vendor → customer) ───────────────────────────────────
+  const customerId = customer?._id || order.customer_id;
+  const canVendorMessageCustomer =
+    isVendor &&
+    !!customerId &&
+    !['cancelled', 'refunded'].includes(order.order_status);
+  const openCustomerChat = () => {
+    openChat(customerId, null, { name: customer?.name || 'Customer' }, false, `Order #${order._id.slice(-8).toUpperCase()}`);
+  };
+
+  // ── Carrier chat from vendor side ───────────────────────────────────────
+  const canVendorMessageCarrier =
+    isVendor &&
+    isLogisticsOrder &&
+    !!shipment &&
+    !!logisticsUserId &&
+    !['cancelled', 'refunded', 'failed', 'completed', 'delivered'].includes(order.order_status);
+  const openVendorCarrierChat = () => {
+    openChat(logisticsUserId, null, { store_name: carrierName }, false, `Order #${order._id.slice(-8).toUpperCase()}`);
   };
 
   const STEPS = [
@@ -1114,6 +1154,28 @@ export default function SingleOrderView({ orderId, onBack }) {
                 <span className="font-mono text-[11px] tracking-wide text-[var(--text-primary)]">—</span>
               </div>
             )}
+            {/* Vendor → Customer message button */}
+            {canVendorMessageCustomer && (
+              <button
+                type="button"
+                onClick={openCustomerChat}
+                className="mt-2 flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
+              >
+                <MessageCircle className="size-4" />
+                Message Customer
+              </button>
+            )}
+            {/* Customer → Vendor message button */}
+            {canMessageVendor && (
+              <button
+                type="button"
+                onClick={openVendorChat}
+                className="mt-2 flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
+              >
+                <MessageCircle className="size-4" />
+                Message Vendor
+              </button>
+            )}
           </div>
 
           <div className={`${cardBase} p-4 sm:p-5`}>
@@ -1153,6 +1215,17 @@ export default function SingleOrderView({ orderId, onBack }) {
                   <button
                     type="button"
                     onClick={openCarrierChat}
+                    className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
+                  >
+                    <MessageCircle className="size-4" />
+                    Message Carrier
+                  </button>
+                )}
+                {/* Vendor → Carrier message button */}
+                {canVendorMessageCarrier && (
+                  <button
+                    type="button"
+                    onClick={openVendorCarrierChat}
                     className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
                   >
                     <MessageCircle className="size-4" />
