@@ -427,7 +427,7 @@ export default function DinePage() {
                     {restaurants.slice(0, 6).map(r => (
                       <div
                         key={r.vendor_id}
-                        className="shrink-0 snap-start w-20 md:w-24"
+                        className="shrink-0 snap-start w-28 md:w-32"
                       >
                         <RestaurantCard restaurant={r} />
                       </div>

@@ -70,7 +70,7 @@ export default function RestaurantCard({ restaurant }) {
       className="group flex flex-col items-center gap-2 w-full"
     >
       {/* ── Circle image ──────────────────────────────────────────── */}
-      <div className="relative size-20 md:size-24 rounded-full overflow-hidden shrink-0 shadow-md ring-2 ring-[var(--glass-border)] group-hover:ring-orange-500/60 group-hover:shadow-orange-500/20 group-hover:shadow-lg transition-all duration-200">
+      <div className="relative size-28 md:size-32 rounded-full overflow-hidden shrink-0 shadow-md ring-2 ring-[var(--glass-border)] group-hover:ring-orange-500/60 group-hover:shadow-orange-500/20 group-hover:shadow-lg transition-all duration-200">
 
         {/* Gradient background */}
         <div
@@ -95,7 +95,7 @@ export default function RestaurantCard({ restaurant }) {
           />
         ) : (
           <span
-            className="absolute inset-0 flex items-center justify-center font-black text-4xl text-white/80 select-none"
+            className="absolute inset-0 flex items-center justify-center font-black text-5xl text-white/80 select-none"
           >
             {initial}
           </span>
