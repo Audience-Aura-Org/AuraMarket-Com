@@ -448,22 +448,6 @@ const updateProduct = async (req, res, next) => {
       if (cat) updateData.category_id = cat._id;
     }
 
-    // D-2: validate restaurant category scope only when the category is actually
-    // changing — skip when the same category_id is being re-submitted (e.g. the
-    // edit form always sends the current category back with the rest of the fields).
-    const isMealProduct = !!product.meal;
-    const categoryChanging = updateData.category_id &&
-      String(updateData.category_id) !== String(product.category_id ?? '');
-    if (isMealProduct && categoryChanging) {
-      const cat = await Category.findById(updateData.category_id).select('applies_to').lean();
-      if (cat && !['restaurant', 'both'].includes(cat.applies_to)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Meal products must use a category with applies_to: restaurant or both.',
-        });
-      }
-    }
-
     delete updateData.featured;
     delete updateData.existing_images;
     delete updateData.vendor_id;
