@@ -18,8 +18,8 @@ exports.getAllCategories = async (req, res) => {
     } else if (appliesToParam === 'restaurant') {
       surfaceFilter.applies_to = { $in: ['restaurant', 'both'] };
     } else {
-      // Default: retail surfaces only see retail + both
-      surfaceFilter.applies_to = { $in: ['retail', 'both'] };
+      // Default: retail surfaces see retail + both + legacy docs without the field
+      surfaceFilter.applies_to = { $in: ['retail', 'both', null] };
     }
 
     // 1b. Get active categories for the resolved surface
@@ -142,8 +142,9 @@ exports.getCategoryTree = async (req, res) => {
     } else if (appliesToParam === 'restaurant') {
       surfaceFilter.applies_to = { $in: ['restaurant', 'both'] };
     } else {
-      // Default (retail or no param): retail surfaces only see retail + both
-      surfaceFilter.applies_to = { $in: ['retail', 'both'] };
+      // Default (retail or no param): retail surfaces see retail + both + legacy
+      // docs that predate the applies_to field (null / missing value).
+      surfaceFilter.applies_to = { $in: ['retail', 'both', null] };
     }
 
     const categories = await Category.find({ is_active: true, ...surfaceFilter }).sort('order name');

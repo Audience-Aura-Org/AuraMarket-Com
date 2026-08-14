@@ -816,6 +816,25 @@ export default function AddProductPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── Sticky bottom publish bar ────────────────────────────────────────── */}
+      <div className="sticky bottom-0 z-30 border-t border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl px-4 py-3 sm:px-6 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex-1 sm:flex-none sm:px-6 py-2.5 rounded-xl border border-[var(--glass-border)] text-[12px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-all"
+        >
+          Discard
+        </button>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={loading}
+          className="flex-[2] sm:flex-none sm:px-10 py-2.5 rounded-xl bg-[var(--accent)] text-white text-[13px] font-bold shadow-lg shadow-[var(--accent)]/25 hover:brightness-105 active:scale-[0.98] transition-all disabled:opacity-50"
+        >
+          {loading ? 'Publishing...' : 'Publish Product'}
+        </button>
+      </div>
     </div>
   );
 }
