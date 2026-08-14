@@ -257,8 +257,13 @@ export default function AccountPageClient() {
     try {
       const vRes = await api.get('/vendors/me', { skipClientCache: true });
       if (vRes.data.success) {
-        const aRes = await api.get(`/vendors/${vRes.data.data.vendor._id}/followers`);
-        if (aRes.data.success) setAudience(aRes.data.data.followers || []);
+        const aRes = await api.get(`/vendors/${vRes.data.data.vendor._id}/followers`, { skipClientCache: true });
+        if (aRes.data.success) {
+          const followers = aRes.data.data.followers || [];
+          setAudience(followers);
+          // Sync the displayed follower count with the actual fetched list length
+          setStoreData(prev => ({ ...prev, follower_count: followers.length }));
+        }
       }
     } catch (err) { console.error(err); }
     finally { setAudienceLoading(false); }

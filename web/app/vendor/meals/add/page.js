@@ -65,6 +65,7 @@ export default function AddMealPage() {
     name: '',
     description: '',
     price: '',
+    stock: '',
     category: '',
   });
 
@@ -150,6 +151,7 @@ export default function AddMealPage() {
 
     if (!form.name.trim()) return toast.error('Meal name is required.');
     if (!form.price || Number(form.price) <= 0) return toast.error('Please enter a valid price.');
+    if (!form.stock || Number(form.stock) <= 0) return toast.error('Please enter a stock quantity.');
     if (!form.category) return toast.error('Please select a category.');
     if (!images.length) return toast.error('At least one image is required.');
     if (!bookingOptions.length) return toast.error('Select at least one booking mode.');
@@ -169,6 +171,7 @@ export default function AddMealPage() {
       fd.append('name', form.name.trim());
       fd.append('description', form.description.trim());
       fd.append('price', form.price);
+      fd.append('stock', form.stock);
       fd.append('category', form.category);
       fd.append('is_meal', 'true');
       fd.append('meal', JSON.stringify({
@@ -351,6 +354,20 @@ export default function AddMealPage() {
               placeholder="2500"
               className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] outline-none focus:border-orange-500/50 transition-colors"
             />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-[var(--text-secondary)]">Stock Quantity *</label>
+            <input
+              required
+              type="number"
+              min="1"
+              value={form.stock}
+              onChange={e => setForm(p => ({ ...p, stock: e.target.value }))}
+              placeholder="e.g. 50"
+              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] outline-none focus:border-orange-500/50 transition-colors"
+            />
+            <p className="text-[10px] text-[var(--text-secondary)] opacity-60">How many portions can be ordered today</p>
           </div>
 
           <div className="space-y-2">

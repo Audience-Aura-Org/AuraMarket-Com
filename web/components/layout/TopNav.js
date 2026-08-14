@@ -139,7 +139,10 @@ export default function TopNav() {
               title="Wallet balance"
             >
               <Wallet className="size-3 shrink-0 text-[var(--accent)] sm:size-3.5" />
-              <span className="min-w-0 truncate tabular-nums">{walletBalance === null ? '...' : walletBalance.toLocaleString()}</span>
+              {walletBalance === null
+                ? <span className="inline-block w-10 h-2.5 rounded bg-[var(--glass-border)] animate-pulse" />
+                : <span className="min-w-0 truncate tabular-nums">{walletBalance.toLocaleString()}</span>
+              }
               <span className="text-[9px] opacity-55">XAF</span>
             </Link>
           )}

@@ -660,6 +660,7 @@ function EmptyPlaceholder({ icon: Icon, text }) {
 
 function ChatLink({ chat }) {
   const { openChat, onlineUsersMap } = useChat();
+  const router = useRouter();
   const partner = chat.partner;
   const partnerId = partner?._id || partner;
   const partnerName = partner?.name || partner?.store_name || 'Unknown';
@@ -670,7 +671,12 @@ function ChatLink({ chat }) {
   const isOnline = typeof liveOnline === 'boolean' ? liveOnline : (partner?.is_online ?? false);
 
   const handleClick = () => {
-    if (partnerId) openChat(partnerId, null, partner, false);
+    if (!partnerId) return;
+    if (chat.isFollowed && partner?.vendor_type === 'restaurant') {
+      router.push(`/dine/restaurant/${partnerId}`);
+      return;
+    }
+    openChat(partnerId, null, partner, false);
   };
 
   return (

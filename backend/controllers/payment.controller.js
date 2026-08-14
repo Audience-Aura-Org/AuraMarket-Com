@@ -78,14 +78,22 @@ const handleWebhook = async (req, res, next) => {
         transaction.gateway_response = event.data;
         await transaction.save();
         await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: amount / 100 } });
-        setImmediate(() => {
-          notifyAdmins(req.app, {
-            title: 'New Wallet Deposit',
-            message: `${(amount / 100).toLocaleString()} XAF deposited via Paystack (ref: ${reference}).`,
-            type: 'system_alert',
-            metadata: { link: '/admin/transactions' },
-            sendEmail: true,
-          }).catch(console.error);
+        setImmediate(async () => {
+          try {
+            const depositor = await User.findById(transaction.user_id).select('name email phone');
+            await notifyAdmins(req.app, {
+              title: 'New Wallet Deposit',
+              message: `${(amount / 100).toLocaleString()} XAF deposited via Paystack (ref: ${reference}).`,
+              type: 'system_alert',
+              metadata: {
+                link: '/admin/transactions',
+                customer: depositor?.name || 'Unknown',
+                email: depositor?.email || '',
+                phone: depositor?.phone || '',
+              },
+              sendEmail: true,
+            });
+          } catch (err) { console.error('[notifyAdmins Paystack deposit]', err.message); }
         });
       }
     }
@@ -332,14 +340,22 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
     await session.commitTransaction();
     if (!isSubscriptionTransaction(claimed) && !(claimed.order_ids?.length > 0)) {
       emitWalletCredit(app, claimed);
-      setImmediate(() => {
-        notifyAdmins(app, {
-          title: 'New Wallet Deposit',
-          message: `${claimed.amount.toLocaleString()} XAF deposited via ${paymentGateway || 'gateway'} (ref: ${claimed.reference}).`,
-          type: 'system_alert',
-          metadata: { link: '/admin/transactions' },
-          sendEmail: true,
-        }).catch(console.error);
+      setImmediate(async () => {
+        try {
+          const depositor = await User.findById(claimed.user_id).select('name email phone');
+          await notifyAdmins(app, {
+            title: 'New Wallet Deposit',
+            message: `${claimed.amount.toLocaleString()} XAF deposited via ${paymentGateway || 'gateway'} (ref: ${claimed.reference}).`,
+            type: 'system_alert',
+            metadata: {
+              link: '/admin/transactions',
+              customer: depositor?.name || 'Unknown',
+              email: depositor?.email || '',
+              phone: depositor?.phone || '',
+            },
+            sendEmail: true,
+          });
+        } catch (err) { console.error('[notifyAdmins gateway deposit]', err.message); }
       });
     }
   } catch (err) {
@@ -1217,7 +1233,7 @@ const eversendWebhook = async (req, res) => {
         }
 
         // In-app notification
-        setImmediate(() => {
+        setImmediate(async () => {
           sendNotification(req.app, transaction.user_id, {
             title: '?? Payment Confirmed',
             message: `Your ${isSubscription ? 'subscription' : (isCheckout ? 'order' : 'deposit')} of ${transaction.amount.toLocaleString()} XAF has been confirmed.`,
@@ -1226,13 +1242,21 @@ const eversendWebhook = async (req, res) => {
           }).catch(console.error);
           // Admin email for pure wallet top-ups only (checkout orders are notified in settle.service.js)
           if (!isSubscription && !isCheckout) {
-            notifyAdmins(req.app, {
-              title: 'New Wallet Deposit',
-              message: `${transaction.amount.toLocaleString()} XAF deposited via Eversend (ref: ${transaction.reference}).`,
-              type: 'system_alert',
-              metadata: { link: '/admin/transactions' },
-              sendEmail: true,
-            }).catch(console.error);
+            try {
+              const depositor = await User.findById(transaction.user_id).select('name email phone');
+              await notifyAdmins(req.app, {
+                title: 'New Wallet Deposit',
+                message: `${transaction.amount.toLocaleString()} XAF deposited via Eversend (ref: ${transaction.reference}).`,
+                type: 'system_alert',
+                metadata: {
+                  link: '/admin/transactions',
+                  customer: depositor?.name || 'Unknown',
+                  email: depositor?.email || '',
+                  phone: depositor?.phone || '',
+                },
+                sendEmail: true,
+              });
+            } catch (err) { console.error('[notifyAdmins Eversend deposit]', err.message); }
           }
         });
 
