@@ -132,8 +132,10 @@ const err  = (msg, e) => {
   // IMPORTANT: if this probe SUCCEEDS (PENDING), a real USSD prompt will be sent
   // to 658928598. The user should approve or decline it immediately.
 
+  // Max 20 chars — Orange Money CM rejects longer IDs with 417.
+  // DB(2) + timestamp(13) + phone[-5](5) = 20 chars exactly.
   const probeRef = payunit.cleanTransactionId(
-    `DBGPU${Date.now()}${localPhone.slice(-4)}`.toUpperCase()
+    ('DB' + Date.now() + localPhone.slice(-5)).toUpperCase()
   );
   const publicWebUrl = process.env.WEB_CLIENT_URL || 'https://auradime.com';
   const returnUrl = `${publicWebUrl}/wallet/verify?gateway=payunit&ref=${probeRef}`;
