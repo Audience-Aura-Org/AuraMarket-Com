@@ -147,6 +147,14 @@ const OrderSchema = new mongoose.Schema(
       default: null, // null for non-food (retail) orders
     },
 
+    // Preorder: date the customer wants the meal prepared/delivered.
+    // Set from Product.meal.available_date when it is a future date.
+    // null for immediate orders.
+    scheduled_for: {
+      type: Date,
+      default: null,
+    },
+
     // Kitchen-specific status track. Runs parallel to order_status.
     // Not added to order_status enum to avoid contaminating retail GMV/payout queries.
     // awaiting_payment → pending_acceptance → preparing → ready → rider_arrived → picked_up → delivered

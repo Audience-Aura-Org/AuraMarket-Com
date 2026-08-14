@@ -189,6 +189,7 @@ const createOrder = async (req, res, next) => {
     let subtotal = 0;
     const validatedProducts = [];
     const itemParcelClasses = []; // for intercity oversize check
+    let mealAvailableDate = null; // preorder date from meal.available_date (if future)
 
     for (const item of products) {
       const product = await Product.findById(item.product_id).session(session);
@@ -233,6 +234,12 @@ const createOrder = async (req, res, next) => {
         selected_options: Array.isArray(item.selected_options) ? item.selected_options : [],
       });
       itemParcelClasses.push({ parcel_class: product.parcel_class || 'small' });
+
+      // Track preorder date from meal.available_date (first future date wins)
+      if (product.meal?.available_date && !mealAvailableDate) {
+        const ad = new Date(product.meal.available_date);
+        if (ad > new Date()) mealAvailableDate = ad;
+      }
 
       subtotal += itemPrice * quantity;
     }
@@ -438,7 +445,8 @@ const createOrder = async (req, res, next) => {
       // Gateway food orders (Payunit/Eversend): start as 'awaiting_payment' — restaurant
       // is NOT notified until the payment webhook confirms funds were captured.
       ...(isFoodOrder && {
-        fulfilment_type:           fulfilment_type || 'delivery',
+        fulfilment_type:           mealAvailableDate ? 'pre_order' : (fulfilment_type || 'delivery'),
+        scheduled_for:             mealAvailableDate || null,
         food_status:               payment_method === 'wallet'
                                      ? 'pending_acceptance'
                                      : 'awaiting_payment',
@@ -451,7 +459,9 @@ const createOrder = async (req, res, next) => {
           status:    payment_method === 'wallet' ? 'pending_acceptance' : 'awaiting_payment',
           actor_id:  req.user._id,
           timestamp: new Date(),
-          note:      'Order placed by customer.',
+          note:      mealAvailableDate
+                       ? `Preorder placed for ${mealAvailableDate.toLocaleDateString()}.`
+                       : 'Order placed by customer.',
         }],
       }),
     };
@@ -1005,13 +1015,13 @@ const cancelOrder = async (req, res, next) => {
       throw new Error(`Cannot cancel an order with payment status ${order.payment_status}.`);
     }
 
-    // Non-food paid orders: honour a 30-minute grace window.
+    // Non-food paid orders: honour a 2-hour grace window.
     // Food orders skip this check — the food_status guard above is the only gate.
     if (paidCancellation && !order.food_status) {
       const ageMs = Date.now() - new Date(order.createdAt).getTime();
-      const thirtyMinutesMs = 30 * 60 * 1000;
-      if (ageMs > thirtyMinutesMs) {
-        throw new Error('Paid orders can only be cancelled within 30 minutes of checkout.');
+      const twoHoursMs = 2 * 60 * 60 * 1000;
+      if (ageMs > twoHoursMs) {
+        throw new Error('Paid orders can only be cancelled within 2 hours of checkout.');
       }
     }
 
@@ -1467,6 +1477,7 @@ const createOrdersFromCart = async (req, res, next) => {
         };
       });
 
+      let cartMealAvailableDate = null; // preorder date from meal.available_date
       for (const it of items) {
         // Re-fetch product within the session so stock is current (prevents negative stock on concurrent orders)
         const p = await Product.findById(it.product._id).session(session);
@@ -1486,6 +1497,11 @@ const createOrdersFromCart = async (req, res, next) => {
           p.stock -= quantity;
           p.purchase_count = (p.purchase_count || 0) + quantity;
           await p.save({ session });
+          // Track preorder date
+          if (p.meal?.available_date && !cartMealAvailableDate) {
+            const ad = new Date(p.meal.available_date);
+            if (ad > new Date()) cartMealAvailableDate = ad;
+          }
         }
       }
 
@@ -1595,7 +1611,8 @@ const createOrdersFromCart = async (req, res, next) => {
         // Intercity fields (empty spread for non-intercity)
         ...cartIntercityFields,
         ...(isFoodOrderCart && {
-          fulfilment_type:          fulfilment_type || 'delivery',
+          fulfilment_type:          cartMealAvailableDate ? 'pre_order' : (fulfilment_type || 'delivery'),
+          scheduled_for:            cartMealAvailableDate || null,
           food_status:              payment_method === 'wallet'
                                       ? 'pending_acceptance'
                                       : 'awaiting_payment',
@@ -1608,7 +1625,9 @@ const createOrdersFromCart = async (req, res, next) => {
             status:    payment_method === 'wallet' ? 'pending_acceptance' : 'awaiting_payment',
             actor_id:  req.user._id,
             timestamp: new Date(),
-            note:      'Order placed by customer.',
+            note:      cartMealAvailableDate
+                         ? `Preorder placed for ${cartMealAvailableDate.toLocaleDateString()}.`
+                         : 'Order placed by customer.',
           }],
         }),
       }], { session, ordered: true });

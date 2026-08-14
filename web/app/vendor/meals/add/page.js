@@ -74,6 +74,7 @@ export default function AddMealPage() {
     dietary_tags: [],
     is_available_today: true,
     prep_time_value: '',
+    available_date: '',
   });
   const [prepTimeUnit, setPrepTimeUnit] = useState('minutes');
 
@@ -178,6 +179,7 @@ export default function AddMealPage() {
         spice_level:        mealAttrs.spice_level,
         dietary_tags:       mealAttrs.dietary_tags,
         is_available_today: mealAttrs.is_available_today,
+        available_date:     mealAttrs.available_date || null,
         prep_time_minutes:  mealAttrs.prep_time_value
           ? Number(mealAttrs.prep_time_value) * (PREP_UNITS.find(u => u.value === prepTimeUnit)?.factor ?? 1)
           : null,
@@ -438,6 +440,37 @@ export default function AddMealPage() {
                 mealAttrs.is_available_today ? 'translate-x-5' : 'translate-x-0'
               }`} />
             </button>
+          </div>
+
+          {/* Preorder / available date */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[12px] font-semibold text-[var(--text-primary)]">Preorder date</p>
+                <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">Optional — set a future date to make this meal a preorder</p>
+              </div>
+              {mealAttrs.available_date && (
+                <button
+                  type="button"
+                  onClick={() => setMealAttrs(p => ({ ...p, available_date: '' }))}
+                  className="text-[10px] font-semibold text-rose-500 hover:underline"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            <input
+              type="date"
+              min={new Date().toISOString().split('T')[0]}
+              value={mealAttrs.available_date}
+              onChange={e => setMealAttrs(p => ({ ...p, available_date: e.target.value }))}
+              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] outline-none focus:border-orange-500/50 transition-colors"
+            />
+            {mealAttrs.available_date && (
+              <p className="text-[10px] text-amber-600">
+                Preorder — order will be scheduled for {new Date(mealAttrs.available_date).toLocaleDateString()}
+              </p>
+            )}
           </div>
 
           {/* Spice level */}

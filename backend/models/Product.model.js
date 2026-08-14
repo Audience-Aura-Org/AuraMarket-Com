@@ -249,6 +249,11 @@ const ProductSchema = new mongoose.Schema(
       // Daily availability toggle. Resets every day at availability_resets_at.
       is_available_today: { type: Boolean, default: true },
       availability_resets_at: { type: Date, default: null },
+
+      // Specific date this meal is available for ordering.
+      // null = available today/anytime (default).
+      // Future date = preorder; order.scheduled_for is set to this date at placement.
+      available_date: { type: Date, default: null },
     },
 
     // ── Restaurant zone scope (Phase 3 Step 10) ──────────────────────────────

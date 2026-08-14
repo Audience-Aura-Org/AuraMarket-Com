@@ -72,7 +72,7 @@ exports.getCategoriesWithProducts = async (req, res) => {
     // 1. Get active retail categories only (meals have their own dine sidebar)
     const allCategories = await Category.find({
       is_active: true,
-      applies_to: { $in: ['retail', 'both'] },
+      applies_to: { $in: ['retail', 'both', null] },
     }).sort('name').lean();
     
     // 2. Get distinct categories from active non-meal products (exclude meal products from retail sidebar)

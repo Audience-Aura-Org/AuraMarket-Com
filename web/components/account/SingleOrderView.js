@@ -28,7 +28,7 @@ const FOOD_STATUS_LABELS = {
   picked_up:          'Picked Up',
   delivered:          'Delivered',
 };
-const FOOD_OVERRIDE_MS = 10 * 60_000; // 10 minutes
+const FOOD_OVERRIDE_MS = 15 * 60_000; // 15 minutes
 
 function getFoodReadyElapsed(order) {
   if (order?.food_status !== 'ready') return null;
