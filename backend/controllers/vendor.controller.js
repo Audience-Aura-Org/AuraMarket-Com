@@ -384,7 +384,21 @@ const getPublicStores = async (req, res, next) => {
       .skip(startIndex)
       .limit(limit)
       .sort(sort)
-      .lean(); 
+      .lean();
+
+    // Batch-sync real follower counts to avoid showing stale 0s
+    if (stores.length > 0) {
+      const vendorIds = stores.map(s => s._id);
+      const counts = await Follow.aggregate([
+        { $match: { vendor_id: { $in: vendorIds } } },
+        { $group: { _id: '$vendor_id', count: { $sum: 1 } } },
+      ]);
+      const countMap = {};
+      counts.forEach(c => { countMap[c._id.toString()] = c.count; });
+      stores.forEach(s => {
+        s.follower_count = countMap[s._id.toString()] ?? s.follower_count ?? 0;
+      });
+    }
 
     res.status(200).json({
       success: true,

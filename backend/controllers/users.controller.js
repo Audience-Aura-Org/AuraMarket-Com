@@ -125,6 +125,23 @@ const getFollowedVendors = async (req, res, next) => {
       })
       .sort('-createdAt')
       .lean();
+
+    // Batch-sync real follower counts so the followed-vendors list never shows stale 0s
+    const vendorIds = follows.map(f => f.vendor_id?._id).filter(Boolean);
+    if (vendorIds.length > 0) {
+      const counts = await Follow.aggregate([
+        { $match: { vendor_id: { $in: vendorIds } } },
+        { $group: { _id: '$vendor_id', count: { $sum: 1 } } },
+      ]);
+      const countMap = {};
+      counts.forEach(c => { countMap[c._id.toString()] = c.count; });
+      follows.forEach(f => {
+        if (f.vendor_id?._id) {
+          f.vendor_id.follower_count = countMap[f.vendor_id._id.toString()] || 0;
+        }
+      });
+    }
+
     res.status(200).json({ success: true, count: follows.length, data: { follows } });
   } catch (error) {
     next(error);

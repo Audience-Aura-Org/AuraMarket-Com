@@ -293,8 +293,8 @@ export default function AccountPageClient() {
       setKycStatus(user.verification_status);
     }
 
-    // Only fetch vendor profile when the Vendor document is guaranteed to exist
-    if (user.role === 'vendor' && user.onboarded) {
+    // Fetch vendor profile for any vendor (onboarded check is best-effort; 404s are caught below)
+    if (user.role === 'vendor') {
       api.get('/vendors/me', { skipClientCache: true }).then(res => {
         if (res.data.success) {
           const v = res.data.data.vendor;
