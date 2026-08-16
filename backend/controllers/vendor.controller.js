@@ -230,7 +230,7 @@ const getVendorProfile = async (req, res, next) => {
     }
 
     // Calculate pending escrow balance and real follower count in parallel
-    const [escrowStats, realFollowerCount] = await Promise.all([
+    const [escrowStats, primaryFollowerCount] = await Promise.all([
       Escrow.aggregate([
         { $match: { vendor_id: vendor._id, status: 'held' } },
         { $group: { _id: null, totalHeld: { $sum: '$amount' } } }
@@ -243,6 +243,13 @@ const getVendorProfile = async (req, res, next) => {
     const effectiveCommissionRate = storeCommissionRate !== undefined && storeCommissionRate !== null
       ? Number(storeCommissionRate)
       : Number(platformSettings.commission_value ?? platformSettings.commission_rate ?? 0);
+
+    // If no follows found by vendor._id, fall back to vendor.user_id (handles legacy data
+    // where follows were stored with the User ObjectId instead of the Vendor ObjectId)
+    let realFollowerCount = primaryFollowerCount;
+    if (realFollowerCount === 0 && vendor.user_id) {
+      realFollowerCount = await Follow.countDocuments({ vendor_id: vendor.user_id });
+    }
 
     // Sync stored counter if it has drifted from the actual Follow collection
     if (vendor.follower_count !== realFollowerCount) {
@@ -466,9 +473,13 @@ const getStore = async (req, res, next) => {
       });
     }
 
-    // Ensure follower_count on the populated vendor reflects the real Follow count
+    // Ensure follower_count on the populated vendor reflects the real Follow count.
+    // Fall back to vendor.user_id if vendor._id yields 0 (handles legacy mis-stored follows).
     if (store?.vendor_id?._id) {
-      const realFollowerCount = await Follow.countDocuments({ vendor_id: store.vendor_id._id });
+      let realFollowerCount = await Follow.countDocuments({ vendor_id: store.vendor_id._id });
+      if (realFollowerCount === 0 && store.vendor_id.user_id) {
+        realFollowerCount = await Follow.countDocuments({ vendor_id: store.vendor_id.user_id });
+      }
       if (store.vendor_id.follower_count !== realFollowerCount) {
         store.vendor_id.follower_count = realFollowerCount;
         Vendor.findByIdAndUpdate(store.vendor_id._id, { follower_count: realFollowerCount }).catch(() => {});
@@ -625,9 +636,16 @@ const getFollowers = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Unauthorized access to node manifest.' });
     }
 
-    const followers = await Follow.find({ vendor_id: vendor._id })
+    let followers = await Follow.find({ vendor_id: vendor._id })
       .populate('user_id', 'name email avatar branding')
       .sort('-createdAt');
+
+    // Fallback: if stored by User ObjectId instead of Vendor ObjectId, resolve legacy data
+    if (followers.length === 0 && vendor.user_id) {
+      followers = await Follow.find({ vendor_id: vendor.user_id })
+        .populate('user_id', 'name email avatar branding')
+        .sort('-createdAt');
+    }
 
     res.status(200).json({ success: true, count: followers.length, data: { followers } });
   } catch (error) {

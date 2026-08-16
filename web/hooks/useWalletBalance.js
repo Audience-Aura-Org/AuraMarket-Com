@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
+import socketService from '@/services/socket';
 
 export function useWalletBalance() {
   const walletBalance = useAuthStore((state) => state.walletBalance);
@@ -23,14 +24,22 @@ export function useWalletBalance() {
       refresh();
     }
 
+    // Window / visibility events
     window.addEventListener('aura:wallet-updated', refresh);
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
+
+    // Socket events — fire immediately when a credit or withdrawal lands so
+    // the top-nav balance updates as fast as the wallet page does
+    socketService.on('wallet:credited', refresh);
+    socketService.on('withdrawal:paid', refresh);
 
     return () => {
       window.removeEventListener('aura:wallet-updated', refresh);
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
+      socketService.off('wallet:credited', refresh);
+      socketService.off('withdrawal:paid', refresh);
     };
   // walletBalance intentionally excluded — we only want to run this once on mount.
   // eslint-disable-next-line react-hooks/exhaustive-deps

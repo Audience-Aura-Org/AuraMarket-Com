@@ -257,12 +257,17 @@ export default function AccountPageClient() {
     try {
       const vRes = await api.get('/vendors/me', { skipClientCache: true });
       if (vRes.data.success) {
+        const syncedCount = vRes.data.data.vendor.follower_count || 0;
         const aRes = await api.get(`/vendors/${vRes.data.data.vendor._id}/followers`, { skipClientCache: true });
         if (aRes.data.success) {
           const followers = aRes.data.data.followers || [];
           setAudience(followers);
-          // Sync the displayed follower count with the actual fetched list length
-          setStoreData(prev => ({ ...prev, follower_count: followers.length }));
+          // Use the server-synced count as the authoritative value; never let an empty
+          // followers list silently reset a valid count to 0
+          setStoreData(prev => ({
+            ...prev,
+            follower_count: Math.max(syncedCount, followers.length),
+          }));
         }
       }
     } catch (err) { console.error(err); }
