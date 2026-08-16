@@ -435,6 +435,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const shipmentStatusNorm = (shipment?.status || '').toLowerCase();
   const status = getStatusConfig(order.order_status, shipment?.status);
   const isVendor = user?.role === 'vendor' || user?._id === order?.vendor_id?._id || user?._id === order?.vendor_id;
+  const isLogistics = user?.role === 'logistics';
   /** Match backend `orderUsesLogistics`: partner flag on order OR an actual logistics shipment ticket */
   const isLogisticsOrder = !!(
     order.shipping_method === 'logistics_partner' ||
@@ -510,6 +511,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const carrierName = shipment?.logistics_id?.company_name || shipment?.logistics_company_id?.company_name || 'Carrier';
   const canMessageCarrier = (
     !isVendor &&
+    !isLogistics &&
     isLogisticsOrder &&
     !!shipment &&
     !!logisticsUserId &&
@@ -534,7 +536,7 @@ export default function SingleOrderView({ orderId, onBack }) {
 
   // ── Vendor chat (customer → vendor) ─────────────────────────────────────
   const vendorUserId = order.vendor_id?.user_id?._id || order.vendor_id?.user_id || null;
-  const vendorStoreName = order.vendor_id?.branding?.store_name || order.vendor_id?.name || 'Vendor';
+  const vendorStoreName = order.vendor_id?.store_name || order.vendor_id?.user_id?.branding?.store_name || order.vendor_id?.name || 'Vendor';
   const canMessageVendor =
     !isVendor &&
     !!vendorUserId &&
@@ -569,6 +571,22 @@ export default function SingleOrderView({ orderId, onBack }) {
     !['cancelled', 'refunded', 'failed', 'completed', 'delivered'].includes(order.order_status);
   const openVendorCarrierChat = () => {
     openChat(logisticsUserId, null, { store_name: carrierName }, false, `Order #${order._id.slice(-8).toUpperCase()}`);
+  };
+
+  // ── Logistics → Vendor / Logistics → Customer chat ───────────────────────
+  const canLogisticsMessageVendor =
+    isLogistics &&
+    !!vendorUserId &&
+    !['cancelled', 'refunded', 'failed'].includes(order.order_status);
+  const openLogisticsVendorChat = () => {
+    openChat(vendorUserId, null, { store_name: vendorStoreName }, false, `Order #${order._id.slice(-8).toUpperCase()}`);
+  };
+  const canLogisticsMessageCustomer =
+    isLogistics &&
+    !!customerId &&
+    !['cancelled', 'refunded'].includes(order.order_status);
+  const openLogisticsCustomerChat = () => {
+    openChat(customerId, null, { name: customer?.name || 'Customer' }, false, `Order #${order._id.slice(-8).toUpperCase()}`);
   };
 
   const STEPS = [
@@ -1065,7 +1083,7 @@ export default function SingleOrderView({ orderId, onBack }) {
           <div>
             {sectionTitle('Line items')}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {order.products.map((item, idx) => {
+              {(order.products ?? []).map((item, idx) => {
                 const variantLabel = formatVariantLabel(item.variant);
                 const itemOptions = item.selected_options || [];
                 return (
@@ -1176,6 +1194,17 @@ export default function SingleOrderView({ orderId, onBack }) {
                 Message Vendor
               </button>
             )}
+            {/* Logistics → Customer message button */}
+            {canLogisticsMessageCustomer && (
+              <button
+                type="button"
+                onClick={openLogisticsCustomerChat}
+                className="mt-2 flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
+              >
+                <MessageCircle className="size-4" />
+                Message Customer
+              </button>
+            )}
           </div>
 
           <div className={`${cardBase} p-4 sm:p-5`}>
@@ -1230,6 +1259,17 @@ export default function SingleOrderView({ orderId, onBack }) {
                   >
                     <MessageCircle className="size-4" />
                     Message Carrier
+                  </button>
+                )}
+                {/* Logistics → Vendor message button */}
+                {canLogisticsMessageVendor && (
+                  <button
+                    type="button"
+                    onClick={openLogisticsVendorChat}
+                    className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
+                  >
+                    <MessageCircle className="size-4" />
+                    Message Vendor
                   </button>
                 )}
               </div>
