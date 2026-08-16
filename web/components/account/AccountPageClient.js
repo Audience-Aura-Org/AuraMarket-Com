@@ -275,6 +275,7 @@ export default function AccountPageClient() {
     finally { setAudienceLoading(false); }
   };
 
+  // Sync form fields from user object whenever the user record updates (name, kyc, branding etc.)
   useEffect(() => {
     if (!user) return;
     const existing = user.branding || {};
@@ -298,8 +299,15 @@ export default function AccountPageClient() {
     } else if (user.verification_status) {
       setKycStatus(user.verification_status);
     }
+  }, [user]);
 
-    // Fetch vendor profile for any vendor (onboarded check is best-effort; 404s are caught below)
+  // Fetch role-specific profile data once per login session (keyed on _id + role so that
+  // frequent user-object updates like wallet-balance ticks don't re-trigger the API calls).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!user?._id) return;
+
+    // Vendor (includes restaurant) — fetch store profile
     if (user.role === 'vendor') {
       api.get('/vendors/me', { skipClientCache: true }).then(res => {
         if (res.data.success) {
@@ -326,7 +334,7 @@ export default function AccountPageClient() {
       }).catch(() => {});
     }
 
-    // Fetch logistics company profile so the header shows the company name / branding
+    // Logistics — fetch company profile so the header shows company name / branding
     if (user.role === 'logistics') {
       api.get('/logistics/profile', { skipClientCache: true }).then(res => {
         if (res.data.success) {
@@ -343,7 +351,7 @@ export default function AccountPageClient() {
         }
       }).catch(() => {});
     }
-  }, [user]);
+  }, [user?._id, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUpdateProfile = async () => {
     setProfileSaving(true);
@@ -404,7 +412,7 @@ export default function AccountPageClient() {
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [user]);
+  }, [user?._id, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fontSizeOptions = [
     { value: FONT_SIZES.sm, label: 'S', helper: 'Small', size: '14px' },
