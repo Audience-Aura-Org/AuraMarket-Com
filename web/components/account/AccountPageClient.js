@@ -216,6 +216,7 @@ export default function AccountPageClient() {
 
   const [followedVendors, setFollowedVendors] = useState([]);
   const [networkLoading, setNetworkLoading] = useState(false);
+  const [logisticsData, setLogisticsData] = useState({ company_name: '', logo: '', banner: '' });
 
   const [audience, setAudience] = useState([]);
   const [audienceLoading, setAudienceLoading] = useState(false);
@@ -321,8 +322,24 @@ export default function AccountPageClient() {
             logo: s.logo || v.logo || p.logo,
             banner: s.banner || v.banner || p.banner,
           }));
+        }
+      }).catch(() => {});
+    }
 
-
+    // Fetch logistics company profile so the header shows the company name / branding
+    if (user.role === 'logistics') {
+      api.get('/logistics/profile', { skipClientCache: true }).then(res => {
+        if (res.data.success) {
+          const firm = res.data.data.firm;
+          setLogisticsData({
+            company_name: firm.company_name || '',
+            logo: firm.logo || '',
+            banner: firm.banner || '',
+          });
+          setProfileBranding((p) => ({
+            logo: firm.logo || p.logo,
+            banner: firm.banner || p.banner,
+          }));
         }
       }).catch(() => {});
     }
@@ -353,16 +370,34 @@ export default function AccountPageClient() {
     return () => window.removeEventListener('fontsizechange', handleFontSizeChange);
   }, []);
 
-  // Re-fetch follower count whenever the vendor returns to this tab/app so the
-  // number stays current even if other users followed/unfollowed while away.
+  // Re-fetch profile data whenever the user returns to this tab/app so counts & names stay current.
   useEffect(() => {
-    if (!user || user.role !== 'vendor' || !user.onboarded) return;
+    if (!user) return;
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState !== 'visible') return;
+      if (user.role === 'vendor') {
         api.get('/vendors/me', { skipClientCache: true }).then(res => {
           if (res.data?.success) {
             const v = res.data.data.vendor;
-            setStoreData(prev => ({ ...prev, follower_count: v.follower_count || 0, rating: v.rating || 0 }));
+            setStoreData(prev => ({
+              ...prev,
+              store_name: v.store_name || prev.store_name,
+              follower_count: v.follower_count || 0,
+              rating: v.rating || 0,
+            }));
+          }
+        }).catch(() => {});
+      }
+      if (user.role === 'logistics') {
+        api.get('/logistics/profile', { skipClientCache: true }).then(res => {
+          if (res.data?.success) {
+            const firm = res.data.data.firm;
+            setLogisticsData(prev => ({
+              ...prev,
+              company_name: firm.company_name || prev.company_name,
+              logo: firm.logo || prev.logo,
+              banner: firm.banner || prev.banner,
+            }));
           }
         }).catch(() => {});
       }
@@ -552,8 +587,8 @@ export default function AccountPageClient() {
         profileBranding={profileBranding}
         canUseBanner={canUseBanner}
         onBannerUpload={(file) => handleBrandingFileUpload('banner', file)}
-        storeName={storeData.store_name}
-        storeDescription={storeData.description}
+        storeName={user?.role === 'logistics' ? logisticsData.company_name : storeData.store_name}
+        storeDescription={user?.role === 'logistics' ? '' : storeData.description}
         followerCount={storeData.follower_count}
         rating={storeData.rating}
         onShare={handleShareProfile}
