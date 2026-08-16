@@ -326,6 +326,11 @@ export default function AccountPageClient() {
             rating: v.rating || 0,
             vendor_type: v.vendor_type || '',
           });
+          // Sync store_name into the auth user so the header shows the vendor name
+          // immediately (AccountHeader reads user.branding.store_name as its first fallback)
+          if (v.store_name) {
+            updateUser({ branding: { ...(user?.branding || {}), store_name: v.store_name } });
+          }
           setProfileBranding((p) => ({
             logo: s.logo || v.logo || p.logo,
             banner: s.banner || v.banner || p.banner,
@@ -390,7 +395,9 @@ export default function AccountPageClient() {
             setStoreData(prev => ({
               ...prev,
               store_name: v.store_name || prev.store_name,
-              follower_count: v.follower_count || 0,
+              // Only accept a decrease if the API returns a positive value; otherwise keep
+              // the cached count so a transient 0 from the backend doesn't flash to users.
+              follower_count: v.follower_count > 0 ? v.follower_count : prev.follower_count,
               rating: v.rating || 0,
             }));
           }

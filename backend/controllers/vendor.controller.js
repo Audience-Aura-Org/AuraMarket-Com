@@ -350,6 +350,12 @@ const updateVendorProfile = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Vendor profile not found.' });
     }
 
+    // Keep user.branding.store_name in sync so AccountHeader always shows
+    // the current name without waiting for a separate /auth/me call
+    if (store_name) {
+      User.findByIdAndUpdate(req.vendor.user_id, { 'branding.store_name': store_name }).catch(() => {});
+    }
+
     res.status(200).json({
       success: true,
       message: 'Vendor profile updated successfully.',
