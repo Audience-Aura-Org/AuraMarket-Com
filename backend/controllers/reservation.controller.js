@@ -280,7 +280,7 @@ const cancelReservation = async (req, res, next) => {
       return res.status(409).json({ success: false, message: `Cannot cancel a reservation with status '${reservation.status}'.` });
     }
 
-    const { reason } = req.body;
+    const { reason } = req.body || {};
     reservation.status               = 'cancelled';
     reservation.cancelled_by         = req.user._id;
     reservation.cancellation_reason  = reason || null;

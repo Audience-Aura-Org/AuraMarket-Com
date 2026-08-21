@@ -485,14 +485,17 @@ const updateProduct = async (req, res, next) => {
 
     // StockWatch alerts are meaningless for meals — meals don't use the stock field.
     if (!product.meal && oldStock === 0 && newStock > 0) {
-      const watchers = await StockWatch.find({ product_id: product._id });
-      for (const watch of watchers) {
-        await sendNotification(req.app, watch.user_id, {
-          title: 'Restock Alert!',
-          message: `The product "${product.name}" is back in stock!`,
-          type: 'system_alert'
-        });
-        await StockWatch.findByIdAndDelete(watch._id);
+      const watchers = await StockWatch.find({ product_id: product._id }).select('user_id').lean();
+      if (watchers.length) {
+        // Bulk-delete all watch records first, then fan out notifications in parallel.
+        await StockWatch.deleteMany({ product_id: product._id });
+        await Promise.allSettled(watchers.map(watch =>
+          sendNotification(req.app, watch.user_id, {
+            title: 'Restock Alert!',
+            message: `The product "${product.name}" is back in stock!`,
+            type: 'system_alert',
+          })
+        ));
       }
     }
 

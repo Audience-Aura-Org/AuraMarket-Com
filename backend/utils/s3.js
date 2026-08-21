@@ -161,7 +161,7 @@ function extractS3KeyFromUrl(url) {
     const parsed = new URL(url);
     const key = decodeURIComponent(parsed.pathname.replace(/^\/+/, ''));
     return key || null;
-  } catch {
+  } catch (_e) {
     const statusesIndex = url.indexOf('statuses/');
     if (statusesIndex === -1) return null;
     return decodeURIComponent(url.slice(statusesIndex));

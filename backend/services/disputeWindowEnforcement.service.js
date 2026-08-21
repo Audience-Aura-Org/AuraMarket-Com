@@ -21,17 +21,17 @@
 const Order = require('../models/Order.model');
 const Dispute = require('../models/Dispute.model');
 const { sendNotification } = require('../utils/notifier');
+const { withLock } = require('../utils/locks');
 
 const RUN_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+const LOCK_TTL_SECONDS = Math.ceil(RUN_INTERVAL_MS / 1000) + 60;
 const BATCH_SIZE = 50;
 const WARNING_HOURS_BEFORE = 24; // notify buyer this many hours before window closes
 
-let running = false;
 let timer = null;
 
 const processDisputeWindows = async (app) => {
-  if (running) return { processed: 0, warned: 0, skipped: true };
-  running = true;
+  const result = await withLock('worker:dispute-window', LOCK_TTL_SECONDS, async () => {
   let processed = 0;
   let warned = 0;
 
@@ -97,11 +97,15 @@ const processDisputeWindows = async (app) => {
     }
   } catch (error) {
     console.error('[disputeWindowEnforcement] scan failed:', error.message);
-  } finally {
-    running = false;
   }
 
   return { processed, warned, skipped: false };
+  }).catch((err) => {
+    console.error('[disputeWindowEnforcement] lock failed:', err.message);
+    return { processed: 0, warned: 0, skipped: false };
+  });
+
+  return result ?? { processed: 0, warned: 0, skipped: true };
 };
 
 const startDisputeWindowWorker = (app) => {
@@ -122,4 +126,8 @@ const startDisputeWindowWorker = (app) => {
   if (timer.unref) timer.unref();
 };
 
-module.exports = { processDisputeWindows, startDisputeWindowWorker };
+const stopDisputeWindowWorker = () => {
+  if (timer) { clearInterval(timer); timer = null; }
+};
+
+module.exports = { processDisputeWindows, startDisputeWindowWorker, stopDisputeWindowWorker };

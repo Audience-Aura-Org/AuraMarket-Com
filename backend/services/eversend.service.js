@@ -32,6 +32,7 @@ const getAccessToken = async (force = false) => {
         clientId: EVERSEND_CLIENT_ID,
         clientSecret: EVERSEND_CLIENT_SECRET,
       },
+      timeout: 15000,
     });
 
     const token = res.data?.token || res.data?.data?.token;
@@ -464,7 +465,11 @@ const verifyWebhookSignature = (payload, signature) => {
     }
     
     const digest = hmac.update(data).digest('hex');
-    return digest === signature;
+    try {
+      return crypto.timingSafeEqual(Buffer.from(digest, 'hex'), Buffer.from(signature, 'hex'));
+    } catch (_e) {
+      return false; // length mismatch — invalid signature
+    }
   } catch (err) {
     console.error('Webhook signature verification error:', err.message);
     return false;

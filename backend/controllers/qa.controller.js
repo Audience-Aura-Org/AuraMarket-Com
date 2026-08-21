@@ -28,7 +28,7 @@ const askQuestion = async (req, res, next) => {
     await sendNotification(req.app, vendor.user_id, {
       title: 'New Product Question',
       message: `A buyer has a question about "${product.name}".`,
-      type: 'chat_msg'
+      type: 'system_alert'
     });
 
     res.status(201).json({ success: true, data: { question } });

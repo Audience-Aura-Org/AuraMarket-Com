@@ -27,12 +27,13 @@ const Shipment  = require('../models/Shipment.model');
 const Vendor    = require('../models/Vendor.model');
 const { sendNotification } = require('../utils/notifier');
 const logisticsService = require('./logistics.service');
+const { withLock } = require('../utils/locks');
 
 const RUN_INTERVAL_MS = 60 * 1000;  // 1 minute
+const LOCK_TTL_SECONDS = Math.ceil(RUN_INTERVAL_MS / 1000) + 30;
 const BATCH_SIZE = 20;
 
-let running = false;
-let timer   = null;
+let timer = null;
 
 /**
  * Dispatch a single order's rider by creating the Shipment.
@@ -153,8 +154,7 @@ const dispatchRiderForOrder = async (order, app) => {
  * Main tick — scan for orders whose delayed dispatch time has arrived.
  */
 const runDelayedRiderDispatch = async (app) => {
-  if (running) return { dispatched: 0, skipped: true };
-  running = true;
+  const result = await withLock('worker:delayed-rider-dispatch', LOCK_TTL_SECONDS, async () => {
   let dispatched = 0;
 
   try {
@@ -176,11 +176,15 @@ const runDelayedRiderDispatch = async (app) => {
     }
   } catch (error) {
     console.error('[delayedRiderDispatch] scan failed:', error.message);
-  } finally {
-    running = false;
   }
 
   return { dispatched, skipped: false };
+  }).catch((err) => {
+    console.error('[delayedRiderDispatch] lock failed:', err.message);
+    return { dispatched: 0, skipped: false };
+  });
+
+  return result ?? { dispatched: 0, skipped: true };
 };
 
 /**
@@ -206,4 +210,8 @@ const startDelayedRiderDispatchWorker = (app) => {
   if (timer.unref) timer.unref();
 };
 
-module.exports = { runDelayedRiderDispatch, startDelayedRiderDispatchWorker };
+const stopDelayedRiderDispatchWorker = () => {
+  if (timer) { clearInterval(timer); timer = null; }
+};
+
+module.exports = { runDelayedRiderDispatch, startDelayedRiderDispatchWorker, stopDelayedRiderDispatchWorker };

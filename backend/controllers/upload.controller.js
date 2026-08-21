@@ -6,6 +6,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const crypto = require('crypto');
 const { pipeline } = require('stream/promises');
 const {
   uploadToS3,
@@ -17,6 +18,21 @@ const {
   normalizeS3Folder,
 } = require('../utils/s3');
 const { compressVideo, compressVideoForStatus, checkVideoQuality } = require('../utils/videoCompression');
+const { enqueueJob } = require('../services/jobQueue.service');
+
+// ── Async video job results ─────────────────────────────────────────────────
+// Holds transcoding job status/URL for 30 min (client polls via GET /video-status/:id).
+const VIDEO_JOB_TTL_MS = 30 * 60 * 1000;
+const videoJobResults = new Map();
+setInterval(() => {
+  const cutoff = Date.now() - VIDEO_JOB_TTL_MS;
+  for (const [id, entry] of videoJobResults.entries()) {
+    if ((entry.createdAt || 0) < cutoff) videoJobResults.delete(id);
+  }
+}, VIDEO_JOB_TTL_MS).unref?.();
+
+// Module-level app reference so background jobs can emit socket events
+let _app;
 
 const MB = 1024 * 1024;
 const UPLOAD_LIMITS = {
@@ -117,11 +133,19 @@ async function maybeTranscodeVideoForWeb(file, folder = 'general', trimOptions =
       mimetype: file.mimetype,
     };
   } finally {
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
+    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_e) {}
   }
 }
 
+// ── GET /api/upload/video-status/:jobId ────────────────────────────────────
+const getVideoJobStatus = (req, res) => {
+  const entry = videoJobResults.get(req.params.jobId);
+  if (!entry) return res.status(404).json({ success: false, message: 'Job not found or expired.' });
+  return res.status(200).json({ success: true, data: entry });
+};
+
 const uploadSingle = async (req, res) => {
+  if (!_app) _app = req.app;
   console.log(`📡 [API] Upload triggered - S3 Enabled: ${isS3Enabled()}`);
   console.log(`📦 [API] Request Headers:`, {
     contentType: req.headers['content-type'],
@@ -158,7 +182,6 @@ const uploadSingle = async (req, res) => {
     if (isS3Enabled()) {
       const folder = normalizeS3Folder(req.body.type || 'general');
       enforceUploadSize({ folder, contentType: req.file.mimetype, size: req.file.size || req.file.buffer?.length });
-      console.log(`🚀 [API] Uploading to S3 with folder: ${folder}, mimetype: ${req.file.mimetype}`);
 
       const trimStart = Number(req.body.trimStart);
       const trimEnd = Number(req.body.trimEnd);
@@ -167,6 +190,58 @@ const uploadSingle = async (req, res) => {
         : null;
       const cropMode = req.body.cropMode || 'crop';
 
+      // Determine if this video actually needs FFmpeg transcoding
+      const isVideo = req.file.mimetype?.startsWith('video/');
+      const isMp4 = req.file.mimetype === 'video/mp4' || /\.mp4$/i.test(req.file.originalname || '');
+      const skipTranscode = !isVideo || (isMp4 && req.file.buffer.length <= SKIP_TRANSCODE_MAX_BYTES && !trimOptions);
+
+      if (isVideo && !skipTranscode) {
+        // ── ASYNC PATH: write raw buffer to disk and return 202 ──────────────
+        const jobId = crypto.randomBytes(8).toString('hex');
+        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aura-video-raw-'));
+        const tmpPath = path.join(tmpDir, `raw-${jobId}-${req.file.originalname || 'upload'}`);
+        fs.writeFileSync(tmpPath, req.file.buffer);
+
+        const outputFolder = trimOptions ? 'statuses' : folder;
+        const userId = req.user?._id?.toString();
+
+        videoJobResults.set(jobId, { status: 'processing', createdAt: Date.now() });
+
+        enqueueJob('video-transcode', async (payload) => {
+          let tmpBuf;
+          try {
+            tmpBuf = fs.readFileSync(payload.tmpPath);
+            const fakeFile = { buffer: tmpBuf, originalname: payload.fileOriginalname, mimetype: payload.fileMimetype };
+            const result = await maybeTranscodeVideoForWeb(fakeFile, payload.folder, payload.trimOptions, payload.cropMode);
+            const s3Result = await uploadToS3(result.buffer, result.originalname, payload.outputFolder, result.mimetype);
+            videoJobResults.set(payload.jobId, { status: 'done', url: s3Result.url, completedAt: Date.now(), createdAt: payload.createdAt });
+            const io = _app?.get?.('io');
+            if (io && payload.userId) {
+              io.to(payload.userId).emit('video_processed', { job_id: payload.jobId, url: s3Result.url });
+            }
+          } catch (err) {
+            console.error(`[video-transcode] job ${payload.jobId} failed:`, err.message);
+            videoJobResults.set(payload.jobId, { status: 'failed', error: err.message, createdAt: payload.createdAt });
+          } finally {
+            tmpBuf = null;
+            try { fs.rmSync(path.dirname(payload.tmpPath), { recursive: true, force: true }); } catch (_e) {}
+          }
+        }, {
+          jobId, tmpPath, folder, trimOptions, cropMode, outputFolder, userId,
+          fileOriginalname: req.file.originalname,
+          fileMimetype:     req.file.mimetype,
+          createdAt:        Date.now(),
+        }, { attempts: 1 }); // no retry — temp file exists only once
+
+        return res.status(202).json({
+          success: true,
+          processing: true,
+          job_id: jobId,
+          message: 'Video is being processed. Poll GET /api/upload/video-status/' + jobId + ' or listen for the video_processed socket event.',
+        });
+      }
+
+      // ── SYNC PATH: image or already-compatible small mp4 ────────────────
       const uploadPayload = await maybeTranscodeVideoForWeb(req.file, folder, trimOptions, cropMode);
       const outputFolder = trimOptions ? 'statuses' : folder;
       const s3Result = await uploadToS3(
@@ -370,62 +445,82 @@ const presignUpload = async (req, res) => {
  * @route POST /api/upload/process-s3
  * @desc  Server-side trim + transcode a video already uploaded to S3 via presigned PUT.
  *        Accepts { key, trimStart, trimEnd, cropMode }.
- *        Downloads the source from status-sources/, runs ffmpeg, re-uploads to statuses/.
+ *        Downloads source synchronously (fast I/O), then runs ffmpeg in a background job.
+ *        Returns 202 immediately with a job_id; client polls GET /video-status/:jobId.
  * @access Private
  */
 const processVideoFromS3 = async (req, res) => {
+  if (!_app) _app = req.app;
   const { key, trimStart, trimEnd, cropMode = 'crop' } = req.body;
 
   if (!key || typeof key !== 'string') {
     return res.status(400).json({ success: false, message: 'S3 key is required.' });
   }
-  // Security: only allow keys from the status-sources folder
-  if (!key.startsWith('status-sources/')) {
+  // Security: normalize first, then check prefix — prevents path traversal (e.g. status-sources/../../../secret)
+  const normalizedKey = path.posix.normalize(key);
+  if (!normalizedKey.startsWith('status-sources/') || normalizedKey.includes('..')) {
     return res.status(400).json({
       success: false,
       message: 'Invalid key. Only status-sources objects may be processed.',
     });
   }
+  // Use the normalized key for all downstream operations
+  key = normalizedKey;
   if (!isS3Enabled()) {
     return res.status(503).json({ success: false, message: 'S3 is not enabled on this server.' });
   }
 
   try {
-    // Stream S3 object directly to a temp file — avoids allocating a full in-memory
-    // Buffer (~7.8MB RAM saved per upload). Bytes are written to disk as they arrive.
+    // Stream S3 object to a temp file synchronously (fast I/O, not CPU).
+    // FFmpeg compression is offloaded to a background job below.
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aura-s3trim-'));
     const fileName = key.split('/').pop() || 'video.mp4';
     const inputPath = path.join(tmpDir, `in-${Date.now()}-${fileName}`);
-    const outputName = fileName.replace(/\.[^.]+$/, '') + '-trimmed.mp4';
-    const outputPath = path.join(tmpDir, `out-${Date.now()}-${outputName}`);
 
-    try {
-      console.log(`🎬 [API] process-s3: Streaming source from S3 to disk: ${key}`);
-      const s3Stream = await getS3Stream(key);
-      await pipeline(s3Stream, fs.createWriteStream(inputPath));
+    console.log(`🎬 [API] process-s3: Streaming source from S3 to disk: ${key}`);
+    const s3Stream = await getS3Stream(key);
+    await pipeline(s3Stream, fs.createWriteStream(inputPath));
 
-      const inputSizeMB = (fs.statSync(inputPath).size / 1024 / 1024).toFixed(1);
-      console.log(`🎬 [API] process-s3: Wrote ${inputSizeMB}MB to disk, starting ffmpeg...`);
+    const inputSizeMB = (fs.statSync(inputPath).size / 1024 / 1024).toFixed(1);
+    console.log(`🎬 [API] process-s3: Wrote ${inputSizeMB}MB to disk, enqueueing ffmpeg job...`);
 
-      const trimOptions =
-        Number.isFinite(Number(trimStart)) && Number.isFinite(Number(trimEnd))
-          ? { start: Number(trimStart), end: Number(trimEnd) }
-          : null;
+    const trimOptions =
+      Number.isFinite(Number(trimStart)) && Number.isFinite(Number(trimEnd))
+        ? { start: Number(trimStart), end: Number(trimEnd) }
+        : null;
 
-      await compressVideoForStatus(inputPath, outputPath, trimOptions, cropMode);
+    const jobId = crypto.randomBytes(8).toString('hex');
+    const userId = req.user?._id?.toString();
 
-      const outBuffer = fs.readFileSync(outputPath);
-      const s3Result = await uploadToS3(outBuffer, outputName, 'statuses', 'video/mp4');
+    videoJobResults.set(jobId, { status: 'processing', createdAt: Date.now() });
 
-      console.log(`✅ [API] process-s3: Trimmed video uploaded: ${s3Result.url}`);
+    enqueueJob('s3-video-process', async (payload) => {
+      const outputName = payload.fileName.replace(/\.[^.]+$/, '') + '-trimmed.mp4';
+      const outputPath = path.join(payload.tmpDir, `out-${Date.now()}-${outputName}`);
+      try {
+        await compressVideoForStatus(payload.inputPath, outputPath, payload.trimOptions, payload.cropMode);
+        const outBuffer = fs.readFileSync(outputPath);
+        const s3Result = await uploadToS3(outBuffer, outputName, 'statuses', 'video/mp4');
+        console.log(`✅ [API] process-s3: Trimmed video uploaded: ${s3Result.url}`);
+        videoJobResults.set(payload.jobId, {
+          status: 'done', url: s3Result.url, completedAt: Date.now(), createdAt: payload.createdAt,
+        });
+        const io = _app?.get?.('io');
+        if (io && payload.userId) io.to(payload.userId).emit('video_processed', { job_id: payload.jobId, url: s3Result.url });
+      } catch (err) {
+        console.error(`[s3-video-process] job ${payload.jobId} failed:`, err.message);
+        videoJobResults.set(payload.jobId, { status: 'failed', error: err.message, createdAt: payload.createdAt });
+      } finally {
+        try { fs.rmSync(payload.tmpDir, { recursive: true, force: true }); } catch (_e) {}
+      }
+    }, { inputPath, tmpDir, fileName, trimOptions, cropMode, userId, jobId, createdAt: Date.now() }, { attempts: 1 });
 
-      return res.status(200).json({
-        success: true,
-        data: { url: s3Result.url, method: 'S3-trim', mimetype: 'video/mp4' },
-      });
-    } finally {
-      try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
-    }
+    return res.status(202).json({
+      success: true,
+      processing: true,
+      job_id: jobId,
+      message: 'Video is being processed. Poll GET /api/upload/video-status/' + jobId + ' or listen for the video_processed socket event.',
+    });
   } catch (err) {
     const errorCode = err.Code || err.code || err.name || 'UnknownError';
     console.error(`❌ [API] process-s3 failed [${errorCode}]:`, err.message);
@@ -442,5 +537,6 @@ module.exports = {
   uploadMultiple,
   presignUpload,
   processVideoFromS3,
+  getVideoJobStatus,
 };
 

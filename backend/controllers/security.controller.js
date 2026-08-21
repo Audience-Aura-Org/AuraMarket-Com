@@ -1,14 +1,6 @@
 const qrcode = require('qrcode');
 const User = require('../models/User.model');
-
-let otplibAuthenticator;
-const getAuthenticator = async () => {
-  if (!otplibAuthenticator) {
-    const otplib = await import('otplib');
-    otplibAuthenticator = otplib.authenticator;
-  }
-  return otplibAuthenticator;
-};
+const { generateSecret, generateURI, verifySync } = require('otplib');
 
 /**
  * controllers/security.controller.js
@@ -25,17 +17,16 @@ const generate2FA = async (req, res, next) => {
     const user = await User.findById(req.user._id);
 
     // Generate a new secret
-    const authenticator = await getAuthenticator();
-    const secret = authenticator.generateSecret();
-    
+    const secret = generateSecret();
+
     // Save temporary secret to user (not enabled yet)
     // We update secret even if already has one, but only 'enable' after verification
     user.two_factor_secret = secret;
     await user.save({ validateBeforeSave: false });
 
     // Generate otpauth URL for Google Authenticator/Authy
-    const otpauth = authenticator.keyuri(user.email, 'Auradime', secret);
-    
+    const otpauth = generateURI({ type: 'totp', label: user.email, issuer: 'Auradime', secret });
+
     // Convert to QR code image (Data URL)
     const qrCodeImage = await qrcode.toDataURL(otpauth);
 
@@ -66,8 +57,7 @@ const enable2FA = async (req, res, next) => {
     const user = await User.findById(req.user._id).select('+two_factor_secret');
 
     // Verify the token against the saved secret
-    const authenticator = await getAuthenticator();
-    const isValid = authenticator.check(token, user.two_factor_secret);
+    const isValid = verifySync({ token, secret: user.two_factor_secret }).valid;
 
     if (!isValid) {
       return res.status(401).json({ success: false, message: 'Invalid token. Please try again.' });
@@ -101,8 +91,7 @@ const disable2FA = async (req, res, next) => {
     const user = await User.findById(req.user._id).select('+two_factor_secret');
 
     // Verify one last time before disabling
-    const authenticator = await getAuthenticator();
-    const isValid = authenticator.check(token, user.two_factor_secret);
+    const isValid = verifySync({ token, secret: user.two_factor_secret }).valid;
 
     if (!isValid) {
       return res.status(401).json({ success: false, message: 'Invalid token. Security verification failed.' });

@@ -4,12 +4,14 @@ const Order = require('../models/Order.model');
 const Dispute = require('../models/Dispute.model');
 const Shipment = require('../models/Shipment.model');
 const { finalizeEscrowPayout, markEscrowDelivered, AUTO_RELEASE_WINDOW_MS } = require('../controllers/escrow.controller');
+const { withLock } = require('../utils/locks');
 
 const ACTIVE_DISPUTE_STATUSES = ['pending', 'investigating'];
 const RUN_INTERVAL_MS = 10 * 60 * 1000;
 const BATCH_SIZE = 25;
+// Redis lock TTL slightly longer than run interval so a hung scan won't block forever
+const LOCK_TTL_SECONDS = Math.ceil(RUN_INTERVAL_MS / 1000) + 60;
 
-let running = false;
 let timer = null;
 
 const getReleaseBaseTime = (escrow, order, shipment = null) => {
@@ -151,11 +153,10 @@ const getAutoReleaseCandidates = async (now, cutoff) => {
 };
 
 const processEscrowAutoReleases = async (app) => {
-  if (running) return { processed: 0, skipped: true };
-  running = true;
-  let processed = 0;
+  // Distributed lock — only one PM2 worker runs the scan at a time
+  const result = await withLock('worker:escrow-auto-release', LOCK_TTL_SECONDS, async () => {
+    let processed = 0;
 
-  try {
     const now = new Date();
     const cutoff = new Date(now.getTime() - AUTO_RELEASE_WINDOW_MS);
     const candidates = await getAutoReleaseCandidates(now, cutoff);
@@ -177,13 +178,15 @@ const processEscrowAutoReleases = async (app) => {
       const released = await autoReleaseEscrow({ escrow, order, shipment, app });
       if (released) processed += 1;
     }
-  } catch (error) {
-    console.error('[escrowAutoRelease] scan failed:', error.message);
-  } finally {
-    running = false;
-  }
 
-  return { processed, skipped: false };
+    return { processed, skipped: false };
+  }).catch((error) => {
+    console.error('[escrowAutoRelease] scan failed:', error.message);
+    return { processed: 0, skipped: false };
+  });
+
+  // withLock returns null when another worker holds the lock
+  return result ?? { processed: 0, skipped: true };
 };
 
 const startEscrowAutoReleaseWorker = (app) => {
@@ -204,7 +207,15 @@ const startEscrowAutoReleaseWorker = (app) => {
   if (timer.unref) timer.unref();
 };
 
+const stopEscrowAutoReleaseWorker = () => {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+};
+
 module.exports = {
   processEscrowAutoReleases,
   startEscrowAutoReleaseWorker,
+  stopEscrowAutoReleaseWorker,
 };

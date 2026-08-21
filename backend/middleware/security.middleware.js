@@ -120,7 +120,7 @@ const isAllowedOrigin = (origin, allowedOrigins = createAllowedOrigins()) => {
     if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
     if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
     if (hostname === 'auradime.com' || hostname.endsWith('.auradime.com')) return true;
-    if (hostname === 'vercel.app' || hostname.endsWith('.vercel.app')) return true;
+    // NOTE: *.vercel.app wildcard removed — add specific preview URLs via WEB_CLIENT_URL env var.
   } catch (error) {
     return false;
   }

@@ -26,6 +26,7 @@ const PlatformSettings = require('../../models/PlatformSettings.model');
 const logisticsService = require('../logistics.service');
 const { sendNotification, notifyAdmins } = require('../../utils/notifier');
 const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../../utils/platformFees');
+const { debitBalance, creditBalance } = require('../wallet.service');
 const crypto = require('crypto');
 
 const getEffectivePlatformSettings = async (vendorId, session) => {
@@ -57,14 +58,11 @@ const creditLogistics = async (order, session) => {
   const logisticsFirm = await LogisticsCompany.findById(order.logistics_company_id).session(session);
   if (!logisticsFirm) return;
 
-  const logisticsUser = await User.findById(logisticsFirm.user_id).session(session);
+  const logisticsUser = await creditBalance(logisticsFirm.user_id, order.shipping_fee, session);
   if (!logisticsUser) return;
 
-  logisticsUser.wallet_balance += order.shipping_fee;
-  await logisticsUser.save({ session });
-
   await Transaction.create([{
-    user_id: logisticsUser._id,
+    user_id: logisticsFirm.user_id,
     type: 'payout',
     amount: order.shipping_fee,
     reference: genRef('LOG'),
@@ -162,16 +160,13 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
   } else {
     // ── DIRECT PATH: credit vendor immediately ───────────────────────────
     const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
-    const vendorUser = await User.findById(vendorRecord.user_id).session(session);
-
-    vendorUser.wallet_balance += vendorPayout;
-    await vendorUser.save({ session });
+    await creditBalance(vendorRecord.user_id, vendorPayout, session);
 
     platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
     await platformSettings.save({ session });
 
     const transactionEntries = [{
-      user_id: vendorUser._id,
+      user_id: vendorRecord.user_id,
       type: 'payout',
       amount: vendorPayout,
       reference: genRef('PAYOUT-DIRECT'),
@@ -184,7 +179,7 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
 
     if (platformFee > 0) {
       transactionEntries.push({
-        user_id: vendorUser._id,
+        user_id: vendorRecord.user_id,
         type: 'payment',
         amount: platformFee,
         reference: genRef('REV'),
@@ -213,13 +208,10 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
     order.transit_fee > 0
   ) {
     const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
-    const vendorUser   = await User.findById(vendorRecord.user_id).session(session);
-
-    vendorUser.wallet_balance += order.transit_fee;
-    await vendorUser.save({ session });
+    await creditBalance(vendorRecord.user_id, order.transit_fee, session);
 
     await Transaction.create([{
-      user_id:     vendorUser._id,
+      user_id:     vendorRecord.user_id,
       type:        'payout',
       amount:      order.transit_fee,
       reference:   genRef('TRANSIT'),
@@ -249,16 +241,12 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
   const order = typeof orderId === 'object' ? orderId : await Order.findById(orderId).session(session);
   if (!order || order.payment_status !== 'pending') return null;
 
-  const user = await User.findById(userId).session(session);
-  if (!user) throw new Error('Buyer user not found.');
-
   if (!skipBalanceDeduct) {
-    if (user.wallet_balance < order.total_amount) {
-      throw new Error(`Insufficient wallet balance for order #${order._id.toString().slice(-4)}.`);
-    }
-    user.wallet_balance -= order.total_amount;
-    await user.save({ session });
+    const debited = await debitBalance(userId, order.total_amount, session);
+    if (!debited) throw new Error(`Insufficient wallet balance for order #${order._id.toString().slice(-4)}.`);
   }
+  const user = await User.findById(userId).select('_id name email wallet_balance').session(session);
+  if (!user) throw new Error('Buyer user not found.');
 
   // Mark order paid
   order.payment_status = 'paid';
@@ -395,7 +383,7 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
  * @param {string}   [webUrl] - Base URL for email links
  */
 const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDeduct = false, webUrl = '', paymentGateway = 'wallet') => {
-  const user = await User.findById(userId).session(session);
+  const user = await User.findById(userId).select('_id name email wallet_balance').session(session);
   if (!user) throw new Error('User not found.');
 
   for (const orderId of orderIds) {
@@ -407,9 +395,8 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
       if (skipBalanceDeduct) {
         // Since we aren't deducting from balance, these are 'new' funds from a gateway.
         // If the order is already paid, credit these funds to the user's wallet so they aren't lost.
-        user.wallet_balance += order.total_amount;
-        await user.save({ session });
-        
+        await creditBalance(userId, order.total_amount, session);
+
         await Transaction.create([{
           user_id: user._id,
           type: 'deposit',
@@ -424,12 +411,9 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
       continue;
     }
 
-    if (!skipBalanceDeduct && user.wallet_balance < order.total_amount) {
-      throw new Error(`Insufficient wallet balance for order #${orderId.toString().slice(-4)}.`);
-    }
-
     if (!skipBalanceDeduct) {
-      user.wallet_balance -= order.total_amount;
+      const debited = await debitBalance(userId, order.total_amount, session);
+      if (!debited) throw new Error(`Insufficient wallet balance for order #${orderId.toString().slice(-4)}.`);
     }
 
     order.payment_status = 'paid';
@@ -544,9 +528,6 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
     }
   }
 
-  // Persist updated user balance
-  await user.save({ session });
-
   // Clear cart once all orders settled
   const cart = await Cart.findOne({ user_id: userId }).session(session);
   if (cart) {
@@ -580,27 +561,20 @@ const clawbackFoodRefund = async (order, refundAmount, session, reason = 'Food o
   const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
   if (!vendorRecord) throw new Error('clawbackFoodRefund: vendor record not found.');
 
-  const [vendorUser, buyerUser] = await Promise.all([
-    User.findById(vendorRecord.user_id).session(session),
-    User.findById(order.customer_id).session(session),
-  ]);
-  if (!vendorUser || !buyerUser) throw new Error('clawbackFoodRefund: user record(s) not found.');
-
   const ref = genRef('FOOD-CLBK');
   const orderLabel = `Order #${order._id.toString().slice(-6).toUpperCase()}`;
 
-  // Debit vendor (balance may go negative — Step 5 allows this)
-  vendorUser.wallet_balance -= refundAmount;
-  await vendorUser.save({ session });
-
-  // Credit buyer
-  buyerUser.wallet_balance += refundAmount;
-  await buyerUser.save({ session });
+  // Atomic: debit vendor (allowNegative — vendor may have already spent the funds)
+  //         credit buyer
+  await Promise.all([
+    debitBalance(vendorRecord.user_id, refundAmount, session, { allowNegative: true }),
+    creditBalance(order.customer_id, refundAmount, session),
+  ]);
 
   // Audit trail
   await Transaction.create([
     {
-      user_id:     vendorUser._id,
+      user_id:     vendorRecord.user_id,
       type:        'payment',
       amount:      refundAmount,
       reference:   ref,
@@ -610,7 +584,7 @@ const clawbackFoodRefund = async (order, refundAmount, session, reason = 'Food o
       order_id:    order._id,
     },
     {
-      user_id:     buyerUser._id,
+      user_id:     order.customer_id,
       type:        'refund',
       amount:      refundAmount,
       reference:   `${ref}-REF`,
@@ -649,10 +623,7 @@ const releaseRestaurantHold = async (order, session) => {
   const { vendorPayout } = calculatePlatformFees(vendorBaseAmount, effectiveSettings, { includeEscrowFee: false });
 
   const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
-  const vendorUser   = await User.findById(vendorRecord.user_id).session(session);
-
-  vendorUser.wallet_balance += vendorPayout;
-  await vendorUser.save({ session });
+  await creditBalance(vendorRecord.user_id, vendorPayout, session);
 
   // Mark the pending Transaction as completed
   await Transaction.findOneAndUpdate(

@@ -1,0 +1,162 @@
+/**
+ * services/wallet.service.js
+ * Auradime — Single authoritative wallet balance mutation.
+ *
+ * ALL wallet balance changes anywhere in the codebase must go through
+ * adjustBalance(). Never write `user.wallet_balance += x; user.save()`.
+ *
+ * Guarantees:
+ *   1. Atomic $inc — no lost-update races under concurrent requests.
+ *   2. Debit guard  — debits that would take balance below 0 are rejected
+ *      (returns null) unless `allowNegative` is explicitly passed.
+ *   3. Transaction record — every change is logged in the Transaction collection.
+ *   4. Audit trail — every change is written to AuditLog.
+ *
+ * Usage:
+ *   const result = await adjustBalance(userId, 5000, session, {
+ *     type: 'deposit', reference: 'AURA-TX-XXXX', description: 'Wallet top-up', gateway: 'paystack',
+ *   });
+ *   if (!result) throw new Error('Insufficient balance');
+ */
+
+const crypto    = require('crypto');
+const mongoose  = require('mongoose');
+const User       = require('../models/User.model');
+const Transaction = require('../models/Transaction.model');
+const { recordAudit } = require('../utils/auditTrail');
+const { toXAF } = require('../utils/money');
+const logger    = require('../utils/logger');
+
+const generateRef = () => `AURA-TX-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
+
+/**
+ * Atomically adjust a user's wallet balance and log the transaction.
+ *
+ * @param {string|import('mongoose').Types.ObjectId} userId
+ * @param {number} delta         - Positive = credit, negative = debit
+ * @param {import('mongoose').ClientSession} [session]
+ * @param {object} meta
+ * @param {string} meta.type          - Transaction type (deposit, withdrawal, refund, payout, …)
+ * @param {string} [meta.reference]   - Unique reference; auto-generated if omitted
+ * @param {string} meta.description   - Human-readable description
+ * @param {string} [meta.gateway]     - Gateway identifier
+ * @param {string|import('mongoose').Types.ObjectId} [meta.order_id]
+ * @param {string} [meta.idempotency_key] - Client-supplied idempotency key
+ * @param {boolean} [meta.allowNegative=false] - Allow balance to go below 0 (clawbacks only)
+ * @returns {Promise<{ user: object, transaction: object } | null>}
+ *   Returns null if the debit would take the balance below 0 (unless allowNegative).
+ */
+const adjustBalance = async (userId, delta, session, meta = {}) => {
+  const amount = toXAF(Math.abs(delta));
+  if (amount === 0) {
+    logger.warn(`[wallet.service] adjustBalance called with zero delta for user ${userId}`);
+    return null;
+  }
+
+  const isDebit       = delta < 0;
+  const allowNegative = Boolean(meta.allowNegative);
+  const reference     = meta.reference || generateRef();
+  const opts          = session ? { session, new: true } : { new: true };
+
+  // ── Idempotency check ──────────────────────────────────────────────────────
+  if (meta.idempotency_key) {
+    const existing = await Transaction.findOne({ idempotency_key: meta.idempotency_key }).lean();
+    if (existing) {
+      const user = await User.findById(userId).select('wallet_balance').lean();
+      return { user, transaction: existing };
+    }
+  }
+
+  // ── Atomic balance update ──────────────────────────────────────────────────
+  const filter = { _id: userId };
+  if (isDebit && !allowNegative) {
+    // Guard: only debit if balance >= amount
+    filter.wallet_balance = { $gte: amount };
+  }
+
+  const updatedUser = await User.findOneAndUpdate(
+    filter,
+    { $inc: { wallet_balance: delta } },
+    opts,
+  );
+
+  if (!updatedUser) {
+    // Null means the filter failed — user not found or insufficient balance
+    logger.warn(`[wallet.service] adjustBalance failed for user ${userId}: ${isDebit ? 'insufficient balance' : 'user not found'}`);
+    return null;
+  }
+
+  // ── Transaction record ─────────────────────────────────────────────────────
+  const txData = {
+    user_id:          updatedUser._id,
+    type:             meta.type || (isDebit ? 'withdrawal' : 'deposit'),
+    amount,
+    reference,
+    status:           'completed',
+    description:      meta.description || (isDebit ? 'Debit' : 'Credit'),
+    gateway:          meta.gateway || null,
+    order_id:         meta.order_id || null,
+    idempotency_key:  meta.idempotency_key || null,
+    metadata:         meta.metadata || null,
+  };
+
+  let transaction;
+  try {
+    const created = session
+      ? await Transaction.create([txData], { session })
+      : await Transaction.create(txData);
+    transaction = Array.isArray(created) ? created[0] : created;
+  } catch (txErr) {
+    // If transaction record creation fails, log but do not reverse the balance change
+    // (it would require a compensating transaction — escalate instead)
+    logger.error(`[wallet.service] Transaction record creation failed for user ${userId}: ${txErr.message}`);
+    transaction = null;
+  }
+
+  // ── Audit trail ────────────────────────────────────────────────────────────
+  await recordAudit({
+    actorId:    meta.actorId || userId,
+    action:     isDebit ? 'wallet_debit' : 'wallet_credit',
+    targetType: 'User',
+    targetId:   userId,
+    before:     { wallet_balance: updatedUser.wallet_balance - delta },
+    after:      { wallet_balance: updatedUser.wallet_balance },
+    session,
+    meta:       { reference, amount, description: meta.description, gateway: meta.gateway },
+  });
+
+  return { user: updatedUser, transaction };
+};
+
+/**
+ * Atomic wallet debit — no Transaction record created (caller is responsible).
+ * Returns the updated User doc, or null if balance was insufficient.
+ * @param {*} userId
+ * @param {number} amount  - Positive number (the amount to subtract)
+ * @param {*} [session]
+ * @param {{ allowNegative?: boolean }} [opts]
+ */
+const debitBalance = async (userId, amount, session, opts = {}) => {
+  const amt = toXAF(Math.abs(amount));
+  const filter = opts.allowNegative
+    ? { _id: userId }
+    : { _id: userId, wallet_balance: { $gte: amt } };
+  const updateOpts = session ? { session, new: true } : { new: true };
+  return User.findOneAndUpdate(filter, { $inc: { wallet_balance: -amt } }, updateOpts);
+};
+
+/**
+ * Atomic wallet credit — no Transaction record created (caller is responsible).
+ * Always succeeds (credits don't need a guard).
+ * Returns the updated User doc.
+ * @param {*} userId
+ * @param {number} amount  - Positive number (the amount to add)
+ * @param {*} [session]
+ */
+const creditBalance = async (userId, amount, session) => {
+  const amt = toXAF(Math.abs(amount));
+  const opts = session ? { session, new: true } : { new: true };
+  return User.findOneAndUpdate({ _id: userId }, { $inc: { wallet_balance: amt } }, opts);
+};
+
+module.exports = { adjustBalance, generateRef, debitBalance, creditBalance };

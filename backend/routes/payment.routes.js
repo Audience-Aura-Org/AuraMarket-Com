@@ -4,10 +4,6 @@ const { protect } = require('../middleware/auth.middleware');
 const {
   // Gateway registry
   listGateways,
-  // Paystack
-  initializePayment,
-  verifyPayment,
-  handleWebhook,
   // Eversend
   eversendGetWallets,
   eversendInitialize,
@@ -28,7 +24,6 @@ const {
 } = require('../controllers/payment.controller');
 
 // ── Webhooks — PUBLIC (must come BEFORE protect middleware) ──────────────────
-router.post('/webhook', handleWebhook);
 router.post('/eversend/webhook', eversendWebhook);
 router.post('/payunit/webhook', payunitWebhook);
 
@@ -39,11 +34,7 @@ router.use(protect);
 router.get('/gateways', listGateways);
 router.post('/checkout/failed', failCheckoutPayment);
 
-// Paystack
-router.post('/initialize', initializePayment);
-router.get('/verify/:reference', verifyPayment);
-
-// Eversend
+// PayUnit
 router.post('/payunit/initialize', payunitInitialize);
 router.get('/payunit/verify/:reference', payunitVerify);
 router.get('/payunit/recheck/:reference', payunitRecheck);

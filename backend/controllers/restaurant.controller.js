@@ -294,8 +294,9 @@ const getDinePage = async (req, res, next) => {
     }
 
     const profileFilter = isCityZone
-      ? { city_zone_id: zoneObjId }
+      ? { city_zone_id: zoneObjId, is_active: { $ne: false } }
       : {
+          is_active: { $ne: false },
           $or: [
             { 'service_zones.zone_id': zoneObjId },
             // City-wide restaurants (empty service_zones = no district restriction) in the parent city
@@ -357,6 +358,7 @@ const getDinePage = async (req, res, next) => {
       vendor_id: { $in: vendorIds },
       status:    'active',
       'meal':    { $exists: true, $ne: null },
+      'meal.is_available_today': { $ne: false },
     };
     // For district zones: include meals that explicitly cover this district OR have no zone
     // restriction at all (city-wide meals from the vendors already in the vendor list).
@@ -410,6 +412,8 @@ const getDinePage = async (req, res, next) => {
     // 5. Build restaurant list, filtered by meal_category OR cuisine and sorted by num_reviews
     const restaurants = profiles
       .filter(p => {
+        // Skip orphan profiles whose vendor document no longer exists (hard-deleted vendors)
+        if (!vendorMap[p.vendor_id.toString()]) return false;
         if (mealCatVendorIdSet) return mealCatVendorIdSet.has(p.vendor_id.toString());
         if (!cuisineObjId) return true;
         return (p.cuisine_types || []).some(ct => ct._id.toString() === cuisineObjId.toString());
@@ -574,7 +578,8 @@ const getRestaurantMenu = async (req, res, next) => {
         .populate('service_zones.zone_id', 'name code')
         .lean(),
       // Include all active products — meals AND plain products (vendor may not have set meal field yet)
-      Product.find({ vendor_id, status: 'active' })
+      // Exclude meals explicitly marked unavailable today
+      Product.find({ vendor_id, status: 'active', 'meal.is_available_today': { $ne: false } })
         .select('name price images rating meal category_id category service_zone_ids')
         .populate('category_id', 'name slug _id')
         .sort({ rating: -1 })

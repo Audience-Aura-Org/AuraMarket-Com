@@ -6,6 +6,15 @@ const isCapacitorBuild = process.env.CAPACITOR_BUILD === 'true';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Disable client-side router cache for dynamic routes so navigating back to
+  // pages like /profile always re-mounts the component and re-fetches fresh data.
+  // staleTimes.static keeps the 5-min cache for truly static marketing pages.
+  experimental: {
+    staleTimes: {
+      dynamic: 0,
+      static: 300,
+    },
+  },
   ...(isCapacitorBuild
     ? {
         output: 'export',
@@ -17,6 +26,11 @@ const nextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
       { protocol: 'https', hostname: 'api.dicebear.com' },
+      // User-uploaded content served from S3. Hostname is computed from env vars at build time.
+      ...(process.env.AWS_S3_BUCKET ? [{
+        protocol: 'https',
+        hostname: `${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com`,
+      }] : []),
     ],
     deviceSizes: [640, 750, 828, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],

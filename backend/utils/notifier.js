@@ -9,11 +9,17 @@ const { enqueueJob } = require('../services/jobQueue.service');
 const { sendAndroidPush } = require('../services/fcm.service');
 
 // ── VAPID Keys Calibration ──────────────────────────────────────────────────
-// These keys must match the ones in pwa-helper.js on the frontend
-const VAPID_PUB  = VAPID_PUBLIC_KEY  || 'BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ';
-const VAPID_PRIV = VAPID_PRIVATE_KEY || 'aQU1zExyXuDZTuBlsHmI6iQwrVCvShRCGLR7GOYOSeY';
+// Keys must match the ones in pwa-helper.js on the frontend.
+// No hardcoded fallbacks — using a leaked key allows anyone to send push
+// notifications to all subscribed users.
+const VAPID_PUB  = VAPID_PUBLIC_KEY;
+const VAPID_PRIV = VAPID_PRIVATE_KEY;
 
-webPush.setVapidDetails('mailto:hello@auradime.com', VAPID_PUB, VAPID_PRIV);
+if (VAPID_PUB && VAPID_PRIV) {
+  webPush.setVapidDetails('mailto:hello@auradime.com', VAPID_PUB, VAPID_PRIV);
+} else {
+  console.warn('[notifier] VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY not set — web push disabled. Set them in .env to enable push notifications.');
+}
 
 // ── Signal Constants ─────────────────────────────────────────────────────────
 const LOGO_URL = 'https://auradime.com/logo-white.png';
@@ -267,6 +273,7 @@ const sendNotification = async (app, recipientId, data) => {
 
     // 🚀 CHANNEL 1: PWA WEB PUSH (ULTRA-FAST PATH)
     enqueueJob('push', async () => {
+      if (!VAPID_PUB || !VAPID_PRIV) return; // push disabled — VAPID keys not configured
       try {
         // Use pre-fetched subscriptions — no extra DB query needed here
         const rawWebSubs = pushSubs.filter((sub) => sub.channel !== 'android' && sub.subscription?.endpoint && !String(sub.subscription.endpoint).startsWith('fcm:'));

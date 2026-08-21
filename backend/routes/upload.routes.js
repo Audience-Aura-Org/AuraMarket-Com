@@ -1,7 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const { protect } = require('../middleware/auth.middleware');
-const { uploadSingle, uploadMultiple, presignUpload, processVideoFromS3 } = require('../controllers/upload.controller');
+const { videoUploadLimiter } = require('../middleware/rateLimiter');
+const { uploadSingle, uploadMultiple, presignUpload, processVideoFromS3, getVideoJobStatus } = require('../controllers/upload.controller');
 
 const router = express.Router();
 
@@ -33,13 +34,16 @@ const upload = multer({
 
 router.use(protect); // Ensure all uploads are authenticated
 
+// @route   GET  /api/upload/video-status/:jobId — poll async transcoding job result
+router.get('/video-status/:jobId', getVideoJobStatus);
+
 // @route   POST /api/upload/presign — JSON body; returns S3 PUT URL (no file through API)
 router.post('/presign', presignUpload);
 
 // @route   POST /api/upload/process-s3 — JSON body; trims/transcodes a file already in S3
 // @desc    Downloads source from status-sources/, runs ffmpeg, re-uploads to statuses/
 // @access  Private (no multer — body is plain JSON)
-router.post('/process-s3', protect, processVideoFromS3);
+router.post('/process-s3', protect, videoUploadLimiter, processVideoFromS3);
 
 // Accept image | file | video field names (status creator compatibility)
 const pickUploadFile = (req, res, next) => {
@@ -61,6 +65,7 @@ const pickUploadFile = (req, res, next) => {
 // @access  Private
 router.post(
   '/single',
+  videoUploadLimiter,
   // Debug: log request BEFORE multer processes
   (req, res, next) => {
     console.log('🔍 [MULTER-BEFORE] Request headers:', {

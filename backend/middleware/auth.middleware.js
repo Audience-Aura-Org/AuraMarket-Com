@@ -186,7 +186,7 @@ const loadVendorOptional = async (req, res, next) => {
       if (vendor) req.vendor = vendor;
     }
     next();
-  } catch {
+  } catch (_e) {
     // Non-fatal — proceed as a public request
     next();
   }

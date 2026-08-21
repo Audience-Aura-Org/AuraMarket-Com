@@ -22,6 +22,7 @@ const { sendEmail }        = require('../utils/emailService');
 const logisticsService     = require('../services/logistics.service');
 const templates            = require('../utils/emailTemplates');
 const { applyCommissionOverride, calculatePlatformFees } = require('../utils/platformFees');
+const { creditBalance } = require('../services/wallet.service');
 const { markEscrowDelivered } = require('./escrow.controller');
 
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -449,13 +450,10 @@ const modifyShipmentStatus = async (req, res, next) => {
               : null;
 
             if (!alreadyTxn) {
-              const logisticsUser = await User.findById(firm.user_id).session(session);
+              const logisticsUser = await creditBalance(firm.user_id, order.shipping_fee, session);
               if (logisticsUser) {
-                logisticsUser.wallet_balance += order.shipping_fee;
-                await logisticsUser.save({ session });
-
                 await Transaction.create([{
-                  user_id:     logisticsUser._id,
+                  user_id:     firm.user_id,
                   type:        'payout',
                   amount:      order.shipping_fee,
                   reference:   `LOG-${generateTxRef()}`,
@@ -515,14 +513,11 @@ const modifyShipmentStatus = async (req, res, next) => {
           // ── COD + LOGISTICS: Customer pays logistics in cash. Credit vendor subtotal immediately.
           const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
           if (vendorAccount) {
-            const vendorUser = await User.findById(vendorAccount.user_id).session(session);
+            const vendorUser = await creditBalance(vendorAccount.user_id, isLogisticsOrder ? order.subtotal : order.total_amount, session);
             if (vendorUser) {
               const vendorBaseAmount = isLogisticsOrder ? order.subtotal : order.total_amount;
-              vendorUser.wallet_balance += vendorBaseAmount;
-              await vendorUser.save({ session });
-
               await Transaction.create([{
-                user_id:     vendorUser._id,
+                user_id:     vendorAccount.user_id,
                 type:        'payout',
                 amount:      vendorBaseAmount,
                 reference:   generateTxRef(),
@@ -541,13 +536,10 @@ const modifyShipmentStatus = async (req, res, next) => {
           // ── NON-ESCROW DIGITAL PAYMENT + LOGISTICS: Pay vendor subtotal immediately.
           const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
           if (vendorAccount) {
-            const vendorUser = await User.findById(vendorAccount.user_id).session(session);
-            if (vendorUser) {
+            if (vendorAccount) {
               const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(order.vendor_id, session);
               const { platformFee, vendorPayout } = calculatePlatformFees(order.subtotal, effectiveSettings);
-
-              vendorUser.wallet_balance += vendorPayout;
-              await vendorUser.save({ session });
+              await creditBalance(vendorAccount.user_id, vendorPayout, session);
 
               if (platformFee > 0) {
                 platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
@@ -555,7 +547,7 @@ const modifyShipmentStatus = async (req, res, next) => {
               }
 
               await Transaction.create([{
-                user_id:     vendorUser._id,
+                user_id:     vendorAccount.user_id,
                 type:        'payout',
                 amount:      vendorPayout,
                 reference:   generateTxRef(),

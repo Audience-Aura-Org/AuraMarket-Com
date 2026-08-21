@@ -93,7 +93,7 @@ function VerifyContent() {
       setReason('Please return and use Aura Wallet or PayUnit.');
 
     } else {
-      // Paystack or other â€” legacy redirect verify
+      // No gateway param — treat as successful redirect
       setState('successful');
     }
 

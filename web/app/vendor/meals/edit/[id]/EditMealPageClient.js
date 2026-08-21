@@ -187,9 +187,6 @@ function EditMealPageInner() {
   const toggleBookingMode = (mode) => {
     setBookingOptions(prev => {
       const next = prev.includes(mode) ? prev.filter(m => m !== mode) : [...prev, mode];
-      if (mode === 'pre_order' && !next.includes('pre_order')) {
-        setMealAttrs(p => ({ ...p, available_date: '' }));
-      }
       return next;
     });
   };
@@ -494,38 +491,36 @@ function EditMealPageInner() {
             </button>
           </div>
 
-          {/* Preorder date — only shown when Pre-Order booking mode is selected */}
-          {bookingOptions.includes('pre_order') && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[12px] font-semibold text-[var(--text-primary)]">Preorder available date</p>
-                  <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">The date this meal will be ready for pickup or delivery</p>
-                </div>
-                {mealAttrs.available_date && (
-                  <button
-                    type="button"
-                    onClick={() => setMealAttrs(p => ({ ...p, available_date: '' }))}
-                    className="text-[10px] font-semibold text-rose-500 hover:underline"
-                  >
-                    Clear
-                  </button>
-                )}
+          {/* Available date — optional; lets vendors schedule when this meal becomes available */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[12px] font-semibold text-[var(--text-primary)]">Available date <span className="font-normal text-[var(--text-secondary)]">(optional)</span></p>
+                <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">The date this meal will be ready for pickup or delivery</p>
               </div>
-              <input
-                type="date"
-                min={new Date().toISOString().split('T')[0]}
-                value={mealAttrs.available_date}
-                onChange={e => setMealAttrs(p => ({ ...p, available_date: e.target.value }))}
-                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] outline-none focus:border-orange-500/50 transition-colors"
-              />
               {mealAttrs.available_date && (
-                <p className="text-[10px] text-amber-600">
-                  Scheduled for {new Date(mealAttrs.available_date).toLocaleDateString()}
-                </p>
+                <button
+                  type="button"
+                  onClick={() => setMealAttrs(p => ({ ...p, available_date: '' }))}
+                  className="text-[10px] font-semibold text-rose-500 hover:underline"
+                >
+                  Clear
+                </button>
               )}
             </div>
-          )}
+            <input
+              type="date"
+              min={new Date().toISOString().split('T')[0]}
+              value={mealAttrs.available_date}
+              onChange={e => setMealAttrs(p => ({ ...p, available_date: e.target.value }))}
+              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[12px] outline-none focus:border-orange-500/50 transition-colors"
+            />
+            {mealAttrs.available_date && (
+              <p className="text-[10px] text-amber-600">
+                Scheduled for {new Date(mealAttrs.available_date).toLocaleDateString()}
+              </p>
+            )}
+          </div>
 
           {/* Spice level */}
           <div className="space-y-2">

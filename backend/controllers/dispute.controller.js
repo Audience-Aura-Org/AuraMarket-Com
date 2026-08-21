@@ -15,6 +15,7 @@ const mongoose = require('mongoose');
 const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
 const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../utils/platformFees');
 const { clawbackFoodRefund } = require('../services/payment/settle.service');
+const { creditBalance } = require('../services/wallet.service');
 
 const getEffectivePlatformSettings = async (vendorId, session) => {
   const platformSettings = await PlatformSettings.getSettings(session);
@@ -149,13 +150,11 @@ const resolveDispute = async (req, res, next) => {
 
       // 2. Logic for Escrow: credit back to buyer wallet
       if (escrow && escrow.status === 'held') {
-        const buyer = await User.findById(escrow.buyer_id).session(session);
-        buyer.wallet_balance += escrow.amount;
-        await buyer.save({ session });
+        await creditBalance(escrow.buyer_id, escrow.amount, session);
 
         // Record refund transaction
         await Transaction.create([{
-          user_id: buyer._id,
+          user_id: escrow.buyer_id,
           type: 'refund',
           amount: escrow.amount,
           reference: generateTxRef(),
@@ -181,15 +180,13 @@ const resolveDispute = async (req, res, next) => {
       
       if (escrow && escrow.status === 'held') {
         const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
-        const vendorUser = await User.findById(vendorAccount.user_id).session(session);
         const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(escrow.vendor_id, session);
         const { platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, effectiveSettings, {
           includeEscrowFee: true
         });
         const feeDescription = describeFee(effectiveSettings, { includeEscrowFee: true });
 
-        vendorUser.wallet_balance += vendorPayout;
-        await vendorUser.save({ session });
+        await creditBalance(vendorAccount.user_id, vendorPayout, session);
 
         // Update Platform Earnings only when a platform fee is actually collected.
         if (platformFee > 0) {
@@ -199,7 +196,7 @@ const resolveDispute = async (req, res, next) => {
 
         // Update/Create Vendor Payout Transaction
         await Transaction.findOneAndUpdate(
-          { order_id: order._id, user_id: vendorUser._id, type: 'payout', status: 'pending' },
+          { order_id: order._id, user_id: vendorAccount.user_id, type: 'payout', status: 'pending' },
           { 
             status: 'completed', 
             amount: vendorPayout, 

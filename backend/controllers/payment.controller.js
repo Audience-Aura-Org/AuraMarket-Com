@@ -10,99 +10,12 @@ const payunit = require('../services/payunit.service');
 const { sendNotification, notifyAdmins } = require('../utils/notifier');
 const { getWebUrl } = require('../utils/url');
 const mongoose = require('mongoose');
-const { PAYSTACK_SECRET_KEY } = require('../config/env');
+const { PAYUNIT_WEBHOOK_SECRET } = require('../config/env');
 // -- New unified services -----------------------------------------------------
 const { settleOrders } = require('../services/payment/settle.service');
 const { getAvailableGateways } = require('../services/payment/gateway.registry');
 const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
 const { activateSubscription } = require('../services/subscription.service');
-
-// -----------------------------------------------------------------------------
-// PAYSTACK â€” kept intact for existing wallet flows
-// -----------------------------------------------------------------------------
-
-const initializePayment = async (req, res, next) => {
-  try {
-    const { amount } = req.body;
-    if (!amount || amount <= 0) return res.status(400).json({ success: false, message: 'Invalid amount.' });
-    const paystackAmount = amount * 100;
-    const response = await axios.post(
-      'https://api.paystack.co/transaction/initialize',
-      { email: req.user.email, amount: paystackAmount, callback_url: `${process.env.WEB_CLIENT_URL}/wallet/verify`, metadata: { user_id: req.user._id, type: 'deposit' } },
-      { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' } }
-    );
-    const { authorization_url, reference } = response.data.data;
-    await Transaction.create({ user_id: req.user._id, type: 'deposit', amount, reference, status: 'pending', gateway: 'paystack', description: 'Wallet deposit via Paystack' });
-    res.status(200).json({ success: true, data: { checkout_url: authorization_url, reference } });
-  } catch (error) {
-    console.error('Paystack Init Error:', error.response?.data || error.message);
-    res.status(500).json({ success: false, message: 'Payment initialization failed.' });
-  }
-};
-
-const verifyPayment = async (req, res, next) => {
-  try {
-    const { reference } = req.params;
-    const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, { headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` } });
-    const { status, amount } = response.data.data;
-    if (status === 'success') {
-      const transaction = await Transaction.findOne({ reference });
-      if (transaction && transaction.status === 'pending') {
-        transaction.status = 'completed';
-        transaction.gateway_response = response.data.data;
-        await transaction.save();
-        const creditAmount = amount / 100;
-        await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: creditAmount } });
-        return res.status(200).json({ success: true, message: 'Payment verified and wallet credited.', data: { balance_added: creditAmount } });
-      } else if (transaction?.status === 'completed') {
-        return res.status(200).json({ success: true, message: 'Payment already processed.' });
-      }
-    }
-    res.status(400).json({ success: false, message: 'Payment verification failed or incomplete.' });
-  } catch (error) {
-    console.error('Paystack Verify Error:', error.response?.data || error.message);
-    res.status(500).json({ success: false, message: 'Internal verification error.' });
-  }
-};
-
-const handleWebhook = async (req, res, next) => {
-  try {
-    const hash = crypto.createHmac('sha512', PAYSTACK_SECRET_KEY).update(JSON.stringify(req.body)).digest('hex');
-    if (hash !== req.headers['x-paystack-signature']) return res.status(400).send('Invalid signature');
-    const event = req.body;
-    if (event.event === 'charge.success') {
-      const { reference, amount } = event.data;
-      const transaction = await Transaction.findOne({ reference });
-      if (transaction && transaction.status === 'pending') {
-        transaction.status = 'completed';
-        transaction.gateway_response = event.data;
-        await transaction.save();
-        await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: amount / 100 } });
-        setImmediate(async () => {
-          try {
-            const depositor = await User.findById(transaction.user_id).select('name email phone');
-            await notifyAdmins(req.app, {
-              title: 'New Wallet Deposit',
-              message: `${(amount / 100).toLocaleString()} XAF deposited via Paystack (ref: ${reference}).`,
-              type: 'system_alert',
-              metadata: {
-                link: '/admin/transactions',
-                customer: depositor?.name || 'Unknown',
-                email: depositor?.email || '',
-                phone: depositor?.phone || '',
-              },
-              sendEmail: true,
-            });
-          } catch (err) { console.error('[notifyAdmins Paystack deposit]', err.message); }
-        });
-      }
-    }
-    res.status(200).send('Webhook processed');
-  } catch (error) {
-    console.error('Paystack Webhook Error:', error);
-    res.status(500).send('Internal Server Error');
-  }
-};
 
 // -----------------------------------------------------------------------------
 // HELPERS
@@ -635,22 +548,54 @@ const payunitVerify = async (req, res) => {
 
 const payunitWebhook = async (req, res) => {
   try {
+    // ── Signature verification (CRITICAL security gate) ─────────────────────
+    // PayUnit sends its secret in the x-payunit-signature header as HMAC-SHA256
+    // over the raw request body. We verify before touching any data.
+    const receivedSig = req.headers['x-payunit-signature'] || req.headers['x-webhook-signature'];
+    if (!receivedSig || !PAYUNIT_WEBHOOK_SECRET) {
+      console.warn('[PayUnit Webhook] Missing signature or secret — rejecting');
+      return res.status(401).send('Unauthorized');
+    }
+    // Raw body is needed for correct HMAC — body-parser must be configured with
+    // verify: (req, res, buf) => { req.rawBody = buf } on the /payunit/webhook route.
+    const rawBody = req.rawBody
+      ? req.rawBody
+      : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+    const expectedSig = crypto
+      .createHmac('sha256', PAYUNIT_WEBHOOK_SECRET)
+      .update(rawBody)
+      .digest('hex');
+    if (!crypto.timingSafeEqual(Buffer.from(receivedSig), Buffer.from(expectedSig))) {
+      console.warn('[PayUnit Webhook] Invalid signature — rejecting');
+      return res.status(401).send('Unauthorized');
+    }
+
     const event = req.body || {};
     const data = event.data || event;
     const reference = data.transaction_id || data.purchaseRef || data.id;
     if (!reference) return res.status(200).send('OK');
 
-    const transaction = await Transaction.findOne({ reference, gateway: 'payunit' });
-    if (!transaction) return res.status(200).send('OK');
-
     const status = payunit.normalizeStatus(data);
-    if (status === 'SUCCESSFUL' && transaction.status !== 'completed') {
-      await settleGatewayTransaction(transaction, event, req.app, getWebUrl(req), 'payunit');
-    } else if (status === 'FAILED' && transaction.status !== 'failed') {
-      transaction.status = 'failed';
-      transaction.gateway_response = event;
-      await transaction.save();
-      if (transaction.order_ids?.length) await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
+
+    if (status === 'SUCCESSFUL') {
+      // ── Idempotent claim: only process if still 'pending' ─────────────────
+      const claimed = await Transaction.findOneAndUpdate(
+        { reference, gateway: 'payunit', status: 'pending' },
+        { $set: { status: 'processing' } },
+        { new: true },
+      );
+      if (!claimed) {
+        // Already completed or claimed by another webhook retry
+        return res.status(200).send('OK');
+      }
+      await settleGatewayTransaction(claimed, event, req.app, getWebUrl(req), 'payunit');
+    } else if (status === 'FAILED') {
+      await Transaction.findOneAndUpdate(
+        { reference, gateway: 'payunit', status: { $in: ['pending', 'processing'] } },
+        { $set: { status: 'failed', gateway_response: event } },
+      );
+      const transaction = await Transaction.findOne({ reference, gateway: 'payunit' }).lean();
+      if (transaction?.order_ids?.length) await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
     }
     return res.status(200).send('OK');
   } catch (error) {
@@ -1205,49 +1150,63 @@ const eversendWebhook = async (req, res) => {
     console.log(`[Eversend Webhook] type=${type} ref=${data?.transactionRef} id=${data?.transactionId}`);
 
     if (type === 'transaction.success' || type === 'collection.success') {
-      const transaction = await Transaction.findOne({
-        $or: [{ reference: data?.transactionRef }, { gateway_transaction_id: data?.transactionId }],
-        gateway: 'eversend',
-      });
-      if (transaction && (transaction.status === 'pending' || transaction.status === 'failed')) {
+      // Atomic idempotency claim — only the first concurrent delivery wins.
+      // Status transitions: pending/failed → processing → completed (or back to pending on rollback).
+      const transaction = await Transaction.findOneAndUpdate(
+        {
+          $or: [{ reference: data?.transactionRef }, { gateway_transaction_id: data?.transactionId }],
+          gateway: 'eversend',
+          status: { $in: ['pending', 'failed'] },
+        },
+        { $set: { status: 'processing' } },
+        { returnDocument: 'after' }
+      );
+      if (transaction) {
         const isCheckout = transaction.order_ids?.length > 0;
         const isSubscription = isSubscriptionTransaction(transaction);
 
-        // Mark transaction as completed INSIDE each settlement session so that
-        // if settlement rolls back, the transaction is NOT left as 'completed' with
-        // unsettled orders (which would prevent the webhook from re-processing it).
         if (isSubscription) {
           const session = await mongoose.startSession();
           session.startTransaction();
           try {
-            transaction.status = 'completed';
-            transaction.gateway_response = data;
-            await transaction.save({ session });
+            await Transaction.findByIdAndUpdate(transaction._id,
+              { $set: { status: 'completed', gateway_response: data } }, { session });
             await settleSubscriptionTransaction(transaction, session, req.app);
             await session.commitTransaction();
           } catch (err) {
             await session.abortTransaction();
+            // Reset so Eversend webhook retries can re-process
+            await Transaction.findByIdAndUpdate(transaction._id, { $set: { status: 'pending' } }).catch(() => {});
             console.error('Webhook Subscription Settlement Error:', err.message);
           } finally { session.endSession(); }
         } else if (isCheckout) {
           const session = await mongoose.startSession();
           session.startTransaction();
           try {
-            transaction.status = 'completed';
-            transaction.gateway_response = data;
-            await transaction.save({ session });
+            await Transaction.findByIdAndUpdate(transaction._id,
+              { $set: { status: 'completed', gateway_response: data } }, { session });
             await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, '', 'eversend');
             await session.commitTransaction();
           } catch (err) {
             await session.abortTransaction();
+            await Transaction.findByIdAndUpdate(transaction._id, { $set: { status: 'pending' } }).catch(() => {});
             console.error('Webhook Settlement Error:', err.message);
           } finally { session.endSession(); }
         } else {
-          // Pure wallet top-up — no session needed, save atomically after credit
-          transaction.status = 'completed';
-          transaction.gateway_response = data;
-          await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
-          await transaction.save();
+          // Pure wallet top-up — wrap in session for atomicity
+          const session = await mongoose.startSession();
+          session.startTransaction();
+          try {
+            await Transaction.findByIdAndUpdate(transaction._id,
+              { $set: { status: 'completed', gateway_response: data } }, { session });
+            await User.findByIdAndUpdate(transaction.user_id,
+              { $inc: { wallet_balance: transaction.amount } }, { session });
+            await session.commitTransaction();
+          } catch (err) {
+            await session.abortTransaction();
+            await Transaction.findByIdAndUpdate(transaction._id, { $set: { status: 'pending' } }).catch(() => {});
+            console.error('Webhook Wallet Credit Error:', err.message);
+          } finally { session.endSession(); }
         }
 
         // -- Instant Socket.io push ? frontend shows success immediately --
@@ -1586,10 +1545,6 @@ module.exports = {
   payunitVerify,
   payunitRecheck: payunitVerify,
   payunitWebhook,
-  // Paystack
-  initializePayment,
-  verifyPayment,
-  handleWebhook,
   // Eversend
   eversendGetWallets,
   eversendInitialize,

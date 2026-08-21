@@ -13,6 +13,7 @@ const PlatformSettings = require('../models/PlatformSettings.model');
 const { sendNotification } = require('../utils/notifier');
 const { syncShipmentsToOrderStatus } = require('./orderSync.service');
 const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../utils/platformFees');
+const { creditBalance } = require('./wallet.service');
 
 const getEffectivePlatformSettings = async (vendorId, session) => {
   const platformSettings = await PlatformSettings.getSettings(session);
@@ -35,7 +36,6 @@ const releaseFundsInternal = async (orderId, session, app = null) => {
 
   const order = await Order.findById(orderId).session(session);
   const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
-  const vendorUser = await User.findById(vendorAccount.user_id).session(session);
 
   // 1. Calculate Commission
   const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(escrow.vendor_id, session);
@@ -44,9 +44,8 @@ const releaseFundsInternal = async (orderId, session, app = null) => {
   });
   const feeDescription = describeFee(effectiveSettings, { includeEscrowFee: true });
 
-  // 2. Transfer Funds
-  vendorUser.wallet_balance += vendorPayout;
-  await vendorUser.save({ session });
+  // 2. Transfer Funds — atomic credit
+  await creditBalance(vendorAccount.user_id, vendorPayout, session);
 
   // 3. Update Platform Earnings
   if (platformFee > 0) {
@@ -56,7 +55,7 @@ const releaseFundsInternal = async (orderId, session, app = null) => {
 
   // 4. Update Transaction Logs
   await Transaction.findOneAndUpdate(
-    { order_id: order._id, user_id: vendorUser._id, type: 'payout', status: 'pending' },
+    { order_id: order._id, user_id: vendorAccount.user_id, type: 'payout', status: 'pending' },
     {
       status: 'completed',
       amount: vendorPayout,
@@ -69,7 +68,7 @@ const releaseFundsInternal = async (orderId, session, app = null) => {
   // We'll create a system reference here
   if (platformFee > 0) {
     await Transaction.create([{
-      user_id: vendorUser._id, // Just linking for trace, though it's platform revenue
+      user_id: vendorAccount.user_id, // Just linking for trace, though it's platform revenue
       type: 'payment',
       amount: platformFee,
       reference: `REV-AUTO-${Date.now()}`,

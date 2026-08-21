@@ -14,7 +14,12 @@
     "fees:update-commerce": "node scripts/update-platform-commerce-fees.js",
     "sync:variant-prices": "node scripts/sync-variant-prices.js --apply",
     "sync:variant-prices:dry": "node scripts/sync-variant-prices.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:concurrency": "vitest run --project concurrency",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
@@ -51,6 +56,11 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@faker-js/faker": "^10.6.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "mongodb-memory-server": "^11.2.0",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2",
+    "vitest": "^4.1.11"
   }
 }

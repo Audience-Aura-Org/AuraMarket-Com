@@ -38,6 +38,13 @@ const TransactionSchema = new mongoose.Schema(
       unique: true,
       required: true, // e.g., TX-123456789 or external payment gateway ref
     },
+    // A caller-provided retry key. It is separate from `reference`: a gateway
+    // reference identifies an external charge while this key identifies one
+    // logical wallet mutation across client retries.
+    idempotency_key: {
+      type: String,
+      default: null,
+    },
     status: {
       type: String,
       enum: ['pending', 'completed', 'failed', 'rejected'],
@@ -62,11 +69,11 @@ const TransactionSchema = new mongoose.Schema(
     },
     gateway_response: {
       type: mongoose.Schema.Types.Mixed,
-      default: null, // Raw payload from Paystack / Eversend / etc.
+      default: null, // Raw payload from payment gateway
     },
     gateway: {
       type: String,
-      enum: ['paystack', 'eversend', 'payunit', 'flutterwave', 'wallet', 'manual', 'platform', 'escrow'],
+      enum: ['eversend', 'payunit', 'flutterwave', 'wallet', 'manual', 'platform', 'escrow'],
       default: null,
     },
     currency: {
@@ -87,5 +94,9 @@ TransactionSchema.index({ user_id: 1, createdAt: -1 });
 TransactionSchema.index({ status: 1, createdAt: -1 });
 TransactionSchema.index({ gateway: 1, status: 1, createdAt: -1 });
 TransactionSchema.index({ order_id: 1, type: 1 });
+TransactionSchema.index(
+  { idempotency_key: 1 },
+  { unique: true, partialFilterExpression: { idempotency_key: { $type: 'string' } } },
+);
 
 module.exports = mongoose.model('Transaction', TransactionSchema);

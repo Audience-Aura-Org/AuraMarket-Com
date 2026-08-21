@@ -1,4 +1,4 @@
-const rateLimit = require('express-rate-limit');
+const { default: rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const { RedisStore } = require('rate-limit-redis');
 const { getRedis, redisFeatures } = require('../config/redis');
 
@@ -69,8 +69,29 @@ const publicLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * Video Upload Limiter — per authenticated user.
+ * Each background transcoding job is CPU-intensive; cap to prevent DoS via job flooding.
+ */
+const videoUploadLimiter = rateLimit({
+  store: redisStore('auradime:rl:video:'),
+  passOnStoreError: true,
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  max: intEnv('VIDEO_UPLOAD_RATE_LIMIT_MAX', 10),
+  // Prefer user ID (so authenticated users share a bucket regardless of IP);
+  // fall back to ipKeyGenerator for unauthenticated requests (handles IPv6).
+  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req),
+  message: {
+    success: false,
+    message: 'Video upload rate limit exceeded. You can upload up to 10 videos per 10 minutes.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   apiLimiter,
   strictLimiter,
   publicLimiter,
+  videoUploadLimiter,
 };

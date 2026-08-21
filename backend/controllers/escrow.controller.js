@@ -23,6 +23,7 @@ const {
 const Cart = require('../models/Cart.model');
 const { sendNotification } = require('../utils/notifier');
 const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../utils/platformFees');
+const { debitBalance, creditBalance } = require('../services/wallet.service');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 
@@ -79,17 +80,13 @@ const holdFunds = async (req, res, next) => {
     if (order.payment_method !== 'escrow') throw new Error('Order is not designated for escrow.');
     if (order.payment_status !== 'pending') throw new Error('Payment has already been processed.');
 
-    const user = await User.findById(req.user._id).session(session);
     const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
 
-    // 1. Check if user holds enough wallet funds
-    if (user.wallet_balance < order.total_amount) {
+    // 1 & 2. Atomic debit — guards against concurrent escrow funding attempts
+    const user = await debitBalance(req.user._id, order.total_amount, session);
+    if (!user) {
       throw new Error('Insufficient wallet balance to fund Escrow. Please deposit first.');
     }
-
-    // 2. Deduct from customer
-    user.wallet_balance -= order.total_amount;
-    await user.save({ session });
 
     const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
       ? order.subtotal
@@ -203,6 +200,18 @@ const holdFunds = async (req, res, next) => {
  * This should only be called once all conditions (Mutual Agreement or Admin Override) are met.
  */
 const finalizeEscrowPayout = async (escrow, order, req, session) => {
+  // Atomic claim: transition held/pending_release → releasing.
+  // Prevents double-payout when manual release and the auto-release worker fire simultaneously,
+  // or when two PM2 processes both reach this point for the same escrow.
+  const claimed = await Escrow.findOneAndUpdate(
+    { _id: escrow._id, status: { $in: ['held', 'pending_release', 'releasing'] } },
+    { $set: { status: 'releasing' } },
+    { session, new: false },
+  );
+  if (!claimed) {
+    throw new Error(`Escrow ${escrow._id} already released or claimed by another operation.`);
+  }
+
   const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
   const vendorUser = await User.findById(vendorAccount.user_id).session(session);
 
@@ -219,9 +228,8 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
     vendor_payout: vendorPayout,
   };
 
-  // Transfer vendor funds
-  vendorUser.wallet_balance += vendorPayout;
-  await vendorUser.save({ session });
+  // Transfer vendor funds — atomic credit
+  await creditBalance(vendorUser._id, vendorPayout, session);
 
   if (platformFee > 0) {
     platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
@@ -658,13 +666,11 @@ const refundFunds = async (req, res, next) => {
     // 1. Credit Buyer's Wallet — refund the FULL order.total_amount (subtotal + shipping + collection fee),
     //    not just escrow.amount which only holds the vendor base portion after commission.
     const refundAmount = order.total_amount || escrow.amount;
-    const buyerUser = await User.findById(escrow.buyer_id).session(session);
-    buyerUser.wallet_balance += refundAmount;
-    await buyerUser.save({ session });
+    await creditBalance(escrow.buyer_id, refundAmount, session);
 
     // 2. Log Buyer's Refund Receipt
     await Transaction.create([{
-      user_id: buyerUser._id,
+      user_id: escrow.buyer_id,
       type: 'refund',
       amount: refundAmount,
       reference: generateTxRef(),

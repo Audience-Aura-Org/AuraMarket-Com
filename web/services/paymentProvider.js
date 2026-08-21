@@ -27,7 +27,7 @@ export const fetchGatewayConfig = async (gateway = 'eversend') => {
 
 /**
  * Initiate a payment collection through the backend.
- * @param {string} gateway - 'eversend', 'paystack', etc.
+ * @param {string} gateway - 'eversend', 'payunit', etc.
  * @param {object} payload - Gateway-specific details
  */
 export const initiateCollection = async (gateway, payload) => {

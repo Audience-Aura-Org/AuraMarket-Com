@@ -9,6 +9,10 @@ require('dotenv').config();
 const requiredEnvVars = [
   'MONGODB_URI',
   'JWT_SECRET',
+  'VAPID_PUBLIC_KEY',
+  'VAPID_PRIVATE_KEY',
+  'PAYUNIT_WEBHOOK_SECRET',
+  'EVERSEND_WEBHOOK_SECRET',
 ];
 
 const validateEnv = () => {
@@ -16,6 +20,12 @@ const validateEnv = () => {
 
   if (missing.length > 0) {
     console.error(`❌ Missing required environment variables: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+
+  // Hard guard: debug routes must never be enabled in production
+  if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DEBUG_ROUTES === 'true') {
+    console.error('❌ CRITICAL: ENABLE_DEBUG_ROUTES=true is not permitted in production. Refusing to start.');
     process.exit(1);
   }
 
@@ -28,14 +38,15 @@ module.exports = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   MONGODB_URI: process.env.MONGODB_URI,
   JWT_SECRET: process.env.JWT_SECRET,
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '1460d',
+  // Reduced from '1460d' (4 years) to '24h' — prevents indefinite token validity after compromise.
+  // Mobile clients using long sessions should migrate to a refresh-token flow.
+  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '24h',
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
   AWS_REGION: process.env.AWS_REGION || 'us-east-1',
   AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
   AWS_S3_ENABLED: process.env.AWS_S3_ENABLED === 'true',
   WEB_CLIENT_URL: process.env.WEB_CLIENT_URL || 'http://localhost:3000',
-  PAYSTACK_SECRET_KEY: process.env.PAYSTACK_SECRET_KEY,
   EMAIL_HOST: process.env.EMAIL_HOST || 'smtp.titan.email',
   EMAIL_PORT: parseInt(process.env.EMAIL_PORT, 10) || 587,
   EMAIL_USER: process.env.EMAIL_USER,
@@ -44,10 +55,12 @@ module.exports = {
   EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'Aura Dime',
   EMAIL_FROM: process.env.EMAIL_FROM,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
+  // VAPID keys are now REQUIRED — no hardcoded fallbacks. See validateEnv().
   VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
   EVERSEND_CLIENT_ID: process.env.EVERSEND_CLIENT_ID,
   EVERSEND_CLIENT_SECRET: process.env.EVERSEND_CLIENT_SECRET,
+  // EVERSEND_WEBHOOK_SECRET is now REQUIRED — see validateEnv().
   EVERSEND_WEBHOOK_SECRET: process.env.EVERSEND_WEBHOOK_SECRET,
   EVERSEND_BASE_URL: process.env.EVERSEND_BASE_URL || 'https://api.eversend.co/v1',
   PAYUNIT_API_USERNAME: process.env.PAYUNIT_API_USERNAME,
@@ -56,5 +69,11 @@ module.exports = {
   PAYUNIT_SANDBOX_KEY: process.env.PAYUNIT_SANDBOX_KEY,
   PAYUNIT_MODE: process.env.PAYUNIT_MODE || 'live',
   PAYUNIT_BASE_URL: process.env.PAYUNIT_BASE_URL || 'https://gateway.payunit.net',
+  // PAYUNIT_WEBHOOK_SECRET is now REQUIRED — see validateEnv().
+  PAYUNIT_WEBHOOK_SECRET: process.env.PAYUNIT_WEBHOOK_SECRET,
+  // Debug routes: disabled by default; must never be true in production.
+  ENABLE_DEBUG_ROUTES: process.env.ENABLE_DEBUG_ROUTES === 'true',
+  // Support admin email — the account with this address is auto-promoted to admin on login.
+  // If unset, the auto-promotion feature is disabled (recommended for fresh deployments).
+  SUPPORT_ADMIN_EMAIL: process.env.SUPPORT_ADMIN_EMAIL,
 };
-

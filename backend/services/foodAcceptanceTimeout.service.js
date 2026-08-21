@@ -15,11 +15,12 @@ const Order = require('../models/Order.model');
 const Vendor = require('../models/Vendor.model');
 const { sendNotification } = require('../utils/notifier');
 const { clawbackFoodRefund } = require('./payment/settle.service');
+const { withLock } = require('../utils/locks');
 
 const RUN_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
+const LOCK_TTL_SECONDS = Math.ceil(RUN_INTERVAL_MS / 1000) + 30;
 const BATCH_SIZE = 20;
 
-let running = false;
 let timer = null;
 
 const processTimedOutOrder = async (order, app) => {
@@ -53,37 +54,13 @@ const processTimedOutOrder = async (order, app) => {
     });
 
     // If the buyer already paid (wallet or captured gateway), clawback from vendor wallet.
-    // If payment_status is still 'pending' (e.g. gateway flow not yet completed), no money moved.
-    // Full refund including shipping_fee — no rider was dispatched so no service was rendered.
+    // IMPORTANT: do NOT catch errors here — a clawback failure must abort the entire
+    // transaction so the order stays in 'pending_acceptance' and the worker retries next tick.
+    // Swallowing the error would commit a cancel without a refund (silent buyer fund loss).
     if (locked.payment_status === 'paid') {
-      try {
-        await clawbackFoodRefund(locked, locked.total_amount, session, 'Acceptance timeout — automatic refund');
-        locked.payment_status = 'refunded';
-        locked.order_status   = 'refunded';
-      } catch (refundErr) {
-        // Vendor record may have been deleted after payment was captured.
-        // Still cancel the order so it leaves pending_acceptance and stops retrying.
-        // Log the failure so admins can process the refund manually.
-        console.error('[foodAcceptanceTimeout] clawback failed for order', locked._id, ':', refundErr.message);
-        locked.status_logs.push({
-          status:    'refund_failed',
-          actor_id:  null,
-          timestamp: now,
-          note:      `Automatic refund failed — manual action required. Error: ${refundErr.message}`,
-        });
-        // Notify admins so the refund is not silently lost
-        setImmediate(async () => {
-          try {
-            const { notifyAdmins } = require('../utils/notifier');
-            await notifyAdmins(app, {
-              title:    'Food Order Refund Failed',
-              message:  `Order #${locked._id.toString().slice(-6).toUpperCase()} was auto-cancelled but the refund clawback failed: ${refundErr.message}. Manual refund required.`,
-              type:     'system_alert',
-              metadata: { target_id: locked._id, link: `/admin/orders/${locked._id}` },
-            });
-          } catch (_) {}
-        });
-      }
+      await clawbackFoodRefund(locked, locked.total_amount, session, 'Acceptance timeout — automatic refund');
+      locked.payment_status = 'refunded';
+      locked.order_status   = 'refunded';
     }
 
     await locked.save({ session });
@@ -126,11 +103,8 @@ const processTimedOutOrder = async (order, app) => {
 };
 
 const processFoodAcceptanceTimeouts = async (app) => {
-  if (running) return { processed: 0, skipped: true };
-  running = true;
-  let processed = 0;
-
-  try {
+  const result = await withLock('worker:food-timeout', LOCK_TTL_SECONDS, async () => {
+    let processed = 0;
     const now = new Date();
     const candidates = await Order.find({
       food_status:        'pending_acceptance',
@@ -145,13 +119,13 @@ const processFoodAcceptanceTimeouts = async (app) => {
       const cancelled = await processTimedOutOrder(order, app);
       if (cancelled) processed += 1;
     }
-  } catch (error) {
+    return { processed, skipped: false };
+  }).catch((error) => {
     console.error('[foodAcceptanceTimeout] scan failed:', error.message);
-  } finally {
-    running = false;
-  }
+    return { processed: 0, skipped: false };
+  });
 
-  return { processed, skipped: false };
+  return result ?? { processed: 0, skipped: true };
 };
 
 const startFoodAcceptanceTimeoutWorker = (app) => {
@@ -173,4 +147,11 @@ const startFoodAcceptanceTimeoutWorker = (app) => {
   if (timer.unref) timer.unref();
 };
 
-module.exports = { processFoodAcceptanceTimeouts, startFoodAcceptanceTimeoutWorker };
+const stopFoodAcceptanceTimeoutWorker = () => {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+};
+
+module.exports = { processFoodAcceptanceTimeouts, startFoodAcceptanceTimeoutWorker, stopFoodAcceptanceTimeoutWorker };

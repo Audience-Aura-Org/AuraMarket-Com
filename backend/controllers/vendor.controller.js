@@ -135,20 +135,22 @@ const onboardVendor = async (req, res, next) => {
       store = storeArray[0];
     }
 
-    // 4a. Auto-create RestaurantProfile for restaurant vendors (idempotent)
+    // 4a. Resolve vendor's city to a LogisticZone (all vendor types — powers dine feed auto-select)
+    const LogisticZone = require('../models/LogisticZone.model');
+    let cityZoneId = null;
+    if (location?.city) {
+      const cityZoneDoc = await LogisticZone.findOne({
+        name: new RegExp(`^${location.city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+        type: { $in: ['city', 'region'] },
+      }).select('_id').session(session).lean();
+      if (cityZoneDoc) cityZoneId = cityZoneDoc._id;
+    }
+
+    // 4b. Auto-create RestaurantProfile for restaurant vendors (idempotent)
     if (resolvedVendorType === 'restaurant') {
       const RestaurantProfile = require('../models/RestaurantProfile.model');
-      const LogisticZone      = require('../models/LogisticZone.model');
       const existingRProfile  = await RestaurantProfile.findOne({ vendor_id: vendor._id }).session(session);
       if (!existingRProfile) {
-        let cityZoneId = null;
-        if (location?.city) {
-          const cityZone = await LogisticZone.findOne({
-            name: new RegExp(`^${location.city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
-            type: { $in: ['city', 'region'] },
-          }).select('_id').session(session).lean();
-          if (cityZone) cityZoneId = cityZone._id;
-        }
         if (cityZoneId) {
           await RestaurantProfile.create([{ vendor_id: vendor._id, city_zone_id: cityZoneId }], { session });
           console.log(`[ONBOARD] Auto-created RestaurantProfile for vendor ${vendor._id} in city zone ${cityZoneId}`);
@@ -158,14 +160,14 @@ const onboardVendor = async (req, res, next) => {
       }
     }
 
-    // 4. Force mark user as onboarded and sync initial branding (if any)
+    // 4c. Update user: mark onboarded, sync branding, set default_zone_id for dine feed auto-select
     const User = require('../models/User.model');
     const brandingUpdates = {};
-    if (store_name) brandingUpdates['branding.store_name'] = store_name; // and more if needed
-    
+    if (store_name) brandingUpdates['branding.store_name'] = store_name;
+
     console.log(`✅ [ONBOARD] Successfully synchronized vendor/store for user: ${req.user._id}`);
-    
-    await User.findByIdAndUpdate(req.user._id, { 
+
+    await User.findByIdAndUpdate(req.user._id, {
       onboarded: true,
       phone: phone || req.user.phone || '',
       onboarding_location: location ? {
@@ -174,6 +176,7 @@ const onboardVendor = async (req, res, next) => {
         quartier: location.quartier || '',
         address_description: location.address_description || ''
       } : req.user.onboarding_location,
+      ...(cityZoneId ? { default_zone_id: cityZoneId } : {}),
       ...(brandingUpdates)
     }, { session });
 
@@ -618,7 +621,7 @@ const unfollowVendor = async (req, res, next) => {
     const updated = await Vendor.findByIdAndUpdate(
       vendorId,
       [{ $set: { follower_count: { $max: [0, { $subtract: ['$follower_count', 1] }] } } }],
-      { new: true, select: 'follower_count' }
+      { new: true, select: 'follower_count', updatePipeline: true }
     );
 
     res.status(200).json({ success: true, message: 'Unfollowed successfully.', follower_count: updated?.follower_count ?? 0 });

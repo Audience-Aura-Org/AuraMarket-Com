@@ -31,7 +31,8 @@ const cacheResponse = ({ ttlSeconds = DEFAULT_TTL_SECONDS, privateRoute = false 
       req.headers.authorization ||
       req.user ||
       req.query?.nocache === '1' ||
-      privateRoute
+      privateRoute ||
+      process.env.DISABLE_CACHE === 'true'
     ) {
       // For non-GET requests (POST, PATCH, DELETE etc.) do NOT touch res.send.
       // Wrapping res.send breaks multer multipart streaming responses on mobile.

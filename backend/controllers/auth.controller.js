@@ -10,7 +10,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User.model');
 const KYC = require('../models/KYC.model');
-const { JWT_SECRET, JWT_EXPIRES_IN } = require('../config/env');
+const { JWT_SECRET, JWT_EXPIRES_IN, SUPPORT_ADMIN_EMAIL } = require('../config/env');
 const { normalizeUserMedia } = require('../utils/media');
 const { notifyAdmins } = require('../utils/notifier');
 const AuthOtp = require('../models/AuthOtp.model');
@@ -24,8 +24,6 @@ const {
   verifyOtpForEmail,
   verifySignupToken,
 } = require('../services/authOtp.service');
-
-const SUPPORT_ADMIN_EMAIL = 'support@auradime.com';
 
 let otplibAuthenticator;
 const getAuthenticator = async () => {
@@ -79,7 +77,8 @@ const buildSafeUser = (user) => {
   return userObj;
 };
 
-const isSupportAdminEmail = (email) => normalizeEmail(email || '') === SUPPORT_ADMIN_EMAIL;
+// Guard: if SUPPORT_ADMIN_EMAIL is not configured, auto-promotion is disabled.
+const isSupportAdminEmail = (email) => !!SUPPORT_ADMIN_EMAIL && normalizeEmail(email || '') === SUPPORT_ADMIN_EMAIL;
 
 const ensureSupportAdmin = async (user) => {
   if (!user || !isSupportAdminEmail(user.email)) return user;

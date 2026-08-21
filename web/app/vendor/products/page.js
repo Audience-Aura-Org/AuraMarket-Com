@@ -135,7 +135,7 @@ export default function VendorProductsPage() {
                 </div>
                 <div className="min-w-0">
                   <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">{t('products.title', 'Products')}</h1>
-                  <p className="truncate text-[11px] text-[var(--text-secondary)]">{user.store_name || t('products.vendorStore', 'Vendor store')}</p>
+                  <p className="truncate text-[11px] text-[var(--text-secondary)]">{user?.branding?.store_name || t('products.vendorStore', 'Vendor store')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">

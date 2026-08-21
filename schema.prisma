@@ -1,0 +1,1310 @@
+// =============================================================================
+// AuraMarket (Auradime) — Prisma Schema
+// =============================================================================
+// Native implementation: Node.js + Express + Mongoose (see backend/models/)
+// Database: MongoDB 9.x
+// This file is a canonical, single-source-of-truth reference for all 39
+// collections. Use it for documentation, code generation, or migration planning.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("MONGODB_URI")
+}
+
+// =============================================================================
+// EMBEDDED TYPES  (MongoDB sub-documents / nested objects)
+// =============================================================================
+
+type Address {
+  label     String?
+  street    String?
+  city      String?
+  region    String?
+  quartier  String?
+  isDefault Boolean @default(false)
+}
+
+type Branding {
+  logo   String?
+  banner String?
+}
+
+type OnboardingLocation {
+  city                String?
+  quartier            String?
+  address_description String?
+}
+
+type PickupAddress {
+  street              String?
+  address_description String?
+  city                String?
+  region              String?
+  quartier            String?
+}
+
+type ShippingAddress {
+  street   String?
+  city     String?
+  region   String?
+  quartier String?
+  country  String? @default("Cameroon")
+  phone    String?
+  email    String?
+}
+
+/// Embedded inside Order.products[]
+type OrderItem {
+  product_id       String @db.ObjectId
+  name             String
+  quantity         Int
+  price            Float  // effective price locked at purchase
+  regular_price    Float
+  sale_price       Float?
+  compare_at_price Float?
+  image            String?
+  variant          Json?
+}
+
+/// Embedded inside Cart.items[]
+type CartItem {
+  product  String @db.ObjectId
+  quantity Int    @default(1)
+  variant  Json?
+}
+
+/// Embedded inside Product.images[]
+type ProductImage {
+  url String
+  alt String?
+}
+
+/// Embedded inside Product.variant_types[]
+type VariantType {
+  name     String   // e.g. "Size", "Color"
+  options  String[] // e.g. ["S","M","L"]
+  metadata Json?    // e.g. { "Red": "#FF0000" }
+}
+
+/// Embedded inside Product.sku_variants[]
+type SkuVariant {
+  combination      Json   // e.g. { "Size": "M", "Color": "Red" }
+  price            Float
+  sale_price       Float?
+  compare_at_price Float?
+  stock            Int    @default(0)
+  sku              String?
+  image            String?
+}
+
+/// Embedded inside LogisticsCompany.quartier_prices[]
+type QuartierPrice {
+  quartier String
+  price    Float
+}
+
+/// Embedded inside Shipment.proof_of_delivery
+type ProofOfDelivery {
+  image_url     String?
+  note          String?
+  receiver_name String?
+  timestamp     DateTime?
+}
+
+/// Embedded inside Shipment.shipment_logs[]
+type ShipmentLog {
+  status     String?
+  updated_by String?  @db.ObjectId
+  timestamp  DateTime @default(now())
+  note       String?
+}
+
+/// Embedded inside WithdrawalRequest.recipientDetails
+type RecipientDetails {
+  phoneNumber   String?
+  bankCode      String?
+  accountNumber String?
+  eversendTag   String?
+  beneficiaryId String?
+  firstName     String
+  lastName      String
+  country       String // ISO 2-letter, e.g. CM, NG, UG
+}
+
+/// Embedded inside Homepage.hero_banners[]
+type HeroBanner {
+  image_url     String
+  link_to       String?
+  is_active     Boolean @default(true)
+  display_order Int     @default(0)
+}
+
+/// Embedded inside Homepage.featured_products[]
+type FeaturedProductRef {
+  product_id    String @db.ObjectId
+  display_order Int    @default(0)
+}
+
+/// Embedded inside HomepageSection.data[]
+type HomepageSectionDataItem {
+  // For hero / promo_banner / footer_promo
+  image_url     String?
+  link_to       String?
+  headline      String?
+  subtext       String?
+  cta_text      String?
+  // For featured_products / collection / trending
+  product_id    String? @db.ObjectId
+  // For categories
+  category_id   String? @db.ObjectId
+  category_name String?
+  // For stores
+  vendor_id     String? @db.ObjectId
+  display_order Int     @default(0)
+}
+
+/// Embedded inside Status.reactions[]
+type StatusReaction {
+  user_id    String   @db.ObjectId
+  type       String   @default("heart")
+  created_at DateTime @default(now())
+}
+
+/// Embedded inside AuditLog.changes
+type AuditChanges {
+  old Json?
+  new Json?
+}
+
+/// Embedded inside AuditLog.metadata
+type AuditMetadata {
+  ip           String?
+  user_agent   String?
+  resource_url String?
+}
+
+/// Embedded inside UserActivity.metadata
+type UserActivityMetadata {
+  time_spent Int?
+  platform   String?
+  device     String?
+}
+
+/// Embedded inside PushSubscription.subscription
+type PushSubscriptionKeys {
+  p256dh String
+  auth   String
+}
+
+type PushSubscriptionData {
+  endpoint String
+  keys     PushSubscriptionKeys
+}
+
+/// Embedded inside UserSubscription.history[]
+type SubscriptionHistory {
+  action String?
+  note   String?
+  by     String?  @db.ObjectId
+  at     DateTime @default(now())
+}
+
+// =============================================================================
+// MODELS
+// =============================================================================
+
+// ── Auth & Identity ──────────────────────────────────────────────────────────
+
+/// All platform participants. role drives which sub-profile is used.
+model User {
+  id                     String              @id @default(auto()) @map("_id") @db.ObjectId
+  // Basic info
+  name                   String
+  email                  String              @unique
+  password               String?             // null when auth_provider = email_otp
+  phone                  String?
+  // Platform role
+  role                   UserRole            @default(customer)
+  // Wallet
+  wallet_balance         Float               @default(0)
+  // Verification
+  verification_status    VerificationStatus  @default(unverified)
+  is_active              Boolean             @default(true)
+  auth_provider          AuthProvider        @default(email_otp)
+  token_version          Int                 @default(0)
+  // Profile
+  avatar                 String?
+  branding               Branding?
+  addresses              Address[]
+  preferred_currency     String              @default("XAF")
+  preferred_language     String              @default("en")
+  // 2FA
+  two_factor_enabled     Boolean             @default(false)
+  two_factor_secret      String?
+  // Onboarding & personalisation
+  onboarded              Boolean             @default(false)
+  liked_categories       String[]            @db.ObjectId
+  onboarding_location    OnboardingLocation?
+  // Referral
+  referral_code          String?             @unique
+  referred_by            String?             @db.ObjectId
+  // Loyalty
+  loyalty_points         Int                 @default(0)
+  // Presence
+  is_online              Boolean             @default(false)
+  last_seen              DateTime            @default(now())
+  // Password reset
+  reset_password_token   String?
+  reset_password_expires DateTime?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  @@map("users")
+}
+
+enum UserRole {
+  customer
+  vendor
+  logistics
+  admin
+}
+
+enum VerificationStatus {
+  unverified
+  pending
+  verified
+  rejected
+  held
+}
+
+enum AuthProvider {
+  email_otp
+  password
+}
+
+/// Short-lived OTP document. Auto-expires via TTL index on expires_at.
+model AuthOtp {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  email             String    @unique
+  otp_hash          String    // bcrypt hash, never returned in queries
+  attempts          Int       @default(0)
+  expires_at        DateTime
+  cooldown_until    DateTime?
+  last_sent_at      DateTime?
+  send_window_start DateTime  @default(now())
+  send_count        Int       @default(0)
+  verified_at       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("authotps")
+}
+
+// ── Vendor & Store ───────────────────────────────────────────────────────────
+
+/// Vendor profile linked 1-to-1 with a User (role = vendor).
+model Vendor {
+  id                    String           @id @default(auto()) @map("_id") @db.ObjectId
+  user_id               String           @unique @db.ObjectId
+  store_name            String
+  description           String?
+  rating                Float            @default(0)
+  verified              Boolean          @default(false)
+  subscription_plan     String?
+  total_sales           Int              @default(0)
+  total_revenue         Float            @default(0)
+  follower_count        Int              @default(0)
+  onboarding_step       VendorOnboarding @default(profile)
+  is_onboarded          Boolean          @default(false)
+  pickup_address        PickupAddress?
+  phone                 String
+  average_response_time String           @default("⚡ < 5m")
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  @@index([store_name, description], name: "text_search")
+  @@index([verified, is_onboarded, createdAt(sort: Desc)])
+  @@index([rating(sort: Desc), follower_count(sort: Desc)])
+  @@map("vendors")
+}
+
+enum VendorOnboarding {
+  profile
+  kyc
+  store_setup
+  complete
+}
+
+/// Visual storefront linked 1-to-1 with a Vendor.
+model Store {
+  id                   String   @id @default(auto()) @map("_id") @db.ObjectId
+  vendor_id            String   @unique @db.ObjectId
+  banner               String?
+  logo                 String?
+  followers            String[] @db.ObjectId
+  categories           String[]
+  commission_rate      Float?
+  delivery_time        String?
+  minimum_order_amount Float?
+  is_active            Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([categories])
+  @@index([is_active, updatedAt(sort: Desc)])
+  @@map("stores")
+}
+
+/// KYC verification submission for vendors / logistics operators.
+model KYC {
+  id                 String      @id @default(auto()) @map("_id") @db.ObjectId
+  user_id            String      @unique @db.ObjectId
+  vendor_id          String?     @db.ObjectId
+  full_name          String
+  document_type      DocumentType
+  document_number    String
+  document_front_url String
+  document_back_url  String?
+  selfie_url         String?
+  status             KYCStatus   @default(pending)
+  admin_feedback     String?
+  reviewed_at        DateTime?
+  reviewed_by        String?     @db.ObjectId
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@map("kycs")
+}
+
+enum DocumentType {
+  national_id
+  passport
+  drivers_license
+  utility_bill
+}
+
+enum KYCStatus {
+  pending
+  approved
+  rejected
+}
+
+// ── Catalogue ────────────────────────────────────────────────────────────────
+
+/// Hierarchical product categories (parent_id = null → top level).
+model Category {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  parent_id   String?  @db.ObjectId
+  slug        String   @unique
+  description String?
+  icon        String?
+  order       Int      @default(0)
+  is_active   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("categories")
+}
+
+/// Core product entity with variant support.
+model Product {
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  vendor_id        String        @db.ObjectId
+  name             String
+  description      String
+  price            Float
+  compare_at_price Float?
+  sale_price       Float?
+  on_sale          Boolean       @default(false)
+  images           ProductImage[]
+  category         String
+  tags             String[]
+  stock            Int           @default(0)
+  featured         Boolean       @default(false)
+  status           ProductStatus @default(active)
+  rating           Float         @default(0)
+  num_reviews      Int           @default(0)
+  // Discovery metrics
+  view_count       Int           @default(0)
+  purchase_count   Int           @default(0)
+  wishlist_count   Int           @default(0)
+  cart_additions   Int           @default(0)
+  // Extended content
+  specifications   String?
+  long_description String?
+  // Variants
+  has_variants     Boolean       @default(false)
+  variant_types    VariantType[]
+  sku_variants     SkuVariant[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@index([name, description, tags], name: "text_search")
+  @@index([vendor_id, status])
+  @@index([status, featured(sort: Desc), updatedAt(sort: Desc)])
+  @@index([status, category, updatedAt(sort: Desc)])
+  @@index([status, purchase_count(sort: Desc), view_count(sort: Desc)])
+  @@map("products")
+}
+
+enum ProductStatus {
+  active
+  draft
+  archived
+  pending
+  suspended
+}
+
+// ── Shopping ─────────────────────────────────────────────────────────────────
+
+/// One cart per user; items include optional variant selection.
+model Cart {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  user_id   String     @unique @db.ObjectId
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("carts")
+}
+
+/// An order always belongs to one customer + one vendor.
+/// Multi-vendor checkouts produce one Order per vendor.
+model Order {
+  id                   String        @id @default(auto()) @map("_id") @db.ObjectId
+  customer_id          String        @db.ObjectId
+  vendor_id            String        @db.ObjectId
+  products             OrderItem[]
+  // Financial
+  subtotal             Float
+  shipping_fee         Float         @default(0)
+  collection_fee       Float         @default(0)
+  total_amount         Float
+  payment_method       PaymentMethod
+  payment_status       PaymentStatus @default(pending)
+  // Shipping
+  shipping_method      ShippingMethod @default(vendor_managed)
+  shipping_address     ShippingAddress?
+  delivery_description String?
+  tracking_number      String?
+  logistics_company_id String?       @db.ObjectId
+  escrow_enabled       Boolean       @default(true)
+  // State machine
+  order_status         OrderStatus   @default(placed)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([customer_id, createdAt(sort: Desc)])
+  @@index([vendor_id, order_status])
+  @@index([vendor_id, createdAt(sort: Desc)])
+  @@index([order_status, payment_status, createdAt(sort: Desc)])
+  @@map("orders")
+}
+
+enum PaymentMethod {
+  wallet
+  escrow
+  direct_card
+  pay_on_delivery
+  eversend
+  payunit
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  refunded
+  failed
+}
+
+enum ShippingMethod {
+  vendor_managed
+  logistics_partner
+}
+
+enum OrderStatus {
+  placed
+  processing
+  shipped
+  delivered
+  completed
+  cancelled
+  refund_pending
+  refunded
+}
+
+// ── Financial ────────────────────────────────────────────────────────────────
+
+/// Holds funds in trust until delivery is confirmed.
+model Escrow {
+  id                String       @id @default(auto()) @map("_id") @db.ObjectId
+  order_id          String       @unique @db.ObjectId
+  buyer_id          String       @db.ObjectId
+  vendor_id         String       @db.ObjectId
+  amount            Float
+  status            EscrowStatus @default(held)
+  customer_confirmed Boolean     @default(false)
+  vendor_confirmed  Boolean      @default(false)
+  auto_released     Boolean      @default(false)
+  released_by       String?      // customer | admin | auto
+  logistics_settled Boolean      @default(false)
+  delivered_at      DateTime?
+  auto_release_at   DateTime?    // 6-hour window for auto-release
+  release_date      DateTime?
+  refund_reason     String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@map("escrows")
+}
+
+enum EscrowStatus {
+  held
+  pending_release
+  released
+  refunded
+  disputed
+}
+
+/// Immutable ledger of all wallet movements.
+model Transaction {
+  id                     String            @id @default(auto()) @map("_id") @db.ObjectId
+  user_id                String            @db.ObjectId
+  type                   TransactionType
+  amount                 Float             // always positive; direction inferred from type
+  reference              String            @unique
+  status                 TransactionStatus @default(pending)
+  description            String
+  order_id               String?           @db.ObjectId
+  order_ids              String[]          @db.ObjectId
+  metadata               Json?
+  gateway_response       Json?
+  gateway                PaymentGateway?
+  currency               String?
+  gateway_transaction_id String?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  @@index([user_id, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([gateway, status, createdAt(sort: Desc)])
+  @@index([order_id, type])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  deposit
+  withdrawal
+  payment
+  refund
+  escrow_release
+  payout
+  subscription
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  failed
+  rejected
+}
+
+enum PaymentGateway {
+  paystack
+  eversend
+  payunit
+  flutterwave
+  wallet
+  manual
+  platform
+  escrow
+}
+
+/// Vendor/user withdrawal request with full audit trail.
+model WithdrawalRequest {
+  id                     String            @id @default(auto()) @map("_id") @db.ObjectId
+  requestedBy            String            @db.ObjectId
+  role                   String            // user | vendor | logistics
+  amount                 Float             // minimum 500 XAF
+  currency               String            @default("XAF")
+  withdrawalMethod       WithdrawalMethod
+  recipientDetails       RecipientDetails
+  status                 WithdrawalStatus  @default(pending)
+  payoutGateway          String?           // eversend | payunit | manual
+  eversendTransactionId  String?
+  eversendQuotationToken String?
+  eversendStatus         String?
+  balanceDeducted        Boolean           @default(false)
+  rejectionReason        String?
+  failureReason          String?
+  reviewedBy             String?           @db.ObjectId
+  reviewedAt             DateTime?
+  note                   String?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([requestedBy, status])
+  @@map("withdrawalrequests")
+}
+
+enum WithdrawalMethod {
+  momo
+  bank
+  eversend
+}
+
+enum WithdrawalStatus {
+  pending
+  approved
+  rejected
+  failed
+  processing_error
+  completed
+}
+
+/// Refund initiated by a buyer against a specific order.
+model RefundRequest {
+  id              String        @id @default(auto()) @map("_id") @db.ObjectId
+  order_id        String        @db.ObjectId
+  customer_id     String        @db.ObjectId
+  vendor_id       String        @db.ObjectId
+  reason          String
+  status          RefundStatus  @default(pending)
+  admin_feedback  String?
+  vendor_feedback String?
+  evidence_urls   String[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("refundrequests")
+}
+
+enum RefundStatus {
+  pending
+  approved
+  rejected
+}
+
+// ── Logistics ────────────────────────────────────────────────────────────────
+
+/// A logistics company profile linked to a User (role = logistics).
+model LogisticsCompany {
+  id                       String          @id @default(auto()) @map("_id") @db.ObjectId
+  user_id                  String          @unique @db.ObjectId
+  company_name             String
+  contact_email            String
+  contact_phone            String
+  service_regions          String[]
+  vehicle_types            String[]        // motorcycle | car | van | truck
+  is_verified              Boolean         @default(false)
+  rating                   Float           @default(0)
+  total_deliveries         Int             @default(0)
+  quartier_prices          QuartierPrice[]
+  supported_pickup_regions String[]
+  logo                     String?
+  banner                   String?
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
+
+  @@map("logisticscompanies")
+}
+
+/// Geographic zone hierarchy: region → quartier (neighbourhood).
+model LogisticZone {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  parent_id String?   @db.ObjectId // null = top-level region
+  type      ZoneType
+  is_active Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([name])
+  @@map("logisticzones")
+}
+
+enum ZoneType {
+  region
+  quartier
+}
+
+/// Shipment ticket bridging an Order to a LogisticsCompany.
+model Shipment {
+  id                   String          @id @default(auto()) @map("_id") @db.ObjectId
+  order_id             String          @unique @db.ObjectId
+  vendor_id            String          @db.ObjectId
+  logistics_id         String          @db.ObjectId
+  status               ShipmentStatus  @default(pending)
+  tracking_code        String          @unique // Format: AURA-xxxxxx
+  pickup_address       Json?
+  delivery_address     Json?
+  delivery_description String?
+  price                Float
+  proof_of_delivery    ProofOfDelivery?
+  failure_reason       String?         // unreachable | wrong address | other
+  shipment_logs        ShipmentLog[]
+  estimated_delivery   DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([vendor_id, status, createdAt(sort: Desc)])
+  @@index([logistics_id, status, createdAt(sort: Desc)])
+  @@map("shipments")
+}
+
+enum ShipmentStatus {
+  pending
+  assigned
+  picked_up
+  in_transit
+  out_for_delivery
+  delivered
+  failed
+  cancelled
+}
+
+// ── Social & Communication ───────────────────────────────────────────────────
+
+/// Private chat message between any two users.
+model Message {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  sender_id         String   @db.ObjectId
+  receiver_id       String   @db.ObjectId
+  text              String   @default("")
+  product_reference String?  @db.ObjectId // renders a Product Card in the chat
+  read_status       Boolean  @default(false)
+  delivered_status  Boolean  @default(false)
+  delivered_at      DateTime?
+  image_url         String?
+  metadata          Json?
+  deleted_for       String[] @db.ObjectId
+  deleted_everyone  Boolean  @default(false)
+  client_id         String?  // client-side idempotency key
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([sender_id, receiver_id, createdAt(sort: Desc)])
+  @@index([sender_id, client_id])
+  @@map("messages")
+}
+
+/// Verified-purchase product review (one per user/product/order triplet).
+model Review {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id    String   @db.ObjectId
+  product_id String   @db.ObjectId
+  order_id   String   @db.ObjectId
+  rating     Int      // 1–5
+  comment    String
+  images     String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([user_id, product_id, order_id])
+  @@index([product_id, createdAt(sort: Desc)])
+  @@map("reviews")
+}
+
+/// Vendor-answered product Q&A visible to all shoppers.
+model Question {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  product_id    String    @db.ObjectId
+  user_id       String    @db.ObjectId
+  question_text String
+  answer_text   String?
+  answered_by   String?   @db.ObjectId
+  answered_at   DateTime?
+  is_public     Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("questions")
+}
+
+/// User follows a vendor to receive status updates.
+model Follow {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id   String   @db.ObjectId
+  vendor_id String   @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([user_id, vendor_id])
+  @@map("follows")
+}
+
+/// Formal dispute over a held escrow — resolved by admin.
+model Dispute {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  order_id        String         @db.ObjectId
+  initiator_id    String         @db.ObjectId
+  reason          DisputeReason
+  description     String
+  evidence_urls   String[]
+  status          DisputeStatus  @default(pending)
+  resolution_type ResolutionType?
+  admin_notes     String?
+  resolved_at     DateTime?
+  resolved_by     String?        @db.ObjectId
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("disputes")
+}
+
+enum DisputeReason {
+  item_not_received
+  item_not_as_described
+  faulty_item
+  unauthorized_transaction
+  other
+}
+
+enum DisputeStatus {
+  pending
+  investigating
+  resolved
+  cancelled
+}
+
+enum ResolutionType {
+  full_refund
+  release_payment
+  partial_refund
+  return_and_refund
+}
+
+/// Abuse report against a user, vendor, product, or message.
+model Report {
+  id          String       @id @default(auto()) @map("_id") @db.ObjectId
+  reporter_id String       @db.ObjectId
+  target_id   String       @db.ObjectId
+  target_type ReportTarget
+  reason      ReportReason
+  description String
+  status      ReportStatus @default(pending)
+  admin_notes String?
+  resolved_by String?      @db.ObjectId
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("reports")
+}
+
+enum ReportTarget {
+  user
+  vendor
+  product
+  message
+}
+
+enum ReportReason {
+  scam_fraud
+  prohibited_item
+  offensive_content
+  counterfeit
+  harassment
+  other
+}
+
+enum ReportStatus {
+  pending
+  reviewed
+  action_taken
+  dismissed
+}
+
+// ── Discovery & Personalisation ──────────────────────────────────────────────
+
+model Wishlist {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id   String   @unique @db.ObjectId
+  products  String[] @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("wishlists")
+}
+
+/// Notify user when an out-of-stock product is restocked.
+model StockWatch {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id    String   @db.ObjectId
+  product_id String   @db.ObjectId
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([user_id, product_id])
+  @@map("stockwatches")
+}
+
+/// Rolling window of the last ~20 products a user viewed (used for recommendations).
+model RecentlyViewed {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  user_id    String   @db.ObjectId
+  product_id String   @db.ObjectId
+  viewed_at  DateTime @default(now())
+
+  @@index([user_id, viewed_at(sort: Desc)])
+  @@map("recentlyvieweds")
+}
+
+/// High-resolution behavioural signal for the discovery engine.
+model UserActivity {
+  id           String               @id @default(auto()) @map("_id") @db.ObjectId
+  user_id      String               @db.ObjectId
+  product_id   String?              @db.ObjectId
+  vendor_id    String?              @db.ObjectId
+  category     String?
+  action_type  ActivityType
+  search_query String?
+  metadata     UserActivityMetadata?
+  timestamp    DateTime             @default(now())
+
+  @@index([user_id, timestamp(sort: Desc)])
+  @@index([product_id, action_type])
+  @@map("useractivities")
+}
+
+enum ActivityType {
+  view
+  search
+  wishlist
+  purchase
+  cart_add
+  vendor_visit
+}
+
+// ── Vendor Stories (Status) ──────────────────────────────────────────────────
+
+/// 24-hour ephemeral stories posted by vendors. Auto-expires via TTL index.
+model Status {
+  id            String          @id @default(auto()) @map("_id") @db.ObjectId
+  vendor_id     String          @db.ObjectId
+  type          StatusType
+  content_url   String?
+  thumbnail_url String?
+  segment_start Int             @default(0)
+  segment_end   Int?
+  segment_index Int             @default(0)
+  segment_count Int             @default(1)
+  text_content  String?
+  linked_product String?        @db.ObjectId
+  caption       String?
+  expires_at    DateTime        // default: 24 h from createdAt
+  views_count   Int             @default(0)
+  viewer_ids    String[]        @db.ObjectId
+  reactions     StatusReaction[]
+  likes_count   Int             @default(0)
+  category      String          @default("General")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([expires_at, vendor_id])
+  @@index([expires_at, createdAt(sort: Desc)])
+  @@index([vendor_id, createdAt(sort: Desc)])
+  @@map("statuses")
+}
+
+enum StatusType {
+  image
+  video
+  text
+}
+
+// ── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  recipient String           @db.ObjectId
+  title     String
+  message   String
+  type      NotificationType @default(system_alert)
+  metadata  Json?
+  is_read   Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@map("notifications")
+}
+
+enum NotificationType {
+  order_status
+  order_update
+  payment_received
+  wallet_update
+  chat_alert
+  message
+  system_alert
+  vendor_update
+  promo
+}
+
+/// Web Push / FCM device subscription per user.
+model PushSubscription {
+  id           String              @id @default(auto()) @map("_id") @db.ObjectId
+  user_id      String              @db.ObjectId
+  channel      PushChannel         @default(web)
+  subscription PushSubscriptionData
+  fcm_token    String?
+  device_type  DeviceType          @default(mobile)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([user_id, subscription])
+  @@map("pushsubscriptions")
+}
+
+enum PushChannel {
+  web
+  android
+}
+
+enum DeviceType {
+  mobile
+  desktop
+  tablet
+  android
+}
+
+// ── Promotions ───────────────────────────────────────────────────────────────
+
+/// Discount / promo codes, scoped to a vendor or platform-wide.
+model Coupon {
+  id                  String       @id @default(auto()) @map("_id") @db.ObjectId
+  code                String       @unique
+  discount_type       DiscountType @default(percentage)
+  discount_value      Float
+  min_order_amount    Float        @default(0)
+  max_discount_amount Float?
+  expiry_date         DateTime
+  is_active           Boolean      @default(true)
+  max_uses            Int?         // null = unlimited
+  used_count          Int          @default(0)
+  vendor_id           String?      @db.ObjectId // null = platform-wide
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@map("coupons")
+}
+
+enum DiscountType {
+  percentage
+  fixed
+}
+
+// ── Subscriptions ────────────────────────────────────────────────────────────
+
+/// A purchasable subscription tier (vendor listing plans, logistics plans, etc.).
+model SubscriptionPlan {
+  id               String       @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  slug             String       @unique
+  description      String?
+  price            Float
+  currency         String       @default("XAF")
+  billing_cycle    BillingCycle @default(one_time)
+  duration_days    Int?
+  contact_required Boolean      @default(false)
+  roles            String[]     // which roles can purchase
+  features         Json[]
+  is_active        Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([is_active, roles, price])
+  @@map("subscriptionplans")
+}
+
+enum BillingCycle {
+  one_time
+  monthly
+  yearly
+}
+
+/// A user's active subscription to a plan.
+model UserSubscription {
+  id                     String               @id @default(auto()) @map("_id") @db.ObjectId
+  user_id                String               @db.ObjectId
+  plan_id                String               @db.ObjectId
+  role                   String
+  status                 SubscriptionStatus   @default(pending)
+  billing_cycle          BillingCycle         @default(one_time)
+  amount_paid            Float                @default(0)
+  currency               String               @default("XAF")
+  started_at             DateTime?
+  expires_at             DateTime?
+  grace_started_at       DateTime?
+  grace_expires_at       DateTime?
+  limited_since          DateTime?
+  restriction_reason     String?
+  payment_transaction_id String?              @db.ObjectId
+  payment_reference      String?
+  source                 SubscriptionSource   @default(manual)
+  activated_by           String?              @db.ObjectId
+  history                SubscriptionHistory[]
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  @@index([user_id, role, status])
+  @@index([status, expires_at])
+  @@map("usersubscriptions")
+}
+
+enum SubscriptionStatus {
+  pending
+  grace
+  limited
+  active
+  cancelled
+  refunded
+  expired
+}
+
+enum SubscriptionSource {
+  wallet
+  eversend
+  payunit
+  manual
+  admin
+}
+
+// ── Platform Administration ──────────────────────────────────────────────────
+
+/// Singleton document controlling global financial and policy settings.
+model PlatformSettings {
+  id                          String   @id @default(auto()) @map("_id") @db.ObjectId
+  commission_rate             Float    @default(5)
+  commission_type             String   @default("percentage")
+  commission_value            Float    @default(5)
+  escrow_fee_type             String   @default("percentage")
+  escrow_fee_value            Float    @default(0)
+  withdrawal_fee              Float    @default(500)
+  min_withdrawal_amount       Float    @default(10)
+  platform_wallet_balance     Float    @default(0)
+  subscription_required_roles Json?
+  subscription_grace_days     Json?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  @@map("platformsettings")
+}
+
+/// Dynamic homepage layout controlled by admins.
+model Homepage {
+  id                String              @id @default(auto()) @map("_id") @db.ObjectId
+  version           String              @unique @default("v1")
+  hero_banners      HeroBanner[]
+  featured_products FeaturedProductRef[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@map("homepages")
+}
+
+/// Modular content sections that compose the homepage layout.
+model HomepageSection {
+  id              String                   @id @default(auto()) @map("_id") @db.ObjectId
+  title           String?
+  subtitle        String?
+  type            HomepageSectionType
+  order           Int                      @default(0)
+  is_active       Boolean                  @default(true)
+  config          Json?
+  data            HomepageSectionDataItem[]
+  scheduled_start DateTime?
+  scheduled_end   DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@index([order, is_active])
+  @@map("homepagesections")
+}
+
+enum HomepageSectionType {
+  hero
+  categories
+  featured_products
+  trending
+  promo_banner
+  stores
+  collection
+  recommendations
+  footer_promo
+}
+
+/// Currency conversion rates. XAF is the base currency.
+model Currency {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  code         String   @unique
+  symbol       String
+  rate_to_base Float    // e.g. 1 USD = 600 XAF → rate_to_base = 600
+  is_base      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("currencies")
+}
+
+/// Legal content pages (ToS, Privacy, etc.) versioned and admin-editable.
+model Legal {
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  type            LegalType   @unique
+  version         String
+  content         String      // HTML or Markdown
+  last_updated_by String?     @db.ObjectId
+  is_active       Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("legals")
+}
+
+enum LegalType {
+  terms_of_service
+  privacy_policy
+  cookie_policy
+  vendor_agreement
+}
+
+// ── Audit & Monitoring ───────────────────────────────────────────────────────
+
+/// Immutable trail of every admin / vendor data mutation.
+model AuditLog {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  user_id     String         @db.ObjectId
+  action      String         // e.g. price_change, user_ban, dispute_resolve
+  target_type String         // product | vendor | user | order | dispute
+  target_id   String         @db.ObjectId
+  changes     AuditChanges?
+  metadata    AuditMetadata?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("auditlogs")
+}
+
+/// SMTP send log for debugging and compliance.
+model EmailLog {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  recipient_email   String
+  recipient_user_id String?  @db.ObjectId
+  subject           String
+  message_preview   String?
+  role              String   @default("user")
+  status            String   @default("sent") // sent | failed
+  error             String?
+  message_id        String?
+  timestamp         DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("emaillogs")
+}

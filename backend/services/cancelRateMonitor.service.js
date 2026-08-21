@@ -23,11 +23,12 @@ const Vendor = require('../models/Vendor.model');
 const Order  = require('../models/Order.model');
 const User   = require('../models/User.model');
 const { sendNotification, notifyAdmins } = require('../utils/notifier');
+const { withLock } = require('../utils/locks');
 
 const RUN_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
+const LOCK_TTL_SECONDS = Math.ceil(RUN_INTERVAL_MS / 1000) + 60;
 
-let running = false;
-let timer   = null;
+let timer = null;
 
 /**
  * Compute the cancel/refund rate for a single restaurant vendor over the window.
@@ -65,9 +66,7 @@ const computeCancelRate = async (vendorId, since) => {
 };
 
 const runCancelRateMonitor = async (app) => {
-  if (running) return { checked: 0, flipped: 0, cleared: 0, skipped: true };
-  running = true;
-
+  const result = await withLock('worker:cancel-rate-monitor', LOCK_TTL_SECONDS, async () => {
   let checked = 0;
   let flipped = 0;
   let cleared = 0;
@@ -158,11 +157,15 @@ const runCancelRateMonitor = async (app) => {
     }
   } catch (err) {
     console.error('[cancelRateMonitor] scan failed:', err.message);
-  } finally {
-    running = false;
   }
 
   return { checked, flipped, cleared, skipped: false };
+  }).catch((err) => {
+    console.error('[cancelRateMonitor] lock failed:', err.message);
+    return { checked: 0, flipped: 0, cleared: 0, skipped: false };
+  });
+
+  return result ?? { checked: 0, flipped: 0, cleared: 0, skipped: true };
 };
 
 const startCancelRateMonitor = (app) => {
@@ -184,4 +187,8 @@ const startCancelRateMonitor = (app) => {
   if (timer.unref) timer.unref();
 };
 
-module.exports = { startCancelRateMonitor, runCancelRateMonitor };
+const stopCancelRateMonitor = () => {
+  if (timer) { clearInterval(timer); timer = null; }
+};
+
+module.exports = { startCancelRateMonitor, runCancelRateMonitor, stopCancelRateMonitor };

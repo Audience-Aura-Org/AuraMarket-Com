@@ -356,7 +356,7 @@ function ShopContent() {
           </div>
 
           <div className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
-            <div className="max-w-7xl px-6 lg:px-12 py-3 flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar w-full">
+            <div className="py-3 flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar w-full pl-6 lg:pl-12 pr-6 lg:pr-12">
                {isCategoriesLoading && currentLevel.length === 0 ? null : (
                 <>
                  {breadcrumb.length > 0 ? (

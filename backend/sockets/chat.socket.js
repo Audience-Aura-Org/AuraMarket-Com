@@ -51,7 +51,7 @@ const roomHasSockets = async (io, room) => {
   try {
     const sockets = await io.in(room.toString()).allSockets();
     return sockets.size > 0;
-  } catch {
+  } catch (_e) {
     return Boolean(io.sockets.adapter.rooms.get(room.toString())?.size);
   }
 };
@@ -250,7 +250,7 @@ const mapChatSockets = (server) => {
             }
             scheduleMessageRetry(messageId, msg, receiverId, Number(attempt) || 0);
             recovered++;
-          } catch {}
+          } catch (_e) {}
         }
       } while (cursor !== '0');
       if (recovered > 0) console.log(`[Socket] Recovered ${recovered} pending message retries from Redis.`);

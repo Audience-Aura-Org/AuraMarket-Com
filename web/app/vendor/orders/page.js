@@ -207,7 +207,7 @@ export default function VendorOrdersPage() {
                 <h2 className="text-base md:text-lg font-bold text-[var(--text-primary)] tracking-tight font-[Poppins]">Orders</h2>
                 <div className="flex items-center gap-2 mt-0.5">
                    <div className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />
-                   <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight truncate max-w-[150px] font-[Poppins]">{user.store_name || 'STORE_ID'}</p>
+                   <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 tracking-tight truncate max-w-[150px] font-[Poppins]">{user?.branding?.store_name || 'STORE_ID'}</p>
                 </div>
               </div>
             </div>

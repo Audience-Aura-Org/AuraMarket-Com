@@ -15,6 +15,7 @@ const {
   activateSubscription,
 } = require('../services/subscription.service');
 const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
+const { debitBalance } = require('../services/wallet.service');
 
 const sanitizePhone = (phone, country = 'CM') => {
   if (!phone) return phone;
@@ -105,17 +106,15 @@ const initializeSubscription = async (req, res, next) => {
 
     if (payment_method === 'wallet') {
       session.startTransaction();
-      const user = await User.findById(req.user._id).session(session);
-      if (!user || Number(user.wallet_balance || 0) < Number(plan.price || 0)) {
+      // Atomic debit — prevents concurrent subscription purchases from overdrawing
+      const user = await debitBalance(req.user._id, Number(plan.price || 0), session);
+      if (!user) {
         await session.abortTransaction();
         return res.status(400).json({ success: false, message: 'Insufficient wallet balance for this subscription.' });
       }
 
-      user.wallet_balance -= Number(plan.price || 0);
-      await user.save({ session });
-
       const transaction = await Transaction.create([{
-        user_id: user._id,
+        user_id: req.user._id,
         type: 'subscription',
         amount: plan.price,
         reference: generateSubscriptionRef(user._id),

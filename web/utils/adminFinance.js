@@ -48,7 +48,6 @@ const GATEWAY_BRANDS = {
     short: 'OM',
     className: 'bg-orange-500/20 text-orange-800 dark:text-orange-200',
   },
-  paystack: { label: 'Paystack', short: 'PS', className: 'bg-blue-600/15 text-blue-700' },
   wallet: { label: 'Wallet', short: 'W', className: 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]' },
   manual: { label: 'Manual', short: 'M', className: 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]' },
   bank: { label: 'Bank', short: 'BK', className: 'bg-slate-500/15 text-slate-600' },

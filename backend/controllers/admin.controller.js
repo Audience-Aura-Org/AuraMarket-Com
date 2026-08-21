@@ -27,7 +27,9 @@ const templates = require('../utils/emailTemplates');
 const { escapeRegExp } = require('../middleware/security.middleware');
 const cache = require('../utils/cache');
 const { normalizeFeeType, toNonNegativeNumber } = require('../utils/platformFees');
+const { creditBalance } = require('../services/wallet.service');
 const { clearApiCache } = require('../middleware/cache.middleware');
+const { recordAudit } = require('../utils/auditTrail');
 
 // ─────────────────────────────────────────────
 // @route   GET /api/admin/notifications/email-logs
@@ -557,7 +559,7 @@ const updateProductAdmin = async (req, res, next) => {
     if (req.body.tags !== undefined) {
       try {
         updateData.tags = typeof req.body.tags === 'string' ? JSON.parse(req.body.tags) : req.body.tags;
-      } catch { updateData.tags = []; }
+      } catch (_e) { updateData.tags = []; }
     }
 
     // ── Price ─────────────────────────────────────────────────────────────────
@@ -1220,12 +1222,35 @@ const updateUserAdmin = async (req, res, next) => {
     }
 
     if (name) user.name = name;
+    const previousRole = user.role;
     if (role) user.role = role;
     const previousVerificationStatus = user.verification_status;
     if (verification_status) user.verification_status = verification_status;
     if (typeof phone !== 'undefined') user.phone = phone;
 
     await user.save();
+
+    // Audit sensitive privilege changes
+    if (role && role !== previousRole) {
+      recordAudit({
+        actorId: req.user._id,
+        action: 'role_change',
+        targetType: 'User',
+        targetId: user._id,
+        before: { role: previousRole },
+        after: { role },
+      }).catch(() => {});
+    }
+    if (verification_status && verification_status !== previousVerificationStatus) {
+      recordAudit({
+        actorId: req.user._id,
+        action: 'verification_status_change',
+        targetType: 'User',
+        targetId: user._id,
+        before: { verification_status: previousVerificationStatus },
+        after: { verification_status },
+      }).catch(() => {});
+    }
 
     if (verification_status === 'held' && previousVerificationStatus !== 'held') {
       await sendNotification(req.app, user._id, {
@@ -1681,9 +1706,8 @@ const updateTransactionStatus = async (req, res, next) => {
             session.endSession();
           }
         } else {
-          // Pure wallet top-up
-          user.wallet_balance += transaction.amount;
-          await user.save();
+          // Pure wallet top-up — atomic credit
+          await creditBalance(user._id, transaction.amount);
           
           transaction.status = 'completed';
           if (admin_note) {
@@ -1868,9 +1892,8 @@ async function listIntercityRates(req, res, next) {
 // Bust all per-route cache entries for intercity rates.
 // The resolver caches each origin+dest pair separately under `intercity:rates:v1:{o}:{d}`.
 // On any write we bust all keys with this prefix so stale rates are never served.
-async function bustIntercityRateCache() {
-  const allKeys = cache.keys().filter(k => k.startsWith(INTERCITY_RATES_PREFIX));
-  await Promise.all(allKeys.map(k => cache.delete(k)));
+function bustIntercityRateCache() {
+  cache.deleteByPrefix(INTERCITY_RATES_PREFIX);
 }
 
 // POST /api/admin/intercity/rates

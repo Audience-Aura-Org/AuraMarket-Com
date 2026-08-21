@@ -27,15 +27,11 @@
 const walletGateway   = require('./gateways/wallet.gateway');
 const payunitGateway  = require('./gateways/payunit.gateway');
 const eversendGateway = require('./gateways/eversend.gateway');
-// Uncomment to re-enable:
-// const paystackGateway  = require('./gateways/paystack.gateway');
-
 /** Ordered gateway list — first = shown first in checkout UI */
 const GATEWAYS = [
   payunitGateway,   // Primary Cameroon mobile money gateway
   walletGateway,    // Instant balance deduction, no external redirect
   eversendGateway,  // Multi-country mobile money (XAF, NGN, KES, UGX…)
-  // paystackGateway,
   // require('./gateways/flutterwave.gateway'),
   // require('./gateways/campay.gateway'),
 ];

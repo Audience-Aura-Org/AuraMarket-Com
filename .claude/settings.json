@@ -38,7 +38,15 @@
       "Bash(head -20 grep -rn \"AURA_RELEASE\" /c/Users/Zero/Desktop/AuraMarket/.env*)",
       "Bash(export:*)",
       "Bash(test:*)",
-      "Bash(git -C /c/Users/Zero/Desktop/AuraMarket log --oneline --all -30)"
+      "Bash(git -C /c/Users/Zero/Desktop/AuraMarket log --oneline --all -30)",
+      "Bash(powershell.exe -Command \"Set-Location ''C:\\\\Users\\\\Zero\\\\Desktop\\\\AuraMarket\\\\web\\\\android''; .\\\\gradlew.bat assembleDebug 2>&1\")",
+      "Bash(bash gradlew:*)",
+      "Bash(git -C /c/Users/Zero/Desktop/AuraMarket log --oneline)",
+      "Bash(git -C /c/Users/Zero/Desktop/AuraMarket log --oneline -20 -- \"web/components/status/StatusCreator.js\")",
+      "Bash(TEST_ORANGE_PHONE=658928598 node backend/scripts/test_payunit.js:*)",
+      "WebFetch(domain:payunit.net)",
+      "WebFetch(domain:web.payunit.net)",
+      "WebFetch(domain:developer.payunit.net)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Zero\\.gradle\\caches"

@@ -85,12 +85,13 @@ export default function DinePage() {
           }
         }
 
-        // 2. Fallback: match city name from onboarding location
+        // 2. Fallback: match city name from onboarding location (accent-insensitive)
         if (!resolved) {
           const locationCity = user?.onboarding_location?.city;
           if (locationCity) {
+            const normalize = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             const cityZone = cityZones.find(c =>
-              c.name.toLowerCase() === locationCity.toLowerCase()
+              normalize(c.name) === normalize(locationCity)
             );
             if (cityZone) {
               resolved = { _id: cityZone._id, name: cityZone.name, type: cityZone.type };

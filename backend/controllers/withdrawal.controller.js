@@ -20,6 +20,7 @@ const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const eversend = require('../services/eversend.service');
 const { sendNotification } = require('../utils/notifier');
+const { debitBalance, creditBalance } = require('../services/wallet.service');
 const crypto = require('crypto');
 
 // ── Restaurant withdrawal gate thresholds ────────────────────────────────────
@@ -276,9 +277,9 @@ const submitWithdrawal = async (req, res) => {
 
     const role = ['vendor', 'logistics'].includes(userRole) ? userRole : 'user';
 
-    // ── Immediate Balance Deduction
-    user.wallet_balance -= amount;
-    await user.save({ session });
+    // ── Atomic balance deduction (prevents double-spend on concurrent requests)
+    const debitResult = await debitBalance(userId, amount, session);
+    if (!debitResult) throw new Error('Insufficient wallet balance.');
 
     // ── Create request
     const [withdrawalRequest] = await WithdrawalRequest.create([{
@@ -584,8 +585,7 @@ const adminApproveWithdrawal = async (req, res) => {
       wr.balance_deducted = false;
       await wr.save({ session });
 
-      user.wallet_balance += wr.amount;
-      await user.save({ session });
+      await creditBalance(wr.requested_by, wr.amount, session);
 
       await Transaction.updateOne(
         { "metadata.withdrawal_request_id": wr._id },
@@ -696,12 +696,10 @@ const adminRejectWithdrawal = async (req, res) => {
     wr.reviewed_by = req.user._id;
     wr.reviewed_at = new Date();
 
-    // Refund balance
-    const user = await User.findById(wr.requested_by).session(session);
-    if (user && wr.balance_deducted) {
-        user.wallet_balance += wr.amount;
-        await user.save({ session });
-        wr.balance_deducted = false;
+    // Atomic refund
+    if (wr.balance_deducted) {
+      await creditBalance(wr.requested_by, wr.amount, session);
+      wr.balance_deducted = false;
     }
     await wr.save({ session });
 
@@ -826,9 +824,7 @@ const adminRecheckWithdrawal = async (req, res) => {
 
     } else if (normalizedStatus === 'FAILED') {
       if (wr.balance_deducted) {
-        const user = await User.findById(wr.requested_by).session(session);
-        user.wallet_balance += wr.amount;
-        await user.save({ session });
+        await creditBalance(wr.requested_by, wr.amount, session);
         wr.balance_deducted = false;
       }
       wr.status = 'failed';

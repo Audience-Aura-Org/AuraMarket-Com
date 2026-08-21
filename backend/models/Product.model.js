@@ -186,6 +186,16 @@ const ProductSchema = new mongoose.Schema(
       default: true, // retail default; upload form sets false for meals
     },
 
+    // ── Meal flag ────────────────────────────────────────────────────────────
+    // True for restaurant products; false for all retail products.
+    // Used by the pre-save hook and filtering logic as the authoritative
+    // discriminator. Mongoose 9.x wraps nested schema fields in a MongooseDocument
+    // proxy (always truthy), so `!this.meal` is unreliable — use `!this.is_meal`.
+    is_meal: {
+      type: Boolean,
+      default: false,
+    },
+
     // ── Meal sub-document (Phase 3 Step 4) ──────────────────────────────────
     // Present only when product belongs to a restaurant vendor.
     // StockWatch alerts are suppressed for products with meal != null.
@@ -274,7 +284,10 @@ const ProductSchema = new mongoose.Schema(
 
 // ── Pre-save: meal validation ─────────────────────────────────────────────────
 ProductSchema.pre('save', function () {
-  if (!this.meal) return;
+  // In Mongoose 9.x, `this.meal` (a nested schema field) is always a truthy
+  // MongooseDocument proxy even when the underlying value is null or absent.
+  // Use the explicit `is_meal` boolean as the authoritative discriminator instead.
+  if (!this.is_meal) return;
 
   // Meals are never eligible for intercity shipping
   this.is_intercity_eligible = false;

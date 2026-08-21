@@ -28,6 +28,7 @@ const { generateInvoice }     = require('../utils/invoiceGenerator');
 const { getWebUrl }           = require('../utils/url');
 const logisticsService        = require('../services/logistics.service');
 const { handleVendorPayout }  = require('../services/payment/settle.service');
+const { debitBalance }        = require('../services/wallet.service');
 const { resolveDelivery, isIntercityEnabled } = require('../services/intercityResolver.service');
 const {
   syncShipmentsToOrderStatus,
@@ -37,8 +38,7 @@ const {
 const templates               = require('../utils/emailTemplates');
 const { markEscrowDelivered } = require('./escrow.controller');
 const { toXAF, assertOrderTotal } = require('../utils/platformFees');
-
-const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
+const { getMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
 
 const normalizeNullableAmount = (value) => {
   if (value === undefined || value === null || value === '') return null;
@@ -135,22 +135,24 @@ const resolveOrderLine = (product, item) => {
 
 const restoreOrderInventory = async (order, session) => {
   for (const item of order.products || []) {
-    const product = await Product.findById(item.product_id).session(session);
-    if (!product) continue;
-
     const quantity = Number(item.quantity || 1);
-    product.stock = Number(product.stock || 0) + quantity;
-    product.purchase_count = Math.max(0, Number(product.purchase_count || 0) - quantity);
+    const variantId = item.variant?.variant_id || item.variant?._id;
 
-    if (product.has_variants && item.variant) {
-      const variantMatch = findSelectedVariant(product, item.variant);
-      if (variantMatch) {
-        variantMatch.stock = Number(variantMatch.stock || 0) + quantity;
-        product.markModified('sku_variants');
-      }
+    if (variantId) {
+      // Variant product — restore top-level stock AND the matching sku_variant's stock atomically
+      await Product.findOneAndUpdate(
+        { _id: item.product_id, 'sku_variants._id': variantId },
+        { $inc: { stock: quantity, purchase_count: -quantity, 'sku_variants.$.stock': quantity } },
+        { session },
+      );
+    } else {
+      // Simple product — atomic $inc avoids triggering pre-save hooks
+      await Product.findOneAndUpdate(
+        { _id: item.product_id },
+        { $inc: { stock: quantity, purchase_count: -quantity } },
+        { session },
+      );
     }
-
-    await product.save({ session });
   }
 };
 
@@ -168,17 +170,20 @@ const createOrder = async (req, res, next) => {
     const payment_method = normalizePaymentMethod(req.body.payment_method);
 
     if (!products || products.length === 0) {
+      session.endSession();
       return res.status(400).json({ success: false, message: 'No order items provided.' });
     }
 
     // 1. Verify vendor exists
     const vendor = await Vendor.findById(vendor_id).populate('user_id', 'name email');
     if (!vendor) {
+      session.endSession();
       return res.status(404).json({ success: false, message: 'Vendor not found.' });
     }
 
     // Prevent vendors from purchasing from their own store
     if (req.user.role === 'vendor' && vendor.user_id?._id?.toString() === req.user._id.toString()) {
+      session.endSession();
       return res.status(400).json({
         success: false,
         message: 'You cannot place an order from your own store. You can only purchase from other vendors.',
@@ -192,32 +197,70 @@ const createOrder = async (req, res, next) => {
     let mealAvailableDate = null; // preorder date from meal.available_date (if future)
 
     for (const item of products) {
-      const product = await Product.findById(item.product_id).session(session);
-      
-      if (!product || product.status !== 'active') {
-        throw new Error(`Product ${item.product_id} is unavailable.`);
+      const quantity = Number(item.quantity) || 1;
+      if (quantity < 1) throw new Error(`Invalid quantity for product ${item.product_id}.`);
+
+      // ── Atomic stock deduction ─────────────────────────────────────────────
+      // Build the variant filter if a variant is selected
+      const variantId = item.variant?.variant_id || item.variant?._id;
+      let atomicFilter, atomicUpdate;
+
+      if (variantId) {
+        // Variant product: decrement the matching variant's stock atomically
+        atomicFilter = {
+          _id:    item.product_id,
+          status: 'active',
+          'sku_variants._id': variantId,
+          'sku_variants.stock': { $gte: quantity },
+        };
+        atomicUpdate = {
+          $inc: {
+            'sku_variants.$.stock': -quantity,
+            stock:                  -quantity,
+            purchase_count:          quantity,
+          },
+        };
+      } else {
+        // Simple product: decrement top-level stock atomically
+        atomicFilter = {
+          _id:    item.product_id,
+          status: 'active',
+          stock:  { $gte: quantity },
+        };
+        atomicUpdate = {
+          $inc: { stock: -quantity, purchase_count: quantity },
+        };
       }
 
-      const { quantity, itemPrice, regularPrice, salePrice, compare_at_price, itemImage } = resolveOrderLine(product, item);
+      const product = await Product.findOneAndUpdate(
+        atomicFilter,
+        atomicUpdate,
+        { session, new: true },
+      );
 
-      if (product.has_variants) {
-        const variantMatch = findSelectedVariant(product, item.variant);
-        if (variantMatch) {
-          variantMatch.stock -= quantity;
+      if (!product) {
+        // Either product is unavailable or stock is insufficient
+        const exists = await Product.findById(item.product_id).select('name stock status').session(session).lean();
+        if (!exists || exists.status !== 'active') {
+          throw new Error(`Product ${item.product_id} is unavailable.`);
         }
+        throw new Error(`Insufficient stock for "${exists.name}" (requested ${quantity}, available ${exists.stock}).`);
       }
 
-      product.stock -= quantity;
-      product.purchase_count = (product.purchase_count || 0) + quantity;
       product.markModified('sku_variants');
-      await product.save({ session });
 
-      // Low stock alert (in-app only) — suppressed for meal products (stock field unused for food)
+      const { quantity: _q, itemPrice, regularPrice, salePrice, compare_at_price, itemImage } = resolveOrderLine(product, item);
+
+      // Low stock alert (in-app only) — suppressed for meal products
       if (!product.meal && product.stock < 5) {
-        await sendNotification(req.app, vendor.user_id, {
-          title: 'Low Stock Alert',
-          message: `Your product "${product.name}" is running low on stock (${product.stock} items left).`,
-          type: 'system_alert'
+        setImmediate(async () => {
+          try {
+            await sendNotification(req.app, vendor.user_id, {
+              title: 'Low Stock Alert',
+              message: `Your product "${product.name}" is running low on stock (${product.stock} items left).`,
+              type: 'system_alert',
+            });
+          } catch (_) {}
         });
       }
 
@@ -258,8 +301,18 @@ const createOrder = async (req, res, next) => {
             discount = coupon.max_discount_amount;
           }
         }
-        coupon.used_count += 1;
-        await coupon.save({ session });
+        // Atomic increment — guard against max_uses race (two requests both pass isValid)
+        const couponUpdateFilter = coupon.max_uses > 0
+          ? { _id: coupon._id, used_count: { $lt: coupon.max_uses } }
+          : { _id: coupon._id };
+        const updatedCoupon = await Coupon.findOneAndUpdate(
+          couponUpdateFilter,
+          { $inc: { used_count: 1 } },
+          { session, new: true },
+        );
+        if (!updatedCoupon) {
+          throw new Error('Coupon has reached its maximum usage limit.');
+        }
       }
     }
 
@@ -316,6 +369,8 @@ const createOrder = async (req, res, next) => {
     const deliveryZone = delivery_quartier || shipping_address?.quartier;
 
     if (!deliveryZone) {
+      if (session.inTransaction()) await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         success: false,
         message: 'A delivery zone must be selected for this order.'
@@ -323,6 +378,8 @@ const createOrder = async (req, res, next) => {
     }
 
     if (normalizedShippingMethod === 'logistics_partner' && !logistics_company_id) {
+      if (session.inTransaction()) await session.abortTransaction();
+      session.endSession();
       return res.status(400).json({
         success: false,
         message: 'Select a logistics partner or choose vendor-managed delivery.',
@@ -354,6 +411,8 @@ const createOrder = async (req, res, next) => {
     let intercityOrderFields = {};
     if (normalizedShippingMethod === 'intercity_agency') {
       if (!isIntercityEnabled()) {
+        if (session.inTransaction()) await session.abortTransaction();
+        session.endSession();
         return res.status(400).json({ success: false, message: 'Intercity shipping is not currently available.' });
       }
       const [vendorDoc, vendorStore] = await Promise.all([
@@ -470,12 +529,10 @@ const createOrder = async (req, res, next) => {
 
     // For wallet-paid food orders: capture payment immediately at placement
     if (isFoodOrder && payment_method === 'wallet') {
-      const buyer = await User.findById(req.user._id).session(session);
-      if ((buyer.wallet_balance || 0) < total_amount) {
+      const buyer = await debitBalance(req.user._id, total_amount, session);
+      if (!buyer) {
         throw new Error('Insufficient wallet balance to place this food order.');
       }
-      buyer.wallet_balance -= total_amount;
-      await buyer.save({ session });
 
       await Transaction.create([{
         user_id:     buyer._id,
@@ -613,12 +670,9 @@ const payDirectly = async (req, res, next) => {
     if (order.customer_id.toString() !== req.user._id.toString()) throw new Error('Not authorized.');
     if (order.payment_status !== 'pending') throw new Error('Payment already received.');
 
-    const user = await User.findById(req.user._id).session(session);
-    if (user.wallet_balance < order.total_amount) throw new Error('Insufficient wallet balance.');
-
-    // Deduct from buyer
-    user.wallet_balance -= order.total_amount;
-    await user.save({ session });
+    // Atomic debit — also guards against concurrent payment attempts
+    const user = await debitBalance(req.user._id, order.total_amount, session);
+    if (!user) throw new Error('Insufficient wallet balance.');
 
     // Log buyer payment transaction
     await Transaction.create([{
@@ -777,6 +831,16 @@ const getOrderById = async (req, res, next) => {
       });
 
     if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+
+    // [C] fix: IDOR — enforce ownership before returning order detail
+    const requestorId  = req.user._id.toString();
+    const isCustomer   = order.customer_id?._id?.toString() === requestorId;
+    const isVendor     = order.vendor_id?.user_id?._id?.toString() === requestorId;
+    const isPrivileged = ['admin', 'logistics'].includes(req.user.role);
+
+    if (!isCustomer && !isVendor && !isPrivileged) {
+      return res.status(403).json({ success: false, message: 'Access denied. You are not a party to this order.' });
+    }
 
     const shipments = await Shipment.find({ order_id: order._id })
       .populate('logistics_id', 'company_name contact_phone')
@@ -1353,7 +1417,7 @@ const createOrdersFromCart = async (req, res, next) => {
 
     // Validate fulfilment_type for cart food orders
     const VALID_FULFILMENT_TYPES_CART = ['delivery', 'pickup', 'dine_in', 'pre_order'];
-    const cartHasFoodItems = itemsForProcessing.some(it => it.product?.meal);
+    const cartHasFoodItems = itemsForProcessing.some(it => it.product?.is_meal);
     if (cartHasFoodItems && fulfilment_type && !VALID_FULFILMENT_TYPES_CART.includes(fulfilment_type)) {
       await session.abortTransaction();
       session.endSession();
@@ -1374,7 +1438,7 @@ const createOrdersFromCart = async (req, res, next) => {
     // (those orders are fulfilled at the restaurant — no address needed).
     const allFoodPickupOrDineIn =
       (fulfilment_type === 'pickup' || fulfilment_type === 'dine_in') &&
-      itemsForProcessing.every(it => !!(it.product?.meal));
+      itemsForProcessing.every(it => !!(it.product?.is_meal));
 
     if (!allFoodPickupOrDineIn && !deliveryZone) {
        throw new Error('A delivery zone must be selected.');
@@ -1389,7 +1453,7 @@ const createOrdersFromCart = async (req, res, next) => {
     // taking payment — a restaurant can close or pull a dish at any time.
     const RestaurantProfile = require('../models/RestaurantProfile.model');
     for (const [vendorId, items] of Object.entries(itemsByVendor)) {
-      const hasMeal = items.some(it => it.product?.meal);
+      const hasMeal = items.some(it => it.product?.is_meal);
       if (!hasMeal) continue;
 
       const rProfile = await RestaurantProfile.findOne({ vendor_id: vendorId })
@@ -1636,12 +1700,10 @@ const createOrdersFromCart = async (req, res, next) => {
       // vendor is paid at capture and any timeout/rejection triggers clawbackFoodRefund
       // which credits the amount back to the buyer's wallet.
       if (isFoodOrderCart && payment_method === 'wallet') {
-        const buyer = await User.findById(req.user._id).session(session);
-        if ((buyer.wallet_balance || 0) < orderTotal) {
+        const buyer = await debitBalance(req.user._id, orderTotal, session);
+        if (!buyer) {
           throw new Error('Insufficient wallet balance to place this food order.');
         }
-        buyer.wallet_balance -= orderTotal;
-        await buyer.save({ session });
 
         await Transaction.create([{
           user_id:     buyer._id,
@@ -2243,12 +2305,17 @@ const markIntercityCollected = async (req, res, next) => {
   session.startTransaction();
   try {
     const order = await Order.findById(req.params.id).session(session);
-    if (!order) throw new Error('Order not found.');
+    if (!order) {
+      await session.abortTransaction(); session.endSession();
+      return res.status(404).json({ success: false, message: 'Order not found.' });
+    }
     if (order.shipping_method !== 'intercity_agency') {
-      throw new Error('Order is not an intercity shipment.');
+      await session.abortTransaction(); session.endSession();
+      return res.status(400).json({ success: false, message: 'Order is not an intercity shipment.' });
     }
     if (order.transit_status !== 'arrived') {
-      throw new Error(`Cannot collect: parcel has not arrived yet (transit_status: '${order.transit_status}').`);
+      await session.abortTransaction(); session.endSession();
+      return res.status(409).json({ success: false, message: `Cannot collect: parcel has not arrived yet (transit_status: '${order.transit_status}').` });
     }
 
     // Only buyer or admin may confirm collection
@@ -2256,7 +2323,8 @@ const markIntercityCollected = async (req, res, next) => {
       req.user.role !== 'admin' &&
       order.customer_id.toString() !== req.user._id.toString()
     ) {
-      throw new Error('Not authorised to confirm collection.');
+      await session.abortTransaction(); session.endSession();
+      return res.status(403).json({ success: false, message: 'Not authorised to confirm collection.' });
     }
 
     order.transit_status = 'collected';

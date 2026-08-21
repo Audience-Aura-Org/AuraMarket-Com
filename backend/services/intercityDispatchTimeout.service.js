@@ -24,13 +24,20 @@ const User        = require('../models/User.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const { sendNotification } = require('../utils/notifier');
+const { debitBalance, creditBalance } = require('./wallet.service');
+const { withLock } = require('../utils/locks');
 
 const DISPATCH_WINDOW_HOURS = 48;
+const INTERVAL_MS = 30 * 60 * 1000;
+const LOCK_TTL_SECONDS = Math.ceil(INTERVAL_MS / 1000) + 60;
+
+let _timer = null;
 const genRef = (prefix = 'IC-REV') =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
 
 async function runIntercityDispatchTimeout(app) {
   if (mongoose.connection.readyState !== 1) return;
+  await withLock('worker:intercity-dispatch-timeout', LOCK_TTL_SECONDS, async () => {
 
   const cutoff = new Date(Date.now() - DISPATCH_WINDOW_HOURS * 3600 * 1000);
 
@@ -68,8 +75,8 @@ async function runIntercityDispatchTimeout(app) {
 
       // ── 1. Clawback transit_fee advance from vendor ───────────────────────
       if (order.transit_fee > 0) {
-        vendorUser.wallet_balance -= order.transit_fee;
-        await vendorUser.save({ session });
+        // allowNegative: vendor may have already spent the advance
+        await debitBalance(vendorUser._id, order.transit_fee, session, { allowNegative: true });
 
         await Transaction.create([{
           user_id:     vendorUser._id,
@@ -84,8 +91,7 @@ async function runIntercityDispatchTimeout(app) {
       }
 
       // ── 2. Refund buyer in full ───────────────────────────────────────────
-      buyerUser.wallet_balance += order.total_amount;
-      await buyerUser.save({ session });
+      await creditBalance(buyerUser._id, order.total_amount, session);
 
       await Transaction.create([{
         user_id:     buyerUser._id,
@@ -151,6 +157,9 @@ async function runIntercityDispatchTimeout(app) {
       console.error(`[intercityDispatchTimeout] Failed to reverse order ${orderDoc._id}:`, err.message);
     }
   }
+  }).catch((err) => {
+    console.error('[intercityDispatchTimeout] lock failed:', err.message);
+  });
 }
 
 /**
@@ -161,16 +170,26 @@ async function runIntercityDispatchTimeout(app) {
  * @param {import('express').Application} app
  */
 function startIntercityDispatchTimeoutWorker(app) {
-  const FIRST_RUN_MS = 2 * 60 * 1000;     // 2 min
-  const INTERVAL_MS  = 30 * 60 * 1000;    // 30 min
+  if (_timer) return;
+  const FIRST_RUN_MS = 2 * 60 * 1000; // 2 min
 
   setTimeout(() => {
-    runIntercityDispatchTimeout(app);
-    const t = setInterval(() => runIntercityDispatchTimeout(app), INTERVAL_MS);
-    if (t.unref) t.unref();
+    runIntercityDispatchTimeout(app).catch((err) =>
+      console.error('[intercityDispatchTimeout] initial run failed:', err.message)
+    );
+    _timer = setInterval(() => {
+      runIntercityDispatchTimeout(app).catch((err) =>
+        console.error('[intercityDispatchTimeout] interval failed:', err.message)
+      );
+    }, INTERVAL_MS);
+    if (_timer.unref) _timer.unref();
   }, FIRST_RUN_MS);
 
   console.log('[intercityDispatchTimeout] Worker scheduled — first run in 2 min, then every 30 min.');
 }
 
-module.exports = { startIntercityDispatchTimeoutWorker, runIntercityDispatchTimeout };
+function stopIntercityDispatchTimeoutWorker() {
+  if (_timer) { clearInterval(_timer); _timer = null; }
+}
+
+module.exports = { startIntercityDispatchTimeoutWorker, runIntercityDispatchTimeout, stopIntercityDispatchTimeoutWorker };

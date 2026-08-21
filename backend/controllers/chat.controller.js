@@ -18,7 +18,7 @@ const roomHasSockets = async (io, room) => {
   try {
     const sockets = await io.in(room.toString()).allSockets();
     return sockets.size > 0;
-  } catch {
+  } catch (_e) {
     return Boolean(io.sockets?.adapter?.rooms?.get(room.toString())?.size);
   }
 };

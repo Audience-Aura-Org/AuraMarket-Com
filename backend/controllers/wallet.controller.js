@@ -17,6 +17,7 @@ const Message = require('../models/Message.model');
 const WithdrawalRequest = require('../models/WithdrawalRequest.model');
 const { sendNotification } = require('../utils/notifier');
 const { getCommissionValue } = require('../utils/platformFees');
+const { debitBalance, creditBalance } = require('../services/wallet.service');
 
 // Helper to generate a unique transaction reference
 const generateTxRef = () => `AURA-TX-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
@@ -144,14 +145,9 @@ const requestWithdrawal = async (req, res, next) => {
 
   try {
     const { amount, method, details } = req.body;
-    const user = await User.findById(req.user._id).session(session);
 
     if (!amount || amount < 500) {
       throw new Error('Minimum withdrawal amount is 500 XAF.');
-    }
-
-    if (user.wallet_balance < amount) {
-      throw new Error('Insufficient wallet balance.');
     }
 
     const ALLOWED_METHODS = ['mtn', 'orange'];
@@ -163,9 +159,9 @@ const requestWithdrawal = async (req, res, next) => {
       throw new Error('Phone number is required for mobile money withdrawal.');
     }
 
-    // Deduct from wallet immediately to prevent double spending
-    user.wallet_balance -= amount;
-    await user.save({ session });
+    // Atomic debit — prevents double-spend under concurrent withdrawal requests
+    const user = await debitBalance(req.user._id, amount, session);
+    if (!user) throw new Error('Insufficient wallet balance.');
 
     // Create a descriptive label
     const methodLabels = { mtn: 'MTN MoMo', orange: 'Orange Money', bank: 'Bank Transfer' };
@@ -194,7 +190,9 @@ const requestWithdrawal = async (req, res, next) => {
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-    if (error.message.includes('Insufficient') || error.message.includes('required')) {
+    // All validation errors thrown above are user-facing 400s
+    const validationPhrases = ['Minimum withdrawal', 'Invalid withdrawal method', 'Phone number', 'Insufficient'];
+    if (validationPhrases.some(p => error.message.includes(p))) {
       return res.status(400).json({ success: false, message: error.message });
     }
     next(error);
@@ -247,10 +245,8 @@ const processWithdrawal = async (req, res, next) => {
       }
     } else if (action === 'reject') {
       transaction.status = 'rejected';
-      // Refund the wallet since we deducted it during the request phase
-      const user = await User.findById(transaction.user_id).session(session);
-      user.wallet_balance += transaction.amount;
-      await user.save({ session });
+      // Atomic credit — refund the wallet since we deducted it at request time
+      await creditBalance(transaction.user_id, transaction.amount, session);
     } else if (action === 'hold') {
       // For now, hold just confirms it's pending but perhaps we add a flag
       transaction.status = 'pending';

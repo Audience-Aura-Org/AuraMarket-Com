@@ -144,14 +144,14 @@ export default function AccountPageClient() {
   const [brandingUploading, setBrandingUploading] = useState(null);
 
   const [storeData, setStoreData] = useState({
-    store_name: '',
-    description: '',
+    store_name: user?.branding?.store_name || '',
+    description: user?.branding?.description || '',
     logo: user?.branding?.logo || '',
     banner: user?.branding?.banner || '',
     pickup_address: { city: '', district: '', quartier: '', address_description: '' },
     delivery_time: '',
     minimum_order_amount: '',
-    follower_count: 0,
+    follower_count: user?.branding?.follower_count || 0,
     rating: 0,
     vendor_type: '',
   });
@@ -216,7 +216,11 @@ export default function AccountPageClient() {
 
   const [followedVendors, setFollowedVendors] = useState([]);
   const [networkLoading, setNetworkLoading] = useState(false);
-  const [logisticsData, setLogisticsData] = useState({ company_name: '', logo: '', banner: '' });
+  const [logisticsData, setLogisticsData] = useState({
+    company_name: user?.branding?.company_name || '',
+    logo: user?.branding?.logo || '',
+    banner: user?.branding?.banner || '',
+  });
 
   const [audience, setAudience] = useState([]);
   const [audienceLoading, setAudienceLoading] = useState(false);
@@ -326,10 +330,16 @@ export default function AccountPageClient() {
             rating: v.rating || 0,
             vendor_type: v.vendor_type || '',
           });
-          // Sync store_name into the auth user so the header shows the vendor name
-          // immediately (AccountHeader reads user.branding.store_name as its first fallback)
-          if (v.store_name) {
-            updateUser({ branding: { ...(user?.branding || {}), store_name: v.store_name } });
+          // Sync store_name and follower_count into the auth user so the header shows
+          // the correct values immediately on the next page load without a flash.
+          if (v.store_name || v.follower_count) {
+            updateUser({
+              branding: {
+                ...(user?.branding || {}),
+                ...(v.store_name ? { store_name: v.store_name } : {}),
+                ...(v.follower_count > 0 ? { follower_count: v.follower_count } : {}),
+              },
+            });
           }
           setProfileBranding((p) => ({
             logo: s.logo || v.logo || p.logo,
@@ -349,6 +359,15 @@ export default function AccountPageClient() {
             logo: firm.logo || '',
             banner: firm.banner || '',
           });
+          // Cache company_name so the header shows it immediately on next load
+          if (firm.company_name) {
+            updateUser({
+              branding: {
+                ...(user?.branding || {}),
+                company_name: firm.company_name,
+              },
+            });
+          }
           setProfileBranding((p) => ({
             logo: firm.logo || p.logo,
             banner: firm.banner || p.banner,
@@ -383,11 +402,12 @@ export default function AccountPageClient() {
     return () => window.removeEventListener('fontsizechange', handleFontSizeChange);
   }, []);
 
-  // Re-fetch profile data whenever the user returns to this tab/app so counts & names stay current.
+  // Re-fetch profile data whenever the user returns to this tab/app, or when the
+  // browser restores the page from bfcache (browser back/forward navigation).
   useEffect(() => {
     if (!user) return;
-    const handleVisibility = () => {
-      if (document.visibilityState !== 'visible') return;
+
+    const refetchProfile = () => {
       if (user.role === 'vendor') {
         api.get('/vendors/me', { skipClientCache: true }).then(res => {
           if (res.data?.success) {
@@ -417,8 +437,23 @@ export default function AccountPageClient() {
         }).catch(() => {});
       }
     };
+
+    // Tab becomes visible (user switches back from another tab)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refetchProfile();
+    };
+
+    // Browser bfcache restore (back/forward button) — event.persisted === true
+    const handlePageShow = (e) => {
+      if (e.persisted) refetchProfile();
+    };
+
     document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('pageshow', handlePageShow);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
   }, [user?._id, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fontSizeOptions = [
@@ -647,7 +682,7 @@ export default function AccountPageClient() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-[11px] font-bold text-[var(--text-primary)] truncate leading-tight">
-                        {user?.role === 'vendor' ? (storeData.store_name || user?.name) : user?.name || 'Aura User'}
+                        {user?.name || 'Aura User'}
                       </p>
                       {brandingStatus ? (
                         <p className="text-[10px] font-semibold text-[var(--accent)]">{brandingStatus}</p>
