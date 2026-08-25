@@ -38,7 +38,7 @@ const {
 const templates               = require('../utils/emailTemplates');
 const { markEscrowDelivered } = require('./escrow.controller');
 const { toXAF, assertOrderTotal } = require('../utils/platformFees');
-const { getMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
+const { getMobileMoneyCollectionFee, isMobileMoneyGateway } = require('../utils/mobileMoneyFees');
 
 const normalizeNullableAmount = (value) => {
   if (value === undefined || value === null || value === '') return null;
@@ -471,7 +471,7 @@ const createOrder = async (req, res, next) => {
 
     await assertMinimumOrderAmount(vendor_id, subtotal, session);
 
-    const collection_fee = (payment_method === 'payunit' || payment_method === 'eversend') ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
+    const collection_fee = getMobileMoneyCollectionFee(payment_method);
     const total_amount = toXAF(subtotal + shipping_fee + transit_fee + collection_fee - discount);
     assertOrderTotal({ subtotal, shipping_fee, collection_fee, discount, total_amount });
 
@@ -668,7 +668,16 @@ const payDirectly = async (req, res, next) => {
     const order = await Order.findById(id).session(session);
     if (!order) throw new Error('Order not found.');
     if (order.customer_id.toString() !== req.user._id.toString()) throw new Error('Not authorized.');
-    if (order.payment_status !== 'pending') throw new Error('Payment already received.');
+    if (order.payment_status !== 'pending') {
+      // Food orders pre-paid at creation (wallet debit + vendor payout already settled)
+      // return success so the checkout page can advance to the success screen.
+      if (order.payment_status === 'paid' && order.payment_method === 'wallet') {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(200).json({ success: true, message: 'Payment already completed.' });
+      }
+      throw new Error('Payment already received.');
+    }
 
     // Atomic debit — also guards against concurrent payment attempts
     const user = await debitBalance(req.user._id, order.total_amount, session);
@@ -828,7 +837,8 @@ const getOrderById = async (req, res, next) => {
           path: 'vendor_id',
           select: 'store_name user_id branding name'
         }
-      });
+      })
+      .populate('logistics_company_id', 'company_name contact_phone contact_email');
 
     if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
 
@@ -1652,7 +1662,7 @@ const createOrdersFromCart = async (req, res, next) => {
 
       await assertMinimumOrderAmount(vendorId, subtotal, session);
 
-      const collectionFee = (payment_method === 'payunit' || payment_method === 'eversend') ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
+      const collectionFee = getMobileMoneyCollectionFee(payment_method);
       const orderTotal = toXAF(subtotal + shippingFee + cartTransitFee + collectionFee);
       assertOrderTotal({ subtotal, shipping_fee: shippingFee, collection_fee: collectionFee, total_amount: orderTotal });
 
@@ -1734,7 +1744,7 @@ const createOrdersFromCart = async (req, res, next) => {
     // cart intact so the customer can still see/retry their items if the mobile-money prompt
     // is declined or times out.  The verify page (wallet/verify) clears the server cart once
     // the gateway confirms success.
-    const paymentIsExternal = ['eversend', 'payunit'].includes(payment_method);
+    const paymentIsExternal = isMobileMoneyGateway(payment_method);
     if (!req.body.items && !paymentIsExternal) {
        const cart = await Cart.findOne({ user_id: req.user._id }).session(session);
        if (cart) {
@@ -1754,6 +1764,7 @@ const createOrdersFromCart = async (req, res, next) => {
         for (const orderId of createdOrderIds) {
           const o = await Order.findById(orderId);
           const v = await Vendor.findById(o.vendor_id);
+          if (!v) continue; // vendor record removed — skip notification
           // Provide full order details and a link so notifier builds a styled HTML email
           const orderForEmail = o.toObject();
           sendNotification(req.app, v.user_id, {

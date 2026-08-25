@@ -13,6 +13,13 @@
 **/.next/
 **/out/
 
+# Test coverage
+**/coverage/
+
+# Logs
+logs/
+*.log
+
 # OS files
 .DS_Store
 Thumbs.db

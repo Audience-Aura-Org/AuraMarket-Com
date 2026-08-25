@@ -2,7 +2,7 @@
  * services/payment/gateway.registry.js
  * Auradime — Payment Gateway Registry
  *
- * Active gateways: PayUnit, Wallet, Eversend
+ * Active gateways: PayUnit, Wallet, Eversend, PawaPay
  *
  * To add a new gateway:
  *   1. Create `gateways/<name>.gateway.js` implementing the GatewayInterface
@@ -27,9 +27,11 @@
 const walletGateway   = require('./gateways/wallet.gateway');
 const payunitGateway  = require('./gateways/payunit.gateway');
 const eversendGateway = require('./gateways/eversend.gateway');
+const pawapayGateway  = require('./gateways/pawapay.gateway');
 /** Ordered gateway list — first = shown first in checkout UI */
 const GATEWAYS = [
   payunitGateway,   // Primary Cameroon mobile money gateway
+  pawapayGateway,   // PawaPay mobile money (XAF — MTN/Orange Cameroon)
   walletGateway,    // Instant balance deduction, no external redirect
   eversendGateway,  // Multi-country mobile money (XAF, NGN, KES, UGX…)
   // require('./gateways/flutterwave.gateway'),

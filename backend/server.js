@@ -86,6 +86,8 @@ const { startDelayedRiderDispatchWorker } = require('./services/delayedRiderDisp
 startDelayedRiderDispatchWorker(app);
 const { startIntercityArrivalLapseWorker } = require('./services/intercityArrivalLapse.service');
 startIntercityArrivalLapseWorker(app);
+const { startStaleTransactionCleanupWorker } = require('./services/staleTransactionCleanup.service');
+startStaleTransactionCleanupWorker(app);
 
 // Phase 3 Step 11 — Hourly dine-feed cache invalidation
 // open_status / next_status_change_at is computed at cache-write time (Africa/Douala).
@@ -127,11 +129,22 @@ app.use(securityHeaders);
 app.use(cors(createCorsOptions()));
 
 app.use(compression()); // Gzip all API responses
-// ── Eversend Webhook (Raw Body Requirement) ───────────────────────────
-// Must be mounted before express.json() to allow raw body HMAC verification
-const { eversendWebhook } = require('./controllers/payment.controller');
+// ── Webhook routes (Raw Body Requirement) ─────────────────────────────
+// Must be mounted before express.json() to allow raw body signature verification
+const { eversendWebhook, pawapayDepositWebhook, pawapayRefundWebhook, pawapayCheckoutWebhook } = require('./controllers/payment.controller');
+const { pawapayPayoutWebhook } = require('./controllers/withdrawal.controller');
 app.post('/api/v1/payments/eversend/webhook', express.raw({ type: 'application/json' }), eversendWebhook);
 app.post('/api/payments/eversend/webhook', express.raw({ type: 'application/json' }), eversendWebhook);
+// PawaPay webhooks — raw body required for Content-Digest / RFC-9421 signature verification
+app.post('/api/v1/payments/pawapay/webhook/deposit', express.raw({ type: 'application/json' }), pawapayDepositWebhook);
+app.post('/api/payments/pawapay/webhook/deposit', express.raw({ type: 'application/json' }), pawapayDepositWebhook);
+app.post('/api/v1/payments/pawapay/webhook/checkout', express.raw({ type: 'application/json' }), pawapayCheckoutWebhook);
+app.post('/api/payments/pawapay/webhook/checkout', express.raw({ type: 'application/json' }), pawapayCheckoutWebhook);
+app.post('/api/v1/payments/pawapay/webhook/refund', express.raw({ type: 'application/json' }), pawapayRefundWebhook);
+app.post('/api/payments/pawapay/webhook/refund', express.raw({ type: 'application/json' }), pawapayRefundWebhook);
+// PawaPay payout (disbursement) webhook — fires when a withdrawal payout settles
+app.post('/api/v1/payments/pawapay/webhook/payout', express.raw({ type: 'application/json' }), pawapayPayoutWebhook);
+app.post('/api/payments/pawapay/webhook/payout', express.raw({ type: 'application/json' }), pawapayPayoutWebhook);
 
 app.use(express.json({ limit: '500mb' }));
 app.use(express.urlencoded({ extended: true, limit: '500mb' }));

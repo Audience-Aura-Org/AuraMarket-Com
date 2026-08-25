@@ -19,6 +19,7 @@ const WithdrawalRequest = require('../models/WithdrawalRequest.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const eversend = require('../services/eversend.service');
+const pawapay  = require('../services/payment/gateways/pawapay.gateway');
 const { sendNotification } = require('../utils/notifier');
 const { debitBalance, creditBalance } = require('../services/wallet.service');
 const crypto = require('crypto');
@@ -55,9 +56,10 @@ const toE164 = (phone, countryIso = 'CM') => {
 };
 
 const VALID_WITHDRAWAL_METHODS = ['momo'];
-const VALID_PAYOUT_GATEWAYS = ['payunit', 'eversend'];
+const VALID_PAYOUT_GATEWAYS = ['payunit', 'eversend', 'pawapay'];
 const PAYUNIT_CASHOUT_MIN_XAF  = 5000;
 const EVERSEND_MIN_XAF         = 1000;
+const PAWAPAY_PAYOUT_MIN_XAF   = 100;
 
 const getWithdrawalDestination = (wr) => {
   const d = wr.recipient_details || {};
@@ -528,6 +530,146 @@ const adminApproveWithdrawal = async (req, res) => {
       });
     }
 
+    // ── PawaPay Payout ────────────────────────────────────────────────────────
+    if (payoutGateway === 'pawapay') {
+      const currency = String(wr.currency || 'XAF').toUpperCase();
+      const amount   = Number(wr.amount || 0);
+
+      if (currency === 'XAF' && amount < PAWAPAY_PAYOUT_MIN_XAF) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: `PawaPay payouts require at least ${PAWAPAY_PAYOUT_MIN_XAF.toLocaleString()} XAF.`,
+        });
+      }
+
+      const phone = wr.recipient_details?.phone_number;
+      if (!phone) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ success: false, message: 'Phone number is required for PawaPay payout.' });
+      }
+
+      const correspondent = pawapay.detectProvider(phone);
+      const payoutId = crypto.randomUUID();
+
+      let payoutResult;
+      try {
+        payoutResult = await pawapay.createPayout({
+          payoutId,
+          amount:  wr.amount,
+          currency: wr.currency,
+          correspondent,
+          phone,
+          description: `Auradime withdrawal`,
+          clientRef: wr._id.toString(),
+        });
+      } catch (payoutErr) {
+        // PawaPay API call failed — refund user
+        wr.status = 'failed';
+        wr.failure_reason = payoutErr.response?.data?.message || payoutErr.message || 'PawaPay payout request failed.';
+        wr.reviewed_by = req.user._id;
+        wr.reviewed_at = new Date();
+        wr.balance_deducted = false;
+        await wr.save({ session });
+        await creditBalance(wr.requested_by, wr.amount, session);
+        await Transaction.updateOne({ 'metadata.withdrawal_request_id': wr._id }, { status: 'failed' }, { session });
+        await session.commitTransaction();
+        session.endSession();
+
+        setImmediate(async () => {
+          try {
+            await sendNotification(req.app, wr.requested_by, {
+              title: 'Payout Failed',
+              message: `Your withdrawal was approved but the payout failed. Reason: ${wr.failure_reason}. Your balance has been restored.`,
+              type: 'wallet_update',
+              metadata: { withdrawal_id: wr._id, link: '/wallet' },
+              sendEmail: true,
+            });
+          } catch (e) { console.error(e.message); }
+        });
+
+        return res.status(502).json({
+          success: false,
+          message: `PawaPay payout failed: ${wr.failure_reason}. Withdrawal marked as failed. User balance restored.`,
+        });
+      }
+
+      const ppStatus = (payoutResult?.status || '').toUpperCase();
+      if (ppStatus === 'REJECTED') {
+        // PawaPay rejected immediately (e.g. invalid phone, unsupported operator)
+        const reason = payoutResult?.failureReason?.failureMessage || 'PawaPay rejected the payout.';
+        wr.status = 'failed';
+        wr.failure_reason = reason;
+        wr.reviewed_by = req.user._id;
+        wr.reviewed_at = new Date();
+        wr.balance_deducted = false;
+        await wr.save({ session });
+        await creditBalance(wr.requested_by, wr.amount, session);
+        await Transaction.updateOne({ 'metadata.withdrawal_request_id': wr._id }, { status: 'failed' }, { session });
+        await session.commitTransaction();
+        session.endSession();
+
+        setImmediate(async () => {
+          try {
+            await sendNotification(req.app, wr.requested_by, {
+              title: 'Payout Rejected',
+              message: `Your withdrawal payout was rejected by PawaPay. Reason: ${reason}. Your balance has been restored.`,
+              type: 'wallet_update',
+              metadata: { withdrawal_id: wr._id, link: '/wallet' },
+              sendEmail: true,
+            });
+          } catch (e) { console.error(e.message); }
+        });
+
+        return res.status(502).json({ success: false, message: `PawaPay rejected the payout: ${reason}. Balance restored.` });
+      }
+
+      // ACCEPTED (or DUPLICATE_IGNORED) — store payoutId and wait for webhook/recheck
+      wr.status = 'approved';
+      wr.payout_gateway = 'pawapay';
+      wr.eversend_transaction_id = payoutId;   // reusing field as gateway_tx_id
+      wr.eversend_status = ppStatus;
+      wr.reviewed_by = req.user._id;
+      wr.reviewed_at = new Date();
+      wr.failure_reason = null;
+      await wr.save({ session });
+
+      await Transaction.updateOne(
+        { 'metadata.withdrawal_request_id': wr._id },
+        {
+          status: 'pending',
+          gateway: 'pawapay',
+          gateway_transaction_id: payoutId,
+          gateway_response: payoutResult,
+          description: `Withdrawal via PawaPay to ${pawapay.normalizePhone(phone)}`,
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      setImmediate(async () => {
+        try {
+          await sendNotification(req.app, wr.requested_by, {
+            title: 'Withdrawal Approved — Processing',
+            message: `Your withdrawal of ${wr.amount.toLocaleString()} ${wr.currency} has been approved and is being sent via PawaPay Mobile Money. Reference: ${payoutId}.`,
+            type: 'wallet_update',
+            metadata: { withdrawal_id: wr._id, link: '/wallet' },
+            sendEmail: true,
+          });
+        } catch (e) { console.error(e.message); }
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Withdrawal approved. PawaPay payout initiated.',
+        data: { withdrawal: wr, payoutGateway: 'pawapay', payoutTransactionId: payoutId },
+      });
+    }
+
     // Eversend minimum check
     if (String(wr.currency || 'XAF').toUpperCase() === 'XAF' && Number(wr.amount || 0) < EVERSEND_MIN_XAF) {
       await session.abortTransaction();
@@ -775,20 +917,35 @@ const adminRecheckWithdrawal = async (req, res) => {
     if (!gatewayTxId) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({ success: false, message: 'No Eversend transaction ID on this record. Cannot recheck.' });
+      return res.status(400).json({ success: false, message: 'No gateway transaction ID on this record. Cannot recheck.' });
     }
 
     let txData;
     let normalizedStatus;
-    try {
-      const result = await eversend.getTransactionStatus(gatewayTxId);
-      txData = result?.data || result;
-      normalizedStatus = (txData?.status || '').toUpperCase();
-      wr.eversend_status = normalizedStatus;
-    } catch (e) {
-      await session.abortTransaction();
-      session.endSession();
-      return res.status(502).json({ success: false, message: `Eversend status check failed: ${e.message}` });
+
+    if (payoutGateway === 'pawapay') {
+      try {
+        const result = await pawapay.getPayoutStatus(gatewayTxId);
+        txData = result;
+        const rawStatus = result?.status;
+        normalizedStatus = pawapay.normalizePawaPayoutStatus(rawStatus);
+        wr.eversend_status = rawStatus || normalizedStatus;
+      } catch (e) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(502).json({ success: false, message: `PawaPay status check failed: ${e.message}` });
+      }
+    } else {
+      try {
+        const result = await eversend.getTransactionStatus(gatewayTxId);
+        txData = result?.data || result;
+        normalizedStatus = (txData?.status || '').toUpperCase();
+        wr.eversend_status = normalizedStatus;
+      } catch (e) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(502).json({ success: false, message: `Eversend status check failed: ${e.message}` });
+      }
     }
 
     if (normalizedStatus === 'SUCCESSFUL') {
@@ -828,7 +985,7 @@ const adminRecheckWithdrawal = async (req, res) => {
         wr.balance_deducted = false;
       }
       wr.status = 'failed';
-      wr.failure_reason = txData?.reason || txData?.message || 'Eversend reported this payout as failed.';
+      wr.failure_reason = txData?.failureReason?.failureMessage || txData?.reason || txData?.message || `${payoutGateway} reported this payout as failed.`;
       await wr.save({ session });
 
       await Transaction.updateOne(
@@ -950,6 +1107,152 @@ const adminCompleteManualWithdrawal = async (req, res) => {
   }
 };
 
+// ── 8. PAWAPAY PAYOUT WEBHOOK ─────────────────────────────────────────────────
+// @route  POST /api/v1/payments/pawapay/webhook/payout  (public, raw body)
+// Called by PawaPay when a payout reaches a final status (COMPLETED or FAILED).
+const pawapayPayoutWebhook = async (req, res) => {
+  try {
+    // 1. IP allowlist (enforced when PAWAPAY_ENFORCE_IP_ALLOWLIST=true)
+    const callerIp = pawapay.resolveCallerIp(req.headers, req.socket?.remoteAddress);
+    const ipCheck  = pawapay.checkCallerIp(callerIp);
+    if (!ipCheck.allowed) {
+      console.warn(`[PawaPay Payout Webhook] ${ipCheck.reason} — rejecting`);
+      return res.status(403).send('Forbidden');
+    }
+
+    // 2. Content-Digest / signature verification
+    const rawBody = req.rawBody
+      ? req.rawBody
+      : Buffer.isBuffer(req.body) ? req.body
+      : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+
+    if (!pawapay.verifyWebhookSignature(rawBody, req.headers)) {
+      console.warn('[PawaPay Payout Webhook] Signature verification failed');
+      return res.status(401).send('Unauthorized');
+    }
+
+    const event = (() => {
+      try { return JSON.parse(rawBody.toString()); } catch { return req.body || {}; }
+    })();
+
+    const { payoutId, status: rawStatus } = event;
+    if (!payoutId) return res.status(200).send('OK'); // nothing to process
+
+    const normalizedStatus = pawapay.normalizePawaPayoutStatus(rawStatus);
+    if (normalizedStatus === 'PENDING') {
+      // Intermediate status — PawaPay may send SUBMITTED callbacks; nothing to do yet
+      return res.status(200).send('OK');
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      if (normalizedStatus === 'SUCCESSFUL') {
+        // Atomic claim: only one concurrent webhook can flip to 'completed'
+        const claimed = await WithdrawalRequest.findOneAndUpdate(
+          {
+            payout_gateway: 'pawapay',
+            eversend_transaction_id: payoutId,
+            status: { $nin: ['completed', 'failed', 'rejected'] },
+          },
+          { $set: { status: 'completed', eversend_status: rawStatus } },
+          { session, new: true }
+        );
+
+        if (!claimed) {
+          // Already settled or not found — idempotent
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(200).send('OK');
+        }
+
+        await Transaction.updateOne(
+          { 'metadata.withdrawal_request_id': claimed._id },
+          { status: 'completed', gateway_response: event },
+          { session }
+        );
+
+        await session.commitTransaction();
+        session.endSession();
+
+        setImmediate(async () => {
+          try {
+            await sendNotification(req.app, claimed.requested_by, {
+              title: 'Withdrawal Successful',
+              message: `Your withdrawal of ${claimed.amount.toLocaleString()} ${claimed.currency} has been confirmed by PawaPay.`,
+              type: 'wallet_update',
+              metadata: { withdrawal_id: claimed._id, link: '/wallet' },
+              sendEmail: true,
+            });
+          } catch (e) { console.error('[PawaPay Payout Webhook notify]', e.message); }
+        });
+
+      } else {
+        // FAILED — atomically claim and flip balance_deducted to prevent double-credit
+        const claimed = await WithdrawalRequest.findOneAndUpdate(
+          {
+            payout_gateway: 'pawapay',
+            eversend_transaction_id: payoutId,
+            status: { $nin: ['completed', 'failed', 'rejected'] },
+          },
+          {
+            $set: {
+              status: 'failed',
+              eversend_status: rawStatus,
+              failure_reason: event?.failureReason?.failureMessage || 'PawaPay payout failed.',
+              balance_deducted: false,
+            },
+          },
+          { session, new: false }  // new: false → returns pre-update doc so we can read balance_deducted
+        );
+
+        if (!claimed) {
+          await session.abortTransaction();
+          session.endSession();
+          return res.status(200).send('OK');
+        }
+
+        // Refund only if balance was deducted (pre-update value from claimed)
+        if (claimed.balance_deducted) {
+          await creditBalance(claimed.requested_by, claimed.amount, session);
+        }
+
+        await Transaction.updateOne(
+          { 'metadata.withdrawal_request_id': claimed._id },
+          { status: 'failed', gateway_response: event },
+          { session }
+        );
+
+        await session.commitTransaction();
+        session.endSession();
+
+        setImmediate(async () => {
+          try {
+            const failReason = event?.failureReason?.failureMessage || 'PawaPay payout failed.';
+            await sendNotification(req.app, claimed.requested_by, {
+              title: 'Withdrawal Failed',
+              message: `Your withdrawal of ${claimed.amount.toLocaleString()} ${claimed.currency} failed via PawaPay. Reason: ${failReason}. Your balance has been restored.`,
+              type: 'wallet_update',
+              metadata: { withdrawal_id: claimed._id, link: '/wallet' },
+              sendEmail: true,
+            });
+          } catch (e) { console.error('[PawaPay Payout Webhook notify]', e.message); }
+        });
+      }
+    } catch (innerErr) {
+      await session.abortTransaction();
+      session.endSession();
+      console.error('[PawaPay Payout Webhook] Session error:', innerErr);
+      return res.status(500).send('Internal Server Error');
+    }
+
+    return res.status(200).send('OK');
+  } catch (err) {
+    console.error('[PawaPay Payout Webhook]', err);
+    return res.status(500).send('Internal Server Error');
+  }
+};
+
 module.exports = {
   submitWithdrawal,
   getMyWithdrawals,
@@ -958,4 +1261,5 @@ module.exports = {
   adminRejectWithdrawal,
   adminRecheckWithdrawal,
   adminCompleteManualWithdrawal,
+  pawapayPayoutWebhook,
 };

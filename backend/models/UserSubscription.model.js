@@ -79,7 +79,7 @@ const UserSubscriptionSchema = new mongoose.Schema(
     },
     source: {
       type: String,
-      enum: ['wallet', 'eversend', 'payunit', 'manual', 'admin'],
+      enum: ['wallet', 'eversend', 'payunit', 'pawapay', 'manual', 'admin'],
       default: 'manual',
     },
     activated_by: {

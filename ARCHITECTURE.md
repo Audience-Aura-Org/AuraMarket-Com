@@ -14,23 +14,28 @@ AuraMarket is a multi-sided marketplace platform connecting **customers**, **ven
 └─────────┼─────────────────┼──────────────────┼──────────────┘
           │   HTTPS / WSS   │                  │
 ┌─────────▼─────────────────▼──────────────────▼──────────────┐
+│               Nginx Reverse Proxy (api.auradime.com)         │
+│               proxy_pass → localhost:5000                    │
+└─────────────────────────┬────────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────────┐
 │                    Express.js API Server                     │
-│                    (Node.js 22+, PM2)                        │
+│                    (Node.js 22+, PM2 cluster ×2)             │
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐    │
 │  │  REST API   │  │  Socket.io   │  │  Background Jobs │    │
-│  │  (33 routes)│  │  (real-time) │  │  (Bull queues)   │    │
+│  │  (33 routes)│  │  (real-time) │  │  (10 workers)    │    │
 │  └──────┬──────┘  └──────┬───────┘  └──────────────────┘    │
-└─────────┼────────────────┼─────────────────────────────────-─┘
+└─────────┼────────────────┼──────────────────────────────────┘
           │                │
    ┌──────▼──────┐  ┌──────▼──────┐
    │  MongoDB    │  │    Redis    │
-   │  (Mongoose) │  │  (ioredis)  │
+   │  (Mongoose) │  │  (Upstash)  │
    └─────────────┘  └─────────────┘
           │
    ┌──────▼──────────────────────────────────────┐
    │  External Services                          │
-   │  AWS S3 · Flutterwave · Eversend · PayUnit   │
-   │  PayUnit · Firebase FCM · Nodemailer/Resend │
+   │  AWS S3 · PawaPay · Eversend · PayUnit       │
+   │  Firebase FCM · Nodemailer (Titan SMTP)     │
    └─────────────────────────────────────────────┘
 ```
 
@@ -43,23 +48,24 @@ AuraMarket is a multi-sided marketplace platform connecting **customers**, **ven
 | Concern | Technology |
 |---------|-----------|
 | Framework | Next.js 16 (App Router) |
-| Language | TypeScript / JavaScript |
+| Language | JavaScript |
 | Styling | Tailwind CSS 4 |
 | Animations | Framer Motion |
 | Icons | Lucide React |
 | Charts | Recharts |
+| Deployment | Vercel (auto-deploy from `main`) |
 
 **App Router structure** (`web/app/`):
 - Each directory is a route segment.
-- `layout.tsx` wraps shared chrome (nav, footer, providers).
-- `page.tsx` is the route entry point.
-- `loading.tsx` / `error.tsx` provide suspense + error boundaries per route.
+- `layout.js` wraps shared chrome (nav, footer, providers).
+- `page.js` is the route entry point.
+- `loading.js` / `error.js` provide suspense + error boundaries per route.
 
 ### 1.2 State Management
 
 ```
 ┌─────────────────────────────────────────┐
-│  Zustand stores (web/context/ or hooks) │
+│  Zustand stores (web/services/ & hooks) │
 │  ├── authStore    – JWT, user object    │
 │  ├── cartStore    – cart items count    │
 │  └── notifStore   – unread badge        │
@@ -67,15 +73,21 @@ AuraMarket is a multi-sided marketplace platform connecting **customers**, **ven
          │  consumed by
 ┌────────▼────────────────────────────────┐
 │  React Context (web/context/)           │
-│  └── SocketContext – single WS instance │
+│  ├── SocketContext – single WS instance │
+│  ├── ChatContext   – chat state         │
+│  └── LanguageContext – i18n             │
 └─────────────────────────────────────────┘
 ```
 
 ### 1.3 Data Fetching
 
-- **Axios** with a shared instance (`web/lib/api.ts`) that injects the JWT from storage on every request.
+- **Axios** with a shared instance (`web/services/api.js`) that:
+  - Auto-detects environment: `localhost:5000` for dev, `https://api.auradime.com/api/v1` for production.
+  - Injects JWT from storage on every request.
+  - Client-side GET cache (45 s fast cache + 3-day offline cache via `localStorage`).
+  - Retry with exponential backoff (2 retries, base 500 ms).
 - Server Components fetch data directly where SEO matters (product listings, store pages).
-- Client Components use SWR-style hooks or Zustand for interactive data.
+- Client Components use hook-based fetching or Zustand for interactive data.
 
 ### 1.4 Real-time (Client)
 
@@ -89,9 +101,16 @@ AuraMarket is a multi-sided marketplace platform connecting **customers**, **ven
 |--------|-----------|
 | Android APK | Capacitor wraps the Next.js build |
 | iOS (future) | Capacitor (same code) |
-| PWA | next-pwa + Web App Manifest + Service Worker |
+| PWA | Web App Manifest + Service Worker (`public/sw.js` v10) |
 | Push (web) | Web Push API (VAPID) |
 | Push (Android) | Firebase Cloud Messaging (FCM) via Capacitor plugin |
+
+**Service Worker caching strategy** (`public/sw.js`):
+- Navigation pages → stale-while-revalidate
+- `/_next/static/*` → cache-first (content-hashed, immutable)
+- `api.auradime.com` GET → network-first + cache fallback (offline shows last-known data)
+- CDN images / media → stale-while-revalidate
+- Status videos → full file cached for offline playback + byte-range seek support
 
 ---
 
@@ -105,22 +124,51 @@ backend/
 ├── config/
 │   ├── database.js        # Mongoose connection (pool: 2–25, heartbeat 10s)
 │   ├── redis.js           # ioredis client + Socket.io Redis adapter
-│   └── env.js             # Zod-validated environment schema
+│   └── env.js             # Environment validation (required vars + production guards)
+├── constants/
+│   └── statusEnums.js     # Shared enum definitions across controllers
 ├── middleware/
-│   ├── auth.js            # JWT verification, role guards
-│   ├── rateLimiter.js     # express-rate-limit + Redis store
-│   ├── cors.js            # CORS whitelist
-│   └── security.js        # Helmet, sanitization
+│   ├── auth.middleware.js      # JWT verification, role guards
+│   ├── rateLimiter.js          # express-rate-limit + Redis store (4 tiers)
+│   ├── security.middleware.js  # CORS whitelist, Helmet, input sanitisation
+│   └── cache.middleware.js     # Response cache middleware
 ├── routes/                # 33 route files (see §2.3)
 ├── controllers/           # Business logic, one file per domain
 ├── services/
-│   ├── escrowWorker.js    # Auto-release escrow after 6 h window
-│   ├── paymentService.js  # Gateway abstraction layer
-│   ├── emailService.js    # Nodemailer / Resend wrapper
-│   └── pushService.js     # Web Push + FCM dispatcher
+│   ├── escrowAutoRelease.service.js      # Auto-release escrow after 6 h window
+│   ├── foodAcceptanceTimeout.service.js  # Restaurant order acceptance deadline
+│   ├── disputeWindowEnforcement.service.js
+│   ├── cancelRateMonitor.service.js      # Vendor cancel-rate enforcement
+│   ├── delayedRiderDispatch.service.js   # Rider assignment retry logic
+│   ├── intercityDispatchTimeout.service.js
+│   ├── intercityArrivalLapse.service.js
+│   ├── avgDeliveryMinutes.service.js     # Hourly delivery time aggregation
+│   ├── orphanDetector.service.js         # Data integrity checks + admin alerts
+│   ├── wallet.service.js                 # Idempotent wallet credit/debit
+│   ├── payment/
+│   │   ├── gateway.registry.js           # Active gateway list
+│   │   ├── settle.service.js             # Post-payment settlement logic
+│   │   └── gateways/
+│   │       ├── pawapay.gateway.js        # PawaPay Mobile Money (MTN MoMo / Orange CM)
+│   │       ├── eversend.gateway.js
+│   │       ├── payunit.gateway.js
+│   │       └── flutterwave.gateway.js
+│   ├── staleTransactionCleanup.service.js  # Expire/settle stale pending gateway txns
+│   ├── eversend.service.js
+│   ├── push.service.js                   # Web Push + FCM dispatcher
+│   └── jobQueue.service.js               # Bull queue management
 ├── sockets/
-│   └── chat.js            # Socket.io event handlers
+│   └── chat.socket.js     # Socket.io event handlers
 ├── models/                # 39 Mongoose schemas (see schema.prisma)
+├── utils/
+│   ├── auditTrail.js      # Admin mutation audit logging
+│   ├── claim.js           # Atomic claim helpers
+│   ├── locks.js           # Redis-backed distributed locks
+│   ├── money.js           # XAF rounding and fee calculation
+│   ├── pagination.js      # Cursor/page pagination helpers
+│   ├── notifier.js        # Socket.io + Notification doc emitter
+│   ├── cache.js           # In-process LRU cache
+│   └── s3.js              # AWS S3 upload helpers
 └── uploads/               # Multer temp storage before S3 upload
 ```
 
@@ -128,9 +176,10 @@ backend/
 
 ```
 Client request
-  → CORS check
-  → Helmet security headers
-  → Rate limit check (Redis counter)
+  → Nginx (TLS termination, proxy_pass :5000)
+  → CORS preflight check (OPTIONS fast-path)
+  → Security headers (Helmet + custom)
+  → Rate limit check (Redis counter, 4 tiers)
   → Body parser (JSON / multipart)
   → Route matched
   → Auth middleware (JWT decode + role check)
@@ -139,7 +188,6 @@ Client request
       → Business logic
       → External service call (optional)
   → JSON response
-  → Winston request log
 ```
 
 ### 2.3 API Routes
@@ -192,7 +240,7 @@ Password Flow (optional)
   POST /api/auth/login
 
 Token Management
-  - Access token: short-lived JWT (signed with JWT_SECRET)
+  - Access token: 1460d JWT (signed with JWT_SECRET)
   - token_version field on User invalidates all tokens on logout/password change
   - Optional 2FA: TOTP via otplib
 ```
@@ -201,7 +249,7 @@ Token Management
 
 ```
 Transport: WebSocket (fallback: polling)
-Adapter:   socket.io-adapter-redis  →  multi-instance safe
+Adapter:   socket.io-adapter-redis  →  multi-instance safe (Upstash)
 
 Namespaces / Rooms:
   user:{userId}        – personal notifications
@@ -217,6 +265,21 @@ Key Events (server → client):
   status_new           – new vendor story
 ```
 
+### 2.6 Background Workers (10 services)
+
+| Worker | Trigger | Purpose |
+|--------|---------|---------|
+| `escrowAutoRelease` | Every 5 min | Release held escrow after 6-hour window |
+| `foodAcceptanceTimeout` | Every 2 min | Cancel unaccepted restaurant orders |
+| `disputeWindowEnforcement` | Every 10 min | Close expired dispute windows |
+| `cancelRateMonitor` | Daily | Flag vendors with high cancellation rates |
+| `delayedRiderDispatch` | Every 3 min | Retry rider assignment for stale shipments |
+| `intercityDispatchTimeout` | Every 5 min | Escalate unconfirmed intercity dispatches |
+| `intercityArrivalLapse` | Every 10 min | Alert on overdue intercity arrivals |
+| `avgDeliveryMinutes` | Hourly | Aggregate delivery time metrics per zone |
+| `orphanDetector` | Every 30 min | Data integrity checks + admin alerts |
+| `staleTransactionCleanup` | Every 30 min | Poll PawaPay for stale deposits; expire 24 h+ pending txns |
+
 ---
 
 ## 3. Database — MongoDB
@@ -225,8 +288,8 @@ Key Events (server → client):
 
 - **Driver**: Mongoose 9 (promise-based)
 - **Pool**: min 2 / max 25 connections
-- **DNS**: Google 8.8.8.8 for SRV resolution
 - **Heartbeat**: 10 s interval
+- **Host**: MongoDB Atlas (shared cluster)
 
 ### 3.2 Collection Map (39 collections)
 
@@ -284,15 +347,21 @@ Platform
 
 ---
 
-## 4. Cache — Redis
+## 4. Cache — Redis (Upstash)
 
 | Usage | Key pattern | TTL |
 |-------|------------|-----|
-| Rate limit counters | `rl:{ip}:{route}` | Per-window |
+| Rate limit counters | `auradime:rl:{tier}:{ip}` | Per-window |
 | Socket.io pub/sub adapter | Internal | — |
 | Session / token blocklist | `blocklist:{token}` | Token expiry |
 | Product search cache | `search:{query}:{page}` | 5 min |
 | Homepage config | `homepage:v1` | 10 min |
+| Distributed locks | `lock:{resource}` | Op duration |
+
+**Redis feature flags** (via env):
+- `REDIS_CACHE_ENABLED` — in-process cache writes
+- `REDIS_RATE_LIMIT_ENABLED` — Redis-backed rate limiting (falls back to memory)
+- `REDIS_SOCKET_ENABLED` — Socket.io multi-instance adapter
 
 ---
 
@@ -311,6 +380,7 @@ Platform
 
 - Upload flow: Multer → temp `backend/uploads/` → Sharp resize/compress → S3 PutObject → temp file deleted.
 - Lifecycle policy on `statuses/` bucket prefix auto-deletes media after 24 h.
+- `AWS_S3_ENABLED=true` required; falls back to local `uploads/` serving when false.
 
 ---
 
@@ -319,10 +389,10 @@ Platform
 ```
 Customer pays
   │
-  ├─ Wallet balance?         → direct debit from User.wallet_balance
+  ├─ Wallet balance?          → direct debit from User.wallet_balance
+  ├─ PawaPay (mobile money)   → USSD push / hosted checkout → webhook → settle
   ├─ Eversend (mobile money)  → Eversend API → webhook → verify → fulfill
-  ├─ Flutterwave              → Flutterwave checkout → webhook → verify → fulfill
-  ├─ PayUnit (local CM)       → PayUnit API → webhook → verify → fulfill
+  ├─ PayUnit (local CM)       → PayUnit API  → webhook → verify → fulfill
   └─ Pay on delivery          → order placed, payment collected physically
 
 On success
@@ -330,9 +400,21 @@ On success
        Escrow.status = "held"
        Funds locked until:
          a) Customer confirms delivery  → release to vendor
-         b) 6-hour auto-release window → escrowWorker releases
+         b) 6-hour auto-release window → escrowAutoRelease worker
          c) Admin force-release or refund
 ```
+
+**Webhook verification:**
+- PawaPay: Content-Digest (SHA-256) + optional ECDSA P-256 signature (RFC-9421)
+- Eversend: HMAC-SHA512 signature on raw body
+- PayUnit: HMAC-SHA256 signature (`PAYUNIT_WEBHOOK_SECRET`)
+
+**PawaPay specifics:**
+- Deposit: USSD push to subscriber phone via `/v2/deposits`
+- Checkout: hosted payment page via `/v2/checkouts`
+- Payouts (withdrawals): `/v2/payouts` to vendor's MoMo/Orange number
+- 4 webhook endpoints: deposit, checkout, refund, payout — all require `express.raw()` before `express.json()`
+- Stale cleanup worker polls `/v2/deposits/{id}` for pending txns older than 4 h; hard-expires at 24 h
 
 ### 6.1 Commission & Fee Flow
 
@@ -343,6 +425,13 @@ Order total_amount
   - logistics fee (Shipment.price, credited to logistics company)
   = net payout to vendor
 ```
+
+### 6.2 Wallet Operations
+
+All wallet credit/debit goes through `services/wallet.service.js`:
+- **Idempotency**: each operation carries a unique `idempotencyKey` — duplicate requests are detected via Redis lock and return the original result.
+- **Atomic updates**: MongoDB `$inc` with optimistic retry prevents race conditions.
+- Audit trail written on every balance change.
 
 ---
 
@@ -367,9 +456,13 @@ User logs in
 | **Event-driven notifications** | Every major state change emits Socket.io + saves Notification doc |
 | **Singleton settings** | `PlatformSettings.getSettings()` always returns the one document |
 | **Idempotent messaging** | `Message.client_id` prevents duplicate sends on retry |
+| **Idempotent wallet ops** | `wallet.service.js` — Redis lock + idempotencyKey deduplication |
+| **Distributed locks** | `utils/locks.js` — Redis SET NX PX for cross-instance coordination |
 | **Sparse unique indexes** | `User.referral_code`, `AuthOtp`, `PushSubscription` |
 | **Soft delete** | `is_active` flag on Store, Category, Coupon, LogisticZone |
-| **Audit trail** | AuditLog records old/new values on every admin mutation |
+| **Audit trail** | `utils/auditTrail.js` records old/new values on every admin mutation |
+| **Money handling** | `utils/money.js` — integer XAF arithmetic, no floating point |
+| **Pagination** | `utils/pagination.js` — cursor + page helpers used across all list endpoints |
 | **Legacy field migration** | Order pre-validate hook normalises legacy payment_method values |
 
 ---
@@ -378,17 +471,42 @@ User logs in
 
 ```
 Production stack
-  ├── Node.js 22 + PM2 (cluster mode, auto-restart)
-  ├── MongoDB Atlas (or self-hosted replica set)
-  ├── Redis (Upstash or self-hosted)
-  ├── AWS S3 (media storage)
-  ├── Next.js on Vercel (or self-hosted)
-  ├── Firebase (FCM for mobile push)
-  └── SMTP via Titan / Resend (transactional email)
+  ├── EC2 (Amazon Linux 2023)
+  │   ├── Node.js 22 + PM2 (cluster mode ×2, auto-restart)
+  │   └── Nginx 1.28 (reverse proxy: api.auradime.com → :5000)
+  ├── MongoDB Atlas (shared cluster, eu-north-1)
+  ├── Redis Upstash (TLS, serverless)
+  ├── AWS S3 eu-north-1 (media storage, bucket: aura-market-frontend)
+  ├── Next.js on Vercel (auto-deploy from main branch)
+  ├── Firebase (FCM for Android push)
+  └── Titan SMTP (transactional email, support@auradime.com)
 
-Build pipeline (mobile)
+Deploy flow (backend)
+  git push → EC2: git pull → npm install → pm2 restart --update-env
+  verify:  curl http://localhost:5000/api/health
+
+Deploy flow (frontend)
+  git push → Vercel auto-builds → deploys to auradime.com
+
+Build pipeline (mobile APK)
   next build → next export → capacitor sync android → gradle assembleRelease → .apk
 ```
+
+**Required environment variables** (server refuses to start if missing):
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY`
+- `PAYUNIT_WEBHOOK_SECRET`
+- `EVERSEND_WEBHOOK_SECRET`
+
+**Optional (PawaPay gateway):**
+- `PAWAPAY_API_TOKEN` — Bearer token (gateway disabled when absent)
+- `PAWAPAY_SANDBOX_MODE` — `true` for sandbox environment
+- `PAWAPAY_WEBHOOK_PUBLIC_KEY` — ECDSA P-256 PEM for full RFC-9421 signature verification
+- `PAWAPAY_ENFORCE_IP_ALLOWLIST` — `true` to restrict callbacks to PawaPay egress IPs
+
+**Production guards:**
+- `ENABLE_DEBUG_ROUTES=true` is blocked in `NODE_ENV=production` — server exits immediately.
 
 ---
 
@@ -396,14 +514,67 @@ Build pipeline (mobile)
 
 | Control | Implementation |
 |---------|---------------|
-| JWT authentication | `jsonwebtoken`, short-lived access tokens |
+| JWT authentication | `jsonwebtoken`, 1460-day tokens + `token_version` invalidation |
 | OTP brute-force protection | `attempts` + `cooldown_until` on AuthOtp |
-| Rate limiting | `express-rate-limit` + Redis (per IP + per route) |
+| Rate limiting | `express-rate-limit` + Redis — 4 tiers: api / strict / public / video |
 | Password hashing | `bcryptjs` (cost factor 12) |
-| Input sanitisation | `express-mongo-sanitize`, `xss-clean` |
-| CORS | Whitelist-only origins |
-| Security headers | `helmet` |
+| Input sanitisation | `express-mongo-sanitize` + custom control-char stripper |
+| Prototype pollution guard | Key blocklist (`__proto__`, `prototype`, `constructor`) on all inputs |
+| CORS | Whitelist-only origins; `*.auradime.com` wildcard; private IPs allowed |
+| Security headers | `helmet` + custom (`Cross-Origin-Resource-Policy: cross-origin`) |
 | Role-based access | Middleware guards on every protected route |
 | KYC gating | Vendors must pass KYC before listing products |
 | Subscription gating | Vendors/logistics require active subscription |
-| Audit logging | All admin actions persisted to AuditLog |
+| Audit logging | `utils/auditTrail.js` — all admin actions persisted to AuditLog |
+| Webhook verification | Content-Digest + ECDSA (PawaPay) / HMAC-SHA512 (Eversend) / HMAC-SHA256 (PayUnit) |
+| Debug route guard | `ENABLE_DEBUG_ROUTES=true` blocked in production at startup |
+
+---
+
+## 11. Test Suite
+
+```
+backend/tests/
+├── integration/    # 39 files — full HTTP round-trip tests per domain
+├── concurrency/    # Race condition tests (wallet, escrow, orders)
+├── unit/           # Pure logic + property-based tests (fast-check)
+├── factories/      # Test data builders (15 factories)
+├── helpers/        # Auth tokens, money assertions, gateway mocks, time helpers
+├── setup/          # App bootstrap, DB seeding, Redis mock
+└── globalSetup.js  # MongoDB memory server lifecycle
+
+Coverage: 525+ tests across 42+ files (vitest + supertest)
+Run:      cd backend && npm test
+
+Notable test files:
+  - tests/unit/money.property.test.js   — 10 fast-check properties for financial math
+  - tests/integration/webhooks.test.js  — PawaPay, Eversend, PayUnit webhook security + idempotency
+```
+
+---
+
+## 12. Operations & Admin Scripts
+
+### 12.1 Financial Invariant Checks (`jobs/invariants.js`)
+
+30 read-only MongoDB queries that verify data integrity. Run on-demand or scheduled nightly:
+
+```
+node scripts/run-invariants.js
+```
+
+Key invariants:
+- **INV-01** Ledger sum matches `user.wallet_balance`
+- **INV-03** Every paid order has ≥1 completed Transaction
+- **INV-04** `order.total_amount == subtotal + shipping_fee + collection_fee`
+- **INV-12** Full-refund dispute → `order.payment_status == refunded`
+- **INV-15** All completed withdrawals have `balance_deducted = true`
+- **INV-21** No negative wallet balance
+
+### 12.2 Migration / Fix Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `scripts/cancel-stale-payout-txns.js` | Cancel orphan pending payout txns left by refund disputes (idempotent, `--dry-run` safe) |
+| `scripts/reconcile-wallet-balances.js` | Recompute wallet balances from ledger and credit missing amounts (`--dry-run` safe) |
+| `scripts/run-invariants.js` | Run all 30 invariant checks and print report |

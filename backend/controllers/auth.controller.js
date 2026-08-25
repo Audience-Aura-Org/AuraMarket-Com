@@ -141,6 +141,7 @@ const createUserFromSignup = async ({ email, name, role, phone, referral_code })
     role: userRole,
     auth_provider: 'email_otp',
     referred_by: referredByUser ? referredByUser._id : null,
+    wallet_balance: 0,
   };
 
   if (userRole !== 'admin') baseUserPayload.onboarded = false;
@@ -365,6 +366,7 @@ const register = async (req, res, next) => {
       phone,
       role: userRole,
       referred_by: referredByUser ? referredByUser._id : null,
+      wallet_balance: 0,
     });
 
     // 5. Generate and save referral code for new user

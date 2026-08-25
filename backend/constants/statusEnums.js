@@ -24,7 +24,7 @@ const ESCROW_STATUS = ['held', 'pending_release', 'releasing', 'released', 'refu
 // ─── Transaction ──────────────────────────────────────────────────────────────
 const TRANSACTION_TYPE   = ['deposit', 'withdrawal', 'payment', 'refund', 'commission', 'payout', 'adjustment'];
 const TRANSACTION_STATUS = ['pending', 'completed', 'failed', 'cancelled'];
-const TRANSACTION_GATEWAY = ['eversend', 'payunit', 'flutterwave', 'wallet', 'manual', 'internal', null];
+const TRANSACTION_GATEWAY = ['eversend', 'payunit', 'pawapay', 'flutterwave', 'wallet', 'manual', 'internal', null];
 
 // ─── Shipment ─────────────────────────────────────────────────────────────────
 const SHIPMENT_STATUS = ['pending', 'assigned', 'picked_up', 'in_transit', 'delivered', 'failed', 'returned'];

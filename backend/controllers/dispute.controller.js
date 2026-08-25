@@ -148,15 +148,18 @@ const resolveDispute = async (req, res, next) => {
       order.order_status = 'refunded';
       order.payment_status = 'refunded';
 
-      // 2. Logic for Escrow: credit back to buyer wallet
+      // 2. Logic for Escrow: credit back to buyer wallet.
+      //    Use order.total_amount (what the buyer actually paid), not escrow.amount
+      //    which only stores the vendor base portion after platform commission.
       if (escrow && escrow.status === 'held') {
-        await creditBalance(escrow.buyer_id, escrow.amount, session);
+        const disputeRefundAmount = order.total_amount || escrow.amount;
+        const disputeUpdatedBuyer = await creditBalance(escrow.buyer_id, disputeRefundAmount, session);
 
         // Record refund transaction
         await Transaction.create([{
           user_id: escrow.buyer_id,
           type: 'refund',
-          amount: escrow.amount,
+          amount: disputeRefundAmount,
           reference: generateTxRef(),
           status: 'completed',
           description: `Dispute Resolution: Full Refund for Order #${order._id.toString().slice(-6).toUpperCase()}`,
@@ -166,6 +169,26 @@ const resolveDispute = async (req, res, next) => {
         escrow.status = 'refunded';
         escrow.refund_reason = admin_notes || 'Dispute resolution: Full Refund';
         await escrow.save({ session });
+
+        // Cancel any vendor pending payout so it never settles to a refunded order.
+        await Transaction.findOneAndUpdate(
+          { order_id: order._id, type: 'payout', status: 'pending' },
+          { $set: { status: 'cancelled', description: 'Cancelled: dispute resolved as full refund.' } },
+          { session }
+        );
+
+        // Push instant balance update to buyer's top nav
+        if (disputeUpdatedBuyer?.wallet_balance !== undefined) {
+          setImmediate(() => {
+            const io = req.app?.get?.('io');
+            if (io) {
+              const br = escrow.buyer_id.toString();
+              const pl = { amount: disputeRefundAmount, balance: disputeUpdatedBuyer.wallet_balance, type: 'refund' };
+              io.to(br).emit('wallet:credited', pl);
+              io.to(`user:${br}`).emit('wallet:credited', pl);
+            }
+          });
+        }
       }
 
       await syncShipmentsToOrderStatus(order, 'refunded', {
@@ -221,7 +244,34 @@ const resolveDispute = async (req, res, next) => {
     // the restaurant's wallet (which may go negative) and credits the buyer.
     } else if (resolution_type === 'food_full_refund') {
       const refundAmount = order.total_amount - (order.shipping_fee || 0); // refund order value, not delivery
-      await clawbackFoodRefund(order, refundAmount, session, admin_notes || 'Full refund (food dispute)');
+
+      if (order.new_restaurant_hold) {
+        // Vendor was on a hold — they were never credited. Cancel the pending payout
+        // and credit the buyer directly without debiting the vendor's wallet.
+        await Transaction.findOneAndUpdate(
+          { order_id: order._id, type: 'payout', status: 'pending' },
+          { $set: { status: 'cancelled', description: 'Cancelled: food dispute resolved as full refund (hold).' } },
+          { session }
+        );
+        const crypto = require('crypto');
+        await creditBalance(order.customer_id, refundAmount, session);
+        await Transaction.create([{
+          user_id:     order.customer_id,
+          type:        'refund',
+          amount:      refundAmount,
+          reference:   `DISPUTE-FOOD-HOLD-${crypto.randomBytes(5).toString('hex').toUpperCase()}`,
+          status:      'completed',
+          gateway:     'platform',
+          description: `Food order refund — Full refund (held payout cancelled) for Order #${order._id.toString().slice(-6).toUpperCase()}`,
+          order_id:    order._id,
+        }], { session, ordered: true });
+        order.payment_status = 'refunded';
+        order.order_status   = 'refunded';
+        await order.save({ session });
+      } else {
+        await clawbackFoodRefund(order, refundAmount, session, admin_notes || 'Full refund (food dispute)');
+      }
+
       await syncShipmentsToOrderStatus(order, 'refunded', {
         session,
         updatedBy: req.user._id,

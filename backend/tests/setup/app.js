@@ -55,7 +55,10 @@ function buildApp() {
   app.use(compression())
 
   // ── Eversend raw body (before express.json — required for HMAC) ───────────
-  const { eversendWebhook } = require('../../controllers/payment.controller')
+  const {
+    eversendWebhook,
+    pawapayDepositWebhook, pawapayCheckoutWebhook, pawapayRefundWebhook,
+  } = require('../../controllers/payment.controller')
   app.post(
     '/api/v1/payments/eversend/webhook',
     express.raw({ type: 'application/json' }),
@@ -66,6 +69,14 @@ function buildApp() {
     express.raw({ type: 'application/json' }),
     eversendWebhook
   )
+
+  // ── PawaPay raw body (before express.json — required for Content-Digest) ──
+  app.post('/api/v1/payments/pawapay/webhook/deposit',  express.raw({ type: 'application/json' }), pawapayDepositWebhook)
+  app.post('/api/payments/pawapay/webhook/deposit',     express.raw({ type: 'application/json' }), pawapayDepositWebhook)
+  app.post('/api/v1/payments/pawapay/webhook/checkout', express.raw({ type: 'application/json' }), pawapayCheckoutWebhook)
+  app.post('/api/payments/pawapay/webhook/checkout',    express.raw({ type: 'application/json' }), pawapayCheckoutWebhook)
+  app.post('/api/v1/payments/pawapay/webhook/refund',   express.raw({ type: 'application/json' }), pawapayRefundWebhook)
+  app.post('/api/payments/pawapay/webhook/refund',      express.raw({ type: 'application/json' }), pawapayRefundWebhook)
 
   // ── Body parsing ───────────────────────────────────────────────────────────
   app.use(express.json({ limit: '10mb' }))

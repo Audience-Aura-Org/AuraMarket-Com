@@ -45,6 +45,12 @@ async function setup() {
   process.env.PAYUNIT_WEBHOOK_SECRET  ||= 'test-payunit-secret'
   process.env.EVERSEND_WEBHOOK_SECRET ||= 'test-eversend-secret'
 
+  // PawaPay: clear the public key so webhook tests only validate Content-Digest.
+  // Full ECDSA signature verification is tested against the real PawaPay sandbox.
+  process.env.PAWAPAY_WEBHOOK_PUBLIC_KEY = ''
+  process.env.PAWAPAY_SANDBOX_MODE       = 'true'
+  process.env.PAWAPAY_ENFORCE_IP_ALLOWLIST = 'false'
+
   // ── Disable Redis ────────────────────────────────────────────────────────
   // No Redis server in CI. Locks fall back to in-process; rate limiters use
   // memory store; Socket.io adapter uses in-process.

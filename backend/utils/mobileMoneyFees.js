@@ -3,7 +3,7 @@ const MOBILE_MONEY_COLLECTION_FEE_XAF = Math.max(
   Number(process.env.MOBILE_MONEY_COLLECTION_FEE_XAF || 50)
 );
 
-const MOBILE_MONEY_GATEWAYS = new Set(['eversend', 'payunit']);
+const MOBILE_MONEY_GATEWAYS = new Set(['eversend', 'payunit', 'pawapay']);
 
 const isMobileMoneyGateway = (gateway) =>
   MOBILE_MONEY_GATEWAYS.has(String(gateway || '').toLowerCase());

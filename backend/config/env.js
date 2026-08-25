@@ -76,4 +76,13 @@ module.exports = {
   // Support admin email — the account with this address is auto-promoted to admin on login.
   // If unset, the auto-promotion feature is disabled (recommended for fresh deployments).
   SUPPORT_ADMIN_EMAIL: process.env.SUPPORT_ADMIN_EMAIL,
+  // PawaPay Mobile Money (Cameroon — MTN/Orange)
+  PAWAPAY_API_TOKEN: process.env.PAWAPAY_API_TOKEN,
+  PAWAPAY_SANDBOX_MODE: process.env.PAWAPAY_SANDBOX_MODE === 'true',
+  // Optional: PawaPay RSA public key in PEM format for full RFC-9421 webhook signature verification.
+  // If unset, only Content-Digest (body hash) is verified on incoming callbacks.
+  PAWAPAY_WEBHOOK_PUBLIC_KEY: process.env.PAWAPAY_WEBHOOK_PUBLIC_KEY || null,
+  // Set to 'true' in production to enforce PawaPay's known callback IP allowlist
+  // as an extra security layer on top of Content-Digest verification.
+  PAWAPAY_ENFORCE_IP_ALLOWLIST: process.env.PAWAPAY_ENFORCE_IP_ALLOWLIST === 'true',
 };

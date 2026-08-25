@@ -16,6 +16,7 @@ const { settleOrders } = require('../services/payment/settle.service');
 const { getAvailableGateways } = require('../services/payment/gateway.registry');
 const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
 const { activateSubscription } = require('../services/subscription.service');
+const pawapay = require('../services/payment/gateways/pawapay.gateway');
 
 // -----------------------------------------------------------------------------
 // HELPERS
@@ -116,7 +117,7 @@ const rejectPendingCheckoutTransactions = async (userId, orderIds = [], reason =
 
   const filter = {
     user_id: userId,
-    gateway: { $in: ['eversend', 'payunit'] },
+    gateway: { $in: ['eversend', 'payunit', 'pawapay'] },
     status: 'pending',
     'metadata.checkout_key': checkoutKey,
   };
@@ -165,7 +166,10 @@ const setTransactionMetadata = (transaction, patch = {}) => {
   transaction.markModified('metadata');
 };
 
-const emitWalletCredit = (app, transaction) => {
+// newBalance is the post-credit wallet_balance — when provided the frontend
+// can update immediately from the event payload instead of making an extra
+// GET /wallet round-trip (eliminates up to 12 s of perceived lag).
+const emitWalletCredit = (app, transaction, newBalance) => {
   const io = app?.get?.('io');
   if (!io || !transaction?.user_id) return;
 
@@ -174,6 +178,7 @@ const emitWalletCredit = (app, transaction) => {
     reference: transaction.reference,
     gateway: transaction.gateway,
     type: 'deposit',
+    ...(newBalance !== undefined && Number.isFinite(newBalance) ? { balance: newBalance } : {}),
   };
   const userRoom = transaction.user_id.toString();
   io.to(userRoom).emit('wallet:credited', payload);
@@ -270,17 +275,25 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
       return;
     }
 
+    let newWalletBalance;
     if (isSubscriptionTransaction(claimed)) {
       await settleSubscriptionTransaction(claimed, session, app);
     } else if (claimed.order_ids?.length > 0) {
       await settleOrdersInSession(claimed.user_id, claimed.order_ids, app, session, true, webUrl, paymentGateway);
     } else {
-      await User.findByIdAndUpdate(claimed.user_id, { $inc: { wallet_balance: claimed.amount } }, { session });
+      // Capture new balance so we can push it in the socket payload (frontend
+      // updates instantly without a GET /wallet round-trip)
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: claimed.user_id },
+        { $inc: { wallet_balance: claimed.amount } },
+        { session, returnDocument: 'after' }
+      );
+      newWalletBalance = updatedUser?.wallet_balance;
     }
 
     await session.commitTransaction();
     if (!isSubscriptionTransaction(claimed) && !(claimed.order_ids?.length > 0)) {
-      emitWalletCredit(app, claimed);
+      emitWalletCredit(app, claimed, newWalletBalance);
       setImmediate(async () => {
         try {
           const depositor = await User.findById(claimed.user_id).select('name email phone');
@@ -546,6 +559,67 @@ const payunitVerify = async (req, res) => {
   }
 };
 
+/**
+ * @route   GET /api/payments/payunit/recheck/:reference
+ * @desc    Manually re-poll PayUnit for the latest status, ignoring a locally-failed
+ *          DB status.  Used by the "Recheck Payment" button on the verify page after
+ *          the transaction was prematurely marked failed by a transient polling result.
+ * @access  Private
+ */
+const payunitRecheck = async (req, res) => {
+  try {
+    const { reference } = req.params;
+    const transaction = await Transaction.findOne({ reference, gateway: 'payunit' });
+    if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+
+    // Already settled — nothing to do
+    if (transaction.status === 'completed') {
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESSFUL',
+        message: isSubscriptionTransaction(transaction) ? 'Subscription is already active.' : 'Payment has already been confirmed.',
+        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+      });
+    }
+
+    // For failed/pending/processing: always query the gateway regardless of DB status
+    const result = await payunit.getPaymentStatus(transaction.reference);
+    const data   = result?.data || {};
+    const status = payunit.normalizeStatus(data);
+
+    if (status === 'SUCCESSFUL') {
+      await settleGatewayTransaction(transaction, result.raw || data, req.app, getWebUrl(req), 'payunit');
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESSFUL',
+        message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed! Your account has been updated.',
+        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+      });
+    }
+
+    if (status === 'FAILED') {
+      // Only update DB if not already failed (avoid redundant saves)
+      if (transaction.status !== 'failed') {
+        transaction.status = 'failed';
+        transaction.gateway_response = result.raw || data;
+        await transaction.save();
+        if (transaction.order_ids?.length) await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
+      }
+      return res.status(400).json({
+        success: false,
+        status: 'FAILED',
+        message: data?.message || 'PayUnit payment was declined.',
+        reason: data?.message,
+      });
+    }
+
+    return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still being processed. Please wait and try again.' });
+  } catch (error) {
+    console.error('[PayUnit Recheck]', error.response?.data || error.message);
+    return res.status(503).json({ success: false, status: 'PENDING', message: 'Could not reach PayUnit at this time. Please try again shortly.' });
+  }
+};
+
 const payunitWebhook = async (req, res) => {
   try {
     // ── Signature verification (CRITICAL security gate) ─────────────────────
@@ -560,6 +634,7 @@ const payunitWebhook = async (req, res) => {
     // verify: (req, res, buf) => { req.rawBody = buf } on the /payunit/webhook route.
     const rawBody = req.rawBody
       ? req.rawBody
+      : Buffer.isBuffer(req.body) ? req.body
       : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
     const expectedSig = crypto
       .createHmac('sha256', PAYUNIT_WEBHOOK_SECRET)
@@ -578,9 +653,12 @@ const payunitWebhook = async (req, res) => {
     const status = payunit.normalizeStatus(data);
 
     if (status === 'SUCCESSFUL') {
-      // ── Idempotent claim: only process if still 'pending' ─────────────────
+      // ── Idempotent claim: match 'pending' OR 'processing' so that a retry
+      // can reattempt settlement if a previous webhook attempt threw after
+      // setting the status to 'processing' but before committing.
+      // settleGatewayTransaction's own atomic claim prevents double-settle.
       const claimed = await Transaction.findOneAndUpdate(
-        { reference, gateway: 'payunit', status: 'pending' },
+        { reference, gateway: 'payunit', status: { $in: ['pending', 'processing'] } },
         { $set: { status: 'processing' } },
         { new: true },
       );
@@ -839,17 +917,26 @@ const eversendVerify = async (req, res) => {
           await sess.abortTransaction();
           return; // Already settled by concurrent request (webhook)
         }
+        let evNewBalance;
         if (isSubscriptionTransaction(claimed)) {
           await settleSubscriptionTransaction(claimed, sess, req.app);
         } else if (claimed.order_ids?.length > 0) {
           await settleOrdersInSession(claimed.user_id, claimed.order_ids, req.app, sess, true, getWebUrl(req), 'eversend');
         } else {
-          await User.findByIdAndUpdate(claimed.user_id, { $inc: { wallet_balance: claimed.amount } }, { session: sess });
+          const evUpdated = await User.findOneAndUpdate(
+            { _id: claimed.user_id },
+            { $inc: { wallet_balance: claimed.amount } },
+            { session: sess, returnDocument: 'after' }
+          );
+          evNewBalance = evUpdated?.wallet_balance;
         }
         await sess.commitTransaction();
-        // Push real-time notification via Socket.io
+        // Push real-time notification — include new balance so frontend updates instantly
         const io = req.app.get('io');
-        if (io) io.to(`user:${claimed.user_id}`).emit('wallet:credited', { amount: claimed.amount, reference });
+        if (io) {
+          const evPayload = { amount: claimed.amount, reference, ...(evNewBalance !== undefined ? { balance: evNewBalance } : {}) };
+          io.to(`user:${claimed.user_id}`).emit('wallet:credited', evPayload);
+        }
       } catch (e) { await sess.abortTransaction(); throw e; }
       finally { sess.endSession(); }
     };
@@ -981,14 +1068,29 @@ const eversendRecheck = async (req, res) => {
             await transaction.save({ session });
 
             const isCheckout = transaction.order_ids?.length > 0;
+            let erNewBalance;
             if (isSubscriptionTransaction(transaction)) {
               await settleSubscriptionTransaction(transaction, session, req.app);
             } else if (isCheckout) {
               await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, getWebUrl(req), 'eversend');
             } else {
-              await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
+              const erUpdated = await User.findOneAndUpdate(
+                { _id: transaction.user_id },
+                { $inc: { wallet_balance: transaction.amount } },
+                { session, returnDocument: 'after' }
+              );
+              erNewBalance = erUpdated?.wallet_balance;
             }
             await session.commitTransaction();
+            // Emit balance to frontend for instant update (no GET /wallet needed)
+            if (erNewBalance !== undefined) {
+              const io = req.app.get('io');
+              if (io) {
+                const erPayload = { amount: transaction.amount, reference: transaction.reference, balance: erNewBalance };
+                io.to(transaction.user_id.toString()).emit('wallet:credited', erPayload);
+                io.to(`user:${transaction.user_id}`).emit('wallet:credited', erPayload);
+              }
+            }
 
             setImmediate(() => {
               sendNotification(req.app, transaction.user_id, {
@@ -1536,6 +1638,615 @@ const eversendPayoutBeneficiary = async (req, res) => {
   }
 };
 
+// =============================================================================
+// PAWAPAY — Mobile Money Cameroon (MTN MoMo / Orange Money)
+// =============================================================================
+
+/**
+ * @route   POST /api/payments/pawapay/initialize
+ * @desc    Initiate a PawaPay deposit (PUSH to subscriber's phone).
+ * @access  Private
+ * @body    { amount, currency, phone, provider?, order_ids? }
+ */
+const pawapayInitialize = async (req, res) => {
+  try {
+    let { amount, currency = 'XAF', phone, provider, order_ids } = req.body || {};
+
+    if (String(currency).toUpperCase() !== 'XAF') {
+      return res.status(400).json({ success: false, message: 'PawaPay currently supports XAF only.' });
+    }
+
+    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
+    const netAmount = checkoutAmount ?? Number(amount || 0);
+    const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'pawapay', currency);
+
+    if (!feeBreakdown.netAmount || feeBreakdown.netAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid amount.' });
+    }
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number is required.' });
+    }
+
+    // Idempotency guard: return existing pending deposit for this phone (within 15 min)
+    const normalizedPhone = pawapay.normalizePhone(phone);
+    const recentCutoff = new Date(Date.now() - 15 * 60 * 1000);
+    const existingPending = await Transaction.findOne({
+      user_id: req.user._id,
+      gateway: 'pawapay',
+      status: 'pending',
+      'metadata.phone': normalizedPhone,
+      createdAt: { $gte: recentCutoff },
+    }).sort({ createdAt: -1 });
+
+    if (existingPending) {
+      const webUrl = process.env.WEB_CLIENT_URL || 'https://auradime.com';
+      const resumeUrl = `${webUrl}/wallet/verify?gateway=pawapay&ref=${existingPending.reference}`;
+      return res.status(200).json({
+        success: true,
+        message: 'A payment request is already pending for this number. Please approve the USSD prompt on your phone.',
+        data: {
+          checkout_url: resumeUrl,
+          reference: existingPending.reference,
+          transaction_id: existingPending.gateway_transaction_id,
+          amount: existingPending.metadata?.net_amount || existingPending.amount,
+          collection_fee: existingPending.metadata?.collection_fee || 0,
+          gross_amount: existingPending.metadata?.gross_amount || existingPending.amount,
+          pending_resume: true,
+        },
+      });
+    }
+
+    // Resolve provider via auto-detection (always override client-supplied value)
+    const correspondent = phone ? pawapay.detectProvider(phone) : (provider || 'MTN_MOMO_CMR');
+
+    const result = await pawapay.initialize({
+      user: req.user,
+      amount: feeBreakdown.grossAmount,
+      currency,
+      orderIds: normalizeOrderIds(order_ids),
+      fields: { phone, provider: correspondent },
+      req,
+    });
+
+    // Patch metadata with fee breakdown on the just-created transaction
+    await Transaction.findOneAndUpdate(
+      { reference: result.reference },
+      {
+        $set: {
+          amount: feeBreakdown.netAmount,
+          'metadata.net_amount': feeBreakdown.netAmount,
+          'metadata.collection_fee': feeBreakdown.collectionFee,
+          'metadata.gross_amount': feeBreakdown.grossAmount,
+        },
+      }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'PawaPay collection request sent. Please approve the USSD prompt on your phone.',
+      data: {
+        checkout_url: result.checkout_url,
+        reference: result.reference,
+        transaction_id: result.transaction_id,
+        amount: feeBreakdown.netAmount,
+        collection_fee: feeBreakdown.collectionFee,
+        gross_amount: feeBreakdown.grossAmount,
+      },
+    });
+  } catch (err) {
+    console.error('[PawaPay Initialize]', err.response?.data || err.message);
+    const detail = err.response?.data;
+    return res.status(err.response?.status || 500).json({
+      success: false,
+      message: detail?.message || err.message || 'PawaPay payment initialization failed.',
+      detail,
+    });
+  }
+};
+
+/**
+ * @route   GET /api/payments/pawapay/verify/:reference
+ * @desc    Poll deposit status and settle if complete.
+ * @access  Private
+ */
+const pawapayVerify = async (req, res) => {
+  try {
+    const { reference } = req.params;
+    const transaction = await Transaction.findOne({ reference, gateway: 'pawapay' });
+    if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+
+    if (transaction.status === 'completed') {
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESSFUL',
+        message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed.',
+      });
+    }
+    if (transaction.status === 'failed') {
+      return res.status(400).json({
+        success: false,
+        status: 'FAILED',
+        message: 'Payment failed.',
+        reason: transaction.gateway_response?.rejectionReason?.rejectionMessage,
+      });
+    }
+
+    // Sandbox: auto-succeed
+    if (transaction.metadata?.is_sandbox) {
+      const claimed = await Transaction.findOneAndUpdate(
+        { _id: transaction._id, status: { $ne: 'completed' } },
+        { $set: { status: 'completed' } },
+        { new: true }
+      );
+      if (!claimed) {
+        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
+      }
+      if (isSubscriptionTransaction(claimed)) {
+        await settleSubscriptionTransaction(claimed, null, req.app);
+        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Subscription activated.' });
+      }
+      if (claimed.order_ids?.length > 0) {
+        await settleOrdersInSession(claimed.user_id, claimed.order_ids, req.app, null, true, getWebUrl(req), claimed.gateway || 'pawapay');
+        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment confirmed.' });
+      }
+      await User.findByIdAndUpdate(claimed.user_id, { $inc: { wallet_balance: claimed.amount } });
+      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox deposit confirmed.' });
+    }
+
+    const isCheckoutFlow = transaction.metadata?.checkout_flow === true;
+    const gatewayId = transaction.gateway_transaction_id;
+    if (!gatewayId) {
+      return res.status(200).json({ success: true, status: 'PENDING', message: 'Awaiting PawaPay confirmation.' });
+    }
+
+    // Checkout refs use checkoutId; deposit refs use depositId
+    const result = isCheckoutFlow
+      ? await pawapay.getCheckoutStatus(gatewayId)
+      : await pawapay.getDepositStatus(gatewayId);
+
+    // Checkout status may be in result.status or result.deposits[0].status
+    const rawStatus = result?.status || result?.deposits?.[0]?.status;
+    const status = pawapay.normalizeStatus(rawStatus);
+
+    if (status === 'SUCCESSFUL') {
+      await settleGatewayTransaction(transaction, result, req.app, getWebUrl(req), 'pawapay');
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESSFUL',
+        message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed.',
+        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+      });
+    }
+
+    if (status === 'FAILED') {
+      transaction.status = 'failed';
+      transaction.gateway_response = result;
+      await transaction.save();
+      if (transaction.order_ids?.length) await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
+      return res.status(400).json({
+        success: false,
+        status: 'FAILED',
+        message: result?.rejectionReason?.rejectionMessage || 'PawaPay payment failed.',
+      });
+    }
+
+    return res.status(200).json({ success: true, status: 'PENDING', message: 'Awaiting PawaPay confirmation.' });
+  } catch (err) {
+    console.error('[PawaPay Verify]', err.response?.data || err.message);
+    return res.status(200).json({ success: true, status: 'PENDING', message: 'PawaPay verification temporarily unavailable.' });
+  }
+};
+
+/**
+ * @route   GET /api/payments/pawapay/recheck/:reference
+ * @desc    Manually re-poll PawaPay for the latest deposit/checkout status,
+ *          bypassing a locally-failed DB record.  Used by the "Recheck Payment"
+ *          button on the verify page.
+ * @access  Private
+ */
+const pawapayRecheck = async (req, res) => {
+  try {
+    const { reference } = req.params;
+    const transaction = await Transaction.findOne({ reference, gateway: 'pawapay' });
+    if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+
+    // Already settled — nothing to do
+    if (transaction.status === 'completed') {
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESSFUL',
+        message: isSubscriptionTransaction(transaction) ? 'Subscription is already active.' : 'Payment has already been confirmed.',
+        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+      });
+    }
+
+    // Sandbox: auto-succeed
+    if (transaction.metadata?.is_sandbox) {
+      await settleGatewayTransaction(transaction, { sandbox: true }, req.app, getWebUrl(req), 'pawapay');
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESSFUL',
+        message: 'Sandbox payment confirmed.',
+        data: { balance_added: transaction.amount },
+      });
+    }
+
+    const gatewayId = transaction.gateway_transaction_id || transaction.metadata?.depositId;
+    if (!gatewayId) {
+      return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still being initiated. Please wait a moment.' });
+    }
+
+    // For failed/pending/processing: always query the gateway regardless of DB status
+    const isCheckoutFlow = transaction.metadata?.checkout_flow === true;
+    const result = isCheckoutFlow
+      ? await pawapay.getCheckoutStatus(gatewayId)
+      : await pawapay.getDepositStatus(gatewayId);
+
+    const rawStatus = result?.status || result?.deposits?.[0]?.status;
+    const status    = pawapay.normalizeStatus(rawStatus);
+
+    if (status === 'SUCCESSFUL') {
+      await settleGatewayTransaction(transaction, result, req.app, getWebUrl(req), 'pawapay');
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESSFUL',
+        message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed! Your account has been updated.',
+        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+      });
+    }
+
+    if (status === 'FAILED') {
+      if (transaction.status !== 'failed') {
+        transaction.status = 'failed';
+        transaction.gateway_response = result;
+        await transaction.save();
+        if (transaction.order_ids?.length) await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
+      }
+      return res.status(400).json({
+        success: false,
+        status: 'FAILED',
+        message: result?.rejectionReason?.rejectionMessage || 'PawaPay payment was declined.',
+        reason: result?.rejectionReason?.rejectionMessage,
+      });
+    }
+
+    return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still being processed. Please wait and try again.' });
+  } catch (err) {
+    console.error('[PawaPay Recheck]', err.response?.data || err.message);
+    return res.status(503).json({ success: false, status: 'PENDING', message: 'Could not reach PawaPay at this time. Please try again shortly.' });
+  }
+};
+
+/**
+ * @route   POST /api/payments/pawapay/webhook/deposit
+ * @desc    PawaPay deposit callback (public — IP allowlist + Content-Digest verified).
+ * @access  Public
+ */
+const pawapayDepositWebhook = async (req, res) => {
+  try {
+    // 1. IP allowlist check (enforced when PAWAPAY_ENFORCE_IP_ALLOWLIST=true)
+    const callerIp = pawapay.resolveCallerIp(req.headers, req.socket?.remoteAddress);
+    const ipCheck = pawapay.checkCallerIp(callerIp);
+    if (!ipCheck.allowed) {
+      console.warn(`[PawaPay Deposit Webhook] ${ipCheck.reason} — rejecting`);
+      return res.status(403).send('Forbidden');
+    }
+
+    // 2. Signature verification (Content-Digest + optional RSA-PSS)
+    const rawBody = req.rawBody
+      ? req.rawBody
+      : Buffer.isBuffer(req.body) ? req.body
+      : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+
+    const isValid = pawapay.verifyWebhookSignature(rawBody, req.headers);
+    if (!isValid) {
+      console.warn('[PawaPay Deposit Webhook] Invalid signature — rejecting');
+      return res.status(401).send('Unauthorized');
+    }
+
+    let event;
+    if (Buffer.isBuffer(req.body)) {
+      event = JSON.parse(req.body.toString('utf8'));
+    } else if (typeof req.body === 'string') {
+      event = JSON.parse(req.body);
+    } else {
+      event = req.body;
+    }
+
+    const { depositId, status: rawStatus } = event || {};
+    if (!depositId) return res.status(200).send('OK');
+
+    const transactionRef = `AURA-PP-${depositId}`;
+    const status = pawapay.normalizeStatus(rawStatus);
+    console.log(`[PawaPay Deposit Webhook] depositId=${depositId} status=${rawStatus} → ${status}`);
+
+    if (status === 'SUCCESSFUL') {
+      // Match 'pending' OR 'processing' — allows a webhook retry to reattempt
+      // settlement when a previous attempt threw after setting 'processing'.
+      const claimed = await Transaction.findOneAndUpdate(
+        { reference: transactionRef, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
+        { $set: { status: 'processing' } },
+        { new: true }
+      );
+      if (!claimed) return res.status(200).send('OK'); // Already processed
+      await settleGatewayTransaction(claimed, event, req.app, '', 'pawapay');
+    } else if (status === 'FAILED') {
+      const updated = await Transaction.findOneAndUpdate(
+        { reference: transactionRef, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
+        { $set: { status: 'failed', gateway_response: event } },
+        { new: true }
+      );
+      if (updated?.order_ids?.length) await markCheckoutOrdersFailed(updated.user_id, updated.order_ids);
+    }
+
+    return res.status(200).send('OK');
+  } catch (err) {
+    console.error('[PawaPay Deposit Webhook]', err);
+    return res.status(500).send('Internal Server Error');
+  }
+};
+
+/**
+ * @route   POST /api/payments/pawapay/webhook/refund
+ * @desc    PawaPay refund callback.
+ * @access  Public
+ */
+const pawapayRefundWebhook = async (req, res) => {
+  try {
+    const callerIp = pawapay.resolveCallerIp(req.headers, req.socket?.remoteAddress);
+    const ipCheck = pawapay.checkCallerIp(callerIp);
+    if (!ipCheck.allowed) {
+      console.warn(`[PawaPay Refund Webhook] ${ipCheck.reason} — rejecting`);
+      return res.status(403).send('Forbidden');
+    }
+
+    const rawBody = req.rawBody
+      ? req.rawBody
+      : Buffer.isBuffer(req.body) ? req.body
+      : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+
+    const isValid = pawapay.verifyWebhookSignature(rawBody, req.headers);
+    if (!isValid) {
+      console.warn('[PawaPay Refund Webhook] Invalid signature — rejecting');
+      return res.status(401).send('Unauthorized');
+    }
+
+    let event;
+    if (Buffer.isBuffer(req.body)) {
+      event = JSON.parse(req.body.toString('utf8'));
+    } else if (typeof req.body === 'string') {
+      event = JSON.parse(req.body);
+    } else {
+      event = req.body;
+    }
+
+    const { refundId, depositId, status: rawStatus } = event || {};
+    console.log(`[PawaPay Refund Webhook] refundId=${refundId} depositId=${depositId} status=${rawStatus}`);
+
+    const norm = pawapay.normalizeStatus(rawStatus);
+    const transactionRef = depositId ? `AURA-PP-${depositId}` : null;
+
+    if (norm === 'SUCCESSFUL' && transactionRef) {
+      await Transaction.findOneAndUpdate(
+        { reference: transactionRef, gateway: 'pawapay' },
+        { $set: { 'metadata.refund_status': 'completed', 'metadata.refund_id': refundId, gateway_response: event } }
+      );
+      console.log(`[PawaPay] Refund ${refundId} completed for deposit ${depositId}`);
+    } else if (norm === 'FAILED') {
+      setImmediate(async () => {
+        const { notifyAdmins } = require('../utils/notifier');
+        await notifyAdmins(req.app, {
+          title: 'PawaPay Refund Failed',
+          message: `Refund ${refundId} for deposit ${depositId} failed. Manual review required.`,
+          type: 'system_alert',
+          metadata: { link: '/admin/transactions' },
+          sendEmail: true,
+        }).catch(console.error);
+      });
+    }
+
+    return res.status(200).send('OK');
+  } catch (err) {
+    console.error('[PawaPay Refund Webhook]', err);
+    return res.status(500).send('Internal Server Error');
+  }
+};
+
+/**
+ * @route   POST /api/payments/pawapay/checkout/initialize
+ * @desc    Create a PawaPay hosted checkout session (redirect flow).
+ *          User is sent to PawaPay's page to enter their phone number.
+ *          Use this for web payments where you don't have the user's phone number.
+ * @access  Private
+ * @body    { amount, currency, order_ids? }
+ */
+const pawapayCheckoutInitialize = async (req, res) => {
+  try {
+    let { amount, currency = 'XAF', order_ids } = req.body || {};
+
+    if (String(currency).toUpperCase() !== 'XAF') {
+      return res.status(400).json({ success: false, message: 'PawaPay currently supports XAF only.' });
+    }
+
+    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
+    const netAmount = checkoutAmount ?? Number(amount || 0);
+    const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'pawapay', currency);
+
+    if (!feeBreakdown.netAmount || feeBreakdown.netAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid amount.' });
+    }
+
+    const crypto = require('crypto');
+    const checkoutId = crypto.randomUUID();
+    const transactionRef = `AURA-PPC-${checkoutId}`;
+    const webUrl = process.env.WEB_CLIENT_URL || 'https://auradime.com';
+    const returnUrl = `${webUrl}/wallet/verify?gateway=pawapay&ref=${transactionRef}`;
+
+    // Sandbox mode
+    if (process.env.PAWAPAY_SANDBOX_MODE === 'true') {
+      await Transaction.create({
+        user_id: req.user._id,
+        type: normalizeOrderIds(order_ids).length > 0 ? 'payment' : 'deposit',
+        amount: feeBreakdown.netAmount,
+        currency,
+        reference: transactionRef,
+        gateway_transaction_id: checkoutId,
+        status: 'pending',
+        gateway: 'pawapay',
+        order_ids: normalizeOrderIds(order_ids),
+        description: `[SANDBOX] PawaPay checkout`,
+        metadata: {
+          is_sandbox: true,
+          checkoutId,
+          checkout_flow: true,
+          net_amount: feeBreakdown.netAmount,
+          collection_fee: feeBreakdown.collectionFee,
+          gross_amount: feeBreakdown.grossAmount,
+        },
+      });
+      return res.status(200).json({
+        success: true,
+        message: 'PawaPay checkout created (sandbox).',
+        data: {
+          checkout_url: `${returnUrl}&sandbox=true`,
+          redirect_url: `${returnUrl}&sandbox=true`,
+          reference: transactionRef,
+          transaction_id: checkoutId,
+          amount: feeBreakdown.netAmount,
+          collection_fee: feeBreakdown.collectionFee,
+          gross_amount: feeBreakdown.grossAmount,
+        },
+      });
+    }
+
+    const result = await pawapay.createCheckout({
+      checkoutId,
+      amounts: [{ amount: feeBreakdown.grossAmount, currency }],
+      returnUrl,
+      description: normalizeOrderIds(order_ids).length > 0 ? 'Auradime order' : 'Auradime deposit',
+    });
+
+    const redirectUrl = result?.redirectUrl || result?.redirect_url || returnUrl;
+
+    await Transaction.create({
+      user_id: req.user._id,
+      type: normalizeOrderIds(order_ids).length > 0 ? 'payment' : 'deposit',
+      amount: feeBreakdown.netAmount,
+      currency,
+      reference: transactionRef,
+      gateway_transaction_id: checkoutId,
+      status: 'pending',
+      gateway: 'pawapay',
+      order_ids: normalizeOrderIds(order_ids),
+      description:
+        normalizeOrderIds(order_ids).length > 0
+          ? `Checkout for ${order_ids.length} order(s) via PawaPay (${currency})`
+          : `Wallet deposit via PawaPay checkout (${currency})`,
+      metadata: {
+        checkoutId,
+        checkout_flow: true,
+        net_amount: feeBreakdown.netAmount,
+        collection_fee: feeBreakdown.collectionFee,
+        gross_amount: feeBreakdown.grossAmount,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'PawaPay checkout created. Redirect the user to checkout_url.',
+      data: {
+        checkout_url: redirectUrl,
+        redirect_url: redirectUrl,
+        reference: transactionRef,
+        transaction_id: checkoutId,
+        amount: feeBreakdown.netAmount,
+        collection_fee: feeBreakdown.collectionFee,
+        gross_amount: feeBreakdown.grossAmount,
+      },
+    });
+  } catch (err) {
+    console.error('[PawaPay Checkout Initialize]', err.response?.data || err.message);
+    const detail = err.response?.data;
+    return res.status(err.response?.status || 500).json({
+      success: false,
+      message: detail?.message || err.message || 'PawaPay checkout initialization failed.',
+      detail,
+    });
+  }
+};
+
+/**
+ * @route   POST /api/payments/pawapay/webhook/checkout
+ * @desc    PawaPay checkout callback — fires when a hosted checkout session completes.
+ * @access  Public
+ */
+const pawapayCheckoutWebhook = async (req, res) => {
+  try {
+    const callerIp = pawapay.resolveCallerIp(req.headers, req.socket?.remoteAddress);
+    const ipCheck = pawapay.checkCallerIp(callerIp);
+    if (!ipCheck.allowed) {
+      console.warn(`[PawaPay Checkout Webhook] ${ipCheck.reason} — rejecting`);
+      return res.status(403).send('Forbidden');
+    }
+
+    const rawBody = req.rawBody
+      ? req.rawBody
+      : Buffer.isBuffer(req.body) ? req.body
+      : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
+
+    const isValid = pawapay.verifyWebhookSignature(rawBody, req.headers);
+    if (!isValid) {
+      console.warn('[PawaPay Checkout Webhook] Invalid signature — rejecting');
+      return res.status(401).send('Unauthorized');
+    }
+
+    let event;
+    if (Buffer.isBuffer(req.body)) {
+      event = JSON.parse(req.body.toString('utf8'));
+    } else if (typeof req.body === 'string') {
+      event = JSON.parse(req.body);
+    } else {
+      event = req.body;
+    }
+
+    const { checkoutId, status: rawStatus, deposits = [] } = event || {};
+    if (!checkoutId) return res.status(200).send('OK');
+
+    const transactionRef = `AURA-PPC-${checkoutId}`;
+    const status = pawapay.normalizeStatus(rawStatus);
+    // Underlying deposit ID created when the user paid on the hosted page
+    const depositId = deposits?.[0]?.depositId || null;
+    console.log(`[PawaPay Checkout Webhook] checkoutId=${checkoutId} depositId=${depositId} status=${rawStatus} → ${status}`);
+
+    if (status === 'SUCCESSFUL') {
+      const claimed = await Transaction.findOneAndUpdate(
+        { reference: transactionRef, gateway: 'pawapay', status: 'pending' },
+        {
+          $set: {
+            status: 'processing',
+            ...(depositId ? { 'metadata.depositId': depositId } : {}),
+          },
+        },
+        { new: true }
+      );
+      if (!claimed) return res.status(200).send('OK'); // Already processed
+      await settleGatewayTransaction(claimed, event, req.app, '', 'pawapay');
+    } else if (status === 'FAILED') {
+      const updated = await Transaction.findOneAndUpdate(
+        { reference: transactionRef, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
+        { $set: { status: 'failed', gateway_response: event } },
+        { new: true }
+      );
+      if (updated?.order_ids?.length) await markCheckoutOrdersFailed(updated.user_id, updated.order_ids);
+    }
+
+    return res.status(200).send('OK');
+  } catch (err) {
+    console.error('[PawaPay Checkout Webhook]', err);
+    return res.status(500).send('Internal Server Error');
+  }
+};
+
 // -----------------------------------------------------------------------------
 module.exports = {
   // Gateway registry endpoint
@@ -1543,7 +2254,7 @@ module.exports = {
   failCheckoutPayment,
   payunitInitialize,
   payunitVerify,
-  payunitRecheck: payunitVerify,
+  payunitRecheck,
   payunitWebhook,
   // Eversend
   eversendGetWallets,
@@ -1557,6 +2268,14 @@ module.exports = {
   eversendDeleteBeneficiary,
   eversendGetTransactions,
   eversendPayoutBeneficiary,
+  // PawaPay
+  pawapayInitialize,
+  pawapayCheckoutInitialize,
+  pawapayVerify,
+  pawapayRecheck,
+  pawapayDepositWebhook,
+  pawapayCheckoutWebhook,
+  pawapayRefundWebhook,
   // Internal / admin sync
   settleOrdersInSession,
 };

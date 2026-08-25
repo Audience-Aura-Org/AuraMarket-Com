@@ -85,6 +85,57 @@ const signPayunitWebhook = (payload, secret) => {
   return { body, signature: sig }
 }
 
+// ── PawaPay ───────────────────────────────────────────────────────────────────
+
+/**
+ * Compute a PawaPay-style Content-Digest header value (SHA-256 of body).
+ * Format: sha-256=:<base64>:
+ */
+const buildPawapayContentDigest = (bodyStr) => {
+  const hash = crypto.createHash('sha256').update(Buffer.from(bodyStr)).digest('base64')
+  return `sha-256=:${hash}:`
+}
+
+/**
+ * Build a PawaPay deposit callback payload (status COMPLETED by default).
+ */
+const pawapayDepositWebhookPayload = (overrides = {}) => ({
+  depositId:            overrides.depositId || crypto.randomUUID(),
+  status:               overrides.status    || 'COMPLETED',
+  amount:               String(overrides.amount   || '5000.00'),
+  currency:             overrides.currency  || 'XAF',
+  correspondent:        overrides.correspondent || 'MTN_MOMO_CMR',
+  payer: { type: 'MSISDN', address: { value: overrides.phone || '237650000001' } },
+  customerTimestamp:    new Date().toISOString(),
+  statementDescription: 'Auradime test',
+  created:              new Date().toISOString(),
+  respondedByPayer:     new Date().toISOString(),
+  correspondentIds:     {},
+  ...(overrides._extra || {}),
+})
+
+/**
+ * Build a PawaPay checkout callback payload (status COMPLETED by default).
+ */
+const pawapayCheckoutWebhookPayload = (overrides = {}) => ({
+  checkoutId: overrides.checkoutId || crypto.randomUUID(),
+  status:     overrides.status     || 'COMPLETED',
+  amounts:    overrides.amounts    || [{ amount: '5000.00', currency: 'XAF' }],
+  created:    new Date().toISOString(),
+  ...(overrides._extra || {}),
+})
+
+/**
+ * Serialise a PawaPay webhook payload and compute its Content-Digest header.
+ * @param {object} payload
+ * @returns {{ body: string, contentDigest: string }}
+ */
+const signPawapayWebhook = (payload) => {
+  const body          = JSON.stringify(payload)
+  const contentDigest = buildPawapayContentDigest(body)
+  return { body, contentDigest }
+}
+
 // ── Flutterwave ───────────────────────────────────────────────────────────────
 
 /**
@@ -108,4 +159,7 @@ module.exports = {
   payunitWebhookPayload,
   signPayunitWebhook,
   flutterwaveWebhookPayload,
+  pawapayDepositWebhookPayload,
+  pawapayCheckoutWebhookPayload,
+  signPawapayWebhook,
 }

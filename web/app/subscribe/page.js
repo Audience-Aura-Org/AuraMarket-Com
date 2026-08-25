@@ -126,7 +126,7 @@ function SubscribeContent() {
       router.push('/contact');
       return;
     }
-    if (['payunit', 'eversend'].includes(method) && !phone.trim()) {
+    if (['payunit', 'eversend', 'pawapay'].includes(method) && !phone.trim()) {
       toast.error(t('subscription.phoneRequired', 'Phone number is required.'));
       return;
     }
@@ -363,6 +363,17 @@ function SubscribeContent() {
                     </button>
                     <button
                       type="button"
+                      onClick={() => setMethod('pawapay')}
+                      className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'pawapay' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
+                    >
+                      <Smartphone className="size-5 text-[var(--accent)]" />
+                      <div>
+                        <p className="text-sm font-bold">{t('subscription.pawapayTitle', 'PawaPay - MTN / Orange')}</p>
+                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.pawapayHelp', 'Mobile money collection in Cameroon via PawaPay.')}</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setMethod('eversend')}
                       className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'eversend' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
                     >
@@ -374,7 +385,7 @@ function SubscribeContent() {
                     </button>
                   </div>
 
-                  {['payunit', 'eversend'].includes(method) && (
+                  {['payunit', 'eversend', 'pawapay'].includes(method) && (
                     <div className="mt-4 space-y-4">
                       <label className="block">
                         <span className="text-xs font-bold text-[var(--text-secondary)]">{t('subscription.phone', 'Phone number')}</span>

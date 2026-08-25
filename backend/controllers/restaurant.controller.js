@@ -453,6 +453,15 @@ const getDinePage = async (req, res, next) => {
       .sort((a, b) => (b.num_reviews - a.num_reviews) || (b.rating - a.rating));
 
     // 6. Build flat meals discovery feed (cuisine + meal_category filtered, top 60 by rating)
+    //    Pre-compute open status per vendor so the discovery meal cards can show a
+    //    "Restaurant closed" state that matches what the restaurant menu page shows.
+    const vendorOpenMap = {};
+    for (const profile of profiles) {
+      const vid = profile.vendor_id.toString();
+      const { open_status } = computeOpenStatus(profile.opening_hours);
+      vendorOpenMap[vid] = open_status === 'open' && profile.is_accepting_orders !== false;
+    }
+
     //    Cuisine filter on meals: only include meals from cuisine-matched restaurants
     const cuisineMatchedVendorIdSet = cuisineObjId
       ? new Set(
@@ -481,6 +490,7 @@ const getDinePage = async (req, res, next) => {
         restaurant_name:     vendorMap[m.vendor_id?.toString()]?.store_name || '',
         restaurant_logo_url: storeMap[m.vendor_id?.toString()]?.logo || null,
         prep_time_minutes:   m.meal?.prep_time_minutes || profileMap[m.vendor_id?.toString()]?.prep_time_minutes || null,
+        restaurant_open:     vendorOpenMap[m.vendor_id?.toString()] ?? true,
       }));
 
     // 7. Cuisine types and meal categories for filters

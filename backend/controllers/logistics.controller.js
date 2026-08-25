@@ -434,8 +434,9 @@ const modifyShipmentStatus = async (req, res, next) => {
         const isLogisticsOrder = !!(order.shipping_method === 'logistics_partner' && order.logistics_company_id);
         const isEscrowOrder = !!(escrow && escrow.status === 'held');
 
-        // ── STEP 1: Pay logistics firm their shipping fee (always, for all paid orders) ──
-        if (isLogisticsOrder && order.shipping_fee > 0) {
+        // ── STEP 1: Pay logistics firm their shipping fee via wallet.
+        // Skip COD: the firm already collected the shipping fee in cash from the customer.
+        if (isLogisticsOrder && order.shipping_fee > 0 && order.payment_method !== 'pay_on_delivery') {
           const logisticsAlreadyPaid = isEscrowOrder ? escrow.logistics_settled : false;
 
           if (!logisticsAlreadyPaid) {
@@ -513,30 +514,51 @@ const modifyShipmentStatus = async (req, res, next) => {
           // ── COD + LOGISTICS: Customer pays logistics in cash. Credit vendor subtotal immediately.
           const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
           if (vendorAccount) {
-            const vendorUser = await creditBalance(vendorAccount.user_id, isLogisticsOrder ? order.subtotal : order.total_amount, session);
-            if (vendorUser) {
-              const vendorBaseAmount = isLogisticsOrder ? order.subtotal : order.total_amount;
-              await Transaction.create([{
-                user_id:     vendorAccount.user_id,
-                type:        'payout',
-                amount:      vendorBaseAmount,
-                reference:   generateTxRef(),
-                status:      'completed',
-                description: `COD payment settled via logistics (Order #${order._id.toString().slice(-6).toUpperCase()})`,
-                order_id:    order._id,
-              }], { session, ordered: true });
+            const existingCodPayout = await Transaction.findOne({
+              user_id:  vendorAccount.user_id,
+              order_id: order._id,
+              type:     'payout',
+              status:   'completed',
+            }).session(session);
 
-              order.payment_status = 'paid';
-              order.order_status = 'completed';
-              orderCompleted = true;
+            if (!existingCodPayout) {
+              const vendorBaseAmount = isLogisticsOrder ? order.subtotal : order.total_amount;
+              const vendorUser = await creditBalance(vendorAccount.user_id, vendorBaseAmount, session);
+              if (vendorUser) {
+                await Transaction.create([{
+                  user_id:     vendorAccount.user_id,
+                  type:        'payout',
+                  amount:      vendorBaseAmount,
+                  reference:   generateTxRef(),
+                  status:      'completed',
+                  description: `COD payment settled via logistics (Order #${order._id.toString().slice(-6).toUpperCase()})`,
+                  order_id:    order._id,
+                }], { session, ordered: true });
+
+                orderCompleted = true;
+              }
             }
+
+            order.payment_status = 'paid';
+            order.order_status = 'completed';
           }
 
         } else {
-          // ── NON-ESCROW DIGITAL PAYMENT + LOGISTICS: Pay vendor subtotal immediately.
+          // ── NON-ESCROW DIGITAL PAYMENT + LOGISTICS ──────────────────────────
+          // settle.service.js#handleVendorPayout already credits the vendor at
+          // checkout for standard digital payments (direct, non-escrow path).
+          // Guard against double-credit: only pay if no completed payout exists.
           const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
           if (vendorAccount) {
-            if (vendorAccount) {
+            const existingPayout = await Transaction.findOne({
+              user_id:  vendorAccount.user_id,
+              order_id: order._id,
+              type:     'payout',
+              status:   'completed',
+            }).session(session);
+
+            if (!existingPayout) {
+              // Fallback: vendor was not credited at checkout — pay now.
               const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(order.vendor_id, session);
               const { platformFee, vendorPayout } = calculatePlatformFees(order.subtotal, effectiveSettings);
               await creditBalance(vendorAccount.user_id, vendorPayout, session);
@@ -557,9 +579,10 @@ const modifyShipmentStatus = async (req, res, next) => {
                 gateway:     'wallet'
               }], { session, ordered: true });
 
-              order.order_status = 'completed';
-              orderCompleted = true;
+              orderCompleted = true; // only notify vendor when payment is freshly released
             }
+
+            order.order_status = 'completed';
           }
         }
 

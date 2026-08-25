@@ -40,7 +40,7 @@ function formatPrepTime(mins) {
 }
 
 export default function DineMealCard({ meal, onSelect = null }) {
-  const { vendor_id, name, price, thumbnail_url, rating, restaurant_name, restaurant_logo_url, category_id, prep_time_minutes } = meal;
+  const { vendor_id, name, price, thumbnail_url, rating, restaurant_name, restaurant_logo_url, category_id, prep_time_minutes, restaurant_open } = meal;
 
   const router       = useRouter();
   const { openChat } = useChat();
@@ -52,6 +52,8 @@ export default function DineMealCard({ meal, onSelect = null }) {
   const mealInitial = (name || '?')[0].toUpperCase();
   const isPopular = rating >= 4.5;
   const initial   = (restaurant_name || '?')[0].toUpperCase();
+  // restaurant_open is provided by the backend; default true so legacy items still work
+  const restaurantClosed = restaurant_open === false;
 
   const handleAddToCart = async () => {
     if (!user) { router.push('/login'); return; }
@@ -88,7 +90,7 @@ export default function DineMealCard({ meal, onSelect = null }) {
   };
 
   return (
-    <div className="group relative rounded-[2rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1.5 backdrop-blur-xl flex flex-col h-full font-poppins">
+    <div className={`group relative rounded-[2rem] bg-[var(--glass-bg)] border border-[var(--glass-border)] shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden hover:-translate-y-1.5 backdrop-blur-xl flex flex-col h-full font-poppins${restaurantClosed ? ' opacity-60' : ''}`}>
 
       {/* ── Top bar: restaurant avatar + name + follow (mirrors ProductCard) ── */}
       <div className="grid h-10 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 sm:gap-2 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 p-2 backdrop-blur-md sm:p-2.5 md:p-3 overflow-hidden">
@@ -184,10 +186,16 @@ export default function DineMealCard({ meal, onSelect = null }) {
           </Link>
         )}
 
-        {isPopular && (
+        {isPopular && !restaurantClosed && (
           <span className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-full bg-orange-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
             <Star className="size-2.5 fill-white text-white" /> Popular
           </span>
+        )}
+
+        {restaurantClosed && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+            <span className="text-[11px] font-bold text-white px-3 py-1 bg-black/60 rounded-full">Closed</span>
+          </div>
         )}
       </div>
 
@@ -227,9 +235,9 @@ export default function DineMealCard({ meal, onSelect = null }) {
         <div className="grid grid-cols-3 items-center gap-1 md:gap-1.5 mt-auto">
           <button
             onClick={onSelect ? () => onSelect(meal) : handleAddToCart}
-            disabled={!onSelect && adding}
+            disabled={restaurantClosed || (!onSelect && adding)}
             title="Add to cart"
-            className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--accent)] text-white flex items-center justify-center gap-1 text-[9px] md:text-[10px] font-bold shadow-lg shadow-[var(--accent)]/25 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 px-1"
+            className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--accent)] text-white flex items-center justify-center gap-1 text-[9px] md:text-[10px] font-bold shadow-lg shadow-[var(--accent)]/25 hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-1"
           >
             <Plus strokeWidth={3} className={`size-3 md:size-3.5 shrink-0 ${!onSelect && adding ? 'animate-spin' : ''}`} />
           </button>
@@ -242,8 +250,8 @@ export default function DineMealCard({ meal, onSelect = null }) {
           </button>
           <button
             onClick={onSelect ? () => onSelect(meal) : handleBuyNow}
-            disabled={!onSelect && adding}
-            className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[9px] md:text-[10px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-50 px-1"
+            disabled={restaurantClosed || (!onSelect && adding)}
+            className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[9px] md:text-[10px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-1"
           >
             <span className="truncate">Buy Now</span>
           </button>

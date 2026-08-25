@@ -390,25 +390,38 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
     const order = await Order.findById(orderId).session(session);
     if (!order) continue;
 
-    // Handle already paid orders (e.g., from a duplicate or delayed successful attempt)
+    // Handle non-pending orders
     if (order.payment_status !== 'pending') {
       if (skipBalanceDeduct) {
-        // Since we aren't deducting from balance, these are 'new' funds from a gateway.
-        // If the order is already paid, credit these funds to the user's wallet so they aren't lost.
-        await creditBalance(userId, order.total_amount, session);
+        if (order.payment_status === 'failed') {
+          // The order was prematurely marked failed (e.g. a transient verify response
+          // called markCheckoutOrdersFailed before the gateway confirmed success).
+          // The gateway is now confirming success — reset to pending and fall through
+          // to settle normally so the order actually completes.
+          order.payment_status = 'pending';
+          order.order_status   = 'pending';
+          await order.save({ session });
+          // Fall through to normal settlement below
+        } else {
+          // Already fully paid — these are duplicate gateway funds.
+          // Credit them back to the user's wallet so nothing is lost.
+          await creditBalance(userId, order.total_amount, session);
 
-        await Transaction.create([{
-          user_id: user._id,
-          type: 'deposit',
-          amount: order.total_amount,
-          reference: genRef('ADJ'),
-          status: 'completed',
-          gateway: paymentGateway,
-          description: `Wallet credit (Order #${order._id.toString().slice(-6).toUpperCase()} already paid)`,
-          order_id: order._id,
-        }], { session, ordered: true });
+          await Transaction.create([{
+            user_id:     user._id,
+            type:        'deposit',
+            amount:      order.total_amount,
+            reference:   genRef('ADJ'),
+            status:      'completed',
+            gateway:     paymentGateway,
+            description: `Wallet credit (Order #${order._id.toString().slice(-6).toUpperCase()} already paid)`,
+            order_id:    order._id,
+          }], { session, ordered: true });
+          continue;
+        }
+      } else {
+        continue;
       }
-      continue;
     }
 
     if (!skipBalanceDeduct) {
@@ -612,22 +625,29 @@ const clawbackFoodRefund = async (order, refundAmount, session, reason = 'Food o
 const releaseRestaurantHold = async (order, session) => {
   if (!order.new_restaurant_hold) return;
 
-  const { effectiveSettings } = await getEffectivePlatformSettings(order.vendor_id, session);
+  // Use the vendorPayout that was captured at checkout — NOT a live recalculation.
+  // The platform fee was pre-committed to platform_wallet_balance at capture time
+  // (handleVendorPayout, new_restaurant_hold path). Recalculating with a drifted
+  // commission rate would credit the vendor a different amount than the pending
+  // transaction records, breaking the audit trail and the platform's balance.
+  const pendingTxn = await Transaction.findOne({
+    order_id: order._id,
+    status:   'pending',
+    reference: /^PAYOUT-HELD/,
+  }).session(session);
 
-  const vendorBaseAmount = (
-    (order.shipping_method === 'logistics_partner' && order.logistics_company_id) ||
-    order.shipping_method === 'intercity_agency'
-  ) ? order.subtotal
-    : order.subtotal + (order.shipping_fee || 0);
+  if (!pendingTxn) throw new Error(`releaseRestaurantHold: no held payout transaction found for order ${order._id}.`);
 
-  const { vendorPayout } = calculatePlatformFees(vendorBaseAmount, effectiveSettings, { includeEscrowFee: false });
+  const vendorPayout =
+    pendingTxn.metadata?.platform_fee_breakdown?.vendor_payout ??
+    pendingTxn.amount;
 
   const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
   await creditBalance(vendorRecord.user_id, vendorPayout, session);
 
-  // Mark the pending Transaction as completed
-  await Transaction.findOneAndUpdate(
-    { order_id: order._id, status: 'pending', reference: /^PAYOUT-HELD/ },
+  // Mark the exact pending Transaction as completed, preserving the original amount
+  await Transaction.findByIdAndUpdate(
+    pendingTxn._id,
     { $set: { status: 'completed', description: `Held payout released on delivery — Order #${order._id.toString().slice(-6).toUpperCase()}` } },
     { session }
   );

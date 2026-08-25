@@ -474,6 +474,9 @@ export default function SingleOrderView({ orderId, onBack }) {
     : null;
   const orderAgeMs = order?.createdAt ? Date.now() - new Date(order.createdAt).getTime() : Number.POSITIVE_INFINITY;
   const cancellationWindowOpen = orderAgeMs <= 30 * 60 * 1000;
+  // ── Food order derived state ─────────────────────────────────────────────────
+  const isFoodOrder = !!order.food_status;
+
   const customerCanCancel =
     !isVendor &&
     ['placed', 'processing'].includes(order.order_status) &&
@@ -483,9 +486,6 @@ export default function SingleOrderView({ orderId, onBack }) {
     ) &&
     !shipment &&   // blocked once any logistics carrier is assigned
     (!isFoodOrder || order.food_status === 'pending_acceptance');  // food: pre-acceptance only
-
-  // ── Food order derived state ─────────────────────────────────────────────────
-  const isFoodOrder = !!order.food_status;
   const isVendorManagedFood = order.shipping_method === 'vendor_managed';
   const foodLogisticsOverdue = isFoodOrder && isFoodLogisticsOverdue(order);
   const foodNextStatus = isFoodOrder ? (({
@@ -1219,7 +1219,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                   </h4>
                   <div className="mt-1 flex items-center gap-2 text-[11px] text-[var(--text-secondary)] opacity-80">
                     <Phone className="size-3 opacity-60" />
-                    {shipment.logistics_id?.contact_phone || '—'}
+                    {shipment.logistics_id?.contact_phone || shipment.logistics_company_id?.contact_phone || '—'}
                   </div>
                 </div>
                 <div className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-[var(--glass-border)] px-3 py-2 sm:min-h-0">
@@ -1272,6 +1272,19 @@ export default function SingleOrderView({ orderId, onBack }) {
                     Message Vendor
                   </button>
                 )}
+              </div>
+            ) : order.logistics_company_id?.company_name ? (
+              <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-4">
+                <h4 className="text-[12px] font-semibold capitalize text-[var(--text-primary)]">
+                  {order.logistics_company_id.company_name.slice(0, 24)}
+                </h4>
+                {order.logistics_company_id.contact_phone && (
+                  <div className="mt-1 flex items-center gap-2 text-[11px] text-[var(--text-secondary)] opacity-80">
+                    <Phone className="size-3 opacity-60" />
+                    {order.logistics_company_id.contact_phone}
+                  </div>
+                )}
+                <p className="mt-2 text-[10px] font-medium text-[var(--text-secondary)] opacity-50">Awaiting pickup assignment</p>
               </div>
             ) : (
               <div className="rounded-xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-4 py-6 text-center">

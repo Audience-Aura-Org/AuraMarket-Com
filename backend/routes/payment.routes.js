@@ -21,11 +21,20 @@ const {
   payunitVerify,
   payunitRecheck,
   payunitWebhook,
+  // PawaPay
+  pawapayInitialize,
+  pawapayCheckoutInitialize,
+  pawapayVerify,
+  pawapayRecheck,
+  pawapayDepositWebhook,
+  pawapayCheckoutWebhook,
+  pawapayRefundWebhook,
 } = require('../controllers/payment.controller');
 
 // ── Webhooks — PUBLIC (must come BEFORE protect middleware) ──────────────────
 router.post('/eversend/webhook', eversendWebhook);
 router.post('/payunit/webhook', payunitWebhook);
+// PawaPay webhook routes are mounted in server.js with raw body middleware
 
 // ── Protected routes ─────────────────────────────────────────────────────────
 router.use(protect);
@@ -57,5 +66,13 @@ router.get('/eversend/transactions', eversendGetTransactions);
 
 // Payouts
 router.post('/eversend/payout/beneficiary', eversendPayoutBeneficiary);
+
+// PawaPay — deposit (direct PUSH to phone)
+router.post('/pawapay/initialize', pawapayInitialize);
+// PawaPay — checkout (hosted redirect page, no phone required upfront)
+router.post('/pawapay/checkout/initialize', pawapayCheckoutInitialize);
+// PawaPay — status polling (works for both deposit and checkout refs)
+router.get('/pawapay/verify/:reference', pawapayVerify);
+router.get('/pawapay/recheck/:reference', pawapayRecheck);
 
 module.exports = router;

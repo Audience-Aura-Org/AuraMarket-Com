@@ -26,6 +26,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   const [phone, setPhone]       = useState(userPhone);
   const [network, setNetwork]   = useState('CM');
   const [service, setService]   = useState('CM_MTNMOMO');
+  const [pawapayNetwork, setPawapayNetwork] = useState(''); // 'MTN MoMo' | 'Orange Money' | ''
   const [ref, setRef]           = useState(null);
   const [status, setStatus]     = useState('pending'); // 'pending'|'success'|'failed'|'timeout'
   const [message, setMessage]   = useState('');
@@ -57,6 +58,19 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
     }
   }, [phone, gateway]);
 
+  // PawaPay: auto-detect operator from 2-digit prefix (matches backend detectProvider logic).
+  // MTN: 65x, 67x, 68x — Orange: 62x, 69x
+  useEffect(() => {
+    if (gateway !== 'pawapay' || !phone) { setPawapayNetwork(''); return; }
+    const local = phone.replace(/[^\d]/g, '').replace(/^237/, '').replace(/^0/, '');
+    if (local.length >= 2) {
+      const p = parseInt(local.slice(0, 2), 10);
+      if ([65, 67, 68].includes(p)) setPawapayNetwork('MTN MoMo');
+      else if ([69, 62].includes(p)) setPawapayNetwork('Orange Money');
+      else setPawapayNetwork('');
+    }
+  }, [phone, gateway]);
+
   // Reset when modal opens
   useEffect(() => {
     if (open) {
@@ -72,6 +86,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
       setMessage('');
       setOrangeHosted(false);
       setCheckoutUrl(null);
+      setPawapayNetwork('');
     }
   }, [open]);
 
@@ -275,9 +290,10 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                 {/* Gateway */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-semibold tracking-tight opacity-30 ml-1">Deposit gateway</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {[
-                      { id: 'payunit', label: 'PayUnit', sub: 'MTN / Orange', min: 'Primary' },
+                      { id: 'payunit',  label: 'PayUnit',  sub: 'MTN / Orange', min: 'Primary' },
+                      { id: 'pawapay',  label: 'PawaPay',  sub: 'MTN / Orange', min: 'XAF only' },
                       { id: 'eversend', label: 'Eversend', sub: 'Multi-country', min: 'Min 500' },
                     ].map(node => (
                       <button
@@ -340,6 +356,16 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                       ))}
                     </div>
                     <p className="text-[10px] font-semibold text-amber-500/80">Eversend deposits require at least 500 XAF.</p>
+                  </div>
+                ) : gateway === 'pawapay' ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 ml-1">
+                      <label className="text-[10px] font-semibold tracking-tight opacity-30">Network</label>
+                      {pawapayNetwork && <span className="text-[9px] font-semibold text-emerald-500 opacity-70 tracking-tight">· auto-detected</span>}
+                    </div>
+                    <div className={`h-10 rounded-xl border flex items-center justify-center font-semibold text-[10px] tracking-tight transition-all ${pawapayNetwork ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40'}`}>
+                      {pawapayNetwork || 'Enter phone number above'}
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-2">

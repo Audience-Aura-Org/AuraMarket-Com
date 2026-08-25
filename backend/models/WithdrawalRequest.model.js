@@ -74,10 +74,10 @@ const WithdrawalRequestSchema = new mongoose.Schema(
     },
 
     // ── Payout Gateway Linkage ───────────────────
-    payout_gateway:           { type: String, enum: ['eversend', 'payunit', 'manual'], default: null },
-    eversend_transaction_id:  { type: String, default: null },
+    payout_gateway:           { type: String, enum: ['eversend', 'payunit', 'pawapay', 'manual'], default: null },
+    eversend_transaction_id:  { type: String, default: null },  // also used as payoutId for PawaPay
     eversend_quotation_token: { type: String, default: null, select: false },
-    eversend_status:          { type: String, default: null },
+    eversend_status:          { type: String, default: null },  // gateway status string
     balance_deducted:         { type: Boolean, default: false },
 
     // ── Admin Review ─────────────────────────────
@@ -97,5 +97,7 @@ const WithdrawalRequestSchema = new mongoose.Schema(
 // Index for quick admin queue lookups
 WithdrawalRequestSchema.index({ status: 1, createdAt: -1 });
 WithdrawalRequestSchema.index({ requested_by: 1, status: 1 });
+// Sparse index for fast webhook lookup by gateway transaction id (PawaPay payoutId, Eversend txId)
+WithdrawalRequestSchema.index({ eversend_transaction_id: 1 }, { sparse: true });
 
 module.exports = mongoose.model('WithdrawalRequest', WithdrawalRequestSchema);

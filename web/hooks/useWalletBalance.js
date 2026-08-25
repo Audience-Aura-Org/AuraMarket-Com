@@ -29,16 +29,25 @@ export function useWalletBalance() {
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
 
-    // Socket events — fire immediately when a credit or withdrawal lands so
-    // the top-nav balance updates as fast as the wallet page does
-    socketService.on('wallet:credited', refresh);
+    // Socket events — update instantly from payload when balance is included,
+    // otherwise fall back to an API refresh (old gateway paths without balance).
+    const onWalletCredited = (data) => {
+      if (data?.balance !== undefined && Number.isFinite(Number(data.balance))) {
+        // Backend sent the post-credit balance — zero round-trips, instant update.
+        setWalletBalance(Number(data.balance));
+      } else {
+        refresh();
+      }
+    };
+
+    socketService.on('wallet:credited', onWalletCredited);
     socketService.on('withdrawal:paid', refresh);
 
     return () => {
       window.removeEventListener('aura:wallet-updated', refresh);
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
-      socketService.off('wallet:credited', refresh);
+      socketService.off('wallet:credited', onWalletCredited);
       socketService.off('withdrawal:paid', refresh);
     };
   // walletBalance intentionally excluded — we only want to run this once on mount.

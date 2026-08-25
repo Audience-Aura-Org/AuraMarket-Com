@@ -57,7 +57,7 @@ const mergeCheckoutItems = (items = []) => {
 
 const VENDOR_MANAGED_LOGISTICS_ID = 'vendor_managed';
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
-const isMobileMoneyPayment = (method) => ['payunit', 'eversend'].includes(method);
+const isMobileMoneyPayment = (method) => ['payunit', 'eversend', 'pawapay'].includes(method);
 const normalizeZoneName = (value) => String(value || '').trim();
 const getZoneName = (zone) => {
   if (typeof zone === 'string') return normalizeZoneName(zone);
@@ -87,11 +87,12 @@ function CheckoutContent() {
     landmark: '',
     recipient_name: '',
     recipient_phone: '',
-    paymentMethod: 'payunit',
+    paymentMethod: 'pawapay',
     escrowEnabled: false,
     logistics_company_id: VENDOR_MANAGED_LOGISTICS_ID,
     payunit: { phone: '', provider: 'CM_MTNMOMO', country: 'CM', currency: 'XAF' },
     eversend: { phone: '', country: 'CM', currency: 'XAF' },
+    pawapay: { phone: '', country: 'CM', currency: 'XAF' },
     fulfilment_type: null,   // set from cart.context_booking_type for food orders
   });
     
@@ -299,9 +300,9 @@ function CheckoutContent() {
               }));
            }
 
-           // Intercity routes cannot use pay-on-delivery — auto-switch to payunit
+           // Intercity routes cannot use pay-on-delivery — auto-switch to pawapay
            if (res.data.data.is_intercity && formData.paymentMethod === 'pay_on_delivery') {
-              setFormData(prev => ({ ...prev, paymentMethod: 'payunit' }));
+              setFormData(prev => ({ ...prev, paymentMethod: 'pawapay' }));
               toast('Pay on delivery is not available for intercity orders.', { icon: 'ℹ️' });
            }
         }
@@ -505,7 +506,8 @@ function CheckoutContent() {
     const isPayOnDelivery = formData.paymentMethod === 'pay_on_delivery';
     const isEversend = formData.paymentMethod === 'eversend';
     const isPayUnit = formData.paymentMethod === 'payunit';
-    const isExternal = isEversend || isPayUnit;
+    const isPawaPay = formData.paymentMethod === 'pawapay';
+    const isExternal = isEversend || isPayUnit || isPawaPay;
     const isWalletPayment = formData.paymentMethod === 'wallet';
     const computedCollectionFee = isExternal ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
     const totalAmount = computedOrderTotal + computedCollectionFee;
@@ -576,6 +578,7 @@ function CheckoutContent() {
             payment_method: isPayOnDelivery ? 'pay_on_delivery'
               : isPayUnit ? 'payunit'
               : isEversend ? 'eversend'
+              : isPawaPay ? 'pawapay'
               : (formData.escrowEnabled ? 'escrow' : 'wallet'),
             shipping_method: isVendorManagedDelivery ? 'vendor_managed' : 'logistics_partner',
             logistics_company_id: isVendorManagedDelivery ? null : formData.logistics_company_id,
@@ -627,9 +630,9 @@ function CheckoutContent() {
           window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
         }
       } else if (isExternal) {
-        const gateway = isPayUnit ? 'payunit' : 'eversend';
-        const gatewayLabel = isPayUnit ? 'PayUnit' : 'Eversend';
-        const gatewayFields = isPayUnit ? formData.payunit : formData.eversend;
+        const gateway = isPayUnit ? 'payunit' : isPawaPay ? 'pawapay' : 'eversend';
+        const gatewayLabel = isPayUnit ? 'PayUnit' : isPawaPay ? 'PawaPay' : 'Eversend';
+        const gatewayFields = isPayUnit ? formData.payunit : isPawaPay ? formData.pawapay : formData.eversend;
         setEversendCheckout({
           active: true,
           reference: null,
@@ -865,6 +868,13 @@ function CheckoutContent() {
       icon: CreditCard,
     },
     {
+      id: 'pawapay',
+      label: 'PawaPay',
+      badge: 'XAF only',
+      description: 'MTN / Orange Mobile Money in Cameroon via PawaPay.',
+      icon: Smartphone,
+    },
+    {
       id: 'eversend',
       label: 'Eversend',
       badge: '500 XAF min',
@@ -895,6 +905,13 @@ function CheckoutContent() {
           ...current,
           paymentMethod: 'eversend',
           eversend: { ...current.eversend, phone: current.eversend.phone || current.phone },
+        };
+      }
+      if (method === 'pawapay') {
+        return {
+          ...current,
+          paymentMethod: 'pawapay',
+          pawapay: { ...current.pawapay, phone: current.pawapay.phone || current.phone },
         };
       }
       return { ...current, paymentMethod: 'wallet' };
@@ -1404,7 +1421,7 @@ function CheckoutContent() {
                               </div>
                            )}
 
-                           {['payunit', 'eversend'].includes(formData.paymentMethod) && (
+                           {['payunit', 'eversend', 'pawapay'].includes(formData.paymentMethod) && (
                               <div className="mt-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4 animate-in fade-in slide-in-from-top-4 duration-500">
                                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
@@ -1412,10 +1429,16 @@ function CheckoutContent() {
                                        <input
                                           type="text"
                                           placeholder="+237..."
-                                          value={formData.paymentMethod === 'payunit' ? formData.payunit.phone : formData.eversend.phone}
+                                          value={
+                                            formData.paymentMethod === 'payunit' ? formData.payunit.phone
+                                            : formData.paymentMethod === 'pawapay' ? formData.pawapay.phone
+                                            : formData.eversend.phone
+                                          }
                                           onChange={e => {
                                             if (formData.paymentMethod === 'payunit') {
                                               setFormData(prev => ({...prev, payunit: {...prev.payunit, phone: e.target.value}}));
+                                            } else if (formData.paymentMethod === 'pawapay') {
+                                              setFormData(prev => ({...prev, pawapay: {...prev.pawapay, phone: e.target.value}}));
                                             } else {
                                               setFormData(prev => ({...prev, eversend: {...prev.eversend, phone: e.target.value}}));
                                             }

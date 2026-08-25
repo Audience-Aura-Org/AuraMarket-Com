@@ -181,7 +181,7 @@ const holdFunds = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Funds securely held in Escrow.',
-      data: { escrow: escrow[0] },
+      data: { escrow },
     });
   } catch (error) {
     await session.abortTransaction();
@@ -658,15 +658,15 @@ const refundFunds = async (req, res, next) => {
     const order = await Order.findById(orderId).session(session);
     if (req.user.role === 'vendor') {
       const activeVendor = await Vendor.findOne({ user_id: req.user._id }).session(session);
-      if (order.vendor_id.toString() !== activeVendor._id.toString()) {
-        throw new Error('Not authorized to refund this exterior order.');
+      if (!activeVendor || order.vendor_id.toString() !== activeVendor._id.toString()) {
+        throw new Error('Not authorized to refund this order.');
       }
     }
 
-    // 1. Credit Buyer's Wallet — refund the FULL order.total_amount (subtotal + shipping + collection fee),
-    //    not just escrow.amount which only holds the vendor base portion after commission.
+    // 1. Credit Buyer's Wallet — refund the FULL order.total_amount (subtotal + shipping + collection fee).
+    //    escrow.amount stores only the vendor base portion (after commission) — never use it for the refund.
     const refundAmount = order.total_amount || escrow.amount;
-    await creditBalance(escrow.buyer_id, refundAmount, session);
+    const updatedBuyer = await creditBalance(escrow.buyer_id, refundAmount, session);
 
     // 2. Log Buyer's Refund Receipt
     await Transaction.create([{
@@ -679,7 +679,14 @@ const refundFunds = async (req, res, next) => {
       order_id: order._id,
     }], { session, ordered: true });
 
-    // 3. Break down Escrow model
+    // 3. Void the pending vendor payout so it doesn't remain open in the audit trail
+    await Transaction.findOneAndUpdate(
+      { order_id: order._id, type: 'payout', status: 'pending' },
+      { $set: { status: 'failed', description: `Payout voided — escrow refunded for Order #${order._id.toString().slice(-6).toUpperCase()}` } },
+      { session }
+    );
+
+    // 4. Break down Escrow model
     escrow.status = 'refunded';
     escrow.refund_reason = reason || 'Vendor cancellation / Admin dispute resolution';
     escrow.released_by = req.user?.role === 'admin' ? 'admin' : 'customer';
@@ -698,6 +705,17 @@ const refundFunds = async (req, res, next) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Push instant balance update to buyer's top nav (no round-trip GET /wallet needed)
+    if (updatedBuyer?.wallet_balance !== undefined) {
+      const io = req.app?.get?.('io');
+      if (io) {
+        const buyerRoom = escrow.buyer_id.toString();
+        const refundPayload = { amount: refundAmount, balance: updatedBuyer.wallet_balance, type: 'refund' };
+        io.to(buyerRoom).emit('wallet:credited', refundPayload);
+        io.to(`user:${buyerRoom}`).emit('wallet:credited', refundPayload);
+      }
+    }
 
     notifyOrderStatusChange(req.app, order, 'cancelled', {
       message: `Order #${order._id.toString().slice(-6).toUpperCase()} was cancelled and refunded.`,
