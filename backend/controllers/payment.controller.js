@@ -1956,7 +1956,8 @@ const pawapayDepositWebhook = async (req, res) => {
     const { depositId, status: rawStatus } = event || {};
     if (!depositId) return res.status(200).send('OK');
 
-    const transactionRef = `AURA-PP-${depositId}`;
+    // Direct deposits use AURA-PP; Payment Page deposits use AURA-PPC.
+    const transactionRefs = [`AURA-PP-${depositId}`, `AURA-PPC-${depositId}`];
     const status = pawapay.normalizeStatus(rawStatus);
     console.log(`[PawaPay Deposit Webhook] depositId=${depositId} status=${rawStatus} → ${status}`);
 
@@ -1964,7 +1965,7 @@ const pawapayDepositWebhook = async (req, res) => {
       // Match 'pending' OR 'processing' — allows a webhook retry to reattempt
       // settlement when a previous attempt threw after setting 'processing'.
       const claimed = await Transaction.findOneAndUpdate(
-        { reference: transactionRef, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
+        { reference: { $in: transactionRefs }, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
         { $set: { status: 'processing' } },
         { new: true }
       );
@@ -1972,7 +1973,7 @@ const pawapayDepositWebhook = async (req, res) => {
       await settleGatewayTransaction(claimed, event, req.app, '', 'pawapay');
     } else if (status === 'FAILED') {
       const updated = await Transaction.findOneAndUpdate(
-        { reference: transactionRef, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
+        { reference: { $in: transactionRefs }, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
         { $set: { status: 'failed', gateway_response: event } },
         { new: true }
       );

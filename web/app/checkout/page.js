@@ -854,9 +854,16 @@ function CheckoutContent() {
 
   const paymentOptions = [
     {
+      id: 'pawapay',
+      label: 'PawaPay',
+      badge: 'Primary',
+      description: 'MTN / Orange Mobile Money in Cameroon via PawaPay.',
+      icon: Smartphone,
+    },
+    {
       id: 'payunit',
       label: 'PayUnit',
-      badge: 'Primary',
+      badge: 'Fallback',
       description: 'MTN Mobile Money and Orange Money via PayUnit.',
       icon: Smartphone,
     },
@@ -866,13 +873,6 @@ function CheckoutContent() {
       badge: `${displayedWalletBalance.toLocaleString()} XAF`,
       description: 'Pay from your Auradime wallet balance.',
       icon: CreditCard,
-    },
-    {
-      id: 'pawapay',
-      label: 'PawaPay',
-      badge: 'XAF only',
-      description: 'MTN / Orange Mobile Money in Cameroon via PawaPay.',
-      icon: Smartphone,
     },
     {
       id: 'eversend',

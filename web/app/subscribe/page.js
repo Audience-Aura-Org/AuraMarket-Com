@@ -71,7 +71,7 @@ function SubscribeContent() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState(null);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
-  const [method, setMethod] = useState('payunit');
+  const [method, setMethod] = useState('pawapay');
   const [phone, setPhone] = useState(user?.phone || '');
   const [provider, setProvider] = useState('CM_MTNMOMO');
   const [submitting, setSubmitting] = useState(false);
@@ -352,24 +352,24 @@ function SubscribeContent() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setMethod('payunit')}
-                      className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'payunit' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
-                    >
-                      <Smartphone className="size-5 text-[var(--accent)]" />
-                      <div>
-                        <p className="text-sm font-bold">{t('subscription.payunitTitle', 'PayUnit - primary Cameroon')}</p>
-                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.payunitHelp', 'Primary Cameroon collection for MTN Mobile Money and Orange Money.')}</p>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => setMethod('pawapay')}
                       className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'pawapay' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
                     >
                       <Smartphone className="size-5 text-[var(--accent)]" />
                       <div>
-                        <p className="text-sm font-bold">{t('subscription.pawapayTitle', 'PawaPay - MTN / Orange')}</p>
-                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.pawapayHelp', 'Mobile money collection in Cameroon via PawaPay.')}</p>
+                        <p className="text-sm font-bold">{t('subscription.pawapayTitle', 'PawaPay - primary Cameroon')}</p>
+                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.pawapayHelp', 'Primary Cameroon collection for MTN Mobile Money and Orange Money.')}</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMethod('payunit')}
+                      className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'payunit' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
+                    >
+                      <Smartphone className="size-5 text-[var(--accent)]" />
+                      <div>
+                        <p className="text-sm font-bold">{t('subscription.payunitTitle', 'PayUnit - fallback')}</p>
+                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.payunitHelp', 'Cameroon mobile-money fallback for MTN and Orange.')}</p>
                       </div>
                     </button>
                     <button

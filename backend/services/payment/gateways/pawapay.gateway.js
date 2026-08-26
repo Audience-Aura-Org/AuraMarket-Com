@@ -102,15 +102,18 @@ const createDeposit = async ({ depositId, amount, currency, correspondent, phone
     depositId,
     amount: formatAmount(amount, currency),
     currency,
-    correspondent,
     payer: {
-      type: 'MSISDN',
-      address: { value: normalizePhone(phone) },
+      type: 'MMO',
+      accountDetails: {
+        phoneNumber: normalizePhone(phone),
+        provider: correspondent,
+      },
     },
-    customerTimestamp: new Date().toISOString(),
-    // PawaPay enforces 4–22 char statement description
-    statementDescription: (description || 'Auradime payment').slice(0, 22).padEnd(4, ' '),
-    ...(returnUrl ? { returnUrl } : {}),
+    // PawaPay v2 enforces a 4–22 character, alphanumeric message.
+    customerMessage: (description || 'Auradime payment')
+      .replace(/[^A-Za-z0-9 ]/g, '')
+      .slice(0, 22)
+      .padEnd(4, ' '),
   };
 
   const { data } = await axios.post(
@@ -129,7 +132,8 @@ const getDepositStatus = async (depositId) => {
     `${getBaseUrl()}/v2/deposits/${depositId}`,
     { headers: getHeaders(), timeout: 15000 }
   );
-  return Array.isArray(data) ? data[0] : data;
+  // v2 wraps a found deposit in { status: 'FOUND', data: { ...deposit } }.
+  return data?.data || (Array.isArray(data) ? data[0] : data);
 };
 
 /**
@@ -139,16 +143,25 @@ const getDepositStatus = async (depositId) => {
  * amounts = [{ amount, currency }]
  */
 const createCheckout = async ({ checkoutId, amounts, returnUrl, description }) => {
+  const amount = amounts?.[0];
+  if (!amount) throw new Error('PawaPay payment page requires an amount.');
+
   const { data } = await axios.post(
-    `${getBaseUrl()}/v2/checkouts`,
+    `${getBaseUrl()}/v2/paymentpage`,
     {
-      checkoutId,
+      // PawaPay v2 Payment Page creates a deposit, not a checkout resource.
+      depositId: checkoutId,
       returnUrl,
-      amounts: amounts.map((a) => ({
-        amount: formatAmount(a.amount, a.currency),
-        currency: a.currency,
-      })),
-      statementDescription: (description || 'Auradime payment').slice(0, 22).padEnd(4, ' '),
+      amountDetails: {
+        amount: formatAmount(amount.amount, amount.currency),
+        currency: amount.currency,
+      },
+      country: 'CMR',
+      customerMessage: (description || 'Auradime payment')
+        .replace(/[^A-Za-z0-9 ]/g, '')
+        .slice(0, 22)
+        .padEnd(4, ' '),
+      reason: (description || 'Auradime payment').slice(0, 50),
     },
     { headers: getHeaders(), timeout: 30000 }
   );
@@ -159,11 +172,7 @@ const createCheckout = async ({ checkoutId, amounts, returnUrl, description }) =
  * Fetch the latest status of a checkout by its checkoutId.
  */
 const getCheckoutStatus = async (checkoutId) => {
-  const { data } = await axios.get(
-    `${getBaseUrl()}/v2/checkouts/${checkoutId}`,
-    { headers: getHeaders(), timeout: 15000 }
-  );
-  return Array.isArray(data) ? data[0] : data;
+  return getDepositStatus(checkoutId);
 };
 
 /**

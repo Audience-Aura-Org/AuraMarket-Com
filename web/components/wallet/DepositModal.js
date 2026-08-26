@@ -21,7 +21,7 @@ const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
  */
 export default function DepositModal({ open, onClose, onSuccess, userPhone = '' }) {
   const [step, setStep]         = useState('amount'); // 'amount' | 'processing' | 'result'
-  const [gateway, setGateway]   = useState('payunit');
+  const [gateway, setGateway]   = useState('pawapay');
   const [amount, setAmount]     = useState('');
   const [phone, setPhone]       = useState(userPhone);
   const [network, setNetwork]   = useState('CM');
@@ -78,7 +78,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
       stopPollingRef.current = null;
       inProgressRef.current = false;
       setStep('amount');
-      setGateway('payunit');
+      setGateway('pawapay');
       setAmount('');
       setStatus('pending');
       setReason('');
@@ -292,8 +292,8 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                   <label className="text-[10px] font-semibold tracking-tight opacity-30 ml-1">Deposit gateway</label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { id: 'payunit',  label: 'PayUnit',  sub: 'MTN / Orange', min: 'Primary' },
-                      { id: 'pawapay',  label: 'PawaPay',  sub: 'MTN / Orange', min: 'XAF only' },
+                      { id: 'pawapay',  label: 'PawaPay',  sub: 'MTN / Orange', min: 'Primary' },
+                      { id: 'payunit',  label: 'PayUnit',  sub: 'MTN / Orange', min: 'Fallback' },
                       { id: 'eversend', label: 'Eversend', sub: 'Multi-country', min: 'Min 500' },
                     ].map(node => (
                       <button
