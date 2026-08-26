@@ -131,10 +131,21 @@ app.use(cors(createCorsOptions()));
 app.use(compression()); // Gzip all API responses
 // ── Webhook routes (Raw Body Requirement) ─────────────────────────────
 // Must be mounted before express.json() to allow raw body signature verification
-const { eversendWebhook, pawapayDepositWebhook, pawapayRefundWebhook, pawapayCheckoutWebhook } = require('./controllers/payment.controller');
+const {
+  eversendWebhook,
+  payunitWebhook,
+  pawapayDepositWebhook,
+  pawapayRefundWebhook,
+  pawapayCheckoutWebhook,
+} = require('./controllers/payment.controller');
 const { pawapayPayoutWebhook } = require('./controllers/withdrawal.controller');
 app.post('/api/v1/payments/eversend/webhook', express.raw({ type: 'application/json' }), eversendWebhook);
 app.post('/api/payments/eversend/webhook', express.raw({ type: 'application/json' }), eversendWebhook);
+// PayUnit signs the exact callback bytes. Mount before express.json() so valid
+// MTN/Orange callbacks are verified against the original body, not a
+// JSON.stringify reconstruction.
+app.post('/api/v1/payments/payunit/webhook', express.raw({ type: 'application/json' }), payunitWebhook);
+app.post('/api/payments/payunit/webhook', express.raw({ type: 'application/json' }), payunitWebhook);
 // PawaPay webhooks — raw body required for Content-Digest / RFC-9421 signature verification
 app.post('/api/v1/payments/pawapay/webhook/deposit', express.raw({ type: 'application/json' }), pawapayDepositWebhook);
 app.post('/api/payments/pawapay/webhook/deposit', express.raw({ type: 'application/json' }), pawapayDepositWebhook);
