@@ -14,12 +14,6 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
   const { openChat, isOpen: chatOverlayOpen } = useChat();
   const { unreadMessages } = useNotifications();
   const [cartCount, setCartCount] = useState(cartStore.getCount());
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   useEffect(() => {
     if (!user?._id) {
       setCartCount(0);
@@ -56,7 +50,7 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
             href={user ? "/shop" : "/"}
             className="flex items-center gap-2 transition-transform active:scale-[0.98] group"
           >
-            {mounted && <img src="/icon-512.png" alt="Auradime" className="h-6 w-auto shrink-0 object-contain transition-transform group-hover:scale-105" />}
+            <img src="/icon-512.png" alt="Auradime" className="h-6 w-auto shrink-0 object-contain transition-transform group-hover:scale-105" />
           </Link>
         </div>
 

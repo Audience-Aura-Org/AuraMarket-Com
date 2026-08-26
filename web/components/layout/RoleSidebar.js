@@ -131,10 +131,31 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
   // Detect restaurant vendors to show Kitchen / Meals links
   const [isRestaurantVendor, setIsRestaurantVendor] = useState(false);
   useEffect(() => {
-    if (role !== 'vendor') return;
+    if (role !== 'vendor') {
+      setIsRestaurantVendor(false);
+      return;
+    }
+
+    // Restaurant is an account-level setting. Reuse the session value so the
+    // sidebar does not visibly reflow while its menu is opening.
+    try {
+      if (sessionStorage.getItem('aura_vendor_type') === 'restaurant') {
+        setIsRestaurantVendor(true);
+        return;
+      }
+    } catch {}
+
+    let active = true;
     api.get('/vendors/me').then(res => {
-      if (res.data?.data?.vendor?.vendor_type === 'restaurant') setIsRestaurantVendor(true);
+      const isRestaurant = res.data?.data?.vendor?.vendor_type === 'restaurant';
+      if (!active) return;
+      setIsRestaurantVendor(isRestaurant);
+      if (isRestaurant) {
+        try { sessionStorage.setItem('aura_vendor_type', 'restaurant'); } catch {}
+      }
     }).catch(() => {});
+
+    return () => { active = false; };
   }, [role]);
 
   const getBadge = (item) => {
@@ -149,7 +170,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
         onClick={onClose}
       />
 
-      <aside className={`fixed inset-y-0 left-0 w-[88vw] max-w-[270px] lg:w-[240px] bg-[var(--bg-primary)]/80 backdrop-blur-xl border-r border-[var(--glass-border)]/50 flex flex-col h-full z-[220] transition-transform duration-500 ease-in-out transform font-poppins ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed inset-y-0 left-0 w-[88vw] max-w-[270px] lg:w-[240px] bg-[var(--bg-primary)]/95 lg:bg-[var(--bg-primary)]/80 lg:backdrop-blur-xl border-r border-[var(--glass-border)]/50 flex flex-col h-full z-[220] transform-gpu [will-change:transform] transition-transform duration-200 ease-out motion-reduce:transition-none font-poppins ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo Area */}
         <div className="p-5 flex items-center justify-between border-b border-[var(--glass-border)] opacity-90">
           <div className="flex items-center gap-3 min-w-0">

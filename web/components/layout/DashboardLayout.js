@@ -27,7 +27,7 @@ export default function DashboardLayout({ children, role, hideSidebar = false, h
         {!hideSidebar && (
           <MobileHeader 
             isOpen={isSidebarOpen} 
-            toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
+            toggleSidebar={() => setIsSidebarOpen((open) => !open)}
           />
         )}
         
