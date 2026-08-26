@@ -84,7 +84,6 @@ const OFFLINE_CACHEABLE_ROUTES = [
   /^vendor\/products(?:\/|$)/,
   /^vendor\/orders(?:\/|$)/,
   /^vendor\/analytics(?:\/|$)/,
-  /^wallet(?:\/|$)/,
   /^subscriptions\/me(?:\/|$)/,
   /^subscriptions\/admin(?:\/|$)/,
   /^notifications(?:\/|$)/,
@@ -142,8 +141,12 @@ const isOfflineCacheableRoute = (url = '') => {
     if (!allowedAdminPrefixes.some((p) => normalized.startsWith(p))) return false;
   }
 
-  // wallet and notifications are excluded by default — they must be explicitly in CACHEABLE list
-  if (normalized.startsWith('wallet') && !OFFLINE_CACHEABLE_ROUTES.some((r) => r.test(normalized))) return false;
+  // Wallet balances and history are financial state. Never serve them from the
+  // client/offline cache: a confirmed payment or debit must be visible straight
+  // away, even if a socket event was missed while the app was backgrounded.
+  if (normalized.startsWith('wallet')) return false;
+
+  // Notifications are excluded by default — they must be explicitly in CACHEABLE list
   if (normalized.startsWith('notifications') && !OFFLINE_CACHEABLE_ROUTES.some((r) => r.test(normalized))) return false;
 
   return OFFLINE_CACHEABLE_ROUTES.some((route) => route.test(normalized));

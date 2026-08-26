@@ -67,6 +67,8 @@ export const useAuthStore = create(
           const res = await api.get('/wallet', {
             timeout: 12000,
             __skipRetry: true,
+            // A balance is financial state, never a 45-second client-cache value.
+            skipClientCache: true,
           });
           if (res.data?.success) {
             const balance = Number(res.data.data?.balance ?? 0);

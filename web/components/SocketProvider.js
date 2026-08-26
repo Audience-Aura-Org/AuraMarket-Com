@@ -526,6 +526,7 @@ export default function SocketProvider({ children }) {
     socketService.on('notification', handleNotification);
     socketService.on('account_deleted', handleAccountDeleted);
     socketService.on('wallet:credited', handleWalletCredited);
+    socketService.on('wallet:debited', handleWalletCredited);
 
     return () => {
       cancelled = true;
@@ -533,6 +534,7 @@ export default function SocketProvider({ children }) {
       socketService.off('notification', handleNotification);
       socketService.off('account_deleted', handleAccountDeleted);
       socketService.off('wallet:credited', handleWalletCredited);
+      socketService.off('wallet:debited', handleWalletCredited);
     };
   // Re-register when user changes or store rehydrates. isOpen/activePartnerId are read via refs.
   }, [user?._id, token, hasHydrated, logout, router, refreshWalletBalance, setWalletBalance]);

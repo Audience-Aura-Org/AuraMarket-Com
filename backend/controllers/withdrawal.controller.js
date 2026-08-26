@@ -320,6 +320,21 @@ const submitWithdrawal = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
+    // The balance is reserved as soon as a payout request is accepted. Push the
+    // committed post-debit balance to every signed-in device immediately.
+    const io = req.app.get('io');
+    if (io && Number.isFinite(Number(debitResult.wallet_balance))) {
+      const room = userId.toString();
+      const payload = {
+        balance: Number(debitResult.wallet_balance),
+        amount,
+        type: 'withdrawal',
+        reference: withdrawalRequest._id.toString(),
+      };
+      io.to(room).emit('wallet:debited', payload);
+      io.to(`user:${room}`).emit('wallet:debited', payload);
+    }
+
     // ── Notify admins
     setImmediate(async () => {
       try {

@@ -40,7 +40,10 @@ export function useWalletBalance() {
       }
     };
 
+    // Wallet debits (subscription and wallet checkout) include the same
+    // authoritative post-debit balance as credits.
     socketService.on('wallet:credited', onWalletCredited);
+    socketService.on('wallet:debited', onWalletCredited);
     socketService.on('withdrawal:paid', refresh);
 
     return () => {
@@ -48,6 +51,7 @@ export function useWalletBalance() {
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
       socketService.off('wallet:credited', onWalletCredited);
+      socketService.off('wallet:debited', onWalletCredited);
       socketService.off('withdrawal:paid', refresh);
     };
   // walletBalance intentionally excluded — we only want to run this once on mount.

@@ -19,6 +19,17 @@ const { sendNotification } = require('../utils/notifier');
 const { getCommissionValue } = require('../utils/platformFees');
 const { debitBalance, creditBalance } = require('../services/wallet.service');
 
+// Emit only after the DB transaction commits so every connected device receives
+// an authoritative balance, never an optimistic/intermediate value.
+const emitWalletDebit = (app, userId, { balance, amount, reference, type = 'payment' }) => {
+  const io = app?.get?.('io');
+  if (!io || !userId || !Number.isFinite(Number(balance))) return;
+  const room = userId.toString();
+  const payload = { balance: Number(balance), amount, reference, type };
+  io.to(room).emit('wallet:debited', payload);
+  io.to(`user:${room}`).emit('wallet:debited', payload);
+};
+
 // Helper to generate a unique transaction reference
 const generateTxRef = () => `AURA-TX-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 
@@ -29,6 +40,10 @@ const generateTxRef = () => `AURA-TX-${crypto.randomBytes(6).toString('hex').toU
 // ─────────────────────────────────────────────
 const getWalletBalance = async (req, res, next) => {
   try {
+    // Wallet state must never be retained by a browser, CDN, or reverse proxy.
+    // Payment callbacks and polling can settle at any moment.
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
     const user = await User.findById(req.user._id).select('wallet_balance role');
     let pendingEscrow = 0;
 
@@ -181,6 +196,13 @@ const requestWithdrawal = async (req, res, next) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    emitWalletDebit(req.app, req.user._id, {
+      balance: user.wallet_balance,
+      amount,
+      reference: transaction[0].reference,
+      type: 'withdrawal',
+    });
 
     res.status(201).json({
       success: true,
@@ -347,6 +369,13 @@ const payOrderWithWallet = async (req, res, next) => {
     const updatedUser = await User.findById(req.user._id).session(session);
     await session.commitTransaction();
     session.endSession();
+
+    emitWalletDebit(req.app, req.user._id, {
+      balance: updatedUser.wallet_balance,
+      amount: order.total_amount,
+      reference: order_id,
+      type: 'payment',
+    });
 
     res.status(200).json({
       success: true,
