@@ -44,7 +44,10 @@ const inv01 = () => check('INV-01', 'Ledger sum matches user.wallet_balance', as
   const Transaction = m('Transaction');
   const User = m('User');
 
-  const CREDIT_TYPES = ['deposit', 'refund', 'escrow_release'];
+  // Payouts are wallet credits to vendors/logistics providers. Treating them
+  // as the catch-all debit branch makes the reconciliation job report healthy
+  // merchant balances as mismatches.
+  const CREDIT_TYPES = ['deposit', 'refund', 'escrow_release', 'payout'];
   const DEBIT_TYPES  = ['payment', 'withdrawal', 'subscription'];
   // 'payout' is vendor income — credited to vendor wallet
 
