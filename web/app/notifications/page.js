@@ -109,7 +109,7 @@ export default function NotificationsPage() {
   };
 
   const markAllRead = async () => {
-    try { await api.patch('/notifications/read-all'); clearBadge(); } catch { /* silent */ }
+    try { await clearBadge(); } catch { /* silent */ }
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 

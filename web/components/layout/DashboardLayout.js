@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import RoleSidebar from './RoleSidebar';
 import MobileHeader from './MobileHeader';
 import Footer from './Footer';
@@ -9,20 +9,6 @@ import SubscriptionAccessNotice from './SubscriptionAccessNotice';
 
 export default function DashboardLayout({ children, role, hideSidebar = false, hideFooter = false }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    setIsSidebarOpen(false);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div className="flex flex-col min-h-screen bg-[var(--bg-secondary)]">
-        <main className="flex w-full min-h-0 flex-1 flex-col">{children}</main>
-      </div>
-    );
-  }
 
   return (
     <div className={`flex flex-col min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-colors duration-500 relative overflow-x-hidden ${role === 'admin' ? 'admin-no-uppercase' : ''}`}>

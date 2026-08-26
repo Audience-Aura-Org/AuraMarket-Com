@@ -31,7 +31,7 @@ export default function TopNav() {
   const { walletBalance } = useWalletBalance();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const { unreadMessages, refresh: refreshNotifications } = useNotifications();
+  const { unreadMessages } = useNotifications();
   const { t } = useLanguage();
   const [cartCount, setCartCount] = useState(cartStore.getCount());
   const [mounted, setMounted] = useState(false);
@@ -47,25 +47,22 @@ export default function TopNav() {
       setCartCount(0);
       return;
     }
-    const fetchCounts = () => {
-      cartStore.refresh();
-      refreshNotifications();
-    };
+    const refreshCart = () => cartStore.refresh();
 
-    fetchCounts();
+    refreshCart();
 
     const unsubCart = cartStore.subscribe(({ count }) => {
       setCartCount(count);
     });
-    window.addEventListener('focus', fetchCounts);
-    document.addEventListener('visibilitychange', fetchCounts);
+    window.addEventListener('focus', refreshCart);
+    document.addEventListener('visibilitychange', refreshCart);
 
     return () => {
       unsubCart();
-      window.removeEventListener('focus', fetchCounts);
-      document.removeEventListener('visibilitychange', fetchCounts);
+      window.removeEventListener('focus', refreshCart);
+      document.removeEventListener('visibilitychange', refreshCart);
     };
-  }, [user?._id, refreshNotifications]);
+  }, [user?._id]);
 
   // Hide on auth, admin, vendor, logistics, wallet, and full-screen chat pages
   if (
