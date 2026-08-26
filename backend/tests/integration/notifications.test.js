@@ -79,6 +79,11 @@ describe('GET /notifications — list own notifications', () => {
     expect(res.body.count).toBe(0)
     expect(res.body.data.notifications).toHaveLength(0)
   })
+
+  it('supports security alerts emitted for account protection actions', async () => {
+    const notification = await makeNotification(userA._id, { type: 'security' })
+    expect(notification.type).toBe('security')
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────

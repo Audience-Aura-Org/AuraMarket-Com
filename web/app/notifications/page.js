@@ -95,7 +95,10 @@ export default function NotificationsPage() {
     fetchNotifications();
     clearBadge();
     const unsubscribe = notificationService.onPush((notif) => {
-      setNotifications(prev => [notif, ...prev]);
+      if (!notif?._id) return;
+      setNotifications(prev => (
+        prev.some(existing => existing._id === notif._id) ? prev : [notif, ...prev]
+      ));
     });
     return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
   }, [fetchNotifications, clearBadge]);

@@ -261,7 +261,10 @@ const sendNotification = async (app, recipientId, data) => {
       recipient: recipientId, title: localizedTitle, message: localizedMessage, type, metadata
     });
 
-    const io = app.get('io');
+    // Some background jobs (for example reservations) do not have an Express
+    // app instance. Persist and deliver the notification through the channels
+    // that are available instead of failing the entire notification dispatch.
+    const io = app?.get?.('io');
     // 🚀 REDUNDANCY GUARD: Chat messages already emit 'receive_message' in the controller.
     if (io && type !== 'message') {
       io.to(recipientId.toString()).emit('notification', notification);
