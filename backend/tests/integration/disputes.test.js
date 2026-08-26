@@ -323,6 +323,28 @@ describe('PATCH /admin/disputes/:id/resolve', () => {
     expect(res.body.message).toMatch(/already been resolved/i)
   })
 
+  it('rejects a resolution type without a complete settlement workflow', async () => {
+    const admin = await createAdmin()
+    const { order } = await setupHeldEscrow()
+    const customer = await User.findById(order.customer_id)
+    const dispute = await Dispute.create({
+      order_id: order._id,
+      initiator_id: customer._id,
+      reason: 'other',
+      description: 'Unsupported resolution regression.',
+      status: 'pending',
+    })
+
+    const res = await request(app)
+      .patch(`/api/v1/admin/disputes/${dispute._id}/resolve`)
+      .set(authHeader(signToken(admin)))
+      .send({ resolution_type: 'partial_refund' })
+
+    expect(res.status).toBe(400)
+    expect(res.body.message).toMatch(/unsupported dispute resolution/i)
+    expect((await Dispute.findById(dispute._id)).status).toBe('pending')
+  })
+
   it('blocks non-admin with 403', async () => {
     const dispute = await Dispute.create({
       order_id:     new mongoose.Types.ObjectId(),

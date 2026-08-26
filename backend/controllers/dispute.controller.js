@@ -123,6 +123,21 @@ const resolveDispute = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { resolution_type, admin_notes } = req.body; // 'full_refund' | 'release_payment' | 'rejected'
+    const supportedResolutions = new Set([
+      'full_refund',
+      'release_payment',
+      'food_full_refund',
+      'food_partial_refund',
+      'food_no_refund',
+    ]);
+    if (!supportedResolutions.has(resolution_type)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: 'Unsupported dispute resolution. Select a supported refund or release outcome.',
+      });
+    }
 
     const dispute = await Dispute.findById(id).populate('order_id').session(session);
     if (!dispute) {
@@ -139,6 +154,18 @@ const resolveDispute = async (req, res, next) => {
 
     const order = await Order.findById(dispute.order_id._id).session(session);
     const escrow = await Escrow.findOne({ order_id: order._id }).session(session);
+
+    const isFoodResolution = resolution_type.startsWith('food_');
+    if (isFoodResolution && escrow) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: 'Food dispute outcomes cannot be applied to an escrow order.' });
+    }
+    if (!isFoodResolution && !escrow) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: 'Escrow dispute outcomes require a held escrow record.' });
+    }
 
     const generateTxRef = () => `AURA-DISPUTE-${require('crypto').randomBytes(6).toString('hex').toUpperCase()}`;
 
