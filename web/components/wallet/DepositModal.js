@@ -6,7 +6,7 @@ import {
   ShieldCheck, Loader2, X, CheckCircle2, AlertTriangle,
   XCircle, RotateCcw, Smartphone, ExternalLink,
 } from 'lucide-react';
-import { initiateCollection, pollTransactionStatus } from '@/services/paymentProvider';
+import { initiateCollection, initiateSmartCameroonCollection, pollTransactionStatus } from '@/services/paymentProvider';
 import api from '@/services/api';
 
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
@@ -145,7 +145,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
       new Promise(r => setTimeout(r, Math.max(0, minMs - (Date.now() - processingStart))));
 
     let localRef = null;
-    const gw = gateway;
+    let gw = gateway;
 
     try {
       const payload = {
@@ -156,7 +156,11 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
         provider: gw === 'payunit' ? service : undefined,
       };
 
-      const res = await initiateCollection(gw, payload);
+      const res = gateway === 'pawapay'
+        ? await initiateSmartCameroonCollection(payload)
+        : await initiateCollection(gateway, payload);
+      gw = res.gateway || gateway;
+      if (gw !== gateway) setGateway(gw);
       await holdProcessing();
 
       if (res.success) {
@@ -167,7 +171,9 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
         setOrangeHosted(isOrange);
         setCheckoutUrl(hostedUrl);
         setMessage(
-          isOrange
+          res.fallbackUsed
+            ? 'PawaPay was unavailable, so we switched to PayUnit before creating a payment request.'
+            : isOrange
             ? 'Open the payment page below to authorize your Orange Money payment.'
             : 'Charge request sent. Awaiting approval on your phone...'
         );

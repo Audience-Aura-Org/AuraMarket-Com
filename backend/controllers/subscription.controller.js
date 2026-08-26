@@ -7,6 +7,7 @@ const UserSubscription = require('../models/UserSubscription.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const eversend = require('../services/eversend.service');
 const payunit = require('../services/payunit.service');
+const pawapay = require('../services/payment/gateways/pawapay.gateway');
 const {
   ensureDefaultSubscriptionPlan,
   getRoleRequirements,
@@ -156,14 +157,16 @@ const initializeSubscription = async (req, res, next) => {
       });
     }
 
-    const externalGateways = ['eversend', 'payunit'];
+    const externalGateways = ['eversend', 'payunit', 'pawapay'];
     if (!externalGateways.includes(payment_method)) {
-      return res.status(400).json({ success: false, message: 'Choose wallet, PayUnit, or Eversend to pay for this subscription.' });
+      return res.status(400).json({ success: false, message: 'Choose wallet, PawaPay, PayUnit, or Eversend to pay for this subscription.' });
     }
 
     const normalizedPhone = payment_method === 'payunit'
       ? payunit.normalizePhone(phone || req.user.phone, country)
-      : sanitizePhone(phone || req.user.phone, country);
+      : payment_method === 'pawapay'
+        ? pawapay.normalizePhone(phone || req.user.phone)
+        : sanitizePhone(phone || req.user.phone, country);
     if (!normalizedPhone) {
       return res.status(400).json({ success: false, message: 'Phone number is required for mobile money subscription payment.' });
     }
@@ -171,8 +174,11 @@ const initializeSubscription = async (req, res, next) => {
     const feeBreakdown = applyMobileMoneyCollectionFee(plan.price, payment_method, currency);
     // Orange Money CM hard-rejects transaction IDs longer than 20 characters (returns HTTP 417).
     // PayUnit ref: SU(2) + ms-timestamp(13) + userId-tail(5) = 20 chars exactly. Uppercase required.
+    const pawapayDepositId = payment_method === 'pawapay' ? crypto.randomUUID() : null;
     const transactionRef = payment_method === 'payunit'
       ? payunit.cleanTransactionId(('SU' + Date.now() + String(req.user._id).slice(-5)).toUpperCase())
+      : payment_method === 'pawapay'
+        ? `AURA-PP-${pawapayDepositId}`
       : generateSubscriptionRef(req.user._id);
 
     // Always use the configured public web URL — never allow localhost/capacitor origins
@@ -190,11 +196,11 @@ const initializeSubscription = async (req, res, next) => {
     // Idempotency guard for PayUnit: if user already has a recent pending
     // subscription payment for this plan, return that reference instead of
     // creating a duplicate that Orange Money will reject with 422.
-    if (payment_method === 'payunit') {
+    if (['payunit', 'pawapay'].includes(payment_method)) {
       const recentCutoff = new Date(Date.now() - 15 * 60 * 1000);
       const existingPending = await Transaction.findOne({
         user_id: req.user._id,
-        gateway: 'payunit',
+        gateway: payment_method,
         status: 'pending',
         'metadata.purpose': 'subscription',
         'metadata.plan_id': plan._id,
@@ -235,7 +241,8 @@ const initializeSubscription = async (req, res, next) => {
         net_amount: feeBreakdown.netAmount,
         collection_fee: feeBreakdown.collectionFee,
         gross_amount: feeBreakdown.grossAmount,
-        ...(payment_method === 'payunit' ? { phone: payunit.normalizePhoneIntl(phone || req.user.phone, country) } : {}),
+          ...(payment_method === 'payunit' ? { phone: payunit.normalizePhoneIntl(phone || req.user.phone, country) } : {}),
+          ...(payment_method === 'pawapay' ? { phone: normalizedPhone, depositId: pawapayDepositId } : {}),
       },
     });
 
@@ -342,6 +349,46 @@ const initializeSubscription = async (req, res, next) => {
           orange_hosted: false,
         },
       });
+    }
+
+    if (payment_method === 'pawapay') {
+      const correspondent = pawapay.detectProvider(normalizedPhone);
+      if (!pawapay.isSupportedCameroonProvider(correspondent)) {
+        await transaction.deleteOne();
+        return res.status(400).json({ success: false, message: 'PawaPay is currently available for MTN Mobile Money only. Please use PayUnit for Orange Money.' });
+      }
+      try {
+        const result = await pawapay.createDeposit({
+          depositId: pawapayDepositId,
+          amount: feeBreakdown.grossAmount,
+          currency,
+          correspondent,
+          phone: normalizedPhone,
+          description: 'Auradime subscription',
+        });
+        if (['REJECTED', 'FAILED'].includes(String(result?.status || '').toUpperCase())) {
+          await transaction.deleteOne();
+          return res.status(400).json({ success: false, message: result?.failureReason?.failureMessage || 'PawaPay rejected this subscription payment.' });
+        }
+        transaction.gateway_transaction_id = pawapayDepositId;
+        transaction.gateway_response = result;
+        await transaction.save();
+        return res.status(200).json({
+          success: true,
+          message: 'PawaPay subscription payment request sent.',
+          data: {
+            checkout_url: callbackUrl,
+            reference: transaction.reference,
+            transaction_id: pawapayDepositId,
+            amount: feeBreakdown.netAmount,
+            collection_fee: feeBreakdown.collectionFee,
+            gross_amount: feeBreakdown.grossAmount,
+          },
+        });
+      } catch (error) {
+        await transaction.deleteOne();
+        return res.status(error.response?.status || 502).json({ success: false, message: error.response?.data?.message || 'PawaPay subscription payment could not be initialized.' });
+      }
     }
 
     const result = await eversend.initiateCollection({

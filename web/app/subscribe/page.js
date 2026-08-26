@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/services/api';
+import { resolveCameroonMobileMoneyGateway } from '@/services/paymentProvider';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -133,15 +134,18 @@ function SubscribeContent() {
 
     setSubmitting(true);
     try {
+      const resolvedMethod = method === 'pawapay'
+        ? resolveCameroonMobileMoneyGateway(phone).gateway
+        : method;
       const res = await api.post('/subscriptions/initialize', {
         plan_id: selectedPlan._id,
         role,
-        payment_method: method,
+        payment_method: resolvedMethod,
         currency: selectedPlan.currency || 'XAF',
         phone,
         country: 'CM',
-        provider: method === 'payunit' ? provider : undefined,
-        redirect_url: `${window.location.origin}/wallet/verify?gateway=${method}&type=subscription&role=${encodeURIComponent(role)}`,
+        provider: resolvedMethod === 'payunit' ? resolveCameroonMobileMoneyGateway(phone).provider || provider : undefined,
+        redirect_url: `${window.location.origin}/wallet/verify?gateway=${resolvedMethod}&type=subscription&role=${encodeURIComponent(role)}`,
       });
 
       if (method === 'wallet') {
@@ -162,7 +166,7 @@ function SubscribeContent() {
           window.open(hostedUrl, '_blank', 'noopener,noreferrer');
           toast.success(t('subscription.orangeHosted', 'Orange payment page opened. Complete payment there, then wait here.'));
         }
-        router.push(`/wallet/verify?gateway=${method}&type=subscription&ref=${encodeURIComponent(ref)}&role=${encodeURIComponent(role)}`);
+        router.push(`/wallet/verify?gateway=${resolvedMethod}&type=subscription&ref=${encodeURIComponent(ref)}&role=${encodeURIComponent(role)}`);
       } else {
         toast.success(t('subscription.requestSent', 'Payment request sent.'));
       }

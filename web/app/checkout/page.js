@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
-import { initiateCollection, pollTransactionStatus } from '@/services/paymentProvider';
+import { initiateCollection, initiateSmartCameroonCollection, pollTransactionStatus } from '@/services/paymentProvider';
 import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
@@ -643,7 +643,7 @@ function CheckoutContent() {
           checkoutUrl: null,
         });
 
-        const evRes = await initiateCollection(gateway, {
+        const collectionPayload = {
            amount: totalAmount,
            currency: gatewayFields.currency || 'XAF',
            phone: gatewayFields.phone || formData.phone,
@@ -651,7 +651,11 @@ function CheckoutContent() {
            provider: gatewayFields.provider,
            order_ids: finalOrderIds,
            redirect_url: `${getPublicWebOrigin()}/wallet/verify?gateway=${gateway}&type=checkout`,
-        });
+        };
+        const evRes = gateway === 'pawapay'
+          ? await initiateSmartCameroonCollection(collectionPayload)
+          : await initiateCollection(gateway, collectionPayload);
+        const resolvedGateway = evRes.gateway || gateway;
 
         if (!evRes.success) {
           await markCreatedOrdersFailed(`${gatewayLabel} collection failed before payment completed.`, finalOrderIds);
@@ -674,7 +678,7 @@ function CheckoutContent() {
             message: isOrange
               ? 'Open the payment page below to authorize your Orange Money payment.'
               : 'Charge request sent. Approve the prompt on your phone...',
-            gateway,
+            gateway: resolvedGateway,
             phone: gatewayFields.phone || formData.phone,
             orangeHosted: isOrange,
             checkoutUrl: evRes.data?.checkout_url || null,
@@ -682,7 +686,7 @@ function CheckoutContent() {
           setLoading(false);
 
           pollTransactionStatus(
-            gateway,
+            resolvedGateway,
             ref,
             {
               onPending: (data) => setEversendCheckout((current) => ({
@@ -712,7 +716,7 @@ function CheckoutContent() {
               },
               onTimeout: () => {
                 setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' });
-                router.push(`/wallet/verify?gateway=${gateway}&type=checkout&ref=${ref}`);
+                router.push(`/wallet/verify?gateway=${resolvedGateway}&type=checkout&ref=${ref}`);
               },
             },
             3000,
