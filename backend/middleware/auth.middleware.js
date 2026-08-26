@@ -33,7 +33,9 @@ const getRequestToken = (req) => {
 };
 
 const isTokenVersionValid = (decoded, user) => {
-  if (decoded.tokenVersion === undefined) return true;
+  // Every access token must carry a session version. Accepting legacy tokens
+  // without it defeats logout/password-change revocation for their full TTL.
+  if (decoded.tokenVersion === undefined || decoded.tokenVersion === null) return false;
   return Number(decoded.tokenVersion) === Number(user.token_version || 0);
 };
 

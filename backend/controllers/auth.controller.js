@@ -318,8 +318,14 @@ const deleteAccount = async (req, res, next) => {
   }
 };
 
-const logout = async (_req, res, next) => {
+const logout = async (req, res, next) => {
   try {
+    // There is no separate refresh-token/session table yet, so incrementing the
+    // per-user version is the authoritative way to invalidate the presented
+    // access token (and any stolen tokens from the same session generation).
+    if (req.user?._id) {
+      await User.findByIdAndUpdate(req.user._id, { $inc: { token_version: 1 } });
+    }
     clearAuthCookie(res);
     res.status(200).json({
       success: true,
@@ -578,6 +584,8 @@ const changePassword = async (req, res, next) => {
     }
 
     user.password = new_password;
+    // Revoke every older session before issuing the replacement token below.
+    user.token_version = Number(user.token_version || 0) + 1;
     await user.save();
 
     sendTokenResponse(user, 200, res);

@@ -111,6 +111,22 @@ describe('Auth guard — token version / session invalidation', () => {
     expect(res.status).toBe(401)
     expect(res.body.message).toMatch(/session is no longer valid/i)
   })
+
+  it('rejects a legacy token without a tokenVersion claim', async () => {
+    const user = await createUser({ token_version: 0 })
+    const token = jwt.sign(
+      { id: user._id.toString(), role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    )
+
+    const res = await request(app)
+      .get('/api/v1/auth/me')
+      .set(authHeader(token))
+
+    expect(res.status).toBe(401)
+    expect(res.body.message).toMatch(/session is no longer valid/i)
+  })
 })
 
 // ── 3. Deactivated account ───────────────────────────────────────────────────

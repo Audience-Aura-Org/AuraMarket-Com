@@ -29,6 +29,21 @@ const validateEnv = () => {
     process.exit(1);
   }
 
+  // Access tokens are bearer credentials. Long-lived values turn a leaked token
+  // into a multi-year account takeover, and also make user-level revocation far
+  // less useful. Keep the production lifetime bounded until a rotating refresh
+  // token/session store is introduced.
+  const tokenLifetime = String(process.env.JWT_EXPIRES_IN || '24h').trim();
+  const lifetimeMatch = tokenLifetime.match(/^(\d+)\s*([smhd])$/i);
+  const unitMs = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 };
+  const lifetimeMs = lifetimeMatch
+    ? Number(lifetimeMatch[1]) * unitMs[lifetimeMatch[2].toLowerCase()]
+    : NaN;
+  if (process.env.NODE_ENV === 'production' && (!Number.isFinite(lifetimeMs) || lifetimeMs <= 0 || lifetimeMs > 30 * 86_400_000)) {
+    console.error('❌ JWT_EXPIRES_IN must be a positive duration of 30 days or less in production (recommended: 7d).');
+    process.exit(1);
+  }
+
   console.log('✅ Environment variables validated.');
 };
 

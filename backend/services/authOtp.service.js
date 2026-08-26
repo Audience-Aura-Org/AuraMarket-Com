@@ -5,7 +5,7 @@ const EmailLog = require('../models/EmailLog.model');
 const User = require('../models/User.model');
 const { sendEmail } = require('../utils/emailService');
 const { otpEmail } = require('../utils/emailTemplates');
-const { JWT_SECRET, WEB_CLIENT_URL } = require('../config/env');
+const { JWT_SECRET, JWT_EXPIRES_IN, WEB_CLIENT_URL } = require('../config/env');
 
 const OTP_TTL_MINUTES = 10;
 const OTP_MAX_ATTEMPTS = 3;
@@ -13,8 +13,15 @@ const OTP_COOLDOWN_MINUTES = 5;
 const OTP_RESEND_SECONDS = 60;
 const OTP_MAX_SENDS_PER_HOUR = 3;
 const OTP_SEND_WINDOW_MS = 60 * 60 * 1000;
-const SESSION_EXPIRES_IN = '1460d';
+const SESSION_EXPIRES_IN = JWT_EXPIRES_IN;
 const SIGNUP_TOKEN_EXPIRES_IN = '15m';
+
+const tokenLifetimeMs = (value) => {
+  const match = String(value || '').trim().match(/^(\d+)\s*([smhd])$/i);
+  if (!match) return 24 * 60 * 60 * 1000;
+  const multiplier = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[match[2].toLowerCase()];
+  return Number(match[1]) * multiplier;
+};
 
 const normalizeEmail = (email = '') => String(email).trim().toLowerCase();
 
@@ -79,7 +86,8 @@ const setAuthCookie = (res, token) => {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'none' : 'lax',
-    maxAge: 1460 * 24 * 60 * 60 * 1000,
+    // Keep browser cookie lifetime exactly aligned with the signed JWT.
+    maxAge: tokenLifetimeMs(SESSION_EXPIRES_IN),
     path: '/',
   });
 };
