@@ -11,19 +11,24 @@ const Coupon = require('../models/Coupon.model');
 const validateCoupon = async (req, res, next) => {
   try {
     const { code, orderAmount, vendorId } = req.body;
-    
-    const coupon = await Coupon.findOne({ code, is_active: true });
+    const normalizedCode = String(code || '').trim().toUpperCase();
+    const normalizedOrderAmount = Number(orderAmount);
+    if (!normalizedCode || !Number.isFinite(normalizedOrderAmount) || normalizedOrderAmount <= 0) {
+      return res.status(400).json({ success: false, message: 'A coupon code and valid order amount are required.' });
+    }
+
+    const coupon = await Coupon.findOne({ code: normalizedCode, is_active: true });
     
     if (!coupon) {
       return res.status(404).json({ success: false, message: 'Invalid or inactive coupon code.' });
     }
 
-    if (!coupon.isValid(orderAmount)) {
+    if (!coupon.isValid(normalizedOrderAmount)) {
       return res.status(400).json({ success: false, message: 'Coupon is expired or order total is insufficient.' });
     }
 
     // If coupon is vendor-specific, check if it matches the current vendor
-    if (coupon.vendor_id && vendorId && coupon.vendor_id.toString() !== vendorId) {
+    if (coupon.vendor_id && coupon.vendor_id.toString() !== String(vendorId || '')) {
       return res.status(400).json({ success: false, message: 'This coupon is not applicable for this vendor.' });
     }
 
@@ -31,11 +36,12 @@ const validateCoupon = async (req, res, next) => {
     if (coupon.discount_type === 'fixed') {
       discount = coupon.discount_value;
     } else {
-      discount = (orderAmount * coupon.discount_value) / 100;
+      discount = (normalizedOrderAmount * coupon.discount_value) / 100;
       if (coupon.max_discount_amount && discount > coupon.max_discount_amount) {
         discount = coupon.max_discount_amount;
       }
     }
+    discount = Math.min(discount, normalizedOrderAmount);
 
     res.status(200).json({
       success: true,
@@ -66,6 +72,9 @@ const createCoupon = async (req, res, next) => {
       // Find the vendor linked to this user
       const Vendor = require('../models/Vendor.model');
       const vendor = await Vendor.findOne({ user_id: req.user._id });
+      if (!vendor) {
+        return res.status(403).json({ success: false, message: 'Complete vendor onboarding before creating coupons.' });
+      }
       couponData.vendor_id = vendor._id;
     }
 

@@ -16,6 +16,10 @@ const trackAction = async (req, res, next) => {
     } = req.body;
 
     const user_id = req.user ? req.user._id : null;
+    const permittedActions = new Set(['view', 'wishlist', 'cart_add']);
+    if (!permittedActions.has(action_type)) {
+      return res.status(400).json({ success: false, message: 'Unsupported tracking action.' });
+    }
     
     // Create activity record
     const activity = await UserActivity.create({
@@ -33,7 +37,6 @@ const trackAction = async (req, res, next) => {
       let update = {};
       if (action_type === 'view') update.view_count = 1;
       if (action_type === 'wishlist') update.wishlist_count = 1;
-      if (action_type === 'purchase') update.purchase_count = 1;
       if (action_type === 'cart_add') update.cart_additions = 1;
 
       if (Object.keys(update).length > 0) {
