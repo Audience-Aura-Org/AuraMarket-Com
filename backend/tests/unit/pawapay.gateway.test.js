@@ -85,6 +85,16 @@ describe('detectProvider', () => {
   })
 })
 
+describe('isSupportedCameroonProvider', () => {
+  it('allows the provider enabled for the live PawaPay account', () => {
+    expect(pawapay.isSupportedCameroonProvider('MTN_MOMO_CMR')).toBe(true)
+  })
+
+  it('does not route Orange payments until Orange is enabled in PawaPay', () => {
+    expect(pawapay.isSupportedCameroonProvider('ORANGE_MONEY_CMR')).toBe(false)
+  })
+})
+
 // ─────────────────────────────────────────────────────────────────────────────
 // normalizeStatus (deposit/checkout)
 // ─────────────────────────────────────────────────────────────────────────────

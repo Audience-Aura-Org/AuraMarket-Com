@@ -1698,6 +1698,12 @@ const pawapayInitialize = async (req, res) => {
 
     // Resolve provider via auto-detection (always override client-supplied value)
     const correspondent = phone ? pawapay.detectProvider(phone) : (provider || 'MTN_MOMO_CMR');
+    if (!pawapay.isSupportedCameroonProvider(correspondent)) {
+      return res.status(400).json({
+        success: false,
+        message: 'PawaPay is currently available for MTN Mobile Money only. Please use PayUnit for Orange Money.',
+      });
+    }
 
     const result = await pawapay.initialize({
       user: req.user,

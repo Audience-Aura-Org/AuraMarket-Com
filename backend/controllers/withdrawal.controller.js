@@ -552,6 +552,14 @@ const adminApproveWithdrawal = async (req, res) => {
       }
 
       const correspondent = pawapay.detectProvider(phone);
+      if (!pawapay.isSupportedCameroonProvider(correspondent)) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({
+          success: false,
+          message: 'PawaPay payouts are currently available for MTN Mobile Money only. Use the PayUnit cashout flow for Orange Money.',
+        });
+      }
       const payoutId = crypto.randomUUID();
 
       let payoutResult;

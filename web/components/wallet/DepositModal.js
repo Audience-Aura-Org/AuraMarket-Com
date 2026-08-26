@@ -193,7 +193,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
             onTimeout: () => triggerTimeout(localRef, gw),
           },
           3000,   // poll every 3 seconds
-          110000, // 110 s before polling times out
+          300000, // mobile-money approval and callback delivery can take several minutes
         );
         stopPollingRef.current = stopFn;
       } else {
@@ -292,7 +292,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                   <label className="text-[10px] font-semibold tracking-tight opacity-30 ml-1">Deposit gateway</label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      { id: 'pawapay',  label: 'PawaPay',  sub: 'MTN / Orange', min: 'Primary' },
+                      { id: 'pawapay',  label: 'PawaPay',  sub: 'MTN MoMo', min: 'Primary' },
                       { id: 'payunit',  label: 'PayUnit',  sub: 'MTN / Orange', min: 'Fallback' },
                       { id: 'eversend', label: 'Eversend', sub: 'Multi-country', min: 'Min 500' },
                     ].map(node => (
@@ -363,9 +363,12 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                       <label className="text-[10px] font-semibold tracking-tight opacity-30">Network</label>
                       {pawapayNetwork && <span className="text-[9px] font-semibold text-emerald-500 opacity-70 tracking-tight">· auto-detected</span>}
                     </div>
-                    <div className={`h-10 rounded-xl border flex items-center justify-center font-semibold text-[10px] tracking-tight transition-all ${pawapayNetwork ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40'}`}>
-                      {pawapayNetwork || 'Enter phone number above'}
+                    <div className={`h-10 rounded-xl border flex items-center justify-center font-semibold text-[10px] tracking-tight transition-all ${pawapayNetwork === 'MTN MoMo' ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40'}`}>
+                      {pawapayNetwork === 'Orange Money' ? 'Orange: use PayUnit' : pawapayNetwork || 'Enter an MTN number above'}
                     </div>
+                    {pawapayNetwork === 'Orange Money' && (
+                      <p className="text-[10px] font-semibold text-amber-500/80">PawaPay Orange is not enabled yet. Select PayUnit for Orange Money.</p>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -389,7 +392,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
 
                 <button
                   onClick={handleInit}
-                  disabled={submitting || !amount || !phone}
+                  disabled={submitting || !amount || !phone || (gateway === 'pawapay' && pawapayNetwork === 'Orange Money')}
                   className="w-full h-12 bg-emerald-500 text-white rounded-xl font-semibold text-[11px] tracking-tight shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 mt-2 disabled:opacity-40"
                 >
                   {submitting ? <Loader2 className="size-5 animate-spin" /> : <ShieldCheck className="size-5" />}

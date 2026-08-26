@@ -42,7 +42,7 @@ export const initiateCollection = async (gateway, payload) => {
  * @param {string} gateway   - Gateway used
  * @param {string} reference - Transaction reference
  */
-export const pollTransactionStatus = (gateway, reference, { onPending, onSuccess, onFailed, onTimeout }, interval = 5000, maxDuration = 65000) => {
+export const pollTransactionStatus = (gateway, reference, { onPending, onSuccess, onFailed, onTimeout }, interval = 5000, maxDuration = 300000) => {
   let stopped = false;
   const startTime = Date.now();
 
