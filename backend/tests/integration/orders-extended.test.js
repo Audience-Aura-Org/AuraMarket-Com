@@ -161,6 +161,24 @@ describe('POST /orders/cart-split — multi-vendor checkout (Buy Now path)', () 
     expect(res.status).toBe(401)
   })
 
+  it('rejects a product deactivated after it was added to the cart', async () => {
+    await Product.findByIdAndUpdate(product._id, { status: 'inactive' })
+
+    const res = await request(app)
+      .post('/api/v1/orders/cart-split')
+      .set(authHeader(signToken(customer)))
+      .send({
+        items: [{ product_id: product._id.toString(), quantity: 1 }],
+        payment_method: 'pay_on_delivery',
+        shipping_method: 'vendor_managed',
+        shipping_address: shippingAddress(),
+      })
+
+    expect(res.status).toBe(400)
+    expect(res.body.message).toMatch(/no longer available/i)
+    expect(await Order.countDocuments({ customer_id: customer._id })).toBe(0)
+  })
+
   it('vendor cannot buy from their own store via cart-split', async () => {
     // vendorUser is both the seller and buyer — cart-split should strip own items → empty → 400
     const res = await request(app)

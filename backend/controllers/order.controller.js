@@ -1612,34 +1612,35 @@ const createOrdersFromCart = async (req, res, next) => {
       for (const it of items) {
         // Re-fetch product within the session so stock is current (prevents negative stock on concurrent orders)
         const p = await Product.findById(it.product._id).session(session);
-        if (p) {
-          const quantity = Number(it.quantity || 1);
-          if (p.is_meal === true) {
-            if (p.meal?.is_available_today === false) {
-              throw new Error(`"${p.name}" is not available today.`);
-            }
-            p.purchase_count = (p.purchase_count || 0) + quantity;
-          } else if (p.has_variants) {
-            const vMatch = findSelectedVariant(p, it.variant);
-            if (!vMatch) throw new Error(`Please select a valid variant for ${p.name}.`);
-            if (vMatch.stock < quantity) {
-              throw new Error(`Insufficient stock for ${p.name} (${variantLabel(it.variant)}). Available: ${vMatch.stock}`);
-            }
-            vMatch.stock -= quantity;
-            p.markModified('sku_variants');
-          } else if (p.stock < quantity) {
-            throw new Error(`Insufficient stock for ${p.name}. Available: ${p.stock}`);
+        if (!p || p.status !== 'active') {
+          throw new Error('A product in your cart is no longer available. Please refresh your cart and try again.');
+        }
+        const quantity = Number(it.quantity || 1);
+        if (p.is_meal === true) {
+          if (p.meal?.is_available_today === false) {
+            throw new Error(`"${p.name}" is not available today.`);
           }
-          if (p.is_meal !== true) {
-            p.stock -= quantity;
-            p.purchase_count = (p.purchase_count || 0) + quantity;
+          p.purchase_count = (p.purchase_count || 0) + quantity;
+        } else if (p.has_variants) {
+          const vMatch = findSelectedVariant(p, it.variant);
+          if (!vMatch) throw new Error(`Please select a valid variant for ${p.name}.`);
+          if (vMatch.stock < quantity) {
+            throw new Error(`Insufficient stock for ${p.name} (${variantLabel(it.variant)}). Available: ${vMatch.stock}`);
           }
-          await p.save({ session });
-          // Track preorder date
-          if (p.is_meal === true && p.meal?.available_date && !cartMealAvailableDate) {
-            const ad = new Date(p.meal.available_date);
-            if (ad > new Date()) cartMealAvailableDate = ad;
-          }
+          vMatch.stock -= quantity;
+          p.markModified('sku_variants');
+        } else if (p.stock < quantity) {
+          throw new Error(`Insufficient stock for ${p.name}. Available: ${p.stock}`);
+        }
+        if (p.is_meal !== true) {
+          p.stock -= quantity;
+          p.purchase_count = (p.purchase_count || 0) + quantity;
+        }
+        await p.save({ session });
+        // Track preorder date
+        if (p.is_meal === true && p.meal?.available_date && !cartMealAvailableDate) {
+          const ad = new Date(p.meal.available_date);
+          if (ad > new Date()) cartMealAvailableDate = ad;
         }
       }
 
