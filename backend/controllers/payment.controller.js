@@ -345,12 +345,14 @@ const payunitInitialize = async (req, res) => {
     // collection per subscriber" rule (which returns 422 on duplicate requests).
     if (phone) {
       const normalizedPhone = payunit.normalizePhoneIntl(phone, country);
+      const checkoutKey = buildCheckoutKey(order_ids);
       const recentCutoff = new Date(Date.now() - 15 * 60 * 1000);
       const existingPending = await Transaction.findOne({
         user_id: req.user._id,
         gateway: 'payunit',
         status: 'pending',
         'metadata.phone': normalizedPhone,
+        'metadata.checkout_key': checkoutKey,
         createdAt: { $gte: recentCutoff },
       }).sort({ createdAt: -1 });
       if (existingPending) {
@@ -480,6 +482,7 @@ const payunitInitialize = async (req, res) => {
         : `Wallet deposit via PayUnit (${currency})`,
       gateway_response: { initialize: init?.raw || null, makepayment: direct?.raw || null },
       metadata: {
+        checkout_key: buildCheckoutKey(order_ids),
         net_amount: feeBreakdown.netAmount,
         collection_fee: feeBreakdown.collectionFee,
         gross_amount: feeBreakdown.grossAmount,
@@ -1669,12 +1672,14 @@ const pawapayInitialize = async (req, res) => {
 
     // Idempotency guard: return existing pending deposit for this phone (within 15 min)
     const normalizedPhone = pawapay.normalizePhone(phone);
+    const checkoutKey = buildCheckoutKey(order_ids);
     const recentCutoff = new Date(Date.now() - 15 * 60 * 1000);
     const existingPending = await Transaction.findOne({
       user_id: req.user._id,
       gateway: 'pawapay',
       status: 'pending',
       'metadata.phone': normalizedPhone,
+      'metadata.checkout_key': checkoutKey,
       createdAt: { $gte: recentCutoff },
     }).sort({ createdAt: -1 });
 
@@ -1723,6 +1728,7 @@ const pawapayInitialize = async (req, res) => {
           'metadata.net_amount': feeBreakdown.netAmount,
           'metadata.collection_fee': feeBreakdown.collectionFee,
           'metadata.gross_amount': feeBreakdown.grossAmount,
+          'metadata.checkout_key': checkoutKey,
         },
       }
     );

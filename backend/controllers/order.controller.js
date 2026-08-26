@@ -365,6 +365,15 @@ const createOrder = async (req, res, next) => {
     // and initialise the kitchen status pipeline.
     const isFoodOrder = vendor.vendor_type === 'restaurant';
 
+    if (isFoodOrder && payment_method === 'escrow') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: 'Escrow is not available for meal orders. Use Aura Wallet or mobile money checkout.',
+      });
+    }
+
     // Validate fulfilment_type for food orders
     const VALID_FULFILMENT_TYPES = ['delivery', 'pickup', 'dine_in', 'pre_order'];
     if (isFoodOrder && fulfilment_type && !VALID_FULFILMENT_TYPES.includes(fulfilment_type)) {
@@ -1555,6 +1564,10 @@ const createOrdersFromCart = async (req, res, next) => {
       // Detect food order per vendor (cart can span multiple vendors, each gets own order)
       const cartVendor = await Vendor.findById(vendorId).select('vendor_type cancel_rate_hold cancel_rate_hold_override').lean().session(session);
       const isFoodOrderCart = cartVendor?.vendor_type === 'restaurant';
+
+      if (isFoodOrderCart && payment_method === 'escrow') {
+        throw new Error('Escrow is not available for meal orders. Use Aura Wallet or mobile money checkout.');
+      }
 
       // Step 5b — new-restaurant hold detection (per vendor in cart)
       // Hold applies if below initial order threshold OR cancel_rate_hold is active.

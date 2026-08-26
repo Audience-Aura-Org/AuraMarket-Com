@@ -135,6 +135,7 @@ function CheckoutContent() {
   const [preOrderDate, setPreOrderDate] = useState('');
   const deliveryQuartierTouchedRef = useRef(false);
   const profileHydratedRef = useRef(false);
+  const checkoutInFlightRef = useRef(false);
 
   const handleQuartierChange = (zone) => {
     const normalized = getZoneName({ name: zone });
@@ -481,6 +482,9 @@ function CheckoutContent() {
   }, [formData.payunit.phone, formData.paymentMethod]);
 
   const handlePlaceOrder = async () => {
+    // React state updates are asynchronous; this ref closes the small window
+    // where two fast taps could create two cart-split order batches.
+    if (checkoutInFlightRef.current) return;
     const currentCartItems = [...cartItems];
     const currentOrder = order;
     if ((currentOrder?.products || currentCartItems).length === 0) {
@@ -509,6 +513,10 @@ function CheckoutContent() {
     const isPawaPay = formData.paymentMethod === 'pawapay';
     const isExternal = isEversend || isPayUnit || isPawaPay;
     const isWalletPayment = formData.paymentMethod === 'wallet';
+    const containsMeals = currentCartItems.some((item) => item.is_meal || item.product?.is_meal) || Boolean(order?.food_status);
+    // Meals use the restaurant acceptance/refund pipeline rather than escrow.
+    // One derived value keeps the UI, order payload, and payment action aligned.
+    const effectiveEscrowEnabled = formData.escrowEnabled && !containsMeals;
     const computedCollectionFee = isExternal ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
     const totalAmount = computedOrderTotal + computedCollectionFee;
 
@@ -547,6 +555,7 @@ function CheckoutContent() {
     
     setBlockReason(null);
 
+    checkoutInFlightRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -574,12 +583,12 @@ function CheckoutContent() {
                full_name: formData.recipient_name || formData.name,
                landmark: formData.landmark || undefined,
             },
-            escrow_enabled: !isPayOnDelivery && formData.escrowEnabled,
+            escrow_enabled: !isPayOnDelivery && effectiveEscrowEnabled,
             payment_method: isPayOnDelivery ? 'pay_on_delivery'
               : isPayUnit ? 'payunit'
               : isEversend ? 'eversend'
               : isPawaPay ? 'pawapay'
-              : (formData.escrowEnabled ? 'escrow' : 'wallet'),
+              : (effectiveEscrowEnabled ? 'escrow' : 'wallet'),
             shipping_method: isVendorManagedDelivery ? 'vendor_managed' : 'logistics_partner',
             logistics_company_id: isVendorManagedDelivery ? null : formData.logistics_company_id,
             delivery_quartier: deliveryQuartier,
@@ -616,7 +625,7 @@ function CheckoutContent() {
       if (!isExternal) {
         for (const id of finalOrderIds) {
           if (isPayOnDelivery) continue;
-          if (formData.escrowEnabled) {
+          if (effectiveEscrowEnabled) {
             await api.post('/escrow/hold', { order_id: id });
           } else {
             await api.post(`/orders/${id}/pay-direct`);
@@ -736,7 +745,7 @@ function CheckoutContent() {
       if (isPayOnDelivery) {
         toast.success('Order placed. Payment will be settled on delivery.');
       } else {
-        toast.success(formData.paymentMethod === 'wallet' && formData.escrowEnabled ? 'Funds secured in Escrow Protocol.' : 'Direct payment completed successfully.');
+        toast.success(formData.paymentMethod === 'wallet' && effectiveEscrowEnabled ? 'Funds secured in Escrow Protocol.' : 'Direct payment completed successfully.');
       }
 
       setCheckoutTotals({
@@ -753,6 +762,7 @@ function CheckoutContent() {
       setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' });
       toast.error(msg);
     } finally {
+      checkoutInFlightRef.current = false;
       setLoading(false);
     }
 
@@ -834,7 +844,9 @@ function CheckoutContent() {
   const hasRetailItems = cartItems.some(it => !it.is_meal);
   const isPickupOrDineIn = ['pickup', 'dine_in'].includes(fulfilmentType) && !hasRetailItems;
   const isPreOrder = fulfilmentType === 'pre_order';
-  const isFoodOrder = !!fulfilmentType; // any non-null type = food order
+  const hasMealItems = cartItems.some(it => it.is_meal || it.product?.is_meal);
+  const isFoodOrder = hasMealItems || !!fulfilmentType;
+  const effectiveEscrowEnabled = formData.escrowEnabled && !isFoodOrder;
 
   const checkoutBlocked =
     (!isPickupOrDineIn && !deliveryQuartier) ||
@@ -1407,7 +1419,7 @@ function CheckoutContent() {
                               </AnimatePresence>
                            </div>
 
-                           {formData.paymentMethod !== 'pay_on_delivery' && (
+                           {formData.paymentMethod !== 'pay_on_delivery' && !isFoodOrder && (
                               <div className="mt-4 flex cursor-pointer items-center justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4 transition-all hover:border-[var(--accent)]/30"
                                    onClick={() => setFormData(prev => ({...prev, escrowEnabled: !prev.escrowEnabled}))}>
                                  <div className="flex items-center gap-4">
@@ -1519,10 +1531,10 @@ function CheckoutContent() {
                             <div className="flex items-center gap-4">
                               {formData.paymentMethod === 'pay_on_delivery'
                                  ? <Truck className="size-10 text-emerald-500" />
-                                 : (formData.escrowEnabled ? <ShieldCheck className="size-10 text-emerald-500" /> : <CreditCard className="size-10 text-emerald-500" />)}
+                                 : (effectiveEscrowEnabled ? <ShieldCheck className="size-10 text-emerald-500" /> : <CreditCard className="size-10 text-emerald-500" />)}
                                <div>
-                                  <p className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">{formData.paymentMethod === 'pay_on_delivery' ? 'Pay on Delivery' : (formData.escrowEnabled ? 'Escrow Secured' : 'Direct Payout')}</p>
-                                  <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">{formData.paymentMethod === 'pay_on_delivery' ? 'Payment after delivery confirmation' : (formData.escrowEnabled ? 'Handshake secured' : 'Immediate transfer protocol')}</p>
+                                  <p className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">{formData.paymentMethod === 'pay_on_delivery' ? 'Pay on Delivery' : (effectiveEscrowEnabled ? 'Escrow Secured' : 'Direct Payout')}</p>
+                                  <p className="text-xs font-medium text-[var(--text-secondary)] opacity-60">{formData.paymentMethod === 'pay_on_delivery' ? 'Payment after delivery confirmation' : (effectiveEscrowEnabled ? 'Handshake secured' : 'Immediate transfer protocol')}</p>
                                </div>
                             </div>
                              {selectedLogistics && (
@@ -1548,15 +1560,15 @@ function CheckoutContent() {
                       </div>
                       </div>
 
-                      <div className={`${formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'} relative flex items-start gap-4 overflow-hidden rounded-2xl border p-4`}>
-                         <div className={`absolute inset-y-0 left-0 w-1.5 ${formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? 'bg-amber-500/40' : 'bg-emerald-500/40'}`} />
-                         {formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? <ShieldAlert className="size-8 text-amber-500 shrink-0" /> : <Info className="size-8 text-emerald-500 shrink-0" />}
+                      <div className={`${effectiveEscrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? 'bg-amber-500/5 border-amber-500/10' : 'bg-emerald-500/5 border-emerald-500/10'} relative flex items-start gap-4 overflow-hidden rounded-2xl border p-4`}>
+                         <div className={`absolute inset-y-0 left-0 w-1.5 ${effectiveEscrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? 'bg-amber-500/40' : 'bg-emerald-500/40'}`} />
+                         {effectiveEscrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? <ShieldAlert className="size-8 text-amber-500 shrink-0" /> : <Info className="size-8 text-emerald-500 shrink-0" />}
                          <div className="space-y-2">
-                            <h5 className={`text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] ${formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? 'text-amber-600' : 'text-emerald-600'}`}>{formData.escrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? 'Smart Contract Disclosure' : 'Direct Payout Disclosure'}</h5>
+                            <h5 className={`text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] ${effectiveEscrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? 'text-amber-600' : 'text-emerald-600'}`}>{effectiveEscrowEnabled && formData.paymentMethod !== 'pay_on_delivery' ? 'Smart Contract Disclosure' : 'Direct Payout Disclosure'}</h5>
                             <p className="text-xs font-medium text-[var(--text-secondary)]">
                                {formData.paymentMethod === 'pay_on_delivery'
                                  ? <>By executing this order, payment stays pending and is completed on delivery confirmation for test logistics flow.</>
-                                 : formData.escrowEnabled
+                                 : effectiveEscrowEnabled
                                  ? <>By executing this order, you authorize the platform to hold <span className="text-[var(--text-primary)]  font-bold">{(totalAmount).toLocaleString()} XAF</span> in Escrow vault.</>
                                  : <>By executing this order, you authorize the immediate transfer of <span className="text-[var(--text-primary)]  font-bold">{(totalAmount).toLocaleString()} XAF</span> to the vendor's wallet.</>
                                }
