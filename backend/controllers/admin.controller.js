@@ -1669,12 +1669,37 @@ const updateTransactionStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { status, admin_note } = req.body;
-    
-    const transaction = await Transaction.findById(id);
-    if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+
+    const allowedStatuses = new Set(['pending', 'processing', 'completed', 'failed', 'cancelled']);
+    if (!allowedStatuses.has(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid transaction status.' });
+    }
+
+    let transaction;
+
+    // Claim a financial completion before reading its balance/order data. Two
+    // admins can otherwise both observe "pending" and credit the same deposit.
+    if (status === 'completed') {
+      transaction = await Transaction.findOneAndUpdate(
+        { _id: id, status: { $in: ['pending', 'failed'] } },
+        { $set: { status: 'processing' } },
+        { new: true },
+      );
+      if (!transaction) {
+        const existing = await Transaction.findById(id).select('status reference');
+        if (!existing) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+        return res.status(409).json({
+          success: false,
+          message: `Transaction ${existing.reference} is already ${existing.status} and cannot be completed again.`,
+        });
+      }
+    } else {
+      transaction = await Transaction.findById(id);
+      if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+    }
 
     // If marking as completed and it wasn't already completed
-    if (status === 'completed' && transaction.status !== 'completed') {
+    if (status === 'completed') {
       const user = await User.findById(transaction.user_id);
       if (!user) return res.status(404).json({ success: false, message: 'User mapping failed: recipient account not found.' });
 
