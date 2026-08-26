@@ -77,6 +77,10 @@ const initializeSubscription = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Admin accounts do not require subscriptions.' });
     }
 
+    if (role !== req.user.role) {
+      return res.status(403).json({ success: false, message: 'Subscriptions can only be purchased for your own account role.' });
+    }
+
     await ensureDefaultSubscriptionPlan();
     const plan = plan_id
       ? await SubscriptionPlan.findById(plan_id)

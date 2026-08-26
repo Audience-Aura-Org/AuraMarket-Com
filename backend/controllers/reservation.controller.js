@@ -93,7 +93,7 @@ const createReservation = async (req, res, next) => {
     // Notify restaurant
     setImmediate(async () => {
       try {
-        await sendNotification(null, vendor.user_id, {
+        await sendNotification(req.app, vendor.user_id, {
           title:   'New Reservation Request',
           message: `A reservation for ${party_size} on ${slotStart.toLocaleDateString()} has been requested.`,
           type:    'order_status',
@@ -242,7 +242,7 @@ const updateReservationStatus = async (req, res, next) => {
     if (notif) {
       setImmediate(async () => {
         try {
-          await sendNotification(null, reservation.customer_id, {
+          await sendNotification(req.app, reservation.customer_id, {
             ...notif, type: 'order_status',
             metadata: { target_id: reservation._id, link: `/reservations/${reservation._id}` },
           });
@@ -288,10 +288,13 @@ const cancelReservation = async (req, res, next) => {
     await reservation.save();
 
     // Notify the other party
-    const notifyId = isBuyer ? reservation.vendor_id : reservation.customer_id;
+    const recipientId = isBuyer
+      ? (await Vendor.findById(reservation.vendor_id).select('user_id').lean())?.user_id
+      : reservation.customer_id;
     setImmediate(async () => {
       try {
-        await sendNotification(null, notifyId, {
+        if (!recipientId) return;
+        await sendNotification(req.app, recipientId, {
           title:   'Reservation Cancelled',
           message: `A reservation for ${reservation.slot_start.toLocaleDateString()} has been cancelled.`,
           type:    'system_alert',
