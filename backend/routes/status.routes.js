@@ -18,15 +18,11 @@ router.post('/:id/view', protectOptional, viewStatus);
 
 router.use(protect); // Protect all write/private status routes
 
-// createStatus requires an active vendor subscription at both the route and controller level
-// to prevent subscription-less vendors from posting statuses (skip-package bug)
+// Create status requires an active vendor subscription at both the route and controller level.
 router.route('/')
   .post(requireActiveSubscription('vendor'), createStatus);
 
 router.get('/my-statuses', getMyStatuses);
-
-// Apply subscription requirement only to delete and react operations
-router.use(requireActiveSubscription());
 
 router.route('/:id')
   .delete(deleteStatus);

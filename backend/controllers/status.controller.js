@@ -1,9 +1,9 @@
 const Status = require('../models/Status.model');
 const Vendor = require('../models/Vendor.model');
 const Follow = require('../models/Follow.model');
-const Notification = require('../models/Notification.model');
 const { deleteS3ObjectByUrl } = require('../utils/s3');
 const { getSubscriptionStatus } = require('../services/subscription.service');
+const { sendNotification } = require('../utils/notifier');
 
 const STATUS_STORY_SELECT = [
   '_id',
@@ -248,8 +248,7 @@ exports.reactToStatus = async (req, res) => {
       // Notify Vendor (once per reaction)
       const vendor = await Vendor.findById(status.vendor_id);
       if (vendor) {
-        await Notification.create({
-          recipient: vendor.user_id,
+        await sendNotification(req.app, vendor.user_id, {
           title: 'New Status Reaction ❤️',
           message: `${req.user.name} liked your status update!`,
           type: 'vendor_update',

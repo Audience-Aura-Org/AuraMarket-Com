@@ -14,17 +14,27 @@ const { sendNotification } = require('../utils/notifier');
 const askQuestion = async (req, res, next) => {
   try {
     const { product_id, question_text } = req.body;
+    if (!product_id || !String(question_text || '').trim()) {
+      return res.status(400).json({ success: false, message: 'product_id and question_text are required.' });
+    }
+
+    const product = await Product.findOne({ _id: product_id, status: 'active' });
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found or unavailable.' });
+    }
+
+    const vendor = await Vendor.findById(product.vendor_id).select('user_id');
+    if (!vendor) {
+      return res.status(404).json({ success: false, message: 'Product vendor not found.' });
+    }
 
     const question = await Question.create({
       product_id,
       user_id: req.user._id,
-      question_text
+      question_text: String(question_text).trim(),
     });
 
     // Notify Vendor
-    const product = await Product.findById(product_id);
-    const vendor = await Vendor.findById(product.vendor_id);
-    
     await sendNotification(req.app, vendor.user_id, {
       title: 'New Product Question',
       message: `A buyer has a question about "${product.name}".`,
@@ -43,6 +53,9 @@ const askQuestion = async (req, res, next) => {
 const answerQuestion = async (req, res, next) => {
   try {
     const { answer_text } = req.body;
+    if (!String(answer_text || '').trim()) {
+      return res.status(400).json({ success: false, message: 'answer_text is required.' });
+    }
     const question = await Question.findById(req.params.id);
 
     if (!question) return res.status(404).json({ success: false, message: 'Question not found.' });
@@ -51,11 +64,11 @@ const answerQuestion = async (req, res, next) => {
     const product = await Product.findById(question.product_id);
     const vendor = await Vendor.findOne({ user_id: req.user._id });
 
-    if (!vendor || product.vendor_id.toString() !== vendor._id.toString()) {
+    if (!product || !vendor || product.vendor_id.toString() !== vendor._id.toString()) {
       return res.status(403).json({ success: false, message: 'Not authorized.' });
     }
 
-    question.answer_text = answer_text;
+    question.answer_text = String(answer_text).trim();
     question.answered_by = req.user._id;
     question.answered_at = new Date();
     await question.save();

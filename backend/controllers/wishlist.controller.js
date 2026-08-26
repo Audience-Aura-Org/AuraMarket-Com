@@ -1,4 +1,5 @@
 const Wishlist = require('../models/Wishlist.model');
+const Product = require('../models/Product.model');
 
 /**
  * controllers/wishlist.controller.js
@@ -38,6 +39,10 @@ const getWishlist = async (req, res, next) => {
 const toggleWishlist = async (req, res, next) => {
   try {
     const { productId } = req.params;
+    const product = await Product.findOne({ _id: productId, status: 'active' }).select('_id').lean();
+    if (!product) {
+      return res.status(404).json({ success: false, message: 'Product not found or unavailable.' });
+    }
     let wishlist = await Wishlist.findOne({ user_id: req.user._id });
 
     if (!wishlist) {
@@ -45,7 +50,7 @@ const toggleWishlist = async (req, res, next) => {
       return res.status(200).json({ success: true, message: 'Added to wishlist.', data: { wishlist, isWishlisted: true } });
     }
 
-    const index = wishlist.products.indexOf(productId);
+    const index = wishlist.products.findIndex((id) => id.toString() === productId.toString());
     let isWishlisted = false;
 
     if (index === -1) {
