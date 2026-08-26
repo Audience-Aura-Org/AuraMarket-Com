@@ -287,6 +287,20 @@ describe('PATCH /logistics/shipments/:id/status — status progression', () => {
     expect(res.body.message).toMatch(/Proof of delivery/i)
   })
 
+  it('rejects skipping directly from pending to delivered', async () => {
+    const order = await makeOrder()
+    const shipment = await makeShipment(order._id, { status: 'pending' })
+
+    const res = await request(app)
+      .patch(`/api/v1/logistics/shipments/${shipment._id}/status`)
+      .set(authHeader(signToken(logisticsUser)))
+      .send({ status: 'delivered', note: 'Attempted status skip' })
+
+    expect(res.status).toBe(400)
+    expect(res.body.message).toMatch(/invalid shipment transition/i)
+    expect((await Shipment.findById(shipment._id)).status).toBe('pending')
+  })
+
   it('rejects failed status without failure_reason', async () => {
     const order    = await makeOrder()
     const shipment = await makeShipment(order._id, { status: 'out_for_delivery' })

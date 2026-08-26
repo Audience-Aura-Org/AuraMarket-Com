@@ -390,6 +390,28 @@ const modifyShipmentStatus = async (req, res, next) => {
       throw new Error('Access denied.');
     }
 
+    const allowedTransitions = {
+      pending: ['assigned', 'cancelled'],
+      assigned: ['picked_up', 'failed', 'cancelled'],
+      picked_up: ['in_transit', 'failed', 'cancelled'],
+      in_transit: ['out_for_delivery', 'failed'],
+      out_for_delivery: ['delivered', 'failed'],
+      failed: ['assigned', 'cancelled'],
+      delivered: [],
+      cancelled: [],
+    };
+    if (!Object.hasOwn(allowedTransitions, status)) {
+      throw new Error('Invalid shipment status.');
+    }
+    if (shipment.status === status) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(200).json({ success: true, message: 'Shipment is already at this status.', data: { shipment } });
+    }
+    if (!allowedTransitions[shipment.status]?.includes(status)) {
+      throw new Error(`Invalid shipment transition: ${shipment.status} → ${status}.`);
+    }
+
     // Validation for Delivered status
     if (status === 'delivered') {
       if (!proof_image && !note) throw new Error('Proof of delivery (image or note) is required.');
