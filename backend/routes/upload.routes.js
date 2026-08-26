@@ -66,15 +66,6 @@ const pickUploadFile = (req, res, next) => {
 router.post(
   '/single',
   videoUploadLimiter,
-  // Debug: log request BEFORE multer processes
-  (req, res, next) => {
-    console.log('🔍 [MULTER-BEFORE] Request headers:', {
-      contentType: req.headers['content-type'],
-      contentLength: req.headers['content-length'],
-      transferEncoding: req.headers['transfer-encoding'],
-    });
-    next();
-  },
   // Multer field parser
   upload.fields([
     { name: 'image', maxCount: 1 },

@@ -147,26 +147,6 @@ const getVideoJobStatus = (req, res) => {
 const uploadSingle = async (req, res) => {
   if (!_app) _app = req.app;
   console.log(`📡 [API] Upload triggered - S3 Enabled: ${isS3Enabled()}`);
-  console.log(`📦 [API] Request Headers:`, {
-    contentType: req.headers['content-type'],
-    contentLength: req.headers['content-length'],
-    transferEncoding: req.headers['transfer-encoding'],
-    authorization: req.headers.authorization ? 'Bearer ...' : 'NONE',
-    allHeaders: Object.keys(req.headers).sort().join(', '),
-  });
-  console.log(`📦 [API] Request Method & Path:`, {
-    method: req.method,
-    url: req.url,
-    originalUrl: req.originalUrl,
-  });
-  console.log(`📦 [API] Multer Parse State:`, {
-    hasFile: !!req.file,
-    hasFiles: !!req.files,
-    filesKeys: req.files ? Object.keys(req.files) : 'NONE',
-    fileCount: req.files ? Object.values(req.files).reduce((sum, arr) => sum + (arr?.length || 0), 0) : 0,
-    bodyFields: req.body ? Object.keys(req.body) : 'NO BODY',
-  });
-  console.log(`📦 [API] req.files value:`, JSON.stringify(req.files, null, 2));
   
   if (!req.file) {
     console.error('❌ [API] No file provided in request');
@@ -418,11 +398,20 @@ const presignUpload = async (req, res) => {
     if (!contentType.startsWith('image/') && !contentType.startsWith('video/')) {
       return res.status(400).json({ success: false, message: 'Only image and video uploads are allowed.' });
     }
+    if (!['statuses', 'status-sources'].includes(folder)) {
+      return res.status(400).json({ success: false, message: 'Direct uploads are limited to status media.' });
+    }
     enforceUploadSize({ folder, contentType, size: fileSize });
+
+    // Source files are private work-in-progress assets. Scoping their object
+    // key to the caller makes the later processing request ownership-checkable.
+    const scopedFolder = folder === 'status-sources'
+      ? `status-sources/${req.user._id}`
+      : folder;
 
     const result = await createPresignedUpload({
       fileName,
-      folder,
+      folder: scopedFolder,
       contentType,
     });
 
@@ -458,10 +447,11 @@ const processVideoFromS3 = async (req, res) => {
   }
   // Security: normalize first, then check prefix — prevents path traversal (e.g. status-sources/../../../secret)
   const normalizedKey = path.posix.normalize(key);
-  if (!normalizedKey.startsWith('status-sources/') || normalizedKey.includes('..')) {
+  const ownedPrefix = `status-sources/${req.user?._id}/`;
+  if (!normalizedKey.startsWith(ownedPrefix) || normalizedKey.includes('..')) {
     return res.status(400).json({
       success: false,
-      message: 'Invalid key. Only status-sources objects may be processed.',
+      message: 'Invalid key. You may only process your own status source objects.',
     });
   }
   // Use the normalized key for all downstream operations
@@ -539,4 +529,3 @@ module.exports = {
   processVideoFromS3,
   getVideoJobStatus,
 };
-
