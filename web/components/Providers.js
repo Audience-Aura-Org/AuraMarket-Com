@@ -10,6 +10,7 @@ import OnboardingWatcher from '@/components/layout/OnboardingWatcher';
 import TopNav from '@/components/layout/TopNav';
 import SubscriptionAccessNotice from '@/components/layout/SubscriptionAccessNotice';
 import { ChatProvider } from '@/context/ChatContext';
+import { NotificationProvider } from '@/context/NotificationContext';
 import dynamic from 'next/dynamic';
 import SplashScreen from '@/components/layout/SplashScreen';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -121,6 +122,7 @@ export default function Providers({ children }) {
         }}
       />
       <ChatProvider>
+        <NotificationProvider>
         <SocketProvider>
           {/* PWA initializers — fully deferred */}
           <PWAInit />
@@ -151,6 +153,7 @@ export default function Providers({ children }) {
           {/* Global chat overlay — deferred, heavy */}
           {!isAuthRoute && <GlobalChatOverlay />}
         </SocketProvider>
+        </NotificationProvider>
       </ChatProvider>
       </UploadQueueProvider>
       </LanguageProvider>
