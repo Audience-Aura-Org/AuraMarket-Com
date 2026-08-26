@@ -116,13 +116,6 @@ export const useAuthStore = create(
             __skipRetry: true,
           });
 
-          console.log('[useAuth] ===== API verifyOtp FULL RESPONSE =====');
-          console.log('[useAuth] Status:', res.status);
-          console.log('[useAuth] Entire res.data:', JSON.stringify(res.data, null, 2));
-          console.log('[useAuth] res.data.token exists?', !!res.data?.token);
-          console.log('[useAuth] res.data.data?.token exists?', !!res.data?.data?.token);
-          console.log('[useAuth] ===== END RESPONSE =====');
-
           const signupRequired =
             Boolean(res.data?.signup_required) ||
             Boolean(res.data?.signupRequired) ||
@@ -143,9 +136,6 @@ export const useAuthStore = create(
 
           const token = res.data?.token || res.data?.data?.token || null;
           const user = res.data?.data?.user || res.data?.user || null;
-          
-          console.log('[useAuth] OTP verification response - token:', token ? 'present' : 'NULL');
-          console.log('[useAuth] OTP verification response - user:', user?.email || 'null');
           
           if (!user) {
             throw new Error('No user returned after verification.');

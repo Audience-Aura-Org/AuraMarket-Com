@@ -7,10 +7,9 @@
  * getMe()    → return the current logged-in user
  */
 
-const jwt = require('jsonwebtoken');
 const User = require('../models/User.model');
 const KYC = require('../models/KYC.model');
-const { JWT_SECRET, JWT_EXPIRES_IN, SUPPORT_ADMIN_EMAIL } = require('../config/env');
+const { SUPPORT_ADMIN_EMAIL } = require('../config/env');
 const { normalizeUserMedia } = require('../utils/media');
 const { notifyAdmins } = require('../utils/notifier');
 const AuthOtp = require('../models/AuthOtp.model');
@@ -35,21 +34,10 @@ const getAuthenticator = async () => {
 };
 
 // ─────────────────────────────────────────────
-// Helper: Sign a JWT for a given user ID
-// ─────────────────────────────────────────────
-const signToken = (id) => {
-  return jwt.sign({ id, type: 'auth' }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-};
-
-// ─────────────────────────────────────────────
 // Helper: Send token response
 // ─────────────────────────────────────────────
 const sendTokenResponse = (user, statusCode, res) => {
   const token = createAuthToken(user);
-  console.log('[auth.controller] sendTokenResponse called');
-  console.log('[auth.controller] token created:', token ? `${token.substring(0, 30)}...` : 'NULL');
-  console.log('[auth.controller] user email:', user?.email);
-  
   setAuthCookie(res, token);
 
   // Remove password from output (extra safety)
@@ -63,9 +51,6 @@ const sendTokenResponse = (user, statusCode, res) => {
     data: { user: userObj },
   };
   
-  console.log('[auth.controller] Sending response with token:', token ? 'YES' : 'NO');
-  console.log('[auth.controller] Response payload keys:', Object.keys(responsePayload));
-
   res.status(statusCode).json(responsePayload);
 };
 

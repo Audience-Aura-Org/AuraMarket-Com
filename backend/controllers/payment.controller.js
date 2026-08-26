@@ -643,7 +643,9 @@ const payunitWebhook = async (req, res) => {
       .createHmac('sha256', PAYUNIT_WEBHOOK_SECRET)
       .update(rawBody)
       .digest('hex');
-    if (!crypto.timingSafeEqual(Buffer.from(receivedSig), Buffer.from(expectedSig))) {
+    const receivedSigBuffer = Buffer.from(receivedSig);
+    const expectedSigBuffer = Buffer.from(expectedSig);
+    if (receivedSigBuffer.length !== expectedSigBuffer.length || !crypto.timingSafeEqual(receivedSigBuffer, expectedSigBuffer)) {
       console.warn('[PayUnit Webhook] Invalid signature — rejecting');
       return res.status(401).send('Unauthorized');
     }

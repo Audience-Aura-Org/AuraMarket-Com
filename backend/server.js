@@ -31,6 +31,7 @@ const cors = require('cors');
 const http = require('http');
 const path = require('path');
 const compression = require('compression');
+const mongoose = require('mongoose');
 
 // ─────────────────────────────────────────────
 // 3. Config imports
@@ -177,10 +178,12 @@ app.use(setLocale);
 // 8. Health Check Route
 // ─────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
+  const mongoReady = mongoose.connection.readyState === 1;
+  res.status(mongoReady ? 200 : 503).json({
+    success: mongoReady,
     message: '🚀 Auradime API is running',
     environment: NODE_ENV,
+    mongodb: { status: mongoReady ? 'ready' : 'unavailable' },
     redis: getRedisStatus(),
     timestamp: new Date().toISOString(),
   });

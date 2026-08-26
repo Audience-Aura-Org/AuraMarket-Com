@@ -81,26 +81,30 @@ const securityHeaders = (req, res, next) => {
 const normalizeOrigin = (origin = '') => origin.replace(/\/$/, '').toLowerCase();
 
 const createAllowedOrigins = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
   const origins = [
     'https://auradime.com',
     'https://www.auradime.com',
     'https://api.auradime.com',
     'https://space.audienceaura.org',
-    'http://localhost',
-    'http://localhost:3000',
-    'http://localhost:5000',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:5000',
-    'http://10.0.2.2:3000',
-    'http://10.0.2.2:5000',
     'capacitor://localhost',
     process.env.WEB_CLIENT_URL,
     process.env.NEXT_PUBLIC_FRONTEND_URL,
   ].filter(Boolean);
 
-  for (const ip of getLocalIPs()) {
-    origins.push(`http://${ip}:3000`);
-    origins.push(`http://${ip}:5000`);
+  if (!isProduction) {
+    origins.push(
+      'http://localhost', 'http://localhost:3000', 'http://localhost:5000',
+      'http://127.0.0.1:3000', 'http://127.0.0.1:5000',
+      'http://10.0.2.2:3000', 'http://10.0.2.2:5000',
+    );
+  }
+
+  if (!isProduction) {
+    for (const ip of getLocalIPs()) {
+      origins.push(`http://${ip}:3000`);
+      origins.push(`http://${ip}:5000`);
+    }
   }
 
   return new Set(origins.map(normalizeOrigin));
@@ -115,10 +119,12 @@ const isAllowedOrigin = (origin, allowedOrigins = createAllowedOrigins()) => {
   try {
     const { hostname, protocol } = new URL(normalized);
     if (protocol === 'capacitor:') return hostname === 'localhost';
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '10.0.2.2') return true;
-    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
-    if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
-    if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    if (process.env.NODE_ENV !== 'production') {
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '10.0.2.2') return true;
+      if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+      if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+      if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+    }
     if (hostname === 'auradime.com' || hostname.endsWith('.auradime.com')) return true;
     // NOTE: *.vercel.app wildcard removed — add specific preview URLs via WEB_CLIENT_URL env var.
   } catch (error) {

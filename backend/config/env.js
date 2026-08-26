@@ -44,6 +44,14 @@ const validateEnv = () => {
     process.exit(1);
   }
 
+  // A Content-Digest proves only that a request body was not modified in
+  // transit; it does not prove who created it. Production PawaPay callbacks
+  // must therefore use PawaPay's public key for RFC-9421 verification.
+  if (process.env.NODE_ENV === 'production' && process.env.PAWAPAY_API_TOKEN && !process.env.PAWAPAY_WEBHOOK_PUBLIC_KEY) {
+    console.error('❌ PAWAPAY_WEBHOOK_PUBLIC_KEY is required when PawaPay is enabled in production.');
+    process.exit(1);
+  }
+
   console.log('✅ Environment variables validated.');
 };
 
@@ -94,8 +102,8 @@ module.exports = {
   // PawaPay Mobile Money (Cameroon — MTN/Orange)
   PAWAPAY_API_TOKEN: process.env.PAWAPAY_API_TOKEN,
   PAWAPAY_SANDBOX_MODE: process.env.PAWAPAY_SANDBOX_MODE === 'true',
-  // Optional: PawaPay RSA public key in PEM format for full RFC-9421 webhook signature verification.
-  // If unset, only Content-Digest (body hash) is verified on incoming callbacks.
+  // PawaPay ECDSA P-256 public key in PEM format for RFC-9421 webhook signature verification.
+  // Required when PawaPay is enabled in production.
   PAWAPAY_WEBHOOK_PUBLIC_KEY: process.env.PAWAPAY_WEBHOOK_PUBLIC_KEY || null,
   // Set to 'true' in production to enforce PawaPay's known callback IP allowlist
   // as an extra security layer on top of Content-Digest verification.
