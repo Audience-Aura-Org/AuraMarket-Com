@@ -23,8 +23,8 @@ export default defineConfig({
     hookTimeout: 15_000,
 
     // ── Global setup: starts MongoMemoryReplSet, sets env vars ───────────────
-    // Runs once across the entire vitest run, before any project setups.
-    globalSetup: ['./tests/globalSetup.js'],
+    // Moved into per-project config so unit tests can run without MongoDB.
+    // globalSetup: ['./tests/globalSetup.js'],
 
     // ── Coverage ─────────────────────────────────────────────────────────────
     coverage: {
@@ -65,6 +65,7 @@ export default defineConfig({
           globals: true,
           environment: 'node',
           pool: 'forks',
+          setupFiles: ['./tests/setup/unit-env.js'],
         },
       },
 
@@ -81,6 +82,7 @@ export default defineConfig({
           globals: true,
           environment: 'node',
           pool: 'forks',
+          globalSetup: ['./tests/globalSetup.js'],
           setupFiles: [
             './tests/setup/redis.js',
             './tests/setup/db.js',
@@ -102,6 +104,7 @@ export default defineConfig({
           globals: true,
           environment: 'node',
           pool: 'forks',
+          globalSetup: ['./tests/globalSetup.js'],
           setupFiles: [
             './tests/setup/redis.js',
             './tests/setup/db.js',

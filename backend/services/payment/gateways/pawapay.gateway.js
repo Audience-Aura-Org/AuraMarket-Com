@@ -415,6 +415,7 @@ const pawapayGateway = {
   detectProvider,
   normalizeStatus,
   normalizePawaPayoutStatus,
+  formatAmount,
   createDeposit,
   getDepositStatus,
   createCheckout,
