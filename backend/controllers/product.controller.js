@@ -263,7 +263,9 @@ const getProducts = async (req, res, next) => {
 
     const parsedQuery = JSON.parse(queryStr);
     parsedQuery.status = 'active';
-    parsedQuery.meal = null; // Exclude meal products from retail product listings (Step 10)
+    // `meal` is a nested schema object; use the explicit discriminator so
+    // retail discovery neither hides valid products nor leaks meals.
+    parsedQuery.is_meal = { $ne: true };
 
     if (req.query.minPrice !== undefined || req.query.maxPrice !== undefined) {
       const priceQuery = {};
@@ -484,7 +486,7 @@ const updateProduct = async (req, res, next) => {
     });
 
     // StockWatch alerts are meaningless for meals — meals don't use the stock field.
-    if (!product.meal && oldStock === 0 && newStock > 0) {
+    if (product.is_meal !== true && oldStock === 0 && newStock > 0) {
       const watchers = await StockWatch.find({ product_id: product._id }).select('user_id').lean();
       if (watchers.length) {
         // Bulk-delete all watch records first, then fan out notifications in parallel.

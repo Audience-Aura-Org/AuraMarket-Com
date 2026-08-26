@@ -286,8 +286,9 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
     await order.save({ session });
   }
 
-  // Create logistics shipment if needed
-  if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
+  // A food delivery is dispatched only after kitchen acceptance. Gateway
+  // confirmation must not assign a rider to a meal that can still be rejected.
+  if (!order.food_status && order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
     const quartier = order.shipping_address?.quartier;
     if (quartier) {
       const existing = await Shipment.findOne({ order_id: order._id }).session(session);
@@ -464,7 +465,8 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
       await order.save({ session });
     }
 
-    if (order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
+    // Keep bulk checkout settlement identical to single-order settlement.
+    if (!order.food_status && order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
       const quartier = order.shipping_address?.quartier;
       if (quartier) {
         const existing = await Shipment.findOne({ order_id: order._id }).session(session);

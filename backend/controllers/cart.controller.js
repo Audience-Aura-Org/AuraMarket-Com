@@ -59,7 +59,9 @@ const addToCart = async (req, res, next) => {
     }
 
     // ── Food/retail context constraints ──────────────────────────────────────
-    const isMeal = !!(product.meal);
+    // `meal` is a nested schema object and can exist even for retail products.
+    // `is_meal` is the persisted, authoritative discriminator.
+    const isMeal = product.is_meal === true;
     const productVendorId = product.vendor_id.toString();
 
     let cart = await Cart.findOne({ user_id: userId });
@@ -205,7 +207,7 @@ const updateCartQty = async (req, res, next) => {
     
     // Check stock for the new quantity
     const product = await Product.findById(item.product).lean();
-    if (product) {
+    if (product && product.is_meal !== true) {
       if (product.has_variants && item.variant) {
         const targetVariant = product.sku_variants?.find(v => 
           JSON.stringify(v.combination) === JSON.stringify(item.variant)
@@ -259,7 +261,7 @@ const removeFromCart = async (req, res, next) => {
     ).populate({ path: 'items.product', populate: { path: 'vendor_id', select: 'store_name' } });
 
     // Clear food context if cart is now empty
-    if (cart && cart.items.length === 0 && cart.context_vendor_id) {
+    if (cart && cart.items.length === 0 && (cart.context_vendor_id || cart.context_booking_type)) {
       await Cart.updateOne(
         { _id: cart._id },
         { $set: { context_vendor_id: null, context_booking_type: null, scheduled_for: null } }

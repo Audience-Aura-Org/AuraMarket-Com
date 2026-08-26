@@ -190,6 +190,25 @@ const createOrder = async (req, res, next) => {
       });
     }
 
+    // Direct order creation is still used by parts of the app and integrations.
+    // Apply the same restaurant-open gate as cart checkout before reserving any
+    // product or wallet state.
+    if (vendor.vendor_type === 'restaurant') {
+      const RestaurantProfile = require('../models/RestaurantProfile.model');
+      const profile = await RestaurantProfile.findOne({ vendor_id: vendor._id })
+        .select('is_accepting_orders opening_hours')
+        .lean();
+      const { computeOpenStatus } = require('./restaurant.controller');
+      if (!profile?.is_accepting_orders || computeOpenStatus(profile.opening_hours).open_status !== 'open') {
+        session.endSession();
+        return res.status(409).json({
+          success: false,
+          code: 'RESTAURANT_CLOSED',
+          message: 'This restaurant is not accepting orders right now.',
+        });
+      }
+    }
+
     // 2. Calculate Subtotal & Verify Stock atomically
     let subtotal = 0;
     const validatedProducts = [];
@@ -200,7 +219,23 @@ const createOrder = async (req, res, next) => {
       const quantity = Number(item.quantity) || 1;
       if (quantity < 1) throw new Error(`Invalid quantity for product ${item.product_id}.`);
 
-      // ── Atomic stock deduction ─────────────────────────────────────────────
+      // Meals are made to order, so stock is not their availability control.
+      // Retail stock remains atomically guarded to prevent overselling.
+      const mealCandidate = await Product.findById(item.product_id).session(session);
+      if (!mealCandidate || mealCandidate.status !== 'active') {
+        throw new Error(`Product ${item.product_id} is unavailable.`);
+      }
+      if (mealCandidate.is_meal === true && mealCandidate.meal?.is_available_today === false) {
+        throw new Error(`"${mealCandidate.name}" is not available today.`);
+      }
+
+      let product;
+      if (mealCandidate.is_meal === true) {
+        product = mealCandidate;
+        product.purchase_count = (product.purchase_count || 0) + quantity;
+        await product.save({ session });
+      } else {
+      // ── Atomic retail stock deduction ──────────────────────────────────────
       // Build the variant filter if a variant is selected
       const variantId = item.variant?.variant_id || item.variant?._id;
       let atomicFilter, atomicUpdate;
@@ -232,7 +267,7 @@ const createOrder = async (req, res, next) => {
         };
       }
 
-      const product = await Product.findOneAndUpdate(
+      product = await Product.findOneAndUpdate(
         atomicFilter,
         atomicUpdate,
         { session, new: true },
@@ -248,11 +283,12 @@ const createOrder = async (req, res, next) => {
       }
 
       product.markModified('sku_variants');
+      }
 
       const { quantity: _q, itemPrice, regularPrice, salePrice, compare_at_price, itemImage } = resolveOrderLine(product, item);
 
       // Low stock alert (in-app only) — suppressed for meal products
-      if (!product.meal && product.stock < 5) {
+      if (product.is_meal !== true && product.stock < 5) {
         setImmediate(async () => {
           try {
             await sendNotification(req.app, vendor.user_id, {
@@ -551,9 +587,11 @@ const createOrder = async (req, res, next) => {
       await handleVendorPayout(createdOrder, session);
     }
 
-    // 5. Create shipment for logistics_partner orders (POD or wallet)
+    // Retail orders can be assigned immediately. Food deliveries wait until
+    // kitchen acceptance, when updateFoodStatus owns rider dispatch.
     let logisticsCompForNotify = null;
     if (
+      !isFoodOrder &&
       normalizedShippingMethod === 'logistics_partner' &&
       logistics_company_id &&
       ['pay_on_delivery', 'wallet'].includes(payment_method)
@@ -574,7 +612,7 @@ const createOrder = async (req, res, next) => {
     session.endSession();
 
     // 7. Background Notifications (non-blocking)
-    if (payment_method === 'pay_on_delivery') {
+    if (payment_method === 'pay_on_delivery' || (isFoodOrder && payment_method === 'wallet')) {
       setImmediate(async () => {
         try {
           const orderWithVendor = createdOrder.toObject();
@@ -582,8 +620,12 @@ const createOrder = async (req, res, next) => {
 
           // 1. Notify Vendor
           sendNotification(req.app, vendor.user_id, {
-            title: 'New Order Received (POD)',
-            message: `New Pay-on-Delivery order (#${createdOrder._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
+            title: isFoodOrder ? 'New Paid Meal — Acceptance Required' : payment_method === 'wallet' ? 'New Paid Order' : 'New Order Received (POD)',
+            message: isFoodOrder
+              ? `Meal order #${createdOrder._id.toString().slice(-6).toUpperCase()} is paid and waiting for kitchen acceptance.`
+              : payment_method === 'wallet'
+                ? `Order #${createdOrder._id.toString().slice(-6).toUpperCase()} has been paid from Aura Wallet.`
+                : `New Pay-on-Delivery order (#${createdOrder._id.toString().slice(-6).toUpperCase()}) from ${req.user.name}.`,
             type: 'order_status',
             metadata: { order_id: createdOrder._id, link: '/vendor/orders' },
             sendEmail: true,
@@ -633,8 +675,10 @@ const createOrder = async (req, res, next) => {
           // 4. Notify Admins — POD orders don't go through settle.service.js so admins
           //    would otherwise never hear about them until the dashboard is refreshed.
           notifyAdmins(req.app, {
-            title:   'New POD Order',
-            message: `Order #${createdOrder._id.toString().slice(-6).toUpperCase()} — Pay-on-Delivery — placed by ${req.user.name} (${Number(createdOrder.total_amount || 0).toLocaleString()} XAF) at ${vendor.store_name || 'unknown store'}.`,
+            title:   isFoodOrder ? 'New Paid Meal Order' : payment_method === 'wallet' ? 'New Paid Order' : 'New POD Order',
+            message: isFoodOrder
+              ? `Meal order #${createdOrder._id.toString().slice(-6).toUpperCase()} is paid and awaiting restaurant acceptance.`
+              : `Order #${createdOrder._id.toString().slice(-6).toUpperCase()} — ${payment_method === 'wallet' ? 'wallet paid' : 'Pay-on-Delivery'} — placed by ${req.user.name} (${Number(createdOrder.total_amount || 0).toLocaleString()} XAF) at ${vendor.store_name || 'unknown store'}.`,
             type:    'order_status',
             metadata: { order_id: createdOrder._id, link: `/admin/orders/${createdOrder._id}` },
             orderDetails: orderWithVendor,
@@ -1492,7 +1536,7 @@ const createOrdersFromCart = async (req, res, next) => {
       }
 
       for (const it of items) {
-        if (!it.product?.meal) continue;
+        if (it.product?.is_meal !== true) continue;
         if (it.product.meal.is_available_today === false) {
           await session.abortTransaction();
           session.endSession();
@@ -1557,7 +1601,12 @@ const createOrdersFromCart = async (req, res, next) => {
         const p = await Product.findById(it.product._id).session(session);
         if (p) {
           const quantity = Number(it.quantity || 1);
-          if (p.has_variants) {
+          if (p.is_meal === true) {
+            if (p.meal?.is_available_today === false) {
+              throw new Error(`"${p.name}" is not available today.`);
+            }
+            p.purchase_count = (p.purchase_count || 0) + quantity;
+          } else if (p.has_variants) {
             const vMatch = findSelectedVariant(p, it.variant);
             if (!vMatch) throw new Error(`Please select a valid variant for ${p.name}.`);
             if (vMatch.stock < quantity) {
@@ -1568,11 +1617,13 @@ const createOrdersFromCart = async (req, res, next) => {
           } else if (p.stock < quantity) {
             throw new Error(`Insufficient stock for ${p.name}. Available: ${p.stock}`);
           }
-          p.stock -= quantity;
-          p.purchase_count = (p.purchase_count || 0) + quantity;
+          if (p.is_meal !== true) {
+            p.stock -= quantity;
+            p.purchase_count = (p.purchase_count || 0) + quantity;
+          }
           await p.save({ session });
           // Track preorder date
-          if (p.meal?.available_date && !cartMealAvailableDate) {
+          if (p.is_meal === true && p.meal?.available_date && !cartMealAvailableDate) {
             const ad = new Date(p.meal.available_date);
             if (ad > new Date()) cartMealAvailableDate = ad;
           }
@@ -1734,7 +1785,9 @@ const createOrdersFromCart = async (req, res, next) => {
 
       createdOrderIds.push(newOrder._id);
 
-      if (['pay_on_delivery', 'wallet'].includes(payment_method) && normalizedShippingMethod === 'logistics_partner' && logistics_company_id) {
+      // A meal must be accepted before dispatch; creating it here would bypass
+      // the preparation and delayed-rider-dispatch workflow.
+      if (!isFoodOrderCart && ['pay_on_delivery', 'wallet'].includes(payment_method) && normalizedShippingMethod === 'logistics_partner' && logistics_company_id) {
         await logisticsService.createShipmentsForOrder(newOrder, deliveryZone, logistics_company_id, session);
       }
     }
@@ -1759,7 +1812,7 @@ const createOrdersFromCart = async (req, res, next) => {
 
     // Background notifications
     const webUrl = getWebUrl(req);
-    if (payment_method === 'pay_on_delivery') {
+    if (payment_method === 'pay_on_delivery' || payment_method === 'wallet') {
       setImmediate(async () => {
         for (const orderId of createdOrderIds) {
           const o = await Order.findById(orderId);
@@ -1767,9 +1820,14 @@ const createOrdersFromCart = async (req, res, next) => {
           if (!v) continue; // vendor record removed — skip notification
           // Provide full order details and a link so notifier builds a styled HTML email
           const orderForEmail = o.toObject();
+          const isPaidMeal = o.food_status === 'pending_acceptance' && o.payment_status === 'paid';
           sendNotification(req.app, v.user_id, {
-            title: 'New Order Received',
-            message: `Order #${o._id.toString().slice(-6)} received (POD).`,
+            title: isPaidMeal ? 'New Paid Meal — Acceptance Required' : payment_method === 'wallet' ? 'New Paid Order' : 'New Order Received',
+            message: isPaidMeal
+              ? `Meal order #${o._id.toString().slice(-6).toUpperCase()} is paid and waiting for kitchen acceptance.`
+              : payment_method === 'wallet'
+                ? `Order #${o._id.toString().slice(-6).toUpperCase()} has been paid from Aura Wallet.`
+                : `Order #${o._id.toString().slice(-6)} received (POD).`,
             type: 'order_status',
             sendEmail: true,
             orderDetails: orderForEmail,
@@ -1822,8 +1880,10 @@ const createOrdersFromCart = async (req, res, next) => {
 
           // 4. Notify Admins — POD cart orders don't go through settle.service.js
           notifyAdmins(req.app, {
-            title:   'New POD Order',
-            message: `Order #${o._id.toString().slice(-6).toUpperCase()} (POD, ${Number(o.total_amount || 0).toLocaleString()} XAF) placed by ${req.user.name} at ${v?.store_name || 'unknown store'}.`,
+            title:   isPaidMeal ? 'New Paid Meal Order' : payment_method === 'wallet' ? 'New Paid Order' : 'New POD Order',
+            message: isPaidMeal
+              ? `Meal order #${o._id.toString().slice(-6).toUpperCase()} is paid and awaiting restaurant acceptance.`
+              : `Order #${o._id.toString().slice(-6).toUpperCase()} (${payment_method === 'wallet' ? 'wallet paid' : 'POD'}, ${Number(o.total_amount || 0).toLocaleString()} XAF) placed by ${req.user.name} at ${v?.store_name || 'unknown store'}.`,
             type:    'order_status',
             metadata: { order_id: o._id, link: `/admin/orders/${o._id}` },
             orderDetails: orderForEmail,
@@ -2100,7 +2160,7 @@ const reorder = async (req, res, next) => {
         continue;
       }
 
-      if (currentProduct.meal && currentProduct.meal.is_available_today === false) {
+      if (currentProduct.is_meal === true && currentProduct.meal?.is_available_today === false) {
         unavailable.push({ name: item.name, reason: 'not_available_today' });
         continue;
       }

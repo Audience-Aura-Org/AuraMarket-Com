@@ -357,7 +357,8 @@ const getDinePage = async (req, res, next) => {
     const mealProductFilter = {
       vendor_id: { $in: vendorIds },
       status:    'active',
-      'meal':    { $exists: true, $ne: null },
+      // Nested `meal` exists as a schema object on retail products too.
+      is_meal:   true,
       'meal.is_available_today': { $ne: false },
     };
     // For district zones: include meals that explicitly cover this district OR have no zone
@@ -587,10 +588,9 @@ const getRestaurantMenu = async (req, res, next) => {
         .populate('cuisine_types', 'name slug _id')
         .populate('service_zones.zone_id', 'name code')
         .lean(),
-      // Include all active products — meals AND plain products (vendor may not have set meal field yet)
-      // Exclude meals explicitly marked unavailable today
-      Product.find({ vendor_id, status: 'active', 'meal.is_available_today': { $ne: false } })
-        .select('name price images rating meal category_id category service_zone_ids')
+      // Only the authoritative meal flag belongs in the restaurant menu.
+      Product.find({ vendor_id, status: 'active', is_meal: true, 'meal.is_available_today': { $ne: false } })
+        .select('name price images rating is_meal meal category_id category service_zone_ids')
         .populate('category_id', 'name slug _id')
         .sort({ rating: -1 })
         .lean(),
