@@ -172,9 +172,11 @@ export default function LogisticsWalletPage() {
     const handleCredited = () => load(true);
     const handleWdPaid   = () => load(true);
     socketService.on('wallet:credited', handleCredited);
+    socketService.on('wallet:debited',  handleCredited);
     socketService.on('withdrawal:paid', handleWdPaid);
     return () => {
       socketService.off('wallet:credited', handleCredited);
+      socketService.off('wallet:debited',  handleCredited);
       socketService.off('withdrawal:paid', handleWdPaid);
     };
   }, [user?._id, load]);
@@ -188,7 +190,7 @@ export default function LogisticsWalletPage() {
   const handleRecheckTx = async (tx) => {
     setRecheckingTxId(tx._id);
     try {
-      if (!['eversend', 'payunit'].includes(tx.gateway)) {
+      if (!['eversend', 'payunit', 'pawapay'].includes(tx.gateway)) {
         showToast('This gateway is not supported for recheck.', 'error');
         return;
       }
@@ -347,7 +349,7 @@ export default function LogisticsWalletPage() {
                       key={tx._id || i}
                       onClick={() => setSelectedTx(tx)}
                       className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
-                        tx.status === 'pending' && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit'
+                        tx.status === 'pending' && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway) && tx.type === 'deposit'
                           ? 'border-amber-500/30 bg-amber-500/5'
                           : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30'
                       }`}
@@ -358,7 +360,7 @@ export default function LogisticsWalletPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
                         <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
-                        {['pending', 'failed'].includes(tx.status) && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit' && (
+                        {['pending', 'failed'].includes(tx.status) && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway) && tx.type === 'deposit' && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handleRecheckTx(tx); }}
                             disabled={recheckingTxId === tx._id}

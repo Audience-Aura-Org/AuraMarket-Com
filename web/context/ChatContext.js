@@ -476,7 +476,17 @@ function chatReducer(state, action) {
       const rawPartner = isSentByMe ? message.receiver_id : message.sender_id;
       const existing = state.conversationsById[partnerId] || {};
       const active = action.isActive ?? (state.isOpen && state.activePartnerId === partnerId);
-      const shouldCountUnread = !isSentByMe && !active;
+      const currentMessages = state.messagesByConversation[partnerId] || [];
+      const incomingKey = getMessageKey(message)?.toString?.();
+      // The server intentionally retries delivery until it receives a durable
+      // receipt.  Keep that reliability mechanism from inflating the inbox
+      // badge every time the same message is re-emitted.
+      const alreadyReceived = Boolean(
+        incomingKey && currentMessages.some((currentMessage) =>
+          getMessageKey(currentMessage)?.toString?.() === incomingKey
+        )
+      );
+      const shouldCountUnread = !alreadyReceived && !isSentByMe && !active;
       const livePresence = state.onlineUsersMap[partnerId];
       const partner = mergeParticipantData(
         existing.partner,
@@ -494,7 +504,6 @@ function chatReducer(state, action) {
         unread_count,
         read_status: isSentByMe || active,
       };
-      const currentMessages = state.messagesByConversation[partnerId] || [];
       const messages = dedupeMessages(currentMessages, [message]);
       const conversationsById = { ...state.conversationsById, [partnerId]: conversation };
 
@@ -935,9 +944,14 @@ export function ChatProvider({ children }) {
       for (const message of messages) {
         const partnerId = getConversationIdFromMessage(message, current.currentUserId);
         if (!partnerId) continue;
-        dispatch({ type: 'RECEIVE_MESSAGE', message, partnerId, isActive: false });
+        const senderId = toId(message?.sender_id);
+        const isActive = Boolean(current.isOpen && current.activePartnerId === partnerId);
+        dispatch({ type: 'RECEIVE_MESSAGE', message, partnerId, isActive });
         if (message?._id) {
           socketService.emit('message_received', { messageId: message._id.toString() });
+        }
+        if (isActive && senderId && senderId !== current.currentUserId) {
+          socketService.emit('mark_messages_read', { sender_id: senderId });
         }
       }
     };

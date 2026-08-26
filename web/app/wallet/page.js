@@ -138,7 +138,7 @@ export default function WalletPage() {
         // Auto-recheck pending gateway deposits < 30 min old
         const pending = txList.filter(
           tx => tx.status === 'pending'
-            && ['eversend', 'payunit'].includes(tx.gateway)
+            && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway)
             && tx.type === 'deposit'
             && !tx.gateway_transaction_id?.startsWith('SBX-')
             && (Date.now() - new Date(tx.createdAt).getTime()) < 30 * 60 * 1000
@@ -196,9 +196,11 @@ export default function WalletPage() {
     const handleCredited = () => { setCurrentPage(1); fetchWallet(true); };
     const handleWdPaid   = () => fetchWallet(true);
     socketService.on('wallet:credited', handleCredited);
+    socketService.on('wallet:debited', handleCredited);
     socketService.on('withdrawal:paid', handleWdPaid);
     return () => {
       socketService.off('wallet:credited', handleCredited);
+      socketService.off('wallet:debited', handleCredited);
       socketService.off('withdrawal:paid', handleWdPaid);
     };
   }, [user?._id, fetchWallet]);
@@ -216,7 +218,7 @@ export default function WalletPage() {
   const handleRecheckTx = async (tx) => {
     setRecheckingTxId(tx._id);
     try {
-      if (!['eversend', 'payunit'].includes(tx.gateway)) {
+      if (!['eversend', 'payunit', 'pawapay'].includes(tx.gateway)) {
         showToast('This gateway is not supported for recheck.', 'error');
         return;
       }
@@ -417,7 +419,7 @@ export default function WalletPage() {
                       key={tx._id || i}
                       onClick={() => setSelectedTx(tx)}
                       className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
-                        tx.status === 'pending' && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit'
+                        tx.status === 'pending' && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway) && tx.type === 'deposit'
                           ? 'border-amber-500/30 bg-amber-500/5'
                           : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30'
                       }`}
@@ -428,7 +430,7 @@ export default function WalletPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
                         <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
-                        {['pending', 'failed'].includes(tx.status) && ['eversend', 'payunit'].includes(tx.gateway) && tx.type === 'deposit' && (
+                        {['pending', 'failed'].includes(tx.status) && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway) && tx.type === 'deposit' && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handleRecheckTx(tx); }}
                             disabled={recheckingTxId === tx._id}

@@ -1236,14 +1236,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
     // 2. Upload + send in background — no UI blocking.
     setUploading(true);
+    let uploadedImageUrl = null;
     try {
       const uploadRes = await uploadService.uploadSingle(file, 'general');
       if (!uploadRes.success) throw new Error(uploadRes.message || 'Upload failed');
+      uploadedImageUrl = uploadRes.data.url;
 
       const apiRes = await api.post('/chat', {
         receiver_id: sendPartnerId,
         text: caption,
-        image_url: uploadRes.data.url,
+        image_url: uploadedImageUrl,
         client_id: clientId,
       }, { timeout: 12_000, __skipRetry: true });
       if (apiRes.data.success) {
@@ -1252,8 +1254,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }
     } catch (err) {
       if (isNetworkError(err)) {
-        // Queue for retry — show offline wifi icon so user knows it's queued, not lost.
-        enqueueMsg({ partnerId: sendPartnerId, text: caption, imageUrl: null, clientId, tempId, productRef: null });
+        // If upload finished but the message POST timed out, retain the durable
+        // image URL. Retrying without it used to silently turn an image into a
+        // text-only message.
+        enqueueMsg({ partnerId: sendPartnerId, text: caption, imageUrl: uploadedImageUrl, clientId, tempId, productRef: null });
         markMessageQueued(sendPartnerId, tempId);
       } else {
         markMessageFailed(sendPartnerId, tempId);
