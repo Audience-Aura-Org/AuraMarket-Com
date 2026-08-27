@@ -263,7 +263,9 @@ export default function AdminEscrow() {
 
   const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
 
-  if (!mounted) return null;
+  // Do not render privileged escrow data until the persisted session is known.
+  // This also keeps the server render deterministic for the client-only store.
+  if (!hasHydrated || !user || user.role !== 'admin') return null;
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
