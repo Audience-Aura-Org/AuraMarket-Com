@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ShieldCheck, Lock, Unlock, History,
   ArrowUpRight, ArrowDownLeft, RefreshCw,
@@ -11,6 +12,7 @@ import {
   Globe, Percent, Save, Settings2, Bot, User2, Shield
 } from 'lucide-react';
 import api from '@/services/api';
+import { useAuthStore } from '@/hooks/useAuth';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -91,7 +93,8 @@ function AutoReleaseCountdown({ autoReleaseAt }) {
 }
 
 export default function AdminEscrow() {
-  const [mounted, setMounted] = useState(false);
+  const { user, hasHydrated } = useAuthStore();
+  const router = useRouter();
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState([]);
   const [analytics, setAnalytics] = useState(null);
@@ -105,12 +108,8 @@ export default function AdminEscrow() {
   const [statusFilter, setStatusFilter] = useState('all');
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    setMounted(true);
-    fetchEscrow();
-  }, []);
-
   const fetchEscrow = async () => {
+    if (!hasHydrated || user?.role !== 'admin') return;
     setLoading(true);
     try {
       const [escrowRes, analyticsRes, settingsRes] = await Promise.all([
@@ -143,6 +142,22 @@ export default function AdminEscrow() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (!user) {
+      router.replace('/login?from=admin-escrow');
+    } else if (user.role !== 'admin') {
+      router.replace('/wallet');
+    }
+  }, [hasHydrated, router, user]);
+
+  useEffect(() => {
+    if (!hasHydrated || user?.role !== 'admin') return;
+    fetchEscrow();
+  // fetchEscrow deliberately reads the latest local filters/settings only on explicit refresh.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated, user?.role]);
 
   const formatFee = (type, value) => {
     const amount = Number(value || 0);

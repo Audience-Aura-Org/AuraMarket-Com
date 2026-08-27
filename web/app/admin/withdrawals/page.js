@@ -127,8 +127,9 @@ export default function AdminWithdrawalsPage() {
   }, [filter, roleFilter]);
 
   useEffect(() => {
+    if (!hasHydrated || user?.role !== 'admin') return;
     load();
-  }, [load]);
+  }, [hasHydrated, load, user?.role]);
 
   useEffect(() => {
     setCurrentPage(1);

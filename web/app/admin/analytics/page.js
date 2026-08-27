@@ -43,6 +43,7 @@ export default function AdminAnalyticsPage() {
   }, [user, router, hasHydrated]);
 
   const fetchAnalytics = async () => {
+    if (!hasHydrated || user?.role !== 'admin') return;
     setLoading(true);
     try {
       const res = await api.get('/admin/analytics/advanced');
@@ -54,7 +55,11 @@ export default function AdminAnalyticsPage() {
     }
   };
 
-  useEffect(() => { fetchAnalytics(); }, []);
+  useEffect(() => {
+    if (!hasHydrated || user?.role !== 'admin') return;
+    fetchAnalytics();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated, user?.role]);
 
   if (loading) {
     return <LoadingSpinner fullScreen />;

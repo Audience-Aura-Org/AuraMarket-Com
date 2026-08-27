@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import api from '@/services/api';
+import { useAuthStore } from '@/hooks/useAuth';
 import {
   CreditCard, Clock, User, RotateCcw, ChevronDown,
   Mail, Phone, Database, Loader2, Zap, Globe,
@@ -454,6 +456,8 @@ function PersonSummary({ title, person, fallbackName }) {
 }
 
 export default function AdminTransactionsPage() {
+  const { user, hasHydrated } = useAuthStore();
+  const router = useRouter();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -471,6 +475,7 @@ export default function AdminTransactionsPage() {
   const earnings = stats?.admin_earnings || {};
 
   const fetchTransactions = useCallback(async () => {
+    if (!hasHydrated || user?.role !== 'admin') return;
     setLoading(true);
     try {
       const params = {
@@ -490,9 +495,10 @@ export default function AdminTransactionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, statusFilter, typeFilter, gatewayFilter, search]);
+  }, [currentPage, statusFilter, typeFilter, gatewayFilter, hasHydrated, search, user?.role]);
 
   const fetchStats = useCallback(async () => {
+    if (!hasHydrated || user?.role !== 'admin') return;
     try {
       const res = await api.get('/admin/analytics');
       if (res.data.success) {
@@ -502,15 +508,26 @@ export default function AdminTransactionsPage() {
     } catch {
       console.error('Failed to fetch platform metrics');
     }
-  }, []);
+  }, [hasHydrated, user?.role]);
 
   useEffect(() => {
+    if (!hasHydrated) return;
+    if (!user) {
+      router.replace('/login?from=admin-transactions');
+    } else if (user.role !== 'admin') {
+      router.replace('/wallet');
+    }
+  }, [hasHydrated, router, user]);
+
+  useEffect(() => {
+    if (!hasHydrated || user?.role !== 'admin') return;
     fetchStats();
-  }, [fetchStats]);
+  }, [fetchStats, hasHydrated, user?.role]);
 
   useEffect(() => {
+    if (!hasHydrated || user?.role !== 'admin') return;
     fetchTransactions();
-  }, [fetchTransactions]);
+  }, [fetchTransactions, hasHydrated, user?.role]);
 
   const handleSearchSubmit = () => {
     setCurrentPage(1);
