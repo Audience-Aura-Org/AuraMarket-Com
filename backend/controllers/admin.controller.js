@@ -110,6 +110,11 @@ const asMoney = (value) => {
   return Number.isFinite(num) && num > 0 ? num : 0;
 };
 
+// Financial reporting must only include money that has actually settled. A
+// placed order can still be awaiting mobile-money approval, and a cancelled or
+// refunded order must never inflate an admin revenue card.
+const SETTLED_ORDER_MATCH = { payment_status: 'paid' };
+
 const getFeeBreakdown = (tx = {}) => {
   const metadata = tx.metadata || {};
   const breakdown = metadata.platform_fee_breakdown || metadata.fee_breakdown || {};
@@ -230,7 +235,7 @@ const getPlatformAnalytics = async (req, res, next) => {
       Product.countDocuments({ status: 'pending' }),
       Order.countDocuments(),
       Order.aggregate([
-        { $match: { order_status: { $ne: 'cancelled' } } },
+        { $match: SETTLED_ORDER_MATCH },
         { $group: { _id: null, totalRevenue: { $sum: '$total_amount' } } }
       ]),
       KYC.countDocuments({ status: 'pending' }),
@@ -1120,16 +1125,17 @@ const getAdvancedAnalytics = async (req, res, next) => {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // 1. Sales Over Time (Existing)
+    // 1. Settled sales over time. Pending payment attempts are operational
+    // orders, not revenue, so they are intentionally excluded.
     const salesOverTime = await Order.aggregate([
-      { $match: { createdAt: { $gte: thirtyDaysAgo }, order_status: { $ne: 'cancelled' } } },
+      { $match: { ...SETTLED_ORDER_MATCH, createdAt: { $gte: thirtyDaysAgo } } },
       { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, dailyRevenue: { $sum: "$total_amount" }, orderCount: { $sum: 1 } } },
       { $sort: { "_id": 1 } }
     ]);
 
-    // 2. Top Vendors by Revenue
+    // 2. Top vendors by settled sales
     const topVendors = await Order.aggregate([
-      { $match: { order_status: { $ne: 'cancelled' } } },
+      { $match: SETTLED_ORDER_MATCH },
       { $group: { _id: '$vendor_id', revenue: { $sum: '$total_amount' }, orders: { $sum: 1 } } },
       { $sort: { revenue: -1 } },
       { $limit: 10 },

@@ -25,7 +25,7 @@ const mongoose  = require('mongoose')
 const { faker } = require('@faker-js/faker')
 
 const { buildApp }                          = require('../setup/app')
-const { createUser, createAdmin, createVendorUser } = require('../factories')
+const { createUser, createAdmin, createVendorUser, createOrder } = require('../factories')
 const { signToken, authHeader }             = require('../helpers/auth')
 
 const User             = require('../../models/User.model')
@@ -486,6 +486,22 @@ describe('GET /admin/analytics — platform analytics', () => {
     expect(res.status).toBe(200)
     expect(res.body.success).toBe(true)
     expect(res.body.data).toBeDefined()
+  })
+
+  it('counts only settled orders in the financial volume', async () => {
+    const vendorId = new mongoose.Types.ObjectId()
+    const ids = { customerId: user._id, vendorId }
+
+    await createOrder(ids, { total_amount: 12_000, subtotal: 12_000, payment_status: 'pending', order_status: 'placed' })
+    await createOrder(ids, { total_amount: 8_000, subtotal: 8_000, payment_status: 'refunded', order_status: 'refunded' })
+    await createOrder(ids, { total_amount: 5_000, subtotal: 5_000, payment_status: 'paid', order_status: 'processing' })
+
+    const res = await request(app)
+      .get('/api/v1/admin/analytics')
+      .set(authHeader(signToken(admin)))
+
+    expect(res.status).toBe(200)
+    expect(res.body.data.stats.revenue).toBe(5_000)
   })
 
   it('returns 403 for a regular user', async () => {

@@ -115,7 +115,7 @@ export default function AdminDashboard() {
               <StatCard label={t('admin.actives', 'Actives')} value={fmt(stats?.users)} sub={t('admin.registeredAccounts', 'Registered Accounts')} icon={Users} color="blue" href="/admin/users" progress={userPct} footer={`${fmt(stats?.users || 0)} total accounts`} />
               <StatCard label={t('admin.merchantQueue', 'Merchant Queue')} value={fmt(stats?.pending_vendors)} sub={t('admin.awaitingKyc', 'Awaiting KYC')} icon={Store} color="amber" href="/admin/vendors" progress={vendorPct} footer="Awaiting review" />
               <StatCard label={t('admin.assetPipeline', 'Asset Pipeline')} value={fmt(stats?.pending_products)} sub={t('admin.pendingApproval', 'Pending Approval')} icon={Package} color="primary" href="/admin/products" progress={prodPct} footer="Pending approval" />
-              <StatCard label={t('admin.globalVolume', 'Global Volume')} value={`${fmt(stats?.revenue)} XAF`} sub={t('admin.grossRevenue', 'Gross Platform Revenue')} icon={TrendingUp} color="emerald" href="/admin/analytics" progress={100} footer="Gross platform revenue" />
+              <StatCard label={t('admin.globalVolume', 'Global Volume')} value={`${fmt(stats?.revenue)} XAF`} sub={t('admin.grossRevenue', 'Settled Sales Volume')} icon={TrendingUp} color="emerald" href="/admin/analytics" progress={100} footer="Paid orders only" />
             </div>
           );
         })()}
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 divide-y divide-[var(--glass-border)] overflow-hidden">
                   {[
-                    { title: 'Volume', desc: 'Marketplace flow', count: `${fmt(stats?.revenue || 0)} XAF`, icon: Activity, color: 'blue', signal: 'Flow', href: '/admin/analytics' },
+                    { title: 'Volume', desc: 'Settled marketplace sales', count: `${fmt(stats?.revenue || 0)} XAF`, icon: Activity, color: 'blue', signal: 'Paid', href: '/admin/analytics' },
                     { title: 'KYC Queue', desc: 'Pending review', count: fmt(stats?.pending_vendors || 0), icon: ShieldAlert, color: 'rose', signal: 'Review', href: '/admin/approvals' },
                     { title: 'Escrow', desc: 'Protected funds', count: `${fmt(stats?.escrow_vault || 0)} XAF`, icon: ShieldCheck, color: 'emerald', signal: 'Vault', href: '/admin/escrow' },
                     { title: 'Uptime', desc: 'API health', count: '99.98%', icon: Zap, color: 'amber', signal: 'Stable', href: '/admin/logs' },
