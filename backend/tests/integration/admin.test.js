@@ -25,7 +25,7 @@ const mongoose  = require('mongoose')
 const { faker } = require('@faker-js/faker')
 
 const { buildApp }                          = require('../setup/app')
-const { createUser, createAdmin, createVendorUser, createOrder } = require('../factories')
+const { createUser, createAdmin, createVendorUser, createOrder, createEscrow } = require('../factories')
 const { signToken, authHeader }             = require('../helpers/auth')
 
 const User             = require('../../models/User.model')
@@ -76,6 +76,31 @@ describe('GET /admin/settings — platform settings', () => {
       .set(authHeader(signToken(user)))
 
     expect(res.status).toBe(403)
+  })
+})
+
+describe('GET /admin/analytics/advanced — financial custody', () => {
+  it('uses held and disputed escrow records instead of unpaid orders', async () => {
+    const vendorId = new mongoose.Types.ObjectId()
+    const orderId = new mongoose.Types.ObjectId()
+    const ids = { customerId: user._id, vendorId, orderId }
+
+    await createOrder({ customerId: user._id, vendorId }, {
+      total_amount: 9_000,
+      subtotal: 9_000,
+      payment_status: 'pending',
+      order_status: 'placed',
+    })
+    await createEscrow(ids, { amount: 2_000, status: 'held' })
+    await createEscrow(ids, { amount: 1_000, status: 'disputed' })
+    await createEscrow(ids, { amount: 4_000, status: 'released' })
+
+    const res = await request(app)
+      .get('/api/v1/admin/analytics/advanced')
+      .set(authHeader(signToken(admin)))
+
+    expect(res.status).toBe(200)
+    expect(res.body.data.payout_intel.total_escrow).toBe(3_000)
   })
 })
 

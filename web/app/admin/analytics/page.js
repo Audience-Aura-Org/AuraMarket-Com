@@ -63,6 +63,10 @@ export default function AdminAnalyticsPage() {
   if (!data) return null;
 
   const { top_products, role_breakdown, category_stats, order_matrix, payout_intel, sales_over_time, platform_summary } = data;
+  const distribution = activeTab === 'inventory' ? category_stats : role_breakdown;
+  const distributionTotal = activeTab === 'inventory'
+    ? category_stats?.reduce((sum, item) => sum + Number(item.count || 0), 0)
+    : platform_summary?.total_users || 0;
 
   return (
     <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">
@@ -109,10 +113,10 @@ export default function AdminAnalyticsPage() {
           const escrowPct = rev > 0 ? Math.min(Math.round((escrow / rev) * 100), 100) : 0;
           return (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard label="Global Flow" value={`XAF ${fmt(rev)}`} sub="Total Processed" icon="payments" color="emerald" progress={100} footer="Total inflow" />
-              <StatCard label="Escrow Pool" value={`XAF ${fmt(escrow)}`} sub="Held Liquidity" icon="lock_clock" color="amber" progress={escrowPct} footer={`${escrowPct}% of revenue`} />
+              <StatCard label="Global Flow" value={`XAF ${fmt(rev)}`} sub="Settled sales volume" icon="payments" color="emerald" progress={100} footer="Paid orders only" />
+              <StatCard label="Escrow Pool" value={`XAF ${fmt(escrow)}`} sub="Held / disputed custody" icon="lock_clock" color="amber" progress={escrowPct} footer={`${escrowPct}% of settled sales`} />
               <StatCard label="Entity Count" value={fmt(users)} sub="Registered Items" icon="groups" color="blue" progress={Math.min(Math.round(users / 10), 100)} footer={`${fmt(users)} accounts`} />
-              <StatCard label="Merchant Base" value={fmt(vendors)} sub="Active Stores" icon="store" color="purple" progress={Math.min(vendors * 2, 100)} footer={`${fmt(vendors)} merchants`} />
+              <StatCard label="Merchant Base" value={fmt(vendors)} sub="Registered Stores" icon="store" color="purple" progress={Math.min(vendors * 2, 100)} footer={`${fmt(vendors)} merchants`} />
             </div>
           );
         })()}
@@ -165,7 +169,7 @@ export default function AdminAnalyticsPage() {
                {activeTab === 'inventory' ? 'Category Density' : 'Node Distribution'}
              </h3>
              <div className="space-y-6">
-                {(activeTab === 'inventory' ? category_stats : role_breakdown)?.map((item, i) => (
+                {distribution?.map((item, i) => (
                    <div key={i} className="space-y-2">
                       <div className="flex items-center justify-between">
                          <span className="text-[11px] lg:text-[12px]  font-semibold ">{item._id || 'Standard'}</span>
@@ -174,7 +178,7 @@ export default function AdminAnalyticsPage() {
                       <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
                          <motion.div 
                             initial={{ width: 0 }}
-                            animate={{ width: `${(item.count / (platform_summary.total_users || 100)) * 100}%` }}
+                            animate={{ width: `${distributionTotal > 0 ? Math.min((Number(item.count || 0) / distributionTotal) * 100, 100) : 0}%` }}
                             className="h-full bg-[var(--accent)] opacity-40"
                          />
                       </div>

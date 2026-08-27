@@ -1178,9 +1178,11 @@ const getAdvancedAnalytics = async (req, res, next) => {
       { $group: { _id: null, total: { $sum: '$total_amount' } } }
     ]);
 
-    const totalEscrow = await Order.aggregate([
-      { $match: { payment_status: 'pending' } },
-      { $group: { _id: null, total: { $sum: '$total_amount' } } }
+    // Custody is tracked by Escrow records, not by orders awaiting payment.
+    // Pending mobile-money orders have not funded the platform yet.
+    const totalEscrow = await Escrow.aggregate([
+      { $match: { status: { $in: ['held', 'disputed'] } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
 
     // 8. Platform Summary Additions
