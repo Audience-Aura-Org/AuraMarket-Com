@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle2, Download, MonitorSmartphone, Smartphone } from 'lucide-react';
 
-const APK_DOWNLOAD_URL = '/downloads/Auradime.apk?v=1.6.0';
+const APK_DOWNLOAD_URL = '/downloads/Auradime.apk?v=1.6.1';
 
 export default function PWAInstallPage() {
   const [installPrompt, setInstallPrompt] = useState(null);
@@ -232,4 +232,3 @@ export default function PWAInstallPage() {
     </main>
   );
 }
-

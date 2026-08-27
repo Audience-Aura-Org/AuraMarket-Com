@@ -10,7 +10,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { registerNativeAndroidPush } from '@/lib/native-push';
 import { toast } from 'react-hot-toast';
 
-const APK_DOWNLOAD_URL = '/downloads/Auradime.apk?v=1.6.0';
+const APK_DOWNLOAD_URL = '/downloads/Auradime.apk?v=1.6.1';
 const INSTALL_DISMISS_KEY = 'aura_install_prompt_dismissed_until';
 const INSTALL_DONE_KEY = 'aura_pwa_installed';
 const INSTALL_DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
