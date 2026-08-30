@@ -214,9 +214,9 @@ function formatLastSeen(lastSeenVal, t) {
 function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, hasNewStatus, onOpenStatus, t }) {
   const { onlineUsersMap } = useChat();
   const userInfo = vendor.user_id || vendor.vendor_id?.user_id || {};
-  const storeInfo = vendor.store || vendor;
+  const storeInfo = vendor.vendor_id?.store || vendor.store || vendor.vendor_id || vendor;
   const storeName = getVendorName(vendor);
-  const logoUrl = storeInfo.logo || userInfo?.branding?.logo || userInfo?.avatar || vendor.logo?.url;
+  const logoUrl = storeInfo?.logo || userInfo?.branding?.logo || userInfo?.avatar || vendor.logo?.url;
   
   const userId = getVendorUserId(vendor);
   const liveOnline = userId ? onlineUsersMap[userId] : undefined;

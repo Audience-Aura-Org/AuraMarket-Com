@@ -120,8 +120,11 @@ const getFollowedVendors = async (req, res, next) => {
     const follows = await Follow.find({ user_id: req.user._id })
       .populate({
         path: 'vendor_id',
-        select: 'store_name description rating verified follower_count user_id',
-        populate: { path: 'user_id', select: 'avatar branding' }
+        select: 'store_name description rating verified follower_count user_id vendor_type',
+        populate: [
+          { path: 'store', select: 'logo' },
+          { path: 'user_id', select: 'avatar branding is_online last_seen' }
+        ]
       })
       .sort('-createdAt')
       .lean();
