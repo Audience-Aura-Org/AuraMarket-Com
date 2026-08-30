@@ -22,7 +22,7 @@ const getVendorDescription = (vendor) => vendor?.description || vendor?.vendor_i
 const getStoreHref = (vendor) => {
   const vendorId = getVendorId(vendor);
   // Restaurants have their own dedicated menu page; all other vendors go to the store page.
-  if (vendor?.vendor_type === 'restaurant') return `/dine/restaurant/${vendorId}`;
+  if ((vendor?.vendor_type || vendor?.vendor_id?.vendor_type) === 'restaurant') return `/dine/restaurant/${vendorId}`;
   return `/stores?id=${encodeURIComponent(vendorId)}`;
 };
 
@@ -46,11 +46,12 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
   const fetchVendors = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/vendors');
+      // Do not filter a single paginated public-vendors response. That hid
+      // follows which fell outside its first page. This endpoint is the
+      // complete, populated list for the current customer.
+      const res = await api.get('/users/followed-vendors', { skipClientCache: true });
       if (res.data.success) {
-        // Backend returns { success: true, count: X, data: { stores: [] } }
-        const stores = res.data.data?.stores || res.data.data?.vendors || res.data.stores || [];
-        setVendors(stores);
+        setVendors(res.data.data?.follows || []);
       }
     } catch (err) {
       console.error('Failed to fetch vendors:', err);
@@ -69,17 +70,16 @@ export default function VendorListPanel({ onOpenChat, followedStatuses = [], onO
   }, [fetchVendors]);
 
   useEffect(() => {
+    window.addEventListener('aura_follow_synced', fetchVendors);
+    return () => window.removeEventListener('aura_follow_synced', fetchVendors);
+  }, [fetchVendors]);
+
+  useEffect(() => {
     setCurrentPage(1);
   }, [search]);
 
-  const { followedVendorIds } = useAuthStore();
-
   const filtered = vendors.filter(v => {
-    const vendorId = getVendorId(v);
-    // 1. Must be in followed list
-    if (!followedVendorIds.map(String).includes(vendorId)) return false;
-
-    // 2. Search filter
+    // Search filter
     const name = getVendorName(v);
     const desc = getVendorDescription(v);
     const q = search.toLowerCase();
