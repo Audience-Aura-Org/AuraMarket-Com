@@ -232,6 +232,18 @@ export default function OnboardingFlow() {
           if (err.response?.status !== 400) throw err;
         }
       }
+      // Keep the persisted follow store in sync as onboarding transitions to
+      // the marketplace, then notify views that display populated vendor cards.
+      const authStore = useAuthStore.getState();
+      if (isFollowing) {
+        authStore.removeFollowedVendor(vId);
+      } else {
+        authStore.addFollowedVendor(vId);
+      }
+      await authStore.fetchFollowedVendors();
+      window.dispatchEvent(new CustomEvent('aura_follow_synced', {
+        detail: { vendorId: vId, isFollowing: !isFollowing }
+      }));
     } catch (err) {
       toast.error('Action failed.');
       // Revert optimistic update

@@ -246,11 +246,21 @@ export default function AccountPageClient() {
   const fetchNetwork = async () => {
     setNetworkLoading(true);
     try {
-      const res = await api.get('/users/followed-vendors');
+      const res = await api.get('/users/followed-vendors', { skipClientCache: true });
       if (res.data.success) setFollowedVendors(res.data.data.follows || []);
     } catch (err) { console.error(err); }
     finally { setNetworkLoading(false); }
   };
+
+  // A follow button updates lightweight IDs optimistically. Refresh this
+  // populated list only once the server mutation has finished, so every
+  // followed vendor (including restaurants) is rendered here.
+  useEffect(() => {
+    if (activeTab !== 'network') return undefined;
+    const refreshNetwork = () => fetchNetwork();
+    window.addEventListener('aura_follow_synced', refreshNetwork);
+    return () => window.removeEventListener('aura_follow_synced', refreshNetwork);
+  }, [activeTab]);
 
   const fetchAudience = async () => {
     // Only vendors with a completed profile have a Vendor document — skip for un-onboarded users

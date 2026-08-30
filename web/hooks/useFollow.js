@@ -81,8 +81,13 @@ export function useFollow(vendorId) {
       } else {
         await api.post(`/vendors/${vendorId}/follow`);
       }
-      // Background sync to be 100% sure
-      useAuthStore.getState().fetchFollowedVendors();
+      // Reconcile the optimistic state with the authoritative list before
+      // notifying views that render full vendor records (such as Profile).
+      // The optimistic event above can happen before the API mutation commits.
+      await useAuthStore.getState().fetchFollowedVendors();
+      window.dispatchEvent(new CustomEvent('aura_follow_synced', {
+        detail: { vendorId, isFollowing: newStatus }
+      }));
     } catch (err) {
       console.error('Follow toggle failed:', err);
       // Revert on error
