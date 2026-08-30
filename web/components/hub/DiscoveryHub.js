@@ -28,13 +28,13 @@ const ProfileContent = dynamic(() => import('./HubSubTabs').then(mod => mod.Prof
 const TOP_STATUS_CACHE_KEY = 'aura_top_statuses_cache_v1';
 const TOP_STATUS_CACHE_TTL_MS = 3 * 24 * 60 * 60 * 1000;
 
-const readTopStatusCache = () => {
+const readTopStatusCache = (userId = null) => {
   if (typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(TOP_STATUS_CACHE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!parsed?.data || Date.now() - Number(parsed.ts || 0) > TOP_STATUS_CACHE_TTL_MS) {
+    if (!parsed?.data || parsed.userId !== (userId?.toString?.() || 'guest') || Date.now() - Number(parsed.ts || 0) > TOP_STATUS_CACHE_TTL_MS) {
       window.localStorage.removeItem(TOP_STATUS_CACHE_KEY);
       return [];
     }
@@ -44,10 +44,10 @@ const readTopStatusCache = () => {
   }
 };
 
-const writeTopStatusCache = (data) => {
+const writeTopStatusCache = (data, userId = null) => {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(TOP_STATUS_CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+    window.localStorage.setItem(TOP_STATUS_CACHE_KEY, JSON.stringify({ ts: Date.now(), userId: userId?.toString?.() || 'guest', data }));
   } catch {}
 };
 
@@ -81,7 +81,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
   }, [initialTab]);
   
   // Status States
-  const [followedStatuses, setFollowedStatuses] = useState(() => readTopStatusCache());
+  const [followedStatuses, setFollowedStatuses] = useState(() => readTopStatusCache(user?._id));
   const [viewingStatuses, setViewingStatuses] = useState(null);
   const [selectedStoryId, setSelectedStoryId] = useState(null);
   const [showCreator, setShowCreator] = useState(false);
@@ -104,7 +104,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
       if (res.data.success) {
         const data = res.data.data || [];
         setFollowedStatuses(data);
-        writeTopStatusCache(data);
+        writeTopStatusCache(data, user?._id);
         
         data.slice(0, 6).forEach((s) => {
           const previewUrl = s.type === 'video' ? s.thumbnail_url : s.content_url;
@@ -118,7 +118,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
       }
     } catch (e) { 
       console.error('[Hub] Failed to fetch statuses:', e); 
-      setFollowedStatuses((current) => current.length ? current : readTopStatusCache());
+      setFollowedStatuses((current) => current.length ? current : readTopStatusCache(user?._id));
     }
   }, [user]);
 
@@ -145,7 +145,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
         setFollowedStatuses((current) => {
           if (current.some((item) => item._id === story._id)) return current;
           const next = [story, ...current].slice(0, 20);
-          writeTopStatusCache(next);
+          writeTopStatusCache(next, user?._id);
           return next;
         });
         const relatedStories = Array.isArray(story.vendorStories) && story.vendorStories.length > 0
@@ -173,7 +173,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
     setViewedStoryIds((current) => current.includes(storyId) ? current : [...current, storyId]);
     setFollowedStatuses((current) => {
       const next = markStatusViewed(current, storyId);
-      writeTopStatusCache(next);
+      writeTopStatusCache(next, user?._id);
       return next;
     });
     setViewingStatuses((current) => current ? markStatusViewed(current, storyId) : current);
@@ -286,6 +286,16 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
+              {(followedStatuses?.length > 0 || user?.role === 'vendor' || user?.role === 'logistics') && (
+                <div className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 overflow-hidden">
+                  <StatusRow
+                    statuses={followedStatuses}
+                    onSelect={(items, storyId) => openStatusSequence(items, storyId)}
+                    onAdd={() => setShowCreator(true)}
+                    isVendor={user?.role === 'vendor' || user?.role === 'logistics'}
+                  />
+                </div>
+              )}
               <ProfileContent user={user} onSelectTab={handleTabChange} />
             </motion.div>
           )}
