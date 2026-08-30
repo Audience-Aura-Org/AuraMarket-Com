@@ -142,6 +142,9 @@ export default function AccountPageClient() {
   const [profileBranding, setProfileBranding] = useState({ logo: '', banner: '' });
   const [brandingStatus, setBrandingStatus] = useState('');
   const [brandingUploading, setBrandingUploading] = useState(null);
+  // Keep vendor/logistics profile identity atomic: never render the generic
+  // account name before its canonical store/company record is available.
+  const [profileIdentityReady, setProfileIdentityReady] = useState(() => !['vendor', 'logistics'].includes(user?.role));
 
   const [storeData, setStoreData] = useState({
     store_name: user?.branding?.store_name || '',
@@ -320,6 +323,8 @@ export default function AccountPageClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!user?._id) return;
+    const requiresCanonicalIdentity = user.role === 'vendor' || user.role === 'logistics';
+    if (requiresCanonicalIdentity) setProfileIdentityReady(false);
 
     // Vendor (includes restaurant) — fetch store profile
     if (user.role === 'vendor') {
@@ -356,7 +361,7 @@ export default function AccountPageClient() {
             banner: s.banner || v.banner || p.banner,
           }));
         }
-      }).catch(() => {});
+      }).catch(() => {}).finally(() => setProfileIdentityReady(true));
     }
 
     // Logistics — fetch company profile so the header shows company name / branding
@@ -383,7 +388,7 @@ export default function AccountPageClient() {
             banner: firm.banner || p.banner,
           }));
         }
-      }).catch(() => {});
+      }).catch(() => {}).finally(() => setProfileIdentityReady(true));
     }
   }, [user?._id, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -640,6 +645,10 @@ export default function AccountPageClient() {
       setTimeout(() => setBrandingStatus(''), 2500);
     }
   };
+
+  if ((user?.role === 'vendor' || user?.role === 'logistics') && !profileIdentityReady) {
+    return <ProfileIdentitySkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] pb-[calc(5rem+env(safe-area-inset-bottom,0px))]">
@@ -1939,6 +1948,25 @@ function InstallAppTab() {
               )}
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileIdentitySkeleton() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] via-[var(--bg-secondary)] to-[var(--bg-primary)] animate-pulse">
+      <div className="h-44 sm:h-60 bg-[var(--bg-secondary)]" />
+      <div className="px-3 -mt-10 relative z-10">
+        <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 p-6 shadow-xl">
+          <div className="mx-auto size-20 rounded-2xl bg-[var(--bg-secondary)]" />
+          <div className="mx-auto mt-5 h-6 w-52 max-w-full rounded-full bg-[var(--bg-secondary)]" />
+          <div className="mx-auto mt-3 h-4 w-28 rounded-full bg-[var(--bg-secondary)]" />
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-4">
+          <div className="hidden h-72 rounded-2xl bg-[var(--bg-secondary)] lg:block" />
+          <div className="h-96 rounded-2xl bg-[var(--bg-secondary)] lg:col-span-3" />
         </div>
       </div>
     </div>
