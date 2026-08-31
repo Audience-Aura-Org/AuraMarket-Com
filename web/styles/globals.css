@@ -324,8 +324,9 @@ i, em { font-style: normal !important; }
 /* ── Prevent page zoom on input focus (iOS Safari) ── */
 @supports (-webkit-touch-callout: none) {
   input, textarea, select {
-    /* iOS Safari zoom threshold is 16px in device pixels. */
-    font-size: 16px !important;
+    /* The mobile shell is scaled to 80%, so 20px produces Safari's required
+       16px effective size and prevents focus-zoom in pages and modals. */
+    font-size: 20px !important;
     touch-action: manipulation;
   }
 }

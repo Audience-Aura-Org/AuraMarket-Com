@@ -83,7 +83,7 @@ function ReceiptModal({ tx, onClose }) {
 }
 
 export default function WalletPage() {
-  const { user, hasHydrated, setWalletBalance } = useAuthStore();
+  const { user, hasHydrated, authChecked, fetchMe, setWalletBalance } = useAuthStore();
   const { t } = useLanguage();
   const router = useRouter();
 
@@ -176,7 +176,14 @@ export default function WalletPage() {
 
   useEffect(() => {
     if (!mounted || !hasHydrated) return;
-    if (!user) { router.replace('/login?from=wallet'); return; }
+    // On a hard refresh native/browser storage can hydrate before /auth/me
+    // restores the user object. Wait for that restore instead of treating a
+    // transient empty user as a logged-out wallet session.
+    if (!user) {
+      if (!authChecked) fetchMe();
+      else router.replace('/login?from=wallet');
+      return;
+    }
     if (user.role === 'admin') { router.replace('/admin/withdrawals'); return; }
     fetchWallet();
 
@@ -189,7 +196,7 @@ export default function WalletPage() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, hasHydrated, user?._id, user?.role]);
+  }, [mounted, hasHydrated, authChecked, user?._id, user?.role, fetchMe, router]);
 
   useEffect(() => {
     if (!user?._id) return;
@@ -240,7 +247,7 @@ export default function WalletPage() {
     }
   };
 
-  if (!mounted || !user) return null;
+  if (!mounted || !hasHydrated || !user) return null;
 
   // ── Derived stats ──────────────────────────────────────────────────────────
   const totalIn = transactions
