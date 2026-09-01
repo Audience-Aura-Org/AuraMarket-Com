@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import socketService from '@/services/socket';
 
@@ -9,6 +10,8 @@ export function useWalletBalance() {
   const refreshWalletBalance = useAuthStore((state) => state.refreshWalletBalance);
   const setWalletBalance = useAuthStore((state) => state.setWalletBalance);
   const displayedBalance = Number(walletBalance ?? 0);
+  const pathname = usePathname();
+  const initialPathRef = useRef(pathname);
 
   useEffect(() => {
     if (!refreshWalletBalance) return undefined;
@@ -57,6 +60,18 @@ export function useWalletBalance() {
   // walletBalance intentionally excluded — we only want to run this once on mount.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshWalletBalance]);
+
+  // Refresh balance on in-app navigation so the TopNav stays current even when
+  // socket events are missed or delayed. Skip the initial mount (handled above).
+  useEffect(() => {
+    if (!refreshWalletBalance) return;
+    if (pathname === initialPathRef.current) {
+      initialPathRef.current = null;        // allow future navigations
+      return;
+    }
+    refreshWalletBalance().catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return {
     walletBalance,
