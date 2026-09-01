@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
-import { usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
 import socketService from '@/services/socket';
 
@@ -10,8 +9,6 @@ export function useWalletBalance() {
   const refreshWalletBalance = useAuthStore((state) => state.refreshWalletBalance);
   const setWalletBalance = useAuthStore((state) => state.setWalletBalance);
   const displayedBalance = Number(walletBalance ?? 0);
-  const pathname = usePathname();
-  const initialPathRef = useRef(pathname);
 
   useEffect(() => {
     if (!refreshWalletBalance) return undefined;
@@ -31,6 +28,27 @@ export function useWalletBalance() {
     window.addEventListener('aura:wallet-updated', refresh);
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
+
+    // Detect in-app navigation (Next.js App Router uses pushState/replaceState)
+    // so the TopNav balance stays current even when socket events are missed.
+    let lastHref = location.href;
+    const onNavChange = () => {
+      if (location.href !== lastHref) {
+        lastHref = location.href;
+        refresh();
+      }
+    };
+    const origPushState = history.pushState;
+    const origReplaceState = history.replaceState;
+    history.pushState = function (...args) {
+      origPushState.apply(this, args);
+      onNavChange();
+    };
+    history.replaceState = function (...args) {
+      origReplaceState.apply(this, args);
+      onNavChange();
+    };
+    window.addEventListener('popstate', onNavChange);
 
     // Socket events — update instantly from payload when balance is included,
     // otherwise fall back to an API refresh (old gateway paths without balance).
@@ -53,6 +71,9 @@ export function useWalletBalance() {
       window.removeEventListener('aura:wallet-updated', refresh);
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('popstate', onNavChange);
+      history.pushState = origPushState;
+      history.replaceState = origReplaceState;
       socketService.off('wallet:credited', onWalletCredited);
       socketService.off('wallet:debited', onWalletCredited);
       socketService.off('withdrawal:paid', refresh);
@@ -60,18 +81,6 @@ export function useWalletBalance() {
   // walletBalance intentionally excluded — we only want to run this once on mount.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshWalletBalance]);
-
-  // Refresh balance on in-app navigation so the TopNav stays current even when
-  // socket events are missed or delayed. Skip the initial mount (handled above).
-  useEffect(() => {
-    if (!refreshWalletBalance) return;
-    if (pathname === initialPathRef.current) {
-      initialPathRef.current = null;        // allow future navigations
-      return;
-    }
-    refreshWalletBalance().catch(() => {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
 
   return {
     walletBalance,
