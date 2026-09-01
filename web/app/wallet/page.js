@@ -184,13 +184,11 @@ export default function WalletPage() {
       else router.replace('/login?from=wallet');
       return;
     }
-    // On hard refresh, Zustand restores the persisted user but authChecked is
-    // false (not persisted). Validate the session before making wallet API calls
-    // — this prevents 401 errors from stale/expired tokens and ensures the user
-    // object is fresh before we render financial data.
+    // On hard refresh, Zustand restores the persisted user but the session may
+    // be stale. Kick off fetchMe in the background to revalidate — but don't
+    // block wallet loading, since fetchWallet's own 401 handling covers expiry.
     if (!authChecked) {
       fetchMe();
-      return;
     }
     if (user.role === 'admin') { router.replace('/admin/withdrawals'); return; }
     fetchWallet();
