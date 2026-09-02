@@ -165,7 +165,10 @@ export default function VendorWalletPage() {
   useEffect(() => {
     if (!hasHydrated || !user || user.role !== 'vendor') return;
     load();
-  }, [load, hasHydrated, user]);
+    // user?._id instead of user — setWalletBalance spreads a new user object on
+    // every fetch, which would retrigger this effect and cause an infinite loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load, hasHydrated, user?._id, user?.role]);
 
   // Visibility-based refresh (silent — no loading spinner)
   useEffect(() => {
