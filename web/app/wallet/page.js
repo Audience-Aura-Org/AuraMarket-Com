@@ -136,13 +136,15 @@ export default function WalletPage() {
         const txList = txRes.value.data.data.transactions || [];
         setTransactions(txList);
 
-        // Auto-recheck pending gateway deposits < 30 min old
+        // Auto-recheck unsettled gateway transactions (pending or failed deposits/payments)
+        // that are less than 24 hours old — covers webhook failures and race conditions.
         const pending = txList.filter(
-          tx => tx.status === 'pending'
+          tx => ['pending', 'failed'].includes(tx.status)
             && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway)
-            && tx.type === 'deposit'
+            && ['deposit', 'payment'].includes(tx.type)
+            && tx.reference
             && !tx.gateway_transaction_id?.startsWith('SBX-')
-            && (Date.now() - new Date(tx.createdAt).getTime()) < 30 * 60 * 1000
+            && (Date.now() - new Date(tx.createdAt).getTime()) < 24 * 60 * 60 * 1000
         );
         if (pending.length > 0) {
           setTimeout(async () => {
@@ -240,9 +242,11 @@ export default function WalletPage() {
       const { status, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
         showToast('Payment confirmed! Your wallet has been credited.', 'success');
+        window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
         fetchWallet(true);
       } else if (status === 'FAILED') {
         showToast(reason || message || 'Payment could not be confirmed.', 'error');
+        window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
         fetchWallet(true);
       } else {
         showToast('Still processing — your phone may still have a pending prompt.', 'info');

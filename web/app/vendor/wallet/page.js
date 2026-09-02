@@ -219,9 +219,11 @@ export default function VendorWalletPage() {
       const { status, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
         showToast('Payment confirmed! Your wallet has been credited.', 'success');
+        window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
         load(true);
       } else if (status === 'FAILED') {
         showToast(reason || message || 'Payment could not be confirmed.', 'error');
+        window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
         load(true);
       } else {
         showToast('Still processing — your phone may still have a pending prompt.', 'info');
