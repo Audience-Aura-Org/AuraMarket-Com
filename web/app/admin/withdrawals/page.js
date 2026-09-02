@@ -92,7 +92,7 @@ export default function AdminWithdrawalsPage() {
   const [search, setSearch] = useState('');
   const [processing, setProc] = useState(null);
   const [selected, setSelected] = useState(null);
-  const [approveGateway, setApproveGateway] = useState('payunit');
+  const [approveGateway, setApproveGateway] = useState('pawapay');
   const [currentPage, setCurrentPage] = useState(1);
   const [brokenRequesterImages, setBrokenRequesterImages] = useState({});
   const itemsPerPage = 10;
@@ -137,7 +137,7 @@ export default function AdminWithdrawalsPage() {
 
   useEffect(() => {
     if (!selected) return;
-    setApproveGateway('payunit');
+    setApproveGateway('pawapay');
   }, [selected]);
 
   const handleApprove = async (id) => {
@@ -562,9 +562,10 @@ export default function AdminWithdrawalsPage() {
                 {selected.status === 'pending' && (
                   <>
                     <p className="text-[10px] font-medium text-[var(--text-secondary)]">Payout gateway</p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       {[
-                        { id: 'payunit', label: 'PayUnit', min: '5,000 XAF min' },
+                        { id: 'pawapay',  label: 'PawaPay',  min: '100 XAF min'   },
+                        { id: 'payunit',  label: 'PayUnit',  min: '5,000 XAF min' },
                         { id: 'eversend', label: 'Eversend', min: '1,000 XAF min' },
                       ].map((g) => (
                         <button
