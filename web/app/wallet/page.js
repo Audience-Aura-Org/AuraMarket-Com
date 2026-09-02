@@ -129,6 +129,7 @@ export default function WalletPage() {
         const nextBalance = balRes.value.data.data.balance || 0;
         setBalance(nextBalance);
         setWalletBalance(nextBalance);
+        window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
         setPendingBalance(balRes.value.data.data.pending_escrow || 0);
       }
       if (txRes.status === 'fulfilled' && txRes.value.data.success) {

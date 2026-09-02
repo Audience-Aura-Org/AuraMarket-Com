@@ -110,6 +110,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
         if (r.data?.status === 'SUCCESSFUL') {
           setStatus('success');
           setMessage('Payment confirmed! Your wallet has been credited.');
+          window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
           onSuccess?.();
           return;
         } else if (r.data?.status === 'FAILED') {
@@ -188,6 +189,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
               setStatus('success');
               setStep('result');
               setMessage('Payment confirmed! Your wallet has been credited.');
+              window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
               onSuccess?.();
             },
             onFailed: (data) => {
@@ -234,6 +236,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
       if (s === 'SUCCESSFUL') {
         setStatus('success');
         setMessage(msg || 'Payment confirmed! Your wallet has been credited.');
+        window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
         onSuccess?.();
       } else if (s === 'FAILED') {
         setStatus('failed');

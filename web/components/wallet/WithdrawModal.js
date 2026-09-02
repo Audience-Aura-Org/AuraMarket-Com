@@ -117,6 +117,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
         localStorage.setItem('aura_withdrawal_form', JSON.stringify(toSave));
       }
 
+      window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
       setDone(true);
       if (onSuccess) onSuccess(res.data);
     } catch (e) {
