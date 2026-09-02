@@ -111,19 +111,6 @@ export default function VendorWalletPage() {
   const loadingRef          = useRef(false);
   const pendingSilentLoad   = useRef(false);
 
-  // ── Auth guard: wait for Zustand to rehydrate before redirecting ──
-  useEffect(() => {
-    if (!hasHydrated) return;
-    if (!user) {
-      router.replace('/login?from=vendor-wallet');
-    } else if (user.role !== 'vendor') {
-      router.replace('/wallet');
-    }
-  }, [user, router, hasHydrated]);
-
-  // Return null until hydrated — prevents login-page flash
-  if (!hasHydrated || !user || user.role !== 'vendor') return null;
-
   const load = useCallback(async (silent = false) => {
     // Prevent concurrent loads; queue missed silent reloads so credits aren't dropped
     if (loadingRef.current) {
@@ -164,8 +151,21 @@ export default function VendorWalletPage() {
     }
   }, [setWalletBalance]);
 
+  // ── Auth guard: wait for Zustand to rehydrate before redirecting ──
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (!user) {
+      router.replace('/login?from=vendor-wallet');
+    } else if (user.role !== 'vendor') {
+      router.replace('/wallet');
+    }
+  }, [user, router, hasHydrated]);
+
   // Initial load
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!hasHydrated || !user || user.role !== 'vendor') return;
+    load();
+  }, [load, hasHydrated, user]);
 
   // Visibility-based refresh (silent — no loading spinner)
   useEffect(() => {
@@ -200,6 +200,9 @@ export default function VendorWalletPage() {
 
   // Reset pagination on tab change
   useEffect(() => { setCurrentPage(1); }, [tab]);
+
+  // Return null until hydrated — prevents login-page flash
+  if (!hasHydrated || !user || user.role !== 'vendor') return null;
 
   const handleRecheckTx = async (tx) => {
     setRecheckingTxId(tx._id);
