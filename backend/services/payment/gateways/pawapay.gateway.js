@@ -327,10 +327,18 @@ const verifyWebhookSignature = (rawBody, headers) => {
     console.warn('[PawaPay] Webhook missing content-digest header');
     return false;
   }
-  const bodyHash = crypto.createHash('sha256').update(rawBody).digest('base64');
-  const expectedDigest = `sha-256=:${bodyHash}:`;
+  // PawaPay may send sha-256 or sha-512 — parse the algorithm from the header.
+  const digestMatch = contentDigest.match(/^(sha-(?:256|512))=:([A-Za-z0-9+/=]+):$/);
+  if (!digestMatch) {
+    console.warn('[PawaPay] Webhook Content-Digest header format unrecognised:', contentDigest);
+    return false;
+  }
+  const algoLabel = digestMatch[1];                       // "sha-256" or "sha-512"
+  const nodeAlgo  = algoLabel === 'sha-512' ? 'sha512' : 'sha256';
+  const bodyHash  = crypto.createHash(nodeAlgo).update(rawBody).digest('base64');
+  const expectedDigest = `${algoLabel}=:${bodyHash}:`;
   if (contentDigest !== expectedDigest) {
-    console.warn('[PawaPay] Webhook Content-Digest mismatch');
+    console.warn('[PawaPay] Webhook Content-Digest mismatch', { received: contentDigest, expected: expectedDigest });
     return false;
   }
 
