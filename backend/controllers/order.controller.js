@@ -1261,6 +1261,17 @@ const cancelOrder = async (req, res, next) => {
         role: 'customer',
       }).catch(console.error);
 
+      // Push real-time balance update so TopNav reflects the refund instantly
+      if (paidCancellation) {
+        const io = req.app?.get?.('io');
+        if (io && order.customer_id) {
+          const room = order.customer_id.toString();
+          const payload = { type: 'refund', reference: order._id };
+          io.to(room).emit('wallet:credited', payload);
+          io.to(`user:${room}`).emit('wallet:credited', payload);
+        }
+      }
+
       // Notify restaurant vendor if this is a food order that was still pending acceptance
       if (order.food_status && order.vendor_id) {
         try {
@@ -1371,6 +1382,15 @@ const approveRefund = async (req, res, next) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    // Push real-time balance update so TopNav reflects the refund instantly
+    const io = req.app?.get?.('io');
+    if (io && order.customer_id) {
+      const room = order.customer_id.toString();
+      const payload = { type: 'refund', reference: order._id };
+      io.to(room).emit('wallet:credited', payload);
+      io.to(`user:${room}`).emit('wallet:credited', payload);
+    }
 
     const customer = await User.findById(order.customer_id);
     const customerEmailTemplate = templates.refundApproved({ order, customer });
@@ -2102,6 +2122,32 @@ const updateFoodStatus = async (req, res, next) => {
             type: 'order_status',
             metadata: { target_id: order._id, link: `/orders/${order._id}` },
           });
+        }
+
+        // Push real-time balance updates for wallet credits triggered by this transition
+        const io = req.app?.get?.('io');
+        if (io) {
+          const payload = { type: 'payout', reference: order._id };
+          if (newStatus === 'picked_up' && order.logistics_company_id) {
+            // Logistics company was credited via creditLogistics
+            const LogisticsCompany = require('../models/LogisticsCompany.model');
+            const lFirm = await LogisticsCompany.findById(order.logistics_company_id).select('user_id').lean();
+            if (lFirm?.user_id) {
+              const lRoom = lFirm.user_id.toString();
+              io.to(lRoom).emit('wallet:credited', payload);
+              io.to(`user:${lRoom}`).emit('wallet:credited', payload);
+            }
+          }
+          if (newStatus === 'delivered' && order.new_restaurant_hold && order.vendor_id) {
+            // Vendor held payout was released via releaseRestaurantHold
+            const Vendor = require('../models/Vendor.model');
+            const vRecord = await Vendor.findById(order.vendor_id).select('user_id').lean();
+            if (vRecord?.user_id) {
+              const vRoom = vRecord.user_id.toString();
+              io.to(vRoom).emit('wallet:credited', payload);
+              io.to(`user:${vRoom}`).emit('wallet:credited', payload);
+            }
+          }
         }
       } catch (e) {
         console.error('[updateFoodStatus] notification failed:', e.message);

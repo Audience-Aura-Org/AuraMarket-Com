@@ -612,6 +612,15 @@ const adminApproveWithdrawal = async (req, res) => {
               sendEmail: true,
             });
           } catch (e) { console.error(e.message); }
+          try {
+            const io = req.app?.get?.('io');
+            if (io && wr.requested_by) {
+              const room = wr.requested_by.toString();
+              const payload = { type: 'withdrawal_reversal', reference: wr._id };
+              io.to(room).emit('wallet:credited', payload);
+              io.to(`user:${room}`).emit('wallet:credited', payload);
+            }
+          } catch (e) { /* non-critical */ }
         });
 
         return res.status(502).json({
@@ -645,6 +654,15 @@ const adminApproveWithdrawal = async (req, res) => {
               sendEmail: true,
             });
           } catch (e) { console.error(e.message); }
+          try {
+            const io = req.app?.get?.('io');
+            if (io && wr.requested_by) {
+              const room = wr.requested_by.toString();
+              const payload = { type: 'withdrawal_reversal', reference: wr._id };
+              io.to(room).emit('wallet:credited', payload);
+              io.to(`user:${room}`).emit('wallet:credited', payload);
+            }
+          } catch (e) { /* non-critical */ }
         });
 
         return res.status(502).json({ success: false, message: `PawaPay rejected the payout: ${reason}. Balance restored.` });
@@ -772,6 +790,15 @@ const adminApproveWithdrawal = async (req, res) => {
             sendEmail: true,
           });
         } catch (e) { console.error(e.message); }
+        try {
+          const io = req.app?.get?.('io');
+          if (io && wr.requested_by) {
+            const room = wr.requested_by.toString();
+            const payload = { type: 'withdrawal_reversal', reference: wr._id };
+            io.to(room).emit('wallet:credited', payload);
+            io.to(`user:${room}`).emit('wallet:credited', payload);
+          }
+        } catch (e) { /* non-critical */ }
       });
 
       return res.status(502).json({
@@ -888,6 +915,15 @@ const adminRejectWithdrawal = async (req, res) => {
           sendEmail: true,
         });
       } catch (e) { console.error(e.message); }
+      try {
+        const io = req.app?.get?.('io');
+        if (io && wr.requested_by) {
+          const room = wr.requested_by.toString();
+          const payload = { type: 'withdrawal_reversal', reference: wr._id };
+          io.to(room).emit('wallet:credited', payload);
+          io.to(`user:${room}`).emit('wallet:credited', payload);
+        }
+      } catch (e) { /* non-critical */ }
     });
 
     return res.status(200).json({

@@ -720,6 +720,29 @@ const modifyShipmentStatus = async (req, res, next) => {
       });
     }
 
+    // Push real-time balance updates so TopNav reflects credits instantly
+    const io = req.app?.get?.('io');
+    if (io) {
+      const payload = { type: 'payout', reference: order._id };
+      // Logistics company was credited for shipping fee at delivery
+      if (
+        firm?.user_id &&
+        order.shipping_fee > 0 &&
+        order.payment_method !== 'pay_on_delivery' &&
+        (order.order_status === 'completed' || order.order_status === 'delivered')
+      ) {
+        const lRoom = firm.user_id.toString();
+        io.to(lRoom).emit('wallet:credited', payload);
+        io.to(`user:${lRoom}`).emit('wallet:credited', payload);
+      }
+      // Vendor was credited (COD path or non-escrow fallback at delivery)
+      if (orderCompleted && vendor?.user_id?._id) {
+        const vRoom = vendor.user_id._id.toString();
+        io.to(vRoom).emit('wallet:credited', payload);
+        io.to(`user:${vRoom}`).emit('wallet:credited', payload);
+      }
+    }
+
     res.status(200).json({ success: true, message: 'Status updated.', data: { shipment } });
   } catch (error) {
     await session.abortTransaction();

@@ -321,9 +321,17 @@ const processWithdrawal = async (req, res, next) => {
                 const populated = await Message.findById(chatMsg._id)
                     .populate('sender_id', 'name avatar role branding')
                     .populate('receiver_id', 'name avatar role branding');
-                
+
                 io.to(transaction.user_id.toString()).emit('receive_message', populated);
                 io.to(req.user._id.toString()).emit('sent_message_echo', populated);
+
+                // Push real-time balance update when balance is restored on rejection
+                if (action === 'reject') {
+                    const room = transaction.user_id.toString();
+                    const payload = { type: 'withdrawal_reversal', reference: transaction._id };
+                    io.to(room).emit('wallet:credited', payload);
+                    io.to(`user:${room}`).emit('wallet:credited', payload);
+                }
             }
         } catch (notifierErr) {
             console.error('Withdrawal Notifier/Chat Error:', notifierErr);

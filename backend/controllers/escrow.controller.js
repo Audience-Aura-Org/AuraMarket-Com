@@ -328,6 +328,17 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
     role: 'vendor'
   });
 
+  // Push real-time balance update so vendor TopNav reflects the escrow release instantly
+  try {
+    const io = req.app?.get?.('io');
+    if (io && vendorUser._id) {
+      const vRoom = vendorUser._id.toString();
+      const payload = { type: 'payout', reference: order._id };
+      io.to(vRoom).emit('wallet:credited', payload);
+      io.to(`user:${vRoom}`).emit('wallet:credited', payload);
+    }
+  } catch (_) { /* non-critical */ }
+
   // Notify Customer
   sendNotification(req.app, order.customer_id, {
     title: req.autoRelease ? 'Escrow Auto-Released' : 'Order Finalized',

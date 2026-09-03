@@ -147,6 +147,16 @@ async function runIntercityDispatchTimeout(app) {
           } catch (e) {
             console.error('[intercityDispatchTimeout] notify error:', e.message);
           }
+          // Push real-time balance update to buyer so TopNav reflects refund
+          try {
+            const io = app?.get?.('io');
+            if (io && buyerUser._id) {
+              const room = buyerUser._id.toString();
+              const payload = { type: 'refund', reference: order._id };
+              io.to(room).emit('wallet:credited', payload);
+              io.to(`user:${room}`).emit('wallet:credited', payload);
+            }
+          } catch (_) { /* non-critical */ }
         });
       }
 

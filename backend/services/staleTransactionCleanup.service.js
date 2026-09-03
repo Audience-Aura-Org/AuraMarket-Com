@@ -125,6 +125,17 @@ const settleDeposit = async (txn, app, gateway) => {
     await session.commitTransaction();
     webhookHealth.record('cronSettled', gateway);
     console.log(`[StaleCleanup] Settled ${gateway} deposit txn ${txn._id} (${txn.amount} XAF)`);
+
+    // Notify user in real time so TopNav balance updates without waiting for a page refresh
+    try {
+      const io = app?.get?.('io');
+      if (io && claimed.user_id) {
+        const room = claimed.user_id.toString();
+        const payload = { type: 'deposit', reference: claimed._id };
+        io.to(room).emit('wallet:credited', payload);
+        io.to(`user:${room}`).emit('wallet:credited', payload);
+      }
+    } catch (_) { /* non-critical */ }
     return true;
   } catch (err) {
     await session.abortTransaction();
@@ -308,6 +319,16 @@ const runCleanup = async (app) => {
               $inc: { wallet_balance: updated.amount },
             });
             console.log(`[StaleCleanup] Restored ${updated.amount} XAF to user ${updated.requested_by} (failed withdrawal)`);
+            // Notify user in real time
+            try {
+              const io = app?.get?.('io');
+              if (io && updated.requested_by) {
+                const room = updated.requested_by.toString();
+                const payload = { type: 'withdrawal_reversal', reference: wr._id };
+                io.to(room).emit('wallet:credited', payload);
+                io.to(`user:${room}`).emit('wallet:credited', payload);
+              }
+            } catch (_) { /* non-critical */ }
           }
           // Mark linked transaction as failed
           await Transaction.findOneAndUpdate(
