@@ -129,29 +129,41 @@ export default function WalletPage() {
         const nextBalance = balRes.value.data.data.balance || 0;
         setBalance(nextBalance);
         setWalletBalance(nextBalance);
-        window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
         setPendingBalance(balRes.value.data.data.pending_escrow || 0);
       }
       if (txRes.status === 'fulfilled' && txRes.value.data.success) {
         const txList = txRes.value.data.data.transactions || [];
         setTransactions(txList);
 
-        // Auto-recheck unsettled gateway transactions (pending or failed deposits/payments)
-        // that are less than 24 hours old — covers webhook failures and race conditions.
-        const pending = txList.filter(
+        // Auto-recheck ALL unsettled gateway transactions (deposits, payments, withdrawals)
+        // regardless of age — catches old transactions stuck due to webhook failures.
+        const pendingDeposits = txList.filter(
           tx => ['pending', 'failed'].includes(tx.status)
             && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway)
             && ['deposit', 'payment'].includes(tx.type)
             && tx.reference
             && !tx.gateway_transaction_id?.startsWith('SBX-')
-            && (Date.now() - new Date(tx.createdAt).getTime()) < 24 * 60 * 60 * 1000
         );
-        if (pending.length > 0) {
+        // Auto-recheck pending/approved withdrawal payouts via user-facing endpoint
+        const pendingWithdrawals = (wdRes.status === 'fulfilled' && wdRes.value.data.success)
+          ? (wdRes.value.data.data.withdrawals || []).filter(
+              wd => ['pending', 'approved', 'processing'].includes(wd.status)
+                && wd.payout_gateway
+                && wd.eversend_transaction_id
+            )
+          : [];
+        if (pendingDeposits.length > 0 || pendingWithdrawals.length > 0) {
           setTimeout(async () => {
             let anyChanged = false;
-            for (const tx of pending) {
+            for (const tx of pendingDeposits) {
               try {
                 const r = await api.get(`/payments/${tx.gateway}/recheck/${tx.reference}`);
+                if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') anyChanged = true;
+              } catch { /* silent */ }
+            }
+            for (const wd of pendingWithdrawals) {
+              try {
+                const r = await api.get(`/withdrawals/mine/${wd._id}/recheck`);
                 if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') anyChanged = true;
               } catch { /* silent */ }
             }
@@ -533,7 +545,7 @@ export default function WalletPage() {
       <DepositModal
         open={modal === 'deposit'}
         onClose={() => setModal(null)}
-        onSuccess={() => { fetchWallet(true); setModal(null); }}
+        onSuccess={() => { setModal(null); setTimeout(() => window.location.reload(), 600); }}
         userPhone={user?.phone}
       />
       <AnimatePresence>
@@ -541,7 +553,7 @@ export default function WalletPage() {
           <WithdrawModal
             balance={balance}
             onClose={() => setModal(null)}
-            onSuccess={() => { fetchWallet(true); setModal(null); }}
+            onSuccess={() => { setModal(null); setTimeout(() => window.location.reload(), 600); }}
           />
         )}
       </AnimatePresence>

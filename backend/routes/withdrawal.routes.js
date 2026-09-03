@@ -20,6 +20,7 @@ const { protect, restrictTo } = require('../middleware/auth.middleware');
 const {
   submitWithdrawal,
   getMyWithdrawals,
+  userRecheckWithdrawal,
   adminGetAllWithdrawals,
   adminApproveWithdrawal,
   adminRejectWithdrawal,
@@ -31,6 +32,7 @@ const {
 router.use(protect);
 router.post('/', submitWithdrawal);
 router.get('/mine', getMyWithdrawals);
+router.get('/mine/:id/recheck', userRecheckWithdrawal);
 
 // ── Admin only ────────────────────────────────
 router.get('/admin', restrictTo('admin'), adminGetAllWithdrawals);

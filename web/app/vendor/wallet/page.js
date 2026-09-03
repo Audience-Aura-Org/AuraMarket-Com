@@ -133,9 +133,43 @@ export default function VendorWalletPage() {
         setWalletBalance(nextBalance);
         setEscrow(balRes.value.data.data.pending_escrow || 0);
       }
-      if (txRes.status === 'fulfilled' && txRes.value.data.success) setTxs(txRes.value.data.data.transactions || []);
+      const txList = (txRes.status === 'fulfilled' && txRes.value.data.success) ? txRes.value.data.data.transactions || [] : [];
+      setTxs(txList);
       if (escrowRes.status === 'fulfilled' && escrowRes.value.data.success) setEscrowTxs(escrowRes.value.data.data.transactions || []);
-      if (wdRes.status === 'fulfilled' && wdRes.value.data.success) setWithdrawalRequests(wdRes.value.data.data.withdrawals || []);
+      const wdList = (wdRes.status === 'fulfilled' && wdRes.value.data.success) ? wdRes.value.data.data.withdrawals || [] : [];
+      setWithdrawalRequests(wdList);
+
+      // Auto-recheck ALL unsettled deposits/payments and pending withdrawal payouts
+      const pendingDeposits = txList.filter(
+        tx => ['pending', 'failed'].includes(tx.status)
+          && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway)
+          && ['deposit', 'payment'].includes(tx.type)
+          && tx.reference
+          && !tx.gateway_transaction_id?.startsWith('SBX-')
+      );
+      const pendingWithdrawals = wdList.filter(
+        wd => ['pending', 'approved', 'processing'].includes(wd.status)
+          && wd.payout_gateway
+          && wd.eversend_transaction_id
+      );
+      if (pendingDeposits.length > 0 || pendingWithdrawals.length > 0) {
+        setTimeout(async () => {
+          let anyChanged = false;
+          for (const tx of pendingDeposits) {
+            try {
+              const r = await api.get(`/payments/${tx.gateway}/recheck/${tx.reference}`);
+              if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') anyChanged = true;
+            } catch { /* silent */ }
+          }
+          for (const wd of pendingWithdrawals) {
+            try {
+              const r = await api.get(`/withdrawals/mine/${wd._id}/recheck`);
+              if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') anyChanged = true;
+            } catch { /* silent */ }
+          }
+          if (anyChanged) load(true);
+        }, 2000);
+      }
     } catch (e) {
       if (e.response?.status !== 401) {
         console.error('Wallet Load Error:', e);
@@ -279,14 +313,14 @@ export default function VendorWalletPage() {
           <WithdrawModal
             balance={balance}
             onClose={() => setWithdraw(false)}
-            onSuccess={() => { load(); setWithdraw(false); }}
+            onSuccess={() => { setWithdraw(false); setTimeout(() => window.location.reload(), 600); }}
           />
         )}
       </AnimatePresence>
       <DepositModal
         open={showDeposit}
         onClose={() => setDeposit(false)}
-        onSuccess={() => { load(true); setDeposit(false); }}
+        onSuccess={() => { setDeposit(false); setTimeout(() => window.location.reload(), 600); }}
         userPhone={user?.phone || ''}
       />
 

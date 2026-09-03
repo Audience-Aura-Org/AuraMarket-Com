@@ -13,15 +13,23 @@ export function useWalletBalance() {
   useEffect(() => {
     if (!refreshWalletBalance) return undefined;
 
+    // Debounce API refreshes — multiple events (focus, visibility, navigation)
+    // can fire in quick succession; without debouncing each triggers a separate
+    // API call and the last to resolve wins, potentially overwriting a fresher
+    // value with a stale one.
+    let debounceTimer = null;
     const refresh = () => {
-      refreshWalletBalance().catch(() => {});
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        refreshWalletBalance().catch(() => {});
+      }, 400);
     };
 
     // Only hit the API on mount when we have no cached balance yet.
     // When the store already holds a value (set during login / fetchMe),
     // show it immediately and let the event listeners handle updates.
     if (walletBalance === null) {
-      refresh();
+      refreshWalletBalance().catch(() => {});
     }
 
     // Window / visibility events
@@ -68,6 +76,7 @@ export function useWalletBalance() {
     socketService.on('withdrawal:paid', refresh);
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       window.removeEventListener('aura:wallet-updated', refresh);
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);

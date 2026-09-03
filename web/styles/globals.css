@@ -168,6 +168,7 @@ html {
   min-height: 100%;
   height: 100%;
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   transition: background-color 0.3s ease, color 0.3s ease;
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
@@ -324,9 +325,9 @@ i, em { font-style: normal !important; }
 /* ── Prevent page zoom on input focus (iOS Safari) ── */
 @supports (-webkit-touch-callout: none) {
   input, textarea, select {
-    /* The mobile shell is scaled to 80%, so 20px produces Safari's required
-       16px effective size and prevents focus-zoom in pages and modals. */
-    font-size: 20px !important;
+    /* iOS WebKit body zoom doesn't scale text, so use 16px directly
+       (Safari's minimum to prevent focus-zoom) instead of a compensated value. */
+    font-size: 16px !important;
     touch-action: manipulation;
   }
 }
@@ -575,10 +576,24 @@ video {
    bug. -webkit-touch-callout is iOS-only so this block never affects
    Android or desktop browsers. */
 @supports (-webkit-touch-callout: none) {
-  html { zoom: 1 !important; }
-  /* Re-apply compact layout scaling through body to restore 0.7/0.8 scale */
-  body { zoom: 0.7; }
+  /* iOS WebKit bug: CSS zoom on body scales layout but NOT text, making
+     text appear larger than on Chrome/Android where html zoom scales both.
+     Fix: bake the zoom factor into the root font-size so rem-based text
+     matches the visual size on other browsers. Body zoom still handles
+     layout scaling for spacing/boxes. */
+  html {
+    zoom: 1 !important;
+    font-size: calc(var(--aura-font-size-base, 16px) * 0.7);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    zoom: 0.7;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   @media (max-width: 640px) {
+    html { font-size: calc(var(--aura-font-size-base, 16px) * 0.8); }
     body { zoom: 0.8; }
   }
   /* Reset body zoom inside chat so dvh/svh and visualViewport are unscaled */

@@ -902,6 +902,122 @@ const adminRejectWithdrawal = async (req, res) => {
   }
 };
 
+// ── 5b. USER: RECHECK OWN WITHDRAWAL ─────────────────────────────────────────
+// Lightweight version of adminRecheckWithdrawal — lets a user sync the payout
+// status of their own withdrawal so the wallet page can reflect the real state.
+const userRecheckWithdrawal = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const wr = await WithdrawalRequest.findOne({
+      _id: req.params.id,
+      requested_by: req.user._id,
+    }).session(session);
+
+    if (!wr) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ success: false, message: 'Withdrawal not found.' });
+    }
+
+    // Only recheck withdrawals that have been sent to a gateway
+    const payoutGateway = wr.payout_gateway || (wr.eversend_transaction_id ? 'eversend' : null);
+    const gatewayTxId = wr.eversend_transaction_id;
+    if (!payoutGateway || !gatewayTxId) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(200).json({
+        success: true,
+        status: 'PENDING',
+        message: 'This withdrawal is still awaiting admin approval.',
+      });
+    }
+
+    // Already terminal — no need to re-query the gateway
+    if (['completed', 'failed', 'rejected'].includes(wr.status)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(200).json({
+        success: true,
+        status: wr.status === 'completed' ? 'SUCCESSFUL' : 'FAILED',
+        message: `Withdrawal already ${wr.status}.`,
+      });
+    }
+
+    let normalizedStatus;
+
+    if (payoutGateway === 'pawapay') {
+      try {
+        const result = await pawapay.getPayoutStatus(gatewayTxId);
+        normalizedStatus = pawapay.normalizePawaPayoutStatus(result?.status);
+        wr.eversend_status = result?.status || normalizedStatus;
+      } catch (e) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(200).json({ success: true, status: 'PENDING', message: 'Could not reach gateway. Try again later.' });
+      }
+    } else if (payoutGateway === 'eversend') {
+      try {
+        const result = await eversend.getTransactionStatus(gatewayTxId);
+        const txData = result?.data || result;
+        normalizedStatus = (txData?.status || '').toUpperCase();
+        wr.eversend_status = normalizedStatus;
+      } catch (e) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(200).json({ success: true, status: 'PENDING', message: 'Could not reach gateway. Try again later.' });
+      }
+    } else {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(200).json({ success: true, status: 'PENDING', message: 'Manual payout — status will be updated by admin.' });
+    }
+
+    if (normalizedStatus === 'SUCCESSFUL') {
+      wr.status = 'completed';
+      await wr.save({ session });
+      await Transaction.updateOne(
+        { "metadata.withdrawal_request_id": wr._id },
+        { status: 'completed' },
+        { session },
+      );
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Withdrawal confirmed successful.' });
+    }
+
+    if (normalizedStatus === 'FAILED') {
+      if (wr.balance_deducted) {
+        await creditBalance(wr.requested_by, wr.amount, session);
+        wr.balance_deducted = false;
+      }
+      wr.status = 'failed';
+      wr.failure_reason = 'Gateway reported payout as failed.';
+      await wr.save({ session });
+      await Transaction.updateOne(
+        { "metadata.withdrawal_request_id": wr._id },
+        { status: 'failed' },
+        { session },
+      );
+      await session.commitTransaction();
+      session.endSession();
+      return res.status(200).json({ success: true, status: 'FAILED', message: 'Withdrawal failed. Balance restored.' });
+    }
+
+    // Still pending/processing
+    await wr.save({ session });
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(200).json({ success: true, status: 'PENDING', message: `Withdrawal is still ${normalizedStatus || 'PENDING'} on the gateway.` });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error('[userRecheckWithdrawal]', err);
+    return res.status(500).json({ success: false, message: 'Server error during recheck.' });
+  }
+};
+
 // ── 6. ADMIN: RECHECK WITHDRAWAL ──────────────────────────────────────────────
 const adminRecheckWithdrawal = async (req, res) => {
   const session = await mongoose.startSession();
@@ -1279,6 +1395,7 @@ const pawapayPayoutWebhook = async (req, res) => {
 module.exports = {
   submitWithdrawal,
   getMyWithdrawals,
+  userRecheckWithdrawal,
   adminGetAllWithdrawals,
   adminApproveWithdrawal,
   adminRejectWithdrawal,
