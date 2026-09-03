@@ -1396,9 +1396,31 @@ export default function AccountPageClient() {
                                 <div className="mt-6 pt-4 border-t border-[var(--glass-border)] w-full flex items-center justify-between">
                                   <div className="flex flex-col items-start gap-1">
                                     <span className="text-[10px] font-semibold text-[var(--text-secondary)]/40 tracking-tight">Status</span>
-                                    <span className="text-[11px] font-semibold text-emerald-500 flex items-center gap-1 ">
-                                      <div className="size-1 rounded-full bg-emerald-500 animate-pulse"></div> Active
-                                    </span>
+                                    {(() => {
+                                      const vu = vendor.vendor_id?.user_id;
+                                      const isOnline = vu?.is_online && vu?.last_seen && (Date.now() - new Date(vu.last_seen).getTime() < 90000);
+                                      if (isOnline) {
+                                        return (
+                                          <span className="text-[11px] font-semibold text-emerald-500 flex items-center gap-1">
+                                            <div className="size-1 rounded-full bg-emerald-500 animate-pulse"></div> Online
+                                          </span>
+                                        );
+                                      }
+                                      const lastSeen = vu?.last_seen ? new Date(vu.last_seen) : null;
+                                      let label = 'Offline';
+                                      if (lastSeen) {
+                                        const diff = (Date.now() - lastSeen.getTime()) / 1000;
+                                        if (diff < 60) label = 'Just now';
+                                        else if (diff < 3600) label = `${Math.floor(diff / 60)}m ago`;
+                                        else if (diff < 86400) label = `${Math.floor(diff / 3600)}h ago`;
+                                        else label = `${Math.floor(diff / 86400)}d ago`;
+                                      }
+                                      return (
+                                        <span className="text-[11px] font-semibold text-[var(--text-secondary)]/60 flex items-center gap-1">
+                                          <div className="size-1 rounded-full bg-[var(--text-secondary)]/40"></div> {label}
+                                        </span>
+                                      );
+                                    })()}
                                   </div>
                                   
                                   <div className="size-8 rounded-xl bg-[var(--bg-secondary)] text-[var(--text-secondary)] group-hover:bg-[var(--accent)] group-hover:text-white flex items-center justify-center transition-all duration-500 shadow-sm">

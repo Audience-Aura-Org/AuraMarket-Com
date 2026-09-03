@@ -25,12 +25,12 @@ export function useWalletBalance() {
       }, 400);
     };
 
-    // Only hit the API on mount when we have no cached balance yet.
-    // When the store already holds a value (set during login / fetchMe),
-    // show it immediately and let the event listeners handle updates.
-    if (walletBalance === null) {
-      refreshWalletBalance().catch(() => {});
-    }
+    // Always refresh from the API on mount so the TopNav balance stays
+    // accurate after full page reloads (the persisted Zustand value may
+    // be stale if a refund, deposit, or withdrawal settled server-side).
+    // The cached value is shown immediately — the API call updates it
+    // in the background without a loading flash.
+    refreshWalletBalance().catch(() => {});
 
     // Window / visibility events
     window.addEventListener('aura:wallet-updated', refresh);

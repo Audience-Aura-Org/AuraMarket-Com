@@ -344,6 +344,17 @@ const resolveDispute = async (req, res, next) => {
     await session.commitTransaction();
     session.endSession();
 
+    // Emit wallet update to the buyer so TopNav balance refreshes instantly
+    if (['full_refund', 'food_full_refund', 'food_partial_refund'].includes(resolution_type)) {
+      const io = req.app?.get?.('io');
+      if (io && order.customer_id) {
+        const userRoom = order.customer_id.toString();
+        const payload = { type: 'refund', reference: order._id };
+        io.to(userRoom).emit('wallet:credited', payload);
+        io.to(`user:${userRoom}`).emit('wallet:credited', payload);
+      }
+    }
+
     notifyOrderStatusChange(req.app, order, order.order_status, {
       message: `Dispute resolved: ${resolution_type.replace(/_/g, ' ')}.`,
     });
