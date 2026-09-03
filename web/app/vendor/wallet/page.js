@@ -122,7 +122,7 @@ export default function VendorWalletPage() {
     else setLoading(true);
     try {
       const [balRes, txRes, escrowRes, wdRes] = await Promise.allSettled([
-        api.get('/wallet'),
+        api.get('/wallet', { skipClientCache: true }),
         api.get('/wallet/transactions?limit=50'),
         api.get('/wallet/escrow'),
         api.get('/withdrawals/mine'),
@@ -319,14 +319,14 @@ export default function VendorWalletPage() {
           <WithdrawModal
             balance={balance}
             onClose={() => setWithdraw(false)}
-            onSuccess={() => { setWithdraw(false); setTimeout(() => window.location.reload(), 600); }}
+            onSuccess={() => { setWithdraw(false); load(); }}
           />
         )}
       </AnimatePresence>
       <DepositModal
         open={showDeposit}
         onClose={() => setDeposit(false)}
-        onSuccess={() => { setDeposit(false); setTimeout(() => window.location.reload(), 600); }}
+        onSuccess={() => { setDeposit(false); load(); }}
         userPhone={user?.phone || ''}
       />
 

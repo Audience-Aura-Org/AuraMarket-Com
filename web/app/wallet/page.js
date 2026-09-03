@@ -121,7 +121,7 @@ export default function WalletPage() {
     else setLoading(true);
     try {
       const [balRes, txRes, wdRes] = await Promise.allSettled([
-        api.get('/wallet'),
+        api.get('/wallet', { skipClientCache: true }),
         api.get('/wallet/transactions'),
         api.get('/withdrawals/mine'),
       ]);
@@ -553,7 +553,7 @@ export default function WalletPage() {
       <DepositModal
         open={modal === 'deposit'}
         onClose={() => setModal(null)}
-        onSuccess={() => { setModal(null); setTimeout(() => window.location.reload(), 600); }}
+        onSuccess={() => { setModal(null); fetchWallet(); }}
         userPhone={user?.phone}
       />
       <AnimatePresence>
@@ -561,7 +561,7 @@ export default function WalletPage() {
           <WithdrawModal
             balance={balance}
             onClose={() => setModal(null)}
-            onSuccess={() => { setModal(null); setTimeout(() => window.location.reload(), 600); }}
+            onSuccess={() => { setModal(null); fetchWallet(); }}
           />
         )}
       </AnimatePresence>
