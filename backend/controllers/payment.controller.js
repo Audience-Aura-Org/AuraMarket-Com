@@ -17,6 +17,7 @@ const { getAvailableGateways } = require('../services/payment/gateway.registry')
 const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
 const { activateSubscription } = require('../services/subscription.service');
 const pawapay = require('../services/payment/gateways/pawapay.gateway');
+const webhookHealth = require('../services/webhookHealthMonitor.service');
 
 // -----------------------------------------------------------------------------
 // HELPERS
@@ -625,11 +626,13 @@ const payunitRecheck = async (req, res) => {
 
 const payunitWebhook = async (req, res) => {
   try {
+    webhookHealth.record('received', 'payunit');
     // ── Signature verification (CRITICAL security gate) ─────────────────────
     // PayUnit sends its secret in the x-payunit-signature header as HMAC-SHA256
     // over the raw request body. We verify before touching any data.
     const receivedSig = req.headers['x-payunit-signature'] || req.headers['x-webhook-signature'];
     if (!receivedSig || !PAYUNIT_WEBHOOK_SECRET) {
+      webhookHealth.record('rejected', 'payunit', 'missing-signature');
       console.warn('[PayUnit Webhook] Missing signature or secret — rejecting');
       return res.status(401).send('Unauthorized');
     }
@@ -646,6 +649,7 @@ const payunitWebhook = async (req, res) => {
     const receivedSigBuffer = Buffer.from(receivedSig);
     const expectedSigBuffer = Buffer.from(expectedSig);
     if (receivedSigBuffer.length !== expectedSigBuffer.length || !crypto.timingSafeEqual(receivedSigBuffer, expectedSigBuffer)) {
+      webhookHealth.record('rejected', 'payunit', 'signature-mismatch');
       console.warn('[PayUnit Webhook] Invalid signature — rejecting');
       return res.status(401).send('Unauthorized');
     }
@@ -672,6 +676,7 @@ const payunitWebhook = async (req, res) => {
         return res.status(200).send('OK');
       }
       await settleGatewayTransaction(claimed, event, req.app, getWebUrl(req), 'payunit');
+      webhookHealth.record('webhookSettled', 'payunit');
     } else if (status === 'FAILED') {
       await Transaction.findOneAndUpdate(
         { reference, gateway: 'payunit', status: { $in: ['pending', 'processing'] } },
@@ -1236,9 +1241,11 @@ const eversendRecheck = async (req, res) => {
  */
 const eversendWebhook = async (req, res) => {
   try {
+    webhookHealth.record('received', 'eversend');
     const signature = req.headers['x-eversend-signature'];
     const isValid = eversend.verifyWebhookSignature(req.body, signature);
     if (!isValid) {
+      webhookHealth.record('rejected', 'eversend', 'signature-invalid');
       console.warn('[Eversend Webhook] Invalid signature â€” rejecting');
       return res.status(401).send('Unauthorized');
     }
@@ -1315,6 +1322,8 @@ const eversendWebhook = async (req, res) => {
             console.error('Webhook Wallet Credit Error:', err.message);
           } finally { session.endSession(); }
         }
+
+        webhookHealth.record('webhookSettled', 'eversend');
 
         // -- Instant Socket.io push ? frontend shows success immediately --
         const io = req.app.get('io');
@@ -1938,10 +1947,12 @@ const pawapayRecheck = async (req, res) => {
  */
 const pawapayDepositWebhook = async (req, res) => {
   try {
+    webhookHealth.record('received', 'pawapay');
     // 1. IP allowlist check (enforced when PAWAPAY_ENFORCE_IP_ALLOWLIST=true)
     const callerIp = pawapay.resolveCallerIp(req.headers, req.socket?.remoteAddress);
     const ipCheck = pawapay.checkCallerIp(callerIp);
     if (!ipCheck.allowed) {
+      webhookHealth.record('rejected', 'pawapay', 'ip-rejected');
       console.warn(`[PawaPay Deposit Webhook] ${ipCheck.reason} — rejecting`);
       return res.status(403).send('Forbidden');
     }
@@ -1954,6 +1965,7 @@ const pawapayDepositWebhook = async (req, res) => {
 
     const isValid = pawapay.verifyWebhookSignature(rawBody, req.headers);
     if (!isValid) {
+      webhookHealth.record('rejected', 'pawapay', 'signature-invalid');
       console.warn('[PawaPay Deposit Webhook] Invalid signature — rejecting');
       return res.status(401).send('Unauthorized');
     }
@@ -1985,6 +1997,7 @@ const pawapayDepositWebhook = async (req, res) => {
       );
       if (!claimed) return res.status(200).send('OK'); // Already processed
       await settleGatewayTransaction(claimed, event, req.app, '', 'pawapay');
+      webhookHealth.record('webhookSettled', 'pawapay');
     } else if (status === 'FAILED') {
       const updated = await Transaction.findOneAndUpdate(
         { reference: { $in: transactionRefs }, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
@@ -2246,6 +2259,7 @@ const pawapayCheckoutWebhook = async (req, res) => {
       );
       if (!claimed) return res.status(200).send('OK'); // Already processed
       await settleGatewayTransaction(claimed, event, req.app, '', 'pawapay');
+      webhookHealth.record('webhookSettled', 'pawapay');
     } else if (status === 'FAILED') {
       const updated = await Transaction.findOneAndUpdate(
         { reference: transactionRef, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },

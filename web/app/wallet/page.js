@@ -250,18 +250,26 @@ export default function WalletPage() {
         showToast('This gateway is not supported for recheck.', 'error');
         return;
       }
-      const res = await api.get(`/payments/${tx.gateway}/recheck/${tx.reference}`);
+
+      let res;
+      if (tx.type === 'withdrawal') {
+        // Withdrawal transactions link to a WithdrawalRequest via metadata
+        const wdId = tx.metadata?.withdrawal_request_id;
+        if (!wdId) { showToast('No withdrawal record linked.', 'error'); return; }
+        res = await api.get(`/withdrawals/mine/${wdId}/recheck`);
+      } else {
+        res = await api.get(`/payments/${tx.gateway}/recheck/${tx.reference}`);
+      }
+
       const { status, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
-        showToast('Payment confirmed! Your wallet has been credited.', 'success');
-        window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
+        showToast(tx.type === 'withdrawal' ? 'Withdrawal confirmed!' : 'Payment confirmed! Your wallet has been credited.', 'success');
         fetchWallet(true);
       } else if (status === 'FAILED') {
-        showToast(reason || message || 'Payment could not be confirmed.', 'error');
-        window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
+        showToast(reason || message || 'Could not be confirmed.', 'error');
         fetchWallet(true);
       } else {
-        showToast('Still processing — your phone may still have a pending prompt.', 'info');
+        showToast(message || 'Still processing — try again shortly.', 'info');
       }
     } catch {
       showToast('Could not reach server. Try again shortly.', 'error');
@@ -449,7 +457,7 @@ export default function WalletPage() {
                       key={tx._id || i}
                       onClick={() => setSelectedTx(tx)}
                       className={`flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-secondary)]/20 border transition-all group cursor-pointer ${
-                        tx.status === 'pending' && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway) && tx.type === 'deposit'
+                        tx.status === 'pending' && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway) && ['deposit', 'payment', 'withdrawal'].includes(tx.type)
                           ? 'border-amber-500/30 bg-amber-500/5'
                           : 'border-[var(--glass-border)] hover:border-[var(--accent)]/30'
                       }`}
@@ -460,7 +468,7 @@ export default function WalletPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
                         <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
-                        {['pending', 'failed'].includes(tx.status) && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway) && tx.type === 'deposit' && (
+                        {['pending', 'failed'].includes(tx.status) && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway) && ['deposit', 'payment', 'withdrawal'].includes(tx.type) && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handleRecheckTx(tx); }}
                             disabled={recheckingTxId === tx._id}

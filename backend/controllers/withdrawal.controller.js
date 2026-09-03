@@ -20,6 +20,7 @@ const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const eversend = require('../services/eversend.service');
 const pawapay  = require('../services/payment/gateways/pawapay.gateway');
+const webhookHealth = require('../services/webhookHealthMonitor.service');
 const { sendNotification } = require('../utils/notifier');
 const { debitBalance, creditBalance } = require('../services/wallet.service');
 const crypto = require('crypto');
@@ -1251,10 +1252,12 @@ const adminCompleteManualWithdrawal = async (req, res) => {
 // Called by PawaPay when a payout reaches a final status (COMPLETED or FAILED).
 const pawapayPayoutWebhook = async (req, res) => {
   try {
+    webhookHealth.record('received', 'pawapay');
     // 1. IP allowlist (enforced when PAWAPAY_ENFORCE_IP_ALLOWLIST=true)
     const callerIp = pawapay.resolveCallerIp(req.headers, req.socket?.remoteAddress);
     const ipCheck  = pawapay.checkCallerIp(callerIp);
     if (!ipCheck.allowed) {
+      webhookHealth.record('rejected', 'pawapay', 'ip-rejected');
       console.warn(`[PawaPay Payout Webhook] ${ipCheck.reason} — rejecting`);
       return res.status(403).send('Forbidden');
     }
@@ -1266,6 +1269,7 @@ const pawapayPayoutWebhook = async (req, res) => {
       : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
 
     if (!pawapay.verifyWebhookSignature(rawBody, req.headers)) {
+      webhookHealth.record('rejected', 'pawapay', 'signature-invalid');
       console.warn('[PawaPay Payout Webhook] Signature verification failed');
       return res.status(401).send('Unauthorized');
     }
@@ -1313,6 +1317,7 @@ const pawapayPayoutWebhook = async (req, res) => {
 
         await session.commitTransaction();
         session.endSession();
+        webhookHealth.record('webhookSettled', 'pawapay');
 
         setImmediate(async () => {
           try {

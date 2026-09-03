@@ -65,7 +65,11 @@ const isSafePreChargeFallbackError = (error) => {
 
 /**
  * Route Cameroon mobile-money requests to the provider configured for that
- * network. A fallback is intentionally limited to a definite pre-charge route
+ * network. Fallback chain:
+ *   PawaPay (MTN) → PayUnit → Eversend
+ *   PayUnit (Orange) → Eversend
+ *
+ * A fallback is intentionally limited to a definite pre-charge route
  * or service failure; retrying after a network timeout could create two charges.
  */
 export const initiateSmartCameroonCollection = async (payload) => {
@@ -76,16 +80,29 @@ export const initiateSmartCameroonCollection = async (payload) => {
     const result = await initiateCollection(route.gateway, requestPayload);
     return { ...result, gateway: route.gateway, routedNetwork: route.network };
   } catch (error) {
-    if (route.gateway !== 'pawapay' || !isSafePreChargeFallbackError(error)) throw error;
+    if (!isSafePreChargeFallbackError(error)) throw error;
 
-    const fallbackPayload = { ...payload, provider: 'CM_MTNMOMO' };
-    const result = await initiateCollection('payunit', fallbackPayload);
-    return {
-      ...result,
-      gateway: 'payunit',
-      routedNetwork: 'mtn',
-      fallbackUsed: true,
-    };
+    // PawaPay failed → try PayUnit → then Eversend
+    if (route.gateway === 'pawapay') {
+      try {
+        const fallbackPayload = { ...payload, provider: 'CM_MTNMOMO' };
+        const result = await initiateCollection('payunit', fallbackPayload);
+        return { ...result, gateway: 'payunit', routedNetwork: 'mtn', fallbackUsed: true };
+      } catch (payunitError) {
+        if (!isSafePreChargeFallbackError(payunitError)) throw payunitError;
+        // PayUnit also down → last resort: Eversend
+        const result = await initiateCollection('eversend', payload);
+        return { ...result, gateway: 'eversend', routedNetwork: route.network, fallbackUsed: true, fallbackLevel: 2 };
+      }
+    }
+
+    // PayUnit (Orange) failed → try Eversend
+    if (route.gateway === 'payunit') {
+      const result = await initiateCollection('eversend', payload);
+      return { ...result, gateway: 'eversend', routedNetwork: route.network, fallbackUsed: true };
+    }
+
+    throw error;
   }
 };
 
