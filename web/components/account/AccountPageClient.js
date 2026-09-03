@@ -847,68 +847,10 @@ export default function AccountPageClient() {
                               </div>
                             </div>
 
-                            {(() => {
-                              const obCityZone = zones.find(z => (z.type === 'city' || z.type === 'region') && z.name === userData.onboarding_location.city);
-                              const obDistrictOpts = obCityZone
-                                ? zones.filter(z => (z.type === 'district' || z.type === 'quartier') && String(z.parent_id?._id ?? z.parent_id) === String(obCityZone._id))
-                                : [];
-                              const obDistrictZone = obDistrictOpts.find(z => z.name === userData.onboarding_location.zone);
-                              const obQuartierOpts = obDistrictZone
-                                ? zones.filter(z => z.type === 'quartier' && String(z.parent_id?._id ?? z.parent_id) === String(obDistrictZone._id))
-                                : [];
-                              return (
-                                <div className="space-y-3">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <FormSelect
-                                      label="City"
-                                      value={userData.onboarding_location.city}
-                                      onChange={(v) => setUserData({ ...userData, onboarding_location: { ...userData.onboarding_location, city: v, zone: '', quartier: '' } })}
-                                      options={zones.filter(z => z.type === 'city' || z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
-                                      icon={MapPin}
-                                      placeholder="Select city"
-                                    />
-                                    {obDistrictOpts.length > 0 && (
-                                      <FormSelect
-                                        label="District"
-                                        value={userData.onboarding_location.zone}
-                                        onChange={(v) => setUserData({ ...userData, onboarding_location: { ...userData.onboarding_location, zone: v, quartier: '' } })}
-                                        options={obDistrictOpts.map(z => ({ label: z.name, value: z.name }))}
-                                        icon={MapPin}
-                                        placeholder="Select district"
-                                        disabled={!userData.onboarding_location.city}
-                                      />
-                                    )}
-                                  </div>
-                                  {obQuartierOpts.length > 0 && (
-                                    <FormSelect
-                                      label="Quartier"
-                                      value={userData.onboarding_location.quartier}
-                                      onChange={(v) => setUserData({ ...userData, onboarding_location: { ...userData.onboarding_location, quartier: v } })}
-                                      options={obQuartierOpts.map(z => ({ label: z.name, value: z.name }))}
-                                      icon={MapPin}
-                                      placeholder="Select quartier"
-                                      disabled={!userData.onboarding_location.zone}
-                                    />
-                                  )}
-                                </div>
-                              );
-                            })()}
-
-                            <FormField
-                              label="Street / Landmark"
-                              value={userData.onboarding_location.address_description}
-                              onChange={(v) =>
-                                setUserData({
-                                  ...userData,
-                                  onboarding_location: {
-                                    ...userData.onboarding_location,
-                                    address_description: v,
-                                  },
-                                })
-                              }
-                              icon={MapPin}
-                              placeholder="Building, gate, landmark, or street name…"
-                              textarea={true}
+                            <ZoneAddressPicker
+                              zones={zones}
+                              address={userData.onboarding_location}
+                              onChange={(loc) => setUserData({ ...userData, onboarding_location: loc })}
                             />
                           </div>
                         )}
@@ -1067,62 +1009,14 @@ export default function AccountPageClient() {
                           </h4>
                         </div>
 
-                        {(() => {
-                          const cityZoneObj = zones.find(z => (z.type === 'city' || z.type === 'region') && z.name === storeData.pickup_address.city);
-                          const districtOpts = cityZoneObj
-                            ? zones.filter(z => (z.type === 'district' || z.type === 'quartier') && String(z.parent_id?._id ?? z.parent_id) === String(cityZoneObj._id))
-                            : [];
-                          const districtZoneObj = districtOpts.find(z => z.name === storeData.pickup_address.district);
-                          const quartierOpts = districtZoneObj
-                            ? zones.filter(z => z.type === 'quartier' && String(z.parent_id?._id ?? z.parent_id) === String(districtZoneObj._id))
-                            : [];
-                          return (
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                <FormSelect
-                                  label="City"
-                                  value={storeData.pickup_address.city}
-                                  onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, city: v, district: '', quartier: ''}})}
-                                  options={zones.filter(z => z.type === 'city' || z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
-                                  icon={MapPin}
-                                  placeholder="Select city"
-                                />
-                                {districtOpts.length > 0 && (
-                                  <FormSelect
-                                    label="District"
-                                    value={storeData.pickup_address.district}
-                                    onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, district: v, quartier: ''}})}
-                                    options={districtOpts.map(z => ({ label: z.name, value: z.name }))}
-                                    icon={MapPin}
-                                    placeholder="Select district"
-                                    disabled={!storeData.pickup_address.city}
-                                  />
-                                )}
-                              </div>
-                              {quartierOpts.length > 0 && (
-                                <FormSelect
-                                  label="Quartier"
-                                  value={storeData.pickup_address.quartier}
-                                  onChange={(v) => setStoreData({...storeData, pickup_address: {...storeData.pickup_address, quartier: v}})}
-                                  options={quartierOpts.map(z => ({ label: z.name, value: z.name }))}
-                                  icon={MapPin}
-                                  placeholder="Select quartier"
-                                  disabled={!storeData.pickup_address.district}
-                                />
-                              )}
-                            </div>
-                          );
-                        })()}
-
-                        <FormField
-                          label={storeData.vendor_type === 'restaurant' ? 'Restaurant Address Description' : 'Store Pickup Address Description'}
-                          value={storeData.pickup_address.address_description}
-                          onChange={(v) => setStoreData({ ...storeData, pickup_address: { ...storeData.pickup_address, address_description: v } })}
-                          icon={MapPin}
-                          placeholder={storeData.vendor_type === 'restaurant'
+                        <ZoneAddressPicker
+                          zones={zones}
+                          address={storeData.pickup_address}
+                          onChange={(addr) => setStoreData({ ...storeData, pickup_address: addr })}
+                          descriptionLabel={storeData.vendor_type === 'restaurant' ? 'Restaurant Address Description' : 'Store Pickup Address Description'}
+                          descriptionPlaceholder={storeData.vendor_type === 'restaurant'
                             ? 'Exact restaurant address — building name, street, landmark, floor, or entrance...'
                             : 'Describe the exact store pickup point, landmark, building, floor, or gate...'}
-                          textarea={true}
                         />
                       </div>
 
@@ -1724,6 +1618,70 @@ function KycUploadCard({ title, image, field, uploading, onUpload }) {
       )}
       <input type="file" accept="image/*" className="hidden" onChange={(e) => onUpload(field, e.target.files?.[0])} />
     </label>
+  );
+}
+
+function ZoneAddressPicker({ zones, address, onChange, descriptionLabel = 'Street / Landmark', descriptionPlaceholder = 'Building, gate, landmark, or street name…' }) {
+  const city = address.city || '';
+  const district = address.district || address.zone || '';
+  const quartier = address.quartier || '';
+  const addressDescription = address.address_description || '';
+
+  // Resolve which key the parent uses for the district-level field
+  const districtKey = 'zone' in address ? 'zone' : 'district';
+
+  const cityZone = zones.find(z => (z.type === 'city' || z.type === 'region') && z.name === city);
+  const districtOpts = cityZone
+    ? zones.filter(z => (z.type === 'district' || z.type === 'quartier') && String(z.parent_id?._id ?? z.parent_id) === String(cityZone._id))
+    : [];
+  const districtZone = districtOpts.find(z => z.name === district);
+  const quartierOpts = districtZone
+    ? zones.filter(z => z.type === 'quartier' && String(z.parent_id?._id ?? z.parent_id) === String(districtZone._id))
+    : [];
+
+  const update = (patch) => onChange({ ...address, ...patch });
+
+  return (
+    <>
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+          <FormSelect
+            label="City"
+            value={city}
+            onChange={(v) => update({ city: v, [districtKey]: '', quartier: '' })}
+            options={zones.filter(z => z.type === 'city' || z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
+            placeholder="Select city"
+          />
+          {districtOpts.length > 0 && (
+            <FormSelect
+              label="District"
+              value={district}
+              onChange={(v) => update({ [districtKey]: v, quartier: '' })}
+              options={districtOpts.map(z => ({ label: z.name, value: z.name }))}
+              placeholder="Select district"
+              disabled={!city}
+            />
+          )}
+        </div>
+        {quartierOpts.length > 0 && (
+          <FormSelect
+            label="Quartier"
+            value={quartier}
+            onChange={(v) => update({ quartier: v })}
+            options={quartierOpts.map(z => ({ label: z.name, value: z.name }))}
+            placeholder="Select quartier"
+            disabled={!district}
+          />
+        )}
+      </div>
+      <FormField
+        label={descriptionLabel}
+        value={addressDescription}
+        onChange={(v) => update({ address_description: v })}
+        placeholder={descriptionPlaceholder}
+        textarea={true}
+      />
+    </>
   );
 }
 
