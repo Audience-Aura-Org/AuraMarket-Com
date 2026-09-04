@@ -16,7 +16,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import Pagination from '@/components/common/Pagination';
 
 const getVendorId = (vendor) => (vendor?.vendor_id?._id || vendor?.vendor_id || vendor?._id)?.toString();
-const getVendorUserId = (vendor) => (vendor?.user_id?._id || vendor?.user_id || vendor?.vendor_id?.user_id?._id || vendor?.vendor_id?.user_id)?.toString();
+const getVendorUserId = (vendor) => (vendor?.vendor_id?.user_id?._id || vendor?.vendor_id?.user_id || vendor?.user_id?._id || vendor?.user_id)?.toString();
 const getVendorName = (vendor) => vendor?.store_name || vendor?.vendor_id?.store_name || 'Store';
 const getVendorDescription = (vendor) => vendor?.description || vendor?.vendor_id?.description || '';
 const getStoreHref = (vendor) => {
@@ -213,7 +213,7 @@ function formatLastSeen(lastSeenVal, t) {
 
 function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, hasNewStatus, onOpenStatus, t }) {
   const { onlineUsersMap } = useChat();
-  const userInfo = vendor.user_id || vendor.vendor_id?.user_id || {};
+  const userInfo = vendor.vendor_id?.user_id || vendor.user_id || {};
   const storeInfo = vendor.vendor_id?.store || vendor.store || vendor.vendor_id || vendor;
   const storeName = getVendorName(vendor);
   const logoUrl = storeInfo?.logo || userInfo?.branding?.logo || userInfo?.avatar || vendor.logo?.url;

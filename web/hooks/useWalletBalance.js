@@ -59,21 +59,24 @@ export function useWalletBalance() {
     window.addEventListener('popstate', onNavChange);
 
     // Socket events — update instantly from payload when balance is included,
-    // otherwise fall back to an API refresh (old gateway paths without balance).
+    // otherwise fetch fresh from the API immediately (no debounce — socket events
+    // fire at most once per transaction, unlike focus/navigation which can fire rapidly).
     const onWalletCredited = (data) => {
       if (data?.balance !== undefined && Number.isFinite(Number(data.balance))) {
         // Backend sent the post-credit balance — zero round-trips, instant update.
         setWalletBalance(Number(data.balance));
       } else {
-        refresh();
+        // No balance in payload — fetch live balance right away.
+        refreshWalletBalance().catch(() => {});
       }
     };
 
     // Wallet debits (subscription and wallet checkout) include the same
     // authoritative post-debit balance as credits.
+    const onWithdrawalPaid = () => refreshWalletBalance().catch(() => {});
     socketService.on('wallet:credited', onWalletCredited);
     socketService.on('wallet:debited', onWalletCredited);
-    socketService.on('withdrawal:paid', refresh);
+    socketService.on('withdrawal:paid', onWithdrawalPaid);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
@@ -85,7 +88,7 @@ export function useWalletBalance() {
       history.replaceState = origReplaceState;
       socketService.off('wallet:credited', onWalletCredited);
       socketService.off('wallet:debited', onWalletCredited);
-      socketService.off('withdrawal:paid', refresh);
+      socketService.off('withdrawal:paid', onWithdrawalPaid);
     };
   // walletBalance intentionally excluded — we only want to run this once on mount.
   // eslint-disable-next-line react-hooks/exhaustive-deps
