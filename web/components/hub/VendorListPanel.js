@@ -223,7 +223,7 @@ function VendorRow({ vendor, index, onClick, onOpenChat, hasStatus, hasNewStatus
   const isOnline = typeof liveOnline === 'boolean' ? liveOnline : (userInfo?.is_online ?? false);
   const lastSeen = formatLastSeen(userInfo?.last_seen, t);
   const snippet = vendor.latest_product?.name || getVendorDescription(vendor) || t('vendor.browseCatalog', 'Browse our latest catalog');
-  const isVerified = vendor.verified || false;
+  const isVerified = vendor.vendor_id?.verified || vendor.verified || false;
 
   return (
     <motion.div

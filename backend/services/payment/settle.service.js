@@ -371,7 +371,7 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
           try {
             const io = app?.get?.('io');
             if (io) {
-              const vRoom = vendor.user_id.toString();
+              const vRoom = vendor.user_id?._id?.toString() || vendor.user_id?.toString();
               const payload = { type: 'payout', reference: order._id };
               io.to(vRoom).emit('wallet:credited', payload);
               io.to(`user:${vRoom}`).emit('wallet:credited', payload);
@@ -559,7 +559,7 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
             try {
               const io = app?.get?.('io');
               if (io) {
-                const vRoom = vendor.user_id.toString();
+                const vRoom = vendor.user_id?._id?.toString() || vendor.user_id?.toString();
                 const payload = { type: 'payout', reference: order._id };
                 io.to(vRoom).emit('wallet:credited', payload);
                 io.to(`user:${vRoom}`).emit('wallet:credited', payload);
