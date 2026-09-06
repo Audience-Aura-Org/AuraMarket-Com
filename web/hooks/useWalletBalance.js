@@ -74,6 +74,13 @@ export function useWalletBalance() {
     // Wallet debits (subscription and wallet checkout) include the same
     // authoritative post-debit balance as credits.
     const onWithdrawalPaid = () => refreshWalletBalance().catch(() => {});
+
+    // Reconnect recovery — any wallet:credited/debited events emitted while the
+    // socket was disconnected are lost. Re-fetching on every (re)connect ensures
+    // the balance is reconciled as soon as connectivity is restored.
+    const onSocketConnect = () => refreshWalletBalance().catch(() => {});
+
+    socketService.on('connect', onSocketConnect);
     socketService.on('wallet:credited', onWalletCredited);
     socketService.on('wallet:debited', onWalletCredited);
     socketService.on('withdrawal:paid', onWithdrawalPaid);
@@ -86,6 +93,7 @@ export function useWalletBalance() {
       window.removeEventListener('popstate', onNavChange);
       history.pushState = origPushState;
       history.replaceState = origReplaceState;
+      socketService.off('connect', onSocketConnect);
       socketService.off('wallet:credited', onWalletCredited);
       socketService.off('wallet:debited', onWalletCredited);
       socketService.off('withdrawal:paid', onWithdrawalPaid);
