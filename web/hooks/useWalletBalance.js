@@ -1,43 +1,83 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
 import socketService from '@/services/socket';
 
+/**
+ * Broadcast a balance value on the window so ANY mounted component can
+ * pick it up — completely independent of Zustand subscription propagation.
+ */
+const broadcastBalance = (balance) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(
+      new CustomEvent('aura:wallet-updated', { detail: { balance } })
+    );
+  } catch (_) { /* SSR / test guard */ }
+};
+
 export function useWalletBalance() {
-  const walletBalance = useAuthStore((state) => state.walletBalance);
+  // Zustand store (persisted, authoritative)
+  const zustandBalance = useAuthStore((state) => state.walletBalance);
   const refreshWalletBalance = useAuthStore((state) => state.refreshWalletBalance);
   const setWalletBalance = useAuthStore((state) => state.setWalletBalance);
-  const displayedBalance = Number(walletBalance ?? 0);
+
+  // Local state mirror — this is what TopNav actually renders.
+  // Using local useState guarantees a React re-render even if Zustand's
+  // subscription propagation is stalled by Next.js App Router batching
+  // or persist middleware quirks.
+  const [localBalance, setLocalBalance] = useState(zustandBalance);
+
+  // Keep local state in sync whenever zustand value changes (e.g. page refresh)
+  useEffect(() => {
+    if (zustandBalance !== null && zustandBalance !== undefined) {
+      setLocalBalance(zustandBalance);
+    }
+  }, [zustandBalance]);
+
+  // Unified setter: updates Zustand + local state + broadcasts to window
+  const updateBalance = useCallback((balance) => {
+    const b = Number(balance);
+    if (!Number.isFinite(b)) return;
+    setLocalBalance(b);
+    setWalletBalance(b);
+    broadcastBalance(b);
+  }, [setWalletBalance]);
 
   useEffect(() => {
     if (!refreshWalletBalance) return undefined;
 
+    // Wrap refreshWalletBalance to also push result to local state + broadcast
+    const doRefresh = async () => {
+      try {
+        const result = await refreshWalletBalance();
+        if (result?.success && Number.isFinite(result.balance)) {
+          setLocalBalance(result.balance);
+          broadcastBalance(result.balance);
+        }
+      } catch (_) { /* non-critical */ }
+    };
+
     // Debounce API refreshes — multiple events (focus, visibility, navigation)
-    // can fire in quick succession; without debouncing each triggers a separate
-    // API call and the last to resolve wins, potentially overwriting a fresher
-    // value with a stale one.
+    // can fire in quick succession.
     let debounceTimer = null;
     const refresh = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        refreshWalletBalance().catch(() => {});
-      }, 400);
+      debounceTimer = setTimeout(doRefresh, 400);
     };
 
     // Always refresh from the API on mount so the TopNav balance stays
-    // accurate after full page reloads (the persisted Zustand value may
-    // be stale if a refund, deposit, or withdrawal settled server-side).
-    // The cached value is shown immediately — the API call updates it
-    // in the background without a loading flash.
-    refreshWalletBalance().catch(() => {});
+    // accurate after full page reloads.
+    doRefresh();
 
-    // Window / visibility events.
-    // aura:wallet-updated can carry a balance in the detail — use it directly
-    // so the TopNav updates without an API round-trip.
+    // ── Window / visibility events ──────────────────────────────────────
+    // aura:wallet-updated can carry a balance in the detail — use it to
+    // update local state directly (no API call, no debounce).
     const onWalletUpdatedEvent = (e) => {
       const b = Number(e?.detail?.balance);
       if (Number.isFinite(b)) {
+        setLocalBalance(b);
         setWalletBalance(b);
       } else {
         refresh();
@@ -48,7 +88,6 @@ export function useWalletBalance() {
     document.addEventListener('visibilitychange', refresh);
 
     // Detect in-app navigation (Next.js App Router uses pushState/replaceState)
-    // so the TopNav balance stays current even when socket events are missed.
     let lastHref = location.href;
     const onNavChange = () => {
       if (location.href !== lastHref) {
@@ -68,27 +107,19 @@ export function useWalletBalance() {
     };
     window.addEventListener('popstate', onNavChange);
 
-    // Socket events — update instantly from payload when balance is included,
-    // otherwise fetch fresh from the API immediately (no debounce — socket events
-    // fire at most once per transaction, unlike focus/navigation which can fire rapidly).
+    // ── Socket events ───────────────────────────────────────────────────
     const onWalletCredited = (data) => {
       if (data?.balance !== undefined && Number.isFinite(Number(data.balance))) {
-        // Backend sent the post-credit balance — zero round-trips, instant update.
-        setWalletBalance(Number(data.balance));
+        const b = Number(data.balance);
+        setLocalBalance(b);
+        setWalletBalance(b);
+        broadcastBalance(b);
       } else {
-        // No balance in payload — fetch live balance right away.
-        refreshWalletBalance().catch(() => {});
+        doRefresh();
       }
     };
-
-    // Wallet debits (subscription and wallet checkout) include the same
-    // authoritative post-debit balance as credits.
-    const onWithdrawalPaid = () => refreshWalletBalance().catch(() => {});
-
-    // Reconnect recovery — any wallet:credited/debited events emitted while the
-    // socket was disconnected are lost. Re-fetching on every (re)connect ensures
-    // the balance is reconciled as soon as connectivity is restored.
-    const onSocketConnect = () => refreshWalletBalance().catch(() => {});
+    const onWithdrawalPaid = () => doRefresh();
+    const onSocketConnect = () => doRefresh();
 
     socketService.on('connect', onSocketConnect);
     socketService.on('wallet:credited', onWalletCredited);
@@ -108,14 +139,17 @@ export function useWalletBalance() {
       socketService.off('wallet:debited', onWalletCredited);
       socketService.off('withdrawal:paid', onWithdrawalPaid);
     };
-  // walletBalance intentionally excluded — we only want to run this once on mount.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshWalletBalance]);
+
+  // walletBalance: the display value (local state — always triggers re-render)
+  const walletBalance = localBalance;
+  const displayedBalance = Number(walletBalance ?? 0);
 
   return {
     walletBalance,
     displayedBalance,
     refreshWalletBalance,
-    setWalletBalance,
+    setWalletBalance: updateBalance,
   };
 }
