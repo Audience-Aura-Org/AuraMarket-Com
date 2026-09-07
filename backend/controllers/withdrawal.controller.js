@@ -613,13 +613,8 @@ const adminApproveWithdrawal = async (req, res) => {
             });
           } catch (e) { console.error(e.message); }
           try {
-            const io = req.app?.get?.('io');
-            if (io && wr.requested_by) {
-              const room = wr.requested_by.toString();
-              const payload = { type: 'withdrawal_reversal', reference: wr._id };
-              io.to(room).emit('wallet:credited', payload);
-              io.to(`user:${room}`).emit('wallet:credited', payload);
-            }
+            const { emitWalletUpdate } = require('../utils/walletSocket');
+            await emitWalletUpdate(req.app?.get?.('io'), wr.requested_by, { type: 'withdrawal_reversal', reference: wr._id });
           } catch (e) { /* non-critical */ }
         });
 
@@ -655,13 +650,8 @@ const adminApproveWithdrawal = async (req, res) => {
             });
           } catch (e) { console.error(e.message); }
           try {
-            const io = req.app?.get?.('io');
-            if (io && wr.requested_by) {
-              const room = wr.requested_by.toString();
-              const payload = { type: 'withdrawal_reversal', reference: wr._id };
-              io.to(room).emit('wallet:credited', payload);
-              io.to(`user:${room}`).emit('wallet:credited', payload);
-            }
+            const { emitWalletUpdate } = require('../utils/walletSocket');
+            await emitWalletUpdate(req.app?.get?.('io'), wr.requested_by, { type: 'withdrawal_reversal', reference: wr._id });
           } catch (e) { /* non-critical */ }
         });
 
@@ -791,13 +781,8 @@ const adminApproveWithdrawal = async (req, res) => {
           });
         } catch (e) { console.error(e.message); }
         try {
-          const io = req.app?.get?.('io');
-          if (io && wr.requested_by) {
-            const room = wr.requested_by.toString();
-            const payload = { type: 'withdrawal_reversal', reference: wr._id };
-            io.to(room).emit('wallet:credited', payload);
-            io.to(`user:${room}`).emit('wallet:credited', payload);
-          }
+          const { emitWalletUpdate } = require('../utils/walletSocket');
+          await emitWalletUpdate(req.app?.get?.('io'), wr.requested_by, { type: 'withdrawal_reversal', reference: wr._id });
         } catch (e) { /* non-critical */ }
       });
 
@@ -916,13 +901,8 @@ const adminRejectWithdrawal = async (req, res) => {
         });
       } catch (e) { console.error(e.message); }
       try {
-        const io = req.app?.get?.('io');
-        if (io && wr.requested_by) {
-          const room = wr.requested_by.toString();
-          const payload = { type: 'withdrawal_reversal', reference: wr._id };
-          io.to(room).emit('wallet:credited', payload);
-          io.to(`user:${room}`).emit('wallet:credited', payload);
-        }
+        const { emitWalletUpdate } = require('../utils/walletSocket');
+        await emitWalletUpdate(req.app?.get?.('io'), wr.requested_by, { type: 'withdrawal_reversal', reference: wr._id });
       } catch (e) { /* non-critical */ }
     });
 

@@ -330,13 +330,8 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
 
   // Push real-time balance update so vendor TopNav reflects the escrow release instantly
   try {
-    const io = req.app?.get?.('io');
-    if (io && vendorUser._id) {
-      const vRoom = vendorUser._id.toString();
-      const payload = { type: 'payout', reference: order._id };
-      io.to(vRoom).emit('wallet:credited', payload);
-      io.to(`user:${vRoom}`).emit('wallet:credited', payload);
-    }
+    const { emitWalletUpdate } = require('../utils/walletSocket');
+    await emitWalletUpdate(req.app?.get?.('io'), vendorUser._id, { type: 'payout', reference: order._id });
   } catch (_) { /* non-critical */ }
 
   // Notify Customer

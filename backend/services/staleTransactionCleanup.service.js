@@ -126,15 +126,10 @@ const settleDeposit = async (txn, app, gateway) => {
     webhookHealth.record('cronSettled', gateway);
     console.log(`[StaleCleanup] Settled ${gateway} deposit txn ${txn._id} (${txn.amount} XAF)`);
 
-    // Notify user in real time so TopNav balance updates without waiting for a page refresh
+    // Notify user in real time — include live balance so TopNav updates instantly (no API roundtrip)
     try {
-      const io = app?.get?.('io');
-      if (io && claimed.user_id) {
-        const room = claimed.user_id.toString();
-        const payload = { type: 'deposit', reference: claimed._id };
-        io.to(room).emit('wallet:credited', payload);
-        io.to(`user:${room}`).emit('wallet:credited', payload);
-      }
+      const { emitWalletUpdate } = require('../../utils/walletSocket');
+      await emitWalletUpdate(app?.get?.('io'), claimed.user_id, { type: 'deposit', reference: claimed._id });
     } catch (_) { /* non-critical */ }
     return true;
   } catch (err) {
@@ -319,15 +314,10 @@ const runCleanup = async (app) => {
               $inc: { wallet_balance: updated.amount },
             });
             console.log(`[StaleCleanup] Restored ${updated.amount} XAF to user ${updated.requested_by} (failed withdrawal)`);
-            // Notify user in real time
+            // Notify user in real time — include live balance so TopNav updates instantly
             try {
-              const io = app?.get?.('io');
-              if (io && updated.requested_by) {
-                const room = updated.requested_by.toString();
-                const payload = { type: 'withdrawal_reversal', reference: wr._id };
-                io.to(room).emit('wallet:credited', payload);
-                io.to(`user:${room}`).emit('wallet:credited', payload);
-              }
+              const { emitWalletUpdate } = require('../../utils/walletSocket');
+              await emitWalletUpdate(app?.get?.('io'), updated.requested_by, { type: 'withdrawal_reversal', reference: wr._id });
             } catch (_) { /* non-critical */ }
           }
           // Mark linked transaction as failed

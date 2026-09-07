@@ -327,10 +327,8 @@ const processWithdrawal = async (req, res, next) => {
 
                 // Push real-time balance update when balance is restored on rejection
                 if (action === 'reject') {
-                    const room = transaction.user_id.toString();
-                    const payload = { type: 'withdrawal_reversal', reference: transaction._id };
-                    io.to(room).emit('wallet:credited', payload);
-                    io.to(`user:${room}`).emit('wallet:credited', payload);
+                    const { emitWalletUpdate } = require('../utils/walletSocket');
+                    await emitWalletUpdate(io, transaction.user_id, { type: 'withdrawal_reversal', reference: transaction._id });
                 }
             }
         } catch (notifierErr) {

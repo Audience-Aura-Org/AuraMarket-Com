@@ -1264,12 +1264,8 @@ const cancelOrder = async (req, res, next) => {
       // Push real-time balance update so TopNav reflects the refund instantly
       if (paidCancellation) {
         const io = req.app?.get?.('io');
-        if (io && order.customer_id) {
-          const room = order.customer_id.toString();
-          const payload = { type: 'refund', reference: order._id };
-          io.to(room).emit('wallet:credited', payload);
-          io.to(`user:${room}`).emit('wallet:credited', payload);
-        }
+        const { emitWalletUpdate } = require('../utils/walletSocket');
+        await emitWalletUpdate(io, order.customer_id, { type: 'refund', reference: order._id });
       }
 
       // Notify restaurant vendor if this is a food order that was still pending acceptance
@@ -1384,13 +1380,8 @@ const approveRefund = async (req, res, next) => {
     session.endSession();
 
     // Push real-time balance update so TopNav reflects the refund instantly
-    const io = req.app?.get?.('io');
-    if (io && order.customer_id) {
-      const room = order.customer_id.toString();
-      const payload = { type: 'refund', reference: order._id };
-      io.to(room).emit('wallet:credited', payload);
-      io.to(`user:${room}`).emit('wallet:credited', payload);
-    }
+    const { emitWalletUpdate } = require('../utils/walletSocket');
+    await emitWalletUpdate(req.app?.get?.('io'), order.customer_id, { type: 'refund', reference: order._id });
 
     const customer = await User.findById(order.customer_id);
     const customerEmailTemplate = templates.refundApproved({ order, customer });
@@ -2126,28 +2117,16 @@ const updateFoodStatus = async (req, res, next) => {
 
         // Push real-time balance updates for wallet credits triggered by this transition
         const io = req.app?.get?.('io');
-        if (io) {
-          const payload = { type: 'payout', reference: order._id };
-          if (newStatus === 'picked_up' && order.logistics_company_id) {
-            // Logistics company was credited via creditLogistics
-            const LogisticsCompany = require('../models/LogisticsCompany.model');
-            const lFirm = await LogisticsCompany.findById(order.logistics_company_id).select('user_id').lean();
-            if (lFirm?.user_id) {
-              const lRoom = lFirm.user_id.toString();
-              io.to(lRoom).emit('wallet:credited', payload);
-              io.to(`user:${lRoom}`).emit('wallet:credited', payload);
-            }
-          }
-          if (newStatus === 'delivered' && order.new_restaurant_hold && order.vendor_id) {
-            // Vendor held payout was released via releaseRestaurantHold
-            const Vendor = require('../models/Vendor.model');
-            const vRecord = await Vendor.findById(order.vendor_id).select('user_id').lean();
-            if (vRecord?.user_id) {
-              const vRoom = vRecord.user_id.toString();
-              io.to(vRoom).emit('wallet:credited', payload);
-              io.to(`user:${vRoom}`).emit('wallet:credited', payload);
-            }
-          }
+        const { emitWalletUpdate } = require('../utils/walletSocket');
+        if (newStatus === 'picked_up' && order.logistics_company_id) {
+          const LogisticsCompany = require('../models/LogisticsCompany.model');
+          const lFirm = await LogisticsCompany.findById(order.logistics_company_id).select('user_id').lean();
+          if (lFirm?.user_id) await emitWalletUpdate(io, lFirm.user_id, { type: 'payout', reference: order._id });
+        }
+        if (newStatus === 'delivered' && order.new_restaurant_hold && order.vendor_id) {
+          const Vendor = require('../models/Vendor.model');
+          const vRecord = await Vendor.findById(order.vendor_id).select('user_id').lean();
+          if (vRecord?.user_id) await emitWalletUpdate(io, vRecord.user_id, { type: 'payout', reference: order._id });
         }
       } catch (e) {
         console.error('[updateFoodStatus] notification failed:', e.message);

@@ -364,18 +364,14 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
         }
         await Promise.all(tasks);
 
-        // Push real-time balance update to vendor if they were credited immediately
+        // Push real-time balance update to vendor — include live balance so TopNav updates instantly
         const vendorGotDirectPayout = !order.escrow_enabled && !order.new_restaurant_hold;
         const vendorGotTransitFee = order.shipping_method === 'intercity_agency' && !order.transit_fee_waived && order.transit_fee > 0;
         if (vendor && (vendorGotDirectPayout || vendorGotTransitFee)) {
           try {
-            const io = app?.get?.('io');
-            if (io) {
-              const vRoom = vendor.user_id?._id?.toString() || vendor.user_id?.toString();
-              const payload = { type: 'payout', reference: order._id };
-              io.to(vRoom).emit('wallet:credited', payload);
-              io.to(`user:${vRoom}`).emit('wallet:credited', payload);
-            }
+            const { emitWalletUpdate } = require('../../../utils/walletSocket');
+            const vendorUserId = vendor.user_id?._id || vendor.user_id;
+            await emitWalletUpdate(app?.get?.('io'), vendorUserId, { type: 'payout', reference: order._id });
           } catch (_) { /* non-critical */ }
         }
       } catch (e) {
@@ -552,18 +548,14 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
           }
           await Promise.all(tasks);
 
-          // Push real-time balance update to vendor if they were credited immediately
+          // Push real-time balance update to vendor — include live balance so TopNav updates instantly
           const vendorGotDirectPayout = !order.escrow_enabled && !order.new_restaurant_hold;
           const vendorGotTransitFee = order.shipping_method === 'intercity_agency' && !order.transit_fee_waived && order.transit_fee > 0;
           if (vendor && (vendorGotDirectPayout || vendorGotTransitFee)) {
             try {
-              const io = app?.get?.('io');
-              if (io) {
-                const vRoom = vendor.user_id?._id?.toString() || vendor.user_id?.toString();
-                const payload = { type: 'payout', reference: order._id };
-                io.to(vRoom).emit('wallet:credited', payload);
-                io.to(`user:${vRoom}`).emit('wallet:credited', payload);
-              }
+              const { emitWalletUpdate } = require('../../../utils/walletSocket');
+              const vendorUserId = vendor.user_id?._id || vendor.user_id;
+              await emitWalletUpdate(app?.get?.('io'), vendorUserId, { type: 'payout', reference: order._id });
             } catch (_) { /* non-critical */ }
           }
         } catch (e) {
