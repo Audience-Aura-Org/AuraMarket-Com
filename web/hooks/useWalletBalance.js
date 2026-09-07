@@ -32,8 +32,18 @@ export function useWalletBalance() {
     // in the background without a loading flash.
     refreshWalletBalance().catch(() => {});
 
-    // Window / visibility events
-    window.addEventListener('aura:wallet-updated', refresh);
+    // Window / visibility events.
+    // aura:wallet-updated can carry a balance in the detail — use it directly
+    // so the TopNav updates without an API round-trip.
+    const onWalletUpdatedEvent = (e) => {
+      const b = Number(e?.detail?.balance);
+      if (Number.isFinite(b)) {
+        setWalletBalance(b);
+      } else {
+        refresh();
+      }
+    };
+    window.addEventListener('aura:wallet-updated', onWalletUpdatedEvent);
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
 
@@ -87,7 +97,7 @@ export function useWalletBalance() {
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      window.removeEventListener('aura:wallet-updated', refresh);
+      window.removeEventListener('aura:wallet-updated', onWalletUpdatedEvent);
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
       window.removeEventListener('popstate', onNavChange);

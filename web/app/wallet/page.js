@@ -130,6 +130,9 @@ export default function WalletPage() {
         setBalance(nextBalance);
         setWalletBalance(nextBalance);
         setPendingBalance(balRes.value.data.data.pending_escrow || 0);
+        // Broadcast to TopNav so it updates instantly even if the socket event
+        // was missed (disconnect, race condition, etc.)
+        window.dispatchEvent(new CustomEvent('aura:wallet-updated', { detail: { balance: nextBalance } }));
       }
       if (txRes.status === 'fulfilled' && txRes.value.data.success) {
         const txList = txRes.value.data.data.transactions || [];
