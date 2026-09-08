@@ -134,13 +134,27 @@ html[data-font="serif"] { --aura-font-family: 'Lora', Georgia, serif; }
 html[data-font="mono"] { --aura-font-family: 'JetBrains Mono', ui-monospace, monospace; }
 html[data-font="dyslexic"] { --aura-font-family: 'OpenDyslexic', var(--font-display); }
 
-/* Body inherits the scaled text size; layout rem stays 16px */
-html[data-font-size] body {
+/* Preview element for the settings panel */
+html[data-font-size] .font-size-preview,
+html[data-font-size] [data-font-size-preview] {
   font-size: calc(1rem * var(--aura-text-scale, 1));
 }
 
-html[data-font-size] .font-size-preview,
-html[data-font-size] [data-font-size-preview] {
+/* Catch-all: scale text on elements that inherit body font-size (no Tailwind text class).
+   Only targets inline/text elements so containers and layout are unaffected. */
+html[data-font-size] p:not([class*="text-"]),
+html[data-font-size] span:not([class*="text-"]),
+html[data-font-size] a:not([class*="text-"]),
+html[data-font-size] li:not([class*="text-"]),
+html[data-font-size] label:not([class*="text-"]),
+html[data-font-size] td:not([class*="text-"]),
+html[data-font-size] th:not([class*="text-"]),
+html[data-font-size] dt:not([class*="text-"]),
+html[data-font-size] dd:not([class*="text-"]),
+html[data-font-size] button:not([class*="text-"]),
+html[data-font-size] input:not([class*="text-"]),
+html[data-font-size] textarea:not([class*="text-"]),
+html[data-font-size] select:not([class*="text-"]) {
   font-size: calc(1rem * var(--aura-text-scale, 1));
 }
 
