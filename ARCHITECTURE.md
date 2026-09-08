@@ -112,6 +112,33 @@ AuraMarket is a multi-sided marketplace platform connecting **customers**, **ven
 - CDN images / media → stale-while-revalidate
 - Status videos → full file cached for offline playback + byte-range seek support
 
+### 1.6 Typography & Accessibility
+
+```
+Font size scaling (web/utils/fontSettings.js + globals.css):
+  html[data-font-size] sets --aura-text-scale CSS variable
+    sm  → 0.8  (80%)
+    md  → 0.9  (90%, default)
+    lg  → 1.15 (115%)
+    xl  → 1.3  (130%)
+
+  Text-only scaling (no layout zoom):
+    - html { font-size: 16px } is fixed — rem-based layout stays stable
+    - Tailwind text utilities ([class*="text-sm"] etc.) scaled via calc(base * var(--aura-text-scale))
+    - Arbitrary pixel sizes (text-[8px]..text-[15px]) also scaled
+    - Text-bearing elements without Tailwind classes (p, span, a, li, etc.) targeted individually
+    - Containers (div, section, nav) are NOT scaled — prevents zoom effect
+
+Font family options (data-font attribute):
+    default  → Poppins (var(--font-display))
+    serif    → Lora, Georgia
+    mono     → JetBrains Mono
+    dyslexic → OpenDyslexic
+
+Settings stored in localStorage (auradime-font-size, auradime-font).
+Applied on load via initFontSettings().
+```
+
 ---
 
 ## 2. Backend — `backend/`
@@ -147,7 +174,7 @@ backend/
 │   ├── wallet.service.js                 # Idempotent wallet credit/debit
 │   ├── payment/
 │   │   ├── gateway.registry.js           # Active gateway list
-│   │   ├── settle.service.js             # Post-payment settlement logic
+│   │   ├── settle.service.js             # Post-payment settlement, acceptance/delivery hold, clawback refund
 │   │   └── gateways/
 │   │       ├── pawapay.gateway.js        # PawaPay Mobile Money (MTN MoMo / Orange CM)
 │   │       ├── eversend.gateway.js
@@ -395,13 +422,49 @@ Customer pays
   ├─ PayUnit (local CM)       → PayUnit API  → webhook → verify → fulfill
   └─ Pay on delivery          → order placed, payment collected physically
 
-On success
-  └─ If escrow_enabled = true:
-       Escrow.status = "held"
-       Funds locked until:
-         a) Customer confirms delivery  → release to vendor
-         b) 6-hour auto-release window → escrowAutoRelease worker
-         c) Admin force-release or refund
+On success → handleVendorPayout (4 paths):
+  │
+  ├─ Escrow order (escrow_enabled = true):
+  │    Escrow.status = "held"
+  │    Funds locked until:
+  │      a) Customer confirms delivery  → release to vendor
+  │      b) 6-hour auto-release window → escrowAutoRelease worker
+  │      c) Admin force-release or refund
+  │
+  ├─ Food order (all food orders):
+  │    Acceptance hold — vendor payout held as pending PAYOUT-ACCEPT txn
+  │    Platform fee pre-committed to platform_wallet_balance
+  │    Released when restaurant accepts (pending_acceptance → preparing)
+  │    Voided + buyer refunded on timeout or restaurant rejection
+  │
+  ├─ New restaurant hold (new_restaurant_hold = true):
+  │    Delivery hold — vendor payout held as pending PAYOUT-HELD txn
+  │    Released only after delivery confirmed (stricter than acceptance hold)
+  │    For new/untrusted vendors; supersedes acceptance hold
+  │
+  └─ Direct (non-food, non-escrow):
+       Vendor wallet credited immediately
+```
+
+### 6.2 Food Order Payout Hold (Two-Tier System)
+
+```
+Tier 1 — Acceptance Hold (ALL food orders)
+  Applies to: every food order (food_status exists)
+  Held until: restaurant accepts (pending_acceptance → preparing)
+  Release:    releaseAcceptanceHold() credits vendor wallet
+  Timeout:    foodAcceptanceTimeout worker voids pending payout, refunds buyer
+  Rejection:  same as timeout — pending payout voided, buyer refunded
+
+Tier 2 — Delivery Hold (new_restaurant_hold vendors only)
+  Applies to: food orders from new/untrusted vendors
+  Held until: delivery confirmed (food_status = 'delivered')
+  Release:    releaseRestaurantHold() credits vendor wallet
+  Supersedes: acceptance hold (payout stays pending through acceptance)
+
+Refund logic (clawbackFoodRefund) is data-driven:
+  → If pending payout txn exists → void it, refund buyer (no vendor debit)
+  → If vendor already credited   → debit vendor only what they received
 ```
 
 **Webhook verification:**
@@ -426,7 +489,7 @@ Order total_amount
   = net payout to vendor
 ```
 
-### 6.2 Wallet Operations
+### 6.3 Wallet Operations
 
 All wallet credit/debit goes through `services/wallet.service.js`:
 - **Idempotency**: each operation carries a unique `idempotencyKey` — duplicate requests are detected via Redis lock and return the original result.
