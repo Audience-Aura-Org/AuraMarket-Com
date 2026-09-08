@@ -97,7 +97,7 @@
   --glass-border: rgba(15, 23, 42, 0.08);
   --accent-rgb: 255, 0, 255;
   --card-bg: #ffffff;
-  --aura-font-size-base: 16px;
+  --aura-text-scale: 1;
   --aura-font-family: var(--font-display);
   /* Default top nav heights; pages may override these variables */
   --top-nav-height: calc(53px + env(safe-area-inset-top, 0px));
@@ -105,10 +105,13 @@
 }
 
 
-html[data-font-size="sm"] { --aura-font-size-base: 14px; --aura-font-scale: 0.875; }
-html[data-font-size="md"] { --aura-font-size-base: 16px; --aura-font-scale: 1; }
-html[data-font-size="lg"] { --aura-font-size-base: 18px; --aura-font-scale: 1.125; }
-html[data-font-size="xl"] { --aura-font-size-base: 20px; --aura-font-scale: 1.25; }
+/* ── User text-scale ─────────────────────────────────────────────────────
+   Only scales font-size on text elements. html stays at 16px so rem-based
+   layout (padding, margins, gaps) is stable — no "page zoom" effect.     */
+html[data-font-size="sm"] { --aura-text-scale: 0.9; }
+html[data-font-size="md"] { --aura-text-scale: 1; }
+html[data-font-size="lg"] { --aura-text-scale: 1.15; }
+html[data-font-size="xl"] { --aura-text-scale: 1.3; }
 
 @font-face {
   font-family: 'OpenDyslexic';
@@ -131,13 +134,40 @@ html[data-font="serif"] { --aura-font-family: 'Lora', Georgia, serif; }
 html[data-font="mono"] { --aura-font-family: 'JetBrains Mono', ui-monospace, monospace; }
 html[data-font="dyslexic"] { --aura-font-family: 'OpenDyslexic', var(--font-display); }
 
+/* Body inherits the scaled text size; layout rem stays 16px */
 html[data-font-size] body {
-  font-size: var(--aura-font-size-base, 16px);
+  font-size: calc(1rem * var(--aura-text-scale, 1));
 }
 
-html[data-font-size] :where(.font-size-preview, [data-font-size-preview]) {
-  font-size: calc(1rem * var(--aura-font-scale, 1));
+html[data-font-size] .font-size-preview,
+html[data-font-size] [data-font-size-preview] {
+  font-size: calc(1rem * var(--aura-text-scale, 1));
 }
+
+/* ── Scale Tailwind text utilities (text only, not layout) ─────────────
+   Uses [class*="text-xs"] attribute selectors to catch ALL variants:
+   plain (.text-xs), responsive (md:text-xs), state (hover:text-xs), etc.
+   rem is relative to html (fixed 16px) so layout stays stable.          */
+html[data-font-size] [class*="text-xs"]   { font-size: calc(0.75rem  * var(--aura-text-scale, 1)) !important; line-height: 1rem !important; }
+html[data-font-size] [class*="text-sm"]   { font-size: calc(0.875rem * var(--aura-text-scale, 1)) !important; line-height: 1.25rem !important; }
+html[data-font-size] [class*="text-base"] { font-size: calc(1rem     * var(--aura-text-scale, 1)) !important; line-height: 1.5rem !important; }
+html[data-font-size] [class*="text-lg"]   { font-size: calc(1.125rem * var(--aura-text-scale, 1)) !important; line-height: 1.75rem !important; }
+html[data-font-size] [class*="text-xl"]   { font-size: calc(1.25rem  * var(--aura-text-scale, 1)) !important; line-height: 1.75rem !important; }
+html[data-font-size] [class*="text-2xl"]  { font-size: calc(1.5rem   * var(--aura-text-scale, 1)) !important; line-height: 2rem !important; }
+html[data-font-size] [class*="text-3xl"]  { font-size: calc(1.875rem * var(--aura-text-scale, 1)) !important; line-height: 2.25rem !important; }
+html[data-font-size] [class*="text-4xl"]  { font-size: calc(2.25rem  * var(--aura-text-scale, 1)) !important; line-height: 2.5rem !important; }
+html[data-font-size] [class*="text-5xl"]  { font-size: calc(3rem     * var(--aura-text-scale, 1)) !important; line-height: 1 !important; }
+html[data-font-size] [class*="text-6xl"]  { font-size: calc(3.75rem  * var(--aura-text-scale, 1)) !important; line-height: 1 !important; }
+
+/* Scale arbitrary pixel sizes (text-[Npx] Tailwind classes) */
+html[data-font-size] [class*="text-[8px]"]  { font-size: calc(8px  * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[9px]"]  { font-size: calc(9px  * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[10px]"] { font-size: calc(10px * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[11px]"] { font-size: calc(11px * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[12px]"] { font-size: calc(12px * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[13px]"] { font-size: calc(13px * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[14px]"] { font-size: calc(14px * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[15px]"] { font-size: calc(15px * var(--aura-text-scale, 1)) !important; }
 
 .dark {
   --bg-primary: #0A0A0C;
@@ -163,7 +193,7 @@ html[data-font-size] :where(.font-size-preview, [data-font-size-preview]) {
 
 /* Rest of the file remains as before but ensuring no italics */
 html {
-  font-size: var(--aura-font-size-base, 16px);
+  font-size: 16px;
   zoom: 0.7;
   min-height: 100%;
   height: 100%;
@@ -175,31 +205,50 @@ html {
   touch-action: pan-y;
 }
 
-/* Desktop readability — 16px base with fixed 0.7 zoom */
+/* Desktop readability — compensate fixed-pixel text sizes for 0.7 zoom.
+   Without this, text-[11px] renders at 7.7px on screen, text-[9px] at 6.3px.
+   Each base is the zoom-compensated value; the text-scale multiplier is
+   layered on top so the user preference stacks correctly.                  */
 @media (min-width: 1024px) {
-  html {
-    font-size: var(--aura-font-size-base, 16px);
-  }
-
   body {
     line-height: 1.45;
     font-weight: 400;
   }
 
-  /* Sidebar / micro-type bump on desktop */
-  :where([class*="text-[12px]"]), .text-xs {
-    font-size: 0.95rem !important;
+  [class*="text-\[8px\]"] {
+    font-size: calc(11px * var(--aura-text-scale, 1)) !important;
+  }
+  [class*="text-\[9px\]"] {
+    font-size: calc(12px * var(--aura-text-scale, 1)) !important;
+  }
+  [class*="text-\[10px\]"] {
+    font-size: calc(13px * var(--aura-text-scale, 1)) !important;
+  }
+  [class*="text-\[11px\]"] {
+    font-size: calc(14px * var(--aura-text-scale, 1)) !important;
     line-height: 1.45;
   }
-  .text-sm {
-    font-size: 0.875rem !important;
+  [class*="text-\[12px\]"] {
+    font-size: calc(15px * var(--aura-text-scale, 1)) !important;
+    line-height: 1.45;
+  }
+  [class*="text-\[13px\]"] {
+    font-size: calc(15px * var(--aura-text-scale, 1)) !important;
+    line-height: 1.5;
+  }
+  [class*="text-\[14px\]"] {
+    font-size: calc(16px * var(--aura-text-scale, 1)) !important;
+    line-height: 1.5;
+  }
+  [class*="text-\[15px\]"] {
+    font-size: calc(17px * var(--aura-text-scale, 1)) !important;
     line-height: 1.5;
   }
 }
 
 @media (min-width: 1280px) {
   html {
-    font-size: var(--aura-font-size-base, 16px);
+    font-size: 16px;
   }
 }
 
@@ -308,8 +357,8 @@ i, em { font-style: normal !important; }
 
 
 @media (max-width: 640px) {
-  html { 
-    font-size: var(--aura-font-size-base, 14px);
+  html {
+    font-size: 16px;
     zoom: 0.8;
   }
   input, textarea, select {
@@ -583,7 +632,7 @@ video {
      layout scaling for spacing/boxes. */
   html {
     zoom: 1 !important;
-    font-size: calc(var(--aura-font-size-base, 16px) * 0.7);
+    font-size: calc(16px * 0.7);
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
@@ -593,7 +642,7 @@ video {
     text-size-adjust: 100%;
   }
   @media (max-width: 640px) {
-    html { font-size: calc(var(--aura-font-size-base, 16px) * 0.8); }
+    html { font-size: calc(16px * 0.8); }
     body { zoom: 0.8; }
   }
   /* Reset body zoom inside chat so dvh/svh and visualViewport are unscaled */

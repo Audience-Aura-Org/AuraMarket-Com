@@ -138,6 +138,24 @@ const holdFunds = async (req, res, next) => {
     // 5. Update Order Statuses
     order.payment_status = 'paid'; // The system got the money
     order.order_status = 'processing'; // Vendor can begin shipping
+
+    // Food orders paid via escrow: open the kitchen acceptance window
+    // (same transition that settleOrder does for gateway-paid food orders)
+    if (order.food_status === 'awaiting_payment') {
+      const PlatformSettings = require('../models/PlatformSettings.model');
+      const ps = await PlatformSettings.getSettings();
+      const timeoutMins = ps.food_acceptance_timeout_minutes ?? 30;
+      order.food_status = 'pending_acceptance';
+      order.acceptance_deadline = new Date(Date.now() + timeoutMins * 60 * 1000);
+      order.status_logs = order.status_logs || [];
+      order.status_logs.push({
+        status:    'pending_acceptance',
+        actor_id:  null,
+        timestamp: new Date(),
+        note:      'Escrow funded — kitchen acceptance window opened.',
+      });
+    }
+
     await order.save({ session });
 
     // Clear cart after funds are secured in escrow

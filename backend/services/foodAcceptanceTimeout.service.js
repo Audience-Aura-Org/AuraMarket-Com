@@ -110,7 +110,7 @@ const processFoodAcceptanceTimeouts = async (app) => {
       food_status:        'pending_acceptance',
       acceptance_deadline: { $lte: now },
     })
-      .select('_id customer_id vendor_id food_status order_status payment_status total_amount shipping_fee status_logs acceptance_deadline escrow_enabled')
+      .select('_id customer_id vendor_id food_status order_status payment_status total_amount shipping_fee status_logs acceptance_deadline escrow_enabled new_restaurant_hold')
       .sort('acceptance_deadline')
       .limit(BATCH_SIZE)
       .lean();

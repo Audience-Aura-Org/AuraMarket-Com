@@ -472,10 +472,10 @@ export default function AccountPageClient() {
   }, [user?._id, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fontSizeOptions = [
-    { value: FONT_SIZES.sm, label: 'S', helper: 'Small', size: '14px' },
-    { value: FONT_SIZES.md, label: 'M', helper: 'Medium', size: '16px', badge: 'Default' },
-    { value: FONT_SIZES.lg, label: 'L', helper: 'Large', size: '18px' },
-    { value: FONT_SIZES.xl, label: 'XL', helper: 'Extra Large', size: '20px' },
+    { value: FONT_SIZES.sm, label: 'S', helper: 'Compact', size: '90%' },
+    { value: FONT_SIZES.md, label: 'M', helper: 'Default', size: '100%', badge: 'Default' },
+    { value: FONT_SIZES.lg, label: 'L', helper: 'Large', size: '115%' },
+    { value: FONT_SIZES.xl, label: 'XL', helper: 'Extra Large', size: '130%' },
   ];
 
   const handleFontSizeChange = (size) => {
@@ -797,7 +797,7 @@ export default function AccountPageClient() {
                                 );
                               })}
                             </div>
-                            <div className="grid grid-cols-4 px-1 text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">
+                            <div className="grid grid-cols-2 gap-2 md:grid-cols-4 px-1 text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">
                               {fontSizeOptions.map((option) => (
                                 <span key={option.value} className="text-center">{option.size}</span>
                               ))}

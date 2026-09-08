@@ -2048,6 +2048,13 @@ const updateFoodStatus = async (req, res, next) => {
           }
         }
       }
+
+      // Release acceptance hold — vendor gets paid now that they accepted.
+      // new_restaurant_hold orders stay held until delivery (releaseRestaurantHold).
+      if (!order.new_restaurant_hold) {
+        const { releaseAcceptanceHold } = require('../services/payment/settle.service');
+        await releaseAcceptanceHold(order, session);
+      }
     }
 
     if (newStatus === 'rejected') {

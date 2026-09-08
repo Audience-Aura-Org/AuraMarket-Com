@@ -157,8 +157,30 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
     platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
     await platformSettings.save({ session });
 
+  } else if (order.food_status !== undefined) {
+    // ── FOOD ACCEPTANCE HOLD PATH ──────────────────────────────────────────
+    // ALL food orders: hold vendor payout until the restaurant accepts.
+    // If the restaurant times out or rejects, the pending payout is simply
+    // voided and the buyer is refunded — no clawback from vendor wallet needed.
+    // Released in updateFoodStatus when food_status transitions to 'preparing'.
+    const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
+    await Transaction.create([{
+      user_id:     vendorRecord.user_id,
+      type:        'payout',
+      amount:      vendorPayout,
+      reference:   genRef('PAYOUT-ACCEPT'),
+      status:      'pending',
+      description: `Held payout for Order #${order._id.toString().slice(-6).toUpperCase()} (releases on restaurant acceptance)`,
+      order_id:    order._id,
+      gateway:     'wallet',
+      metadata:    { platform_fee_breakdown: platformFeeBreakdown },
+    }], { session, ordered: true });
+    // Platform fee is pre-committed at capture regardless of hold
+    platformSettings.platform_wallet_balance = (platformSettings.platform_wallet_balance || 0) + platformFee;
+    await platformSettings.save({ session });
+
   } else {
-    // ── DIRECT PATH: credit vendor immediately ───────────────────────────
+    // ── DIRECT PATH: credit vendor immediately (non-food orders only) ────
     const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
     await creditBalance(vendorRecord.user_id, vendorPayout, session);
 
@@ -601,36 +623,100 @@ const clawbackFoodRefund = async (order, refundAmount, session, reason = 'Food o
   const ref = genRef('FOOD-CLBK');
   const orderLabel = `Order #${order._id.toString().slice(-6).toUpperCase()}`;
 
-  // Atomic: debit vendor (allowNegative — vendor may have already spent the funds)
-  //         credit buyer
-  await Promise.all([
-    debitBalance(vendorRecord.user_id, refundAmount, session, { allowNegative: true }),
-    creditBalance(order.customer_id, refundAmount, session),
-  ]);
+  // Data-driven: check for a pending payout transaction instead of relying
+  // on the new_restaurant_hold flag. This correctly handles BOTH acceptance
+  // holds (all food orders) AND delivery holds (new_restaurant_hold).
+  const pendingPayout = await Transaction.findOne({
+    order_id: order._id,
+    user_id:  vendorRecord.user_id,
+    type:     'payout',
+    status:   'pending',
+  }).session(session);
 
-  // Audit trail
-  await Transaction.create([
-    {
-      user_id:     vendorRecord.user_id,
-      type:        'payment',
-      amount:      refundAmount,
-      reference:   ref,
-      status:      'completed',
-      gateway:     'platform',
-      description: `Clawback — ${reason} (${orderLabel})`,
-      order_id:    order._id,
-    },
-    {
+  if (pendingPayout) {
+    // Vendor was never credited — void the pending payout and refund buyer.
+    // No wallet debit needed since vendor's balance was never increased.
+    pendingPayout.status = 'failed';
+    pendingPayout.description = `Payout voided — ${reason} (${orderLabel})`;
+    await pendingPayout.save({ session });
+
+    await creditBalance(order.customer_id, refundAmount, session);
+    await Transaction.create([{
       user_id:     order.customer_id,
       type:        'refund',
       amount:      refundAmount,
       reference:   `${ref}-REF`,
       status:      'completed',
       gateway:     'platform',
-      description: `Food order refund — ${reason} (${orderLabel})`,
+      description: `Food order refund — ${reason} (held payout cancelled) (${orderLabel})`,
       order_id:    order._id,
-    },
-  ], { session, ordered: true });
+    }], { session, ordered: true });
+
+    // Return pre-committed platform fee from platform_wallet_balance
+    const feeBreakdown = pendingPayout.metadata?.platform_fee_breakdown;
+    if (feeBreakdown?.platform_fee > 0) {
+      const PlatformSettings = require('../models/PlatformSettings.model');
+      const ps = await PlatformSettings.getSettings();
+      ps.platform_wallet_balance = (ps.platform_wallet_balance || 0) - feeBreakdown.platform_fee;
+      await ps.save({ session });
+    }
+  } else {
+    // Vendor was already credited (payout released) — debit only what they
+    // actually received, not the full refundAmount (which may include shipping
+    // + platform commission the vendor never received).
+    const payoutTxns = await Transaction.find({
+      order_id: order._id,
+      user_id:  vendorRecord.user_id,
+      type:     'payout',
+      status:   'completed',
+    }).session(session).lean();
+
+    const totalPaidToVendor = payoutTxns.reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    // vendorDebit = actual payout total, capped at refundAmount for partial refunds
+    const vendorDebit = payoutTxns.length > 0
+      ? Math.min(totalPaidToVendor, refundAmount)
+      : refundAmount; // fallback: if no txn found, debit full amount (legacy orders)
+
+    await Promise.all([
+      debitBalance(vendorRecord.user_id, vendorDebit, session, { allowNegative: true }),
+      creditBalance(order.customer_id, refundAmount, session),
+    ]);
+
+    // Return platform commission + shipping from platform_wallet_balance
+    if (payoutTxns.length > 0 && vendorDebit < refundAmount) {
+      const platformGiveBack = refundAmount - vendorDebit;
+      const PlatformSettings = require('../models/PlatformSettings.model');
+      const ps = await PlatformSettings.getSettings();
+      ps.platform_wallet_balance = (ps.platform_wallet_balance || 0) - platformGiveBack;
+      await ps.save({ session });
+    }
+
+    // Audit trail
+    const txnEntries = [
+      {
+        user_id:     vendorRecord.user_id,
+        type:        'payment',
+        amount:      vendorDebit,
+        reference:   ref,
+        status:      'completed',
+        gateway:     'platform',
+        description: `Clawback — ${reason} (${orderLabel})`,
+        order_id:    order._id,
+      },
+      {
+        user_id:     order.customer_id,
+        type:        'refund',
+        amount:      refundAmount,
+        reference:   `${ref}-REF`,
+        status:      'completed',
+        gateway:     'platform',
+        description: `Food order refund — ${reason} (${orderLabel})`,
+        order_id:    order._id,
+      },
+    ];
+    await Transaction.create(txnEntries, { session, ordered: true });
+  }
 
   // Update order state
   order.payment_status = 'refunded';
@@ -677,4 +763,39 @@ const releaseRestaurantHold = async (order, session) => {
   );
 };
 
-module.exports = { settleOrder, settleOrders, handleVendorPayout, creditLogistics, clawbackFoodRefund, releaseRestaurantHold };
+/**
+ * Release the acceptance hold on a food order.
+ * Called when food_status transitions from 'pending_acceptance' to 'preparing'
+ * (restaurant accepts). Credits the vendor wallet with the captured vendorPayout
+ * and marks the pending PAYOUT-ACCEPT transaction as completed.
+ *
+ * NOT called for new_restaurant_hold orders — those stay held until delivery
+ * via releaseRestaurantHold.
+ *
+ * @param {Object} order   — Mongoose Order document (within session)
+ * @param {Object} session — Active mongoose session
+ */
+const releaseAcceptanceHold = async (order, session) => {
+  const pendingTxn = await Transaction.findOne({
+    order_id:  order._id,
+    status:    'pending',
+    reference: /^PAYOUT-ACCEPT/,
+  }).session(session);
+
+  if (!pendingTxn) return; // No acceptance hold to release (escrow or legacy order)
+
+  const vendorPayout =
+    pendingTxn.metadata?.platform_fee_breakdown?.vendor_payout ??
+    pendingTxn.amount;
+
+  const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
+  await creditBalance(vendorRecord.user_id, vendorPayout, session);
+
+  await Transaction.findByIdAndUpdate(
+    pendingTxn._id,
+    { $set: { status: 'completed', description: `Payout released on acceptance — Order #${order._id.toString().slice(-6).toUpperCase()}` } },
+    { session }
+  );
+};
+
+module.exports = { settleOrder, settleOrders, handleVendorPayout, creditLogistics, clawbackFoodRefund, releaseRestaurantHold, releaseAcceptanceHold };

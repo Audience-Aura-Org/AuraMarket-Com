@@ -335,7 +335,39 @@ const runCleanup = async (app) => {
     }
   }
 
-  // ── 3. Summary ──────────────────────────────────────────────────────────
+  // ── 3. Safety net: food orders stuck in awaiting_payment + paid ─────────
+  // If an escrow food order was funded but holdFunds didn't transition
+  // food_status (bug prior to this fix), catch it here and open the
+  // acceptance window retroactively.
+  try {
+    const PlatformSettings = require('../models/PlatformSettings.model');
+    const stuckFoodOrders = await Order.find({
+      food_status: 'awaiting_payment',
+      payment_status: 'paid',
+      order_status: { $in: ['placed', 'processing'] },
+      createdAt: { $lt: new Date(Date.now() - STALE_AFTER_MS) },
+    }).limit(20);
+
+    for (const stuck of stuckFoodOrders) {
+      const ps = await PlatformSettings.getSettings();
+      const timeoutMins = ps.food_acceptance_timeout_minutes ?? 30;
+      stuck.food_status = 'pending_acceptance';
+      stuck.acceptance_deadline = new Date(Date.now() + timeoutMins * 60 * 1000);
+      stuck.status_logs = stuck.status_logs || [];
+      stuck.status_logs.push({
+        status:    'pending_acceptance',
+        actor_id:  null,
+        timestamp: new Date(),
+        note:      'Safety net: order was paid but food_status never advanced. Opening acceptance window now.',
+      });
+      await stuck.save();
+      console.log(`[StaleCleanup] Safety net: advanced food_status for Order ${stuck._id} (awaiting_payment→pending_acceptance)`);
+    }
+  } catch (err) {
+    console.error('[StaleCleanup] Safety net food order check failed:', err.message);
+  }
+
+  // ── 4. Summary ──────────────────────────────────────────────────────────
 
   const totalProcessed = stats.settled + stats.failed + stats.expired + stats.withdrawalSettled + stats.withdrawalFailed;
   if (totalProcessed > 0) {
