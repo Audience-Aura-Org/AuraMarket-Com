@@ -472,8 +472,8 @@ export default function AccountPageClient() {
   }, [user?._id, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fontSizeOptions = [
-    { value: FONT_SIZES.sm, label: 'S', helper: 'Compact', size: '90%' },
-    { value: FONT_SIZES.md, label: 'M', helper: 'Default', size: '100%', badge: 'Default' },
+    { value: FONT_SIZES.sm, label: 'S', helper: 'Compact', size: '80%' },
+    { value: FONT_SIZES.md, label: 'M', helper: 'Default', size: '90%', badge: 'Default' },
     { value: FONT_SIZES.lg, label: 'L', helper: 'Large', size: '115%' },
     { value: FONT_SIZES.xl, label: 'XL', helper: 'Extra Large', size: '130%' },
   ];
