@@ -41,7 +41,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
               }`}
             >
               <Icon className="w-3.5 h-3.5 shrink-0" />
-              <span className="text-[11px] font-semibold whitespace-nowrap">{t(`tabs.${tab.id}`, tab.label)}</span>
+              <span className="text-[13px] font-semibold whitespace-nowrap">{t(`tabs.${tab.id}`, tab.label)}</span>
             </button>
           );
         })}
@@ -72,7 +72,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
               <Sun className="w-3.5 h-3.5 text-[var(--accent)]" />
             )}
           </div>
-          <span className="text-[11px] font-semibold tracking-tight">
+          <span className="text-[13px] font-semibold tracking-tight">
             {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
           </span>
         </button>
@@ -96,7 +96,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
                 }`}>
                   <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-[var(--accent)]'}`} />
                 </div>
-                <span className="text-[11px] font-semibold tracking-tight">{t(`tabs.${tab.id}`, tab.label)}</span>
+                <span className="text-[13px] font-semibold tracking-tight">{t(`tabs.${tab.id}`, tab.label)}</span>
               </button>
             );
           })}
