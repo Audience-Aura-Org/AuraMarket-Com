@@ -39,6 +39,25 @@ const UserSchema = new mongoose.Schema(
       trim: true,
       match: [/^\+?[0-9]{7,15}$/, 'Please enter a valid phone number'],
     },
+    username: {
+      type: String,
+      unique: true,
+      sparse: true,
+      lowercase: true,
+      trim: true,
+      match: [/^[a-z0-9._]{3,20}$/, 'Username: 3–20 chars, lowercase letters/numbers/./_ only'],
+      validate: {
+        validator(v) {
+          if (!v) return true;
+          return !/^[._]|[._]$|[._]{2}/.test(v);
+        },
+        message: 'Username cannot start/end with or have consecutive . or _',
+      },
+    },
+    username_changed_at: {
+      type: Date,
+      default: null,
+    },
 
     // ── Platform Role ────────────────────────────
     role: {

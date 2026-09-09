@@ -101,6 +101,31 @@ const sendOtp = async (req, res, next) => {
   }
 };
 
+const RESERVED_USERNAMES = new Set([
+  'admin', 'support', 'aura', 'auradime', 'auradime_support', 'help', 'system',
+  'moderator', 'mod', 'staff', 'root', 'superadmin', 'delivery', 'logistics',
+  'vendor', 'customer', 'api', 'www', 'mail', 'info', 'contact', 'null', 'undefined',
+]);
+
+const generateUsername = async (name) => {
+  const base = (name || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15);
+  const safeName = base.length >= 3 ? base : base.padEnd(3, '0');
+  let candidate = safeName;
+  let suffix = 0;
+  const MAX_ATTEMPTS = 50;
+
+  while (suffix < MAX_ATTEMPTS) {
+    if (!RESERVED_USERNAMES.has(candidate) && !(await User.exists({ username: candidate }))) {
+      return candidate;
+    }
+    suffix++;
+    candidate = `${safeName.slice(0, 17)}${suffix}`;
+  }
+  // Fallback: use random suffix
+  const rand = Math.floor(Math.random() * 9999);
+  return `${safeName.slice(0, 15)}${rand}`;
+};
+
 const createUserFromSignup = async ({ email, name, role, phone, referral_code }) => {
   const allowedRoles = ['customer', 'vendor', 'logistics'];
   const userRole = isSupportAdminEmail(email)
@@ -140,11 +165,48 @@ const createUserFromSignup = async ({ email, name, role, phone, referral_code })
   const user = await User.create(baseUserPayload);
 
   user.referral_code = user.generateReferralCode();
+
+  // Auto-generate username from name
+  try {
+    user.username = await generateUsername(user.name);
+  } catch (_usernameErr) {
+    // Non-critical — user can function without a username
+    console.warn('[auth] username generation failed for', user._id, _usernameErr.message);
+  }
+
   await user.save({ validateBeforeSave: false });
 
   if (referredByUser) {
     referredByUser.loyalty_points += 100;
     await referredByUser.save({ validateBeforeSave: false });
+  }
+
+  // Claim guest P2P shipments matching verified phone or email
+  try {
+    const Shipment = require('../models/Shipment.model');
+    const claimFilter = [];
+    if (normalizedPhone) {
+      claimFilter.push({ type: 'p2p', booked_by: null, 'guest_booker.phone': normalizedPhone });
+      claimFilter.push({ type: 'p2p', 'other_party.user_id': null, 'other_party.phone': normalizedPhone });
+    }
+    if (email) {
+      claimFilter.push({ type: 'p2p', booked_by: null, 'guest_booker.email': email });
+      claimFilter.push({ type: 'p2p', 'other_party.user_id': null, 'other_party.email': email });
+    }
+    if (claimFilter.length) {
+      // Claim as booker
+      await Shipment.updateMany(
+        { $or: claimFilter.filter(f => f.booked_by === null) },
+        { $set: { booked_by: user._id, paid_by: user._id }, $unset: { guest_booker: 1 } }
+      );
+      // Claim as other party
+      await Shipment.updateMany(
+        { $or: claimFilter.filter(f => f['other_party.user_id'] === null) },
+        { $set: { 'other_party.user_id': user._id } }
+      );
+    }
+  } catch (_claimErr) {
+    console.warn('[auth] guest P2P claim failed:', _claimErr.message);
   }
 
   return user;
@@ -360,8 +422,13 @@ const register = async (req, res, next) => {
       wallet_balance: 0,
     });
 
-    // 5. Generate and save referral code for new user
+    // 5. Generate and save referral code + username for new user
     user.referral_code = user.generateReferralCode();
+    try {
+      user.username = await generateUsername(user.name);
+    } catch (_e) {
+      console.warn('[auth] username generation failed for', user._id, _e.message);
+    }
     await user.save({ validateBeforeSave: false });
 
     // 6. Optionally reward referrer with loyalty points

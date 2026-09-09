@@ -104,6 +104,23 @@ const PlatformSettingsSchema = new mongoose.Schema(
       default: 30,
       min: 1,
     },
+
+    // ── P2P Pickup & Delivery config ───────────────────────
+    p2p_enabled: { type: Boolean, default: false },
+    p2p_logistics_provider_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'LogisticsCompany',
+      default: null,
+    },
+    p2p_commission_percent: { type: Number, default: 0, min: 0, max: 100 },
+    p2p_cancellation_fee: { type: Number, default: 500 },       // XAF, charged after rider dispatch
+    p2p_kyc_threshold: { type: Number, default: 50000 },        // Declared value above this requires KYC
+    p2p_weight_multipliers: {
+      light:       { type: Number, default: 1 },
+      medium:      { type: Number, default: 1.3 },
+      heavy:       { type: Number, default: 1.8 },
+      extra_heavy: { type: Number, default: 2.5 },
+    },
   },
   {
     timestamps: true

@@ -7,7 +7,7 @@ import {
   Mail, MapPin, Camera, ExternalLink, RefreshCw, Search,
   Truck, LayoutGrid, ShoppingBag, Activity,
   Users, Heart, Phone, Moon, Sun, ShieldCheck, Clock, Star, Globe2,
-  Smartphone, Download, Monitor, Apple, Type, Check
+  Smartphone, Download, Monitor, Apple, Type, Check, AtSign, Copy
 } from 'lucide-react';
 
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -162,8 +162,10 @@ export default function AccountPageClient() {
   const [userData, setUserData] = useState({
     name: '',
     phone: '',
+    username: '',
     onboarding_location: { city: '', zone: '', quartier: '', address_description: '' }
   });
+  const [usernameCopied, setUsernameCopied] = useState(false);
   
   const [zones, setZones] = useState([]);
 
@@ -303,6 +305,7 @@ export default function AccountPageClient() {
     setUserData({
       name: user.name || '',
       phone: user.phone || '',
+      username: user.username || '',
       onboarding_location: {
         city: user.onboarding_location?.city || '',
         zone: user.onboarding_location?.zone || '',
@@ -403,7 +406,7 @@ export default function AccountPageClient() {
       }
     } catch (err) {
       console.error(err);
-      setBrandingStatus('Update failed.');
+      setBrandingStatus(err.response?.data?.message || 'Update failed.');
     } finally {
       setProfileSaving(false);
       setTimeout(() => setBrandingStatus(''), 2500);
@@ -744,6 +747,42 @@ export default function AccountPageClient() {
                           disabled={true}
                           icon={Mail}
                         />
+
+                        {/* Username */}
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] ml-1">Username</label>
+                          <div className="flex items-center gap-2">
+                            <div className="relative flex-1">
+                              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[var(--text-secondary)]">
+                                <AtSign className="size-4" />
+                              </div>
+                              <input
+                                type="text"
+                                value={userData.username}
+                                onChange={(e) => setUserData({ ...userData, username: e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, '').slice(0, 20) })}
+                                placeholder="your.username"
+                                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-9 pr-4 py-3 text-[13px] font-medium outline-none transition-all focus:border-[var(--accent)]"
+                              />
+                            </div>
+                            {userData.username && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(userData.username);
+                                  setUsernameCopied(true);
+                                  setTimeout(() => setUsernameCopied(false), 2000);
+                                }}
+                                className="flex h-[46px] items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[var(--text-secondary)] transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                                title="Copy username"
+                              >
+                                {usernameCopied ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4" />}
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-[var(--text-secondary)] ml-1 opacity-70">
+                            3–20 characters, lowercase letters, numbers, dots & underscores. Editable once every 3 months.
+                          </p>
+                        </div>
 
                         <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/35 p-4 md:p-5">
                           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

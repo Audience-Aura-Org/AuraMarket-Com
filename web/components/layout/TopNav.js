@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
 import { useWalletBalance } from '@/hooks/useWalletBalance';
-import { ShoppingCart, Search, User as UserIcon, MessageCircle, Wallet } from 'lucide-react';
+import { ShoppingCart, Search, User as UserIcon, MessageCircle, Wallet, Truck } from 'lucide-react';
 import { trackSearch } from "@/services/tracking";
 import cartStore from '@/services/cartStore';
 import dynamic from 'next/dynamic';
@@ -102,6 +102,9 @@ export default function TopNav() {
               alt="Auradime"
               className="h-6 w-auto object-contain transition-transform group-hover:scale-105 md:h-7"
             />
+          </Link>
+          <Link href="/delivery" className={NAV_BTN} title="Pickup & Delivery">
+            <Truck className="size-5" />
           </Link>
         </div>
 

@@ -388,9 +388,9 @@ i, em { font-style: normal !important; }
 /* ── Prevent page zoom on input focus (iOS Safari) ── */
 @supports (-webkit-touch-callout: none) {
   input, textarea, select {
-    /* iOS WebKit body zoom doesn't scale text, so use 16px directly
-       (Safari's minimum to prevent focus-zoom) instead of a compensated value. */
-    font-size: 16px !important;
+    /* iOS Safari zoom-on-focus threshold is 16px effective.
+       html has zoom:0.8 on mobile, so 20px × 0.8 = 16px effective. */
+    font-size: 20px !important;
     touch-action: manipulation;
   }
 }

@@ -373,15 +373,17 @@ const modifyShipmentStatus = async (req, res, next) => {
     const shipment = await Shipment.findById(id).session(session);
     if (!shipment) throw new Error('Shipment not found.');
 
-    const order = await Order.findById(shipment.order_id).session(session);
-    if (!order) throw new Error('Associated order not found.');
+    // P2P shipments have no order — skip order checks and use P2P-specific logic
+    const isP2P = shipment.type === 'p2p';
+    const order = isP2P ? null : await Order.findById(shipment.order_id).session(session);
+    if (!isP2P && !order) throw new Error('Associated order not found.');
 
     // ── GUARD: Couriers can only update orders using the logistics_partner method ──
-    if (order.shipping_method !== 'logistics_partner') {
+    if (!isP2P && order.shipping_method !== 'logistics_partner') {
       throw new Error('This order is vendor-managed. Logistics partners cannot intervene.');
     }
 
-    if (['cancelled', 'refunded'].includes(order.order_status)) {
+    if (!isP2P && ['cancelled', 'refunded'].includes(order.order_status)) {
       throw new Error('Cannot update shipment for a cancelled or refunded order.');
     }
 
@@ -439,7 +441,63 @@ const modifyShipmentStatus = async (req, res, next) => {
 
     await shipment.save({ session });
 
-    // ── Sync Order Status ──────────────────────────────────────────────
+    // ── P2P shipments: skip order-sync entirely, just notify parties ──
+    if (isP2P) {
+      await session.commitTransaction();
+      session.endSession();
+
+      // Non-blocking P2P notifications
+      setImmediate(async () => {
+        try {
+          const { sendNotification } = require('../utils/notifier');
+          const { sendEmail } = require('../utils/emailService');
+          const webUrl = process.env.WEB_CLIENT_URL || 'https://auradime.com';
+          const statusLabel = status.replace(/_/g, ' ');
+          const trackLink = `/delivery/track?code=${shipment.tracking_code}`;
+
+          // Notify booker (auth user)
+          if (shipment.booked_by) {
+            await sendNotification(req.app, shipment.booked_by, {
+              title: `Delivery Update: ${statusLabel}`,
+              message: `Your delivery ${shipment.tracking_code} is now ${statusLabel}.`,
+              type: 'p2p_status',
+              metadata: { target_id: shipment._id, tracking_code: shipment.tracking_code, link: trackLink, status },
+            });
+          }
+          // Notify other party (auth user)
+          if (shipment.other_party?.user_id) {
+            await sendNotification(req.app, shipment.other_party.user_id, {
+              title: `Delivery Update: ${statusLabel}`,
+              message: `Delivery ${shipment.tracking_code} is now ${statusLabel}.`,
+              type: 'p2p_status',
+              metadata: { target_id: shipment._id, tracking_code: shipment.tracking_code, link: trackLink, status },
+            });
+          }
+          // Email guest booker
+          if (shipment.guest_booker?.email) {
+            await sendEmail({
+              to: shipment.guest_booker.email,
+              subject: `Delivery ${shipment.tracking_code} — ${statusLabel}`,
+              html: `<p>Your delivery <strong>${shipment.tracking_code}</strong> is now <strong>${statusLabel}</strong>.</p><p>Track it at: <a href="${webUrl}${trackLink}">${webUrl}${trackLink}</a></p>`,
+            });
+          }
+          // Email guest other party
+          if (shipment.other_party?.email && !shipment.other_party?.user_id) {
+            await sendEmail({
+              to: shipment.other_party.email,
+              subject: `Delivery ${shipment.tracking_code} — ${statusLabel}`,
+              html: `<p>Delivery <strong>${shipment.tracking_code}</strong> is now <strong>${statusLabel}</strong>.</p><p>Track it at: <a href="${webUrl}${trackLink}">${webUrl}${trackLink}</a></p>`,
+            });
+          }
+        } catch (notifyErr) {
+          console.error('[logistics] P2P notification error:', notifyErr.message);
+        }
+      });
+
+      return res.json({ success: true, message: `Shipment status updated to ${status}`, data: { shipment } });
+    }
+
+    // ── Sync Order Status (marketplace only) ─────────────────────────
     let orderCompleted = false;
 
     if (status === 'delivered') {

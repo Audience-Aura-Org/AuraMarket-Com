@@ -44,6 +44,11 @@ const addAddress = async (req, res, next) => {
       street: req.body.street,
       city: req.body.city,
       region: req.body.region,
+      quartier: req.body.quartier,
+      zone_id: req.body.zone_id || null,
+      landmark_description: req.body.landmark_description,
+      contact_phone: req.body.contact_phone,
+      recipient_name: req.body.recipient_name,
       isDefault
     });
 
@@ -67,7 +72,7 @@ const updateAddress = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     const address = user.addresses.id(req.params.id);
-    const allowedFields = ['label', 'street', 'city', 'region', 'isDefault'];
+    const allowedFields = ['label', 'street', 'city', 'region', 'quartier', 'zone_id', 'landmark_description', 'contact_phone', 'recipient_name', 'isDefault'];
 
     if (!address) {
       return res.status(404).json({ success: false, message: 'Address not found' });

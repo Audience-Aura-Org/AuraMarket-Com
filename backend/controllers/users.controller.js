@@ -40,6 +40,34 @@ const updateMe = async (req, res, next) => {
     }
     if (req.body?.onboarding_location !== undefined) updates.onboarding_location = req.body.onboarding_location;
 
+    // ── Username update (editable once every 3 months) ──
+    if (req.body?.username !== undefined) {
+      const newUsername = String(req.body.username).toLowerCase().trim();
+      const currentUser = await User.findById(req.user._id).select('username username_changed_at').lean();
+
+      // Enforce 3-month cooldown
+      if (currentUser.username_changed_at) {
+        const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+        if (currentUser.username_changed_at > threeMonthsAgo) {
+          const nextChange = new Date(currentUser.username_changed_at.getTime() + 90 * 24 * 60 * 60 * 1000);
+          return res.status(400).json({
+            success: false,
+            message: `Username can only be changed once every 3 months. Next change available on ${nextChange.toLocaleDateString()}.`,
+          });
+        }
+      }
+
+      // Check uniqueness
+      if (newUsername !== currentUser.username) {
+        const taken = await User.exists({ username: newUsername, _id: { $ne: req.user._id } });
+        if (taken) {
+          return res.status(400).json({ success: false, message: 'That username is already taken.' });
+        }
+        updates.username = newUsername;
+        updates.username_changed_at = new Date();
+      }
+    }
+
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ success: false, message: 'No valid fields provided.' });
     }
