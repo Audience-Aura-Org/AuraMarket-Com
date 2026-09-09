@@ -35,18 +35,28 @@ export default function DeliveryPage() {
   const { user } = useAuthStore();
   const { t } = useLanguage();
 
-  // Prevent iOS auto-zoom on input focus (font-size < 16px triggers it)
+  // Prevent iOS auto-zoom: set 16px on focus (iOS threshold), restore on blur
   useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-    const handler = () => {
-      if (vv.scale > 1) {
-        document.querySelector('meta[name="viewport"]')
-          ?.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content');
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (!isIOS) return;
+    const onFocus = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+        e.target.dataset.origFontSize = e.target.style.fontSize || '';
+        e.target.style.fontSize = '16px';
       }
     };
-    vv.addEventListener('resize', handler);
-    return () => vv.removeEventListener('resize', handler);
+    const onBlur = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+        e.target.style.fontSize = e.target.dataset.origFontSize || '';
+        delete e.target.dataset.origFontSize;
+      }
+    };
+    document.addEventListener('focusin', onFocus, true);
+    document.addEventListener('focusout', onBlur, true);
+    return () => {
+      document.removeEventListener('focusin', onFocus, true);
+      document.removeEventListener('focusout', onBlur, true);
+    };
   }, []);
 
   const [direction, setDirection] = useState('send');
