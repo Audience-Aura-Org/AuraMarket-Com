@@ -399,7 +399,8 @@ export default function AccountPageClient() {
     setProfileSaving(true);
     setBrandingStatus('Updating profile...');
     try {
-      const res = await api.patch('/users/me', userData);
+      const { username, ...profileData } = userData;
+      const res = await api.patch('/users/me', profileData);
       if (res.data?.success && res.data?.data?.user) {
         updateUser(res.data.data.user);
         setBrandingStatus('Profile updated successfully.');
@@ -753,15 +754,14 @@ export default function AccountPageClient() {
                           <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-secondary)] ml-1">Username</label>
                           <div className="flex items-center gap-2">
                             <div className="relative flex-1">
-                              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[var(--text-secondary)]">
+                              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[var(--text-secondary)]/50">
                                 <AtSign className="size-4" />
                               </div>
                               <input
                                 type="text"
                                 value={userData.username}
-                                onChange={(e) => setUserData({ ...userData, username: e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, '').slice(0, 20) })}
-                                placeholder="your.username"
-                                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-9 pr-4 py-3 text-[13px] font-medium outline-none transition-all focus:border-[var(--accent)]"
+                                disabled
+                                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 pl-9 pr-4 py-3 text-[13px] font-medium outline-none text-[var(--text-secondary)] cursor-default"
                               />
                             </div>
                             {userData.username && (
@@ -780,7 +780,7 @@ export default function AccountPageClient() {
                             )}
                           </div>
                           <p className="text-[10px] text-[var(--text-secondary)] ml-1 opacity-70">
-                            3–20 characters, lowercase letters, numbers, dots & underscores. Editable once every 3 months.
+                            Auto-generated username. Tap copy to share.
                           </p>
                         </div>
 
