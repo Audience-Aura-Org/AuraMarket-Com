@@ -27,8 +27,8 @@ const WEIGHT_TIERS = [
   { value: 'extra_heavy', label: 'Extra Heavy (30+ kg)' },
 ];
 
-const INPUT_CLASS = 'w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-medium outline-none transition-all focus:border-[var(--accent)] md:text-[13px]';
-const LABEL_CLASS = 'text-[13px] font-semibold text-[var(--text-secondary)] tracking-tight ml-1';
+const INPUT_CLASS = 'w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-4 py-2 text-[13px] md:text-[14px] font-medium text-[var(--text-primary)] placeholder:text-[13px] placeholder:font-normal outline-none transition-all focus:border-[var(--accent)]/50';
+const LABEL_CLASS = 'block text-[12px] font-semibold text-[var(--text-secondary)] mb-1.5 ml-1';
 
 export default function DeliveryPage() {
   const router = useRouter();
