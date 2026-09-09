@@ -335,29 +335,6 @@ export default function DeliveryPage() {
           </>
         )}
 
-        {/* My side: compact summary with Edit toggle */}
-        {isMyBox && user && !editingMyBox && (
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-[var(--text-secondary)]">
-              <span>{form[`${prefix}_name`]}</span>
-              <span>{form[`${prefix}_phone`]}</span>
-              {form[`${prefix}_email`] && <span>{form[`${prefix}_email`]}</span>}
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-[var(--text-secondary)]">
-                {[form[`${prefix}_street`], form[`${prefix}_quartier`], form[`${prefix}_district`], form[`${prefix}_city`]].filter(Boolean).join(', ') || 'No address set'}
-              </p>
-              <button type="button" onClick={() => setEditingMyBox(true)} className="text-[11px] font-semibold text-[var(--accent)]">Edit</button>
-            </div>
-          </div>
-        )}
-
-        {/* Editable fields — always for other side, toggle for my side */}
-        {(!isMyBox || !user || editingMyBox) && (
-        <>
-        {isMyBox && editingMyBox && (
-          <button type="button" onClick={() => setEditingMyBox(false)} className="text-[11px] font-semibold text-[var(--accent)] mb-1">Done</button>
-        )}
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {/* Contact info */}
           <div><label className={LABEL_CLASS}>Full Name</label><input value={form[`${prefix}_name`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_name`]: e.target.value }))} className={INPUT_CLASS} placeholder="Full name" /></div>
@@ -395,8 +372,6 @@ export default function DeliveryPage() {
           )}
           <div><label className={LABEL_CLASS}>Street / Landmark</label><input value={form[`${prefix}_street`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_street`]: e.target.value }))} className={INPUT_CLASS} placeholder="Building, gate, landmark..." /></div>
         </div>
-        </>
-        )}
       </div>
     );
   };
