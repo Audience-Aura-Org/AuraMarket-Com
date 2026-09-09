@@ -35,30 +35,6 @@ export default function DeliveryPage() {
   const { user } = useAuthStore();
   const { t } = useLanguage();
 
-  // Prevent iOS auto-zoom: set font to 16px on touchstart (before iOS evaluates zoom),
-  // restore on blur. touchstart fires before iOS decides to zoom.
-  useEffect(() => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (!isIOS) return;
-    const TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
-    const onTouch = (e) => {
-      const el = e.target.closest('input, textarea, select');
-      if (el && TAGS.has(el.tagName)) {
-        el.style.fontSize = '16px';
-      }
-    };
-    const onBlur = (e) => {
-      if (TAGS.has(e.target.tagName)) {
-        e.target.style.fontSize = '';
-      }
-    };
-    document.addEventListener('touchstart', onTouch, { passive: true, capture: true });
-    document.addEventListener('focusout', onBlur, true);
-    return () => {
-      document.removeEventListener('touchstart', onTouch, true);
-      document.removeEventListener('focusout', onBlur, true);
-    };
-  }, []);
 
   const [direction, setDirection] = useState('send');
   const [step, setStep] = useState(1); // 1=form, 2=quote, 3=confirm
@@ -402,12 +378,8 @@ export default function DeliveryPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-32 pt-4">
       <style jsx>{`
-        .delivery-input, .delivery-input::placeholder { font-size: 8px; }
-        .delivery-label { font-size: 7px; }
-        @media (min-width: 768px) {
-          .delivery-input, .delivery-input::placeholder { font-size: 14px; }
-          .delivery-label { font-size: 12px; }
-        }
+        .delivery-input, .delivery-input::placeholder { font-size: 16px; }
+        .delivery-label { font-size: 12px; }
       `}</style>
       <div className="mx-auto max-w-2xl px-4">
         {/* Header */}
