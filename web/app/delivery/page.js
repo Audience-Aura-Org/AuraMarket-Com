@@ -35,26 +35,27 @@ export default function DeliveryPage() {
   const { user } = useAuthStore();
   const { t } = useLanguage();
 
-  // Prevent iOS auto-zoom: set 16px on focus (iOS threshold), restore on blur
+  // Prevent iOS auto-zoom: set font to 16px on touchstart (before iOS evaluates zoom),
+  // restore on blur. touchstart fires before iOS decides to zoom.
   useEffect(() => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     if (!isIOS) return;
-    const onFocus = (e) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
-        e.target.dataset.origFontSize = e.target.style.fontSize || '';
-        e.target.style.fontSize = '16px';
+    const TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT']);
+    const onTouch = (e) => {
+      const el = e.target.closest('input, textarea, select');
+      if (el && TAGS.has(el.tagName)) {
+        el.style.fontSize = '16px';
       }
     };
     const onBlur = (e) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
-        e.target.style.fontSize = e.target.dataset.origFontSize || '';
-        delete e.target.dataset.origFontSize;
+      if (TAGS.has(e.target.tagName)) {
+        e.target.style.fontSize = '';
       }
     };
-    document.addEventListener('focusin', onFocus, true);
+    document.addEventListener('touchstart', onTouch, { passive: true, capture: true });
     document.addEventListener('focusout', onBlur, true);
     return () => {
-      document.removeEventListener('focusin', onFocus, true);
+      document.removeEventListener('touchstart', onTouch, true);
       document.removeEventListener('focusout', onBlur, true);
     };
   }, []);
