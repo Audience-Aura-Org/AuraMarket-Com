@@ -7,6 +7,7 @@ import api from '@/services/api';
 import {
   Package, Send, ArrowDownToLine, ChevronRight, MapPin,
   Clock, Wallet, CreditCard, Loader2, CheckCircle2,
+  Pencil, Phone, Mail, User as UserIcon, X,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -281,97 +282,151 @@ export default function DeliveryPage() {
     const distOpts = getDistrictOpts(form[`${prefix}_city`]);
     const qOpts = getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]);
 
+    // Summary view for the user's own box (when not editing)
+    const showSummary = isMyBox && user && !editingMyBox;
+    const hasAddress = form[`${prefix}_city`] || form[`${prefix}_street`];
+
+    // Build address string
+    const addressParts = [form[`${prefix}_street`], form[`${prefix}_quartier`], form[`${prefix}_district`], form[`${prefix}_city`]].filter(Boolean);
+
     return (
       <div className={`rounded-2xl border p-4 space-y-3 ${isMyBox && user ? 'border-[var(--accent)]/20 bg-[var(--accent)]/[0.03]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}>
         <h3 className="font-bold text-[var(--text-primary)] text-[14px] flex items-center gap-2">
           <MapPin className={`size-4 text-${color}-500`} />
           {isMyBox && user ? `${label} (${user.name?.split(' ')[0] || 'You'})` : `${label} Location`}
-          {isMyBox && user && <span className="text-[10px] font-medium text-[var(--accent)] bg-[var(--accent)]/10 px-1.5 py-0.5 rounded-full ml-auto">You</span>}
+          {isMyBox && user && !editingMyBox && (
+            <button onClick={() => setEditingMyBox(true)} className="ml-auto flex items-center gap-1 text-[11px] font-semibold text-[var(--accent)] hover:text-[var(--accent)]/80 transition-colors">
+              <Pencil className="size-3" /> Edit
+            </button>
+          )}
+          {isMyBox && user && editingMyBox && (
+            <button onClick={() => setEditingMyBox(false)} className="ml-auto flex items-center gap-1 text-[11px] font-semibold text-emerald-600 hover:text-emerald-500 transition-colors">
+              <CheckCircle2 className="size-3" /> Done
+            </button>
+          )}
         </h3>
 
-        {/* User lookup on the other party's side (auth users only) */}
-        {isOtherSide && user && (
-          <>
-            {!lookupResult && (
-              <div className="flex gap-2">
-                <input value={lookupQuery} onChange={e => setLookupQuery(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleLookup()}
-                  className={INPUT_CLASS} placeholder="Search by username, phone, or email" />
-                <button onClick={handleLookup} disabled={lookupLoading}
-                  className="shrink-0 rounded-xl bg-[var(--accent)] px-4 text-[13px] font-semibold text-white disabled:opacity-50">
-                  {lookupLoading ? '...' : 'Find'}
-                </button>
+        {/* Summary card for user's own info */}
+        {showSummary && (
+          <div className="space-y-2">
+            {form[`${prefix}_name`] && (
+              <div className="flex items-center gap-2.5">
+                <UserIcon className="size-3.5 text-[var(--text-secondary)]/60 shrink-0" />
+                <span className="text-[13px] font-medium text-[var(--text-primary)]">{form[`${prefix}_name`]}</span>
               </div>
             )}
-            {lookupMsg && !lookupResult && (
-              <p className="text-[12px] text-rose-500 font-medium">{lookupMsg}</p>
-            )}
-            {lookupResult && (
-              <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
-                {lookupResult.avatar ? (
-                  <img src={lookupResult.avatar} className="size-10 rounded-full object-cover" alt="" />
-                ) : (
-                  <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[14px]">
-                    {lookupResult.name?.[0]}
-                  </div>
-                )}
-                <div>
-                  <p className="text-[13px] font-semibold text-[var(--text-primary)]">{lookupResult.name}</p>
-                  {lookupResult.username && <p className="text-[11px] text-[var(--text-secondary)]">@{lookupResult.username}</p>}
-                </div>
-                <button onClick={() => {
-                  setLookupResult(null);
-                  setLookupQuery('');
-                  setLookupMsg('');
-                  setForm(p => ({
-                    ...p, other_user_id: null,
-                    [`${prefix}_name`]: '', [`${prefix}_phone`]: '', [`${prefix}_email`]: '',
-                    [`${prefix}_street`]: '', [`${prefix}_city`]: '', [`${prefix}_district`]: '',
-                    [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '',
-                  }));
-                }} className="ml-auto text-[11px] text-rose-500 font-semibold">Clear</button>
+            {form[`${prefix}_phone`] && (
+              <div className="flex items-center gap-2.5">
+                <Phone className="size-3.5 text-[var(--text-secondary)]/60 shrink-0" />
+                <span className="text-[13px] text-[var(--text-primary)]">{form[`${prefix}_phone`]}</span>
               </div>
             )}
-          </>
+            {form[`${prefix}_email`] && (
+              <div className="flex items-center gap-2.5">
+                <Mail className="size-3.5 text-[var(--text-secondary)]/60 shrink-0" />
+                <span className="text-[13px] text-[var(--text-primary)]">{form[`${prefix}_email`]}</span>
+              </div>
+            )}
+            {hasAddress && (
+              <div className="flex items-start gap-2.5 mt-1 pt-1 border-t border-[var(--glass-border)]/50">
+                <MapPin className="size-3.5 text-[var(--text-secondary)]/60 shrink-0 mt-0.5" />
+                <span className="text-[13px] text-[var(--text-secondary)] leading-snug">{addressParts.join(', ') || 'No address set'}</span>
+              </div>
+            )}
+            {!form[`${prefix}_name`] && !form[`${prefix}_phone`] && !hasAddress && (
+              <p className="text-[12px] text-[var(--text-secondary)]/60 italic">No info yet — tap Edit to add your details</p>
+            )}
+          </div>
         )}
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {/* Contact info */}
-          <div><label className={LABEL_CLASS}>Full Name</label><input value={form[`${prefix}_name`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_name`]: e.target.value }))} className={INPUT_CLASS} placeholder="Full name" /></div>
-          <div><label className={LABEL_CLASS}>Phone</label><input value={form[`${prefix}_phone`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_phone`]: e.target.value }))} className={INPUT_CLASS} placeholder="+237..." /></div>
-          <div className="md:col-span-2"><label className={LABEL_CLASS}>Email</label><input value={form[`${prefix}_email`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_email`]: e.target.value }))} className={INPUT_CLASS} placeholder="email@example.com" /></div>
+        {/* Full editable form (always shown for other side, shown on edit for my side) */}
+        {!showSummary && (
+          <>
+            {/* User lookup on the other party's side (auth users only) */}
+            {isOtherSide && user && (
+              <>
+                {!lookupResult && (
+                  <div className="flex gap-2">
+                    <input value={lookupQuery} onChange={e => setLookupQuery(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleLookup()}
+                      className={INPUT_CLASS} placeholder="Search by username, phone, or email" />
+                    <button onClick={handleLookup} disabled={lookupLoading}
+                      className="shrink-0 rounded-xl bg-[var(--accent)] px-4 text-[13px] font-semibold text-white disabled:opacity-50">
+                      {lookupLoading ? '...' : 'Find'}
+                    </button>
+                  </div>
+                )}
+                {lookupMsg && !lookupResult && (
+                  <p className="text-[12px] text-rose-500 font-medium">{lookupMsg}</p>
+                )}
+                {lookupResult && (
+                  <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+                    {lookupResult.avatar ? (
+                      <img src={lookupResult.avatar} className="size-10 rounded-full object-cover" alt="" />
+                    ) : (
+                      <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[14px]">
+                        {lookupResult.name?.[0]}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-[13px] font-semibold text-[var(--text-primary)]">{lookupResult.name}</p>
+                      {lookupResult.username && <p className="text-[11px] text-[var(--text-secondary)]">@{lookupResult.username}</p>}
+                    </div>
+                    <button onClick={() => {
+                      setLookupResult(null);
+                      setLookupQuery('');
+                      setLookupMsg('');
+                      setForm(p => ({
+                        ...p, other_user_id: null,
+                        [`${prefix}_name`]: '', [`${prefix}_phone`]: '', [`${prefix}_email`]: '',
+                        [`${prefix}_street`]: '', [`${prefix}_city`]: '', [`${prefix}_district`]: '',
+                        [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '',
+                      }));
+                    }} className="ml-auto text-[11px] text-rose-500 font-semibold">Clear</button>
+                  </div>
+                )}
+              </>
+            )}
 
-          {/* Address dropdowns */}
-          <div>
-            <label className={LABEL_CLASS}>City</label>
-            <select value={form[`${prefix}_city`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_city`]: e.target.value, [`${prefix}_district`]: '', [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={INPUT_CLASS}>
-              <option value="">Select city</option>
-              {cities.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-            </select>
-          </div>
-          {distOpts.length > 0 && (
-            <div>
-              <label className={LABEL_CLASS}>District</label>
-              <select value={form[`${prefix}_district`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_district`]: e.target.value, [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={INPUT_CLASS}>
-                <option value="">Select district</option>
-                {distOpts.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-              </select>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {/* Contact info */}
+              <div><label className={LABEL_CLASS}>Full Name</label><input value={form[`${prefix}_name`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_name`]: e.target.value }))} className={INPUT_CLASS} placeholder="Full name" /></div>
+              <div><label className={LABEL_CLASS}>Phone</label><input value={form[`${prefix}_phone`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_phone`]: e.target.value }))} className={INPUT_CLASS} placeholder="+237..." /></div>
+              <div className="md:col-span-2"><label className={LABEL_CLASS}>Email</label><input value={form[`${prefix}_email`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_email`]: e.target.value }))} className={INPUT_CLASS} placeholder="email@example.com" /></div>
+
+              {/* Address dropdowns */}
+              <div>
+                <label className={LABEL_CLASS}>City</label>
+                <select value={form[`${prefix}_city`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_city`]: e.target.value, [`${prefix}_district`]: '', [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={INPUT_CLASS}>
+                  <option value="">Select city</option>
+                  {cities.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                </select>
+              </div>
+              {distOpts.length > 0 && (
+                <div>
+                  <label className={LABEL_CLASS}>District</label>
+                  <select value={form[`${prefix}_district`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_district`]: e.target.value, [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={INPUT_CLASS}>
+                    <option value="">Select district</option>
+                    {distOpts.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                  </select>
+                </div>
+              )}
+              {qOpts.length > 0 && (
+                <div>
+                  <label className={LABEL_CLASS}>Quartier</label>
+                  <select value={form[`${prefix}_quartier`]} onChange={e => {
+                    const zone = qOpts.find(z => z.name === e.target.value);
+                    setForm(p => ({ ...p, [`${prefix}_quartier`]: e.target.value, [`${prefix}_zone_id`]: zone?._id || '' }));
+                  }} className={INPUT_CLASS}>
+                    <option value="">Select quartier</option>
+                    {qOpts.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                  </select>
+                </div>
+              )}
+              <div><label className={LABEL_CLASS}>Street / Landmark</label><input value={form[`${prefix}_street`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_street`]: e.target.value }))} className={INPUT_CLASS} placeholder="Building, gate, landmark..." /></div>
             </div>
-          )}
-          {qOpts.length > 0 && (
-            <div>
-              <label className={LABEL_CLASS}>Quartier</label>
-              <select value={form[`${prefix}_quartier`]} onChange={e => {
-                const zone = qOpts.find(z => z.name === e.target.value);
-                setForm(p => ({ ...p, [`${prefix}_quartier`]: e.target.value, [`${prefix}_zone_id`]: zone?._id || '' }));
-              }} className={INPUT_CLASS}>
-                <option value="">Select quartier</option>
-                {qOpts.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-              </select>
-            </div>
-          )}
-          <div><label className={LABEL_CLASS}>Street / Landmark</label><input value={form[`${prefix}_street`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_street`]: e.target.value }))} className={INPUT_CLASS} placeholder="Building, gate, landmark..." /></div>
-        </div>
+          </>
+        )}
       </div>
     );
   };
