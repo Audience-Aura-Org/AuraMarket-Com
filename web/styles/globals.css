@@ -652,16 +652,7 @@ video {
     html { font-size: calc(16px * 0.8); }
     body { zoom: 0.8; }
   }
-  /* iOS Safari auto-zooms on focus when computed font-size < 16px.
-     16px CSS × 0.8 body zoom = 12.8px visual — small enough, no zoom.
-     High specificity to beat text-scale rules (0,2,1).               */
-  html[data-font-size] input[class],
-  html[data-font-size] textarea[class],
-  html[data-font-size] select[class],
-  html:not([data-font-size]) input,
-  html:not([data-font-size]) textarea,
-  html:not([data-font-size]) select {
-    font-size: 16px !important;
+  input, textarea, select {
     touch-action: manipulation;
   }
   /* Reset body zoom inside chat so dvh/svh and visualViewport are unscaled */
