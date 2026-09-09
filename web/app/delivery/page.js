@@ -27,8 +27,8 @@ const WEIGHT_TIERS = [
   { value: 'extra_heavy', label: 'Extra Heavy (30+ kg)' },
 ];
 
-const INPUT_CLASS = 'w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3 py-2 text-[8px] md:text-[14px] font-medium text-[var(--text-primary)] placeholder:text-[8px] md:placeholder:text-[14px] placeholder:font-normal outline-none transition-all focus:border-[var(--accent)]/50';
-const LABEL_CLASS = 'block text-[7px] md:text-[12px] font-semibold text-[var(--text-secondary)] mb-1 ml-1';
+const INPUT_CLASS = 'delivery-input w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3 py-2 font-medium text-[var(--text-primary)] placeholder:font-normal outline-none transition-all focus:border-[var(--accent)]/50';
+const LABEL_CLASS = 'delivery-label block font-semibold text-[var(--text-secondary)] mb-1 ml-1';
 
 export default function DeliveryPage() {
   const router = useRouter();
@@ -376,6 +376,14 @@ export default function DeliveryPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-32 pt-4">
+      <style jsx>{`
+        .delivery-input, .delivery-input::placeholder { font-size: 8px; }
+        .delivery-label { font-size: 7px; }
+        @media (min-width: 768px) {
+          .delivery-input, .delivery-input::placeholder { font-size: 14px; }
+          .delivery-label { font-size: 12px; }
+        }
+      `}</style>
       <div className="mx-auto max-w-2xl px-4">
         {/* Header */}
         <div className="mb-6 flex items-center gap-3">
