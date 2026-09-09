@@ -379,20 +379,11 @@ i, em { font-style: normal !important; }
   button, a { word-break: normal; }
 }
 
-/* ── Prevent page zoom on input focus (all mobile) ──────────────────────
-   The text-scale rules (html[data-font-size] [class*="text-…"]) have
-   specificity (0,2,1) + !important, so they override a plain `input`
-   selector. We must match or exceed that specificity here.
-   On mobile body has zoom:0.8, so 20px × 0.8 = 16px effective — the
-   minimum iOS/Android needs to skip auto-zoom on focus.              ── */
+/* ── Prevent zoom on input focus (mobile) ────────────────────────────
+   Viewport meta already sets maximum-scale=1, user-scalable=no.
+   touch-action: manipulation prevents double-tap zoom.              ── */
 @media (max-width: 640px) {
-  html[data-font-size] input[class],
-  html[data-font-size] textarea[class],
-  html[data-font-size] select[class],
-  html:not([data-font-size]) input,
-  html:not([data-font-size]) textarea,
-  html:not([data-font-size]) select {
-    font-size: 20px !important;
+  input, textarea, select {
     touch-action: manipulation;
   }
 }
@@ -661,15 +652,8 @@ video {
     html { font-size: calc(16px * 0.8); }
     body { zoom: 0.8; }
   }
-  /* Force inputs to 20px on iOS so zoom:0.8 gives 16px effective — no auto-zoom.
-     Specificity must beat text-scale rules (0,2,1). */
-  html[data-font-size] input[class],
-  html[data-font-size] textarea[class],
-  html[data-font-size] select[class],
-  html:not([data-font-size]) input,
-  html:not([data-font-size]) textarea,
-  html:not([data-font-size]) select {
-    font-size: 20px !important;
+  /* touch-action only — font-size left to component classes */
+  input, textarea, select {
     touch-action: manipulation;
   }
   /* Reset body zoom inside chat so dvh/svh and visualViewport are unscaled */
