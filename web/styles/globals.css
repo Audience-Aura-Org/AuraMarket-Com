@@ -375,21 +375,23 @@ i, em { font-style: normal !important; }
     font-size: 16px;
     zoom: 0.8;
   }
-  input, textarea, select {
-    /* html has zoom:0.8 at this breakpoint, so 16px renders as 12.8px effective —
-       which triggers iOS/Android auto-zoom on focus. Compensate: 20px × 0.8 = 16px effective. */
-    font-size: 20px !important;
-    touch-action: manipulation;
-  }
   p { line-height: 1.45; }
   button, a { word-break: normal; }
 }
 
-/* ── Prevent page zoom on input focus (iOS Safari) ── */
-@supports (-webkit-touch-callout: none) {
-  input, textarea, select {
-    /* iOS Safari zoom-on-focus threshold is 16px effective.
-       html has zoom:0.8 on mobile, so 20px × 0.8 = 16px effective. */
+/* ── Prevent page zoom on input focus (all mobile) ──────────────────────
+   The text-scale rules (html[data-font-size] [class*="text-…"]) have
+   specificity (0,2,1) + !important, so they override a plain `input`
+   selector. We must match or exceed that specificity here.
+   On mobile body has zoom:0.8, so 20px × 0.8 = 16px effective — the
+   minimum iOS/Android needs to skip auto-zoom on focus.              ── */
+@media (max-width: 640px) {
+  html[data-font-size] input[class],
+  html[data-font-size] textarea[class],
+  html[data-font-size] select[class],
+  html:not([data-font-size]) input,
+  html:not([data-font-size]) textarea,
+  html:not([data-font-size]) select {
     font-size: 20px !important;
     touch-action: manipulation;
   }
@@ -658,6 +660,17 @@ video {
   @media (max-width: 640px) {
     html { font-size: calc(16px * 0.8); }
     body { zoom: 0.8; }
+  }
+  /* Force inputs to 20px on iOS so zoom:0.8 gives 16px effective — no auto-zoom.
+     Specificity must beat text-scale rules (0,2,1). */
+  html[data-font-size] input[class],
+  html[data-font-size] textarea[class],
+  html[data-font-size] select[class],
+  html:not([data-font-size]) input,
+  html:not([data-font-size]) textarea,
+  html:not([data-font-size]) select {
+    font-size: 20px !important;
+    touch-action: manipulation;
   }
   /* Reset body zoom inside chat so dvh/svh and visualViewport are unscaled */
   html.chat-open body { zoom: 1 !important; }
