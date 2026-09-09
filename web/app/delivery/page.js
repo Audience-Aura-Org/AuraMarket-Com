@@ -35,6 +35,20 @@ export default function DeliveryPage() {
   const { user } = useAuthStore();
   const { t } = useLanguage();
 
+  // Prevent iOS auto-zoom on input focus (font-size < 16px triggers it)
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handler = () => {
+      if (vv.scale > 1) {
+        document.querySelector('meta[name="viewport"]')
+          ?.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content');
+      }
+    };
+    vv.addEventListener('resize', handler);
+    return () => vv.removeEventListener('resize', handler);
+  }, []);
+
   const [direction, setDirection] = useState('send');
   const [step, setStep] = useState(1); // 1=form, 2=quote, 3=confirm
   const [loading, setLoading] = useState(false);
