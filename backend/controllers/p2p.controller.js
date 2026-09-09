@@ -650,7 +650,7 @@ const lookupUser = async (req, res) => {
         { email: { $regex: `^${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
       ],
     })
-      .select('name username avatar phone email role onboarding_location addresses')
+      .select('name username avatar branding phone email role onboarding_location addresses')
       .lean();
 
     if (!user) {
@@ -672,6 +672,14 @@ const lookupUser = async (req, res) => {
     const vendor = await Vendor.findOne({ user_id: user._id }).select('pickup_address').lean();
     const vendorAddr = vendor?.pickup_address || null;
 
+    // Resolve avatar: branding.logo → avatar → store logo
+    let resolvedAvatar = user.branding?.logo || user.avatar || null;
+    if (!resolvedAvatar && vendor) {
+      const Store = require('../models/Store.model');
+      const store = await Store.findOne({ vendor_id: vendor._id }).select('logo').lean();
+      if (store?.logo) resolvedAvatar = store.logo;
+    }
+
     return res.json({
       success: true,
       data: {
@@ -680,7 +688,7 @@ const lookupUser = async (req, res) => {
           _id: user._id,
           name: displayName,
           username: user.username,
-          avatar: user.avatar,
+          avatar: resolvedAvatar,
           phone: user.phone || '',
           email: user.email || '',
           address: {

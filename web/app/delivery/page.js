@@ -307,9 +307,9 @@ export default function DeliveryPage() {
             {lookupResult && (
               <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
                 {lookupResult.avatar ? (
-                  <img src={lookupResult.avatar} className="size-8 rounded-full object-cover" alt="" />
+                  <img src={lookupResult.avatar} className="size-10 rounded-full object-cover" alt="" />
                 ) : (
-                  <div className="size-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[13px]">
+                  <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[14px]">
                     {lookupResult.name?.[0]}
                   </div>
                 )}
