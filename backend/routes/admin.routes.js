@@ -55,6 +55,7 @@ const {
   syncGatewayTransactions,
   getQueueStats,
   setCancelRateHoldOverride,
+  fetchAdminP2PShipments,
   listIntercityRates,
   createIntercityRate,
   updateIntercityRate,
@@ -128,6 +129,9 @@ router.patch('/reports/:id/resolve', resolveReport);
 // Platform Settings
 router.get('/settings', getSettings);
 router.patch('/settings', updateSettings);
+
+// P2P Management
+router.get('/p2p/shipments', fetchAdminP2PShipments);
 
 // Email Monitoring
 router.get('/notifications/email-logs', getEmailLogs);

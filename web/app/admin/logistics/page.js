@@ -29,6 +29,12 @@ export default function AdminLogistics() {
   const [newZone, setNewZone] = useState({ name: '', type: 'region', parent_id: '' });
   const [selectedFirm, setSelectedFirm] = useState(null);
   const [priceEditor, setPriceEditor] = useState({ quartier: '', price: '' });
+  const [p2pShipments, setP2pShipments] = useState([]);
+  const [p2pTotal, setP2pTotal] = useState(0);
+  const [p2pLoading, setP2pLoading] = useState(false);
+  const [p2pStatus, setP2pStatus] = useState('all');
+  const [p2pExpanded, setP2pExpanded] = useState(null);
+
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [shipmentEdit, setShipmentEdit] = useState({
     status: 'pending',
@@ -65,6 +71,28 @@ export default function AdminLogistics() {
       setLoading(false);
     }
   };
+
+  const fetchP2PShipments = async () => {
+    setP2pLoading(true);
+    try {
+      const params = new URLSearchParams({ page: 1, limit: 50 });
+      if (p2pStatus !== 'all') params.set('status', p2pStatus);
+      const res = await api.get(`/admin/p2p/shipments?${params}`);
+      if (res.data?.success) {
+        setP2pShipments(res.data.data.shipments || []);
+        setP2pTotal(res.data.total || 0);
+      }
+    } catch {
+      toast.error('Failed to load P2P shipments');
+    } finally {
+      setP2pLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'P2P' && mounted) fetchP2PShipments();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, p2pStatus]);
 
   const loadMoreShipments = async () => {
     if (loadingMore) return;
@@ -143,7 +171,7 @@ export default function AdminLogistics() {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
            <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 overflow-x-auto no-scrollbar flex-1 md:flex-none justify-between md:justify-start">
-              {['Shipments', 'Delivery Partners', 'Zones'].map(tab => (
+              {['Shipments', 'P2P', 'Delivery Partners', 'Zones'].map(tab => (
                 <button 
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -363,6 +391,119 @@ export default function AdminLogistics() {
               )}
             </div>
          </div>
+
+         {/* P2P Shipments Tab */}
+         {activeTab === 'P2P' && (
+            <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">
+              <div className="p-6 md:p-8 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-secondary)]/20">
+                <h3 className="text-xs font-bold text-[var(--text-primary)] tracking-[0.2em] flex items-center gap-3 uppercase">
+                  <Package className="size-4 text-blue-500" /> P2P Delivery Shipments
+                </h3>
+                <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase">{p2pTotal} total</p>
+              </div>
+
+              {/* Status filter */}
+              <div className="px-4 md:px-8 py-3 border-b border-[var(--glass-border)] flex flex-wrap items-center gap-2">
+                {['all', 'pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed', 'cancelled'].map(st => (
+                  <button
+                    key={st}
+                    onClick={() => setP2pStatus(st)}
+                    className={`px-3 py-1 rounded-lg text-[10px] font-semibold capitalize transition ${
+                      p2pStatus === st ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--accent)]/10'
+                    }`}
+                  >
+                    {st.replace(/_/g, ' ')}
+                  </button>
+                ))}
+              </div>
+
+              <div className="divide-y divide-[var(--glass-border)]">
+                {p2pLoading ? (
+                  <div className="flex items-center justify-center py-16">
+                    <Loader2 className="size-6 animate-spin text-[var(--accent)]" />
+                  </div>
+                ) : p2pShipments.length === 0 ? (
+                  <div className="text-center py-16">
+                    <Package className="mx-auto size-8 text-[var(--text-secondary)]/20 mb-2" />
+                    <p className="text-[12px] text-[var(--text-secondary)] opacity-50">No P2P shipments found</p>
+                  </div>
+                ) : p2pShipments.map(s => (
+                  <div key={s._id}>
+                    <button
+                      onClick={() => setP2pExpanded(p2pExpanded === s._id ? null : s._id)}
+                      className="w-full text-left p-4 md:p-6 flex items-center gap-4 hover:bg-[var(--bg-secondary)]/30 transition"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-[12px] font-bold text-[var(--accent)]">{s.tracking_code}</span>
+                          <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                            s.status === 'delivered' ? 'text-emerald-500 bg-emerald-500/10' :
+                            s.status === 'cancelled' || s.status === 'failed' ? 'text-rose-500 bg-rose-500/10' :
+                            s.status === 'pending' ? 'text-yellow-500 bg-yellow-500/10' :
+                            'text-blue-500 bg-blue-500/10'
+                          }`}>
+                            {s.status?.replace(/_/g, ' ')}
+                          </span>
+                          <span className="text-[9px] font-medium text-[var(--text-secondary)] bg-[var(--bg-primary)] px-2 py-0.5 rounded-full capitalize">
+                            {s.direction === 'send' ? 'Sending' : 'Pickup'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-[11px] text-[var(--text-secondary)]">
+                          <span>{s.pickup_address?.city || '—'}</span>
+                          <span>&rarr;</span>
+                          <span>{s.delivery_address?.city || '—'}</span>
+                          {s.logistics_id?.company_name && (
+                            <span className="ml-2 text-[10px] opacity-60">via {s.logistics_id.company_name}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-[13px] font-bold text-[var(--text-primary)]">{s.price?.toLocaleString()} XAF</p>
+                        <p className="text-[9px] text-[var(--text-secondary)]">
+                          {s.payment_status === 'paid' ? 'Paid' : s.payment_status === 'refunded' ? 'Refunded' : 'Unpaid'}
+                        </p>
+                      </div>
+                      <ChevronDown className={`size-4 text-[var(--text-secondary)] transition ${p2pExpanded === s._id ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {p2pExpanded === s._id && (
+                      <div className="px-4 md:px-6 pb-4 md:pb-6 space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] p-4 rounded-2xl bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)]">
+                          <div>
+                            <p className="text-[9px] font-bold text-emerald-500 uppercase tracking-wider mb-1">Pickup</p>
+                            <p className="text-[var(--text-primary)]">{s.pickup_address?.street || '—'}</p>
+                            <p className="text-[var(--text-secondary)]">{[s.pickup_address?.quartier, s.pickup_address?.city].filter(Boolean).join(', ')}</p>
+                            {s.pickup_address?.phone && <p className="text-[var(--text-secondary)]">{s.pickup_address.phone}</p>}
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-bold text-rose-500 uppercase tracking-wider mb-1">Delivery</p>
+                            <p className="text-[var(--text-primary)]">{s.delivery_address?.street || '—'}</p>
+                            <p className="text-[var(--text-secondary)]">{[s.delivery_address?.quartier, s.delivery_address?.city].filter(Boolean).join(', ')}</p>
+                            {s.delivery_address?.phone && <p className="text-[var(--text-secondary)]">{s.delivery_address.phone}</p>}
+                          </div>
+                          {s.booked_by && (
+                            <div>
+                              <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1">Booker</p>
+                              <p className="text-[var(--text-primary)]">{s.booked_by.name}</p>
+                              <p className="text-[var(--text-secondary)]">{s.booked_by.email}</p>
+                            </div>
+                          )}
+                          {s.package_details && (
+                            <div>
+                              <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-1">Package</p>
+                              <p className="text-[var(--text-primary)] capitalize">{s.package_details.category} &middot; {s.package_details.weight_tier?.replace(/_/g, ' ')}</p>
+                              {s.package_details.declared_value > 0 && <p className="text-[var(--text-secondary)]">Value: {s.package_details.declared_value.toLocaleString()} XAF</p>}
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-[var(--text-secondary)] opacity-50">Created: {new Date(s.createdAt).toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+         )}
 
          {/* Zone Deployment Section */}
          {activeTab === 'Zones' && (

@@ -10,7 +10,8 @@ const User = require('../models/User.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const { generateTrackingCode } = require('../services/logistics.service');
-const { getQuote, getP2PProvider } = require('../services/p2p.service');
+const { getQuotes, getQuoteForProvider } = require('../services/p2p.service');
+const LogisticsCompany = require('../models/LogisticsCompany.model');
 const { debitBalance, creditBalance } = require('../services/wallet.service');
 const { sendNotification } = require('../utils/notifier');
 const { sendEmail } = require('../utils/emailService');
@@ -34,13 +35,13 @@ const getP2PQuote = async (req, res) => {
       return res.status(400).json({ success: false, message: 'pickup_zone_id and dropoff_zone_id are required' });
     }
 
-    const quote = await getQuote({
+    const result = await getQuotes({
       pickup_zone_id,
       dropoff_zone_id,
       weight_tier: weight_tier || 'light',
     });
 
-    return res.json({ success: true, data: quote });
+    return res.json({ success: true, data: result });
   } catch (err) {
     console.error('[p2p] getP2PQuote error:', err.message);
     return res.status(500).json({ success: false, message: 'Failed to get quote' });
@@ -70,7 +71,14 @@ const createP2PShipment = async (req, res) => {
       scheduled_pickup,
       payment_method,
       guest_session_id,
+      provider_id,
     } = req.body;
+
+    // Validate provider selection
+    if (!provider_id) {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: 'provider_id is required — select a delivery provider' });
+    }
 
     // Validate direction
     if (!['send', 'request_pickup'].includes(direction)) {
@@ -97,8 +105,9 @@ const createP2PShipment = async (req, res) => {
       }
     }
 
-    // Get quote to determine price
-    const quote = await getQuote({
+    // Validate provider is enabled and get quote for this specific provider
+    const quote = await getQuoteForProvider({
+      provider_id,
       pickup_zone_id: pickup_address?.zone_id,
       dropoff_zone_id: dropoff_address?.zone_id,
       weight_tier: package_details?.weight_tier || 'light',
@@ -109,11 +118,11 @@ const createP2PShipment = async (req, res) => {
       return res.status(400).json({ success: false, message: quote.reason || 'No coverage for this route' });
     }
 
-    // Get provider
-    const provider = await getP2PProvider();
+    // Fetch provider doc for shipment reference
+    const provider = await LogisticsCompany.findById(provider_id).lean();
     if (!provider) {
       await session.abortTransaction();
-      return res.status(400).json({ success: false, message: 'No delivery provider configured' });
+      return res.status(400).json({ success: false, message: 'Selected delivery provider not found' });
     }
 
     const trackingCode = await generateTrackingCode();

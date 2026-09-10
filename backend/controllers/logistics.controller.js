@@ -218,6 +218,11 @@ const getFirmShipments = async (req, res, next) => {
 
     const query = { logistics_id: firm._id };
 
+    // Filter by shipment type (marketplace or p2p)
+    if (req.query.type && ['p2p', 'marketplace'].includes(req.query.type)) {
+      query.type = req.query.type;
+    }
+
     if (status && status !== 'all') {
       if (status === 'active') {
         query.status = { $in: ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'] };

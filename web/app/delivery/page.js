@@ -41,7 +41,8 @@ export default function DeliveryPage() {
   const [step, setStep] = useState(1); // 1=form, 2=quote, 3=confirm
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [quote, setQuote] = useState(null);
+  const [quotes, setQuotes] = useState([]);
+  const [selectedQuote, setSelectedQuote] = useState(null);
   const [zones, setZones] = useState([]);
   const [success, setSuccess] = useState(null);
 
@@ -209,8 +210,9 @@ export default function DeliveryPage() {
         dropoff_zone_id: form.dropoff_zone_id,
         weight_tier: form.weight_tier,
       });
-      if (res.data?.success && res.data.data.coverage) {
-        setQuote(res.data.data);
+      if (res.data?.success && res.data.data.coverage && res.data.data.quotes?.length) {
+        setQuotes(res.data.data.quotes);
+        setSelectedQuote(res.data.data.quotes[0]); // Pre-select cheapest
         setStep(2);
       } else {
         setError(res.data?.data?.reason || 'No coverage for this route');
@@ -230,6 +232,7 @@ export default function DeliveryPage() {
 
       const payload = {
         direction,
+        provider_id: selectedQuote?.provider_id,
         pickup_address: {
           name: form.pickup_name, phone: form.pickup_phone, email: form.pickup_email,
           street: form.pickup_street, city: form.pickup_city,
@@ -466,7 +469,7 @@ export default function DeliveryPage() {
                 className="rounded-xl bg-[var(--accent)] px-5 py-2.5 text-[13px] font-semibold text-white">
                 Track Delivery
               </button>
-              <button onClick={() => { setStep(1); setSuccess(null); setQuote(null); }}
+              <button onClick={() => { setStep(1); setSuccess(null); setQuotes([]); setSelectedQuote(null); }}
                 className="rounded-xl border border-[var(--glass-border)] px-5 py-2.5 text-[13px] font-semibold text-[var(--text-primary)]">
                 Book Another
               </button>
@@ -474,26 +477,75 @@ export default function DeliveryPage() {
           </div>
         )}
 
-        {/* Step 2: Quote Review */}
-        {step === 2 && quote && (
+        {/* Step 2: Provider Selection & Quote Review */}
+        {step === 2 && quotes.length > 0 && (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-5">
-              <h3 className="font-bold text-[var(--text-primary)] mb-3">Delivery Quote</h3>
-              <div className="space-y-2 text-[13px]">
-                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Provider</span><span className="font-semibold">{quote.provider_name}</span></div>
-                <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Base Price</span><span className="font-semibold">{quote.base_price?.toLocaleString()} XAF</span></div>
-                {quote.platform_fee > 0 && (
-                  <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Service Fee</span><span className="font-semibold">{quote.platform_fee.toLocaleString()} XAF</span></div>
-                )}
-                <div className="flex justify-between border-t border-[var(--glass-border)] pt-2 mt-2">
-                  <span className="font-bold text-[var(--text-primary)]">Total</span>
-                  <span className="font-bold text-[var(--accent)] text-base">{quote.price?.toLocaleString()} XAF</span>
-                </div>
-                {quote.estimated_delivery_minutes && (
-                  <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Est. Delivery</span><span className="font-semibold">{quote.estimated_delivery_minutes} min</span></div>
-                )}
+            {/* Provider Selection */}
+            <div>
+              <h3 className="font-bold text-[var(--text-primary)] text-[15px] mb-3">Choose a Delivery Provider</h3>
+              <div className="space-y-2.5">
+                {quotes.map(q => (
+                  <button
+                    key={q.provider_id}
+                    onClick={() => setSelectedQuote(q)}
+                    className={`w-full text-left rounded-2xl border p-4 transition-all ${
+                      selectedQuote?.provider_id === q.provider_id
+                        ? 'border-[var(--accent)] bg-[var(--accent)]/5 shadow-sm'
+                        : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {q.provider_logo ? (
+                          <img src={q.provider_logo} className="size-10 rounded-xl object-cover" alt="" />
+                        ) : (
+                          <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[14px]">
+                            {q.provider_name?.[0]}
+                          </div>
+                        )}
+                        <div>
+                          <p className="text-[13px] font-semibold text-[var(--text-primary)]">{q.provider_name}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {q.estimated_delivery_minutes && (
+                              <span className="text-[11px] text-[var(--text-secondary)]">~{q.estimated_delivery_minutes} min</span>
+                            )}
+                            {q.provider_rating > 0 && (
+                              <span className="text-[11px] text-[var(--text-secondary)]">&#9733; {q.provider_rating.toFixed(1)}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[15px] font-bold text-[var(--accent)]">{q.price?.toLocaleString()} XAF</p>
+                        {q.platform_fee > 0 && (
+                          <p className="text-[10px] text-[var(--text-secondary)]">incl. {q.platform_fee.toLocaleString()} fee</p>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
+
+            {/* Selected Quote Summary */}
+            {selectedQuote && (
+              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
+                <div className="flex justify-between text-[13px]">
+                  <span className="text-[var(--text-secondary)]">Base Price</span>
+                  <span className="font-semibold">{selectedQuote.base_price?.toLocaleString()} XAF</span>
+                </div>
+                {selectedQuote.platform_fee > 0 && (
+                  <div className="flex justify-between text-[13px] mt-1">
+                    <span className="text-[var(--text-secondary)]">Service Fee</span>
+                    <span className="font-semibold">{selectedQuote.platform_fee.toLocaleString()} XAF</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t border-[var(--glass-border)] pt-2 mt-2">
+                  <span className="font-bold text-[var(--text-primary)] text-[13px]">Total</span>
+                  <span className="font-bold text-[var(--accent)] text-base">{selectedQuote.price?.toLocaleString()} XAF</span>
+                </div>
+              </div>
+            )}
 
             {/* Payment Method */}
             <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-5">
@@ -525,7 +577,7 @@ export default function DeliveryPage() {
                 className="flex-1 rounded-xl border border-[var(--glass-border)] py-3 text-[13px] font-semibold text-[var(--text-primary)]">
                 Back
               </button>
-              <button onClick={handleBook} disabled={loading}
+              <button onClick={handleBook} disabled={loading || !selectedQuote}
                 className="flex-1 rounded-xl bg-[var(--accent)] py-3 text-[13px] font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading ? <Loader2 className="size-4 animate-spin" /> : <Package className="size-4" />}
                 Confirm & Pay

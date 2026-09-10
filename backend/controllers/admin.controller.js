@@ -378,6 +378,13 @@ const updateSettings = async (req, res, next) => {
       restaurant_min_withdrawal_age_days,
       restaurant_cancel_rate_threshold,
       restaurant_cancel_rate_window_days,
+      // P2P settings
+      p2p_enabled,
+      p2p_logistics_provider_ids,
+      p2p_commission_percent,
+      p2p_cancellation_fee,
+      p2p_kyc_threshold,
+      p2p_weight_multipliers,
     } = req.body;
     const settings = await PlatformSettings.getSettings();
 
@@ -405,6 +412,25 @@ const updateSettings = async (req, res, next) => {
     if (restaurant_min_withdrawal_age_days !== undefined) settings.restaurant_min_withdrawal_age_days = Number(restaurant_min_withdrawal_age_days);
     if (restaurant_cancel_rate_threshold !== undefined) settings.restaurant_cancel_rate_threshold = Number(restaurant_cancel_rate_threshold);
     if (restaurant_cancel_rate_window_days !== undefined) settings.restaurant_cancel_rate_window_days = Number(restaurant_cancel_rate_window_days);
+
+    // P2P settings
+    if (p2p_enabled !== undefined) settings.p2p_enabled = !!p2p_enabled;
+    if (p2p_logistics_provider_ids !== undefined) {
+      settings.p2p_logistics_provider_ids = Array.isArray(p2p_logistics_provider_ids)
+        ? p2p_logistics_provider_ids
+        : [];
+    }
+    if (p2p_commission_percent !== undefined) settings.p2p_commission_percent = Number(p2p_commission_percent);
+    if (p2p_cancellation_fee !== undefined) settings.p2p_cancellation_fee = Number(p2p_cancellation_fee);
+    if (p2p_kyc_threshold !== undefined) settings.p2p_kyc_threshold = Number(p2p_kyc_threshold);
+    if (p2p_weight_multipliers !== undefined) {
+      settings.p2p_weight_multipliers = {
+        light: Number(p2p_weight_multipliers.light) || 1,
+        medium: Number(p2p_weight_multipliers.medium) || 1.3,
+        heavy: Number(p2p_weight_multipliers.heavy) || 1.8,
+        extra_heavy: Number(p2p_weight_multipliers.extra_heavy) || 2.5,
+      };
+    }
 
     await settings.save();
     await clearApiCache();
@@ -1792,6 +1818,38 @@ const getQueueStats = async (req, res, next) => {
   }
 };
 
+// ── P2P Shipments Management ─────────────────────────────────────────────────
+const fetchAdminP2PShipments = async (req, res, next) => {
+  try {
+    const { status, search, page = 1, limit = 50 } = req.query;
+    const query = { type: 'p2p' };
+    if (status && status !== 'all') query.status = status;
+    if (search) {
+      query.tracking_code = { $regex: escapeRegExp(search), $options: 'i' };
+    }
+
+    const [shipments, total] = await Promise.all([
+      Shipment.find(query)
+        .populate('logistics_id', 'company_name contact_phone logo')
+        .populate('booked_by', 'name email phone')
+        .sort({ createdAt: -1 })
+        .skip((Number(page) - 1) * Number(limit))
+        .limit(Number(limit))
+        .lean(),
+      Shipment.countDocuments(query),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      count: shipments.length,
+      total,
+      data: { shipments },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getHomepageLayout,
   updateBanners,
@@ -1841,6 +1899,8 @@ module.exports = {
   syncWithEversend,
   syncGatewayTransactions,
   setCancelRateHoldOverride,
+  // P2P management
+  fetchAdminP2PShipments,
   // Phase 4: intercity CRUD
   listIntercityRates,
   createIntercityRate,

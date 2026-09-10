@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { Save, Loader2, CheckCircle2 } from 'lucide-react';
+import { Save, Loader2, CheckCircle2, Truck } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 
@@ -31,10 +31,17 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [s, setS] = useState(null);
+  const [firms, setFirms] = useState([]);
 
   useEffect(() => {
-    api.get('/admin/settings')
-      .then(res => { if (res.data.success) setS(res.data.data.settings); })
+    Promise.all([
+      api.get('/admin/settings'),
+      api.get('/admin/logistics/firms'),
+    ])
+      .then(([settingsRes, firmsRes]) => {
+        if (settingsRes.data.success) setS(settingsRes.data.data.settings);
+        if (firmsRes.data.success) setFirms(firmsRes.data.data.firms || []);
+      })
       .catch(() => toast.error('Failed to load settings'))
       .finally(() => setLoading(false));
   }, []);
@@ -59,11 +66,31 @@ export default function AdminSettingsPage() {
     }
   };
 
+  const toggleProvider = (firmId) => {
+    const ids = [...(s?.p2p_logistics_provider_ids || [])];
+    const idx = ids.indexOf(firmId);
+    if (idx >= 0) ids.splice(idx, 1);
+    else ids.push(firmId);
+    setS(prev => ({ ...prev, p2p_logistics_provider_ids: ids }));
+  };
+
+  const setWeightMultiplier = (tier, value) => {
+    setS(prev => ({
+      ...prev,
+      p2p_weight_multipliers: {
+        ...(prev?.p2p_weight_multipliers || {}),
+        [tier]: value,
+      },
+    }));
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-[50vh]">
       <Loader2 className="size-7 animate-spin text-[var(--accent)]" />
     </div>
   );
+
+  const verifiedFirms = firms.filter(f => f.is_verified);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
@@ -143,6 +170,102 @@ export default function AdminSettingsPage() {
             <NumInput min={1} {...field('restaurant_cancel_rate_window_days')} />
           </Field>
         </div>
+      </section>
+
+      {/* ── P2P Delivery ── */}
+      <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 space-y-4">
+        <h2 className="text-[12px] font-bold text-blue-400 tracking-widest uppercase flex items-center gap-2">
+          <Truck className="size-3.5" /> P2P Pickup & Delivery
+        </h2>
+
+        <Field label="Enable P2P Delivery" hint="Allow users to book person-to-person deliveries on the platform.">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={s?.p2p_enabled || false}
+              onChange={e => setS(prev => ({ ...prev, p2p_enabled: e.target.checked }))}
+              className="accent-[var(--accent)] size-4"
+            />
+            <span className={`text-[12px] font-semibold ${s?.p2p_enabled ? 'text-emerald-500' : 'text-[var(--text-secondary)]'}`}>
+              {s?.p2p_enabled ? 'Active' : 'Disabled'}
+            </span>
+          </label>
+        </Field>
+
+        <Field label="Enabled Providers" hint="Select logistics firms that can handle P2P deliveries. Users will see all enabled providers and choose one.">
+          {verifiedFirms.length === 0 ? (
+            <p className="text-[11px] text-[var(--text-secondary)] opacity-60 italic">No verified logistics firms found.</p>
+          ) : (
+            <div className="space-y-1.5 max-h-52 overflow-y-auto rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 p-3">
+              {verifiedFirms.map(f => (
+                <label
+                  key={f._id}
+                  className={`flex items-center gap-3 cursor-pointer p-2.5 rounded-xl transition-all ${
+                    (s?.p2p_logistics_provider_ids || []).includes(f._id)
+                      ? 'bg-[var(--accent)]/10 border border-[var(--accent)]/30'
+                      : 'hover:bg-[var(--bg-secondary)] border border-transparent'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={(s?.p2p_logistics_provider_ids || []).includes(f._id)}
+                    onChange={() => toggleProvider(f._id)}
+                    className="accent-[var(--accent)] size-4 shrink-0"
+                  />
+                  <div className="flex items-center gap-2 min-w-0">
+                    {f.logo ? (
+                      <img src={f.logo} className="size-7 rounded-lg object-cover shrink-0" alt="" />
+                    ) : (
+                      <div className="size-7 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] text-[10px] font-bold shrink-0">
+                        {f.company_name?.[0]}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold text-[var(--text-primary)] truncate">{f.company_name}</p>
+                      {f.vehicle_types?.length > 0 && (
+                        <p className="text-[10px] text-[var(--text-secondary)] truncate">{f.vehicle_types.join(', ')}</p>
+                      )}
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+        </Field>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="P2P Commission (%)" hint="Platform cut on each P2P delivery.">
+            <NumInput min={0} max={100} step={0.5} {...field('p2p_commission_percent')} />
+          </Field>
+          <Field label="Cancellation Fee (XAF)" hint="Charged when cancelling after rider dispatch.">
+            <NumInput min={0} {...field('p2p_cancellation_fee')} />
+          </Field>
+        </div>
+
+        <Field label="KYC Threshold (XAF)" hint="Declared value above this requires a verified account.">
+          <NumInput min={0} {...field('p2p_kyc_threshold')} />
+        </Field>
+
+        <Field label="Weight Multipliers" hint="Price multipliers applied based on package weight tier.">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] text-[var(--text-secondary)] mb-1 block">Light (&lt; 5 kg)</label>
+              <NumInput min={0} step={0.1} value={s?.p2p_weight_multipliers?.light ?? 1} onChange={v => setWeightMultiplier('light', v)} />
+            </div>
+            <div>
+              <label className="text-[10px] text-[var(--text-secondary)] mb-1 block">Medium (5–15 kg)</label>
+              <NumInput min={0} step={0.1} value={s?.p2p_weight_multipliers?.medium ?? 1.3} onChange={v => setWeightMultiplier('medium', v)} />
+            </div>
+            <div>
+              <label className="text-[10px] text-[var(--text-secondary)] mb-1 block">Heavy (15–30 kg)</label>
+              <NumInput min={0} step={0.1} value={s?.p2p_weight_multipliers?.heavy ?? 1.8} onChange={v => setWeightMultiplier('heavy', v)} />
+            </div>
+            <div>
+              <label className="text-[10px] text-[var(--text-secondary)] mb-1 block">Extra Heavy (30+ kg)</label>
+              <NumInput min={0} step={0.1} value={s?.p2p_weight_multipliers?.extra_heavy ?? 2.5} onChange={v => setWeightMultiplier('extra_heavy', v)} />
+            </div>
+          </div>
+        </Field>
       </section>
     </div>
   );
