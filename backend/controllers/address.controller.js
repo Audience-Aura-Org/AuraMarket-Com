@@ -4,6 +4,7 @@
  */
 
 const User = require('../models/User.model');
+const Vendor = require('../models/Vendor.model');
 
 // ─────────────────────────────────────────────
 // @route   GET /api/addresses
@@ -12,10 +13,30 @@ const User = require('../models/User.model');
 // ─────────────────────────────────────────────
 const getAddresses = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id).select('addresses');
+    const user = await User.findById(req.user._id).select('addresses role');
+    let addresses = user.addresses || [];
+
+    // If user has no saved addresses and is a vendor, fall back to vendor pickup_address
+    if (addresses.length === 0 && (user.role === 'vendor' || user.role === 'restaurant')) {
+      const vendor = await Vendor.findOne({ user_id: user._id }).select('pickup_address').lean();
+      const pa = vendor?.pickup_address;
+      if (pa && (pa.city || pa.street || pa.quartier)) {
+        addresses = [{
+          _id: 'vendor_pickup',
+          label: 'Store Pickup',
+          street: pa.street || pa.address_description || '',
+          city: pa.city || '',
+          region: pa.district || pa.region || '',
+          quartier: pa.quartier || '',
+          zone_id: pa.zone_id || null,
+          isDefault: true,
+        }];
+      }
+    }
+
     res.status(200).json({
       success: true,
-      data: { addresses: user.addresses }
+      data: { addresses }
     });
   } catch (error) {
     next(error);
