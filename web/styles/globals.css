@@ -185,6 +185,16 @@ html[data-font-size] [class*="text-[13px]"] { font-size: calc(15px * var(--aura-
 html[data-font-size] [class*="text-[14px]"] { font-size: calc(16px * var(--aura-text-scale, 1)) !important; line-height: 1.5; }
 html[data-font-size] [class*="text-[15px]"] { font-size: calc(17px * var(--aura-text-scale, 1)) !important; line-height: 1.5; }
 
+/* Desktop-only component overrides */
+@media (min-width: 768px) {
+  html[data-font-size] .aura-cat-chip {
+    font-size: calc(16px * var(--aura-text-scale, 1)) !important;
+  }
+  html[data-font-size] .aura-buynow {
+    font-size: calc(10px * var(--aura-text-scale, 1)) !important;
+  }
+}
+
 /* Mobile overrides — zoom-compensated for 0.8 */
 @media (max-width: 640px) {
   html[data-font-size] p:not([class*="text-"]),

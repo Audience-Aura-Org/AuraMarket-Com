@@ -360,13 +360,13 @@ function ShopContent() {
                {isCategoriesLoading && currentLevel.length === 0 ? null : (
                 <>
                  {breadcrumb.length > 0 ? (
-                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] font-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] aura-cat-chip font-normal text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
                      <Home className="size-3.5" /> {t('common.market')}
                    </button>
                  ) : (
                     <button 
                       onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] aura-cat-chip font-normal tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                     >
                       {t('common.all')}
                     </button>
@@ -377,7 +377,7 @@ function ShopContent() {
                       <ChevronRight className="size-3 text-[var(--glass-border)]" />
                        <button 
                         onClick={() => handleBreadcrumbClick(idx)} 
-                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] aura-cat-chip font-normal tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                       >
                         {label(crumb.name)}
                       </button>
@@ -393,7 +393,7 @@ function ShopContent() {
                          if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
                          else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
                        }}
-                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] md:text-sm font-normal tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] aura-cat-chip font-normal tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                     >
                       {label(cat.name)}
                     </button>
