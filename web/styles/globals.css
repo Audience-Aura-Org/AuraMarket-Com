@@ -173,6 +173,15 @@ html[data-font-size] [class*="text-4xl"]  { font-size: calc(2.25rem  * var(--aur
 html[data-font-size] [class*="text-5xl"]  { font-size: calc(3rem     * var(--aura-text-scale, 1)) !important; line-height: 1 !important; }
 html[data-font-size] [class*="text-6xl"]  { font-size: calc(3.75rem  * var(--aura-text-scale, 1)) !important; line-height: 1 !important; }
 
+/* Desktop: override data-font-size rules with zoom-compensated values */
+@media (min-width: 1024px) {
+  html[data-font-size] [class*="text-xs"]   { font-size: calc(16px * var(--aura-text-scale, 1)) !important; line-height: 1.4 !important; }
+  html[data-font-size] [class*="text-sm"]   { font-size: calc(18px * var(--aura-text-scale, 1)) !important; line-height: 1.45 !important; }
+  html[data-font-size] [class*="text-base"] { font-size: calc(21px * var(--aura-text-scale, 1)) !important; line-height: 1.5 !important; }
+  html[data-font-size] [class*="text-lg"]   { font-size: calc(23px * var(--aura-text-scale, 1)) !important; line-height: 1.5 !important; }
+  html[data-font-size] [class*="text-xl"]   { font-size: calc(26px * var(--aura-text-scale, 1)) !important; line-height: 1.4 !important; }
+}
+
 /* Scale arbitrary pixel sizes (text-[Npx] Tailwind classes) */
 html[data-font-size] [class*="text-[8px]"]  { font-size: calc(8px  * var(--aura-text-scale, 1)) !important; }
 html[data-font-size] [class*="text-[9px]"]  { font-size: calc(9px  * var(--aura-text-scale, 1)) !important; }
