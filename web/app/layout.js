@@ -52,7 +52,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-scroll-behavior="smooth">
+    <html lang="en" data-scroll-behavior="smooth" data-font-size="md" data-font="default">
       <head>
         {/* Viewport: resizes chat content when the virtual keyboard opens in PWA/WebView */}
         <meta

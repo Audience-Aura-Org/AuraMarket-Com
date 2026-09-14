@@ -800,3 +800,7 @@ html[data-font-size] h4 { font-size: calc(1.25rem * var(--aura-text-scale, 1)); 
     font-size: max(16px, calc(16px * var(--aura-text-scale, 1))) !important;
   }
 }
+/* Mobile default is intentionally more compact than desktop. */
+@media (max-width: 640px) {
+  html[data-font-size="md"] { --aura-text-scale: 0.8; }
+}
