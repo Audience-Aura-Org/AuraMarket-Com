@@ -258,6 +258,28 @@ html {
     font-size: calc(17px * var(--aura-text-scale, 1)) !important;
     line-height: 1.5;
   }
+
+  /* Compensate standard Tailwind text classes for 0.7 zoom */
+  [class*="text-xs"] {
+    font-size: calc(16px * var(--aura-text-scale, 1)) !important;
+    line-height: 1.4;
+  }
+  [class*="text-sm"] {
+    font-size: calc(18px * var(--aura-text-scale, 1)) !important;
+    line-height: 1.45;
+  }
+  [class*="text-base"] {
+    font-size: calc(21px * var(--aura-text-scale, 1)) !important;
+    line-height: 1.5;
+  }
+  [class*="text-lg"] {
+    font-size: calc(23px * var(--aura-text-scale, 1)) !important;
+    line-height: 1.5;
+  }
+  [class*="text-xl"]:not([class*="text-2xl"]):not([class*="text-3xl"]):not([class*="text-4xl"]):not([class*="text-5xl"]):not([class*="text-6xl"]) {
+    font-size: calc(26px * var(--aura-text-scale, 1)) !important;
+    line-height: 1.4;
+  }
 }
 
 @media (min-width: 1024px) {
