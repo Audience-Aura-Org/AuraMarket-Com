@@ -395,7 +395,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
             </div>
           )}
           {/* 3 equal-size action buttons — Add to Cart is primary */}
-          <div className="grid grid-cols-3 items-center gap-1 md:gap-1.5 mt-auto">
+          <div className="grid grid-cols-[0.85fr_0.7fr_1.45fr] items-center gap-1 md:grid-cols-3 md:gap-1.5 mt-auto">
             {/* Add to Cart — PRIMARY */}
             <button
               onClick={handleAddToCart}
@@ -421,7 +421,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
               disabled={!inStock}
               className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[7px] md:text-[8px] aura-buynow font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
             >
-              <span className="truncate">{inStock ? t('common.buyNow') : t('common.outOfStock')}</span>
+              <span className="whitespace-nowrap">{inStock ? t('common.buyNow') : t('common.outOfStock')}</span>
             </button>
           </div>
         </div>
