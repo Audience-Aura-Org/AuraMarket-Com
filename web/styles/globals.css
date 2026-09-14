@@ -260,9 +260,10 @@ html {
   }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1024px) {
   html {
     font-size: 16px;
+    zoom: 0.85;
   }
 }
 
