@@ -522,7 +522,7 @@ function ShopContent() {
           <div className="px-3 md:px-6 lg:px-12 py-1.5 md:py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-2 md:gap-3 bg-[var(--bg-secondary)]">
             
             <div className="flex items-center gap-2 md:gap-3 min-w-0">
-              <h3 className="text-xs md:text-xl font-bold text-[var(--text-primary)] tracking-tight truncate">
+              <h3 className="text-[11px] md:text-[16px] font-bold text-[var(--text-primary)] tracking-tight truncate">
                 {activeCategoryName === 'All' ? t('common.globalMarket') : label(activeCategoryName)}
               </h3>
               <Link
