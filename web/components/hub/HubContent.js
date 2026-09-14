@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
 import socketService from '@/services/socket';
 import { useChat } from '@/context/ChatContext';
+import { TOP_NAV_HEIGHT, TOP_NAV_HEIGHT_LG } from '@/components/layout/TopNav';
 
 export default function HubContent() {
   const { user } = useAuthStore();
@@ -409,7 +410,13 @@ export default function HubContent() {
        <div className="hidden md:flex flex-col flex-1 w-full relative z-10">
         
         {/* STICKY HEADER STACK: Matches Shop experience */}
-        <div className="sticky top-0 z-40 bg-[var(--bg-primary)] shadow-sm">
+        <div
+          className="sticky top-[var(--top-nav-height)] md:top-[var(--top-nav-height-lg)] z-40 bg-[var(--bg-primary)] shadow-sm"
+          style={{
+            '--top-nav-height': TOP_NAV_HEIGHT,
+            '--top-nav-height-lg': TOP_NAV_HEIGHT_LG,
+          }}
+        >
           {/* Search Bar */}
           <div className="px-6 lg:px-12 py-2 flex justify-center border-b border-[var(--glass-border)]/50">
             <div className="relative w-full max-w-6xl">
