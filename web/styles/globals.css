@@ -140,8 +140,13 @@ html[data-font-size] [data-font-size-preview] {
   font-size: calc(1rem * var(--aura-text-scale, 1));
 }
 
-/* Catch-all: scale text on elements that inherit body font-size (no Tailwind text class).
-   Only targets inline/text elements so containers and layout are unaffected. */
+/* ── Typography system ──────────────────────────────────────────────────
+   Font size is controlled ONLY by the S/M/L/XL Typography setting.
+   Desktop (0.7 zoom) and mobile (0.8 zoom) have independent base sizes.
+   --aura-text-scale multiplier stacks on top of zoom-compensated px.   */
+
+/* Catch-all: scale text on elements without Tailwind text classes.
+   Uses zoom-compensated px so text doesn't shrink when data-font-size loads. */
 html[data-font-size] p:not([class*="text-"]),
 html[data-font-size] span:not([class*="text-"]),
 html[data-font-size] a:not([class*="text-"]),
@@ -155,42 +160,62 @@ html[data-font-size] button:not([class*="text-"]),
 html[data-font-size] input:not([class*="text-"]),
 html[data-font-size] textarea:not([class*="text-"]),
 html[data-font-size] select:not([class*="text-"]) {
-  font-size: calc(1rem * var(--aura-text-scale, 1));
+  font-size: calc(22px * var(--aura-text-scale, 1));
 }
 
-/* ── Scale Tailwind text utilities (text only, not layout) ─────────────
-   Uses [class*="text-xs"] attribute selectors to catch ALL variants:
-   plain (.text-xs), responsive (md:text-xs), state (hover:text-xs), etc.
-   rem is relative to html (fixed 16px) so layout stays stable.          */
-html[data-font-size] [class*="text-xs"]   { font-size: calc(0.75rem  * var(--aura-text-scale, 1)) !important; line-height: 1rem !important; }
-html[data-font-size] [class*="text-sm"]   { font-size: calc(0.875rem * var(--aura-text-scale, 1)) !important; line-height: 1.25rem !important; }
-html[data-font-size] [class*="text-base"] { font-size: calc(1rem     * var(--aura-text-scale, 1)) !important; line-height: 1.5rem !important; }
-html[data-font-size] [class*="text-lg"]   { font-size: calc(1.125rem * var(--aura-text-scale, 1)) !important; line-height: 1.75rem !important; }
-html[data-font-size] [class*="text-xl"]   { font-size: calc(1.25rem  * var(--aura-text-scale, 1)) !important; line-height: 1.75rem !important; }
-html[data-font-size] [class*="text-2xl"]  { font-size: calc(1.5rem   * var(--aura-text-scale, 1)) !important; line-height: 2rem !important; }
-html[data-font-size] [class*="text-3xl"]  { font-size: calc(1.875rem * var(--aura-text-scale, 1)) !important; line-height: 2.25rem !important; }
-html[data-font-size] [class*="text-4xl"]  { font-size: calc(2.25rem  * var(--aura-text-scale, 1)) !important; line-height: 2.5rem !important; }
-html[data-font-size] [class*="text-5xl"]  { font-size: calc(3rem     * var(--aura-text-scale, 1)) !important; line-height: 1 !important; }
-html[data-font-size] [class*="text-6xl"]  { font-size: calc(3.75rem  * var(--aura-text-scale, 1)) !important; line-height: 1 !important; }
+/* Tailwind text utilities — zoom-compensated for 0.7 (default desktop zoom) */
+html[data-font-size] [class*="text-xs"]   { font-size: calc(16px * var(--aura-text-scale, 1)) !important; line-height: 1.4 !important; }
+html[data-font-size] [class*="text-sm"]   { font-size: calc(18px * var(--aura-text-scale, 1)) !important; line-height: 1.45 !important; }
+html[data-font-size] [class*="text-base"] { font-size: calc(21px * var(--aura-text-scale, 1)) !important; line-height: 1.5 !important; }
+html[data-font-size] [class*="text-lg"]   { font-size: calc(23px * var(--aura-text-scale, 1)) !important; line-height: 1.5 !important; }
+html[data-font-size] [class*="text-xl"]   { font-size: calc(26px * var(--aura-text-scale, 1)) !important; line-height: 1.4 !important; }
+html[data-font-size] [class*="text-2xl"]  { font-size: calc(30px * var(--aura-text-scale, 1)) !important; line-height: 1.3 !important; }
+html[data-font-size] [class*="text-3xl"]  { font-size: calc(37px * var(--aura-text-scale, 1)) !important; line-height: 1.25 !important; }
+html[data-font-size] [class*="text-4xl"]  { font-size: calc(44px * var(--aura-text-scale, 1)) !important; line-height: 1.2 !important; }
+html[data-font-size] [class*="text-5xl"]  { font-size: calc(58px * var(--aura-text-scale, 1)) !important; line-height: 1 !important; }
+html[data-font-size] [class*="text-6xl"]  { font-size: calc(72px * var(--aura-text-scale, 1)) !important; line-height: 1 !important; }
 
-/* Desktop: override data-font-size rules with zoom-compensated values */
-@media (min-width: 1024px) {
-  html[data-font-size] [class*="text-xs"]   { font-size: calc(16px * var(--aura-text-scale, 1)) !important; line-height: 1.4 !important; }
-  html[data-font-size] [class*="text-sm"]   { font-size: calc(18px * var(--aura-text-scale, 1)) !important; line-height: 1.45 !important; }
-  html[data-font-size] [class*="text-base"] { font-size: calc(21px * var(--aura-text-scale, 1)) !important; line-height: 1.5 !important; }
-  html[data-font-size] [class*="text-lg"]   { font-size: calc(23px * var(--aura-text-scale, 1)) !important; line-height: 1.5 !important; }
-  html[data-font-size] [class*="text-xl"]   { font-size: calc(26px * var(--aura-text-scale, 1)) !important; line-height: 1.4 !important; }
+/* Arbitrary pixel sizes — zoom-compensated for 0.7 */
+html[data-font-size] [class*="text-[8px]"]  { font-size: calc(11px * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[9px]"]  { font-size: calc(12px * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[10px]"] { font-size: calc(13px * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[11px]"] { font-size: calc(14px * var(--aura-text-scale, 1)) !important; line-height: 1.45; }
+html[data-font-size] [class*="text-[12px]"] { font-size: calc(15px * var(--aura-text-scale, 1)) !important; line-height: 1.45; }
+html[data-font-size] [class*="text-[13px]"] { font-size: calc(15px * var(--aura-text-scale, 1)) !important; line-height: 1.5; }
+html[data-font-size] [class*="text-[14px]"] { font-size: calc(16px * var(--aura-text-scale, 1)) !important; line-height: 1.5; }
+html[data-font-size] [class*="text-[15px]"] { font-size: calc(17px * var(--aura-text-scale, 1)) !important; line-height: 1.5; }
+
+/* Mobile overrides — zoom-compensated for 0.8 */
+@media (max-width: 640px) {
+  html[data-font-size] p:not([class*="text-"]),
+  html[data-font-size] span:not([class*="text-"]),
+  html[data-font-size] a:not([class*="text-"]),
+  html[data-font-size] li:not([class*="text-"]),
+  html[data-font-size] label:not([class*="text-"]),
+  html[data-font-size] td:not([class*="text-"]),
+  html[data-font-size] th:not([class*="text-"]),
+  html[data-font-size] dt:not([class*="text-"]),
+  html[data-font-size] dd:not([class*="text-"]),
+  html[data-font-size] button:not([class*="text-"]),
+  html[data-font-size] input:not([class*="text-"]),
+  html[data-font-size] textarea:not([class*="text-"]),
+  html[data-font-size] select:not([class*="text-"]) {
+    font-size: calc(18px * var(--aura-text-scale, 1));
+  }
+  html[data-font-size] [class*="text-xs"]   { font-size: calc(14px * var(--aura-text-scale, 1)) !important; line-height: 1.4 !important; }
+  html[data-font-size] [class*="text-sm"]   { font-size: calc(16px * var(--aura-text-scale, 1)) !important; line-height: 1.45 !important; }
+  html[data-font-size] [class*="text-base"] { font-size: calc(19px * var(--aura-text-scale, 1)) !important; line-height: 1.5 !important; }
+  html[data-font-size] [class*="text-lg"]   { font-size: calc(21px * var(--aura-text-scale, 1)) !important; line-height: 1.5 !important; }
+  html[data-font-size] [class*="text-xl"]   { font-size: calc(24px * var(--aura-text-scale, 1)) !important; line-height: 1.4 !important; }
+  html[data-font-size] [class*="text-[8px]"]  { font-size: calc(10px * var(--aura-text-scale, 1)) !important; }
+  html[data-font-size] [class*="text-[9px]"]  { font-size: calc(11px * var(--aura-text-scale, 1)) !important; }
+  html[data-font-size] [class*="text-[10px]"] { font-size: calc(12px * var(--aura-text-scale, 1)) !important; }
+  html[data-font-size] [class*="text-[11px]"] { font-size: calc(13px * var(--aura-text-scale, 1)) !important; }
+  html[data-font-size] [class*="text-[12px]"] { font-size: calc(14px * var(--aura-text-scale, 1)) !important; }
+  html[data-font-size] [class*="text-[13px]"] { font-size: calc(15px * var(--aura-text-scale, 1)) !important; }
+  html[data-font-size] [class*="text-[14px]"] { font-size: calc(16px * var(--aura-text-scale, 1)) !important; }
+  html[data-font-size] [class*="text-[15px]"] { font-size: calc(17px * var(--aura-text-scale, 1)) !important; }
 }
-
-/* Scale arbitrary pixel sizes (text-[Npx] Tailwind classes) */
-html[data-font-size] [class*="text-[8px]"]  { font-size: calc(8px  * var(--aura-text-scale, 1)) !important; }
-html[data-font-size] [class*="text-[9px]"]  { font-size: calc(9px  * var(--aura-text-scale, 1)) !important; }
-html[data-font-size] [class*="text-[10px]"] { font-size: calc(10px * var(--aura-text-scale, 1)) !important; }
-html[data-font-size] [class*="text-[11px]"] { font-size: calc(11px * var(--aura-text-scale, 1)) !important; }
-html[data-font-size] [class*="text-[12px]"] { font-size: calc(12px * var(--aura-text-scale, 1)) !important; }
-html[data-font-size] [class*="text-[13px]"] { font-size: calc(13px * var(--aura-text-scale, 1)) !important; }
-html[data-font-size] [class*="text-[14px]"] { font-size: calc(14px * var(--aura-text-scale, 1)) !important; }
-html[data-font-size] [class*="text-[15px]"] { font-size: calc(15px * var(--aura-text-scale, 1)) !important; }
 
 .dark {
   --bg-primary: #0A0A0C;

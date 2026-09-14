@@ -40,6 +40,7 @@ export default function LogisticsPricingPage() {
   });
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [selectedQuartiers, setSelectedQuartiers] = useState([]);
   const [newPrice, setNewPrice] = useState("");
@@ -241,23 +242,24 @@ export default function LogisticsPricingPage() {
             <div className="space-y-6 lg:col-span-4">
               <div className="glass-panel space-y-6 rounded-[32px] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 p-6 lg:rounded-[40px] lg:p-8">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-45">
-                  Regions in catalog: {regionCount}
+                  Cities: {regionCount}
                 </p>
                 <div className="space-y-2">
                   <label className="ml-1 text-[10px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-50">
-                    Operation region
+                    City
                   </label>
                   <select
-                    value={selectedDistrict}
+                    value={selectedCity}
                     onChange={(e) => {
-                      setSelectedDistrict(e.target.value);
+                      setSelectedCity(e.target.value);
+                      setSelectedDistrict("");
                       setSelectedQuartiers([]);
                     }}
                     className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3.5 text-xs font-semibold outline-none transition-all lg:rounded-2xl lg:px-6 lg:py-4"
                   >
-                    <option value="">Select district…</option>
+                    <option value="">Select city…</option>
                     {zones
-                      .filter((z) => z.type === "region" || z.type === "city" || z.type === "district")
+                      .filter((z) => z.type === "region" || z.type === "city")
                       .map((z) => (
                         <option key={z._id} value={z._id}>
                           {z.name}
@@ -266,7 +268,38 @@ export default function LogisticsPricingPage() {
                   </select>
                 </div>
 
-                {selectedDistrict && (
+                {selectedCity && (() => {
+                  const districtOpts = zones.filter(
+                    (z) => z.type === "district" && String(z.parent_id?._id ?? z.parent_id) === selectedCity
+                  );
+                  return districtOpts.length > 0 ? (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <label className="ml-1 text-[10px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-50">
+                        District
+                      </label>
+                      <select
+                        value={selectedDistrict}
+                        onChange={(e) => {
+                          setSelectedDistrict(e.target.value);
+                          setSelectedQuartiers([]);
+                        }}
+                        className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3.5 text-xs font-semibold outline-none transition-all lg:rounded-2xl lg:px-6 lg:py-4"
+                      >
+                        <option value="">Select district…</option>
+                        {districtOpts.map((z) => (
+                          <option key={z._id} value={z._id}>
+                            {z.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null;
+                })()}
+
+                {(selectedDistrict || (selectedCity && zones.filter((z) => z.type === "district" && String(z.parent_id?._id ?? z.parent_id) === selectedCity).length === 0)) && (() => {
+                  const parentId = selectedDistrict || selectedCity;
+                  return zones.some((z) => z.type === "quartier" && String(z.parent_id?._id ?? z.parent_id) === parentId);
+                })() && (
                   <div className="animate-in space-y-4 fade-in slide-in-from-top-2 duration-300">
                     <div className="flex items-center justify-between px-1">
                       <label className="text-[10px] font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">
@@ -281,7 +314,7 @@ export default function LogisticsPricingPage() {
                                 .filter(
                                   (z) =>
                                     z.type === "quartier" &&
-                                    String(z.parent_id?._id ?? z.parent_id) === selectedDistrict
+                                    String(z.parent_id?._id ?? z.parent_id) === (selectedDistrict || selectedCity)
                                 )
                                 .map((z) => z.name)
                             )
@@ -304,7 +337,7 @@ export default function LogisticsPricingPage() {
                         .filter(
                           (z) =>
                             z.type === "quartier" &&
-                            String(z.parent_id?._id ?? z.parent_id) === selectedDistrict
+                            String(z.parent_id?._id ?? z.parent_id) === (selectedDistrict || selectedCity)
                         )
                         .map((z) => (
                           <div
