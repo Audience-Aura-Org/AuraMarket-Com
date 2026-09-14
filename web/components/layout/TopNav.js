@@ -42,7 +42,7 @@ export default function TopNav() {
   }, []);
   // Keep the page and sticky-content offset in sync with the mobile nav state.
   useEffect(() => {
-    const mobileHeight = user ? 'calc(56px + env(safe-area-inset-top, 0px))' : 'calc(52px + env(safe-area-inset-top, 0px))';
+    const mobileHeight = 'calc(56px + env(safe-area-inset-top, 0px))';
     document.documentElement.style.setProperty('--top-nav-height', mobileHeight);
 
     return () => {
