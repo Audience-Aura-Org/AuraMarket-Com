@@ -100,8 +100,8 @@
   --aura-text-scale: 1;
   --aura-font-family: var(--font-display);
   /* Default top nav heights; pages may override these variables */
-  --top-nav-height: calc(53px + env(safe-area-inset-top, 0px));
-  --top-nav-height-lg: calc(62px + env(safe-area-inset-top, 0px));
+  --top-nav-height: calc(46px + env(safe-area-inset-top, 0px));
+  --top-nav-height-lg: calc(52px + env(safe-area-inset-top, 0px));
 }
 
 
@@ -403,6 +403,11 @@ i, em { font-style: normal !important; }
   }
   p { line-height: 1.45; }
   button, a { word-break: normal; }
+  /* Bump mobile text-sm closer to text-base size */
+  [class*="text-sm"] {
+    font-size: 16px !important;
+    line-height: 1.45;
+  }
 }
 
 /* ── Prevent zoom on input focus (mobile) ────────────────────────────

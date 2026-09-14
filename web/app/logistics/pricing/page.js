@@ -156,7 +156,7 @@ export default function LogisticsPricingPage() {
     currentPage * itemsPerPage
   );
 
-  const regionCount = zones.filter((z) => z.type === "region").length;
+  const regionCount = zones.filter((z) => z.type === "region" || z.type === "city").length;
   const quartierNetworkCount = zones.filter((z) => z.type === "quartier").length;
   const avgPrice =
     profile.quartier_prices.length > 0
@@ -257,7 +257,7 @@ export default function LogisticsPricingPage() {
                   >
                     <option value="">Select district…</option>
                     {zones
-                      .filter((z) => z.type === "region")
+                      .filter((z) => z.type === "region" || z.type === "city" || z.type === "district")
                       .map((z) => (
                         <option key={z._id} value={z._id}>
                           {z.name}
@@ -281,7 +281,7 @@ export default function LogisticsPricingPage() {
                                 .filter(
                                   (z) =>
                                     z.type === "quartier" &&
-                                    z.parent_id?._id === selectedDistrict
+                                    String(z.parent_id?._id ?? z.parent_id) === selectedDistrict
                                 )
                                 .map((z) => z.name)
                             )
@@ -304,7 +304,7 @@ export default function LogisticsPricingPage() {
                         .filter(
                           (z) =>
                             z.type === "quartier" &&
-                            z.parent_id?._id === selectedDistrict
+                            String(z.parent_id?._id ?? z.parent_id) === selectedDistrict
                         )
                         .map((z) => (
                           <div
