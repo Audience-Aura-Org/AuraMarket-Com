@@ -252,7 +252,7 @@ html[data-font-size] [class*="text-[15px]"] { font-size: calc(17px * var(--aura-
 /* Rest of the file remains as before but ensuring no italics */
 html {
   font-size: 16px;
-  zoom: 1;
+  zoom: 0.8;
   min-height: 100%;
   height: 100%;
   -webkit-text-size-adjust: 100%;
@@ -329,7 +329,7 @@ html {
 @media (min-width: 1024px) {
   html {
     font-size: 16px;
-    zoom: 1;
+    zoom: 0.7;
   }
   body {
     font-size: 16px;
@@ -443,7 +443,7 @@ i, em { font-style: normal !important; }
 @media (max-width: 640px) {
   html {
     font-size: 16px;
-    zoom: 1;
+    zoom: 0.8;
   }
   p { line-height: 1.45; }
   button, a { word-break: normal; }
@@ -719,7 +719,7 @@ video {
     text-size-adjust: 100%;
   }
   body {
-    zoom: 1;
+    zoom: 0.7;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
