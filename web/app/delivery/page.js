@@ -62,6 +62,7 @@ export default function DeliveryPage() {
   // Lookup
   const [lookupQuery, setLookupQuery] = useState('');
   const [lookupResult, setLookupResult] = useState(null);
+  const [lookupResults, setLookupResults] = useState([]);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [editingMyBox, setEditingMyBox] = useState(false);
 
@@ -152,37 +153,46 @@ export default function DeliveryPage() {
 
   const [lookupMsg, setLookupMsg] = useState('');
 
+  const selectLookupUser = (found) => {
+    const addr = found.address || {};
+    setLookupResult(found);
+    setLookupResults([]);
+
+    let zoneId = addr.zone_id || '';
+    if (!zoneId && addr.quartier && quartiers.length) {
+      const match = quartiers.find(z => z.name.toLowerCase() === addr.quartier.toLowerCase());
+      if (match) zoneId = match._id;
+    }
+
+    setForm(prev => ({
+      ...prev,
+      other_user_id: found._id,
+      [`${otherPrefix}_name`]: found.name || '',
+      [`${otherPrefix}_phone`]: found.phone || '',
+      [`${otherPrefix}_email`]: found.email || '',
+      [`${otherPrefix}_street`]: addr.street || '',
+      [`${otherPrefix}_city`]: addr.city || '',
+      [`${otherPrefix}_district`]: addr.district || '',
+      [`${otherPrefix}_quartier`]: addr.quartier || '',
+      [`${otherPrefix}_zone_id`]: zoneId,
+    }));
+  };
+
   const handleLookup = async () => {
     if (!lookupQuery || lookupQuery.length < 3) return;
     setLookupLoading(true);
     setLookupMsg('');
     setLookupResult(null);
+    setLookupResults([]);
     try {
       const res = await api.get(`/p2p/lookup?q=${encodeURIComponent(lookupQuery)}`);
       if (res.data?.success && res.data.data.found) {
-        const found = res.data.data.user;
-        const addr = found.address || {};
-        setLookupResult(found);
-
-        // Resolve zone_id from quartier name if not provided
-        let zoneId = addr.zone_id || '';
-        if (!zoneId && addr.quartier && quartiers.length) {
-          const match = quartiers.find(z => z.name.toLowerCase() === addr.quartier.toLowerCase());
-          if (match) zoneId = match._id;
+        const { users, multiple } = res.data.data;
+        if (multiple && users?.length > 1) {
+          setLookupResults(users);
+        } else {
+          selectLookupUser(users?.[0] || res.data.data.user);
         }
-
-        setForm(prev => ({
-          ...prev,
-          other_user_id: found._id,
-          [`${otherPrefix}_name`]: found.name || '',
-          [`${otherPrefix}_phone`]: found.phone || '',
-          [`${otherPrefix}_email`]: found.email || '',
-          [`${otherPrefix}_street`]: addr.street || '',
-          [`${otherPrefix}_city`]: addr.city || '',
-          [`${otherPrefix}_district`]: addr.district || '',
-          [`${otherPrefix}_quartier`]: addr.quartier || '',
-          [`${otherPrefix}_zone_id`]: zoneId,
-        }));
       } else {
         setLookupMsg('No user found with that username, phone, or email');
       }
@@ -348,7 +358,7 @@ export default function DeliveryPage() {
             {/* User lookup on the other party's side (auth users only) */}
             {isOtherSide && user && (
               <>
-                {!lookupResult && (
+                {!lookupResult && lookupResults.length === 0 && (
                   <div className="flex gap-2">
                     <input value={lookupQuery} onChange={e => setLookupQuery(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && handleLookup()}
@@ -359,8 +369,40 @@ export default function DeliveryPage() {
                     </button>
                   </div>
                 )}
-                {lookupMsg && !lookupResult && (
+                {lookupMsg && !lookupResult && lookupResults.length === 0 && (
                   <p className="text-[12px] text-rose-500 font-medium">{lookupMsg}</p>
+                )}
+                {/* Multiple results — let user pick */}
+                {lookupResults.length > 1 && !lookupResult && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[12px] font-semibold text-[var(--text-secondary)]">Multiple accounts found — select one:</p>
+                      <button onClick={() => { setLookupResults([]); setLookupQuery(''); }}
+                        className="text-[11px] text-rose-500 font-semibold">Cancel</button>
+                    </div>
+                    {lookupResults.map(u => (
+                      <button key={u._id} onClick={() => selectLookupUser(u)}
+                        className="w-full flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-3 text-left transition-all hover:border-[var(--accent)]/40">
+                        {u.avatar ? (
+                          <img src={u.avatar} className="size-10 rounded-full object-cover" alt="" />
+                        ) : (
+                          <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[14px]">
+                            {u.name?.[0]}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{u.name}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {u.username && <span className="text-[11px] text-[var(--text-secondary)]">@{u.username}</span>}
+                            {u.role && u.role !== 'user' && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] capitalize">{u.role}</span>
+                            )}
+                          </div>
+                          {u.address?.city && <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 truncate">{[u.address.quartier, u.address.city].filter(Boolean).join(', ')}</p>}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 )}
                 {lookupResult && (
                   <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
@@ -377,6 +419,7 @@ export default function DeliveryPage() {
                     </div>
                     <button onClick={() => {
                       setLookupResult(null);
+                      setLookupResults([]);
                       setLookupQuery('');
                       setLookupMsg('');
                       setForm(p => ({

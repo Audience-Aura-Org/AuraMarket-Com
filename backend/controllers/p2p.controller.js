@@ -647,67 +647,73 @@ const lookupUser = async (req, res) => {
     }
 
     const query = q.trim().toLowerCase();
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-    // Search by username, phone, or email (case-insensitive)
+    // Search by username, phone, or email (case-insensitive) — return up to 10 matches
     const Vendor = require('../models/Vendor.model');
+    const Store = require('../models/Store.model');
 
-    const user = await User.findOne({
+    const users = await User.find({
       is_active: true,
       $or: [
-        { username: { $regex: `^${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
-        { phone: { $regex: `${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
-        { email: { $regex: `^${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' } },
+        { username: { $regex: `^${escaped}$`, $options: 'i' } },
+        { phone: { $regex: `${escaped}$`, $options: 'i' } },
+        { email: { $regex: `^${escaped}$`, $options: 'i' } },
       ],
     })
       .select('name username avatar branding phone email role onboarding_location addresses')
+      .limit(10)
       .lean();
 
-    if (!user) {
-      // Non-enumerating: always 200
+    if (!users.length) {
       return res.json({ success: true, data: { found: false } });
     }
 
-    // Build display name (first name + initial of last)
-    const nameParts = user.name.split(' ');
-    const displayName = nameParts.length > 1
-      ? `${nameParts[0]} ${nameParts[1][0]}.`
-      : nameParts[0];
+    // Resolve each user's address and avatar
+    const results = await Promise.all(users.map(async (user) => {
+      const nameParts = user.name.split(' ');
+      const displayName = nameParts.length > 1
+        ? `${nameParts[0]} ${nameParts[1][0]}.`
+        : nameParts[0];
 
-    // Resolve address: saved addresses → vendor pickup_address → onboarding_location
-    const defaultAddr = (user.addresses || []).find(a => a.isDefault) || (user.addresses || [])[0] || null;
-    const loc = user.onboarding_location || {};
+      const defaultAddr = (user.addresses || []).find(a => a.isDefault) || (user.addresses || [])[0] || null;
+      const loc = user.onboarding_location || {};
 
-    // Check vendor store pickup_address as another fallback
-    const vendor = await Vendor.findOne({ user_id: user._id }).select('pickup_address').lean();
-    const vendorAddr = vendor?.pickup_address || null;
+      const vendor = await Vendor.findOne({ user_id: user._id }).select('pickup_address').lean();
+      const vendorAddr = vendor?.pickup_address || null;
 
-    // Resolve avatar: branding.logo → avatar → store logo
-    let resolvedAvatar = user.branding?.logo || user.avatar || null;
-    if (!resolvedAvatar && vendor) {
-      const Store = require('../models/Store.model');
-      const store = await Store.findOne({ vendor_id: vendor._id }).select('logo').lean();
-      if (store?.logo) resolvedAvatar = store.logo;
-    }
+      let resolvedAvatar = user.branding?.logo || user.avatar || null;
+      if (!resolvedAvatar && vendor) {
+        const store = await Store.findOne({ vendor_id: vendor._id }).select('logo').lean();
+        if (store?.logo) resolvedAvatar = store.logo;
+      }
 
+      return {
+        _id: user._id,
+        name: displayName,
+        username: user.username,
+        role: user.role,
+        avatar: resolvedAvatar,
+        phone: user.phone || '',
+        email: user.email || '',
+        address: {
+          street: defaultAddr?.street || vendorAddr?.address_description || vendorAddr?.street || loc.address_description || '',
+          city: defaultAddr?.city || vendorAddr?.city || loc.city || '',
+          district: defaultAddr?.region || vendorAddr?.district || loc.zone || '',
+          quartier: defaultAddr?.quartier || vendorAddr?.quartier || loc.quartier || '',
+          zone_id: defaultAddr?.zone_id || vendorAddr?.zone_id || '',
+        },
+      };
+    }));
+
+    // Backwards-compatible: single result → user field, multiple → users array
     return res.json({
       success: true,
       data: {
         found: true,
-        user: {
-          _id: user._id,
-          name: displayName,
-          username: user.username,
-          avatar: resolvedAvatar,
-          phone: user.phone || '',
-          email: user.email || '',
-          address: {
-            street: defaultAddr?.street || vendorAddr?.address_description || vendorAddr?.street || loc.address_description || '',
-            city: defaultAddr?.city || vendorAddr?.city || loc.city || '',
-            district: defaultAddr?.region || vendorAddr?.district || loc.zone || '',
-            quartier: defaultAddr?.quartier || vendorAddr?.quartier || loc.quartier || '',
-            zone_id: defaultAddr?.zone_id || vendorAddr?.zone_id || '',
-          },
-        },
+        user: results[0],
+        users: results,
+        multiple: results.length > 1,
       },
     });
   } catch (err) {
