@@ -109,7 +109,7 @@
    Only scales font-size on text elements. html stays at 16px so rem-based
    layout (padding, margins, gaps) is stable — no "page zoom" effect.     */
 html[data-font-size="sm"] { --aura-text-scale: 0.875; }
-html[data-font-size="md"] { --aura-text-scale: 1; }
+html[data-font-size="md"] { --aura-text-scale: 0.9; }
 html[data-font-size="lg"] { --aura-text-scale: 1.15; }
 html[data-font-size="xl"] { --aura-text-scale: 1.25; }
 
