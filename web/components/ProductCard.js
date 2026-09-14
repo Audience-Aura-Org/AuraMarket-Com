@@ -419,7 +419,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
             <button
               onClick={handleBuyNow}
               disabled={!inStock}
-              className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[9px] md:text-[10px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-1"
+              className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[8px] md:text-[9px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
             >
               <span className="truncate">{inStock ? t('common.buyNow') : t('common.outOfStock')}</span>
             </button>
