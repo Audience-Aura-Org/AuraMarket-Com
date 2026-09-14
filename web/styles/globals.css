@@ -100,18 +100,18 @@
   --aura-text-scale: 1;
   --aura-font-family: var(--font-display);
   /* Default top nav heights; pages may override these variables */
-  --top-nav-height: calc(46px + env(safe-area-inset-top, 0px));
-  --top-nav-height-lg: calc(52px + env(safe-area-inset-top, 0px));
+  --top-nav-height: calc(56px + env(safe-area-inset-top, 0px));
+  --top-nav-height-lg: calc(60px + env(safe-area-inset-top, 0px));
 }
 
 
 /* ── User text-scale ─────────────────────────────────────────────────────
    Only scales font-size on text elements. html stays at 16px so rem-based
    layout (padding, margins, gaps) is stable — no "page zoom" effect.     */
-html[data-font-size="sm"] { --aura-text-scale: 0.7; }
-html[data-font-size="md"] { --aura-text-scale: 0.8; }
+html[data-font-size="sm"] { --aura-text-scale: 0.875; }
+html[data-font-size="md"] { --aura-text-scale: 1; }
 html[data-font-size="lg"] { --aura-text-scale: 1.15; }
-html[data-font-size="xl"] { --aura-text-scale: 1.3; }
+html[data-font-size="xl"] { --aura-text-scale: 1.25; }
 
 @font-face {
   font-family: 'OpenDyslexic';
@@ -252,7 +252,7 @@ html[data-font-size] [class*="text-[15px]"] { font-size: calc(17px * var(--aura-
 /* Rest of the file remains as before but ensuring no italics */
 html {
   font-size: 16px;
-  zoom: 0.7;
+  zoom: 1;
   min-height: 100%;
   height: 100%;
   -webkit-text-size-adjust: 100%;
@@ -329,10 +329,10 @@ html {
 @media (min-width: 1024px) {
   html {
     font-size: 16px;
-    zoom: 0.7;
+    zoom: 1;
   }
   body {
-    font-size: 22px;
+    font-size: 16px;
   }
 }
 
@@ -443,7 +443,7 @@ i, em { font-style: normal !important; }
 @media (max-width: 640px) {
   html {
     font-size: 16px;
-    zoom: 0.8;
+    zoom: 1;
   }
   p { line-height: 1.45; }
   button, a { word-break: normal; }
@@ -719,7 +719,7 @@ video {
     text-size-adjust: 100%;
   }
   body {
-    zoom: 0.7;
+    zoom: 1;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
@@ -741,4 +741,62 @@ video {
   }
   /* Reset body zoom inside chat so dvh/svh and visualViewport are unscaled */
   html.chat-open body { zoom: 1 !important; }
+}
+
+/* Global, preference-aware type scale. Keep these rules last so every screen
+   receives the same readable hierarchy on desktop and mobile. */
+html[data-font-size] body {
+  font-size: calc(16px * var(--aura-text-scale, 1));
+  line-height: 1.5;
+}
+
+html[data-font-size] p:not([class*="text-"]),
+html[data-font-size] span:not([class*="text-"]),
+html[data-font-size] a:not([class*="text-"]),
+html[data-font-size] li:not([class*="text-"]),
+html[data-font-size] label:not([class*="text-"]),
+html[data-font-size] td:not([class*="text-"]),
+html[data-font-size] th:not([class*="text-"]),
+html[data-font-size] dt:not([class*="text-"]),
+html[data-font-size] dd:not([class*="text-"]),
+html[data-font-size] button:not([class*="text-"]),
+html[data-font-size] input:not([class*="text-"]),
+html[data-font-size] textarea:not([class*="text-"]),
+html[data-font-size] select:not([class*="text-"]) {
+  font-size: calc(16px * var(--aura-text-scale, 1));
+  line-height: 1.5;
+}
+
+html[data-font-size] [class*="text-xs"] { font-size: calc(12px * var(--aura-text-scale, 1)) !important; line-height: 1.4 !important; }
+html[data-font-size] [class*="text-sm"] { font-size: calc(14px * var(--aura-text-scale, 1)) !important; line-height: 1.45 !important; }
+html[data-font-size] [class*="text-base"] { font-size: calc(16px * var(--aura-text-scale, 1)) !important; line-height: 1.5 !important; }
+html[data-font-size] [class*="text-lg"] { font-size: calc(18px * var(--aura-text-scale, 1)) !important; line-height: 1.45 !important; }
+html[data-font-size] [class*="text-xl"] { font-size: calc(20px * var(--aura-text-scale, 1)) !important; line-height: 1.35 !important; }
+html[data-font-size] [class*="text-2xl"] { font-size: calc(24px * var(--aura-text-scale, 1)) !important; line-height: 1.3 !important; }
+html[data-font-size] [class*="text-3xl"] { font-size: calc(30px * var(--aura-text-scale, 1)) !important; line-height: 1.2 !important; }
+html[data-font-size] [class*="text-4xl"] { font-size: calc(36px * var(--aura-text-scale, 1)) !important; line-height: 1.15 !important; }
+html[data-font-size] [class*="text-5xl"] { font-size: calc(48px * var(--aura-text-scale, 1)) !important; line-height: 1.08 !important; }
+html[data-font-size] [class*="text-6xl"] { font-size: calc(60px * var(--aura-text-scale, 1)) !important; line-height: 1.05 !important; }
+
+html[data-font-size] [class*="text-[8px]"] { font-size: calc(10px * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[9px]"] { font-size: calc(11px * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[10px]"] { font-size: calc(12px * var(--aura-text-scale, 1)) !important; }
+html[data-font-size] [class*="text-[11px]"] { font-size: calc(12px * var(--aura-text-scale, 1)) !important; line-height: 1.4 !important; }
+html[data-font-size] [class*="text-[12px]"] { font-size: calc(13px * var(--aura-text-scale, 1)) !important; line-height: 1.45 !important; }
+html[data-font-size] [class*="text-[13px]"] { font-size: calc(14px * var(--aura-text-scale, 1)) !important; line-height: 1.45 !important; }
+html[data-font-size] [class*="text-[14px]"] { font-size: calc(14px * var(--aura-text-scale, 1)) !important; line-height: 1.45 !important; }
+html[data-font-size] [class*="text-[15px]"] { font-size: calc(15px * var(--aura-text-scale, 1)) !important; line-height: 1.5 !important; }
+
+html[data-font-size] h1 { font-size: calc(2.25rem * var(--aura-text-scale, 1)); line-height: 1.15; }
+html[data-font-size] h2 { font-size: calc(1.875rem * var(--aura-text-scale, 1)); line-height: 1.2; }
+html[data-font-size] h3 { font-size: calc(1.5rem * var(--aura-text-scale, 1)); line-height: 1.25; }
+html[data-font-size] h4 { font-size: calc(1.25rem * var(--aura-text-scale, 1)); line-height: 1.3; }
+
+@media (max-width: 640px) {
+  /* Prevent iOS focus zoom without undoing the user's preferred display size. */
+  html[data-font-size] input,
+  html[data-font-size] textarea,
+  html[data-font-size] select {
+    font-size: max(16px, calc(16px * var(--aura-text-scale, 1))) !important;
+  }
 }

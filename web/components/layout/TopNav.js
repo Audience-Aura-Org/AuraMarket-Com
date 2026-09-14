@@ -13,8 +13,8 @@ import { useChat } from '@/context/ChatContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useLanguage } from '@/context/LanguageContext';
 
-export const TOP_NAV_HEIGHT = 'calc(70px + env(safe-area-inset-top,0px))';
-export const TOP_NAV_HEIGHT_LG = 'calc(65px + env(safe-area-inset-top, 0px))';
+export const TOP_NAV_HEIGHT = 'calc(56px + env(safe-area-inset-top, 0px))';
+export const TOP_NAV_HEIGHT_LG = 'calc(60px + env(safe-area-inset-top, 0px))';
 
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
 
@@ -92,10 +92,10 @@ export default function TopNav() {
     <header className="fixed inset-x-0 top-0 z-[500] w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_10px_40px_-14px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-all duration-300">
       {/* iOS Dynamic Island / notch safe-area spacer */}
       <div className="w-full shrink-0" style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
-      <div className="mx-auto flex max-w-[1920px] items-center justify-between gap-3 px-4 py-2 md:gap-4 md:px-6 md:py-2.5">
+      <div className="mx-auto flex max-w-[1920px] items-center justify-between gap-2 px-3 py-2 md:gap-4 md:px-6 md:py-2.5">
 
         {/* Logo Section */}
-        <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3 lg:gap-12">
+        <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-3 lg:gap-12">
           <Link href={user ? "/shop" : "/"} className="flex items-center gap-2 md:gap-3 group">
             <img
               src="/icon-512.png"
@@ -121,7 +121,7 @@ export default function TopNav() {
         )}
 
         {/* Actions Section */}
-        <div className={`flex items-center gap-2 md:gap-4 ${hideSearchIcon ? 'ml-auto' : ''}`}>
+        <div className={`flex items-center gap-1 sm:gap-2 md:gap-4 ${hideSearchIcon ? 'ml-auto' : ''}`}>
           {/* Mobile Search Toggle */}
           {!hideSearchIcon && (
             <button
@@ -135,7 +135,7 @@ export default function TopNav() {
           {user && (
             <Link
               href={user.role === 'vendor' ? '/vendor/wallet' : user.role === 'logistics' ? '/logistics/wallet' : '/wallet'}
-              className="inline-flex h-10 max-w-[112px] items-center gap-1.5 rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] px-2.5 text-[10px] font-semibold text-[var(--nav-btn-text)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95 sm:max-w-none sm:gap-2 sm:px-3 sm:text-[11px]"
+              className="inline-flex h-10 max-w-[70px] min-[380px]:max-w-[112px] items-center gap-1 rounded-full border border-[var(--nav-btn-border)] bg-[var(--nav-btn-bg)] px-2 text-[10px] min-[380px]:px-2.5 font-semibold text-[var(--nav-btn-text)] shadow-sm transition-all hover:bg-[var(--accent)]/15 hover:border-[var(--accent)]/30 hover:text-[var(--accent)] active:scale-95 sm:max-w-none sm:gap-2 sm:px-3 sm:text-[11px]"
               title="Wallet balance"
             >
               <Wallet className="size-3 shrink-0 text-[var(--accent)] sm:size-3.5" />
@@ -143,7 +143,7 @@ export default function TopNav() {
                 ? <span className="inline-block w-10 h-2.5 rounded bg-[var(--glass-border)] animate-pulse" />
                 : <span className="min-w-0 truncate tabular-nums">{walletBalance.toLocaleString()}</span>
               }
-              <span className="text-[9px] opacity-55">XAF</span>
+              <span className="hidden min-[380px]:inline text-[9px] opacity-55">XAF</span>
             </Link>
           )}
 
@@ -238,7 +238,7 @@ export default function TopNav() {
       )}
     </header>
     <div
-      className="h-[var(--top-nav-height,calc(70px+env(safe-area-inset-top,0px)))] shrink-0 md:h-[var(--top-nav-height-lg,calc(65px+env(safe-area-inset-top,0px)))]"
+      className="h-[var(--top-nav-height,calc(56px+env(safe-area-inset-top,0px)))] shrink-0 md:h-[var(--top-nav-height-lg,calc(60px+env(safe-area-inset-top,0px)))]"
       aria-hidden="true"
     />
     </>
