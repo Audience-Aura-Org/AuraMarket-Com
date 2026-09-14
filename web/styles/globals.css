@@ -100,8 +100,8 @@
   --aura-text-scale: 1;
   --aura-font-family: var(--font-display);
   /* Default top nav heights; pages may override these variables */
-  --top-nav-height: calc(58px + env(safe-area-inset-top, 0px));
-  --top-nav-height-lg: calc(58px + env(safe-area-inset-top, 0px));
+  --top-nav-height: calc(56px + env(safe-area-inset-top, 0px));
+  --top-nav-height-lg: calc(56px + env(safe-area-inset-top, 0px));
 }
 
 
