@@ -335,7 +335,7 @@ function ShopContent() {
         >
 
           {/* Search Bar - Discovery SYNC */}
-          <div className="px-6 lg:px-12 py-3 bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
+          <div className="px-4 py-1.5 sm:px-6 sm:py-3 lg:px-12 bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
             <div className="relative max-w-2xl mx-auto">
               <input
                 type="text"
@@ -356,7 +356,7 @@ function ShopContent() {
           </div>
 
           <div className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
-            <div className="py-3 flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar w-full pl-6 lg:pl-12 pr-6 lg:pr-12">
+            <div className="py-2 sm:py-3 flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar w-full px-4 sm:px-6 lg:px-12">
                {isCategoriesLoading && currentLevel.length === 0 ? null : (
                 <>
                  {breadcrumb.length > 0 ? (

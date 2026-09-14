@@ -275,7 +275,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
                 disabled={addingToCart || (!product.has_variants && product.stock <= 0)}
                 title={t('product.addToCart', 'Add to cart')}
                 aria-label={t('product.addToCart', 'Add to cart')}
-                className="h-9 rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-1.5 text-[11px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                className="h-8 sm:h-9 rounded-xl sm:rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-1.5 text-[11px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Plus strokeWidth={3} className={`size-4 shrink-0 ${addingToCart ? 'animate-spin' : ''}`} />
               </button>
@@ -284,7 +284,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
                 onClick={handleChat}
                 title={t('common.chat')}
                 aria-label={t('common.chat')}
-                className="h-9 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all"
+                className="h-8 sm:h-9 rounded-xl sm:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all"
               >
                 <MessageSquare className="size-4 shrink-0" />
               </button>
@@ -292,7 +292,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
               <button
                 onClick={handleBuyNow}
                 disabled={!product.has_variants && product.stock <= 0}
-                className="h-9 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[7px] sm:text-[8px] aura-buynow font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
+                className="h-8 sm:h-9 rounded-xl sm:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[7px] sm:text-[8px] aura-buynow font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
               >
                 <span className="truncate">{(!product.has_variants && product.stock <= 0) ? t('common.outOfStock') : t('common.buyNow')}</span>
               </button>
