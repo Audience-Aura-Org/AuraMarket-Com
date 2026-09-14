@@ -440,8 +440,8 @@ export default function DeliveryPage() {
         .delivery-input, .delivery-input::placeholder { font-size: 16px; }
         .delivery-label { font-size: 12px; }
         @media (min-width: 768px) {
-          .delivery-input, .delivery-input::placeholder { font-size: 18px; }
-          .delivery-label { font-size: 14px; }
+          .delivery-input, .delivery-input::placeholder { font-size: 24px; }
+          .delivery-label { font-size: 18px; }
         }
       `}</style>
       <div className="mx-auto max-w-2xl px-4">
