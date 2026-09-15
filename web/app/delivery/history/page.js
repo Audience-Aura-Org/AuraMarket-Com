@@ -7,7 +7,7 @@ import api from '@/services/api';
 import {
   Package, Send, ArrowDownToLine, Clock, CheckCircle2, XCircle,
   Truck, AlertTriangle, MapPin, Loader2, ArrowLeft, Navigation,
-  ChevronLeft, ChevronRight, Filter, ChevronDown, Phone,
+  ChevronLeft, ChevronRight, Filter, ChevronDown, Phone, Timer,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,6 +27,18 @@ const TABS = [
   { key: 'booker',    label: 'Sent',     icon: Send },
   { key: 'recipient', label: 'Received', icon: ArrowDownToLine },
 ];
+
+function timeAgo(date) {
+  if (!date) return '';
+  const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
 
 export default function DeliveryHistoryPage() {
   const router = useRouter();
@@ -78,7 +90,7 @@ export default function DeliveryHistoryPage() {
     <div className="min-h-screen bg-[var(--bg-primary)] pb-32">
       {/* ── Sticky Header ─────────────────────────────────────────── */}
       <div className="sticky top-0 z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)]/20">
-        <div className="mx-auto max-w-md px-4 py-3">
+        <div className="mx-auto max-w-2xl px-4 py-3">
           <div className="flex items-center gap-3">
             <Link href="/delivery" className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]/40 flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-all shrink-0">
               <ArrowLeft className="size-4" />
@@ -93,31 +105,32 @@ export default function DeliveryHistoryPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 pt-4 space-y-4">
+      <div className="mx-auto max-w-2xl px-4 pt-5 space-y-4">
         {/* ── Role Tabs (All / Sent / Received) ────────────────────── */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-3">
           {TABS.map(t => {
             const active = tab === t.key;
             return (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`rounded-2xl border p-3 text-center transition-all active:scale-[0.97] ${
+                className={`group relative overflow-hidden rounded-2xl border p-4 text-center transition-all active:scale-[0.97] ${
                   active
                     ? 'bg-[var(--accent)]/10 border-[var(--accent)]/25'
-                    : 'bg-[var(--bg-secondary)]/30 border-[var(--glass-border)]/15'
+                    : 'bg-[var(--bg-secondary)]/30 border-[var(--glass-border)]/15 hover:border-[var(--accent)]/20 hover:bg-[var(--bg-secondary)]/50'
                 }`}
               >
-                <t.icon className={`size-4 mx-auto mb-1.5 ${active ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]/30'}`} />
-                <p className={`text-lg font-bold leading-none ${active ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{counts[t.key]}</p>
-                <p className={`text-[9px] font-bold mt-1 ${active ? 'text-[var(--accent)]/70' : 'text-[var(--text-secondary)]/30'}`}>{t.label}</p>
+                <t.icon className={`absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04]`} />
+                <t.icon className={`size-4 mx-auto mb-2 ${active ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]/30'}`} />
+                <p className={`text-xl font-black leading-none tracking-tight ${active ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{counts[t.key]}</p>
+                <p className={`text-[9px] font-bold uppercase tracking-wider mt-1.5 ${active ? 'text-[var(--accent)]/70' : 'text-[var(--text-secondary)]/30'}`}>{t.label}</p>
               </button>
             );
           })}
         </div>
 
         {/* ── Status Filter (collapsible) ──────────────────────────── */}
-        <div className="rounded-2xl border border-[var(--glass-border)]/15 bg-[var(--bg-secondary)]/20 overflow-hidden">
+        <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 overflow-hidden">
           <button
             type="button"
             onClick={() => setFilterOpen(!filterOpen)}
@@ -135,7 +148,7 @@ export default function DeliveryHistoryPage() {
             <ChevronDown className={`size-3.5 text-[var(--text-secondary)]/25 transition-transform ${filterOpen ? 'rotate-180' : ''}`} />
           </button>
           {filterOpen && (
-            <div className="border-t border-[var(--glass-border)]/10 p-3">
+            <div className="border-t border-[var(--glass-border)]/30 p-3">
               <div className="flex flex-wrap gap-1.5">
                 <button
                   onClick={() => { setStatusFilter(''); setPage(1); }}
@@ -195,68 +208,69 @@ export default function DeliveryHistoryPage() {
                   key={s._id}
                   href={`/delivery/track?code=${s.tracking_code}`}
                   className={`block rounded-2xl border overflow-hidden transition-all active:scale-[0.99] ${
-                    isActive ? 'border-[var(--accent)]/15 hover:border-[var(--accent)]/30' : 'border-[var(--glass-border)]/15 hover:border-[var(--glass-border)]/30'
-                  } bg-[var(--bg-secondary)]/20`}
+                    isActive ? 'border-[var(--accent)]/15 hover:border-[var(--accent)]/30' : 'border-[var(--glass-border)] hover:border-[var(--glass-border)]/60'
+                  } bg-[var(--bg-secondary)]/10`}
                 >
                   {/* Status stripe */}
                   <div className={`h-[3px] ${config.dot}`} />
 
                   <div className="p-4 space-y-3">
-                    {/* Row 1: Role icon + tracking code + status badge */}
+                    {/* Row 1: Role icon + tracking code + status badge + time */}
                     <div className="flex items-center gap-3">
-                      <div className={`size-10 rounded-xl ${config.bg} flex items-center justify-center shrink-0`}>
+                      <div className={`size-10 rounded-xl ${config.bg} border ${config.border} flex items-center justify-center shrink-0`}>
                         {isSender ? <Send className={`size-4 ${config.text}`} /> : <ArrowDownToLine className={`size-4 ${config.text}`} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-mono text-[12px] font-bold text-[var(--text-primary)] tracking-wide">{s.tracking_code}</p>
-                        <p className="text-[10px] text-[var(--text-secondary)]/35 mt-0.5">
-                          {isSender ? 'You sent' : 'Sent to you'} · {new Date(s.createdAt).toLocaleDateString()}
+                        <div className="flex items-center gap-2">
+                          <p className="font-mono text-[12px] font-bold text-[var(--text-primary)] tracking-wide">{s.tracking_code}</p>
+                          <span className="text-[9px] font-mono text-[var(--text-secondary)]/25">{timeAgo(s.createdAt)}</span>
+                        </div>
+                        <p className="text-[10px] text-[var(--text-secondary)]/40 mt-0.5">
+                          {isSender ? 'You sent' : 'Sent to you'} · {new Date(s.createdAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}
                         </p>
                       </div>
-                      <div className={`shrink-0 flex items-center gap-1.5 rounded-lg border px-2.5 py-1 ${config.bg} ${config.text} ${config.border}`}>
+                      <div className={`shrink-0 flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${config.bg} ${config.text} ${config.border}`}>
                         <StatusIcon className="size-3" />
                         <span className="text-[9px] font-bold">{config.label}</span>
                       </div>
                     </div>
 
-                    {/* Row 2: Route (from → to) */}
-                    <div className="rounded-xl bg-[var(--bg-primary)]/60 border border-[var(--glass-border)]/10 p-3">
-                      <div className="flex items-start gap-2.5">
-                        <div className="flex flex-col items-center pt-0.5 shrink-0">
-                          <div className="size-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/10" />
-                          <div className="w-[1.5px] h-5 bg-gradient-to-b from-emerald-500/30 to-rose-500/30 my-0.5 rounded-full" />
-                          <div className="size-2 rounded-full bg-rose-500 ring-2 ring-rose-500/10" />
+                    {/* Row 2: Route timeline style */}
+                    <div className="relative pl-6 space-y-3 before:absolute before:left-[7px] before:top-1 before:h-[calc(100%-8px)] before:w-px before:bg-gradient-to-b before:from-emerald-500/40 before:to-rose-500/40">
+                      <div className="relative">
+                        <div className="absolute -left-6 top-0.5 size-[15px] rounded-full bg-[var(--bg-primary)] border-2 border-emerald-500 flex items-center justify-center">
+                          <div className="size-1 rounded-full bg-emerald-500" />
                         </div>
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <div>
-                            <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-wider">From</p>
-                            <p className="text-[11px] font-semibold text-[var(--text-primary)] truncate">{addr(s.pickup_address) || '—'}</p>
-                          </div>
-                          <div>
-                            <p className="text-[8px] font-bold text-rose-600 uppercase tracking-wider">To</p>
-                            <p className="text-[11px] font-semibold text-[var(--text-primary)] truncate">{addr(s.delivery_address) || '—'}</p>
-                          </div>
+                        <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">From</p>
+                        <p className="text-[12px] font-semibold text-[var(--text-primary)] truncate">{addr(s.pickup_address) || '—'}</p>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute -left-6 top-0.5 size-[15px] rounded-full bg-[var(--bg-primary)] border-2 border-rose-500/40 flex items-center justify-center">
+                          <MapPin className="size-2 text-rose-500 opacity-60" />
                         </div>
+                        <p className="text-[9px] font-bold text-rose-600 uppercase tracking-wider">To</p>
+                        <p className="text-[12px] font-semibold text-[var(--text-primary)] truncate">{addr(s.delivery_address) || '—'}</p>
                       </div>
                     </div>
 
-                    {/* Row 3: Package + Price */}
-                    <div className="flex items-center justify-between">
+                    {/* Row 3: Package tags + Price */}
+                    <div className="flex items-center justify-between pt-1 border-t border-[var(--glass-border)]/15">
                       <div className="flex items-center gap-1.5">
                         {s.package_details?.category && (
-                          <span className="text-[9px] font-bold bg-[var(--bg-primary)] border border-[var(--glass-border)]/15 rounded-md px-2 py-0.5 capitalize text-[var(--text-secondary)]/50">
+                          <span className="text-[9px] font-bold bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-lg px-2 py-0.5 capitalize text-[var(--text-primary)]">
                             {s.package_details.category}
                           </span>
                         )}
                         {s.package_details?.weight_tier && (
-                          <span className="text-[9px] font-bold bg-[var(--bg-primary)] border border-[var(--glass-border)]/15 rounded-md px-2 py-0.5 capitalize text-[var(--text-secondary)]/50">
+                          <span className="text-[9px] font-bold bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-lg px-2 py-0.5 capitalize text-[var(--text-primary)]">
                             {s.package_details.weight_tier.replace('_', ' ')}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm font-bold text-[var(--text-primary)]">
-                        {s.price?.toLocaleString()} <span className="text-[9px] text-[var(--text-secondary)]/35 font-semibold">XAF</span>
-                      </p>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-sm font-black text-[var(--text-primary)]">{s.price?.toLocaleString()}</span>
+                        <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40">XAF</span>
+                      </div>
                     </div>
                   </div>
                 </Link>
@@ -267,19 +281,19 @@ export default function DeliveryHistoryPage() {
 
         {/* ── Pagination ──────────────────────────────────────────── */}
         {pages > 1 && (
-          <div className="flex items-center justify-between rounded-2xl border border-[var(--glass-border)]/15 bg-[var(--bg-secondary)]/20 px-4 py-3">
+          <div className="flex items-center justify-between rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 px-4 py-3">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--glass-border)]/20 px-3.5 py-2 text-[11px] font-bold disabled:opacity-25 active:scale-95 transition-all min-h-[36px]"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--glass-border)] px-3.5 py-2 text-[11px] font-bold disabled:opacity-25 active:scale-95 transition-all min-h-[36px]"
             >
               <ChevronLeft className="size-3.5" /> Prev
             </button>
-            <span className="text-[11px] font-mono text-[var(--text-secondary)]/35 font-bold">{page} / {pages}</span>
+            <span className="text-[11px] font-mono text-[var(--text-secondary)] opacity-40 font-bold">{page} / {pages}</span>
             <button
               onClick={() => setPage(p => Math.min(pages, p + 1))}
               disabled={page === pages}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--glass-border)]/20 px-3.5 py-2 text-[11px] font-bold disabled:opacity-25 active:scale-95 transition-all min-h-[36px]"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--glass-border)] px-3.5 py-2 text-[11px] font-bold disabled:opacity-25 active:scale-95 transition-all min-h-[36px]"
             >
               Next <ChevronRight className="size-3.5" />
             </button>

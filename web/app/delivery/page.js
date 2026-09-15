@@ -497,7 +497,7 @@ export default function DeliveryPage() {
           transform: translateY(-2px);
         }
       `}</style>
-      <div className="mx-auto max-w-lg sm:max-w-3xl px-3 sm:px-4">
+      <div className="mx-auto max-w-2xl px-3 sm:px-4">
         {/* Header */}
         <div className="mb-5 sm:mb-8">
           <div className="flex items-center gap-3 sm:gap-4 mb-2">
