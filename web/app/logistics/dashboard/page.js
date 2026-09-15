@@ -199,18 +199,27 @@ export default function LogisticsDashboard() {
           </div>
         )}
 
-        {/* Exactly 4 KPI cards */}
+        {/* KPI cards with earnings */}
         {(() => {
           const totalShipments = counts.active + counts.pending + counts.delivered || 1;
           const activePct  = Math.round((counts.active    / totalShipments) * 100);
           const pendingPct = Math.round((counts.pending   / totalShipments) * 100);
           const delivPct   = Math.round((counts.delivered / totalShipments) * 100);
+
+          // Calculate total earnings from delivered shipments
+          const totalEarnings = shipments.reduce((sum, s) => {
+            if (s.status === 'delivered' && typeof s.price === 'number') {
+              return sum + s.price;
+            }
+            return sum;
+          }, 0);
+
           return (
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
               <StatCard label="Wallet" value={`${walletBalance.toLocaleString()} XAF`} sub="Available balance" icon="account_balance_wallet" color="purple" href="/logistics/wallet" footer="Tap to manage funds" />
               <StatCard label="In transit" value={String(counts.active)} sub="Pickup → delivery" icon="local_shipping" color="indigo" progress={activePct} footer={`${activePct}% of workload`} />
               <StatCard label="Awaiting pickup" value={String(counts.pending)} sub="New assignments" icon="schedule" color="amber" progress={pendingPct} footer={`${pendingPct}% of workload`} />
-              <StatCard label="Delivered" value={String(counts.delivered)} sub="Closed successfully" icon="verified" color="emerald" progress={delivPct} footer={`${delivPct}% success rate`} />
+              <StatCard label="Earnings" value={`${totalEarnings.toLocaleString()} XAF`} sub="Completed deliveries" icon="verified" color="emerald" footer={`${counts.delivered} delivered`} />
             </div>
           );
         })()}
@@ -325,8 +334,8 @@ export default function LogisticsDashboard() {
                       <th className="pb-3 pr-3">Tracking</th>
                       <th className="pb-3 pr-3">Items</th>
                       <th className="pb-3 pr-3">Destination</th>
-                      <th className="pb-3 pr-3">Order placed</th>
-                      <th className="pb-3 pr-3">Your fee</th>
+                      <th className="pb-3 pr-3">Date</th>
+                      <th className="pb-3 pr-3">Earnings</th>
                       <th className="pb-3 pr-3">Status</th>
                       <th className="pb-3 text-right">Open</th>
                     </tr>
@@ -418,8 +427,19 @@ export default function LogisticsDashboard() {
                           <td className="whitespace-nowrap py-3 pr-3 align-top text-[11px] text-[var(--text-secondary)]">
                             {dateStr}
                           </td>
-                          <td className="py-3 pr-3 align-top font-mono text-[11px] font-semibold">
-                            {fee}
+                          <td className="py-3 pr-3 align-top">
+                            <div className="flex flex-col gap-1">
+                              <p className="font-mono text-[11px] font-semibold">{fee}</p>
+                              <span className={`inline-flex text-[9px] font-semibold px-2 py-0.5 rounded-full w-fit ${
+                                s.payment_status === 'paid'
+                                  ? 'bg-emerald-500/15 text-emerald-600'
+                                  : s.payment_status === 'pending'
+                                    ? 'bg-amber-500/15 text-amber-600'
+                                    : 'bg-slate-500/15 text-slate-600'
+                              }`}>
+                                {s.payment_status || 'unpaid'}
+                              </span>
+                            </div>
                           </td>
                           <td className="py-3 pr-3 align-top">
                             <span
@@ -536,11 +556,22 @@ export default function LogisticsDashboard() {
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--glass-border)] pt-3 text-[11px]">
-                        <span className="font-mono font-semibold">
-                          {typeof s.price === "number"
-                            ? `${s.price.toLocaleString()} XAF`
-                            : "—"}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <span className="font-mono font-semibold">
+                            {typeof s.price === "number"
+                              ? `${s.price.toLocaleString()} XAF`
+                              : "—"}
+                          </span>
+                          <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full w-fit ${
+                            s.payment_status === 'paid'
+                              ? 'bg-emerald-500/15 text-emerald-600'
+                              : s.payment_status === 'pending'
+                                ? 'bg-amber-500/15 text-amber-600'
+                                : 'bg-slate-500/15 text-slate-600'
+                          }`}>
+                            {s.payment_status || 'unpaid'}
+                          </span>
+                        </div>
                         <span
                           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                             s.status === "delivered"
