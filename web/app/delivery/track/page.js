@@ -48,6 +48,19 @@ function elapsed(from, to) {
   return `${d}d ${h % 24}h`;
 }
 
+/* ── Countdown helper ────────────────────────────────────────────── */
+function countdown(eta) {
+  if (!eta) return null;
+  const diff = new Date(eta).getTime() - Date.now();
+  if (diff <= 0) return { text: 'Now', overdue: true };
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return { text: `${m}m`, overdue: false };
+  const h = Math.floor(m / 60);
+  if (h < 24) return { text: `${h}h ${m % 60}m`, overdue: false };
+  const d = Math.floor(h / 24);
+  return { text: `${d}d ${h % 24}h`, overdue: false };
+}
+
 /* ── Live Timer Hook ──────────────────────────────────────────────── */
 function useLiveClock(active) {
   const [, setTick] = useState(0);
@@ -129,19 +142,32 @@ function StatusStepper({ status, logs, createdAt, eta }) {
       })}
 
       {/* ETA row at bottom */}
-      {eta && (
-        <div className="flex gap-5 relative">
-          <div className="z-10 size-10 rounded-full flex-shrink-0 flex items-center justify-center border-[3px] border-[var(--bg-primary)] bg-[var(--accent)]/10 text-[var(--accent)]">
-            <Clock className="size-4" />
+      {eta && (() => {
+        const cd = countdown(eta);
+        const isOverdue = cd?.overdue;
+        return (
+          <div className="flex gap-5 relative">
+            <div className={`z-10 size-10 rounded-full flex-shrink-0 flex items-center justify-center border-[3px] border-[var(--bg-primary)] ${
+              isOverdue ? 'bg-rose-500/10 text-rose-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]'
+            }`}>
+              <Clock className="size-4" />
+            </div>
+            <div className="flex-1 min-w-0 pt-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className={`text-[10px] font-bold opacity-50 uppercase tracking-wider ${isOverdue ? 'text-rose-500' : 'text-[var(--text-secondary)]'}`}>
+                  Estimated Delivery
+                </p>
+                <span className={`text-[12px] font-black ${isOverdue ? 'text-rose-500' : 'text-[var(--accent)]'}`}>
+                  {isOverdue ? 'Overdue' : cd?.text || '—'}
+                </span>
+              </div>
+              <p className={`text-[11px] font-medium mt-0.5 ${isOverdue ? 'text-rose-500/60' : 'text-[var(--accent)]/60'}`}>
+                {new Date(eta).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0 pt-1">
-            <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-wider">Estimated Delivery</p>
-            <p className="text-[13px] font-bold text-[var(--accent)] mt-0.5">
-              {new Date(eta).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            </p>
-          </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
@@ -298,12 +324,19 @@ function TrackContent() {
                 <div className={`flex h-6 items-center rounded-full ${m.bg} px-2.5 text-[10px] font-bold uppercase tracking-wider ${m.color} border ${m.border}`}>
                   {m.label}
                 </div>
-                {eta && !isTerminal && (
-                  <div className="flex h-6 items-center gap-1 rounded-full bg-[var(--accent)]/10 px-2.5 text-[10px] font-bold text-[var(--accent)] border border-[var(--accent)]/20">
-                    <Clock className="size-3" />
-                    ETA {new Date(eta).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                )}
+                {eta && !isTerminal && (() => {
+                  const cd = countdown(eta);
+                  return cd && (
+                    <div className={`flex h-6 items-center gap-1 rounded-full px-2.5 text-[10px] font-bold border ${
+                      cd.overdue
+                        ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                        : 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20'
+                    }`}>
+                      <Clock className="size-3" />
+                      {cd.overdue ? 'Overdue' : `ETA ${cd.text}`}
+                    </div>
+                  );
+                })()}
               </div>
               <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60">
                 Created {new Date(shipment.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
