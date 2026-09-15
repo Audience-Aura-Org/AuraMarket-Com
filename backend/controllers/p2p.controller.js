@@ -15,6 +15,7 @@ const LogisticsCompany = require('../models/LogisticsCompany.model');
 const { debitBalance, creditBalance } = require('../services/wallet.service');
 const { sendNotification } = require('../utils/notifier');
 const { sendEmail } = require('../utils/emailService');
+const { uploadToS3, isS3Enabled } = require('../utils/s3');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -518,7 +519,7 @@ const verifyPodOtp = async (req, res) => {
   session.startTransaction();
 
   try {
-    const { otp } = req.body;
+    const { otp, photo, receiver_name } = req.body;
     if (!otp || !/^\d{6}$/.test(otp)) {
       await session.abortTransaction();
       return res.status(400).json({ success: false, message: 'Valid 6-digit OTP required' });
@@ -563,18 +564,34 @@ const verifyPodOtp = async (req, res) => {
 
     // OTP valid — mark as delivered
     shipment.status = 'delivered';
-    shipment.proof_of_delivery = {
+    const podData = {
       note: 'Confirmed via OTP',
-      receiver_name: shipment.other_party?.name || 'Recipient',
+      receiver_name: receiver_name || shipment.other_party?.name || 'Recipient',
       timestamp: new Date(),
     };
+
+    // Upload photo to S3 if provided
+    if (photo && isS3Enabled()) {
+      try {
+        const photoBuffer = Buffer.from(photo.split(',')[1] || photo, 'base64');
+        const fileName = `pod-${shipment._id}-${Date.now()}.jpg`;
+        const s3Result = await uploadToS3(photoBuffer, fileName, 'proof-of-delivery', 'image/jpeg');
+        podData.image_url = s3Result.url;
+        console.log('[p2p] Photo uploaded to S3:', s3Result.url);
+      } catch (photoErr) {
+        console.warn('[p2p] Photo upload failed (non-blocking):', photoErr.message);
+        // Non-critical — POD is valid without photo
+      }
+    }
+
+    shipment.proof_of_delivery = podData;
     shipment.pod_otp_hash = undefined;
     shipment.pod_otp_expires = undefined;
     shipment.pod_otp_attempts = 0;
     shipment.shipment_logs.push({
       status: 'delivered',
       updated_by: req.user?._id || null,
-      note: 'Delivery confirmed via OTP',
+      note: `Delivery confirmed via OTP${podData.image_url ? ' with photo' : ''}`,
     });
 
     // Credit logistics firm

@@ -81,6 +81,8 @@ const { startOrphanDetector } = require('./services/orphanDetector.service');
 startOrphanDetector(app);
 const { startIntercityDispatchTimeoutWorker } = require('./services/intercityDispatchTimeout.service');
 startIntercityDispatchTimeoutWorker(app);
+const { startScheduledPickupDispatchWorker } = require('./services/scheduledPickupDispatch.service');
+startScheduledPickupDispatchWorker(app);
 const { startAvgDeliveryMinutesJob } = require('./services/avgDeliveryMinutes.service');
 startAvgDeliveryMinutesJob();
 const { startDelayedRiderDispatchWorker } = require('./services/delayedRiderDispatch.service');

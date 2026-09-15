@@ -108,4 +108,14 @@ module.exports = {
   // Set to 'true' in production to enforce PawaPay's known callback IP allowlist
   // as an extra security layer on top of Content-Digest verification.
   PAWAPAY_ENFORCE_IP_ALLOWLIST: process.env.PAWAPAY_ENFORCE_IP_ALLOWLIST === 'true',
+  // SMS Configuration
+  SMS_ENABLED: process.env.SMS_ENABLED === 'true',
+  SMS_PROVIDER: process.env.SMS_PROVIDER || 'twilio', // 'twilio' or 'africas_talking'
+  // Twilio credentials for SMS
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+  TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
+  // Africa's Talking credentials for SMS
+  AFRICAS_TALKING_API_KEY: process.env.AFRICAS_TALKING_API_KEY,
+  AFRICAS_TALKING_USERNAME: process.env.AFRICAS_TALKING_USERNAME,
 };

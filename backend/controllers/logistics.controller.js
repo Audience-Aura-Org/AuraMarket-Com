@@ -451,11 +451,12 @@ const modifyShipmentStatus = async (req, res, next) => {
       await session.commitTransaction();
       session.endSession();
 
-      // Non-blocking P2P notifications
+      // Non-blocking P2P notifications (in-app, email, and SMS)
       setImmediate(async () => {
         try {
           const { sendNotification } = require('../utils/notifier');
           const { sendEmail } = require('../utils/emailService');
+          const { sendShipmentStatusSMS } = require('../utils/smsService');
           const webUrl = process.env.WEB_CLIENT_URL || 'https://auradime.com';
           const statusLabel = status.replace(/_/g, ' ');
           const trackLink = `/delivery/track?code=${shipment.tracking_code}`;
@@ -468,6 +469,10 @@ const modifyShipmentStatus = async (req, res, next) => {
               type: 'p2p_status',
               metadata: { target_id: shipment._id, tracking_code: shipment.tracking_code, link: trackLink, status },
             });
+            // Send SMS to booker (if phone available)
+            if (shipment.booked_by.phone) {
+              await sendShipmentStatusSMS(shipment.booked_by.phone, shipment.tracking_code, status);
+            }
           }
           // Notify other party (auth user)
           if (shipment.other_party?.user_id) {
@@ -477,8 +482,12 @@ const modifyShipmentStatus = async (req, res, next) => {
               type: 'p2p_status',
               metadata: { target_id: shipment._id, tracking_code: shipment.tracking_code, link: trackLink, status },
             });
+            // Send SMS to other party (if phone available)
+            if (shipment.other_party.phone) {
+              await sendShipmentStatusSMS(shipment.other_party.phone, shipment.tracking_code, status);
+            }
           }
-          // Email guest booker
+          // Email and SMS for guest booker
           if (shipment.guest_booker?.email) {
             await sendEmail({
               to: shipment.guest_booker.email,
@@ -486,13 +495,19 @@ const modifyShipmentStatus = async (req, res, next) => {
               html: `<p>Your delivery <strong>${shipment.tracking_code}</strong> is now <strong>${statusLabel}</strong>.</p><p>Track it at: <a href="${webUrl}${trackLink}">${webUrl}${trackLink}</a></p>`,
             });
           }
-          // Email guest other party
+          if (shipment.guest_booker?.phone) {
+            await sendShipmentStatusSMS(shipment.guest_booker.phone, shipment.tracking_code, status);
+          }
+          // Email and SMS for guest other party
           if (shipment.other_party?.email && !shipment.other_party?.user_id) {
             await sendEmail({
               to: shipment.other_party.email,
               subject: `Delivery ${shipment.tracking_code} — ${statusLabel}`,
               html: `<p>Delivery <strong>${shipment.tracking_code}</strong> is now <strong>${statusLabel}</strong>.</p><p>Track it at: <a href="${webUrl}${trackLink}">${webUrl}${trackLink}</a></p>`,
             });
+          }
+          if (shipment.other_party?.phone && !shipment.other_party?.user_id) {
+            await sendShipmentStatusSMS(shipment.other_party.phone, shipment.tracking_code, status);
           }
         } catch (notifyErr) {
           console.error('[logistics] P2P notification error:', notifyErr.message);
