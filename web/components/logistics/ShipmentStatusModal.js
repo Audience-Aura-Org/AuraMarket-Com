@@ -814,9 +814,9 @@ export default function ShipmentStatusModal({
 
             const ALLOWED_TRANSITIONS = {
               pending: ['assigned', 'cancelled'],
-              assigned: ['picked_up', 'failed', 'cancelled'],
-              picked_up: ['in_transit', 'failed', 'cancelled'],
-              in_transit: ['out_for_delivery', 'failed'],
+              assigned: ['picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed', 'cancelled'],
+              picked_up: ['in_transit', 'out_for_delivery', 'delivered', 'failed', 'cancelled'],
+              in_transit: ['out_for_delivery', 'delivered', 'failed'],
               out_for_delivery: ['delivered', 'failed'],
               failed: ['assigned', 'cancelled'],
               delivered: [],
