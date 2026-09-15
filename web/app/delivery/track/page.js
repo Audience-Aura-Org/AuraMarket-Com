@@ -7,86 +7,27 @@ import {
   Package, MapPin, Clock, CheckCircle2, XCircle, Truck, AlertTriangle,
   Search, Loader2, User, MessageCircle, Send, Copy, Check,
   ArrowLeft, Navigation, Phone, Shield, ChevronDown, Zap,
+  Banknote, ArrowDownToLine, ClipboardList,
 } from 'lucide-react';
 import Link from 'next/link';
 
 const STATUS_FLOW = ['pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered'];
-const STATUS_LABELS = ['Pending', 'Assigned', 'Pickup', 'Transit', 'Delivery', 'Done'];
 const STATUS_META = {
-  pending:          { color: 'text-amber-600',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   dot: 'bg-amber-500',   icon: Clock,         label: 'Pending',          sub: 'Awaiting assignment' },
-  assigned:         { color: 'text-blue-600',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    dot: 'bg-blue-500',    icon: Truck,         label: 'Assigned',         sub: 'Driver assigned' },
-  picked_up:        { color: 'text-indigo-600',  bg: 'bg-indigo-500/10',  border: 'border-indigo-500/20',  dot: 'bg-indigo-500',  icon: Package,       label: 'Picked Up',        sub: 'Package collected' },
-  in_transit:       { color: 'text-blue-600',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    dot: 'bg-blue-500',    icon: Truck,         label: 'In Transit',       sub: 'On the way' },
-  out_for_delivery: { color: 'text-violet-600',  bg: 'bg-violet-500/10',  border: 'border-violet-500/20',  dot: 'bg-violet-500',  icon: Navigation,    label: 'Out for Delivery', sub: 'Almost there' },
-  delivered:        { color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', dot: 'bg-emerald-500', icon: CheckCircle2,  label: 'Delivered',        sub: 'Successfully delivered' },
-  failed:           { color: 'text-rose-600',    bg: 'bg-rose-500/10',    border: 'border-rose-500/20',    dot: 'bg-rose-500',    icon: AlertTriangle, label: 'Failed',           sub: 'Delivery failed' },
-  cancelled:        { color: 'text-gray-600',    bg: 'bg-gray-500/10',    border: 'border-gray-500/20',    dot: 'bg-gray-500',    icon: XCircle,       label: 'Cancelled',        sub: 'Cancelled' },
+  pending:          { color: 'text-amber-600',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   label: 'Pending' },
+  assigned:         { color: 'text-blue-600',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    label: 'Assigned' },
+  picked_up:        { color: 'text-indigo-600',  bg: 'bg-indigo-500/10',  border: 'border-indigo-500/20',  label: 'Picked Up' },
+  in_transit:       { color: 'text-blue-600',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    label: 'In Transit' },
+  out_for_delivery: { color: 'text-violet-600',  bg: 'bg-violet-500/10',  border: 'border-violet-500/20',  label: 'Out for Delivery' },
+  delivered:        { color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Delivered' },
+  failed:           { color: 'text-rose-600',    bg: 'bg-rose-500/10',    border: 'border-rose-500/20',    label: 'Failed' },
+  cancelled:        { color: 'text-gray-600',    bg: 'bg-gray-500/10',    border: 'border-gray-500/20',    label: 'Cancelled' },
 };
 
-/* ── Card wrapper ──────────────────────────────────────────────────── */
-const Card = ({ children, className = '' }) => (
-  <div className={`rounded-2xl border border-[var(--glass-border)]/20 bg-[var(--bg-secondary)]/40 p-4 ${className}`}>
-    {children}
-  </div>
-);
-
-/* ── Section label ─────────────────────────────────────────────────── */
-const Label = ({ children, className = '' }) => (
-  <p className={`text-[9px] font-bold uppercase tracking-wider mb-2 ${className}`}>{children}</p>
-);
-
-/* ── Progress Bar ──────────────────────────────────────────────────── */
-function StepProgress({ status }) {
-  const idx = STATUS_FLOW.indexOf(status);
-  const isFail = ['failed', 'cancelled'].includes(status);
-  const done = status === 'delivered';
-  const pct = isFail ? 0 : (Math.max(0, idx) / (STATUS_FLOW.length - 1)) * 100;
-  return (
-    <div className="pt-2 pb-1">
-      <div className="relative h-1.5 rounded-full bg-[var(--glass-border)]/15 overflow-hidden mb-3">
-        <div
-          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ${isFail ? 'bg-rose-500' : done ? 'bg-emerald-500' : 'bg-[var(--accent)]'}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <div className="flex justify-between">
-        {STATUS_FLOW.map((s, i) => {
-          const reached = i <= idx && !isFail;
-          const current = i === idx && !isFail;
-          return (
-            <div key={s} className="flex flex-col items-center gap-1" style={{ width: `${100 / STATUS_FLOW.length}%` }}>
-              <div className={`size-2 rounded-full transition-all ${
-                current ? 'bg-[var(--accent)] ring-2 ring-[var(--accent)]/20' : reached ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]/30'
-              }`} />
-              <p className={`text-[7px] font-bold text-center leading-none ${current ? 'text-[var(--accent)]' : reached ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]/20'}`}>
-                {STATUS_LABELS[i]}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
+function formatAddress(addr) {
+  if (!addr || typeof addr !== 'object') return { lines: [], phone: null };
+  const parts = [addr.street, addr.quartier, addr.city, addr.region, addr.country].filter(Boolean);
+  return { lines: parts.length ? parts : ['—'], phone: addr.phone || null };
 }
-
-/* ── Collapsible section ───────────────────────────────────────────── */
-const Collapsible = ({ icon: Icon, title, badge, children, defaultOpen = true }) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <Card className="!p-0 overflow-hidden">
-      <button type="button" onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2.5 px-4 py-3 active:bg-white/[0.02]">
-        <Icon className="size-4 text-[var(--accent)] shrink-0" />
-        <span className="text-[11px] font-bold text-[var(--text-primary)] flex-1 text-left">{title}</span>
-        {badge != null && (
-          <span className="size-5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] font-bold flex items-center justify-center">{badge}</span>
-        )}
-        <ChevronDown className={`size-3.5 text-[var(--text-secondary)]/25 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-      {open && <div className="border-t border-[var(--glass-border)]/10">{children}</div>}
-    </Card>
-  );
-};
 
 /* ── Main content ──────────────────────────────────────────────────── */
 function TrackContent() {
@@ -100,6 +41,8 @@ function TrackContent() {
   const [messages, setMessages] = useState([]);
   const [msgInput, setMsgInput] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showMsgs, setShowMsgs] = useState(true);
+  const [showTimeline, setShowTimeline] = useState(false);
   const msgEnd = useRef(null);
 
   const fetchShipment = useCallback(async (tc) => {
@@ -142,23 +85,25 @@ function TrackContent() {
   useEffect(() => { if (shipment?._id) fetchMsgs(shipment._id); }, [shipment?._id, fetchMsgs]);
   useEffect(() => {
     if (!shipment || ['delivered', 'cancelled', 'failed'].includes(shipment.status)) return;
-    const iv = setInterval(() => fetchShipment(shipment.tracking_code), 30000);
+    const iv = setInterval(() => { fetchShipment(shipment.tracking_code); fetchMsgs(shipment._id); }, 30000);
     return () => clearInterval(iv);
-  }, [shipment, fetchShipment]);
+  }, [shipment, fetchShipment, fetchMsgs]);
 
   const m = shipment ? STATUS_META[shipment.status] || STATUS_META.pending : null;
-  const isEnd = shipment && ['delivered', 'cancelled', 'failed'].includes(shipment.status);
-  const addr = (a) => [a?.street, a?.quartier, a?.city].filter(Boolean).join(', ');
+  const isTerminal = shipment && ['delivered', 'cancelled', 'failed'].includes(shipment.status);
+  const pickup = shipment ? formatAddress(shipment.pickup_address) : { lines: [], phone: null };
+  const drop = shipment ? formatAddress(shipment.delivery_address) : { lines: [], phone: null };
   const senderObj = shipment?.booked_by || shipment?.guest_booker;
   const recipientObj = shipment?.other_party;
   const pkg = shipment?.package_details;
   const eta = shipment?.estimated_delivery;
+  const noteBlock = shipment?.delivery_description || null;
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-32">
       {/* ── Sticky Header ─────────────────────────────────────────── */}
       <div className="sticky top-0 z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)]/20">
-        <div className="mx-auto max-w-md px-4 py-3 space-y-3">
+        <div className="mx-auto max-w-2xl px-4 py-3 space-y-3">
           <div className="flex items-center gap-3">
             <Link href="/delivery" className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]/40 flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-all shrink-0">
               <ArrowLeft className="size-4" />
@@ -184,7 +129,7 @@ function TrackContent() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-md px-4 pt-5 space-y-3">
+      <div className="mx-auto max-w-2xl px-4 pt-5">
         {/* Error */}
         {error && (
           <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3.5 flex items-center gap-3">
@@ -214,218 +159,315 @@ function TrackContent() {
 
         {/* ── Shipment detail ──────────────────────────────────────── */}
         {shipment && m && (
-          <>
-            {/* Status + Progress */}
-            <Card>
-              <div className="flex items-center gap-3 mb-1">
-                <div className={`size-10 rounded-xl ${m.bg} border ${m.border} flex items-center justify-center shrink-0`}>
-                  <m.icon className={`size-5 ${m.color}`} />
+          <div className="space-y-8">
+
+            {/* ── Header: Status + Tracking Code ──────────────────── */}
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className={`flex h-6 items-center rounded-full ${m.bg} px-2.5 text-[10px] font-bold uppercase tracking-wider ${m.color} border ${m.border}`}>
+                  {m.label}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-bold ${m.color}`}>{m.label}</p>
-                  <p className="text-[10px] text-[var(--text-secondary)]/40">{m.sub}</p>
+                <div className="flex h-6 items-center rounded-full bg-violet-500/10 px-2.5 text-[10px] font-bold uppercase tracking-wider text-violet-600 border border-violet-500/20">
+                  P2P
                 </div>
-                {eta && !isEnd && (
-                  <div className="flex items-center gap-1 bg-[var(--accent)]/10 rounded-lg px-2 py-1">
-                    <Zap className="size-3 text-[var(--accent)]" />
-                    <span className="font-mono text-[10px] font-bold text-[var(--accent)]">
-                      {new Date(eta).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                    </span>
+                {eta && !isTerminal && (
+                  <div className="flex h-6 items-center gap-1 rounded-full bg-[var(--accent)]/10 px-2.5 text-[10px] font-bold text-[var(--accent)] border border-[var(--accent)]/20">
+                    <Zap className="size-3" />
+                    ETA {new Date(eta).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   </div>
                 )}
               </div>
-              <StepProgress status={shipment.status} />
-            </Card>
-
-            {/* Tracking code + price bar */}
-            <Card className="!py-3 flex items-center justify-between">
-              <button onClick={copyCode} className="flex items-center gap-2 active:scale-95 transition-all">
-                <span className="font-mono text-xs font-bold text-[var(--text-primary)]">{shipment.tracking_code}</span>
-                {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3 text-[var(--text-secondary)]/25" />}
-              </button>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-[var(--text-primary)]">{shipment.price?.toLocaleString()} XAF</span>
-                <span className={`px-2 py-0.5 rounded-md font-bold text-[9px] ${
-                  shipment.payment_status === 'paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
-                }`}>{shipment.payment_status === 'paid' ? 'Paid' : 'Pending'}</span>
-              </div>
-            </Card>
-
-            {/* Pickup Location */}
-            <Card>
-              <div className="flex items-start gap-3">
-                <div className="size-8 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <MapPin className="size-4 text-emerald-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <Label className="text-emerald-600">Pickup Location</Label>
-                  <p className="text-xs font-semibold text-[var(--text-primary)] leading-snug">{addr(shipment.pickup_address) || '—'}</p>
-                  {shipment.pickup_address?.phone && (
-                    <a href={`tel:${shipment.pickup_address.phone}`} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]/50 mt-1.5 hover:text-[var(--accent)]">
-                      <Phone className="size-3" />{shipment.pickup_address.phone}
-                    </a>
-                  )}
-                </div>
-              </div>
-            </Card>
-
-            {/* Delivery Location */}
-            <Card>
-              <div className="flex items-start gap-3">
-                <div className="size-8 rounded-lg bg-rose-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <MapPin className="size-4 text-rose-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <Label className="text-rose-600">Delivery Location</Label>
-                  <p className="text-xs font-semibold text-[var(--text-primary)] leading-snug">{addr(shipment.delivery_address) || '—'}</p>
-                  {shipment.delivery_address?.phone && (
-                    <a href={`tel:${shipment.delivery_address.phone}`} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]/50 mt-1.5 hover:text-[var(--accent)]">
-                      <Phone className="size-3" />{shipment.delivery_address.phone}
-                    </a>
-                  )}
-                </div>
-              </div>
-            </Card>
-
-            {/* Sender + Recipient side by side */}
-            <div className="grid grid-cols-2 gap-3">
-              <Card>
-                <Label className="text-emerald-600">Sender</Label>
-                <p className="text-xs font-bold text-[var(--text-primary)] truncate">{senderObj?.name || '—'}</p>
-                {senderObj?.phone && (
-                  <a href={`tel:${senderObj.phone}`} className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]/50 mt-1 hover:text-[var(--accent)]">
-                    <Phone className="size-3 shrink-0" /><span className="truncate">{senderObj.phone}</span>
-                  </a>
-                )}
-              </Card>
-              <Card>
-                <Label className="text-rose-600">Recipient</Label>
-                <p className="text-xs font-bold text-[var(--text-primary)] truncate">{recipientObj?.name || '—'}</p>
-                {recipientObj?.phone && (
-                  <a href={`tel:${recipientObj.phone}`} className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)]/50 mt-1 hover:text-[var(--accent)]">
-                    <Phone className="size-3 shrink-0" /><span className="truncate">{recipientObj.phone}</span>
-                  </a>
-                )}
-              </Card>
-            </div>
-
-            {/* Package Details */}
-            {pkg && (
-              <Card>
-                <Label className="text-[var(--accent)]">Package Details</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {pkg.category && (
-                    <span className="text-[10px] font-semibold bg-[var(--bg-primary)] border border-[var(--glass-border)]/20 rounded-lg px-2.5 py-1 capitalize text-[var(--text-primary)]">
-                      {pkg.category}
-                    </span>
-                  )}
-                  {pkg.weight_tier && (
-                    <span className="text-[10px] font-semibold bg-[var(--bg-primary)] border border-[var(--glass-border)]/20 rounded-lg px-2.5 py-1 capitalize text-[var(--text-primary)]">
-                      {pkg.weight_tier.replace('_', ' ')}
-                    </span>
-                  )}
-                  {pkg.declared_value > 0 && (
-                    <span className="text-[10px] font-semibold bg-amber-500/10 border border-amber-500/15 rounded-lg px-2.5 py-1 text-amber-600">
-                      Value: {pkg.declared_value.toLocaleString()} XAF
-                    </span>
-                  )}
-                </div>
-                {pkg.description && (
-                  <p className="text-[11px] text-[var(--text-secondary)]/60 mt-2 leading-relaxed">{pkg.description}</p>
-                )}
-              </Card>
-            )}
-
-            {/* Carrier + Booked */}
-            <div className="grid grid-cols-2 gap-3">
-              {shipment.logistics_id?.company_name && (
-                <Card>
-                  <Label className="text-[var(--text-secondary)]/50">Carrier</Label>
-                  <div className="flex items-center gap-2">
-                    <Truck className="size-4 text-[var(--text-secondary)]/30 shrink-0" />
-                    <p className="text-xs font-bold text-[var(--text-primary)] truncate">{shipment.logistics_id.company_name}</p>
-                  </div>
-                </Card>
-              )}
-              <Card>
-                <Label className="text-[var(--text-secondary)]/50">Booked</Label>
-                <div className="flex items-center gap-2">
-                  <Clock className="size-4 text-[var(--text-secondary)]/30 shrink-0" />
-                  <p className="text-xs font-bold text-[var(--text-primary)]">{new Date(shipment.createdAt).toLocaleDateString()}</p>
-                </div>
-              </Card>
-            </div>
-
-            {/* Messages */}
-            <Collapsible icon={MessageCircle} title="Shipment Messages" badge={messages.length || null} defaultOpen={messages.length > 0}>
-              <div className="max-h-[280px] overflow-y-auto p-4 space-y-2">
-                {messages.length === 0 ? (
-                  <p className="text-[11px] text-[var(--text-secondary)]/25 text-center py-6">No messages yet</p>
-                ) : messages.map((msg, i) => {
-                  const roleColor = { shipper: 'text-blue-600', recipient: 'text-rose-600', logistics: 'text-violet-600', admin: 'text-amber-600' };
-                  return (
-                    <div key={i} className="rounded-xl bg-[var(--bg-primary)] p-3">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className={`text-[10px] font-bold ${roleColor[msg.sender_role] || 'text-[var(--text-primary)]'}`}>
-                          {msg.sender_name}
-                        </span>
-                        <span className="text-[8px] text-[var(--text-secondary)]/30">
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed break-words">{msg.text}</p>
-                    </div>
-                  );
-                })}
-                <div ref={msgEnd} />
-              </div>
-              <div className="flex gap-2 p-3 border-t border-[var(--glass-border)]/10">
-                <input value={msgInput} onChange={e => setMsgInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMsg())}
-                  placeholder="Type a message..."
-                  className="flex-1 rounded-xl border border-[var(--glass-border)]/30 bg-[var(--bg-primary)] px-3 py-2.5 text-xs outline-none focus:border-[var(--accent)] placeholder:text-[var(--text-secondary)]/20 min-h-[40px]" />
-                <button onClick={sendMsg} disabled={!msgInput.trim()}
-                  className="size-10 shrink-0 rounded-xl bg-[var(--accent)] text-white disabled:opacity-20 flex items-center justify-center active:scale-95 transition-all">
-                  <Send className="size-3.5" />
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">
+                  {shipment.tracking_code}
+                </h2>
+                <button onClick={copyCode} className="active:scale-95 transition-all">
+                  {copied ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4 text-[var(--text-secondary)]/25" />}
                 </button>
               </div>
-            </Collapsible>
+              <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60">
+                Created {new Date(shipment.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+              </p>
+            </div>
 
-            {/* Timeline */}
-            {shipment.shipment_logs?.length > 0 && (
-              <Collapsible icon={Clock} title="Timeline" badge={shipment.shipment_logs.length} defaultOpen={false}>
-                <div className="p-4 space-y-0">
-                  {[...shipment.shipment_logs].reverse().map((log, i, arr) => {
-                    const lm = STATUS_META[log.status] || STATUS_META.pending;
-                    const first = i === 0;
+            {/* ── Quick Stats Grid ────────────────────────────────── */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:border-[var(--accent)]/20 hover:bg-[var(--bg-secondary)]/50">
+                <Banknote className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04]" />
+                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">Price</p>
+                <div className="mt-1 flex items-baseline gap-1">
+                  <span className="text-xl font-black tracking-tight text-[var(--text-primary)]">{(shipment.price ?? 0).toLocaleString()}</span>
+                  <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">XAF</span>
+                </div>
+              </div>
+              <div className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:border-[var(--accent)]/20 hover:bg-[var(--bg-secondary)]/50">
+                <Truck className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04]" />
+                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">Carrier</p>
+                <p className="mt-1 text-[13px] font-bold leading-snug text-[var(--text-primary)] truncate">
+                  {shipment.logistics_id?.company_name || '—'}
+                </p>
+              </div>
+              <div className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:border-[var(--accent)]/20 hover:bg-[var(--bg-secondary)]/50">
+                <Package className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04]" />
+                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--accent)] opacity-80">Pickup</p>
+                <p className="mt-1 line-clamp-2 text-[13px] font-bold leading-snug text-[var(--text-primary)]">
+                  {shipment.pickup_address?.quartier || pickup.lines[0] || '—'}
+                </p>
+              </div>
+              <div className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:border-[var(--accent)]/20 hover:bg-[var(--bg-secondary)]/50">
+                <MapPin className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04]" />
+                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">Drop-off</p>
+                <p className="mt-1 line-clamp-2 text-[13px] font-bold leading-snug text-[var(--text-primary)]">
+                  {shipment.delivery_address?.quartier || drop.lines[0] || '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* ── Route Timeline ───────────────────────────────────── */}
+            <div className="relative space-y-6 before:absolute before:left-[11px] before:top-2 before:h-[calc(100%-16px)] before:w-px before:bg-gradient-to-b before:from-[var(--accent)] before:to-[var(--accent)]/10">
+              {/* Pickup */}
+              <div className="relative pl-8">
+                <div className="absolute left-0 top-1 size-[23px] rounded-full bg-[var(--bg-primary)] border-2 border-[var(--accent)] shadow-[0_0_12px_rgba(var(--accent-rgb),0.3)] flex items-center justify-center">
+                  <div className="size-1.5 rounded-full bg-[var(--accent)]" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent)]">Pickup Location</p>
+                  <p className="text-[13px] font-medium leading-relaxed text-[var(--text-primary)]">
+                    {pickup.lines.join(', ')}
+                  </p>
+                  {pickup.phone && (
+                    <a href={`tel:${pickup.phone}`} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors">
+                      <Phone className="size-3 opacity-60" />
+                      {pickup.phone}
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Delivery */}
+              <div className="relative pl-8">
+                <div className="absolute left-0 top-1 size-[23px] rounded-full bg-[var(--bg-primary)] border-2 border-[var(--text-secondary)]/30 flex items-center justify-center">
+                  <MapPin className="size-3 text-[var(--text-secondary)] opacity-60" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-60">Delivery Destination</p>
+                  <p className="text-[13px] font-medium leading-relaxed text-[var(--text-primary)]">
+                    {drop.lines.join(', ')}
+                  </p>
+                  {drop.phone && (
+                    <a href={`tel:${drop.phone}`} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--accent)]">
+                      <Phone className="size-3" />
+                      {drop.phone}
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Sender & Recipient ───────────────────────────────── */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Sender */}
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-5 space-y-3">
+                <div className="flex items-center gap-2 text-emerald-600">
+                  <Send className="size-3.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Sender</span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[var(--text-primary)]">{senderObj?.name || '—'}</p>
+                  {senderObj?.phone && (
+                    <a href={`tel:${senderObj.phone}`} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 hover:text-[var(--accent)] transition-colors">
+                      <Phone className="size-3" />
+                      {senderObj.phone}
+                    </a>
+                  )}
+                  {senderObj?.email && (
+                    <p className="text-[11px] text-[var(--text-secondary)] opacity-50 mt-1">{senderObj.email}</p>
+                  )}
+                </div>
+                {shipment.pickup_address && (
+                  <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70 pt-2 border-t border-emerald-500/10">
+                    {pickup.lines.join(', ')}
+                  </div>
+                )}
+              </div>
+
+              {/* Recipient */}
+              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/[0.03] p-5 space-y-3">
+                <div className="flex items-center gap-2 text-rose-600">
+                  <ArrowDownToLine className="size-3.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Recipient</span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[var(--text-primary)]">{recipientObj?.name || '—'}</p>
+                  {recipientObj?.phone && (
+                    <a href={`tel:${recipientObj.phone}`} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 hover:text-[var(--accent)] transition-colors">
+                      <Phone className="size-3" />
+                      {recipientObj.phone}
+                    </a>
+                  )}
+                  {recipientObj?.email && (
+                    <p className="text-[11px] text-[var(--text-secondary)] opacity-50 mt-1">{recipientObj.email}</p>
+                  )}
+                </div>
+                {shipment.delivery_address && (
+                  <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70 pt-2 border-t border-rose-500/10">
+                    {drop.lines.join(', ')}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Delivery Notes ────────────────────────────────────── */}
+            {noteBlock && (
+              <div className="rounded-2xl border border-[var(--accent)]/10 bg-[var(--accent)]/[0.03] p-5 space-y-3">
+                <div className="flex items-center gap-2 text-[var(--accent)]/60">
+                  <ClipboardList className="size-3.5" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Delivery Notes</span>
+                </div>
+                <p className="text-[12px] leading-relaxed text-[var(--text-primary)] italic">{noteBlock}</p>
+              </div>
+            )}
+
+            {/* ── Package Details ───────────────────────────────────── */}
+            {pkg && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 opacity-60">
+                  <Package className="size-4" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Package Details</span>
+                </div>
+                <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-4 space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    {pkg.category && (
+                      <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-1.5 text-[11px] font-bold capitalize text-[var(--text-primary)]">
+                        {pkg.category}
+                      </span>
+                    )}
+                    {pkg.weight_tier && (
+                      <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-1.5 text-[11px] font-bold capitalize text-[var(--text-primary)]">
+                        {pkg.weight_tier.replace('_', ' ')}
+                      </span>
+                    )}
+                    {pkg.declared_value > 0 && (
+                      <span className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-1.5 text-[11px] font-bold text-amber-600">
+                        Value: {pkg.declared_value.toLocaleString()} XAF
+                      </span>
+                    )}
+                  </div>
+                  {pkg.description && (
+                    <p className="text-[12px] leading-relaxed text-[var(--text-secondary)] pt-2 border-t border-[var(--glass-border)]/50">
+                      {pkg.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── Payment Status ────────────────────────────────────── */}
+            <div className="flex items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 px-5 py-3">
+              <Banknote className="size-4 text-[var(--text-secondary)] opacity-40 shrink-0" />
+              <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60 flex-1">Payment</span>
+              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                shipment.payment_status === 'paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
+              }`}>
+                {shipment.payment_status === 'paid' ? 'Paid' : 'Pending'}
+              </span>
+            </div>
+
+            {/* ── Shipment Messages ─────────────────────────────────── */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 opacity-60">
+                <MessageCircle className="size-4" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">
+                  Shipment Messages {messages.length > 0 && `(${messages.length})`}
+                </span>
+              </div>
+              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 overflow-hidden">
+                <div className="max-h-[300px] overflow-y-auto p-4 space-y-3">
+                  {messages.length === 0 ? (
+                    <p className="text-center text-[11px] text-[var(--text-secondary)] opacity-40 py-6">
+                      No messages yet. Start the conversation below.
+                    </p>
+                  ) : messages.map((msg, i) => {
+                    const isMe = msg.sender_role === 'shipper';
+                    const roleColors = { shipper: 'text-blue-600', recipient: 'text-rose-600', logistics: 'text-violet-600', admin: 'text-amber-600' };
                     return (
-                      <div key={i} className="flex items-start gap-3">
-                        <div className="flex flex-col items-center shrink-0">
-                          <div className={`size-2.5 rounded-full ${first ? lm.dot : 'bg-[var(--glass-border)]/30'} ${first ? 'ring-[3px] ring-[var(--accent)]/10' : ''}`} />
-                          {i < arr.length - 1 && <div className="w-px h-8 bg-[var(--glass-border)]/15" />}
-                        </div>
-                        <div className="flex-1 min-w-0 pb-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className={`text-[10px] font-bold capitalize ${first ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]/35'}`}>
-                              {log.status?.replace(/_/g, ' ')}
-                            </p>
-                            <p className="text-[8px] text-[var(--text-secondary)]/25 shrink-0">{new Date(log.timestamp).toLocaleString()}</p>
+                      <div key={msg._id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 ${
+                          isMe
+                            ? 'bg-[var(--accent)] text-white rounded-br-md'
+                            : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)]/50 text-[var(--text-primary)] rounded-bl-md'
+                        }`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-[9px] font-bold uppercase ${isMe ? 'text-white/70' : (roleColors[msg.sender_role] || 'text-[var(--text-secondary)] opacity-50')}`}>
+                              {msg.sender_name || msg.sender_role}
+                            </span>
+                            <span className={`text-[9px] ${isMe ? 'text-white/40' : 'text-[var(--text-secondary)] opacity-30'}`}>
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
                           </div>
-                          {log.note && <p className="text-[9px] text-[var(--text-secondary)]/30 mt-0.5">{log.note}</p>}
+                          <p className="text-[12px] leading-relaxed break-words">{msg.text}</p>
                         </div>
                       </div>
                     );
                   })}
+                  <div ref={msgEnd} />
                 </div>
-              </Collapsible>
+                <form onSubmit={e => { e.preventDefault(); sendMsg(); }} className="flex items-center gap-2 border-t border-[var(--glass-border)]/30 p-3">
+                  <input value={msgInput} onChange={e => setMsgInput(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[12px] font-medium outline-none focus:border-[var(--accent)]/30 transition-colors placeholder:text-[var(--text-secondary)] placeholder:opacity-30 min-h-[40px]" />
+                  <button type="submit" disabled={!msgInput.trim()}
+                    className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-white transition-all active:scale-95 disabled:opacity-30">
+                    <Send className="size-4" />
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* ── Timeline ──────────────────────────────────────────── */}
+            {shipment.shipment_logs?.length > 0 && (
+              <div className="space-y-3">
+                <button type="button" onClick={() => setShowTimeline(!showTimeline)} className="flex items-center gap-2 w-full">
+                  <Clock className="size-4 opacity-60" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 flex-1 text-left">
+                    Timeline ({shipment.shipment_logs.length} events)
+                  </span>
+                  <ChevronDown className={`size-4 text-[var(--text-secondary)]/30 transition-transform ${showTimeline ? 'rotate-180' : ''}`} />
+                </button>
+                {showTimeline && (
+                  <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-4 space-y-0">
+                    {[...shipment.shipment_logs].reverse().map((log, i, arr) => {
+                      const lm = STATUS_META[log.status] || STATUS_META.pending;
+                      const first = i === 0;
+                      return (
+                        <div key={i} className="flex items-start gap-3">
+                          <div className="flex flex-col items-center shrink-0">
+                            <div className={`size-2.5 rounded-full ${first ? lm.bg.replace('/10', '') || 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]/30'} ${first ? 'ring-[3px] ring-[var(--accent)]/10' : ''}`} />
+                            {i < arr.length - 1 && <div className="w-px h-8 bg-[var(--glass-border)]/15" />}
+                          </div>
+                          <div className="flex-1 min-w-0 pb-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className={`text-[10px] font-bold capitalize ${first ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]/35'}`}>
+                                {log.status?.replace(/_/g, ' ')}
+                              </p>
+                              <p className="text-[8px] text-[var(--text-secondary)]/25 shrink-0">{new Date(log.timestamp).toLocaleString()}</p>
+                            </div>
+                            {log.note && <p className="text-[9px] text-[var(--text-secondary)]/30 mt-0.5">{log.note}</p>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             )}
 
-            {/* Proof of Delivery */}
+            {/* ── Proof of Delivery ─────────────────────────────────── */}
             {shipment.proof_of_delivery?.timestamp && (
-              <Card className="!border-emerald-500/15 !bg-emerald-500/5">
+              <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/[0.03] p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <Shield className="size-4 text-emerald-500" />
-                  <h3 className="text-[11px] font-bold text-emerald-600">Proof of Delivery</h3>
+                  <h3 className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Proof of Delivery</h3>
                 </div>
                 <div className="space-y-1.5 text-[11px]">
                   {shipment.proof_of_delivery.receiver_name && (
@@ -439,13 +481,14 @@ function TrackContent() {
                     <img src={shipment.proof_of_delivery.image_url} alt="Proof" className="mt-2 rounded-xl max-h-40 object-cover w-full" />
                   )}
                 </div>
-              </Card>
+              </div>
             )}
-          </>
+
+          </div>
         )}
 
         {/* Bottom CTA */}
-        <div className="pt-3 flex gap-2.5">
+        <div className="pt-6 flex gap-2.5">
           <Link href="/delivery" className="flex-1 rounded-xl bg-[var(--accent)] py-3 text-white font-bold text-xs text-center active:scale-95 transition-all min-h-[44px] flex items-center justify-center gap-2">
             <Send className="size-3.5" /> Book Delivery
           </Link>
