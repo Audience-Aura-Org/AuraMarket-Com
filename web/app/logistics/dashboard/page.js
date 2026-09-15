@@ -333,18 +333,55 @@ export default function LogisticsDashboard() {
                   </thead>
                   <tbody className="divide-y divide-[var(--glass-border)]">
                     {shipments.map((s) => {
+                      const isP2P = !s.order_id;
                       const order = s.order_id;
-                      const placed = order?.createdAt
-                        ? new Date(order.createdAt).toLocaleString(undefined, {
+
+                      // Determine date and type label
+                      let dateStr = "—";
+                      let typeLabel = "Marketplace";
+                      if (isP2P) {
+                        if (s.scheduled_pickup) {
+                          dateStr = new Date(s.scheduled_pickup).toLocaleString(undefined, {
                             dateStyle: "medium",
                             timeStyle: "short",
-                          })
-                        : "—";
-                      const dest = destinationLine(s);
+                          });
+                        }
+                        typeLabel = s.direction === "send" ? "Sending" : "Pickup Request";
+                      } else {
+                        if (order?.createdAt) {
+                          dateStr = new Date(order.createdAt).toLocaleString(undefined, {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          });
+                        }
+                      }
+
+                      // Determine items summary
+                      let itemsSummary = "—";
+                      let itemsCount = null;
+                      if (isP2P) {
+                        const pkg = s.package_details;
+                        if (pkg) {
+                          itemsSummary = `${pkg.category || "Package"}${pkg.weight_tier ? ` (${pkg.weight_tier.replace(/_/g, " ")})` : ""}`;
+                          itemsCount = pkg.declared_value > 0 ? `${pkg.declared_value.toLocaleString()} XAF` : null;
+                        }
+                      } else {
+                        itemsSummary = summarizeLineItems(order);
+                        itemsCount = order?.products?.length ? `${order.products.length} line${order.products.length === 1 ? "" : "s"}` : null;
+                      }
+
+                      const dest = isP2P
+                        ? {
+                            main: `${s.delivery_address?.city || "Unknown"} →`,
+                            sub: `${s.pickup_address?.city || "Unknown"}`
+                          }
+                        : destinationLine(s);
+
                       const fee =
                         typeof s.price === "number"
                           ? `${s.price.toLocaleString()} XAF`
                           : "—";
+
                       return (
                         <tr
                           key={s._id}
@@ -355,17 +392,16 @@ export default function LogisticsDashboard() {
                               {s.tracking_code || "—"}
                             </p>
                             <p className="text-[10px] font-medium opacity-40">
-                              #{s._id?.slice(-8).toUpperCase()}
+                              {isP2P ? typeLabel : `#${s._id?.slice(-8).toUpperCase()}`}
                             </p>
                           </td>
                           <td className="max-w-[220px] py-3 pr-3 align-top">
                             <p className="line-clamp-2 text-[11px] leading-snug text-[var(--text-primary)]">
-                              {summarizeLineItems(order)}
+                              {itemsSummary}
                             </p>
-                            {order?.products?.length ? (
+                            {itemsCount ? (
                               <p className="mt-0.5 text-[10px] font-medium text-[var(--text-secondary)] opacity-55">
-                                {order.products.length} line
-                                {order.products.length === 1 ? "" : "s"}
+                                {itemsCount}
                               </p>
                             ) : null}
                           </td>
@@ -380,7 +416,7 @@ export default function LogisticsDashboard() {
                             ) : null}
                           </td>
                           <td className="whitespace-nowrap py-3 pr-3 align-top text-[11px] text-[var(--text-secondary)]">
-                            {placed}
+                            {dateStr}
                           </td>
                           <td className="py-3 pr-3 align-top font-mono text-[11px] font-semibold">
                             {fee}
@@ -434,8 +470,28 @@ export default function LogisticsDashboard() {
 
               <div className="space-y-3 md:hidden">
                 {shipments.map((s) => {
+                  const isP2P = !s.order_id;
                   const order = s.order_id;
-                  const dest = destinationLine(s);
+                  const typeLabel = isP2P ? (s.direction === "send" ? "Sending" : "Pickup Request") : "Marketplace";
+
+                  // Determine items summary
+                  let itemsSummary = "—";
+                  if (isP2P) {
+                    const pkg = s.package_details;
+                    if (pkg) {
+                      itemsSummary = `${pkg.category || "Package"}${pkg.weight_tier ? ` (${pkg.weight_tier.replace(/_/g, " ")})` : ""}`;
+                    }
+                  } else {
+                    itemsSummary = summarizeLineItems(order);
+                  }
+
+                  const dest = isP2P
+                    ? {
+                        main: `${s.delivery_address?.city || "Unknown"} →`,
+                        sub: `${s.pickup_address?.city || "Unknown"}`
+                      }
+                    : destinationLine(s);
+
                   return (
                     <div
                       key={s._id}
@@ -447,7 +503,7 @@ export default function LogisticsDashboard() {
                             {s.tracking_code}
                           </p>
                           <p className="text-[10px] opacity-45">
-                            #{s._id?.slice(-8).toUpperCase()}
+                            {isP2P ? typeLabel : `#${s._id?.slice(-8).toUpperCase()}`}
                           </p>
                         </div>
                         <button
@@ -464,10 +520,10 @@ export default function LogisticsDashboard() {
                       </div>
                       <div className="border-t border-[var(--glass-border)] pt-3">
                         <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">
-                          Items
+                          {isP2P ? "Package" : "Items"}
                         </p>
                         <p className="mt-1 text-[12px] font-medium leading-snug">
-                          {summarizeLineItems(order)}
+                          {itemsSummary}
                         </p>
                       </div>
                       <div className="flex items-start gap-2 border-t border-[var(--glass-border)] pt-3">
@@ -489,7 +545,21 @@ export default function LogisticsDashboard() {
                           className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                             s.status === "delivered"
                               ? "bg-emerald-500/10 text-emerald-600"
-                              : "bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
+                              : s.status === "pending"
+                                ? "bg-amber-500/10 text-amber-600"
+                                : s.status === "assigned"
+                                  ? "bg-purple-500/10 text-purple-600"
+                                  : s.status === "picked_up"
+                                    ? "bg-blue-500/10 text-blue-600"
+                                    : s.status === "in_transit"
+                                      ? "bg-indigo-500/10 text-indigo-500"
+                                      : s.status === "out_for_delivery"
+                                        ? "bg-cyan-500/10 text-cyan-600"
+                                        : s.status === "failed"
+                                          ? "bg-rose-500/10 text-rose-600"
+                                          : s.status === "cancelled"
+                                            ? "bg-rose-500/10 text-rose-600"
+                                            : "bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
                           }`}
                         >
                           {s.status === "cancelled"
