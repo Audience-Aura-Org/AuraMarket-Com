@@ -26,43 +26,69 @@ const getP2PProviders = async () => {
 /**
  * Build the zone hierarchy (quartier → district → city) for price lookup.
  * @param {ObjectId} zoneId - The leaf zone (quartier)
- * @returns {string[]} Array of zone ID strings from leaf to root
+ * @returns {{ ids: string[], names: string[] }} Zone IDs and names from leaf to root
  */
 const buildZoneHierarchy = async (zoneId) => {
-  if (!zoneId) return [];
+  if (!zoneId) return { ids: [], names: [] };
   const zone = await LogisticZone.findById(zoneId).select('name ancestors').lean();
   if (!zone) {
     console.log(`[buildZoneHierarchy] Zone not found: ${zoneId}`);
-    return [zoneId.toString()];
+    return { ids: [zoneId.toString()], names: [] };
   }
-  // ancestors is ordered root→leaf; we want leaf first for price lookup
-  const hierarchy = [zoneId.toString()];
+
+  // Build hierarchy with IDs
+  const ids = [zoneId.toString()];
+  const names = [zone.name];
+
   if (zone.ancestors?.length) {
-    hierarchy.push(...zone.ancestors.map(a => a.toString()).reverse());
+    // ancestors is ordered root→leaf; reverse to get leaf→root
+    const ancestorIds = zone.ancestors.map(a => a.toString()).reverse();
+    ids.push(...ancestorIds);
+
+    // Also fetch ancestor names for matching
+    const ancestorZones = await LogisticZone.find({ _id: { $in: ancestorIds } }).select('name').lean();
+    const ancestorMap = {};
+    ancestorZones.forEach(z => ancestorMap[z._id.toString()] = z.name);
+    ancestorIds.forEach(id => {
+      if (ancestorMap[id]) names.push(ancestorMap[id]);
+    });
   }
-  console.log(`[buildZoneHierarchy] Zone "${zone.name}": ${hierarchy.length} level(s)`);
-  return hierarchy;
+
+  console.log(`[buildZoneHierarchy] Zone "${zone.name}": ${ids.length} level(s)`);
+  return { ids, names };
 };
 
 /**
  * Resolve the delivery price from a provider's rate card for a given zone hierarchy.
  * Walks from most specific (quartier) to least specific (city).
+ * First tries zone_id matching, then falls back to quartier string name matching.
  */
-const resolveZonePrice = (provider, hierarchyIdStrings) => {
-  const providerZoneIds = (provider.quartier_prices || []).map(p => p.zone_id?.toString()).filter(Boolean);
-  console.log(`  [resolveZonePrice] ${provider.company_name} has ${providerZoneIds.length} zone IDs: ${providerZoneIds.slice(0, 3).join(', ')}...`);
-  console.log(`  [resolveZonePrice] Looking for hierarchy: ${hierarchyIdStrings.slice(0, 3).join(', ')}...`);
-
+const resolveZonePrice = (provider, hierarchyIdStrings, hierarchyNames) => {
+  // First try: match by zone_id
   for (const zoneIdStr of hierarchyIdStrings) {
     const entry = provider.quartier_prices.find(
       p => p.zone_id && p.zone_id.toString() === zoneIdStr
     );
     if (entry) {
-      console.log(`  [resolveZonePrice] Found match at ${entry.zone_id}: ${entry.price} XAF`);
+      console.log(`  [resolveZonePrice] Found match by zone_id: ${entry.price} XAF`);
       return entry.price;
     }
   }
-  console.log(`  [resolveZonePrice] No zone match found`);
+
+  // Fallback: match by quartier string name (for legacy pricing without zone_id)
+  if (hierarchyNames?.length) {
+    for (const zoneName of hierarchyNames) {
+      const entry = provider.quartier_prices.find(
+        p => p.quartier && p.quartier.toLowerCase() === zoneName.toLowerCase()
+      );
+      if (entry) {
+        console.log(`  [resolveZonePrice] Found match by quartier name "${zoneName}": ${entry.price} XAF`);
+        return entry.price;
+      }
+    }
+  }
+
+  console.log(`  [resolveZonePrice] No match found for ${provider.company_name}`);
   return null; // No coverage
 };
 
@@ -95,10 +121,10 @@ const getQuotes = async ({ pickup_zone_id, dropoff_zone_id, weight_tier }) => {
 
   // Build hierarchies once, shared across all providers
   const dropoffHierarchy = await buildZoneHierarchy(dropoff_zone_id);
-  const pickupHierarchy = pickup_zone_id ? await buildZoneHierarchy(pickup_zone_id) : [];
+  const pickupHierarchy = pickup_zone_id ? await buildZoneHierarchy(pickup_zone_id) : { ids: [], names: [] };
 
-  console.log(`[p2p.getQuotes] Dropoff hierarchy: ${dropoffHierarchy.join(' <- ')}`);
-  console.log(`[p2p.getQuotes] Pickup hierarchy: ${pickupHierarchy.join(' <- ')}`);
+  console.log(`[p2p.getQuotes] Dropoff hierarchy: ${dropoffHierarchy.names.join(' <- ')}`);
+  console.log(`[p2p.getQuotes] Pickup hierarchy: ${pickupHierarchy.names.join(' <- ')}`);
 
   const quotes = [];
 
@@ -106,7 +132,7 @@ const getQuotes = async ({ pickup_zone_id, dropoff_zone_id, weight_tier }) => {
     // Check pickup coverage (if provider restricts pickup zones)
     if (provider.supported_pickup_zone_ids?.length > 0 && pickup_zone_id) {
       const pickupCovered = provider.supported_pickup_zone_ids.some(
-        z => pickupHierarchy.includes(z.toString())
+        z => pickupHierarchy.ids.includes(z.toString())
       );
       if (!pickupCovered) {
         console.log(`[p2p.getQuotes] ${provider.company_name}: pickup zone not covered`);
@@ -115,7 +141,7 @@ const getQuotes = async ({ pickup_zone_id, dropoff_zone_id, weight_tier }) => {
     }
 
     // Resolve dropoff price from rate card
-    const basePrice = resolveZonePrice(provider, dropoffHierarchy);
+    const basePrice = resolveZonePrice(provider, dropoffHierarchy.ids, dropoffHierarchy.names);
     if (basePrice === null) {
       console.log(`[p2p.getQuotes] ${provider.company_name}: no price for dropoff zone`);
       continue;
@@ -176,7 +202,7 @@ const getQuoteForProvider = async ({ provider_id, pickup_zone_id, dropoff_zone_i
   if (provider.supported_pickup_zone_ids?.length > 0 && pickup_zone_id) {
     const pickupHierarchy = await buildZoneHierarchy(pickup_zone_id);
     const pickupCovered = provider.supported_pickup_zone_ids.some(
-      z => pickupHierarchy.includes(z.toString())
+      z => pickupHierarchy.ids.includes(z.toString())
     );
     if (!pickupCovered) {
       return { coverage: false, reason: 'Pickup location not covered by this provider' };
@@ -184,7 +210,7 @@ const getQuoteForProvider = async ({ provider_id, pickup_zone_id, dropoff_zone_i
   }
 
   const dropoffHierarchy = await buildZoneHierarchy(dropoff_zone_id);
-  const basePrice = resolveZonePrice(provider, dropoffHierarchy);
+  const basePrice = resolveZonePrice(provider, dropoffHierarchy.ids, dropoffHierarchy.names);
   if (basePrice === null) {
     return { coverage: false, reason: 'Delivery location not covered by this provider' };
   }
