@@ -30,13 +30,17 @@ const getP2PProviders = async () => {
  */
 const buildZoneHierarchy = async (zoneId) => {
   if (!zoneId) return [];
-  const zone = await LogisticZone.findById(zoneId).select('ancestors').lean();
-  if (!zone) return [zoneId.toString()];
+  const zone = await LogisticZone.findById(zoneId).select('name ancestors').lean();
+  if (!zone) {
+    console.log(`[buildZoneHierarchy] Zone not found: ${zoneId}`);
+    return [zoneId.toString()];
+  }
   // ancestors is ordered root→leaf; we want leaf first for price lookup
   const hierarchy = [zoneId.toString()];
   if (zone.ancestors?.length) {
     hierarchy.push(...zone.ancestors.map(a => a.toString()).reverse());
   }
+  console.log(`[buildZoneHierarchy] Zone "${zone.name}": ${hierarchy.length} level(s)`);
   return hierarchy;
 };
 
@@ -45,12 +49,20 @@ const buildZoneHierarchy = async (zoneId) => {
  * Walks from most specific (quartier) to least specific (city).
  */
 const resolveZonePrice = (provider, hierarchyIdStrings) => {
+  const providerZoneIds = (provider.quartier_prices || []).map(p => p.zone_id?.toString()).filter(Boolean);
+  console.log(`  [resolveZonePrice] ${provider.company_name} has ${providerZoneIds.length} zone IDs: ${providerZoneIds.slice(0, 3).join(', ')}...`);
+  console.log(`  [resolveZonePrice] Looking for hierarchy: ${hierarchyIdStrings.slice(0, 3).join(', ')}...`);
+
   for (const zoneIdStr of hierarchyIdStrings) {
     const entry = provider.quartier_prices.find(
       p => p.zone_id && p.zone_id.toString() === zoneIdStr
     );
-    if (entry) return entry.price;
+    if (entry) {
+      console.log(`  [resolveZonePrice] Found match at ${entry.zone_id}: ${entry.price} XAF`);
+      return entry.price;
+    }
   }
+  console.log(`  [resolveZonePrice] No zone match found`);
   return null; // No coverage
 };
 
@@ -65,13 +77,17 @@ const resolveZonePrice = (provider, hierarchyIdStrings) => {
 const getQuotes = async ({ pickup_zone_id, dropoff_zone_id, weight_tier }) => {
   const settings = await PlatformSettings.getSettings();
   if (!settings.p2p_enabled) {
+    console.log('[p2p.getQuotes] P2P disabled');
     return { coverage: false, reason: 'P2P delivery is not currently available', quotes: [] };
   }
 
   const providers = await getP2PProviders();
   if (!providers.length) {
+    console.log('[p2p.getQuotes] No P2P providers configured');
     return { coverage: false, reason: 'No delivery providers configured', quotes: [] };
   }
+
+  console.log(`[p2p.getQuotes] Found ${providers.length} provider(s):`, providers.map(p => p.company_name));
 
   const multipliers = settings.p2p_weight_multipliers || { light: 1, medium: 1.3, heavy: 1.8, extra_heavy: 2.5 };
   const weightMultiplier = multipliers[weight_tier] || 1;
@@ -81,6 +97,9 @@ const getQuotes = async ({ pickup_zone_id, dropoff_zone_id, weight_tier }) => {
   const dropoffHierarchy = await buildZoneHierarchy(dropoff_zone_id);
   const pickupHierarchy = pickup_zone_id ? await buildZoneHierarchy(pickup_zone_id) : [];
 
+  console.log(`[p2p.getQuotes] Dropoff hierarchy: ${dropoffHierarchy.join(' <- ')}`);
+  console.log(`[p2p.getQuotes] Pickup hierarchy: ${pickupHierarchy.join(' <- ')}`);
+
   const quotes = [];
 
   for (const provider of providers) {
@@ -89,12 +108,18 @@ const getQuotes = async ({ pickup_zone_id, dropoff_zone_id, weight_tier }) => {
       const pickupCovered = provider.supported_pickup_zone_ids.some(
         z => pickupHierarchy.includes(z.toString())
       );
-      if (!pickupCovered) continue;
+      if (!pickupCovered) {
+        console.log(`[p2p.getQuotes] ${provider.company_name}: pickup zone not covered`);
+        continue;
+      }
     }
 
     // Resolve dropoff price from rate card
     const basePrice = resolveZonePrice(provider, dropoffHierarchy);
-    if (basePrice === null) continue;
+    if (basePrice === null) {
+      console.log(`[p2p.getQuotes] ${provider.company_name}: no price for dropoff zone`);
+      continue;
+    }
 
     const price = Math.round(basePrice * weightMultiplier);
     const platformFee = Math.round(price * commission / 100);
