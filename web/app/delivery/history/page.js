@@ -7,20 +7,26 @@ import api from '@/services/api';
 import {
   Package, Send, ArrowDownToLine, Clock, CheckCircle2, XCircle,
   Truck, AlertTriangle, MapPin, Loader2, ArrowLeft, Navigation,
-  ChevronLeft, ChevronRight, Filter,
+  ChevronLeft, ChevronRight, Filter, ChevronDown, Phone,
 } from 'lucide-react';
 import Link from 'next/link';
 
 const STATUS_CONFIG = {
-  pending:          { color: 'amber',   icon: Clock,         label: 'Pending',          bg: 'bg-amber-500/10',   text: 'text-amber-600',   border: 'border-amber-500/20' },
-  assigned:         { color: 'blue',    icon: Truck,         label: 'Assigned',         bg: 'bg-blue-500/10',    text: 'text-blue-600',    border: 'border-blue-500/20' },
-  picked_up:        { color: 'indigo',  icon: Package,       label: 'Picked Up',        bg: 'bg-indigo-500/10',  text: 'text-indigo-600',  border: 'border-indigo-500/20' },
-  in_transit:       { color: 'blue',    icon: Truck,         label: 'In Transit',       bg: 'bg-blue-500/10',    text: 'text-blue-600',    border: 'border-blue-500/20' },
-  out_for_delivery: { color: 'violet',  icon: Navigation,    label: 'Out for Delivery', bg: 'bg-violet-500/10',  text: 'text-violet-600',  border: 'border-violet-500/20' },
-  delivered:        { color: 'emerald', icon: CheckCircle2,  label: 'Delivered',        bg: 'bg-emerald-500/10', text: 'text-emerald-600', border: 'border-emerald-500/20' },
-  failed:           { color: 'rose',    icon: AlertTriangle, label: 'Failed',           bg: 'bg-rose-500/10',    text: 'text-rose-600',    border: 'border-rose-500/20' },
-  cancelled:        { color: 'gray',    icon: XCircle,       label: 'Cancelled',        bg: 'bg-gray-500/10',    text: 'text-gray-600',    border: 'border-gray-500/20' },
+  pending:          { icon: Clock,         label: 'Pending',          bg: 'bg-amber-500/10',   text: 'text-amber-600',   border: 'border-amber-500/20',   dot: 'bg-amber-500' },
+  assigned:         { icon: Truck,         label: 'Assigned',         bg: 'bg-blue-500/10',    text: 'text-blue-600',    border: 'border-blue-500/20',    dot: 'bg-blue-500' },
+  picked_up:        { icon: Package,       label: 'Picked Up',        bg: 'bg-indigo-500/10',  text: 'text-indigo-600',  border: 'border-indigo-500/20',  dot: 'bg-indigo-500' },
+  in_transit:       { icon: Truck,         label: 'In Transit',       bg: 'bg-blue-500/10',    text: 'text-blue-600',    border: 'border-blue-500/20',    dot: 'bg-blue-500' },
+  out_for_delivery: { icon: Navigation,    label: 'Out for Delivery', bg: 'bg-violet-500/10',  text: 'text-violet-600',  border: 'border-violet-500/20',  dot: 'bg-violet-500' },
+  delivered:        { icon: CheckCircle2,  label: 'Delivered',        bg: 'bg-emerald-500/10', text: 'text-emerald-600', border: 'border-emerald-500/20', dot: 'bg-emerald-500' },
+  failed:           { icon: AlertTriangle, label: 'Failed',           bg: 'bg-rose-500/10',    text: 'text-rose-600',    border: 'border-rose-500/20',    dot: 'bg-rose-500' },
+  cancelled:        { icon: XCircle,       label: 'Cancelled',        bg: 'bg-gray-500/10',    text: 'text-gray-600',    border: 'border-gray-500/20',    dot: 'bg-gray-500' },
 };
+
+const TABS = [
+  { key: 'all',       label: 'All',      icon: Package },
+  { key: 'booker',    label: 'Sent',     icon: Send },
+  { key: 'recipient', label: 'Received', icon: ArrowDownToLine },
+];
 
 export default function DeliveryHistoryPage() {
   const router = useRouter();
@@ -32,6 +38,7 @@ export default function DeliveryHistoryPage() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   useEffect(() => {
     if (!user) { router.push('/login'); return; }
@@ -65,18 +72,20 @@ export default function DeliveryHistoryPage() {
 
   const activeCount = shipments.filter(s => !['delivered', 'cancelled', 'failed'].includes(s.status)).length;
 
+  const addr = (a) => [a?.quartier, a?.city].filter(Boolean).join(', ');
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-32">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)]/30">
-        <div className="mx-auto max-w-lg px-4 py-3">
+      {/* ── Sticky Header ─────────────────────────────────────────── */}
+      <div className="sticky top-0 z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)]/20">
+        <div className="mx-auto max-w-md px-4 py-3">
           <div className="flex items-center gap-3">
-            <Link href="/delivery" className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]/50 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] active:scale-95 transition-all shrink-0">
+            <Link href="/delivery" className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]/40 flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-all shrink-0">
               <ArrowLeft className="size-4" />
             </Link>
             <div className="flex-1 min-w-0">
-              <h1 className="text-base font-bold text-[var(--text-primary)] tracking-tight">My Deliveries</h1>
-              <p className="text-[10px] text-[var(--text-secondary)]/50">
+              <h1 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight">My Deliveries</h1>
+              <p className="text-[10px] text-[var(--text-secondary)]/40">
                 {loading ? 'Loading...' : `${total} total · ${activeCount} active`}
               </p>
             </div>
@@ -84,79 +93,97 @@ export default function DeliveryHistoryPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-lg px-3 pt-4 space-y-4">
-        {/* Stats Row */}
+      <div className="mx-auto max-w-md px-4 pt-4 space-y-4">
+        {/* ── Role Tabs (All / Sent / Received) ────────────────────── */}
         <div className="grid grid-cols-3 gap-2">
-          {[
-            { key: 'all', label: 'All', count: counts.all, icon: Package },
-            { key: 'booker', label: 'Sent', count: counts.booker, icon: Send },
-            { key: 'recipient', label: 'Received', count: counts.recipient, icon: ArrowDownToLine },
-          ].map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`rounded-xl p-3 text-center transition-all active:scale-[0.97] ${
-                tab === t.key
-                  ? 'bg-[var(--accent)]/10 border border-[var(--accent)]/30'
-                  : 'bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)]/30'
-              }`}
-            >
-              <t.icon className={`size-4 mx-auto mb-1.5 ${tab === t.key ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]/40'}`} />
-              <p className={`text-lg font-bold ${tab === t.key ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{t.count}</p>
-              <p className={`text-[9px] font-bold ${tab === t.key ? 'text-[var(--accent)]/70' : 'text-[var(--text-secondary)]/40'}`}>{t.label}</p>
-            </button>
-          ))}
-        </div>
-
-        {/* Status Filter */}
-        <div className="flex items-center gap-2">
-          <Filter className="size-3.5 text-[var(--text-secondary)]/30 shrink-0" />
-          <div className="flex-1 overflow-x-auto flex gap-1.5 pb-0.5 scrollbar-none">
-            <button
-              onClick={() => { setStatusFilter(''); setPage(1); }}
-              className={`shrink-0 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all active:scale-95 ${
-                !statusFilter ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)]/30'
-              }`}
-            >All</button>
-            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+          {TABS.map(t => {
+            const active = tab === t.key;
+            return (
               <button
-                key={k}
-                onClick={() => { setStatusFilter(k); setPage(1); }}
-                className={`shrink-0 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all active:scale-95 ${
-                  statusFilter === k ? `${v.bg} ${v.text} border ${v.border}` : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)]/30'
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`rounded-2xl border p-3 text-center transition-all active:scale-[0.97] ${
+                  active
+                    ? 'bg-[var(--accent)]/10 border-[var(--accent)]/25'
+                    : 'bg-[var(--bg-secondary)]/30 border-[var(--glass-border)]/15'
                 }`}
-              >{v.label}</button>
-            ))}
-          </div>
+              >
+                <t.icon className={`size-4 mx-auto mb-1.5 ${active ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]/30'}`} />
+                <p className={`text-lg font-bold leading-none ${active ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{counts[t.key]}</p>
+                <p className={`text-[9px] font-bold mt-1 ${active ? 'text-[var(--accent)]/70' : 'text-[var(--text-secondary)]/30'}`}>{t.label}</p>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Loading */}
+        {/* ── Status Filter (collapsible) ──────────────────────────── */}
+        <div className="rounded-2xl border border-[var(--glass-border)]/15 bg-[var(--bg-secondary)]/20 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setFilterOpen(!filterOpen)}
+            className="w-full flex items-center gap-2.5 px-4 py-3 active:bg-white/[0.02]"
+          >
+            <Filter className="size-4 text-[var(--accent)] shrink-0" />
+            <span className="text-[11px] font-bold text-[var(--text-primary)] flex-1 text-left">
+              Status Filter
+            </span>
+            {statusFilter && (
+              <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${STATUS_CONFIG[statusFilter]?.bg} ${STATUS_CONFIG[statusFilter]?.text}`}>
+                {STATUS_CONFIG[statusFilter]?.label}
+              </span>
+            )}
+            <ChevronDown className={`size-3.5 text-[var(--text-secondary)]/25 transition-transform ${filterOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {filterOpen && (
+            <div className="border-t border-[var(--glass-border)]/10 p-3">
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => { setStatusFilter(''); setPage(1); }}
+                  className={`rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all active:scale-95 ${
+                    !statusFilter ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--glass-border)]/20'
+                  }`}
+                >All</button>
+                {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                  <button
+                    key={k}
+                    onClick={() => { setStatusFilter(k); setPage(1); }}
+                    className={`rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all active:scale-95 ${
+                      statusFilter === k ? `${v.bg} ${v.text} border ${v.border}` : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border border-[var(--glass-border)]/20'
+                    }`}
+                  >{v.label}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Loading ──────────────────────────────────────────────── */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Loader2 className="size-7 animate-spin text-[var(--accent)]" />
-            <p className="text-[11px] text-[var(--text-secondary)]/40 font-semibold">Loading deliveries...</p>
+            <p className="text-[11px] text-[var(--text-secondary)]/35 font-semibold">Loading deliveries...</p>
           </div>
         )}
 
-        {/* Empty */}
+        {/* ── Empty ───────────────────────────────────────────────── */}
         {!loading && filtered.length === 0 && (
           <div className="text-center py-20">
-            <div className="size-16 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]/30 mx-auto flex items-center justify-center mb-4">
-              <Package className="size-7 text-[var(--text-secondary)]/20" />
+            <div className="size-16 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]/20 mx-auto flex items-center justify-center mb-4">
+              <Package className="size-7 text-[var(--text-secondary)]/15" />
             </div>
             <p className="text-sm font-bold text-[var(--text-primary)] mb-1">No deliveries yet</p>
-            <p className="text-[11px] text-[var(--text-secondary)]/40 mb-4">
+            <p className="text-[11px] text-[var(--text-secondary)]/35 mb-5">
               {statusFilter ? 'Try a different filter' : 'Book your first delivery to get started'}
             </p>
-            <Link href="/delivery" className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-white text-xs font-bold active:scale-95 transition-all">
+            <Link href="/delivery" className="inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-white text-xs font-bold active:scale-95 transition-all min-h-[44px]">
               <Send className="size-3.5" /> Book a Delivery
             </Link>
           </div>
         )}
 
-        {/* Shipment List */}
+        {/* ── Shipment List ───────────────────────────────────────── */}
         {!loading && filtered.length > 0 && (
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {filtered.map(s => {
               const config = STATUS_CONFIG[s.status] || STATUS_CONFIG.pending;
               const StatusIcon = config.icon;
@@ -167,57 +194,70 @@ export default function DeliveryHistoryPage() {
                 <Link
                   key={s._id}
                   href={`/delivery/track?code=${s.tracking_code}`}
-                  className={`block rounded-2xl border bg-[var(--bg-secondary)]/30 p-4 transition-all active:scale-[0.99] ${
-                    isActive ? 'border-[var(--accent)]/15 hover:border-[var(--accent)]/30' : 'border-[var(--glass-border)]/20 hover:border-[var(--glass-border)]/40'
-                  }`}
+                  className={`block rounded-2xl border overflow-hidden transition-all active:scale-[0.99] ${
+                    isActive ? 'border-[var(--accent)]/15 hover:border-[var(--accent)]/30' : 'border-[var(--glass-border)]/15 hover:border-[var(--glass-border)]/30'
+                  } bg-[var(--bg-secondary)]/20`}
                 >
-                  {/* Top row: icon + tracking + status */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`size-10 rounded-xl ${config.bg} flex items-center justify-center shrink-0`}>
-                      {isSender ? <Send className={`size-4 ${config.text}`} /> : <ArrowDownToLine className={`size-4 ${config.text}`} />}
+                  {/* Status stripe */}
+                  <div className={`h-[3px] ${config.dot}`} />
+
+                  <div className="p-4 space-y-3">
+                    {/* Row 1: Role icon + tracking code + status badge */}
+                    <div className="flex items-center gap-3">
+                      <div className={`size-10 rounded-xl ${config.bg} flex items-center justify-center shrink-0`}>
+                        {isSender ? <Send className={`size-4 ${config.text}`} /> : <ArrowDownToLine className={`size-4 ${config.text}`} />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-mono text-[12px] font-bold text-[var(--text-primary)] tracking-wide">{s.tracking_code}</p>
+                        <p className="text-[10px] text-[var(--text-secondary)]/35 mt-0.5">
+                          {isSender ? 'You sent' : 'Sent to you'} · {new Date(s.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className={`shrink-0 flex items-center gap-1.5 rounded-lg border px-2.5 py-1 ${config.bg} ${config.text} ${config.border}`}>
+                        <StatusIcon className="size-3" />
+                        <span className="text-[9px] font-bold">{config.label}</span>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-mono text-[12px] font-bold text-[var(--text-primary)]">{s.tracking_code}</p>
-                      <p className="text-[10px] text-[var(--text-secondary)]/40 mt-0.5">
-                        {isSender ? 'You sent' : 'Sent to you'} · {new Date(s.createdAt).toLocaleDateString()}
+
+                    {/* Row 2: Route (from → to) */}
+                    <div className="rounded-xl bg-[var(--bg-primary)]/60 border border-[var(--glass-border)]/10 p-3">
+                      <div className="flex items-start gap-2.5">
+                        <div className="flex flex-col items-center pt-0.5 shrink-0">
+                          <div className="size-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/10" />
+                          <div className="w-[1.5px] h-5 bg-gradient-to-b from-emerald-500/30 to-rose-500/30 my-0.5 rounded-full" />
+                          <div className="size-2 rounded-full bg-rose-500 ring-2 ring-rose-500/10" />
+                        </div>
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div>
+                            <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-wider">From</p>
+                            <p className="text-[11px] font-semibold text-[var(--text-primary)] truncate">{addr(s.pickup_address) || '—'}</p>
+                          </div>
+                          <div>
+                            <p className="text-[8px] font-bold text-rose-600 uppercase tracking-wider">To</p>
+                            <p className="text-[11px] font-semibold text-[var(--text-primary)] truncate">{addr(s.delivery_address) || '—'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Row 3: Package + Price */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        {s.package_details?.category && (
+                          <span className="text-[9px] font-bold bg-[var(--bg-primary)] border border-[var(--glass-border)]/15 rounded-md px-2 py-0.5 capitalize text-[var(--text-secondary)]/50">
+                            {s.package_details.category}
+                          </span>
+                        )}
+                        {s.package_details?.weight_tier && (
+                          <span className="text-[9px] font-bold bg-[var(--bg-primary)] border border-[var(--glass-border)]/15 rounded-md px-2 py-0.5 capitalize text-[var(--text-secondary)]/50">
+                            {s.package_details.weight_tier.replace('_', ' ')}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-bold text-[var(--text-primary)]">
+                        {s.price?.toLocaleString()} <span className="text-[9px] text-[var(--text-secondary)]/35 font-semibold">XAF</span>
                       </p>
                     </div>
-                    <div className={`shrink-0 flex items-center gap-1.5 rounded-lg border px-2.5 py-1 ${config.bg} ${config.text} ${config.border}`}>
-                      <StatusIcon className="size-3" />
-                      <span className="text-[10px] font-bold">{config.label}</span>
-                    </div>
-                  </div>
-
-                  {/* Route */}
-                  <div className="flex items-center gap-2.5 mb-2.5">
-                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                      <div className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
-                      <p className="text-[11px] text-[var(--text-primary)] truncate font-medium">{s.pickup_address?.quartier || s.pickup_address?.city || '—'}</p>
-                    </div>
-                    <div className="w-8 h-px bg-[var(--glass-border)]/30 shrink-0 relative">
-                      <ChevronRight className="size-3 text-[var(--text-secondary)]/20 absolute -right-1 top-1/2 -translate-y-1/2" />
-                    </div>
-                    <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
-                      <p className="text-[11px] text-[var(--text-primary)] truncate font-medium text-right">{s.delivery_address?.quartier || s.delivery_address?.city || '—'}</p>
-                      <div className="size-1.5 rounded-full bg-rose-500 shrink-0" />
-                    </div>
-                  </div>
-
-                  {/* Bottom row: package + price */}
-                  <div className="flex items-center justify-between pt-2.5 border-t border-[var(--glass-border)]/10">
-                    <div className="flex items-center gap-2">
-                      {s.package_details?.category && (
-                        <span className="text-[9px] font-bold bg-[var(--bg-primary)] border border-[var(--glass-border)]/20 rounded-md px-2 py-0.5 capitalize text-[var(--text-secondary)]">
-                          {s.package_details.category}
-                        </span>
-                      )}
-                      {s.package_details?.weight_tier && (
-                        <span className="text-[9px] font-bold bg-[var(--bg-primary)] border border-[var(--glass-border)]/20 rounded-md px-2 py-0.5 capitalize text-[var(--text-secondary)]">
-                          {s.package_details.weight_tier.replace('_', ' ')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm font-bold text-[var(--text-primary)]">{s.price?.toLocaleString()} <span className="text-[9px] text-[var(--text-secondary)]/40 font-semibold">XAF</span></p>
                   </div>
                 </Link>
               );
@@ -225,33 +265,33 @@ export default function DeliveryHistoryPage() {
           </div>
         )}
 
-        {/* Pagination */}
+        {/* ── Pagination ──────────────────────────────────────────── */}
         {pages > 1 && (
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between rounded-2xl border border-[var(--glass-border)]/15 bg-[var(--bg-secondary)]/20 px-4 py-3">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="inline-flex items-center gap-1 rounded-xl border border-[var(--glass-border)]/30 px-3.5 py-2 text-[11px] font-bold disabled:opacity-30 active:scale-95 transition-all"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--glass-border)]/20 px-3.5 py-2 text-[11px] font-bold disabled:opacity-25 active:scale-95 transition-all min-h-[36px]"
             >
               <ChevronLeft className="size-3.5" /> Prev
             </button>
-            <span className="text-[11px] font-mono text-[var(--text-secondary)]/40">{page} / {pages}</span>
+            <span className="text-[11px] font-mono text-[var(--text-secondary)]/35 font-bold">{page} / {pages}</span>
             <button
               onClick={() => setPage(p => Math.min(pages, p + 1))}
               disabled={page === pages}
-              className="inline-flex items-center gap-1 rounded-xl border border-[var(--glass-border)]/30 px-3.5 py-2 text-[11px] font-bold disabled:opacity-30 active:scale-95 transition-all"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--glass-border)]/20 px-3.5 py-2 text-[11px] font-bold disabled:opacity-25 active:scale-95 transition-all min-h-[36px]"
             >
               Next <ChevronRight className="size-3.5" />
             </button>
           </div>
         )}
 
-        {/* Bottom CTA */}
+        {/* ── Bottom CTAs ─────────────────────────────────────────── */}
         <div className="pt-2 flex gap-2.5">
           <Link href="/delivery" className="flex-1 rounded-xl bg-[var(--accent)] py-3 text-white font-bold text-xs text-center active:scale-95 transition-all min-h-[44px] flex items-center justify-center gap-2">
             <Send className="size-3.5" /> Book Delivery
           </Link>
-          <Link href="/delivery/track" className="flex-1 rounded-xl border border-[var(--glass-border)]/30 bg-[var(--bg-secondary)]/30 py-3 text-[var(--text-primary)] font-bold text-xs text-center active:scale-95 transition-all min-h-[44px] flex items-center justify-center gap-2">
+          <Link href="/delivery/track" className="flex-1 rounded-xl border border-[var(--glass-border)]/20 bg-[var(--bg-secondary)]/30 py-3 text-[var(--text-primary)] font-bold text-xs text-center active:scale-95 transition-all min-h-[44px] flex items-center justify-center gap-2">
             <MapPin className="size-3.5" /> Track Package
           </Link>
         </div>
