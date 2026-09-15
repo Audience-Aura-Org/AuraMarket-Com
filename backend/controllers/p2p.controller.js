@@ -310,7 +310,8 @@ const getMyDeliveries = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit))
-        .select('tracking_code status direction price payment_status pickup_address.city delivery_address.city package_details.category booked_by other_party.user_id createdAt')
+        .select('tracking_code status direction price payment_status pickup_address delivery_address package_details.category package_details.weight_tier booked_by other_party guest_booker estimated_delivery createdAt')
+        .populate('booked_by', 'name phone')
         .lean(),
       Shipment.countDocuments(filter),
     ]);

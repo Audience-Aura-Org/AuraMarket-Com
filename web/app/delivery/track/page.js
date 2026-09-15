@@ -6,7 +6,7 @@ import api from '@/services/api';
 import {
   Package, MapPin, Clock, CheckCircle2, XCircle, Truck, AlertTriangle,
   Search, Loader2, User, MessageCircle, Send, Copy, Check,
-  ArrowLeft, Navigation, Phone, Shield, ChevronDown, Zap,
+  ArrowLeft, Navigation, Phone, Shield, ChevronDown,
   Banknote, ArrowDownToLine, ClipboardList, Timer,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -59,7 +59,7 @@ function useLiveClock(active) {
 }
 
 /* ── Step-by-step Status Progress ─────────────────────────────────── */
-function StatusStepper({ status, logs, createdAt }) {
+function StatusStepper({ status, logs, createdAt, eta }) {
   const currentIdx = STATUS_FLOW.indexOf(status);
   const isFail = ['failed', 'cancelled'].includes(status);
 
@@ -86,9 +86,6 @@ function StatusStepper({ status, logs, createdAt }) {
           <Timer className="size-4 text-[var(--accent)]" />
           <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-60">Delivery Progress</span>
         </div>
-        <span className="text-[10px] font-mono font-bold text-[var(--accent)]">
-          {elapsed(createdAt)} total
-        </span>
       </div>
       <div className="p-4 space-y-0">
         {uniqueSteps.map((step, i) => {
@@ -156,6 +153,17 @@ function StatusStepper({ status, logs, createdAt }) {
           );
         })}
       </div>
+      {eta && (
+        <div className="px-4 py-3 border-t border-[var(--glass-border)]/30 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="size-3.5 text-[var(--accent)]" />
+            <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Estimated Delivery</span>
+          </div>
+          <span className="text-[11px] font-bold text-[var(--accent)]">
+            {new Date(eta).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -300,20 +308,6 @@ function TrackContent() {
 
             {/* ── Header: Status + Tracking Code ──────────────────── */}
             <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className={`flex h-6 items-center rounded-full ${m.bg} px-2.5 text-[10px] font-bold uppercase tracking-wider ${m.color} border ${m.border}`}>
-                  {m.label}
-                </div>
-                <div className="flex h-6 items-center rounded-full bg-violet-500/10 px-2.5 text-[10px] font-bold uppercase tracking-wider text-violet-600 border border-violet-500/20">
-                  P2P
-                </div>
-                {eta && !isTerminal && (
-                  <div className="flex h-6 items-center gap-1 rounded-full bg-[var(--accent)]/10 px-2.5 text-[10px] font-bold text-[var(--accent)] border border-[var(--accent)]/20">
-                    <Zap className="size-3" />
-                    ETA {new Date(eta).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                  </div>
-                )}
-              </div>
               <div className="flex items-center gap-3">
                 <h2 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">
                   {shipment.tracking_code}
@@ -321,6 +315,17 @@ function TrackContent() {
                 <button onClick={copyCode} className="active:scale-95 transition-all">
                   {copied ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4 text-[var(--text-secondary)]/25" />}
                 </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className={`flex h-6 items-center rounded-full ${m.bg} px-2.5 text-[10px] font-bold uppercase tracking-wider ${m.color} border ${m.border}`}>
+                  {m.label}
+                </div>
+                {eta && !isTerminal && (
+                  <div className="flex h-6 items-center gap-1 rounded-full bg-[var(--accent)]/10 px-2.5 text-[10px] font-bold text-[var(--accent)] border border-[var(--accent)]/20">
+                    <Clock className="size-3" />
+                    ETA {new Date(eta).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                )}
               </div>
               <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60">
                 Created {new Date(shipment.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
@@ -332,6 +337,7 @@ function TrackContent() {
               status={shipment.status}
               logs={shipment.shipment_logs}
               createdAt={shipment.createdAt}
+              eta={eta}
             />
 
             {/* ── Quick Info Row (price + carrier + payment) ──────── */}

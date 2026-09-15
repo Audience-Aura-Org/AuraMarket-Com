@@ -85,6 +85,8 @@ export default function DeliveryHistoryPage() {
   const activeCount = shipments.filter(s => !['delivered', 'cancelled', 'failed'].includes(s.status)).length;
 
   const addr = (a) => [a?.quartier, a?.city].filter(Boolean).join(', ');
+  const senderName = (s) => s.booked_by?.name || s.guest_booker?.name || '—';
+  const recipientName = (s) => s.other_party?.name || '—';
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-32">
@@ -242,14 +244,16 @@ export default function DeliveryHistoryPage() {
                           <div className="size-1 rounded-full bg-emerald-500" />
                         </div>
                         <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">From</p>
-                        <p className="text-[12px] font-semibold text-[var(--text-primary)] truncate">{addr(s.pickup_address) || '—'}</p>
+                        <p className="text-[12px] font-bold text-[var(--text-primary)] truncate">{senderName(s)}</p>
+                        <p className="text-[10px] text-[var(--text-secondary)]/50 truncate">{addr(s.pickup_address) || '—'}</p>
                       </div>
                       <div className="relative">
                         <div className="absolute -left-6 top-0.5 size-[15px] rounded-full bg-[var(--bg-primary)] border-2 border-rose-500/40 flex items-center justify-center">
                           <MapPin className="size-2 text-rose-500 opacity-60" />
                         </div>
                         <p className="text-[9px] font-bold text-rose-600 uppercase tracking-wider">To</p>
-                        <p className="text-[12px] font-semibold text-[var(--text-primary)] truncate">{addr(s.delivery_address) || '—'}</p>
+                        <p className="text-[12px] font-bold text-[var(--text-primary)] truncate">{recipientName(s)}</p>
+                        <p className="text-[10px] text-[var(--text-secondary)]/50 truncate">{addr(s.delivery_address) || '—'}</p>
                       </div>
                     </div>
 
