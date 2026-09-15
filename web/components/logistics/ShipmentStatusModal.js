@@ -17,6 +17,8 @@ import {
   MessageCircle,
   Send,
   ArrowDownToLine,
+  Timer,
+  Clock,
 } from "lucide-react";
 import { formatVariantLabel } from "@/utils/variants";
 import { useChat } from "@/context/ChatContext";
@@ -27,6 +29,30 @@ const FAILURE_OPTIONS = [
   { value: "wrong address", label: "Wrong Address" },
   { value: "other", label: "Other" },
 ];
+
+function elapsedStr(from, to) {
+  if (!from) return '';
+  const s = Math.floor(((to ? new Date(to) : new Date()).getTime() - new Date(from).getTime()) / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ${m % 60}m`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h`;
+}
+
+function timeAgoStr(date) {
+  if (!date) return '';
+  const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ${m % 60}m ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h ago`;
+}
 
 function formatAddress(addr) {
   if (!addr || typeof addr !== "object") {
@@ -78,6 +104,15 @@ export default function ShipmentStatusModal({
   const [sendingOrderMsg, setSendingOrderMsg] = useState(false);
   const [loadingOrderMsgs, setLoadingOrderMsgs] = useState(false);
   const orderMsgEndRef = useRef(null);
+
+  // Live timer tick (updates every 30s for active shipments)
+  const [, setTick] = useState(0);
+  const isActiveShipment = shipment && !["delivered", "failed", "cancelled"].includes(shipment?.status);
+  useEffect(() => {
+    if (!isActiveShipment) return;
+    const iv = setInterval(() => setTick(t => t + 1), 30000);
+    return () => clearInterval(iv);
+  }, [isActiveShipment]);
 
   const visible = embedded ? !!shipment : open && !!shipment;
   const shipmentId = shipment?._id;
@@ -258,13 +293,19 @@ export default function ShipmentStatusModal({
                 <h3 className="text-2xl font-black tracking-tight text-[var(--text-primary)] sm:text-3xl md:text-[2rem] md:leading-tight">
                   {shipment.tracking_code}
                 </h3>
-                <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60 sm:ml-auto sm:max-w-md">
-                  Created{" "}
-                  {new Date(shipment.createdAt || order?.createdAt).toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </p>
+                <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+                  <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60">
+                    Created{" "}
+                    {new Date(shipment.createdAt || order?.createdAt).toLocaleString(undefined, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </p>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-2.5 py-0.5 text-[10px] font-bold text-[var(--accent)]">
+                    <Timer className="size-3" />
+                    {elapsedStr(shipment.createdAt || order?.createdAt)} elapsed
+                  </span>
+                </div>
               </div>
             </div>
           ) : (
@@ -291,13 +332,19 @@ export default function ShipmentStatusModal({
                   <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">
                     {shipment.tracking_code}
                   </h3>
-                  <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60">
-                    Created{" "}
-                    {new Date(shipment.createdAt || order?.createdAt).toLocaleString(undefined, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60">
+                      Created{" "}
+                      {new Date(shipment.createdAt || order?.createdAt).toLocaleString(undefined, {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-2 py-0.5 text-[9px] font-bold text-[var(--accent)]">
+                      <Timer className="size-2.5" />
+                      {elapsedStr(shipment.createdAt || order?.createdAt)}
+                    </span>
+                  </div>
                 </div>
                 {!embedded && (
                   <button
@@ -760,6 +807,26 @@ export default function ShipmentStatusModal({
 
         {/* Update Form Section */}
         <div className={formShell}>
+          {/* Last update timer */}
+          {(() => {
+            const logs = shipment.shipment_logs;
+            const lastLog = logs?.length ? logs[logs.length - 1] : null;
+            const lastTs = lastLog?.timestamp || shipment.createdAt;
+            return (
+              <div className="flex items-center justify-between gap-3 mb-4 rounded-xl border border-[var(--glass-border)]/50 bg-[var(--bg-primary)]/60 px-4 py-2.5">
+                <div className="flex items-center gap-2">
+                  <Clock className="size-3.5 text-[var(--text-secondary)] opacity-40" />
+                  <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">Last status update</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold text-[var(--text-primary)]">{timeAgoStr(lastTs)}</span>
+                  <span className="text-[9px] text-[var(--text-secondary)] opacity-30">
+                    ({new Date(lastTs).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })})
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
           <form onSubmit={onSubmit} className={`space-y-5 ${embedded ? "mx-auto max-w-4xl" : ""}`}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">

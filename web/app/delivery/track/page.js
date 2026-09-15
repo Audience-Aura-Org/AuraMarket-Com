@@ -7,21 +7,158 @@ import {
   Package, MapPin, Clock, CheckCircle2, XCircle, Truck, AlertTriangle,
   Search, Loader2, User, MessageCircle, Send, Copy, Check,
   ArrowLeft, Navigation, Phone, Shield, ChevronDown, Zap,
-  Banknote, ArrowDownToLine, ClipboardList,
+  Banknote, ArrowDownToLine, ClipboardList, Timer,
 } from 'lucide-react';
 import Link from 'next/link';
 
 const STATUS_FLOW = ['pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered'];
 const STATUS_META = {
-  pending:          { color: 'text-amber-600',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   label: 'Pending' },
-  assigned:         { color: 'text-blue-600',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    label: 'Assigned' },
-  picked_up:        { color: 'text-indigo-600',  bg: 'bg-indigo-500/10',  border: 'border-indigo-500/20',  label: 'Picked Up' },
-  in_transit:       { color: 'text-blue-600',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20',    label: 'In Transit' },
-  out_for_delivery: { color: 'text-violet-600',  bg: 'bg-violet-500/10',  border: 'border-violet-500/20',  label: 'Out for Delivery' },
-  delivered:        { color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', label: 'Delivered' },
-  failed:           { color: 'text-rose-600',    bg: 'bg-rose-500/10',    border: 'border-rose-500/20',    label: 'Failed' },
-  cancelled:        { color: 'text-gray-600',    bg: 'bg-gray-500/10',    border: 'border-gray-500/20',    label: 'Cancelled' },
+  pending:          { color: 'text-amber-600',   bg: 'bg-amber-500/10',   dot: 'bg-amber-500',   border: 'border-amber-500/20',   icon: Clock,         label: 'Pending',          sub: 'Awaiting courier assignment' },
+  assigned:         { color: 'text-blue-600',    bg: 'bg-blue-500/10',    dot: 'bg-blue-500',    border: 'border-blue-500/20',    icon: Truck,         label: 'Assigned',         sub: 'Courier assigned to pickup' },
+  picked_up:        { color: 'text-indigo-600',  bg: 'bg-indigo-500/10',  dot: 'bg-indigo-500',  border: 'border-indigo-500/20',  icon: Package,       label: 'Picked Up',        sub: 'Package collected from sender' },
+  in_transit:       { color: 'text-blue-600',    bg: 'bg-blue-500/10',    dot: 'bg-blue-500',    border: 'border-blue-500/20',    icon: Truck,         label: 'In Transit',       sub: 'On the way to destination' },
+  out_for_delivery: { color: 'text-violet-600',  bg: 'bg-violet-500/10',  dot: 'bg-violet-500',  border: 'border-violet-500/20',  icon: Navigation,    label: 'Out for Delivery', sub: 'Courier is near drop-off' },
+  delivered:        { color: 'text-emerald-600', bg: 'bg-emerald-500/10', dot: 'bg-emerald-500', border: 'border-emerald-500/20', icon: CheckCircle2,  label: 'Delivered',        sub: 'Successfully delivered' },
+  failed:           { color: 'text-rose-600',    bg: 'bg-rose-500/10',    dot: 'bg-rose-500',    border: 'border-rose-500/20',    icon: AlertTriangle, label: 'Failed',           sub: 'Delivery attempt failed' },
+  cancelled:        { color: 'text-gray-600',    bg: 'bg-gray-500/10',    dot: 'bg-gray-500',    border: 'border-gray-500/20',    icon: XCircle,       label: 'Cancelled',        sub: 'Shipment was cancelled' },
 };
+
+/* ── Elapsed time helper ──────────────────────────────────────────── */
+function timeAgo(date) {
+  if (!date) return '';
+  const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ${m % 60}m ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h ago`;
+}
+
+function elapsed(from, to) {
+  if (!from) return '';
+  const s = Math.floor(((to ? new Date(to) : new Date()).getTime() - new Date(from).getTime()) / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ${m % 60}m`;
+  const d = Math.floor(h / 24);
+  return `${d}d ${h % 24}h`;
+}
+
+/* ── Live Timer Hook ──────────────────────────────────────────────── */
+function useLiveClock(active) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const iv = setInterval(() => setTick(t => t + 1), 30000); // update every 30s
+    return () => clearInterval(iv);
+  }, [active]);
+}
+
+/* ── Step-by-step Status Progress ─────────────────────────────────── */
+function StatusStepper({ status, logs, createdAt }) {
+  const currentIdx = STATUS_FLOW.indexOf(status);
+  const isFail = ['failed', 'cancelled'].includes(status);
+
+  // Build timestamp map from logs
+  const logMap = {};
+  if (logs) {
+    for (const log of logs) {
+      if (log.status && log.timestamp) logMap[log.status] = log.timestamp;
+    }
+  }
+
+  const steps = isFail
+    ? [...STATUS_FLOW.slice(0, Math.max(0, currentIdx) + 1).map(s => ({ key: s, ...STATUS_META[s] })), { key: status, ...STATUS_META[status] }]
+    : STATUS_FLOW.map(s => ({ key: s, ...STATUS_META[s] }));
+
+  // Deduplicate in case fail status is already in flow
+  const seen = new Set();
+  const uniqueSteps = steps.filter(s => { if (seen.has(s.key)) return false; seen.add(s.key); return true; });
+
+  return (
+    <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 overflow-hidden">
+      <div className="px-4 py-3 border-b border-[var(--glass-border)]/30 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Timer className="size-4 text-[var(--accent)]" />
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-60">Delivery Progress</span>
+        </div>
+        <span className="text-[10px] font-mono font-bold text-[var(--accent)]">
+          {elapsed(createdAt)} total
+        </span>
+      </div>
+      <div className="p-4 space-y-0">
+        {uniqueSteps.map((step, i) => {
+          const StepIcon = step.icon;
+          const reached = isFail
+            ? i <= uniqueSteps.length - 1
+            : i <= currentIdx;
+          const isCurrent = isFail
+            ? i === uniqueSteps.length - 1
+            : i === currentIdx;
+          const isLast = i === uniqueSteps.length - 1;
+          const ts = logMap[step.key] || (step.key === 'pending' ? createdAt : null);
+          const nextTs = !isLast ? (logMap[uniqueSteps[i + 1]?.key] || null) : null;
+          const stepDuration = ts && nextTs ? elapsed(ts, nextTs) : null;
+
+          return (
+            <div key={step.key} className="flex items-stretch gap-3">
+              {/* Vertical line + dot */}
+              <div className="flex flex-col items-center shrink-0 w-6">
+                <div className={`size-6 rounded-full flex items-center justify-center shrink-0 transition-all ${
+                  isCurrent
+                    ? `${step.dot} ring-4 ${step.bg.replace('bg-', 'ring-').replace('/10', '/15')}`
+                    : reached
+                      ? step.dot
+                      : 'bg-[var(--glass-border)]/20'
+                }`}>
+                  {reached && <StepIcon className="size-3 text-white" />}
+                </div>
+                {!isLast && (
+                  <div className={`w-[2px] flex-1 min-h-[24px] my-0.5 rounded-full ${
+                    reached && !isCurrent ? step.dot + '/40' : 'bg-[var(--glass-border)]/15'
+                  }`} />
+                )}
+              </div>
+
+              {/* Step content */}
+              <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className={`text-[12px] font-bold ${
+                    isCurrent ? step.color : reached ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]/25'
+                  }`}>
+                    {step.label}
+                  </p>
+                  {ts && reached && (
+                    <span className={`text-[9px] font-mono ${isCurrent ? step.color : 'text-[var(--text-secondary)]/30'}`}>
+                      {timeAgo(ts)}
+                    </span>
+                  )}
+                </div>
+                {isCurrent && (
+                  <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-0.5">{step.sub}</p>
+                )}
+                {ts && reached && (
+                  <p className="text-[9px] text-[var(--text-secondary)]/25 mt-0.5">
+                    {new Date(ts).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                )}
+                {stepDuration && reached && (
+                  <span className="inline-flex items-center gap-1 mt-1 text-[8px] font-bold text-[var(--accent)] bg-[var(--accent)]/8 rounded-md px-1.5 py-0.5">
+                    <Clock className="size-2.5" /> {stepDuration}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function formatAddress(addr) {
   if (!addr || typeof addr !== 'object') return { lines: [], phone: null };
@@ -41,7 +178,6 @@ function TrackContent() {
   const [messages, setMessages] = useState([]);
   const [msgInput, setMsgInput] = useState('');
   const [copied, setCopied] = useState(false);
-  const [showMsgs, setShowMsgs] = useState(true);
   const [showTimeline, setShowTimeline] = useState(false);
   const msgEnd = useRef(null);
 
@@ -91,6 +227,7 @@ function TrackContent() {
 
   const m = shipment ? STATUS_META[shipment.status] || STATUS_META.pending : null;
   const isTerminal = shipment && ['delivered', 'cancelled', 'failed'].includes(shipment.status);
+  useLiveClock(!isTerminal && !!shipment);
   const pickup = shipment ? formatAddress(shipment.pickup_address) : { lines: [], phone: null };
   const drop = shipment ? formatAddress(shipment.delivery_address) : { lines: [], phone: null };
   const senderObj = shipment?.booked_by || shipment?.guest_booker;
@@ -190,36 +327,28 @@ function TrackContent() {
               </p>
             </div>
 
-            {/* ── Quick Stats Grid ────────────────────────────────── */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:border-[var(--accent)]/20 hover:bg-[var(--bg-secondary)]/50">
-                <Banknote className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04]" />
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">Price</p>
-                <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-xl font-black tracking-tight text-[var(--text-primary)]">{(shipment.price ?? 0).toLocaleString()}</span>
-                  <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">XAF</span>
-                </div>
+            {/* ── Step-by-step Status Progress ─────────────────────── */}
+            <StatusStepper
+              status={shipment.status}
+              logs={shipment.shipment_logs}
+              createdAt={shipment.createdAt}
+            />
+
+            {/* ── Quick Info Row (price + carrier + payment) ──────── */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50">Price</p>
+                <p className="mt-1 text-sm font-black text-[var(--text-primary)]">{(shipment.price ?? 0).toLocaleString()} <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40">XAF</span></p>
               </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:border-[var(--accent)]/20 hover:bg-[var(--bg-secondary)]/50">
-                <Truck className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04]" />
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">Carrier</p>
-                <p className="mt-1 text-[13px] font-bold leading-snug text-[var(--text-primary)] truncate">
-                  {shipment.logistics_id?.company_name || '—'}
-                </p>
+              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50">Carrier</p>
+                <p className="mt-1 text-[12px] font-bold text-[var(--text-primary)] truncate">{shipment.logistics_id?.company_name || '—'}</p>
               </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:border-[var(--accent)]/20 hover:bg-[var(--bg-secondary)]/50">
-                <Package className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04]" />
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--accent)] opacity-80">Pickup</p>
-                <p className="mt-1 line-clamp-2 text-[13px] font-bold leading-snug text-[var(--text-primary)]">
-                  {shipment.pickup_address?.quartier || pickup.lines[0] || '—'}
-                </p>
-              </div>
-              <div className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:border-[var(--accent)]/20 hover:bg-[var(--bg-secondary)]/50">
-                <MapPin className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04]" />
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">Drop-off</p>
-                <p className="mt-1 line-clamp-2 text-[13px] font-bold leading-snug text-[var(--text-primary)]">
-                  {shipment.delivery_address?.quartier || drop.lines[0] || '—'}
-                </p>
+              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3">
+                <p className="text-[8px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50">Payment</p>
+                <span className={`inline-flex mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  shipment.payment_status === 'paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
+                }`}>{shipment.payment_status === 'paid' ? 'Paid' : 'Pending'}</span>
               </div>
             </div>
 
@@ -361,17 +490,6 @@ function TrackContent() {
                 </div>
               </div>
             )}
-
-            {/* ── Payment Status ────────────────────────────────────── */}
-            <div className="flex items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 px-5 py-3">
-              <Banknote className="size-4 text-[var(--text-secondary)] opacity-40 shrink-0" />
-              <span className="text-[11px] font-bold text-[var(--text-secondary)] opacity-60 flex-1">Payment</span>
-              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                shipment.payment_status === 'paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
-              }`}>
-                {shipment.payment_status === 'paid' ? 'Paid' : 'Pending'}
-              </span>
-            </div>
 
             {/* ── Shipment Messages ─────────────────────────────────── */}
             <div className="space-y-3">
