@@ -146,29 +146,48 @@ function StatusStepper({ status, logs, createdAt, eta }) {
         );
       })}
 
-      {/* ETA row at bottom */}
+      {/* ETA Countdown Card */}
       {eta && (() => {
         const cd = countdown(eta);
         const isOverdue = cd?.overdue;
+        const parts = cd && !isOverdue ? cd.text.split(' ') : [];
         return (
-          <div className="flex gap-5 relative">
-            <div className={`z-10 size-10 rounded-full flex-shrink-0 flex items-center justify-center border-[3px] border-[var(--bg-primary)] ${
-              isOverdue ? 'bg-rose-500/10 text-rose-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]'
-            }`}>
-              <Clock className="size-4" />
-            </div>
-            <div className="flex-1 min-w-0 pt-1">
-              <div className="flex items-baseline justify-between gap-2">
-                <p className={`text-[10px] font-bold opacity-50 uppercase tracking-wider ${isOverdue ? 'text-rose-500' : 'text-[var(--text-secondary)]'}`}>
-                  Estimated Delivery
-                </p>
-                <span className={`text-[12px] font-black ${isOverdue ? 'text-rose-500' : 'text-[var(--accent)]'}`}>
-                  {isOverdue ? 'Overdue' : cd?.text || '—'}
-                </span>
+          <div className={`mt-2 rounded-2xl border p-4 ${
+            isOverdue
+              ? 'border-rose-500/20 bg-rose-500/[0.04]'
+              : 'border-[var(--accent)]/15 bg-[var(--accent)]/[0.04]'
+          }`}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`size-10 rounded-xl flex items-center justify-center ${
+                  isOverdue ? 'bg-rose-500/10 text-rose-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                }`}>
+                  <Timer className={`size-5 ${!isOverdue ? 'animate-pulse' : ''}`} />
+                </div>
+                <div>
+                  <p className={`text-[9px] font-bold uppercase tracking-widest ${isOverdue ? 'text-rose-500/60' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                    {isOverdue ? 'Past Due' : 'Arriving In'}
+                  </p>
+                  <p className={`text-[11px] font-medium ${isOverdue ? 'text-rose-500/50' : 'text-[var(--text-secondary)] opacity-50'}`}>
+                    {new Date(eta).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
               </div>
-              <p className={`text-[11px] font-medium mt-0.5 ${isOverdue ? 'text-rose-500/60' : 'text-[var(--accent)]/60'}`}>
-                {new Date(eta).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              </p>
+              {/* Live countdown digits */}
+              <div className="flex items-center gap-1">
+                {isOverdue ? (
+                  <span className="text-lg font-black text-rose-500 tracking-tight">Overdue</span>
+                ) : parts.map((p, i) => {
+                  const num = p.replace(/[^\d]/g, '');
+                  const unit = p.replace(/[\d]/g, '');
+                  return (
+                    <div key={i} className="flex items-baseline">
+                      <span className="text-xl font-black tabular-nums text-[var(--accent)] tracking-tight">{num}</span>
+                      <span className="text-[10px] font-bold text-[var(--accent)]/50 ml-0.5">{unit}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         );
@@ -332,13 +351,13 @@ function TrackContent() {
                 {eta && !isTerminal && (() => {
                   const cd = countdown(eta);
                   return cd && (
-                    <div className={`flex h-6 items-center gap-1 rounded-full px-2.5 text-[10px] font-bold border ${
+                    <div className={`flex h-7 items-center gap-1.5 rounded-full px-3 text-[11px] font-black border tabular-nums ${
                       cd.overdue
-                        ? 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                        ? 'bg-rose-500/10 text-rose-600 border-rose-500/20 animate-pulse'
                         : 'bg-[var(--accent)]/10 text-[var(--accent)] border-[var(--accent)]/20'
                     }`}>
-                      <Clock className="size-3" />
-                      {cd.overdue ? 'Overdue' : `ETA ${cd.text}`}
+                      <Timer className="size-3.5" />
+                      {cd.overdue ? 'Overdue' : cd.text}
                     </div>
                   );
                 })()}
