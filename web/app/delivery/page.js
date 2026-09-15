@@ -703,14 +703,14 @@ export default function DeliveryPage() {
                   <Clock className="size-4 text-[var(--accent)]" /> Pickup Time
                 </h3>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="text-[12px] text-[var(--text-secondary)]">{form.scheduled ? 'Scheduled' : 'ASAP'}</span>
+                  <span className="text-[12px] font-semibold text-[var(--text-primary)]">{form.scheduled ? 'Scheduled' : 'ASAP'}</span>
                   <input type="checkbox" checked={form.scheduled} onChange={e => setForm(p => ({ ...p, scheduled: e.target.checked }))}
                     className="accent-[var(--accent)]" />
                 </label>
               </div>
-              {form.scheduled && (
+              {(form.scheduled || error?.includes('not currently available')) && (
                 <input type="datetime-local" value={form.scheduled_date} onChange={e => setForm(p => ({ ...p, scheduled_date: e.target.value }))}
-                  className={INPUT_CLASS} />
+                  className={INPUT_CLASS} placeholder="Select pickup time" />
               )}
             </div>
 
