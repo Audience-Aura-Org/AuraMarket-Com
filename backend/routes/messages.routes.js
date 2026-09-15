@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { protectOptional } = require('../middleware/auth');
+const { protectOptional } = require('../middleware/auth.middleware');
 const {
   getShipmentMessages,
   sendShipmentMessage,
