@@ -10,6 +10,7 @@ const {
   getShipmentMessages,
   sendShipmentMessage,
   getLogisticsMessages,
+  getMyShipmentThreads,
 } = require('../controllers/messages.controller');
 const {
   getOrderMessages,
@@ -25,6 +26,9 @@ router.post('/shipment/:shipmentId', protectOptional, sendShipmentMessage);
 router.get('/order/:orderId', protect, getOrderMessages);
 router.post('/order/:orderId', protect, sendOrderMessage);
 router.get('/order-threads/mine', protect, getMyOrderThreads);
+
+// ── MY SHIPMENT THREADS (P2P deliveries in chat/messages) ──────────
+router.get('/shipment-threads/mine', protect, getMyShipmentThreads);
 
 // ── LOGISTICS ROUTES ────────────────────────────────────────────────
 router.get('/logistics/all', protectOptional, getLogisticsMessages);

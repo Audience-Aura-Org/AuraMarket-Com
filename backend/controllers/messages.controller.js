@@ -143,8 +143,75 @@ const getLogisticsMessages = async (req, res) => {
   }
 };
 
+// ── GET MY SHIPMENT THREADS (user's P2P deliveries) ──────────────────
+const getMyShipmentThreads = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user) return res.status(401).json({ success: false, message: 'Authentication required' });
+
+    const userId = user._id.toString();
+
+    // Find shipments where user is booker, other party, or logistics
+    let shipments;
+    if (user.role === 'logistics') {
+      const firm = await LogisticsCompany.findOne({ user_id: user._id }).select('_id').lean();
+      if (!firm) return res.json({ success: true, data: { threads: [] } });
+      shipments = await Shipment.find({ type: 'p2p', logistics_id: firm._id })
+        .select('_id tracking_code status type pickup_address delivery_address booked_by guest_booker other_party price createdAt updatedAt')
+        .sort({ updatedAt: -1 })
+        .limit(50)
+        .lean();
+    } else {
+      shipments = await Shipment.find({
+        type: 'p2p',
+        $or: [
+          { booked_by: user._id },
+          { 'other_party.user_id': user._id },
+        ],
+      })
+        .select('_id tracking_code status type pickup_address delivery_address booked_by guest_booker other_party price createdAt updatedAt')
+        .sort({ updatedAt: -1 })
+        .limit(50)
+        .lean();
+    }
+
+    const shipmentIds = shipments.map(s => s._id);
+
+    // Get latest message per shipment
+    const messages = await ShipmentMessage.find({ shipment_id: { $in: shipmentIds } })
+      .sort({ timestamp: -1 })
+      .limit(300)
+      .lean();
+
+    const msgByShipment = {};
+    for (const msg of messages) {
+      const sid = msg.shipment_id.toString();
+      if (!msgByShipment[sid]) msgByShipment[sid] = [];
+      msgByShipment[sid].push(msg);
+    }
+
+    // Build threads for ALL shipments (not just those with messages)
+    const threads = shipments.map(s => {
+      const msgs = msgByShipment[s._id.toString()] || [];
+      const isActive = !['delivered', 'cancelled', 'failed'].includes(s.status);
+      return {
+        shipment: s,
+        lastMessage: msgs[0] || null,
+        messageCount: msgs.length,
+        isActive,
+      };
+    });
+
+    return res.json({ success: true, data: { threads } });
+  } catch (err) {
+    console.error('[messages] getMyShipmentThreads error:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to fetch shipment threads' });
+  }
+};
+
 module.exports = {
   getShipmentMessages,
   sendShipmentMessage,
   getLogisticsMessages,
+  getMyShipmentThreads,
 };

@@ -456,6 +456,41 @@ const modifyShipmentStatus = async (req, res, next) => {
 
     // ── P2P shipments: skip order-sync entirely, just notify parties ──
     if (isP2P) {
+
+      // ── Credit logistics firm when P2P shipment is delivered ──
+      if (status === 'delivered' && shipment.payment_status === 'paid') {
+        // Determine logistics payout: base_price (excl. platform fee).
+        // For older shipments without base_price stored, subtract platform_fee from total.
+        const payoutAmount = shipment.base_price
+          ? shipment.base_price
+          : (shipment.price - (shipment.platform_fee || 0));
+
+        // Guard against double-credit
+        const alreadyPaid = await Transaction.findOne({
+          user_id: firm.user_id,
+          type: 'payout',
+          description: { $regex: shipment.tracking_code },
+        }).session(session);
+
+        if (!alreadyPaid && payoutAmount > 0) {
+          const logisticsUser = await creditBalance(firm.user_id, payoutAmount, session);
+          if (logisticsUser) {
+            await Transaction.create([{
+              user_id:     firm.user_id,
+              type:        'payout',
+              amount:      payoutAmount,
+              reference:   `P2P-PAYOUT-${Date.now()}-${shipment.tracking_code}`,
+              status:      'completed',
+              description: `P2P delivery payout — ${shipment.tracking_code}`,
+              gateway:     'wallet',
+              metadata:    { tracking_code: shipment.tracking_code, shipment_id: shipment._id, type: 'p2p' },
+            }], { session, ordered: true });
+
+            console.log(`📦 P2P logistics firm credited ${payoutAmount} XAF for shipment ${shipment.tracking_code}.`);
+          }
+        }
+      }
+
       await session.commitTransaction();
       session.endSession();
 

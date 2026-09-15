@@ -164,7 +164,7 @@ export default function SingleOrderView({ orderId, onBack }) {
 
   const handleSendOrderMsg = async (e) => {
     e.preventDefault();
-    if (!orderMsgText.trim() || !orderId) return;
+    if (!orderMsgText.trim() || !orderId || sendingOrderMsg) return;
     setSendingOrderMsg(true);
     try {
       const res = await api.post(`/messages/order/${orderId}`, { text: orderMsgText.trim() });
@@ -637,10 +637,10 @@ export default function SingleOrderView({ orderId, onBack }) {
   };
 
   const STEPS = [
-    { label: 'Ordered', icon: ShoppingBag },
-    { label: 'Verified', icon: ShieldCheck },
-    { label: 'Transit', icon: Truck },
-    { label: 'Delivered', icon: CheckCircle2 }
+    { key: 'placed',     icon: ShoppingBag,  label: 'Ordered' },
+    { key: 'processing', icon: Clock,         label: 'Processing' },
+    { key: 'shipped',    icon: Truck,         label: 'Shipped' },
+    { key: 'delivered',  icon: CheckCircle2,  label: 'Delivered' },
   ];
 
   const toneMap = {
@@ -822,264 +822,161 @@ export default function SingleOrderView({ orderId, onBack }) {
         </div>
       </header>
 
-      {/* Status + actions */}
-      <section className={`relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-gradient-to-br from-[var(--bg-secondary)]/80 to-[var(--bg-primary)]/40 p-4 shadow-lg sm:rounded-3xl sm:p-6 md:p-8 ${tone.glow}`}>
-        <div className="pointer-events-none absolute -right-16 -top-16 size-56 rounded-full bg-[var(--accent)]/[0.06] blur-3xl" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,var(--glass-border)_1px,transparent_0)] [background-size:20px_20px] opacity-[0.35]" />
-
-        <div className="relative flex flex-col gap-6 sm:gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-0 space-y-3 sm:space-y-4">
-            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider ${tone.pill}`}>
-              <span className={`size-1.5 rounded-full ${status.color === 'emerald' ? 'bg-emerald-500' : status.color === 'blue' ? 'bg-sky-500' : status.color === 'amber' ? 'bg-amber-500' : status.color === 'rose' ? 'bg-rose-500' : 'bg-indigo-500'} animate-pulse`} />
-              Current status
-            </div>
-            <div>
-              <p className={`text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl ${tone.headline}`}>{status.label}</p>
-              {isFoodOrder && (
-                <div className="mt-2 inline-flex items-center gap-2 rounded-xl border border-orange-500/25 bg-orange-500/10 px-3 py-2 text-[11px] font-semibold text-orange-600">
-                  <span className="size-1.5 rounded-full bg-orange-500 animate-pulse" />
-                  Kitchen: {FOOD_STATUS_LABELS[order.food_status] || order.food_status?.replace(/_/g, ' ')}
-                </div>
-              )}
-              <p className="mt-2 max-w-xl text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-90 sm:text-[12px]">
-                Track fulfillment, carrier updates, and settlement from this workspace.
-              </p>
-              <div className={`mt-4 inline-flex max-w-full items-center gap-2 rounded-xl border px-3 py-2 text-[11px] font-semibold tracking-tight ${paymentMeta.classes}`}>
-                <CreditCard className="size-4 shrink-0" />
-                <span className="truncate">{paymentMeta.detail}</span>
-              </div>
-            </div>
+      {/* ── Status + Horizontal Progress ───────────────────────────────── */}
+      <section className="space-y-6">
+        {/* Status badge + label */}
+        <div className="space-y-2">
+          <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider ${tone.pill}`}>
+            <span className={`size-1.5 rounded-full ${status.color === 'emerald' ? 'bg-emerald-500' : status.color === 'blue' ? 'bg-sky-500' : status.color === 'amber' ? 'bg-amber-500' : status.color === 'rose' ? 'bg-rose-500' : 'bg-indigo-500'} animate-pulse`} />
+            {status.label}
           </div>
-
-          <div className="flex w-full flex-col gap-2 xs:flex-row xs:flex-wrap sm:w-auto sm:gap-2 lg:max-w-md lg:justify-end">
-            {/* ── Food order actions (restaurant vendors) ── */}
-            {isVendor && isFoodOrder && foodNextStatus && (
-              <button
-                type="button"
-                onClick={() => handleUpdateFoodStatus(foodNextStatus)}
-                disabled={!!statusUpdating}
-                className={`inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md transition active:opacity-90 disabled:cursor-wait disabled:opacity-60 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95 ${
-                  foodLogisticsOverdue && order.food_status === 'ready'
-                    ? 'bg-amber-500 shadow-amber-500/25'
-                    : order.food_status === 'picked_up'
-                      ? 'bg-emerald-600 shadow-emerald-600/25'
-                      : order.food_status === 'pending_acceptance'
-                        ? 'bg-purple-600 shadow-purple-600/25'
-                        : 'bg-orange-500 shadow-orange-500/25'
-                }`}
-              >
-                {statusUpdating === foodNextStatus ? <Loader2 className="size-4 animate-spin" /> : <Package className="size-4" />}
-                {foodActionLabel}
-              </button>
-            )}
-            {isVendor && isFoodOrder && !foodNextStatus && order.food_status === 'ready' && (
-              <div className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-blue-500/25 bg-blue-500/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-blue-600 xs:w-auto sm:min-h-[44px] sm:py-2.5">
-                <Clock className="size-4" />
-                Awaiting logistics rider
-              </div>
-            )}
-            {/* ── Retail order actions (hidden for food orders) ── */}
-            {!isFoodOrder && isVendor && order.order_status === 'placed' && logisticsGraceActive && (
-              <div className="flex w-full flex-col gap-2 xs:flex-row xs:flex-wrap xs:items-stretch">
-                <div className="inline-flex min-h-[48px] w-full flex-1 items-center gap-2 rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3 text-[11px] font-medium leading-snug text-[var(--text-primary)] xs:min-h-0 sm:py-2.5">
-                  <Clock className="size-4 shrink-0 text-sky-600 dark:text-sky-400" />
-                  <span>
-                    Logistics priority window — manual &ldquo;Mark shipped&rdquo; unlocks in{' '}
-                    <strong className="font-semibold tabular-nums">
-                      {graceHoursRemaining >= 1
-                        ? `${Math.ceil(graceHoursRemaining)}h`
-                        : `${Math.max(1, Math.ceil(graceHoursRemaining * 60))}m`}
-                    </strong>
-                    . Acknowledge prep below if you&apos;re getting the order ready.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleUpdateStatus('processing')}
-                  disabled={!!statusUpdating}
-                  className="inline-flex min-h-[48px] w-full shrink-0 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-primary)] shadow-sm transition active:border-[var(--accent)]/40 disabled:cursor-wait disabled:opacity-60 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:border-[var(--accent)]/40"
-                >
-                  {statusUpdating === 'processing' ? <Loader2 className="size-4 animate-spin" /> : <Package className="size-4" />} Acknowledge prep
-                </button>
-              </div>
-            )}
-            {!isFoodOrder && isVendor && order.order_status === 'placed' && !logisticsGraceActive && (
-              <button
-                type="button"
-                onClick={() => handleUpdateStatus('processing')}
-                disabled={!!statusUpdating}
-                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-[var(--accent)]/25 transition active:opacity-90 disabled:cursor-wait disabled:opacity-60 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
-              >
-                {statusUpdating === 'processing' ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />} Start processing
-              </button>
-            )}
-            {!isFoodOrder && isVendor && order.order_status === 'processing' && (!isLogisticsOrder || !carrierLaunched) && (
-              <button
-                type="button"
-                onClick={() => handleUpdateStatus('shipped')}
-                disabled={isProtectedByGracePeriod || !!statusUpdating}
-                className={`inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-[11px] font-semibold uppercase tracking-wide transition xs:w-auto sm:min-h-[44px] sm:py-2.5 ${
-                  isProtectedByGracePeriod || statusUpdating
-                    ? 'cursor-not-allowed border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] opacity-50'
-                    : 'border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm active:border-[var(--accent)]/40 sm:hover:border-[var(--accent)]/40'
-                }`}
-              >
-                {statusUpdating === 'shipped' ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />} {isProtectedByGracePeriod ? 'Awaiting carrier' : 'Mark shipped'}
-              </button>
-            )}
-            {/* CUSTOMER / ADMIN ACTION: release held escrow, even for older orders already marked finalized. */}
-            {!isVendor && escrowCanRelease && (
-              <button
-                type="button"
-                onClick={handleConfirmDelivery}
-                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-emerald-500/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
-              >
-                <CheckCircle2 className="size-4" /> Release escrow
-              </button>
-            )}
-
-            {/* VENDOR ACTION: confirm delivery/request customer escrow release, regardless of finalized order status. */}
-            {!isFoodOrder && isVendor && vendorCanRequestEscrowRelease && (
-              <button
-                type="button"
-                onClick={handleVendorConfirmDelivery}
-                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-emerald-500/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
-              >
-                <ShieldCheck className="size-4" /> Request escrow release
-              </button>
-            )}
-
-            {/* VENDOR ACTION: Mark Delivered (For self-managed/non-logistics shipments) */}
-            {!isFoodOrder && vendorCanMarkDelivered && (
-              <button
-                type="button"
-                onClick={handleVendorConfirmDelivery}
-                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-white shadow-md shadow-[var(--accent)]/25 transition active:opacity-90 xs:w-auto sm:min-h-[44px] sm:py-2.5 sm:hover:opacity-95"
-              >
-                <Package className="size-4" /> Mark as delivered
-              </button>
-            )}
-
-            {customerCanCancel && (
-              <button
-                type="button"
-                onClick={handleCancelOrder}
-                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-amber-700 transition active:bg-amber-500 active:text-white xs:w-auto sm:min-h-[44px] sm:py-2.5 dark:text-amber-300 sm:hover:bg-amber-500 sm:hover:text-white"
-              >
-                <XCircle className="size-4" /> {order.payment_status === 'paid' ? 'Cancel & refund' : 'Cancel order'}
-              </button>
-            )}
-
-            {order.order_status !== 'cancelled' && (
-              <button
-                type="button"
-                onClick={() => setDisputeModal(true)}
-                className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-rose-600 transition active:bg-rose-500 active:text-white xs:w-auto sm:min-h-[44px] sm:py-2.5 dark:text-rose-400 sm:hover:bg-rose-500 sm:hover:text-white"
-              >
-                <Scale className="size-4" /> Open dispute
-              </button>
-            )}
-          </div>
+          {isFoodOrder && (
+            <div className="inline-flex items-center gap-2 rounded-xl border border-orange-500/25 bg-orange-500/10 px-3 py-2 text-[11px] font-semibold text-orange-600 ml-2">
+              <span className="size-1.5 rounded-full bg-orange-500 animate-pulse" />
+              Kitchen: {FOOD_STATUS_LABELS[order.food_status] || order.food_status?.replace(/_/g, ' ')}
+            </div>
+          )}
         </div>
 
-        {/* Stepper */}
-        <div className="relative mt-7 border-t border-[var(--glass-border)] pt-6 sm:mt-10 sm:pt-10">
-          <div className="absolute left-4 right-4 top-[2.25rem] hidden h-px bg-[var(--glass-border)] sm:block" />
-          <div
-            className="absolute left-4 top-[2.25rem] hidden h-px bg-[var(--accent)] transition-all duration-700 sm:block"
-            style={{ width: `calc(${progressPct}% - 2rem)` }}
-          />
-
-          <div className="relative sm:hidden">
-            <div className="absolute left-[12.5%] right-[12.5%] top-[1.125rem] h-1 rounded-full bg-[var(--glass-border)]/70" />
-            <div
-              className="absolute left-[12.5%] top-[1.125rem] h-1 rounded-full bg-[var(--accent)] transition-all duration-700"
-              style={{ width: `${progressPct * 0.75}%` }}
-            />
-            <div className="relative grid grid-cols-4 gap-1">
-              {STEPS.map((s, idx) => {
-                const isActive = status.step > idx;
-                const isCurrent = status.step === idx + 1;
-                return (
-                  <div key={s.label} className="flex min-w-0 flex-col items-center gap-2 text-center">
-                    <div
-                      className={`relative z-10 flex size-9 items-center justify-center rounded-xl border transition-all duration-300 ${
-                        isActive
-                          ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/30'
-                          : isCurrent
-                            ? 'border-[var(--accent)] bg-[var(--bg-primary)] text-[var(--accent)] ring-2 ring-[var(--accent)]/25'
-                            : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-60'
-                      }`}
-                    >
-                      <s.icon className="size-4" />
-                    </div>
-                    <span
-                      className={`block w-full truncate text-[9px] font-semibold uppercase leading-none tracking-normal ${
-                        isActive || isCurrent ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-50'
-                      }`}
-                    >
-                      {s.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="relative hidden sm:flex sm:justify-between sm:gap-2 md:gap-4">
-            {STEPS.map((s, idx) => {
-              const isActive = status.step > idx;
-              const isCurrent = status.step === idx + 1;
+        {/* Horizontal progress bar (matching delivery track page) */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-0">
+            {STEPS.map((step, i) => {
+              const StepIcon = step.icon;
+              const isCancelled = ['cancelled', 'refunded', 'refund_pending'].includes(order.order_status);
+              const reached = !isCancelled && status.step > i;
+              const isCurrent = !isCancelled && status.step === i + 1;
+              const isLast = i === STEPS.length - 1;
               return (
-                <div key={s.label} className="flex min-w-0 flex-col items-center gap-2 text-center sm:gap-3 sm:flex-1">
-                  <div
-                    className={`relative z-10 flex size-12 items-center justify-center rounded-2xl border transition-all duration-300 ${
-                      isActive
-                        ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/30'
-                        : isCurrent
-                          ? 'border-[var(--accent)] bg-[var(--bg-primary)] text-[var(--accent)] ring-2 ring-[var(--accent)]/25'
-                          : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] opacity-60'
-                    }`}
-                  >
-                    <s.icon className="size-5" />
+                <div key={step.key} className="flex items-center flex-1 last:flex-none">
+                  <div className="flex flex-col items-center">
+                    <div className={`size-9 rounded-full flex items-center justify-center transition-all ${
+                      isCurrent
+                        ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/30'
+                        : reached
+                          ? 'bg-[var(--accent)] text-white'
+                          : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)]/30 text-[var(--text-secondary)]/20'
+                    }`}>
+                      {reached && !isCurrent
+                        ? <CheckCircle2 className="size-4" />
+                        : <StepIcon className={`size-3.5 ${!reached && !isCurrent ? 'opacity-30' : ''}`} />
+                      }
+                    </div>
                   </div>
-                  <span
-                    className={`max-w-[5.5rem] text-[9px] font-semibold uppercase leading-tight tracking-[0.12em] xs:max-w-none xs:text-[10px] ${
-                      isActive || isCurrent ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] opacity-50'
-                    }`}
-                  >
-                    {s.label}
-                  </span>
+                  {!isLast && (
+                    <div className={`flex-1 h-[2px] mx-0.5 rounded-full transition-all ${
+                      !isCancelled && status.step > i + 1 ? 'bg-[var(--accent)]' : 'bg-[var(--glass-border)]/15'
+                    }`} />
+                  )}
                 </div>
               );
             })}
           </div>
-        </div>
-      </section>
-
-      {/* ── Transit chat banner ───────────────────────────────────────────── */}
-      {canMessageCarrier && (
-        <div className="flex items-center gap-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-4 py-3.5 sm:rounded-3xl sm:px-6 sm:py-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)]/10">
-            <MessageCircle className="size-5 text-[var(--accent)]" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-bold text-[var(--text-primary)]">Need help with your shipment?</p>
-            <p className="mt-0.5 text-[11px] text-[var(--text-secondary)] opacity-70">
-              Message <span className="font-semibold">{carrierName}</span> directly while your order is in transit.
+          <div className="text-center">
+            <p className={`text-sm font-bold ${['cancelled', 'refunded'].includes(order.order_status) ? 'text-rose-500' : 'text-[var(--text-primary)]'}`}>
+              {status.label}
+            </p>
+            <p className="text-[11px] font-medium mt-0.5 text-[var(--text-secondary)] opacity-50">
+              {order.order_status === 'cancelled' ? 'This order was cancelled'
+                : order.order_status === 'refunded' ? 'This order was refunded'
+                : order.order_status === 'completed' || order.order_status === 'delivered' ? 'Successfully delivered'
+                : 'Track fulfillment and settlement'}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={openCarrierChat}
-            className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-2 text-[11px] font-semibold text-white shadow-sm shadow-[var(--accent)]/20 transition active:opacity-80 sm:hover:opacity-90"
-          >
-            <MessageCircle className="size-3.5" />
-            <span className="hidden sm:inline">Message Carrier</span>
-            <span className="sm:hidden">Chat</span>
-          </button>
         </div>
-      )}
+
+        {/* Quick Info Row (matching delivery track page) */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3">
+            <p className="text-[8px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50">Total</p>
+            <p className="mt-1 text-sm font-black text-[var(--text-primary)]">{(order.total_amount ?? 0).toLocaleString()} <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40">XAF</span></p>
+          </div>
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3">
+            <p className="text-[8px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50">Shipping</p>
+            <p className="mt-1 text-[12px] font-bold text-[var(--text-primary)]">{(order.shipping_fee ?? 0).toLocaleString()} XAF</p>
+          </div>
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3">
+            <p className="text-[8px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50">Payment</p>
+            <span className={`inline-flex mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${paymentMeta.classes}`}>{paymentMeta.label}</span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-2">
+          {/* Food order actions */}
+          {isVendor && isFoodOrder && foodNextStatus && (
+            <button type="button" onClick={() => handleUpdateFoodStatus(foodNextStatus)} disabled={!!statusUpdating}
+              className={`inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-[11px] font-semibold text-white shadow-md transition active:opacity-90 disabled:opacity-60 ${
+                foodLogisticsOverdue && order.food_status === 'ready' ? 'bg-amber-500' : order.food_status === 'picked_up' ? 'bg-emerald-600' : order.food_status === 'pending_acceptance' ? 'bg-purple-600' : 'bg-orange-500'
+              }`}>
+              {statusUpdating === foodNextStatus ? <Loader2 className="size-4 animate-spin" /> : <Package className="size-4" />}
+              {foodActionLabel}
+            </button>
+          )}
+          {isVendor && isFoodOrder && !foodNextStatus && order.food_status === 'ready' && (
+            <div className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-blue-500/25 bg-blue-500/10 px-5 py-2.5 text-[11px] font-semibold text-blue-600">
+              <Clock className="size-4" /> Awaiting logistics rider
+            </div>
+          )}
+          {/* Retail order actions */}
+          {!isFoodOrder && isVendor && order.order_status === 'placed' && logisticsGraceActive && (
+            <>
+              <div className="w-full inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-2.5 text-[11px] font-medium text-[var(--text-primary)]">
+                <Clock className="size-4 shrink-0 text-sky-600" />
+                <span>Logistics priority window — manual ship unlocks in <strong>{graceHoursRemaining >= 1 ? `${Math.ceil(graceHoursRemaining)}h` : `${Math.max(1, Math.ceil(graceHoursRemaining * 60))}m`}</strong></span>
+              </div>
+              <button type="button" onClick={() => handleUpdateStatus('processing')} disabled={!!statusUpdating}
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-5 py-2.5 text-[11px] font-semibold text-[var(--text-primary)] transition active:border-[var(--accent)]/40 disabled:opacity-60">
+                {statusUpdating === 'processing' ? <Loader2 className="size-4 animate-spin" /> : <Package className="size-4" />} Acknowledge prep
+              </button>
+            </>
+          )}
+          {!isFoodOrder && isVendor && order.order_status === 'placed' && !logisticsGraceActive && (
+            <button type="button" onClick={() => handleUpdateStatus('processing')} disabled={!!statusUpdating}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-[11px] font-semibold text-white shadow-md shadow-[var(--accent)]/25 transition active:opacity-90 disabled:opacity-60">
+              {statusUpdating === 'processing' ? <Loader2 className="size-4 animate-spin" /> : <Zap className="size-4" />} Start processing
+            </button>
+          )}
+          {!isFoodOrder && isVendor && order.order_status === 'processing' && (!isLogisticsOrder || !carrierLaunched) && (
+            <button type="button" onClick={() => handleUpdateStatus('shipped')} disabled={isProtectedByGracePeriod || !!statusUpdating}
+              className={`inline-flex min-h-[44px] items-center gap-2 rounded-xl px-5 py-2.5 text-[11px] font-semibold transition ${
+                isProtectedByGracePeriod ? 'cursor-not-allowed border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] opacity-50' : 'border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm active:border-[var(--accent)]/40'
+              }`}>
+              {statusUpdating === 'shipped' ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />} {isProtectedByGracePeriod ? 'Awaiting carrier' : 'Mark shipped'}
+            </button>
+          )}
+          {!isVendor && escrowCanRelease && (
+            <button type="button" onClick={handleConfirmDelivery}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-[11px] font-semibold text-white shadow-md shadow-emerald-500/25 transition active:opacity-90">
+              <CheckCircle2 className="size-4" /> Release escrow
+            </button>
+          )}
+          {!isFoodOrder && isVendor && vendorCanRequestEscrowRelease && (
+            <button type="button" onClick={handleVendorConfirmDelivery}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-[11px] font-semibold text-white shadow-md shadow-emerald-500/25 transition active:opacity-90">
+              <ShieldCheck className="size-4" /> Request escrow release
+            </button>
+          )}
+          {!isFoodOrder && vendorCanMarkDelivered && (
+            <button type="button" onClick={handleVendorConfirmDelivery}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-[11px] font-semibold text-white shadow-md shadow-[var(--accent)]/25 transition active:opacity-90">
+              <Package className="size-4" /> Mark as delivered
+            </button>
+          )}
+          {customerCanCancel && (
+            <button type="button" onClick={handleCancelOrder}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-5 py-2.5 text-[11px] font-semibold text-amber-700 transition active:bg-amber-500 active:text-white dark:text-amber-300">
+              <XCircle className="size-4" /> {order.payment_status === 'paid' ? 'Cancel & refund' : 'Cancel order'}
+            </button>
+          )}
+          {order.order_status !== 'cancelled' && (
+            <button type="button" onClick={() => setDisputeModal(true)}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-5 py-2.5 text-[11px] font-semibold text-rose-600 transition active:bg-rose-500 active:text-white dark:text-rose-400">
+              <Scale className="size-4" /> Open dispute
+            </button>
+          )}
+        </div>
+      </section>
 
       <div className="grid w-full min-w-0 flex-1 grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-12 lg:items-stretch lg:gap-10">
         <div className="order-2 flex min-h-0 flex-col space-y-8 sm:space-y-10 lg:order-1 lg:col-span-8">
@@ -1189,236 +1086,170 @@ export default function SingleOrderView({ orderId, onBack }) {
           </div>
         </div>
 
-        <aside className="order-1 flex min-h-0 flex-col space-y-4 sm:space-y-6 lg:order-2 lg:col-span-4 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-10rem)] lg:overflow-y-auto lg:self-start">
-          <div className={`${cardBase} p-4 sm:p-5`}>
-            <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] opacity-80">
-              <User className="size-3.5 text-[var(--accent)]" /> Customer
-            </h3>
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 text-sm font-bold text-[var(--accent)]">
-                {customer?.name?.[0] || 'C'}
-              </div>
-              <div className="min-w-0">
-                <h4 className="truncate text-[13px] font-semibold text-[var(--text-primary)]">{customer?.name || 'Customer'}</h4>
-                <p className="truncate text-[11px] text-[var(--text-secondary)] opacity-70">{customer?.email || '—'}</p>
-              </div>
+        {/* ── Parties (matching delivery track page design) ──────────────── */}
+        <div className="order-1 lg:order-2 lg:col-span-4 space-y-4">
+          {/* Customer / Buyer Card */}
+          <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.03] p-5 space-y-3">
+            <div className="flex items-center gap-2 text-blue-600">
+              <User className="size-3.5" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Customer</span>
             </div>
-            {(order.shipping_address?.phone || customer?.phone) ? (
-              <a
-                href={`tel:${String(order.shipping_address?.phone || customer?.phone).replace(/\s/g, '')}`}
-                className="mt-4 flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3 py-2.5 transition active:bg-[var(--accent)]/10 sm:min-h-0"
-              >
-                <Phone className="size-3.5 shrink-0 text-[var(--accent)]" />
-                <span className="font-mono text-[11px] tracking-wide text-[var(--text-primary)]">
+            <div>
+              <p className="text-sm font-bold text-[var(--text-primary)]">{customer?.name || 'Customer'}</p>
+              {customer?.email && <p className="text-[11px] text-[var(--text-secondary)] opacity-50 mt-1">{customer.email}</p>}
+              {(order.shipping_address?.phone || customer?.phone) && (
+                <a href={`tel:${String(order.shipping_address?.phone || customer?.phone).replace(/\s/g, '')}`}
+                  className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 hover:text-[var(--accent)] transition-colors">
+                  <Phone className="size-3" />
                   {order.shipping_address?.phone || customer?.phone}
-                </span>
-              </a>
-            ) : (
-              <div className="mt-4 flex min-h-[44px] items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3 py-2.5 opacity-60 sm:min-h-0">
-                <Phone className="size-3.5 shrink-0 text-[var(--accent)]" />
-                <span className="font-mono text-[11px] tracking-wide text-[var(--text-primary)]">—</span>
+                </a>
+              )}
+            </div>
+            {order.shipping_address && (
+              <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70 pt-2 border-t border-blue-500/10">
+                {[order.shipping_address?.street || order.shipping_address?.address, order.shipping_address?.quartier, order.shipping_address?.city, order.shipping_address?.region].filter(Boolean).join(', ') || 'Address on file'}
               </div>
             )}
-            {/* Vendor → Customer message button */}
-            {canVendorMessageCustomer && (
-              <button
-                type="button"
-                onClick={openCustomerChat}
-                className="mt-2 flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
-              >
-                <MessageCircle className="size-4" />
-                Message Customer
-              </button>
-            )}
-            {/* Customer → Vendor message button */}
-            {canMessageVendor && (
-              <button
-                type="button"
-                onClick={openVendorChat}
-                className="mt-2 flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
-              >
-                <MessageCircle className="size-4" />
-                Message Vendor
-              </button>
-            )}
-            {/* Logistics → Customer message button */}
-            {canLogisticsMessageCustomer && (
-              <button
-                type="button"
-                onClick={openLogisticsCustomerChat}
-                className="mt-2 flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
-              >
-                <MessageCircle className="size-4" />
-                Message Customer
-              </button>
-            )}
+            {/* Chat buttons */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              {canVendorMessageCustomer && (
+                <button type="button" onClick={openCustomerChat}
+                  className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3.5 py-2 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15">
+                  <MessageCircle className="size-3.5" /> Message
+                </button>
+              )}
+              {canLogisticsMessageCustomer && (
+                <button type="button" onClick={openLogisticsCustomerChat}
+                  className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3.5 py-2 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15">
+                  <MessageCircle className="size-3.5" /> Message
+                </button>
+              )}
+            </div>
           </div>
 
-          <div className={`${cardBase} p-4 sm:p-5`}>
-            <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] opacity-80">
-              <Truck className="size-3.5 text-[var(--accent)]" /> Carrier
-            </h3>
+          {/* Vendor Card */}
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-5 space-y-3">
+            <div className="flex items-center gap-2 text-emerald-600">
+              <ShoppingBag className="size-3.5" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Vendor</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[var(--text-primary)]">{vendorStoreName}</p>
+            </div>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {canMessageVendor && (
+                <button type="button" onClick={openVendorChat}
+                  className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3.5 py-2 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15">
+                  <MessageCircle className="size-3.5" /> Message Vendor
+                </button>
+              )}
+              {canLogisticsMessageVendor && (
+                <button type="button" onClick={openLogisticsVendorChat}
+                  className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3.5 py-2 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15">
+                  <MessageCircle className="size-3.5" /> Message Vendor
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Carrier Card */}
+          <div className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.03] p-5 space-y-3">
+            <div className="flex items-center gap-2 text-violet-600">
+              <Truck className="size-3.5" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Carrier</span>
+            </div>
             {shipment && (shipment.logistics_id || shipment.logistics_company_id) ? (
-              <div className="space-y-4">
-                <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-4">
-                  <h4 className="text-[12px] font-semibold capitalize text-[var(--text-primary)]">
+              <>
+                <div>
+                  <p className="text-sm font-bold text-[var(--text-primary)]">
                     {(shipment.logistics_id?.company_name || shipment.logistics_company_id?.company_name || 'Carrier').slice(0, 24)}
-                  </h4>
-                  <div className="mt-1 flex items-center gap-2 text-[11px] text-[var(--text-secondary)] opacity-80">
-                    <Phone className="size-3 opacity-60" />
-                    {shipment.logistics_id?.contact_phone || shipment.logistics_company_id?.contact_phone || '—'}
-                  </div>
+                  </p>
+                  {(shipment.logistics_id?.contact_phone || shipment.logistics_company_id?.contact_phone) && (
+                    <a href={`tel:${shipment.logistics_id?.contact_phone || shipment.logistics_company_id?.contact_phone}`}
+                      className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 hover:text-[var(--accent)] transition-colors">
+                      <Phone className="size-3" />
+                      {shipment.logistics_id?.contact_phone || shipment.logistics_company_id?.contact_phone}
+                    </a>
+                  )}
                 </div>
-                <div className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-[var(--glass-border)] px-3 py-2 sm:min-h-0">
-                  <code className="min-w-0 truncate font-mono text-[11px] font-semibold text-[var(--accent)]">
-                    {shipment.tracking_code || 'Pending'}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (shipment.tracking_code) {
-                        navigator.clipboard.writeText(shipment.tracking_code);
-                        toast.success('Copied');
-                      }
-                    }}
-                    className="flex size-11 shrink-0 items-center justify-center rounded-lg text-[var(--text-secondary)] transition active:bg-[var(--bg-secondary)] active:text-[var(--accent)] sm:size-9 sm:hover:text-[var(--accent)]"
-                    aria-label="Copy tracking code"
-                  >
-                    <Layers className="size-4" />
+                <div className="flex items-center gap-2 pt-2 border-t border-violet-500/10">
+                  <code className="font-mono text-[11px] font-semibold text-[var(--accent)] flex-1">{shipment.tracking_code || 'Pending'}</code>
+                  <button type="button" onClick={() => { if (shipment.tracking_code) { navigator.clipboard.writeText(shipment.tracking_code); toast.success('Copied'); } }}
+                    className="size-8 flex items-center justify-center rounded-lg text-[var(--text-secondary)] transition active:text-[var(--accent)]">
+                    <Layers className="size-3.5" />
                   </button>
                 </div>
-                {canMessageCarrier && (
-                  <button
-                    type="button"
-                    onClick={openCarrierChat}
-                    className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
-                  >
-                    <MessageCircle className="size-4" />
-                    Message Carrier
-                  </button>
-                )}
-                {/* Vendor → Carrier message button */}
-                {canVendorMessageCarrier && (
-                  <button
-                    type="button"
-                    onClick={openVendorCarrierChat}
-                    className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
-                  >
-                    <MessageCircle className="size-4" />
-                    Message Carrier
-                  </button>
-                )}
-                {/* Logistics → Vendor message button */}
-                {canLogisticsMessageVendor && (
-                  <button
-                    type="button"
-                    onClick={openLogisticsVendorChat}
-                    className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
-                  >
-                    <MessageCircle className="size-4" />
-                    Message Vendor
-                  </button>
-                )}
-              </div>
+                <div className="flex flex-wrap gap-2">
+                  {canMessageCarrier && (
+                    <button type="button" onClick={openCarrierChat}
+                      className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3.5 py-2 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15">
+                      <MessageCircle className="size-3.5" /> Message
+                    </button>
+                  )}
+                  {canVendorMessageCarrier && (
+                    <button type="button" onClick={openVendorCarrierChat}
+                      className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3.5 py-2 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15">
+                      <MessageCircle className="size-3.5" /> Message
+                    </button>
+                  )}
+                </div>
+              </>
             ) : order.logistics_company_id?.company_name ? (
-              <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-4">
-                <h4 className="text-[12px] font-semibold capitalize text-[var(--text-primary)]">
-                  {order.logistics_company_id.company_name.slice(0, 24)}
-                </h4>
-                {order.logistics_company_id.contact_phone && (
-                  <div className="mt-1 flex items-center gap-2 text-[11px] text-[var(--text-secondary)] opacity-80">
-                    <Phone className="size-3 opacity-60" />
-                    {order.logistics_company_id.contact_phone}
-                  </div>
-                )}
-                <p className="mt-2 text-[10px] font-medium text-[var(--text-secondary)] opacity-50">Awaiting pickup assignment</p>
+              <div>
+                <p className="text-sm font-bold text-[var(--text-primary)]">{order.logistics_company_id.company_name.slice(0, 24)}</p>
+                <p className="mt-1 text-[10px] text-[var(--text-secondary)] opacity-50">Awaiting pickup assignment</p>
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 px-4 py-6 text-center">
-                <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60">No carrier assigned yet</p>
-              </div>
+              <p className="text-[11px] text-[var(--text-secondary)] opacity-50">No carrier assigned yet</p>
             )}
           </div>
 
-          <div className={`${cardBase} p-4 sm:p-5`}>
-            <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] opacity-80">
-              <CreditCard className="size-3.5 text-[var(--accent)]" /> Settlement
-            </h3>
-            <div className="space-y-2 border-b border-[var(--glass-border)] pb-4 text-[11px]">
-              <div className="flex justify-between gap-4 font-medium text-[var(--text-secondary)] opacity-80">
+          {/* Settlement Card */}
+          <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-5 space-y-3">
+            <div className="flex items-center gap-2 opacity-60">
+              <CreditCard className="size-3.5" />
+              <span className="text-[10px] font-bold uppercase tracking-wider">Settlement</span>
+            </div>
+            <div className="space-y-2 text-[11px]">
+              <div className="flex justify-between gap-4 text-[var(--text-secondary)] opacity-80">
                 <span>Subtotal</span>
                 <span className="font-mono">{(order.total_amount - (order.shipping_fee || 0)).toLocaleString()} XAF</span>
               </div>
-              <div className="flex justify-between gap-4 font-medium text-[var(--text-secondary)] opacity-80">
+              <div className="flex justify-between gap-4 text-[var(--text-secondary)] opacity-80">
                 <span>Shipping</span>
                 <span className="font-mono">{(order.shipping_fee || 0).toLocaleString()} XAF</span>
               </div>
             </div>
-            <div className="mt-4 flex items-end justify-between gap-4">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">Total</span>
-              <p className="text-xl font-bold tabular-nums tracking-tight text-[var(--text-primary)]">
-                {order.total_amount.toLocaleString()} <span className="text-[11px] font-medium opacity-40">XAF</span>
+            <div className="flex items-end justify-between gap-4 pt-3 border-t border-[var(--glass-border)]/50">
+              <span className="text-[11px] font-semibold text-[var(--accent)]">Total</span>
+              <p className="text-xl font-black tabular-nums tracking-tight text-[var(--text-primary)]">
+                {order.total_amount.toLocaleString()} <span className="text-[9px] font-bold opacity-40">XAF</span>
               </p>
             </div>
-            <div className="mt-4 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-3">
-              <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+            <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.03] p-3">
+              <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-600">
                 <ShieldCheck className="size-3.5" />
                 {escrowStatus === 'released' ? 'Escrow released' : 'Escrow tracked'}
               </div>
               {escrowCanRelease && (
-                <p className="mt-2 text-[10px] font-medium leading-relaxed text-[var(--text-secondary)] opacity-70">
-                  Auto-release runs 6 hours after delivery if no dispute is opened
-                  {autoReleaseLabel ? `: ${autoReleaseLabel}` : '.'}
+                <p className="mt-2 text-[10px] text-[var(--text-secondary)] opacity-70">
+                  Auto-release in 6h after delivery{autoReleaseLabel ? `: ${autoReleaseLabel}` : ''}
                 </p>
               )}
-              <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-[var(--bg-secondary)]">
-                <div className="h-full w-full rounded-full bg-emerald-500" />
-              </div>
             </div>
           </div>
 
-          <div className={`${cardBase} p-4 sm:p-5`}>
-            <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] opacity-80">
-              <MapPin className="size-3.5 text-[var(--accent)]" /> Ship to
-            </h3>
-            <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-3 sm:p-4">
-              <h4 className="text-[13px] font-semibold text-[var(--text-primary)]">
-                {order.shipping_address?.full_name || customer?.name || 'Recipient'}
-              </h4>
-              <div className="mt-3 flex flex-col gap-2 text-[11px] leading-relaxed text-[var(--text-secondary)]">
-                <div className="flex gap-2">
-                  <MapPin className="mt-0.5 size-3.5 shrink-0 text-[var(--accent)] opacity-80" />
-                  <span>
-                    {[
-                      order.shipping_address?.street || order.shipping_address?.address,
-                      order.shipping_address?.quartier,
-                      order.shipping_address?.city,
-                      order.shipping_address?.region,
-                      order.shipping_address?.zipCode || order.shipping_address?.zip
-                    ]
-                      .filter(Boolean)
-                      .join(', ') || 'Address on file'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 font-mono">
-                  <Phone className="size-3.5 shrink-0 text-[var(--accent)] opacity-70" />
-                  {order.shipping_address?.phone || customer?.phone || '—'}
-                </div>
+          {/* Delivery Notes */}
+          {order.delivery_description && (
+            <div className="rounded-2xl border border-[var(--accent)]/10 bg-[var(--accent)]/[0.03] p-5 space-y-3">
+              <div className="flex items-center gap-2 text-[var(--accent)]/60">
+                <MapPin className="size-3.5" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Delivery Notes</span>
               </div>
+              <p className="text-[12px] leading-relaxed text-[var(--text-primary)] italic">{order.delivery_description}</p>
             </div>
-
-            {order.delivery_description && (
-              <div className="mt-4 border-t border-[var(--glass-border)] pt-4">
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] opacity-70">
-                  Delivery notes
-                </p>
-                <p className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-3 text-[11px] italic leading-relaxed text-indigo-700 dark:text-indigo-300">
-                  &ldquo;{order.delivery_description}&rdquo;
-                </p>
-              </div>
-            )}
-          </div>
-        </aside>
+          )}
+        </div>
       </div>
 
       {/* ── Order Message Thread ──────────────────────────────────────────── */}

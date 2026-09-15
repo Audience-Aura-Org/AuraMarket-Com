@@ -76,6 +76,14 @@ const ShipmentSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    base_price: {
+      type: Number,
+      default: 0,
+    },
+    platform_fee: {
+      type: Number,
+      default: 0,
+    },
     proof_of_delivery: {
       image_url: String,
       note: String,

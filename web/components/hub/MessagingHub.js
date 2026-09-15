@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import {
-  Send, X, ArrowLeft, Package,
+  Send, X, ArrowLeft, Package, Truck, Navigation,
   MessageCircle, Check, CheckCheck, Loader2, Clock, WifiOff,
   Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical
 } from 'lucide-react';
@@ -265,6 +265,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const hasPushedHistoryRef = useRef(false); // tracks if single dummy history entry was pushed for the overlay
   const drainInProgressRef = useRef(false);  // prevents concurrent drain runs when state mutations re-trigger the effect
   const silentLoadInFlightRef = useRef(false); // prevents stacked silent reloads from 2s poll + pre-send sync + reconnect
+
+  // -- P2P Delivery Threads in Inbox --
+  const [deliveryThreads, setDeliveryThreads] = useState([]);
+  const [deliveryThreadsLoaded, setDeliveryThreadsLoaded] = useState(false);
 
   const [deletedConvos, setDeletedConvos] = useState(() => {
     if (typeof window === 'undefined') return {};
@@ -741,6 +745,24 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       loadInbox({ silent: inbox.length > 0 });
     }
   }, [activePartnerId, isSystemWide, hasSeedPartnerData]);
+
+  // ── Load P2P delivery threads for inbox ──
+  useEffect(() => {
+    if (!user?._id) return;
+    let cancelled = false;
+    const fetchDeliveryThreads = async () => {
+      try {
+        const res = await api.get('/messages/shipment-threads/mine');
+        if (!cancelled && res.data?.success) {
+          setDeliveryThreads(res.data.data?.threads || []);
+          setDeliveryThreadsLoaded(true);
+        }
+      } catch { /* ignore */ }
+    };
+    fetchDeliveryThreads();
+    const iv = setInterval(fetchDeliveryThreads, 30000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, [user?._id]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1974,8 +1996,67 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         {!activePartnerId ? (
           /* - Inbox list - */
           <div className="p-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] sm:p-3">
+
+            {/* ── Active P2P Delivery Threads ──────────────────── */}
+            {deliveryThreads.filter(t => t.isActive).length > 0 && (
+              <div className="mb-2">
+                <div className="flex items-center gap-2 px-2 py-1.5">
+                  <Truck className="size-3.5 text-[var(--accent)]" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-70">Active Deliveries</span>
+                </div>
+                <div className="space-y-px overflow-hidden rounded-xl bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--accent)]/20">
+                  {deliveryThreads.filter(t => t.isActive).map((thread) => {
+                    const s = thread.shipment;
+                    const statusColors = {
+                      assigned: 'bg-blue-500', picked_up: 'bg-indigo-500', in_transit: 'bg-blue-500',
+                      out_for_delivery: 'bg-violet-500', pending: 'bg-amber-500',
+                    };
+                    const dot = statusColors[s.status] || 'bg-blue-500';
+                    const label = (s.status || '').replace(/_/g, ' ');
+                    const dropCity = s.delivery_address?.city || s.delivery_address?.quartier || '';
+                    const pickCity = s.pickup_address?.city || s.pickup_address?.quartier || '';
+                    const route = [pickCity, dropCity].filter(Boolean).join(' → ') || 'Delivery';
+                    return (
+                      <a
+                        key={s._id}
+                        href={`/delivery/track?code=${s.tracking_code}`}
+                        className="flex w-full items-center gap-3 border-b border-[var(--glass-border)] px-3 py-2.5 text-left transition-colors active:bg-[var(--bg-secondary)] sm:gap-4 sm:px-4 sm:py-3 bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)]"
+                      >
+                        <div className="relative flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/10 sm:size-12">
+                          <Navigation className="size-5 text-[var(--accent)]" />
+                          <span className={`absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-[var(--bg-primary)] ${dot}`} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-0.5 flex items-start justify-between gap-2">
+                            <h4 className="truncate text-[14px] font-medium text-[var(--text-primary)] sm:text-[15px]">
+                              {route}
+                            </h4>
+                            <span className="shrink-0 pt-0.5 text-[10px] text-[var(--text-secondary)] sm:text-[11px]">
+                              {new Date(s.updatedAt || s.createdAt).toLocaleDateString([], { day: 'numeric', month: 'short' })}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                              <span className={`size-1.5 rounded-full ${dot} shrink-0 animate-pulse`} />
+                              <span className="text-[12px] capitalize text-[var(--text-secondary)] truncate sm:text-[13px]">{label}</span>
+                              <span className="text-[11px] text-[var(--text-secondary)] opacity-40 font-mono">· {s.tracking_code}</span>
+                            </div>
+                            {thread.messageCount > 0 && (
+                              <span className="flex size-[20px] shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/15 text-[10px] font-semibold text-[var(--accent)]">
+                                {thread.messageCount}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="space-y-px overflow-hidden rounded-xl bg-[var(--bg-primary)] shadow-sm ring-1 ring-[var(--glass-border)]">
-              {filteredInbox.length === 0 ? (
+              {filteredInbox.length === 0 && deliveryThreads.filter(t => t.isActive).length === 0 ? (
                 <div className="bg-[var(--bg-primary)] px-6 py-16 text-center">
                   <MessageCircle className="mx-auto mb-4 size-14 text-[var(--text-secondary)]" />
                   <p className="text-[15px] font-medium text-[var(--text-primary)]">

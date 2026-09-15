@@ -163,6 +163,7 @@ function TrackContent() {
   const [error, setError] = useState('');
   const [messages, setMessages] = useState([]);
   const [msgInput, setMsgInput] = useState('');
+  const [sendingMsg, setSendingMsg] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
   const msgEnd = useRef(null);
@@ -186,7 +187,8 @@ function TrackContent() {
   }, []);
 
   const sendMsg = async () => {
-    if (!msgInput.trim() || !shipment) return;
+    if (!msgInput.trim() || !shipment || sendingMsg) return;
+    setSendingMsg(true);
     try {
       const res = await api.post(`/messages/shipment/${shipment._id}`, { text: msgInput.trim() });
       if (res.data?.success) {
@@ -195,6 +197,7 @@ function TrackContent() {
         setTimeout(() => msgEnd.current?.scrollIntoView({ behavior: 'smooth' }), 50);
       }
     } catch {}
+    setSendingMsg(false);
   };
 
   const copyCode = () => {
@@ -548,9 +551,9 @@ function TrackContent() {
                   <input value={msgInput} onChange={e => setMsgInput(e.target.value)}
                     placeholder="Type a message..."
                     className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[12px] font-medium outline-none focus:border-[var(--accent)]/30 transition-colors placeholder:text-[var(--text-secondary)] placeholder:opacity-30 min-h-[40px]" />
-                  <button type="submit" disabled={!msgInput.trim()}
+                  <button type="submit" disabled={!msgInput.trim() || sendingMsg}
                     className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-white transition-all active:scale-95 disabled:opacity-30">
-                    <Send className="size-4" />
+                    {sendingMsg ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
                   </button>
                 </form>
               </div>

@@ -137,6 +137,8 @@ const createP2PShipment = async (req, res) => {
       tracking_code: trackingCode,
       status: 'assigned', // P2P shipments start as assigned since provider is already selected
       price: quote.price,
+      base_price: quote.base_price || quote.price,
+      platform_fee: quote.platform_fee || 0,
       pickup_address: {
         street: pickup_address.street,
         city: pickup_address.city,
