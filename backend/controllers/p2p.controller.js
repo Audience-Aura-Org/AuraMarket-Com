@@ -364,7 +364,9 @@ const trackP2PShipment = async (req, res) => {
       tracking_code: trackingCode.toUpperCase(),
       type: 'p2p',
     })
-      .select('tracking_code status direction price payment_status pickup_address delivery_address package_details shipment_logs proof_of_delivery estimated_delivery createdAt')
+      .select('tracking_code status direction price payment_status pickup_address delivery_address package_details shipment_logs proof_of_delivery estimated_delivery createdAt booked_by guest_booker other_party logistics_id scheduled_pickup')
+      .populate('booked_by', 'name email phone')
+      .populate('logistics_id', 'company_name')
       .lean();
 
     if (!shipment) {

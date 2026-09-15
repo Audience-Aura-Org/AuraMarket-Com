@@ -1,0 +1,42 @@
+{
+  "name": "Auradime",
+  "short_name": "Aura",
+  "description": "Shop quality digital and physical products from trusted sellers in Cameroon and Africa.",
+  "id": "/",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a050a",
+  "theme_color": "#0a050a",
+  "categories": ["shopping", "ecommerce", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192.png?v=8",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png?v=8",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-512.png?v=8",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Auradime — Premium Shopping"
+    },
+    {
+      "src": "/icon-512.png?v=8",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Auradime — Mobile Experience"
+    }
+  ],
+  "orientation": "portrait"
+}

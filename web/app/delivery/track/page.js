@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import api from '@/services/api';
 import {
-  Package, MapPin, Clock, CheckCircle2, XCircle, Truck, AlertTriangle, Search, Loader2, Zap,
+  Package, MapPin, Clock, CheckCircle2, XCircle, Truck, AlertTriangle, Search, Loader2, Zap, User, MessageCircle, Send,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -75,6 +75,10 @@ function TrackDeliveryContent() {
   const [loading, setLoading] = useState(!!codeParam);
   const [error, setError] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [messages, setMessages] = useState([]);
+  const [messageInput, setMessageInput] = useState('');
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const messagesEndRef = useRef(null);
 
   const fetchShipment = async (trackingCode) => {
     if (!trackingCode) return;
@@ -95,9 +99,42 @@ function TrackDeliveryContent() {
     setLoading(false);
   };
 
+  const fetchMessages = async (shipmentId) => {
+    try {
+      const res = await api.get(`/messages/shipment/${shipmentId}`);
+      if (res.data?.success) {
+        setMessages(res.data.data?.messages || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch messages:', err);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!messageInput.trim() || !shipment) return;
+    try {
+      const res = await api.post(`/messages/shipment/${shipment._id}`, {
+        text: messageInput.trim(),
+      });
+      if (res.data?.success) {
+        setMessageInput('');
+        setMessages([...messages, res.data.data.message]);
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
+  };
+
   useEffect(() => {
     if (codeParam) fetchShipment(codeParam);
   }, [codeParam]);
+
+  useEffect(() => {
+    if (shipment?._id) {
+      fetchMessages(shipment._id);
+    }
+  }, [shipment?._id]);
 
   // Auto-refresh every 30 seconds if shipment is not delivered
   useEffect(() => {
@@ -247,6 +284,91 @@ function TrackDeliveryContent() {
                 </div>
               </div>
             )}
+
+            {/* Sender & Recipient Details */}
+            <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-6">
+              <h3 className="font-bold text-[var(--text-primary)] text-[14px] mb-4 flex items-center gap-2">
+                <User className="size-5" /> Parties Involved
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Sender/Booker */}
+                <div className="rounded-xl bg-[var(--bg-primary)] p-4">
+                  <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase mb-3">Sender</p>
+                  {shipment.booked_by ? (
+                    <>
+                      <p className="font-bold text-[var(--text-primary)]">{shipment.booked_by.name}</p>
+                      {shipment.booked_by.phone && <p className="text-[12px] text-[var(--text-secondary)] mt-1">{shipment.booked_by.phone}</p>}
+                      {shipment.booked_by.email && <p className="text-[12px] text-[var(--text-secondary)]">{shipment.booked_by.email}</p>}
+                    </>
+                  ) : shipment.guest_booker ? (
+                    <>
+                      <p className="font-bold text-[var(--text-primary)]">{shipment.guest_booker.name}</p>
+                      {shipment.guest_booker.phone && <p className="text-[12px] text-[var(--text-secondary)] mt-1">{shipment.guest_booker.phone}</p>}
+                      {shipment.guest_booker.email && <p className="text-[12px] text-[var(--text-secondary)]">{shipment.guest_booker.email}</p>}
+                    </>
+                  ) : (
+                    <p className="text-[12px] text-[var(--text-secondary)]">—</p>
+                  )}
+                </div>
+
+                {/* Recipient */}
+                <div className="rounded-xl bg-[var(--bg-primary)] p-4">
+                  <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase mb-3">Recipient</p>
+                  {shipment.other_party?.name ? (
+                    <>
+                      <p className="font-bold text-[var(--text-primary)]">{shipment.other_party.name}</p>
+                      {shipment.other_party.phone && <p className="text-[12px] text-[var(--text-secondary)] mt-1">{shipment.other_party.phone}</p>}
+                      {shipment.other_party.email && <p className="text-[12px] text-[var(--text-secondary)]">{shipment.other_party.email}</p>}
+                    </>
+                  ) : (
+                    <p className="text-[12px] text-[var(--text-secondary)]">—</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Messaging */}
+            <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-6">
+              <h3 className="font-bold text-[var(--text-primary)] text-[14px] mb-4 flex items-center gap-2">
+                <MessageCircle className="size-5" /> Messages
+              </h3>
+              <div className="space-y-3 mb-4 max-h-[300px] overflow-y-auto">
+                {messages.length === 0 ? (
+                  <p className="text-[12px] text-[var(--text-secondary)] text-center py-6">No messages yet. Start a conversation!</p>
+                ) : (
+                  messages.map((msg, i) => (
+                    <div key={i} className="rounded-lg bg-[var(--bg-primary)] p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-[12px] text-[var(--text-primary)]">{msg.sender_name || 'Unknown'}</p>
+                          <p className="text-[12px] text-[var(--text-primary)] mt-1 break-words">{msg.text}</p>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-secondary)] mt-2">{new Date(msg.timestamp).toLocaleString()}</p>
+                    </div>
+                  ))
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Message Input */}
+              <div className="flex gap-2">
+                <input
+                  value={messageInput}
+                  onChange={e => setMessageInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendMessage())}
+                  placeholder="Type your message..."
+                  className="flex-1 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2 text-[12px] outline-none transition-all focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+                />
+                <button
+                  onClick={sendMessage}
+                  disabled={!messageInput.trim()}
+                  className="shrink-0 rounded-lg bg-[var(--accent)] p-2 text-white disabled:opacity-50 hover:opacity-90 transition-all flex items-center justify-center"
+                >
+                  <Send className="size-4" />
+                </button>
+              </div>
+            </div>
 
             {/* Timeline */}
             {shipment.shipment_logs?.length > 0 && (

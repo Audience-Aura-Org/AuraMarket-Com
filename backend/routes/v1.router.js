@@ -40,6 +40,7 @@ const restaurantRoutes = require('./restaurant.routes');
 const dineRoutes = require('./dine.routes');
 const reservationRoutes = require('./reservation.routes');
 const p2pRoutes = require('./p2p.routes');
+const messagesRoutes = require('./messages.routes');
 
 // Mount routes
 router.use('/auth', strictLimiter, authRoutes);
@@ -80,6 +81,7 @@ router.use('/dine', publicLimiter, dineRoutes);       // GET /api/dine and /api/
 router.use('/restaurant', restaurantRoutes);           // GET/POST/PATCH /api/restaurant/profile
 router.use('/reservations', reservationRoutes);        // Phase 3 Step 14 — dine-in reservations
 router.use('/p2p', p2pRoutes);                         // P2P Pickup & Delivery
+router.use('/messages', messagesRoutes);               // Shipment messages
 
 if (process.env.ENABLE_DEBUG_ROUTES === 'true') {
   router.use('/debug', debugRoutes);
