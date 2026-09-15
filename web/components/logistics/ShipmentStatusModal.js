@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import {
   Loader2,
   Truck,
@@ -14,9 +15,12 @@ import {
   ChevronRight,
   ChevronLeft,
   MessageCircle,
+  Send,
+  ArrowDownToLine,
 } from "lucide-react";
 import { formatVariantLabel } from "@/utils/variants";
 import { useChat } from "@/context/ChatContext";
+import api from "@/services/api";
 
 const FAILURE_OPTIONS = [
   { value: "unreachable", label: "Customer Unreachable" },
@@ -47,8 +51,8 @@ function orderRef(order) {
 }
 
 /**
- * Premium Redesign of ShipmentStatusModal
- * Uses a more structured hierarchy and timeline flow.
+ * ShipmentStatusModal — supports both marketplace and P2P shipments
+ * Includes sender/recipient info and shipment message thread
  */
 export default function ShipmentStatusModal({
   open,
@@ -61,18 +65,76 @@ export default function ShipmentStatusModal({
   onBack,
   onSubmit,
 }) {
-  // Hook must run before any early returns (React rules)
   const { openChat } = useChat();
+  const [messages, setMessages] = useState([]);
+  const [msgText, setMsgText] = useState("");
+  const [sendingMsg, setSendingMsg] = useState(false);
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const msgEndRef = useRef(null);
 
   const visible = embedded ? !!shipment : open && !!shipment;
+  const shipmentId = shipment?._id;
+
+  // Fetch messages for this shipment
+  useEffect(() => {
+    if (!visible || !shipmentId) return;
+    let cancelled = false;
+    const fetchMsgs = async () => {
+      setLoadingMsgs(true);
+      try {
+        const res = await api.get(`/messages/shipment/${shipmentId}`);
+        if (!cancelled && res.data?.success) {
+          setMessages(res.data.data?.messages || []);
+        }
+      } catch { /* ignore */ }
+      if (!cancelled) setLoadingMsgs(false);
+    };
+    fetchMsgs();
+    const interval = setInterval(fetchMsgs, 15000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [visible, shipmentId]);
+
+  // Auto-scroll messages
+  useEffect(() => {
+    msgEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSendMsg = async (e) => {
+    e.preventDefault();
+    if (!msgText.trim() || !shipmentId) return;
+    setSendingMsg(true);
+    try {
+      const res = await api.post(`/messages/shipment/${shipmentId}`, { text: msgText.trim() });
+      if (res.data?.success) {
+        setMessages(prev => [...prev, res.data.data.message]);
+        setMsgText("");
+      }
+    } catch { /* ignore */ }
+    setSendingMsg(false);
+  };
+
   if (!visible) return null;
 
+  const isP2P = shipment.type === 'p2p';
   const order = shipment.order_id;
   const vendor = shipment.vendor_id;
   const customer = typeof order?.customer_id === "object" ? order.customer_id : null;
 
-  // ── 3-way messaging helpers ──────────────────────────────────────────────
-  // vendor.user_id is populated by the logistics controller
+  // P2P sender info
+  const senderUser = typeof shipment.booked_by === 'object' ? shipment.booked_by : null;
+  const guestBooker = shipment.guest_booker;
+  const senderName = senderUser?.name || guestBooker?.name || 'Sender';
+  const senderPhone = senderUser?.phone || guestBooker?.phone || shipment.pickup_address?.phone || null;
+  const senderEmail = senderUser?.email || guestBooker?.email || null;
+
+  // P2P recipient info
+  const otherParty = shipment.other_party;
+  const otherPartyUser = typeof otherParty?.user_id === 'object' ? otherParty.user_id : null;
+  const recipientNameP2P = otherPartyUser?.name || otherParty?.name || 'Recipient';
+  const recipientPhoneP2P = otherPartyUser?.phone || otherParty?.phone || shipment.delivery_address?.phone || null;
+  const recipientEmailP2P = otherPartyUser?.email || otherParty?.email || null;
+
+  // Messaging helpers
   const vendorUserId = vendor?.user_id?._id || vendor?.user_id || null;
   const vendorName = vendor?.store_name || vendor?.name || "Vendor";
   const customerId = customer?._id || (typeof order?.customer_id === "string" ? order.customer_id : null);
@@ -87,27 +149,20 @@ export default function ShipmentStatusModal({
     if (!customerId) return;
     openChat(customerId, null, { name: customer?.name || "Customer" }, false, orderLabel);
   };
+
   const pickup = formatAddress(shipment.pickup_address);
   const drop = formatAddress(shipment.delivery_address);
-  const noteBlock =
-    shipment.delivery_description ||
-    order?.delivery_description ||
-    null;
+  const noteBlock = shipment.delivery_description || order?.delivery_description || null;
 
+  // Marketplace recipient
   const shipAddr = order?.shipping_address;
-  const recipientLabel =
-    shipAddr?.full_name || shipAddr?.name || customer?.name || "Recipient (order)";
+  const recipientLabel = shipAddr?.full_name || shipAddr?.name || customer?.name || "Recipient";
   const recipientLines = shipAddr
-    ? [
-        shipAddr.street,
-        shipAddr.quartier,
-        shipAddr.city,
-        shipAddr.region,
-        shipAddr.country,
-      ].filter(Boolean)
+    ? [shipAddr.street, shipAddr.quartier, shipAddr.city, shipAddr.region, shipAddr.country].filter(Boolean)
     : [];
 
   const products = Array.isArray(order?.products) ? order.products : [];
+  const pkgDetails = shipment.package_details;
 
   const cardShellClass = embedded
     ? "relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-[0_28px_90px_-28px_rgba(0,0,0,0.18)] ring-1 ring-black/5 dark:ring-white/10"
@@ -124,7 +179,7 @@ export default function ShipmentStatusModal({
 
   const panel = (
     <div className={cardShellClass}>
-        
+
         {/* Header Section */}
         <div className={headerShell}>
           {embedded && onBack ? (
@@ -144,9 +199,16 @@ export default function ShipmentStatusModal({
                   <div className="flex h-6 items-center rounded-full bg-[var(--accent)]/10 px-2.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent)] border border-[var(--accent)]/20">
                     {String(shipment.status || "pending").replace(/_/g, " ")}
                   </div>
-                  <span className="font-mono text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-70">
-                    #{orderRef(order)}
-                  </span>
+                  {isP2P && (
+                    <div className="flex h-6 items-center rounded-full bg-violet-500/10 px-2.5 text-[10px] font-bold uppercase tracking-wider text-violet-600 border border-violet-500/20">
+                      P2P
+                    </div>
+                  )}
+                  {!isP2P && (
+                    <span className="font-mono text-[11px] font-bold tracking-tight text-[var(--text-secondary)] opacity-70">
+                      #{orderRef(order)}
+                    </span>
+                  )}
                 </div>
                 <h3 className="text-2xl font-black tracking-tight text-[var(--text-primary)] sm:text-3xl md:text-[2rem] md:leading-tight">
                   {shipment.tracking_code}
@@ -168,10 +230,18 @@ export default function ShipmentStatusModal({
                     <div className="flex h-6 items-center rounded-full bg-[var(--accent)]/10 px-2.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent)] border border-[var(--accent)]/20">
                       {String(shipment.status || "pending").replace(/_/g, " ")}
                     </div>
-                    <span className="text-[11px] font-medium text-[var(--text-secondary)] opacity-40">·</span>
-                    <span className="font-mono text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">
-                      #{orderRef(order)}
-                    </span>
+                    {isP2P ? (
+                      <div className="flex h-6 items-center rounded-full bg-violet-500/10 px-2.5 text-[10px] font-bold uppercase tracking-wider text-violet-600 border border-violet-500/20">
+                        P2P
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-[11px] font-medium text-[var(--text-secondary)] opacity-40">·</span>
+                        <span className="font-mono text-[11px] font-bold tracking-tight text-[var(--text-secondary)]">
+                          #{orderRef(order)}
+                        </span>
+                      </>
+                    )}
                   </div>
                   <h3 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">
                     {shipment.tracking_code}
@@ -201,7 +271,7 @@ export default function ShipmentStatusModal({
         {/* Scrollable Content */}
         <div className={`min-h-0 flex-1 overflow-y-auto ${scrollPad}`}>
           <div className={`space-y-8 ${embedded ? "mx-auto max-w-6xl lg:max-w-none" : ""}`}>
-            
+
             {/* Quick Stats Grid */}
             {embedded ? (
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
@@ -215,8 +285,10 @@ export default function ShipmentStatusModal({
                 </div>
                 <div className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:border-[var(--accent)]/20 hover:bg-[var(--bg-secondary)]/50 md:p-5">
                   <Store className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04] transition-transform group-hover:scale-110" />
-                  <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">Vendor</p>
-                  <p className="mt-1 line-clamp-2 text-[13px] font-bold leading-snug text-[var(--text-primary)] md:text-sm">{vendor?.store_name || "Merchant"}</p>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">{isP2P ? 'Type' : 'Vendor'}</p>
+                  <p className="mt-1 line-clamp-2 text-[13px] font-bold leading-snug text-[var(--text-primary)] md:text-sm">
+                    {isP2P ? (shipment.p2p_type === 'request_pickup' ? 'Pickup Request' : 'Send Package') : (vendor?.store_name || "Merchant")}
+                  </p>
                 </div>
                 <div className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:border-[var(--accent)]/20 hover:bg-[var(--bg-secondary)]/50 md:p-5">
                   <Package className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04] transition-transform group-hover:scale-110" />
@@ -245,8 +317,10 @@ export default function ShipmentStatusModal({
               </div>
               <div className="group relative overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 p-4 transition-all hover:bg-[var(--bg-secondary)]/50">
                 <Store className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.03] transition-transform group-hover:scale-110" />
-                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">Vendor</p>
-                <p className="mt-1 truncate text-[13px] font-bold text-[var(--text-primary)]">{vendor?.store_name || "Merchant"}</p>
+                <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">{isP2P ? 'Type' : 'Vendor'}</p>
+                <p className="mt-1 truncate text-[13px] font-bold text-[var(--text-primary)]">
+                  {isP2P ? (shipment.p2p_type === 'request_pickup' ? 'Pickup Request' : 'Send Package') : (vendor?.store_name || "Merchant")}
+                </p>
               </div>
             </div>
             )}
@@ -289,7 +363,7 @@ export default function ShipmentStatusModal({
                         {drop.phone}
                       </a>
                     )}
-                    {shipAddr?.email && (
+                    {!isP2P && shipAddr?.email && (
                       <span className="text-[11px] font-medium text-[var(--text-secondary)] opacity-50">{shipAddr.email}</span>
                     )}
                   </div>
@@ -297,93 +371,264 @@ export default function ShipmentStatusModal({
               </div>
             </div>
 
-            {/* Recipient & Notes Section */}
-            <div className={`grid gap-4 ${embedded ? "lg:grid-cols-2 lg:gap-6" : "sm:grid-cols-2"}`}>
-              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-5 space-y-3">
-                <div className="flex items-center gap-2 opacity-50">
-                  <User className="size-3.5" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Recipient</span>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-[var(--text-primary)]">{recipientLabel}</p>
-                  {customer?.name && customer.name !== recipientLabel && (
-                    <p className="text-[11px] text-[var(--text-secondary)] opacity-60 mt-1">({customer.name})</p>
-                  )}
-                  {customer?.phone && (
-                    <p className="text-[11px] text-[var(--text-secondary)] opacity-60 mt-1">📱 {customer.phone}</p>
-                  )}
-                </div>
-                {recipientLines.length > 0 && (
-                  <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70 pt-2 border-t border-[var(--glass-border)]">
-                    {recipientLines.join(", ")}
+            {/* Sender & Recipient Section (P2P) */}
+            {isP2P ? (
+              <div className={`grid gap-4 ${embedded ? "lg:grid-cols-2 lg:gap-6" : "sm:grid-cols-2"}`}>
+                {/* Sender */}
+                <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-emerald-600">
+                    <Send className="size-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Sender</span>
                   </div>
-                )}
-                {/* Logistics → Customer + Vendor messaging */}
-                {!isTerminal && (
-                  <div className="flex flex-col gap-2 pt-2 border-t border-[var(--glass-border)]">
-                    {customerId && (
-                      <button
-                        type="button"
-                        onClick={openCustomerChat}
-                        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
-                      >
-                        <MessageCircle className="size-4" />
-                        Message Customer
-                      </button>
+                  <div>
+                    <p className="text-sm font-bold text-[var(--text-primary)]">{senderName}</p>
+                    {senderPhone && (
+                      <a href={`tel:${senderPhone}`} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 hover:text-[var(--accent)] transition-colors">
+                        <Phone className="size-3" />
+                        {senderPhone}
+                      </a>
                     )}
-                    {vendorUserId && (
-                      <button
-                        type="button"
-                        onClick={openVendorChat}
-                        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
-                      >
-                        <MessageCircle className="size-4" />
-                        Message Vendor
-                      </button>
+                    {senderEmail && (
+                      <p className="text-[11px] text-[var(--text-secondary)] opacity-50 mt-1">{senderEmail}</p>
                     )}
                   </div>
-                )}
-              </div>
+                  {shipment.pickup_address && (
+                    <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70 pt-2 border-t border-emerald-500/10">
+                      {pickup.lines.join(", ")}
+                    </div>
+                  )}
+                </div>
 
+                {/* Recipient */}
+                <div className="rounded-2xl border border-rose-500/20 bg-rose-500/[0.03] p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-rose-600">
+                    <ArrowDownToLine className="size-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Recipient</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[var(--text-primary)]">{recipientNameP2P}</p>
+                    {recipientPhoneP2P && (
+                      <a href={`tel:${recipientPhoneP2P}`} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 hover:text-[var(--accent)] transition-colors">
+                        <Phone className="size-3" />
+                        {recipientPhoneP2P}
+                      </a>
+                    )}
+                    {recipientEmailP2P && (
+                      <p className="text-[11px] text-[var(--text-secondary)] opacity-50 mt-1">{recipientEmailP2P}</p>
+                    )}
+                  </div>
+                  {shipment.delivery_address && (
+                    <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70 pt-2 border-t border-rose-500/10">
+                      {drop.lines.join(", ")}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Marketplace Recipient & Notes */
+              <div className={`grid gap-4 ${embedded ? "lg:grid-cols-2 lg:gap-6" : "sm:grid-cols-2"}`}>
+                <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-5 space-y-3">
+                  <div className="flex items-center gap-2 opacity-50">
+                    <User className="size-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Recipient</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[var(--text-primary)]">{recipientLabel}</p>
+                    {customer?.name && customer.name !== recipientLabel && (
+                      <p className="text-[11px] text-[var(--text-secondary)] opacity-60 mt-1">({customer.name})</p>
+                    )}
+                    {customer?.phone && (
+                      <a href={`tel:${customer.phone}`} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-60 mt-1 hover:text-[var(--accent)] transition-colors">
+                        <Phone className="size-3" />
+                        {customer.phone}
+                      </a>
+                    )}
+                  </div>
+                  {recipientLines.length > 0 && (
+                    <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70 pt-2 border-t border-[var(--glass-border)]">
+                      {recipientLines.join(", ")}
+                    </div>
+                  )}
+                  {/* Logistics chat buttons */}
+                  {!isTerminal && (
+                    <div className="flex flex-col gap-2 pt-2 border-t border-[var(--glass-border)]">
+                      {customerId && (
+                        <button
+                          type="button"
+                          onClick={openCustomerChat}
+                          className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
+                        >
+                          <MessageCircle className="size-4" />
+                          Message Customer
+                        </button>
+                      )}
+                      {vendorUserId && (
+                        <button
+                          type="button"
+                          onClick={openVendorChat}
+                          className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3 py-2.5 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15 sm:min-h-0 sm:hover:bg-[var(--accent)] sm:hover:text-white"
+                        >
+                          <MessageCircle className="size-4" />
+                          Message Vendor
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-[var(--accent)]/10 bg-[var(--accent)]/[0.03] p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-[var(--accent)]/60">
+                    <ClipboardList className="size-3.5" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Delivery Notes</span>
+                  </div>
+                  <p className="text-[12px] leading-relaxed text-[var(--text-primary)] italic">
+                    {noteBlock || "No specific instructions provided."}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Delivery Notes (P2P) */}
+            {isP2P && noteBlock && (
               <div className="rounded-2xl border border-[var(--accent)]/10 bg-[var(--accent)]/[0.03] p-5 space-y-3">
                 <div className="flex items-center gap-2 text-[var(--accent)]/60">
                   <ClipboardList className="size-3.5" />
                   <span className="text-[10px] font-bold uppercase tracking-wider">Delivery Notes</span>
                 </div>
-                <p className="text-[12px] leading-relaxed text-[var(--text-primary)] italic">
-                  {noteBlock || "No specific instructions provided."}
-                </p>
+                <p className="text-[12px] leading-relaxed text-[var(--text-primary)] italic">{noteBlock}</p>
               </div>
-            </div>
+            )}
 
-            {/* Products List Section */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 opacity-60">
-                  <Package className="size-4" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Order Manifest ({products.length})</span>
+            {/* Package Details (P2P) or Products List (Marketplace) */}
+            {isP2P ? (
+              pkgDetails && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 opacity-60">
+                    <Package className="size-4" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Package Details</span>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-4 space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                      {pkgDetails.category && (
+                        <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-1.5 text-[11px] font-bold capitalize text-[var(--text-primary)]">
+                          {pkgDetails.category}
+                        </span>
+                      )}
+                      {pkgDetails.weight_tier && (
+                        <span className="rounded-lg border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-1.5 text-[11px] font-bold capitalize text-[var(--text-primary)]">
+                          {pkgDetails.weight_tier.replace('_', ' ')}
+                        </span>
+                      )}
+                      {pkgDetails.declared_value > 0 && (
+                        <span className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-1.5 text-[11px] font-bold text-amber-600">
+                          Value: {pkgDetails.declared_value.toLocaleString()} XAF
+                        </span>
+                      )}
+                    </div>
+                    {pkgDetails.description && (
+                      <p className="text-[12px] leading-relaxed text-[var(--text-secondary)] pt-2 border-t border-[var(--glass-border)]/50">
+                        {pkgDetails.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 opacity-60">
+                    <Package className="size-4" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Order Manifest ({products.length})</span>
+                  </div>
+                </div>
+                <div className="divide-y divide-[var(--glass-border)]/50 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20">
+                  {products.map((item, idx) => {
+                    const pname = (typeof item.product_id === "object" && item.product_id?.name) || item.name || "Item";
+                    const variantLabel = formatVariantLabel(item.variant);
+                    return (
+                      <div key={idx} className="flex items-center justify-between p-4 hover:bg-[var(--bg-secondary)]/40 transition-colors">
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{pname}</p>
+                          {variantLabel && (
+                            <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--accent)]/80">{variantLabel}</p>
+                          )}
+                          <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">Unit price: {(item.price || 0).toLocaleString()} XAF</p>
+                        </div>
+                        <div className="flex items-center gap-2 rounded-lg bg-[var(--bg-primary)] px-3 py-1.5 border border-[var(--glass-border)]">
+                          <span className="text-[10px] font-bold text-[var(--text-secondary)]">Qty</span>
+                          <span className="text-xs font-bold text-[var(--accent)]">{item.quantity ?? 1}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="divide-y divide-[var(--glass-border)]/50 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20">
-                {products.map((item, idx) => {
-                  const pname = (typeof item.product_id === "object" && item.product_id?.name) || item.name || "Item";
-                  const variantLabel = formatVariantLabel(item.variant);
-                  return (
-                    <div key={idx} className="flex items-center justify-between p-4 hover:bg-[var(--bg-secondary)]/40 transition-colors">
-                      <div className="min-w-0">
-                        <p className="text-[13px] font-bold text-[var(--text-primary)] truncate">{pname}</p>
-                        {variantLabel && (
-                          <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--accent)]/80">{variantLabel}</p>
-                        )}
-                        <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">Unit price: {(item.price || 0).toLocaleString()} XAF</p>
-                      </div>
-                      <div className="flex items-center gap-2 rounded-lg bg-[var(--bg-primary)] px-3 py-1.5 border border-[var(--glass-border)]">
-                        <span className="text-[10px] font-bold text-[var(--text-secondary)]">Qty</span>
-                        <span className="text-xs font-bold text-[var(--accent)]">{item.quantity ?? 1}</span>
-                      </div>
+            )}
+
+            {/* Message Thread */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 opacity-60">
+                <MessageCircle className="size-4" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">
+                  Shipment Messages {messages.length > 0 && `(${messages.length})`}
+                </span>
+              </div>
+              <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 overflow-hidden">
+                {/* Messages list */}
+                <div className="max-h-[300px] overflow-y-auto p-4 space-y-3">
+                  {loadingMsgs && messages.length === 0 && (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="size-5 animate-spin text-[var(--accent)]" />
                     </div>
-                  );
-                })}
+                  )}
+                  {!loadingMsgs && messages.length === 0 && (
+                    <p className="text-center text-[11px] text-[var(--text-secondary)] opacity-40 py-6">
+                      No messages yet. Start the conversation below.
+                    </p>
+                  )}
+                  {messages.map((msg, i) => {
+                    const isLogistics = msg.sender_role === 'logistics';
+                    return (
+                      <div key={msg._id || i} className={`flex ${isLogistics ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 ${
+                          isLogistics
+                            ? 'bg-[var(--accent)] text-white rounded-br-md'
+                            : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)]/50 text-[var(--text-primary)] rounded-bl-md'
+                        }`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-[9px] font-bold uppercase ${isLogistics ? 'text-white/70' : 'text-[var(--text-secondary)] opacity-50'}`}>
+                              {msg.sender_name || msg.sender_role}
+                            </span>
+                            <span className={`text-[9px] ${isLogistics ? 'text-white/40' : 'text-[var(--text-secondary)] opacity-30'}`}>
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-[12px] leading-relaxed">{msg.text}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={msgEndRef} />
+                </div>
+
+                {/* Send message form */}
+                {!isTerminal && (
+                  <form onSubmit={handleSendMsg} className="flex items-center gap-2 border-t border-[var(--glass-border)]/30 p-3">
+                    <input
+                      value={msgText}
+                      onChange={(e) => setMsgText(e.target.value)}
+                      placeholder="Type a message..."
+                      className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[12px] font-medium outline-none focus:border-[var(--accent)]/30 transition-colors placeholder:text-[var(--text-secondary)] placeholder:opacity-30"
+                    />
+                    <button
+                      type="submit"
+                      disabled={sendingMsg || !msgText.trim()}
+                      className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-white transition-all active:scale-95 disabled:opacity-30"
+                    >
+                      {sendingMsg ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
 

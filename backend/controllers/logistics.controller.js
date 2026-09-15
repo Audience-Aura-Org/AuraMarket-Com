@@ -345,7 +345,9 @@ const getFirmShipmentById = async (req, res, next) => {
 
     const shipment = await Shipment.findById(id)
       .populate(populateOrder)
-      .populate('vendor_id', 'store_name phone branding.logo');
+      .populate('vendor_id', 'store_name phone branding.logo')
+      .populate('booked_by', 'name phone email')
+      .populate('other_party.user_id', 'name phone email');
 
     if (!shipment) {
       return res.status(404).json({ success: false, message: 'Shipment not found.' });
