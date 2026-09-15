@@ -49,6 +49,7 @@ const ADMIN_NAV = [
   { icon: 'mark_email_read', label: 'Email Logs',      href: '/admin/notifications/email-logs' },
   { icon: 'history',         label: 'Audit Ledger',    href: '/admin/audit' },
   { icon: 'web',            label: 'CMS / Hero',       href: '/admin/homepage' },
+  { icon: 'settings',       label: 'Settings',        href: '/admin/settings' },
 ];
 
 const CUSTOMER_NAV = [
