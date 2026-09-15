@@ -247,7 +247,10 @@ export default function HubContent() {
       {/* ── MOBILE VIEW ────────────────────────────────────── */}
       <div className="md:hidden flex flex-col w-full relative z-10">
          {/* Sticky Tab Bar */}
-         <div className="sticky top-20 z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 py-2.5 shadow-sm">
+         <div
+           className="sticky z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 py-2.5 shadow-sm"
+           style={{ top: TOP_NAV_HEIGHT }}
+         >
             <div className="flex bg-[var(--bg-secondary)] p-1 gap-1 rounded-full border border-[var(--glass-border)]/50">
             <button 
                onClick={() => setActiveTab('chats')}
@@ -411,10 +414,9 @@ export default function HubContent() {
         
         {/* STICKY HEADER STACK: Matches Shop experience */}
         <div
-          className="sticky top-[var(--top-nav-height)] md:top-[var(--top-nav-height-lg)] z-40 bg-[var(--bg-primary)] shadow-sm"
+          className="sticky z-40 bg-[var(--bg-primary)] shadow-sm"
           style={{
-            '--top-nav-height': TOP_NAV_HEIGHT,
-            '--top-nav-height-lg': TOP_NAV_HEIGHT_LG,
+            top: TOP_NAV_HEIGHT,
           }}
         >
           {/* Search Bar */}
