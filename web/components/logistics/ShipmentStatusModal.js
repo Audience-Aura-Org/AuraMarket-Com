@@ -72,8 +72,16 @@ export default function ShipmentStatusModal({
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const msgEndRef = useRef(null);
 
+  // Order-level messages (for marketplace orders)
+  const [orderMessages, setOrderMessages] = useState([]);
+  const [orderMsgText, setOrderMsgText] = useState("");
+  const [sendingOrderMsg, setSendingOrderMsg] = useState(false);
+  const [loadingOrderMsgs, setLoadingOrderMsgs] = useState(false);
+  const orderMsgEndRef = useRef(null);
+
   const visible = embedded ? !!shipment : open && !!shipment;
   const shipmentId = shipment?._id;
+  const orderId = shipment?.order_id?._id || (typeof shipment?.order_id === 'string' ? shipment?.order_id : null);
 
   // Fetch messages for this shipment
   useEffect(() => {
@@ -111,6 +119,43 @@ export default function ShipmentStatusModal({
       }
     } catch { /* ignore */ }
     setSendingMsg(false);
+  };
+
+  // Fetch order-level messages (marketplace only)
+  useEffect(() => {
+    if (!visible || !orderId) return;
+    let cancelled = false;
+    const fetchOrderMsgs = async () => {
+      setLoadingOrderMsgs(true);
+      try {
+        const res = await api.get(`/messages/order/${orderId}`);
+        if (!cancelled && res.data?.success) {
+          setOrderMessages(res.data.data?.messages || []);
+        }
+      } catch { /* ignore */ }
+      if (!cancelled) setLoadingOrderMsgs(false);
+    };
+    fetchOrderMsgs();
+    const interval = setInterval(fetchOrderMsgs, 15000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [visible, orderId]);
+
+  useEffect(() => {
+    orderMsgEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [orderMessages]);
+
+  const handleSendOrderMsg = async (e) => {
+    e.preventDefault();
+    if (!orderMsgText.trim() || !orderId) return;
+    setSendingOrderMsg(true);
+    try {
+      const res = await api.post(`/messages/order/${orderId}`, { text: orderMsgText.trim() });
+      if (res.data?.success) {
+        setOrderMessages(prev => [...prev, res.data.data.message]);
+        setOrderMsgText("");
+      }
+    } catch { /* ignore */ }
+    setSendingOrderMsg(false);
   };
 
   if (!visible) return null;
@@ -631,6 +676,84 @@ export default function ShipmentStatusModal({
                 )}
               </div>
             </div>
+
+            {/* Order Message Thread (marketplace orders only) */}
+            {!isP2P && orderId && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 opacity-60">
+                  <MessageCircle className="size-4" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">
+                    Order Messages {orderMessages.length > 0 && `(${orderMessages.length})`}
+                  </span>
+                </div>
+                <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 overflow-hidden">
+                  <div className="max-h-[300px] overflow-y-auto p-4 space-y-3">
+                    {loadingOrderMsgs && orderMessages.length === 0 && (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="size-5 animate-spin text-[var(--accent)]" />
+                      </div>
+                    )}
+                    {!loadingOrderMsgs && orderMessages.length === 0 && (
+                      <p className="text-center text-[11px] text-[var(--text-secondary)] opacity-40 py-6">
+                        No order messages yet. Message buyer or vendor about this order.
+                      </p>
+                    )}
+                    {orderMessages.map((msg, i) => {
+                      const isLogisticsMsg = msg.sender_role === 'logistics';
+                      const roleColors = {
+                        buyer: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+                        vendor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+                        logistics: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
+                        admin: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+                      };
+                      const roleBadge = roleColors[msg.sender_role] || roleColors.buyer;
+                      return (
+                        <div key={msg._id || i} className={`flex ${isLogisticsMsg ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 ${
+                            isLogisticsMsg
+                              ? 'bg-[var(--accent)] text-white rounded-br-md'
+                              : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)]/50 text-[var(--text-primary)] rounded-bl-md'
+                          }`}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-bold uppercase ${
+                                isLogisticsMsg ? 'bg-white/15 text-white/80 border-white/20' : roleBadge
+                              }`}>
+                                {msg.sender_role}
+                              </span>
+                              <span className={`text-[9px] ${isLogisticsMsg ? 'text-white/60' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                                {msg.sender_name}
+                              </span>
+                              <span className={`text-[9px] ${isLogisticsMsg ? 'text-white/40' : 'text-[var(--text-secondary)] opacity-30'}`}>
+                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <p className="text-[12px] leading-relaxed">{msg.text}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={orderMsgEndRef} />
+                  </div>
+                  {!isTerminal && (
+                    <form onSubmit={handleSendOrderMsg} className="flex items-center gap-2 border-t border-[var(--glass-border)]/30 p-3">
+                      <input
+                        value={orderMsgText}
+                        onChange={(e) => setOrderMsgText(e.target.value)}
+                        placeholder="Message about this order..."
+                        className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[12px] font-medium outline-none focus:border-[var(--accent)]/30 transition-colors placeholder:text-[var(--text-secondary)] placeholder:opacity-30"
+                      />
+                      <button
+                        type="submit"
+                        disabled={sendingOrderMsg || !orderMsgText.trim()}
+                        className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-white transition-all active:scale-95 disabled:opacity-30"
+                      >
+                        {sendingOrderMsg ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
+            )}
 
           </div>
         </div>

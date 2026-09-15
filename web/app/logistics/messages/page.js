@@ -35,16 +35,24 @@ export default function LogisticsMessagesHubPage() {
   const [activeThread, setActiveThread] = useState(null);
   const [messageInput, setMessageInput] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
-  const [tab, setTab] = useState('shipment'); // 'shipment' | 'chat'
+  const [tab, setTab] = useState('shipment'); // 'shipment' | 'order' | 'chat'
   const messagesEndRef = useRef(null);
+
+  // Order message threads
+  const [orderThreads, setOrderThreads] = useState([]);
+  const [activeOrderThread, setActiveOrderThread] = useState(null);
+  const [orderMsgInput, setOrderMsgInput] = useState('');
+  const [sendingOrderMsg, setSendingOrderMsg] = useState(false);
+  const orderMsgEndRef = useRef(null);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const [chatRes, walletRes, msgRes] = await Promise.allSettled([
+      const [chatRes, walletRes, msgRes, orderMsgRes] = await Promise.allSettled([
         api.get("/chat"),
         api.get("/wallet"),
         api.get("/messages/logistics/all"),
+        api.get("/messages/order-threads/mine"),
       ]);
       if (chatRes.status === 'fulfilled' && chatRes.value.data.success) {
         const chats = chatRes.value.data.data?.activeChats || [];
@@ -55,6 +63,9 @@ export default function LogisticsMessagesHubPage() {
       }
       if (msgRes.status === 'fulfilled' && msgRes.value.data.success) {
         setThreads(msgRes.value.data.data?.threads || []);
+      }
+      if (orderMsgRes.status === 'fulfilled' && orderMsgRes.value.data.success) {
+        setOrderThreads(orderMsgRes.value.data.data?.threads || []);
       }
       refreshNotifications?.();
     } catch { /* non-fatal */ }
@@ -102,12 +113,48 @@ export default function LogisticsMessagesHubPage() {
     finally { setSendingMsg(false); }
   };
 
-  // Auto-refresh active thread
+  // Auto-refresh active shipment thread
   useEffect(() => {
     if (!activeThread) return;
     const iv = setInterval(() => refreshThread(activeThread.shipment._id), 15000);
     return () => clearInterval(iv);
   }, [activeThread, refreshThread]);
+
+  // Order thread functions
+  const refreshOrderThread = useCallback(async (oId) => {
+    try {
+      const res = await api.get(`/messages/order/${oId}`);
+      if (res.data?.success) {
+        setActiveOrderThread(prev => prev ? { ...prev, messages: res.data.data?.messages || [] } : null);
+      }
+    } catch {}
+  }, []);
+
+  const sendOrderMessage = async () => {
+    if (!orderMsgInput.trim() || !activeOrderThread) return;
+    setSendingOrderMsg(true);
+    try {
+      const res = await api.post(`/messages/order/${activeOrderThread.order._id}`, { text: orderMsgInput.trim() });
+      if (res.data?.success) {
+        setOrderMsgInput('');
+        const newMsg = res.data.data.message;
+        setActiveOrderThread(prev => ({ ...prev, messages: [...(prev.messages || []), newMsg] }));
+        setOrderThreads(prev => prev.map(t =>
+          t.order._id === activeOrderThread.order._id
+            ? { ...t, messages: [...(t.messages || []), newMsg], lastMessage: newMsg, messageCount: (t.messageCount || 0) + 1 }
+            : t
+        ));
+        setTimeout(() => orderMsgEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      }
+    } catch {}
+    finally { setSendingOrderMsg(false); }
+  };
+
+  useEffect(() => {
+    if (!activeOrderThread) return;
+    const iv = setInterval(() => refreshOrderThread(activeOrderThread.order._id), 15000);
+    return () => clearInterval(iv);
+  }, [activeOrderThread, refreshOrderThread]);
 
   if (user?.role !== "logistics") return null;
 
@@ -155,26 +202,38 @@ export default function LogisticsMessagesHubPage() {
         {/* Tabs */}
         <div className="flex items-center gap-1 rounded-xl bg-[var(--bg-secondary)]/50 p-1 border border-[var(--glass-border)]/30">
           <button
-            onClick={() => { setTab('shipment'); setActiveThread(null); }}
+            onClick={() => { setTab('shipment'); setActiveThread(null); setActiveOrderThread(null); }}
             className={`flex-1 rounded-lg py-2.5 text-[11px] font-bold tracking-tight transition-all ${
               tab === 'shipment' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)]'
             }`}
           >
             <div className="flex items-center justify-center gap-1.5">
               <Package className="size-3.5" />
-              Shipment Messages
+              <span className="hidden sm:inline">Shipment</span> Msgs
               {threads.length > 0 && tab !== 'shipment' && <span className="size-4 rounded-full bg-[var(--accent)]/20 text-[var(--accent)] text-[9px] font-bold flex items-center justify-center">{threads.length}</span>}
             </div>
           </button>
           <button
-            onClick={() => { setTab('chat'); setActiveThread(null); }}
+            onClick={() => { setTab('order'); setActiveThread(null); setActiveOrderThread(null); }}
+            className={`flex-1 rounded-lg py-2.5 text-[11px] font-bold tracking-tight transition-all ${
+              tab === 'order' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)]'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-1.5">
+              <MessageCircle className="size-3.5" />
+              Order Msgs
+              {orderThreads.length > 0 && tab !== 'order' && <span className="size-4 rounded-full bg-emerald-500/20 text-emerald-600 text-[9px] font-bold flex items-center justify-center">{orderThreads.length}</span>}
+            </div>
+          </button>
+          <button
+            onClick={() => { setTab('chat'); setActiveThread(null); setActiveOrderThread(null); }}
             className={`flex-1 rounded-lg py-2.5 text-[11px] font-bold tracking-tight transition-all ${
               tab === 'chat' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)]'
             }`}
           >
             <div className="flex items-center justify-center gap-1.5">
               <Inbox className="size-3.5" />
-              Chat Inbox
+              Chat
               {unreadMessages > 0 && tab !== 'chat' && <span className="size-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">{unreadMessages}</span>}
             </div>
           </button>
@@ -299,6 +358,143 @@ export default function LogisticsMessagesHubPage() {
                                 )}
                                 <div className="flex items-center gap-2 mt-1">
                                   <span className="text-[9px] text-[var(--text-secondary)]/30">{thread.messages?.length || 0} messages</span>
+                                  {lastMsg && <span className="text-[9px] text-[var(--text-secondary)]/30">{new Date(lastMsg.timestamp).toLocaleDateString()}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Order Messages Tab */}
+        {tab === 'order' && (
+          <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 overflow-hidden">
+            {activeOrderThread ? (
+              <div className="flex flex-col" style={{ minHeight: '400px' }}>
+                <div className="flex items-center gap-3 p-4 border-b border-[var(--glass-border)]/30">
+                  <button onClick={() => setActiveOrderThread(null)} className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]/50 flex items-center justify-center text-[var(--text-secondary)] active:scale-95 shrink-0">
+                    <ArrowLeft className="size-4" />
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-[var(--text-primary)]">
+                      Order #{String(activeOrderThread.order._id).slice(-8).toUpperCase()}
+                    </p>
+                    <p className="text-[10px] text-[var(--text-secondary)]/50 truncate">
+                      {activeOrderThread.order.vendor_id?.store_name || 'Vendor'} · {activeOrderThread.order.customer_id?.name || 'Customer'}
+                    </p>
+                  </div>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-md capitalize ${STATUS_COLORS[activeOrderThread.order.order_status] || 'bg-gray-500/10 text-gray-600'}`}>
+                    {activeOrderThread.order.order_status?.replace(/_/g, ' ')}
+                  </span>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-2.5 max-h-[400px]">
+                  {activeOrderThread.messages?.length === 0 ? (
+                    <p className="text-[11px] text-[var(--text-secondary)]/40 text-center py-10">No messages yet</p>
+                  ) : activeOrderThread.messages?.map((msg, i) => {
+                    const isMe = msg.sender_role === 'logistics';
+                    const roleColors = {
+                      buyer: 'text-blue-600', vendor: 'text-emerald-600',
+                      logistics: 'text-violet-600', admin: 'text-amber-600',
+                    };
+                    return (
+                      <div key={i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[80%] rounded-2xl p-3 ${
+                          isMe
+                            ? 'bg-[var(--accent)]/10 border border-[var(--accent)]/20 rounded-br-md'
+                            : 'bg-[var(--bg-primary)] border border-[var(--glass-border)]/30 rounded-bl-md'
+                        }`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className={`text-[10px] font-bold ${isMe ? 'text-[var(--accent)]' : roleColors[msg.sender_role] || 'text-[var(--text-primary)]'}`}>
+                              {msg.sender_name || 'Unknown'}
+                            </p>
+                            <span className="text-[8px] text-[var(--text-secondary)]/30 capitalize">{msg.sender_role}</span>
+                          </div>
+                          <p className="text-[11px] text-[var(--text-primary)] leading-relaxed break-words">{msg.text}</p>
+                          <p className="text-[8px] text-[var(--text-secondary)]/30 mt-1 text-right">{new Date(msg.timestamp).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={orderMsgEndRef} />
+                </div>
+
+                <div className="p-4 border-t border-[var(--glass-border)]/30 flex gap-2">
+                  <input
+                    value={orderMsgInput}
+                    onChange={e => setOrderMsgInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), sendOrderMessage())}
+                    placeholder="Message about this order..."
+                    className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-xs outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 placeholder:text-[var(--text-secondary)]/30"
+                  />
+                  <button
+                    onClick={sendOrderMessage}
+                    disabled={!orderMsgInput.trim() || sendingOrderMsg}
+                    className="size-10 shrink-0 rounded-xl bg-[var(--accent)] text-white disabled:opacity-30 flex items-center justify-center active:scale-95 transition-all"
+                  >
+                    {sendingOrderMsg ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="border-b border-[var(--glass-border)] px-4 py-4 md:px-6">
+                  <p className="text-xs font-bold text-[var(--text-primary)]">Order Conversations</p>
+                  <p className="text-[10px] text-[var(--text-secondary)]/50 mt-0.5">{orderThreads.length} thread{orderThreads.length !== 1 ? 's' : ''} with messages</p>
+                </div>
+                <div className="p-3 md:p-4">
+                  {loading ? (
+                    <div className="flex justify-center py-16"><Loader2 className="size-6 animate-spin text-[var(--accent)] opacity-50" /></div>
+                  ) : orderThreads.length === 0 ? (
+                    <div className="py-16 text-center">
+                      <MessageCircle className="size-8 mx-auto mb-3 text-[var(--text-secondary)]/20" />
+                      <p className="text-xs text-[var(--text-secondary)]/50">No order messages yet</p>
+                      <p className="text-[10px] text-[var(--text-secondary)]/30 mt-1">Messages will appear here when buyers or vendors send messages on orders you handle</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {orderThreads.map((thread) => {
+                        const o = thread.order;
+                        const lastMsg = thread.lastMessage;
+                        return (
+                          <button
+                            key={o._id}
+                            onClick={() => { setActiveOrderThread(thread); refreshOrderThread(o._id); }}
+                            className="w-full text-left rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 p-4 transition hover:border-[var(--accent)]/30 active:scale-[0.99]"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="size-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0">
+                                <MessageCircle className="size-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-[11px] font-bold text-[var(--text-primary)]">
+                                    Order #{String(o._id).slice(-8).toUpperCase()}
+                                  </p>
+                                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-md capitalize shrink-0 ${STATUS_COLORS[o.order_status] || 'bg-gray-500/10 text-gray-600'}`}>
+                                    {o.order_status?.replace(/_/g, ' ')}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-[var(--text-secondary)]/50 mt-0.5 truncate">
+                                  {o.vendor_id?.store_name || 'Vendor'} · {o.customer_id?.name || 'Customer'}
+                                </p>
+                                {lastMsg && (
+                                  <div className="mt-1.5 flex items-center gap-1.5">
+                                    <User className="size-2.5 text-[var(--text-secondary)]/30 shrink-0" />
+                                    <p className="text-[10px] text-[var(--text-secondary)] truncate">
+                                      <span className="font-semibold">{lastMsg.sender_name}:</span> {lastMsg.text}
+                                    </p>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-[9px] text-[var(--text-secondary)]/30">{thread.messageCount || 0} messages</span>
                                   {lastMsg && <span className="text-[9px] text-[var(--text-secondary)]/30">{new Date(lastMsg.timestamp).toLocaleDateString()}</span>}
                                 </div>
                               </div>

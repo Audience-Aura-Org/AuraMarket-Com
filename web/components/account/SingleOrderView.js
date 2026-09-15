@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Package, ChevronLeft, MapPin,
@@ -9,7 +9,7 @@ import {
   CreditCard, Clock, Share2,
   Printer, Scale, Phone, Layers,
   Fingerprint, History, Zap, User, MessageCircle,
-  RotateCcw, AlertCircle, ArrowRight,
+  RotateCcw, AlertCircle, ArrowRight, Send,
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -60,6 +60,13 @@ export default function SingleOrderView({ orderId, onBack }) {
 
   const [reorderLoading, setReorderLoading] = useState(false);
   const [reorderResult, setReorderResult] = useState(null);
+
+  // Order message thread state
+  const [orderMessages, setOrderMessages] = useState([]);
+  const [orderMsgText, setOrderMsgText] = useState('');
+  const [sendingOrderMsg, setSendingOrderMsg] = useState(false);
+  const [loadingOrderMsgs, setLoadingOrderMsgs] = useState(false);
+  const orderMsgEndRef = useRef(null);
 
   const { user } = useAuthStore();
   const { openChat } = useChat();
@@ -130,6 +137,46 @@ export default function SingleOrderView({ orderId, onBack }) {
   useEffect(() => {
     if (orderId) fetchOrderManifest();
   }, [orderId]);
+
+  // Fetch order messages
+  useEffect(() => {
+    if (!orderId || !user?._id) return;
+    let cancelled = false;
+    const fetchOrderMsgs = async () => {
+      setLoadingOrderMsgs(true);
+      try {
+        const res = await api.get(`/messages/order/${orderId}`);
+        if (!cancelled && res.data?.success) {
+          setOrderMessages(res.data.data?.messages || []);
+        }
+      } catch { /* ignore auth errors for non-parties */ }
+      if (!cancelled) setLoadingOrderMsgs(false);
+    };
+    fetchOrderMsgs();
+    const interval = setInterval(fetchOrderMsgs, 15000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [orderId, user?._id]);
+
+  // Auto-scroll order messages
+  useEffect(() => {
+    orderMsgEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [orderMessages]);
+
+  const handleSendOrderMsg = async (e) => {
+    e.preventDefault();
+    if (!orderMsgText.trim() || !orderId) return;
+    setSendingOrderMsg(true);
+    try {
+      const res = await api.post(`/messages/order/${orderId}`, { text: orderMsgText.trim() });
+      if (res.data?.success) {
+        setOrderMessages(prev => [...prev, res.data.data.message]);
+        setOrderMsgText('');
+      }
+    } catch (err) {
+      toast.error('Failed to send message');
+    }
+    setSendingOrderMsg(false);
+  };
 
   useEffect(() => {
     if (!orderId || !user?._id) return;
@@ -1372,6 +1419,89 @@ export default function SingleOrderView({ orderId, onBack }) {
             )}
           </div>
         </aside>
+      </div>
+
+      {/* ── Order Message Thread ──────────────────────────────────────────── */}
+      <div className={`${cardBase} mt-6 p-4 sm:p-5`}>
+        <h3 className="mb-4 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-secondary)] opacity-80">
+          <MessageCircle className="size-3.5 text-[var(--accent)]" /> Order Messages
+          {orderMessages.length > 0 && (
+            <span className="ml-auto rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-[9px] font-bold text-[var(--accent)]">
+              {orderMessages.length}
+            </span>
+          )}
+        </h3>
+
+        <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 overflow-hidden">
+          {/* Messages list */}
+          <div className="max-h-[350px] overflow-y-auto p-4 space-y-3">
+            {loadingOrderMsgs && orderMessages.length === 0 && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="size-5 animate-spin text-[var(--accent)]" />
+              </div>
+            )}
+            {!loadingOrderMsgs && orderMessages.length === 0 && (
+              <p className="text-center text-[11px] text-[var(--text-secondary)] opacity-40 py-8">
+                No messages yet. Start a conversation with the other parties.
+              </p>
+            )}
+            {orderMessages.map((msg, i) => {
+              const isMe = msg.sender_id === user?._id;
+              const roleColors = {
+                buyer: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
+                vendor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+                logistics: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
+                admin: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+              };
+              const roleBadge = roleColors[msg.sender_role] || roleColors.buyer;
+
+              return (
+                <div key={msg._id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
+                    isMe
+                      ? 'bg-[var(--accent)] text-white rounded-br-md'
+                      : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)]/50 text-[var(--text-primary)] rounded-bl-md'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-bold uppercase ${
+                        isMe ? 'bg-white/15 text-white/80 border-white/20' : roleBadge
+                      }`}>
+                        {msg.sender_role}
+                      </span>
+                      <span className={`text-[9px] font-medium ${isMe ? 'text-white/60' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                        {msg.sender_name}
+                      </span>
+                      <span className={`text-[9px] ${isMe ? 'text-white/40' : 'text-[var(--text-secondary)] opacity-30'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <p className="text-[12px] leading-relaxed">{msg.text}</p>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={orderMsgEndRef} />
+          </div>
+
+          {/* Send message form */}
+          {!['cancelled', 'refunded'].includes(order.order_status) && (
+            <form onSubmit={handleSendOrderMsg} className="flex items-center gap-2 border-t border-[var(--glass-border)]/30 p-3">
+              <input
+                value={orderMsgText}
+                onChange={(e) => setOrderMsgText(e.target.value)}
+                placeholder="Message buyer, vendor, or logistics..."
+                className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[12px] font-medium outline-none focus:border-[var(--accent)]/30 transition-colors placeholder:text-[var(--text-secondary)] placeholder:opacity-30"
+              />
+              <button
+                type="submit"
+                disabled={sendingOrderMsg || !orderMsgText.trim()}
+                className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-white transition-all active:scale-95 disabled:opacity-30"
+              >
+                {sendingOrderMsg ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
 
       <AnimatePresence>
