@@ -36,7 +36,7 @@ router.use(protect);
 // ── General Customer / Vendor ─────────────────
 router.get('/', getWalletBalance);
 router.get('/transactions', getTransactionHistory);
-router.get('/escrow', restrictTo('vendor'), getEscrowTransactions); // Vendor only
+router.get('/escrow', restrictTo('vendor', 'logistics'), getEscrowTransactions);
 router.post('/deposit', initiateDeposit);
 router.post('/withdraw', requestWithdrawal);
 router.post('/pay-order', payOrderWithWallet); // Direct Wallet Payment checkout

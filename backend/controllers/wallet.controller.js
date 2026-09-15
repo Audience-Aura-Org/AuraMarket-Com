@@ -9,6 +9,7 @@ const Order = require('../models/Order.model');
 const Escrow = require('../models/Escrow.model');
 const Vendor = require('../models/Vendor.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
+const Shipment = require('../models/Shipment.model');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const logisticsService = require('../services/logistics.service');
@@ -53,6 +54,19 @@ const getWalletBalance = async (req, res, next) => {
         const stats = await Escrow.aggregate([
           { $match: { vendor_id: vendor._id, status: 'held' } },
           { $group: { _id: null, total: { $sum: '$amount' } } }
+        ]);
+        pendingEscrow = stats[0]?.total || 0;
+      }
+    } else if (user.role === 'logistics') {
+      const firm = await LogisticsCompany.findOne({ user_id: user._id }).select('_id').lean();
+      if (firm) {
+        const stats = await Shipment.aggregate([
+          { $match: {
+            logistics_id: firm._id,
+            payment_status: 'paid',
+            status: { $nin: ['delivered', 'cancelled', 'failed'] },
+          }},
+          { $group: { _id: null, total: { $sum: '$price' } } },
         ]);
         pendingEscrow = stats[0]?.total || 0;
       }
