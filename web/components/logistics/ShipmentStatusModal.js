@@ -832,19 +832,43 @@ export default function ShipmentStatusModal({
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">New Shipment Status</label>
                 <div className="relative">
-                  <select
-                    value={updateData.status}
-                    onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
-                    className="w-full appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 transition-all"
-                  >
-                    <option value="pending">Pending Approval</option>
-                    <option value="assigned">Assigned Courier</option>
-                    <option value="picked_up">Picked Up</option>
-                    <option value="in_transit">In Transit</option>
-                    <option value="out_for_delivery">Out For Delivery</option>
-                    <option value="delivered">Delivered Successfully</option>
-                    <option value="failed">Delivery Failed</option>
-                  </select>
+                  {(() => {
+                    const ALLOWED_TRANSITIONS = {
+                      pending: ['assigned', 'cancelled'],
+                      assigned: ['picked_up', 'failed', 'cancelled'],
+                      picked_up: ['in_transit', 'failed', 'cancelled'],
+                      in_transit: ['out_for_delivery', 'failed'],
+                      out_for_delivery: ['delivered', 'failed'],
+                      failed: ['assigned', 'cancelled'],
+                      delivered: [],
+                      cancelled: [],
+                    };
+                    const STATUS_LABELS = {
+                      pending: 'Pending Approval',
+                      assigned: 'Assigned Courier',
+                      picked_up: 'Picked Up',
+                      in_transit: 'In Transit',
+                      out_for_delivery: 'Out For Delivery',
+                      delivered: 'Delivered Successfully',
+                      failed: 'Delivery Failed',
+                      cancelled: 'Cancelled',
+                    };
+                    const currentStatus = shipment.status || 'pending';
+                    const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
+                    // Include current status + valid next statuses
+                    const options = [currentStatus, ...allowed];
+                    return (
+                      <select
+                        value={updateData.status}
+                        onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
+                        className="w-full appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 transition-all"
+                      >
+                        {options.map(s => (
+                          <option key={s} value={s}>{STATUS_LABELS[s] || s}{s === currentStatus ? ' (current)' : ''}</option>
+                        ))}
+                      </select>
+                    );
+                  })()}
                   <Truck className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 opacity-30" />
                 </div>
               </div>
