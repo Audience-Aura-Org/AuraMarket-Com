@@ -505,19 +505,42 @@ export default function DeliveryPage() {
 
         {/* Step 3: Success */}
         {step === 3 && success && (
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6 text-center">
-            <CheckCircle2 className="mx-auto size-12 text-emerald-500 mb-3" />
-            <h2 className="text-lg font-bold text-[var(--text-primary)] mb-2">Delivery Booked!</h2>
-            <p className="text-[var(--text-secondary)] text-[13px] mb-4">
-              Tracking code: <span className="font-mono font-bold text-[var(--accent)]">{success.tracking_code}</span>
-            </p>
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+            <div className="text-center mb-6">
+              <CheckCircle2 className="mx-auto size-12 text-emerald-500 mb-3" />
+              <h2 className="text-lg font-bold text-[var(--text-primary)] mb-2">Delivery Booked!</h2>
+              <p className="text-[var(--text-secondary)] text-[13px]">
+                Tracking code: <span className="font-mono font-bold text-[var(--accent)]">{success.tracking_code}</span>
+              </p>
+            </div>
+
+            {/* Booking Details */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <div className="rounded-xl bg-white/5 p-3">
+                <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">Amount</p>
+                <p className="text-[15px] font-bold text-[var(--text-primary)] mt-1">{success.price?.toLocaleString()} XAF</p>
+              </div>
+              <div className="rounded-xl bg-white/5 p-3">
+                <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">Status</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${
+                    success.payment_status === 'paid'
+                      ? 'bg-emerald-500/20 text-emerald-600'
+                      : 'bg-amber-500/20 text-amber-600'
+                  }`}>
+                    {success.payment_status || 'pending'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             <div className="flex gap-3 justify-center">
               <button onClick={() => router.push(`/delivery/track?code=${success.tracking_code}`)}
-                className="rounded-xl bg-[var(--accent)] px-5 py-2.5 text-[13px] font-semibold text-white">
-                Track Delivery
+                className="rounded-xl bg-[var(--accent)] px-5 py-2.5 text-[13px] font-semibold text-white hover:opacity-90 transition-all">
+                Track & Message
               </button>
               <button onClick={() => { setStep(1); setSuccess(null); setQuotes([]); setSelectedQuote(null); }}
-                className="rounded-xl border border-[var(--glass-border)] px-5 py-2.5 text-[13px] font-semibold text-[var(--text-primary)]">
+                className="rounded-xl border border-[var(--glass-border)] px-5 py-2.5 text-[13px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-all">
                 Book Another
               </button>
             </div>
