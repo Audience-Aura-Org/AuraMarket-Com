@@ -76,7 +76,7 @@ export default function LogisticsManifestsPage() {
   const [statusFilter, setStatusFilter]     = useState("all");
   const [sortBy, setSortBy]                 = useState("order_placed");
   const [updateData, setUpdateData]         = useState({
-    status: "pending", note: "", proof_image: "", failure_reason: "", receiver_name: "",
+    status: "pending", note: "", proof_image: "", failure_reason: "", receiver_name: "", estimated_delivery: "",
   });
 
   const fetchManifests = useCallback(async (opts = {}) => {
@@ -124,6 +124,7 @@ export default function LogisticsManifestsPage() {
       proof_image: shipment.proof_of_delivery?.image_url || "",
       failure_reason: shipment.failure_reason || "",
       receiver_name: shipment.proof_of_delivery?.receiver_name || "",
+      estimated_delivery: shipment.estimated_delivery ? new Date(shipment.estimated_delivery).toISOString().slice(0, 16) : "",
     });
   }, []);
 

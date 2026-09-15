@@ -860,6 +860,25 @@ export default function ShipmentStatusModal({
               </div>
             </div>
 
+            {/* ETA field */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">Estimated Delivery (ETA)</label>
+              <div className="relative">
+                <input
+                  type="datetime-local"
+                  value={updateData.estimated_delivery || ""}
+                  onChange={(e) => setUpdateData({ ...updateData, estimated_delivery: e.target.value })}
+                  className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 transition-all"
+                />
+                <Clock className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 opacity-30" />
+              </div>
+              {shipment.estimated_delivery && (
+                <p className="text-[10px] text-[var(--text-secondary)] opacity-40 ml-1">
+                  Current ETA: {new Date(shipment.estimated_delivery).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                </p>
+              )}
+            </div>
+
             {updateData.status === "delivered" && (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-300">
                 <input
