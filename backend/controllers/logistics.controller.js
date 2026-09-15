@@ -372,11 +372,16 @@ const modifyShipmentStatus = async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const { status, note, proof_image, failure_reason, receiver_name } = req.body;
+    const { status, note, proof_image, failure_reason, receiver_name, estimated_delivery } = req.body;
     const { id } = req.params;
 
     const shipment = await Shipment.findById(id).session(session);
     if (!shipment) throw new Error('Shipment not found.');
+
+    // Update estimated delivery if provided
+    if (estimated_delivery) {
+      shipment.estimated_delivery = new Date(estimated_delivery);
+    }
 
     // P2P shipments have no order — skip order checks and use P2P-specific logic
     const isP2P = shipment.type === 'p2p';
