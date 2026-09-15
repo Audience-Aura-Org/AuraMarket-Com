@@ -48,19 +48,22 @@ export default function LogisticsDashboard() {
   const [subscription, setSubscription] = useState({
     subscribed: false,
   });
+  const [shipmentType, setShipmentType] = useState('all'); // all, marketplace, p2p
 
   const fetchDashboard = useCallback(async (isBackground = false) => {
     try {
       if (!isBackground) setLoading(true);
+      const params = {
+        page,
+        limit: PAGE_SIZE,
+        status: filterStatus,
+        sortBy,
+      };
+      if (shipmentType !== 'all') {
+        params.type = shipmentType;
+      }
       const [shipRes, subRes] = await Promise.all([
-        api.get("/logistics/shipments/firm", {
-          params: {
-            page,
-            limit: PAGE_SIZE,
-            status: filterStatus,
-            sortBy,
-          },
-        }),
+        api.get("/logistics/shipments/firm", { params }),
         api.get("/subscriptions/me", { params: { role: "logistics" }, skipClientCache: true, silent: true }).catch(() => null),
       ]);
 
@@ -89,7 +92,7 @@ export default function LogisticsDashboard() {
     } finally {
       if (!isBackground) setLoading(false);
     }
-  }, [page, filterStatus, sortBy]);
+  }, [page, filterStatus, sortBy, shipmentType]);
 
   useEffect(() => {
     if (!user || user.role !== "logistics") return;
@@ -112,7 +115,7 @@ export default function LogisticsDashboard() {
 
   useEffect(() => {
     setPage(1);
-  }, [filterStatus, sortBy]);
+  }, [filterStatus, sortBy, shipmentType]);
 
   if (user?.role !== "logistics") return null;
 
@@ -283,6 +286,18 @@ export default function LogisticsDashboard() {
                 <option value="delivered">Delivered</option>
                 <option value="failed">Failed</option>
                 <option value="cancelled">Cancelled / vendor</option>
+              </select>
+              <select
+                value={shipmentType}
+                onChange={(e) => {
+                  setShipmentType(e.target.value);
+                  setPage(1);
+                }}
+                className="min-h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 py-2.5 text-[10px] font-semibold text-[var(--text-primary)] outline-none sm:w-auto sm:min-h-10"
+              >
+                <option value="all">All shipments</option>
+                <option value="marketplace">Marketplace orders</option>
+                <option value="p2p">P2P pickups</option>
               </select>
               <button
                 type="button"
