@@ -76,76 +76,72 @@ function useLiveClock(active) {
   }, [active]);
 }
 
-/* ── Step-by-step Status Progress ─────────────────────────────────── */
-function StatusStepper({ status, logs, createdAt }) {
+/* ── Compact horizontal progress ──────────────────────────────────── */
+const PROGRESS_STEPS = [
+  { key: 'pending',          icon: Clock,         label: 'Pending' },
+  { key: 'assigned',         icon: Truck,         label: 'Assigned' },
+  { key: 'picked_up',        icon: Package,       label: 'Picked Up' },
+  { key: 'in_transit',       icon: Truck,         label: 'In Transit' },
+  { key: 'out_for_delivery', icon: Navigation,    label: 'Out for Delivery' },
+  { key: 'delivered',        icon: CheckCircle2,  label: 'Delivered' },
+];
+
+function StatusStepper({ status }) {
   const currentIdx = STATUS_FLOW.indexOf(status);
   const isFail = ['failed', 'cancelled'].includes(status);
-
-  // Build timestamp map from logs
-  const logMap = {};
-  if (logs) {
-    for (const log of logs) {
-      if (log.status && log.timestamp) logMap[log.status] = log.timestamp;
-    }
-  }
-
-  const stepList = isFail
-    ? [...STATUS_FLOW.slice(0, Math.max(0, currentIdx) + 1).map(s => ({ key: s, ...STATUS_META[s] })), { key: status, ...STATUS_META[status] }]
-    : STATUS_FLOW.map(s => ({ key: s, ...STATUS_META[s] }));
-
-  // Deduplicate
-  const seen = new Set();
-  const uniqueSteps = stepList.filter(s => { if (seen.has(s.key)) return false; seen.add(s.key); return true; });
+  const failMeta = isFail ? STATUS_META[status] : null;
 
   return (
-    <div className="space-y-8 pl-4 relative">
-      {/* Vertical track line */}
-      <div className="absolute left-[23px] top-4 bottom-4 w-[3px] rounded-full bg-[var(--glass-border)]/15" />
+    <div className="space-y-4">
+      {/* Horizontal step bar */}
+      <div className="flex items-center gap-0">
+        {PROGRESS_STEPS.map((step, i) => {
+          const StepIcon = step.icon;
+          const reached = !isFail && i <= currentIdx;
+          const isCurrent = !isFail && i === currentIdx;
+          const isLast = i === PROGRESS_STEPS.length - 1;
 
-      {uniqueSteps.map((step, i) => {
-        const StepIcon = step.icon;
-        const reached = isFail ? i <= uniqueSteps.length - 1 : i <= currentIdx;
-        const isCurrent = isFail ? i === uniqueSteps.length - 1 : i === currentIdx;
-        const ts = logMap[step.key] || (step.key === 'pending' ? createdAt : null);
-
-        return (
-          <div key={step.key} className="flex gap-5 relative group">
-            {/* Circle */}
-            <div className={`z-10 size-10 rounded-full flex-shrink-0 flex items-center justify-center border-[3px] border-[var(--bg-primary)] shadow-md transition-all ${
-              isCurrent
-                ? `${step.dot} text-white shadow-lg`
-                : reached
-                  ? 'bg-[var(--accent)] text-white'
-                  : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]/20'
-            }`}>
-              {reached && !isCurrent
-                ? <CheckCircle2 className="size-5" />
-                : isCurrent
-                  ? <div className="size-2.5 rounded-full bg-white animate-ping" />
-                  : <div className="size-2.5 rounded-full bg-[var(--glass-border)]/30" />
-              }
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0 pt-1">
-              <div className="flex items-baseline justify-between gap-2 mb-0.5">
-                <h4 className={`text-[13px] font-bold tracking-tight ${
-                  isCurrent ? step.color : reached ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]/20'
-                }`}>{step.label}</h4>
-                {ts && reached && (
-                  <span className="text-[10px] font-semibold text-[var(--text-secondary)]/30 tracking-tight shrink-0">
-                    {new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
+          return (
+            <div key={step.key} className="flex items-center flex-1 last:flex-none">
+              {/* Icon circle */}
+              <div className="flex flex-col items-center">
+                <div className={`size-9 rounded-full flex items-center justify-center transition-all ${
+                  isCurrent
+                    ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/30'
+                    : reached
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)]/30 text-[var(--text-secondary)]/20'
+                }`}>
+                  {reached && !isCurrent
+                    ? <CheckCircle2 className="size-4" />
+                    : isCurrent
+                      ? <StepIcon className="size-4" />
+                      : <StepIcon className="size-3.5 opacity-30" />
+                  }
+                </div>
               </div>
-              <p className={`text-[11px] font-medium leading-relaxed ${
-                isCurrent ? 'text-[var(--text-secondary)]/60' : reached ? 'text-[var(--text-secondary)]/40' : 'text-[var(--text-secondary)]/15'
-              }`}>{step.sub}</p>
+              {/* Connecting line */}
+              {!isLast && (
+                <div className={`flex-1 h-[2px] mx-0.5 rounded-full transition-all ${
+                  !isFail && i < currentIdx
+                    ? 'bg-[var(--accent)]'
+                    : 'bg-[var(--glass-border)]/15'
+                }`} />
+              )}
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
 
+      {/* Current status label */}
+      <div className="text-center">
+        <p className={`text-sm font-bold ${isFail ? failMeta?.color || 'text-rose-500' : 'text-[var(--text-primary)]'}`}>
+          {isFail ? failMeta?.label : (STATUS_META[status]?.label || status)}
+        </p>
+        <p className={`text-[11px] font-medium mt-0.5 ${isFail ? 'text-rose-500/50' : 'text-[var(--text-secondary)] opacity-50'}`}>
+          {isFail ? failMeta?.sub : (STATUS_META[status]?.sub || '')}
+        </p>
+      </div>
     </div>
   );
 }
@@ -350,11 +346,7 @@ function TrackContent() {
             </div>
 
             {/* ── Step-by-step Status Progress ─────────────────────── */}
-            <StatusStepper
-              status={shipment.status}
-              logs={shipment.shipment_logs}
-              createdAt={shipment.createdAt}
-            />
+            <StatusStepper status={shipment.status} />
 
             {/* ── Quick Info Row (price + carrier + payment) ──────── */}
             <div className="grid grid-cols-3 gap-3">
