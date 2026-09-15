@@ -843,29 +843,37 @@ export default function ShipmentStatusModal({
                       delivered: [],
                       cancelled: [],
                     };
-                    const STATUS_LABELS = {
-                      pending: 'Pending Approval',
-                      assigned: 'Assigned Courier',
-                      picked_up: 'Picked Up',
-                      in_transit: 'In Transit',
-                      out_for_delivery: 'Out For Delivery',
-                      delivered: 'Delivered Successfully',
-                      failed: 'Delivery Failed',
-                      cancelled: 'Cancelled',
-                    };
+                    const ALL_STATUSES = [
+                      { value: 'pending',          label: 'Pending Approval' },
+                      { value: 'assigned',         label: 'Assigned Courier' },
+                      { value: 'picked_up',        label: 'Picked Up' },
+                      { value: 'in_transit',       label: 'In Transit' },
+                      { value: 'out_for_delivery', label: 'Out For Delivery' },
+                      { value: 'delivered',        label: 'Delivered Successfully' },
+                      { value: 'failed',           label: 'Delivery Failed' },
+                      { value: 'cancelled',        label: 'Cancelled' },
+                    ];
                     const currentStatus = shipment.status || 'pending';
                     const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
-                    // Include current status + valid next statuses
-                    const options = [currentStatus, ...allowed];
                     return (
                       <select
                         value={updateData.status}
                         onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
                         className="w-full appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 transition-all"
                       >
-                        {options.map(s => (
-                          <option key={s} value={s}>{STATUS_LABELS[s] || s}{s === currentStatus ? ' (current)' : ''}</option>
-                        ))}
+                        {ALL_STATUSES.map(s => {
+                          const isCurrent = s.value === currentStatus;
+                          const isAllowed = allowed.includes(s.value);
+                          return (
+                            <option
+                              key={s.value}
+                              value={s.value}
+                              disabled={!isCurrent && !isAllowed}
+                            >
+                              {s.label}{isCurrent ? ' ✓ current' : !isAllowed ? '' : ' →'}
+                            </option>
+                          );
+                        })}
                       </select>
                     );
                   })()}

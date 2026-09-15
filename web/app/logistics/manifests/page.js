@@ -349,14 +349,19 @@ export default function LogisticsManifestsPage() {
                         const vendor = s.vendor_id;
                         const customer = order?.customer_id;
                         const dest  = destinationLine(s);
-                        const placed = order?.createdAt
-                          ? new Date(order.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
+                        const isP2P = s.type === "p2p";
+                        const placed = (order?.createdAt || s.createdAt)
+                          ? new Date(order?.createdAt || s.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
                           : "—";
                         const fee = typeof s.price === "number" ? `${s.price.toLocaleString()} XAF` : "—";
                         const badgeCls = STATUS_BADGE[s.status] || "bg-[var(--bg-secondary)] text-[var(--text-secondary)]";
-                        const vendorName = displayName(vendor, ["store_name", "name"]);
+                        const vendorName = isP2P
+                          ? displayName(s.booked_by, ["name"]) || displayName(s.guest_booker, ["name"])
+                          : displayName(vendor, ["store_name", "name"]);
                         const customerName = displayName(customer, ["name"]);
-                        const receiverName = s.proof_of_delivery?.receiver_name || customerName || "—";
+                        const receiverName = isP2P
+                          ? displayName(s.other_party, ["name"])
+                          : s.proof_of_delivery?.receiver_name || customerName || "—";
                         return (
                           <tr key={s._id} className="group hover:bg-white/[0.02]">
                             <td className="py-3 pr-3 align-top">
@@ -408,7 +413,7 @@ export default function LogisticsManifestsPage() {
                   </table>
                 </div>
 
-                {/* Mobile cards — same style as dashboard shipment cards */}
+                {/* Mobile cards */}
                 <div className="space-y-3 md:hidden">
                   {shipments.map((s) => {
                     const order = s.order_id;
@@ -416,89 +421,75 @@ export default function LogisticsManifestsPage() {
                     const customer = order?.customer_id;
                     const dest  = destinationLine(s);
                     const badgeCls = STATUS_BADGE[s.status] || "bg-[var(--bg-secondary)] text-[var(--text-secondary)]";
-                    const vendorName = displayName(vendor, ["store_name", "name"]);
+                    const isP2P = s.type === "p2p";
+                    const vendorName = isP2P
+                      ? displayName(s.booked_by, ["name"]) || displayName(s.guest_booker, ["name"])
+                      : displayName(vendor, ["store_name", "name"]);
                     const customerName = displayName(customer, ["name"]);
-                    const receiverName = s.proof_of_delivery?.receiver_name || customerName || "—";
-                    const placedDate = order?.createdAt
-                      ? new Date(order.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+                    const receiverName = isP2P
+                      ? displayName(s.other_party, ["name"])
+                      : s.proof_of_delivery?.receiver_name || customerName || "—";
+                    const fee = typeof s.price === "number" ? `${s.price.toLocaleString()} XAF` : "—";
+                    const isActive = !["delivered", "cancelled", "failed"].includes(s.status);
+                    const placedDate = (order?.createdAt || s.createdAt)
+                      ? new Date(order?.createdAt || s.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })
                       : "—";
                     return (
                       <div
                         key={s._id}
                         onClick={() => openShipmentDetail(s)}
-                        className="cursor-pointer space-y-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 backdrop-blur-sm transition active:scale-95 active:opacity-75"
+                        className={`cursor-pointer rounded-2xl border overflow-hidden transition active:scale-[0.98] ${
+                          isActive ? "border-[var(--accent)]/15 hover:border-[var(--accent)]/30" : "border-[var(--glass-border)] hover:border-[var(--glass-border)]/60"
+                        } bg-[var(--bg-secondary)]/10`}
                       >
-                        {/* Top bar: Tracking + Status + Open Button */}
-                        <div className="flex items-center justify-between gap-2 border-b border-[var(--glass-border)] px-4 py-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-mono text-[12px] font-semibold tracking-tight">{s.tracking_code || "—"}</p>
-                            <p className="text-[9px] opacity-40">ID: {s._id?.slice(-6).toUpperCase()}</p>
-                          </div>
-                          <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-[9px] font-semibold tracking-tight whitespace-nowrap ${badgeCls}`}>
-                            {s.status === "cancelled" ? "Vendor" : s.status?.replace(/_/g, " ")}
-                          </span>
-                        </div>
+                        {/* Status stripe */}
+                        <div className={`h-[3px] ${STATUS_BADGE[s.status]?.split(" ")[0]?.replace("/10", "") || "bg-[var(--glass-border)]"}`} />
 
-                        {/* Main content grid */}
-                        <div className="space-y-3 px-4 py-3">
-                          {/* Row 1: Vendor & Receiver */}
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <div>
-                              <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Vendor</p>
-                              <p className="mt-1 truncate text-[12px] font-semibold text-[var(--text-primary)]">{vendorName}</p>
+                        <div className="p-4 space-y-3">
+                          {/* Row 1: Tracking + type + status badge */}
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-mono text-[12px] font-bold text-[var(--text-primary)] tracking-wide">{s.tracking_code || "—"}</p>
+                                {isP2P && (
+                                  <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-600 uppercase">P2P</span>
+                                )}
+                                <span className="text-[9px] text-[var(--text-secondary)]/25">{placedDate}</span>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Receiver</p>
-                              <p className="mt-1 truncate text-[12px] font-semibold text-[var(--text-primary)]">{receiverName}</p>
-                            </div>
+                            <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-1 text-[9px] font-bold tracking-tight whitespace-nowrap ${badgeCls}`}>
+                              {s.status?.replace(/_/g, " ")}
+                            </span>
                           </div>
 
-                          {/* Row 2: Items Summary */}
-                          <div>
-                            <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Items</p>
-                            <p className="mt-1 line-clamp-2 text-[12px] font-medium leading-snug text-[var(--text-primary)]">
-                              {summarizeLineItems(order)}
+                          {/* Row 2: Route (timeline style) */}
+                          <div className="relative pl-6 space-y-2.5 before:absolute before:left-[7px] before:top-1 before:h-[calc(100%-8px)] before:w-px before:bg-gradient-to-b before:from-emerald-500/40 before:to-rose-500/40">
+                            <div className="relative">
+                              <div className="absolute -left-6 top-0.5 size-[15px] rounded-full bg-[var(--bg-primary)] border-2 border-emerald-500 flex items-center justify-center">
+                                <div className="size-1 rounded-full bg-emerald-500" />
+                              </div>
+                              <p className="text-[12px] font-bold text-[var(--text-primary)] truncate">{vendorName}</p>
+                              <p className="text-[10px] text-[var(--text-secondary)]/50 truncate">{s.pickup_address?.quartier || s.pickup_address?.city || "Pickup"}</p>
+                            </div>
+                            <div className="relative">
+                              <div className="absolute -left-6 top-0.5 size-[15px] rounded-full bg-[var(--bg-primary)] border-2 border-rose-500/40 flex items-center justify-center">
+                                <MapPin className="size-2 text-rose-500 opacity-60" />
+                              </div>
+                              <p className="text-[12px] font-bold text-[var(--text-primary)] truncate">{receiverName}</p>
+                              <p className="text-[10px] text-[var(--text-secondary)]/50 truncate">{dest.main}{dest.sub ? `, ${dest.sub}` : ""}</p>
+                            </div>
+                          </div>
+
+                          {/* Row 3: Items + Fee */}
+                          <div className="flex items-center justify-between pt-1 border-t border-[var(--glass-border)]/15">
+                            <p className="text-[10px] text-[var(--text-secondary)]/50 truncate flex-1 mr-3">
+                              {isP2P ? (s.package_details?.category || "Package") : summarizeLineItems(order)}
                             </p>
-                          </div>
-
-                          {/* Row 3: Route */}
-                          <div>
-                            <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Route</p>
-                            <div className="mt-1 flex items-center gap-1.5">
-                              <span className="truncate text-[12px] font-semibold">{s.pickup_address?.quartier || "Pickup"}</span>
-                              <ArrowRight className="size-3 shrink-0 text-[var(--accent)] opacity-50" />
-                              <span className="truncate text-[12px] font-semibold">{dest.main}</span>
-                            </div>
-                            {dest.sub && <p className="mt-0.5 truncate text-[10px] opacity-50">{dest.sub}</p>}
-                          </div>
-
-                          {/* Row 4: Meta — Date & Fee */}
-                          <div className="grid grid-cols-2 gap-3 border-t border-[var(--glass-border)] pt-3">
-                            <div>
-                              <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Date</p>
-                              <p className="mt-1 text-[11px] font-semibold">{placedDate}</p>
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-semibold uppercase tracking-wide text-[var(--text-secondary)] opacity-50">Fee</p>
-                              <p className="mt-1 font-mono text-[11px] font-semibold">
-                                {typeof s.price === "number" ? `${s.price.toLocaleString()} XAF` : "—"}
-                              </p>
+                            <div className="flex items-baseline gap-1 shrink-0">
+                              <span className="text-sm font-black text-[var(--text-primary)]">{typeof s.price === "number" ? s.price.toLocaleString() : "—"}</span>
+                              <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40">XAF</span>
                             </div>
                           </div>
-                        </div>
-
-                        {/* Footer: Open button */}
-                        <div className="border-t border-[var(--glass-border)] px-4 py-2">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openShipmentDetail(s);
-                            }}
-                            className="w-full min-h-11 touch-manipulation rounded-xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 py-2.5 text-[12px] font-semibold text-[var(--accent)] transition active:scale-95"
-                          >
-                            View Full Details
-                          </button>
                         </div>
                       </div>
                     );
