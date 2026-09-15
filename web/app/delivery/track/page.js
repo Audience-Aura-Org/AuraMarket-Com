@@ -71,97 +71,75 @@ function StatusStepper({ status, logs, createdAt, eta }) {
     }
   }
 
-  const steps = isFail
+  const stepList = isFail
     ? [...STATUS_FLOW.slice(0, Math.max(0, currentIdx) + 1).map(s => ({ key: s, ...STATUS_META[s] })), { key: status, ...STATUS_META[status] }]
     : STATUS_FLOW.map(s => ({ key: s, ...STATUS_META[s] }));
 
-  // Deduplicate in case fail status is already in flow
+  // Deduplicate
   const seen = new Set();
-  const uniqueSteps = steps.filter(s => { if (seen.has(s.key)) return false; seen.add(s.key); return true; });
+  const uniqueSteps = stepList.filter(s => { if (seen.has(s.key)) return false; seen.add(s.key); return true; });
 
   return (
-    <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 overflow-hidden">
-      <div className="px-4 py-3 border-b border-[var(--glass-border)]/30 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Timer className="size-4 text-[var(--accent)]" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-60">Delivery Progress</span>
-        </div>
-      </div>
-      <div className="p-4 space-y-0">
-        {uniqueSteps.map((step, i) => {
-          const StepIcon = step.icon;
-          const reached = isFail
-            ? i <= uniqueSteps.length - 1
-            : i <= currentIdx;
-          const isCurrent = isFail
-            ? i === uniqueSteps.length - 1
-            : i === currentIdx;
-          const isLast = i === uniqueSteps.length - 1;
-          const ts = logMap[step.key] || (step.key === 'pending' ? createdAt : null);
-          const nextTs = !isLast ? (logMap[uniqueSteps[i + 1]?.key] || null) : null;
-          const stepDuration = ts && nextTs ? elapsed(ts, nextTs) : null;
+    <div className="space-y-8 pl-4 relative">
+      {/* Vertical track line */}
+      <div className="absolute left-[23px] top-4 bottom-4 w-[3px] rounded-full bg-[var(--glass-border)]/15" />
 
-          return (
-            <div key={step.key} className="flex items-stretch gap-3">
-              {/* Vertical line + dot */}
-              <div className="flex flex-col items-center shrink-0 w-6">
-                <div className={`size-6 rounded-full flex items-center justify-center shrink-0 transition-all ${
-                  isCurrent
-                    ? `${step.dot} ring-4 ${step.bg.replace('bg-', 'ring-').replace('/10', '/15')}`
-                    : reached
-                      ? step.dot
-                      : 'bg-[var(--glass-border)]/20'
-                }`}>
-                  {reached && <StepIcon className="size-3 text-white" />}
-                </div>
-                {!isLast && (
-                  <div className={`w-[2px] flex-1 min-h-[24px] my-0.5 rounded-full ${
-                    reached && !isCurrent ? step.dot + '/40' : 'bg-[var(--glass-border)]/15'
-                  }`} />
-                )}
-              </div>
+      {uniqueSteps.map((step, i) => {
+        const StepIcon = step.icon;
+        const reached = isFail ? i <= uniqueSteps.length - 1 : i <= currentIdx;
+        const isCurrent = isFail ? i === uniqueSteps.length - 1 : i === currentIdx;
+        const ts = logMap[step.key] || (step.key === 'pending' ? createdAt : null);
 
-              {/* Step content */}
-              <div className={`flex-1 min-w-0 ${isLast ? 'pb-0' : 'pb-4'}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <p className={`text-[12px] font-bold ${
-                    isCurrent ? step.color : reached ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]/25'
-                  }`}>
-                    {step.label}
-                  </p>
-                  {ts && reached && (
-                    <span className={`text-[9px] font-mono ${isCurrent ? step.color : 'text-[var(--text-secondary)]/30'}`}>
-                      {timeAgo(ts)}
-                    </span>
-                  )}
-                </div>
-                {isCurrent && (
-                  <p className="text-[10px] text-[var(--text-secondary)] opacity-50 mt-0.5">{step.sub}</p>
-                )}
+        return (
+          <div key={step.key} className="flex gap-5 relative group">
+            {/* Circle */}
+            <div className={`z-10 size-10 rounded-full flex-shrink-0 flex items-center justify-center border-[3px] border-[var(--bg-primary)] shadow-md transition-all ${
+              isCurrent
+                ? `${step.dot} text-white shadow-lg`
+                : reached
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)]/20'
+            }`}>
+              {reached && !isCurrent
+                ? <CheckCircle2 className="size-5" />
+                : isCurrent
+                  ? <div className="size-2.5 rounded-full bg-white animate-ping" />
+                  : <div className="size-2.5 rounded-full bg-[var(--glass-border)]/30" />
+              }
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0 pt-1">
+              <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                <h4 className={`text-[13px] font-bold tracking-tight ${
+                  isCurrent ? step.color : reached ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]/20'
+                }`}>{step.label}</h4>
                 {ts && reached && (
-                  <p className="text-[9px] text-[var(--text-secondary)]/25 mt-0.5">
-                    {new Date(ts).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                  </p>
-                )}
-                {stepDuration && reached && (
-                  <span className="inline-flex items-center gap-1 mt-1 text-[8px] font-bold text-[var(--accent)] bg-[var(--accent)]/8 rounded-md px-1.5 py-0.5">
-                    <Clock className="size-2.5" /> {stepDuration}
+                  <span className="text-[10px] font-semibold text-[var(--text-secondary)]/30 tracking-tight shrink-0">
+                    {new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </span>
                 )}
               </div>
+              <p className={`text-[11px] font-medium leading-relaxed ${
+                isCurrent ? 'text-[var(--text-secondary)]/60' : reached ? 'text-[var(--text-secondary)]/40' : 'text-[var(--text-secondary)]/15'
+              }`}>{step.sub}</p>
             </div>
-          );
-        })}
-      </div>
-      {eta && (
-        <div className="px-4 py-3 border-t border-[var(--glass-border)]/30 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Clock className="size-3.5 text-[var(--accent)]" />
-            <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60">Estimated Delivery</span>
           </div>
-          <span className="text-[11px] font-bold text-[var(--accent)]">
-            {new Date(eta).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-          </span>
+        );
+      })}
+
+      {/* ETA row at bottom */}
+      {eta && (
+        <div className="flex gap-5 relative">
+          <div className="z-10 size-10 rounded-full flex-shrink-0 flex items-center justify-center border-[3px] border-[var(--bg-primary)] bg-[var(--accent)]/10 text-[var(--accent)]">
+            <Clock className="size-4" />
+          </div>
+          <div className="flex-1 min-w-0 pt-1">
+            <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-50 uppercase tracking-wider">Estimated Delivery</p>
+            <p className="text-[13px] font-bold text-[var(--accent)] mt-0.5">
+              {new Date(eta).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </p>
+          </div>
         </div>
       )}
     </div>
