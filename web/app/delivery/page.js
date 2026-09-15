@@ -28,8 +28,8 @@ const WEIGHT_TIERS = [
   { value: 'extra_heavy', label: 'Extra Heavy (30+ kg)' },
 ];
 
-const INPUT_CLASS = 'delivery-input w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3 py-2 text-[13px] font-semibold text-[var(--text-primary)] placeholder:font-normal outline-none transition-all focus:border-[var(--accent)]/50';
-const LABEL_CLASS = 'delivery-label block text-[11px] font-bold text-[var(--text-secondary)] mb-1 ml-1';
+const INPUT_CLASS = 'delivery-input w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3.5 py-2.5 text-[13px] font-semibold text-[var(--text-primary)] placeholder:font-normal outline-none transition-all focus:border-[var(--accent)]/50 min-h-[44px]';
+const LABEL_CLASS = 'delivery-label block text-[11px] font-bold text-[var(--text-secondary)] mb-1.5 ml-0.5';
 
 export default function DeliveryPage() {
   const router = useRouter();
@@ -482,13 +482,13 @@ export default function DeliveryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)]/20 pb-32 pt-6">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)]/20 pb-32 pt-4 sm:pt-6">
       <style jsx>{`
         .delivery-input, .delivery-input::placeholder { font-size: 16px; }
         .delivery-label { font-size: 12px; }
         @media (min-width: 768px) {
-          .delivery-input, .delivery-input::placeholder { font-size: 24px; }
-          .delivery-label { font-size: 18px; }
+          .delivery-input, .delivery-input::placeholder { font-size: 14px; }
+          .delivery-label { font-size: 12px; }
         }
         .direction-btn {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -497,20 +497,20 @@ export default function DeliveryPage() {
           transform: translateY(-2px);
         }
       `}</style>
-      <div className="mx-auto max-w-3xl px-4">
+      <div className="mx-auto max-w-lg sm:max-w-3xl px-3 sm:px-4">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-3">
+        <div className="mb-5 sm:mb-8">
+          <div className="flex items-center gap-3 sm:gap-4 mb-2">
             {user?.avatar || user?.branding?.logo ? (
-              <img src={user.branding?.logo || user.avatar} alt={user.name} className="h-12 w-12 rounded-2xl object-cover shadow-sm" />
+              <img src={user.branding?.logo || user.avatar} alt={user.name} className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl object-cover shadow-sm" />
             ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]/70 text-white font-bold text-lg shadow-sm">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]/70 text-white font-bold text-base sm:text-lg shadow-sm">
                 {user?.name?.charAt(0)?.toUpperCase() || 'P'}
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-bold text-[var(--text-primary)]">Pickup & Delivery</h1>
-              <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">Quick & reliable package delivery</p>
+              <h1 className="text-lg sm:text-2xl font-bold text-[var(--text-primary)]">Pickup & Delivery</h1>
+              <p className="text-[11px] sm:text-[13px] text-[var(--text-secondary)] mt-0.5">Quick & reliable package delivery</p>
             </div>
           </div>
         </div>
@@ -708,38 +708,34 @@ export default function DeliveryPage() {
         {step === 1 && (
           <div className="space-y-5">
             {/* Direction Toggle */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
               <button onClick={() => setDirection('send')}
-                className={`direction-btn flex flex-col items-center gap-3 rounded-2xl border-2 p-5 transition-all ${
+                className={`direction-btn flex flex-col items-center gap-2 sm:gap-3 rounded-2xl border-2 p-4 sm:p-5 transition-all active:scale-[0.97] ${
                   direction === 'send'
                     ? 'border-[var(--accent)] bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 shadow-lg shadow-[var(--accent)]/10'
                     : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40'
                 }`}>
-                <div className={`rounded-full p-3 transition-all ${
-                  direction === 'send'
-                    ? 'bg-[var(--accent)]/20'
-                    : 'bg-[var(--text-secondary)]/10'
+                <div className={`rounded-full p-2.5 sm:p-3 transition-all ${
+                  direction === 'send' ? 'bg-[var(--accent)]/20' : 'bg-[var(--text-secondary)]/10'
                 }`}>
-                  <Send className={`size-6 ${direction === 'send' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                  <Send className={`size-5 sm:size-6 ${direction === 'send' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
                 </div>
-                <span className={`text-[14px] font-bold ${direction === 'send' ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
-                  Send a Package
+                <span className={`text-[12px] sm:text-[14px] font-bold ${direction === 'send' ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
+                  Send Package
                 </span>
               </button>
               <button onClick={() => setDirection('request_pickup')}
-                className={`direction-btn flex flex-col items-center gap-3 rounded-2xl border-2 p-5 transition-all ${
+                className={`direction-btn flex flex-col items-center gap-2 sm:gap-3 rounded-2xl border-2 p-4 sm:p-5 transition-all active:scale-[0.97] ${
                   direction === 'request_pickup'
                     ? 'border-[var(--accent)] bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 shadow-lg shadow-[var(--accent)]/10'
                     : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40'
                 }`}>
-                <div className={`rounded-full p-3 transition-all ${
-                  direction === 'request_pickup'
-                    ? 'bg-[var(--accent)]/20'
-                    : 'bg-[var(--text-secondary)]/10'
+                <div className={`rounded-full p-2.5 sm:p-3 transition-all ${
+                  direction === 'request_pickup' ? 'bg-[var(--accent)]/20' : 'bg-[var(--text-secondary)]/10'
                 }`}>
-                  <ArrowDownToLine className={`size-6 ${direction === 'request_pickup' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+                  <ArrowDownToLine className={`size-5 sm:size-6 ${direction === 'request_pickup' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
                 </div>
-                <span className={`text-[14px] font-bold ${direction === 'request_pickup' ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
+                <span className={`text-[12px] sm:text-[14px] font-bold ${direction === 'request_pickup' ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
                   Request Pickup
                 </span>
               </button>
@@ -815,17 +811,17 @@ export default function DeliveryPage() {
             {error && <p className="text-rose-500 text-[13px] font-semibold bg-rose-500/10 rounded-xl px-4 py-2.5">{error}</p>}
 
             <button onClick={handleGetQuote} disabled={loading}
-              className="w-full rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent)]/80 py-4 text-[14px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20 hover:shadow-xl hover:shadow-[var(--accent)]/30 transition-all hover:scale-105">
+              className="w-full rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent)]/80 py-3.5 sm:py-4 text-[13px] sm:text-[14px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20 transition-all active:scale-[0.98] min-h-[48px]">
               {loading ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="size-5" />}
               Get Quote & Compare
             </button>
 
             {/* Links */}
-            <div className="flex flex-col gap-3 text-[13px]">
-              <button onClick={() => router.push('/delivery/track')} className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 text-[var(--accent)] font-semibold py-2.5 hover:bg-[var(--accent)]/10 transition-all">
+            <div className="flex flex-col gap-2.5 text-[12px] sm:text-[13px]">
+              <button onClick={() => router.push('/delivery/track')} className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 text-[var(--accent)] font-semibold py-3 min-h-[44px] active:scale-[0.98] transition-all">
                 Track an Existing Delivery
               </button>
-              {user && <button onClick={() => router.push('/delivery/history')} className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-primary)] font-semibold py-2.5 hover:border-[var(--accent)]/40 transition-all">
+              {user && <button onClick={() => router.push('/delivery/history')} className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-primary)] font-semibold py-3 min-h-[44px] active:scale-[0.98] transition-all">
                 View My Deliveries
               </button>}
             </div>
