@@ -807,158 +807,171 @@ export default function ShipmentStatusModal({
 
         {/* Update Form Section */}
         <div className={formShell}>
-          {/* Last update timer */}
           {(() => {
             const logs = shipment.shipment_logs;
             const lastLog = logs?.length ? logs[logs.length - 1] : null;
             const lastTs = lastLog?.timestamp || shipment.createdAt;
+
+            const ALLOWED_TRANSITIONS = {
+              pending: ['assigned', 'cancelled'],
+              assigned: ['picked_up', 'failed', 'cancelled'],
+              picked_up: ['in_transit', 'failed', 'cancelled'],
+              in_transit: ['out_for_delivery', 'failed'],
+              out_for_delivery: ['delivered', 'failed'],
+              failed: ['assigned', 'cancelled'],
+              delivered: [],
+              cancelled: [],
+            };
+            const STATUS_META = [
+              { value: 'pending',          label: 'Pending',          icon: '○', color: 'text-slate-400' },
+              { value: 'assigned',         label: 'Assigned',         icon: '◉', color: 'text-blue-500' },
+              { value: 'picked_up',        label: 'Picked Up',       icon: '▲', color: 'text-indigo-500' },
+              { value: 'in_transit',       label: 'In Transit',      icon: '▶', color: 'text-violet-500' },
+              { value: 'out_for_delivery', label: 'Out for Delivery', icon: '◆', color: 'text-amber-500' },
+              { value: 'delivered',        label: 'Delivered',        icon: '✓', color: 'text-emerald-500' },
+              { value: 'failed',           label: 'Failed',           icon: '✕', color: 'text-red-500' },
+              { value: 'cancelled',        label: 'Cancelled',        icon: '—', color: 'text-slate-400' },
+            ];
+            const currentStatus = shipment.status || 'pending';
+            const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
+            const currentMeta = STATUS_META.find(s => s.value === currentStatus) || STATUS_META[0];
+
             return (
-              <div className="flex items-center justify-between gap-3 mb-4 rounded-xl border border-[var(--glass-border)]/50 bg-[var(--bg-primary)]/60 px-4 py-2.5">
-                <div className="flex items-center gap-2">
-                  <Clock className="size-3.5 text-[var(--text-secondary)] opacity-40" />
-                  <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-60">Last status update</span>
+              <form onSubmit={onSubmit} className={`space-y-4 ${embedded ? "mx-auto max-w-4xl" : ""}`}>
+                {/* Current status + last update indicator */}
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--glass-border)]/40 bg-[var(--bg-primary)]/50 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className={`size-8 rounded-xl flex items-center justify-center text-sm font-black ${currentMeta.color} bg-current/10`}
+                      style={{ backgroundColor: 'color-mix(in srgb, currentColor 8%, transparent)' }}>
+                      {currentMeta.icon}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 uppercase tracking-wider">Current Status</p>
+                      <p className={`text-sm font-bold ${currentMeta.color}`}>{currentMeta.label}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40">Updated</p>
+                    <p className="text-[11px] font-bold text-[var(--text-primary)]">{timeAgoStr(lastTs)}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono font-bold text-[var(--text-primary)]">{timeAgoStr(lastTs)}</span>
-                  <span className="text-[9px] text-[var(--text-secondary)] opacity-30">
-                    ({new Date(lastTs).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })})
-                  </span>
+
+                {/* Status + Note row */}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">
+                      <Truck className="size-3" /> Transition To
+                    </label>
+                    <select
+                      value={updateData.status}
+                      onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
+                      className="w-full appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 focus:border-[var(--accent)]/30 transition-all"
+                    >
+                      {STATUS_META.map(s => {
+                        const isCurrent = s.value === currentStatus;
+                        const isAllowed = allowed.includes(s.value);
+                        return (
+                          <option key={s.value} value={s.value} disabled={!isCurrent && !isAllowed}>
+                            {s.icon} {s.label}{isCurrent ? ' (current)' : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">
+                      <ClipboardList className="size-3" /> Note
+                    </label>
+                    <input
+                      placeholder="Traffic delay, ready for pickup..."
+                      value={updateData.note}
+                      onChange={(e) => setUpdateData({ ...updateData, note: e.target.value })}
+                      className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3 text-[13px] font-medium outline-none ring-[var(--accent)]/20 focus:ring-4 focus:border-[var(--accent)]/30 transition-all placeholder:text-[11px] placeholder:font-normal placeholder:opacity-30"
+                    />
+                  </div>
                 </div>
-              </div>
+
+                {/* ETA field */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">
+                    <Clock className="size-3" /> Estimated Delivery
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="datetime-local"
+                      value={updateData.estimated_delivery || ""}
+                      onChange={(e) => setUpdateData({ ...updateData, estimated_delivery: e.target.value })}
+                      className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3 pr-10 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 focus:border-[var(--accent)]/30 transition-all"
+                    />
+                    <Clock className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 opacity-20" />
+                  </div>
+                  {shipment.estimated_delivery && (
+                    <p className="text-[10px] text-[var(--text-secondary)] opacity-40 ml-1">
+                      Current: {new Date(shipment.estimated_delivery).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                    </p>
+                  )}
+                </div>
+
+                {/* Conditional: Delivered fields */}
+                {updateData.status === "delivered" && (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 ml-1">Receiver Name</label>
+                      <input
+                        placeholder="Person who received"
+                        value={updateData.receiver_name}
+                        onChange={(e) => setUpdateData({ ...updateData, receiver_name: e.target.value })}
+                        className="w-full rounded-xl border border-emerald-500/20 bg-[var(--bg-primary)] px-4 py-3 text-[13px] font-bold outline-none focus:ring-4 ring-emerald-500/10"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 ml-1">Proof Image URL</label>
+                      <input
+                        placeholder="Optional photo proof"
+                        value={updateData.proof_image}
+                        onChange={(e) => setUpdateData({ ...updateData, proof_image: e.target.value })}
+                        className="w-full rounded-xl border border-emerald-500/20 bg-[var(--bg-primary)] px-4 py-3 text-[13px] font-bold outline-none focus:ring-4 ring-emerald-500/10"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Conditional: Failed fields */}
+                {updateData.status === "failed" && (
+                  <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.03] p-4 space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-red-500 ml-1">Failure Reason</label>
+                    <select
+                      value={updateData.failure_reason}
+                      onChange={(e) => setUpdateData({ ...updateData, failure_reason: e.target.value })}
+                      className="w-full appearance-none rounded-xl border border-red-500/20 bg-[var(--bg-primary)] px-4 py-3 text-[13px] font-bold outline-none focus:ring-4 ring-red-500/10"
+                    >
+                      <option value="">Select reason...</option>
+                      {FAILURE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Submit */}
+                <button
+                  type="submit"
+                  disabled={updating || (updateData.status === currentStatus && !updateData.note && !updateData.estimated_delivery)}
+                  className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-[var(--accent)] px-6 py-4 transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-[var(--accent)]/20"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                  {updating ? (
+                    <Loader2 className="size-5 animate-spin text-white" />
+                  ) : (
+                    <>
+                      <Truck className="size-4 text-white" />
+                      <span className="text-[12px] font-black uppercase tracking-[0.15em] text-white">Update Shipment</span>
+                    </>
+                  )}
+                </button>
+              </form>
             );
           })()}
-          <form onSubmit={onSubmit} className={`space-y-5 ${embedded ? "mx-auto max-w-4xl" : ""}`}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">New Shipment Status</label>
-                <div className="relative">
-                  {(() => {
-                    const ALLOWED_TRANSITIONS = {
-                      pending: ['assigned', 'cancelled'],
-                      assigned: ['picked_up', 'failed', 'cancelled'],
-                      picked_up: ['in_transit', 'failed', 'cancelled'],
-                      in_transit: ['out_for_delivery', 'failed'],
-                      out_for_delivery: ['delivered', 'failed'],
-                      failed: ['assigned', 'cancelled'],
-                      delivered: [],
-                      cancelled: [],
-                    };
-                    const ALL_STATUSES = [
-                      { value: 'pending',          label: 'Pending Approval' },
-                      { value: 'assigned',         label: 'Assigned Courier' },
-                      { value: 'picked_up',        label: 'Picked Up' },
-                      { value: 'in_transit',       label: 'In Transit' },
-                      { value: 'out_for_delivery', label: 'Out For Delivery' },
-                      { value: 'delivered',        label: 'Delivered Successfully' },
-                      { value: 'failed',           label: 'Delivery Failed' },
-                      { value: 'cancelled',        label: 'Cancelled' },
-                    ];
-                    const currentStatus = shipment.status || 'pending';
-                    const allowed = ALLOWED_TRANSITIONS[currentStatus] || [];
-                    return (
-                      <select
-                        value={updateData.status}
-                        onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
-                        className="w-full appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 transition-all"
-                      >
-                        {ALL_STATUSES.map(s => {
-                          const isCurrent = s.value === currentStatus;
-                          const isAllowed = allowed.includes(s.value);
-                          return (
-                            <option
-                              key={s.value}
-                              value={s.value}
-                              disabled={!isCurrent && !isAllowed}
-                            >
-                              {s.label}{isCurrent ? ' ✓ current' : !isAllowed ? '' : ' →'}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    );
-                  })()}
-                  <Truck className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 opacity-30" />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">Operational Note</label>
-                <input
-                  placeholder="e.g. Traffic delay, ready for pickup..."
-                  value={updateData.note}
-                  onChange={(e) => setUpdateData({ ...updateData, note: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 transition-all placeholder:text-[11px] placeholder:font-normal placeholder:opacity-30"
-                />
-              </div>
-            </div>
-
-            {/* ETA field */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">Estimated Delivery (ETA)</label>
-              <div className="relative">
-                <input
-                  type="datetime-local"
-                  value={updateData.estimated_delivery || ""}
-                  onChange={(e) => setUpdateData({ ...updateData, estimated_delivery: e.target.value })}
-                  className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 transition-all"
-                />
-                <Clock className="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 opacity-30" />
-              </div>
-              {shipment.estimated_delivery && (
-                <p className="text-[10px] text-[var(--text-secondary)] opacity-40 ml-1">
-                  Current ETA: {new Date(shipment.estimated_delivery).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                </p>
-              )}
-            </div>
-
-            {updateData.status === "delivered" && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                <input
-                  placeholder="Receiver name"
-                  value={updateData.receiver_name}
-                  onChange={(e) => setUpdateData({ ...updateData, receiver_name: e.target.value })}
-                  className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none"
-                />
-                <input
-                  placeholder="Proof image URL (optional)"
-                  value={updateData.proof_image}
-                  onChange={(e) => setUpdateData({ ...updateData, proof_image: e.target.value })}
-                  className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none"
-                />
-              </div>
-            )}
-
-            {updateData.status === "failed" && (
-              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                <select
-                  value={updateData.failure_reason}
-                  onChange={(e) => setUpdateData({ ...updateData, failure_reason: e.target.value })}
-                  className="w-full appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3.5 text-[13px] font-bold outline-none"
-                >
-                  <option value="">Select failure reason</option>
-                  {FAILURE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={updating}
-              className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-[var(--text-primary)] px-6 py-4 transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-              {updating ? (
-                <Loader2 className="size-5 animate-spin" />
-              ) : (
-                <>
-                  <span className="text-[12px] font-black uppercase tracking-[0.2em] text-[var(--bg-primary)]">Update Shipment</span>
-                  <ChevronRight className="size-4 text-[var(--bg-primary)] transition-transform group-hover:translate-x-1" />
-                </>
-              )}
-            </button>
-          </form>
         </div>
 
       </div>

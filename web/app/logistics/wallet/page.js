@@ -108,17 +108,6 @@ export default function LogisticsWalletPage() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  useEffect(() => {
-    if (!hasHydrated) return;
-    if (!user) {
-      router.replace('/login?from=logistics-wallet');
-    } else if (user.role !== 'logistics') {
-      router.replace('/wallet');
-    }
-  }, [user, router, hasHydrated]);
-
-  if (!hasHydrated || !user || user.role !== 'logistics') return null;
-
   const load = useCallback(async (silent = false) => {
     if (loadingRef.current) {
       if (silent) pendingSilentLoad.current = true;
@@ -186,6 +175,17 @@ export default function LogisticsWalletPage() {
   // socket-triggered credits after the current fetch, making the sync redundant.
 
   useEffect(() => { setCurrentPage(1); }, [tab]);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (!user) {
+      router.replace('/login?from=logistics-wallet');
+    } else if (user.role !== 'logistics') {
+      router.replace('/wallet');
+    }
+  }, [user, router, hasHydrated]);
+
+  if (!hasHydrated || !user || user.role !== 'logistics') return null;
 
   const handleRecheckTx = async (tx) => {
     setRecheckingTxId(tx._id);
