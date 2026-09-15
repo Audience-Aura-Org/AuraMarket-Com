@@ -856,39 +856,51 @@ export default function ShipmentStatusModal({
                   </div>
                 </div>
 
-                {/* Status + Note row */}
-                <div className="grid gap-3 sm:grid-cols-2">
+                {/* Next status buttons */}
+                {allowed.length > 0 && (
                   <div className="space-y-1.5">
                     <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">
-                      <Truck className="size-3" /> Transition To
+                      <Truck className="size-3" /> Move To
                     </label>
-                    <select
-                      value={updateData.status}
-                      onChange={(e) => setUpdateData({ ...updateData, status: e.target.value })}
-                      className="w-full appearance-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 focus:border-[var(--accent)]/30 transition-all"
-                    >
-                      {STATUS_META.map(s => {
-                        const isCurrent = s.value === currentStatus;
-                        const isAllowed = allowed.includes(s.value);
+                    <div className="flex flex-wrap gap-2">
+                      {allowed.map(val => {
+                        const meta = STATUS_META.find(s => s.value === val);
+                        if (!meta) return null;
+                        const isSelected = updateData.status === val;
+                        const isFail = val === 'failed' || val === 'cancelled';
                         return (
-                          <option key={s.value} value={s.value} disabled={!isCurrent && !isAllowed}>
-                            {s.icon} {s.label}{isCurrent ? ' (current)' : ''}
-                          </option>
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setUpdateData({ ...updateData, status: val })}
+                            className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[12px] font-bold transition-all active:scale-95 ${
+                              isSelected
+                                ? isFail
+                                  ? 'border-red-500/40 bg-red-500/10 text-red-600 shadow-sm'
+                                  : 'border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)] shadow-sm'
+                                : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--accent)]/20 hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <span className="text-sm">{meta.icon}</span>
+                            {meta.label}
+                          </button>
                         );
                       })}
-                    </select>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">
-                      <ClipboardList className="size-3" /> Note
-                    </label>
-                    <input
-                      placeholder="Traffic delay, ready for pickup..."
-                      value={updateData.note}
-                      onChange={(e) => setUpdateData({ ...updateData, note: e.target.value })}
-                      className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3 text-[13px] font-medium outline-none ring-[var(--accent)]/20 focus:ring-4 focus:border-[var(--accent)]/30 transition-all placeholder:text-[11px] placeholder:font-normal placeholder:opacity-30"
-                    />
-                  </div>
+                )}
+
+                {/* Note field */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">
+                    <ClipboardList className="size-3" /> Note
+                  </label>
+                  <input
+                    placeholder="Traffic delay, ready for pickup..."
+                    value={updateData.note}
+                    onChange={(e) => setUpdateData({ ...updateData, note: e.target.value })}
+                    className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3 text-[13px] font-medium outline-none ring-[var(--accent)]/20 focus:ring-4 focus:border-[var(--accent)]/30 transition-all placeholder:text-[11px] placeholder:font-normal placeholder:opacity-30"
+                  />
                 </div>
 
                 {/* ETA field */}
