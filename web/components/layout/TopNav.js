@@ -101,7 +101,7 @@ export default function TopNav() {
     <header className="fixed inset-x-0 top-0 z-[500] w-full border-b border-[var(--nav-border)] bg-[var(--nav-bg)] text-[var(--nav-text)] shadow-[0_10px_40px_-14px_rgba(0,0,0,0.28)] backdrop-blur-2xl transition-all duration-300">
       {/* iOS Dynamic Island / notch safe-area spacer */}
       <div className="w-full shrink-0" style={{ height: 'env(safe-area-inset-top)' }} aria-hidden="true" />
-      <div className={`mx-auto flex max-w-[1920px] items-center justify-between gap-2 px-3 ${user ? 'py-2.5' : 'py-1.5'} md:gap-4 md:px-6 md:py-2.5`}>
+      <div className={`mx-auto flex max-w-[1920px] items-center justify-between gap-2 px-3 py-2.5 md:gap-4 md:px-6 md:py-2.5`}>
 
         {/* Logo Section */}
         <div className="flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-3 lg:gap-12">
