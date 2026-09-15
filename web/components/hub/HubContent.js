@@ -248,7 +248,7 @@ export default function HubContent() {
       <div className="md:hidden flex flex-col w-full relative z-10">
          {/* Sticky Tab Bar */}
          <div
-           className="sticky z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 py-2.5 shadow-sm"
+           className="sticky z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 py-1 shadow-sm"
            style={{ top: TOP_NAV_HEIGHT }}
          >
             <div className="flex bg-[var(--bg-secondary)] p-1 gap-1 rounded-full border border-[var(--glass-border)]/50">
