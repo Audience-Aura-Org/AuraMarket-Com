@@ -52,21 +52,26 @@ function elapsed(from, to) {
 function countdown(eta) {
   if (!eta) return null;
   const diff = new Date(eta).getTime() - Date.now();
-  if (diff <= 0) return { text: 'Now', overdue: true };
-  const m = Math.floor(diff / 60000);
-  if (m < 60) return { text: `${m}m`, overdue: false };
-  const h = Math.floor(m / 60);
-  if (h < 24) return { text: `${h}h ${m % 60}m`, overdue: false };
-  const d = Math.floor(h / 24);
-  return { text: `${d}d ${h % 24}h`, overdue: false };
+  if (diff <= 0) return { text: 'Overdue', overdue: true };
+  const totalSec = Math.floor(diff / 1000);
+  const s = totalSec % 60;
+  const totalMin = Math.floor(totalSec / 60);
+  const min = totalMin % 60;
+  const totalHr = Math.floor(totalMin / 60);
+  const hr = totalHr % 24;
+  const d = Math.floor(totalHr / 24);
+  if (d > 0) return { text: `${d}d ${hr}h ${min}m`, overdue: false };
+  if (hr > 0) return { text: `${hr}h ${min}m ${s.toString().padStart(2, '0')}s`, overdue: false };
+  if (min > 0) return { text: `${min}m ${s.toString().padStart(2, '0')}s`, overdue: false };
+  return { text: `${s}s`, overdue: false };
 }
 
-/* ── Live Timer Hook ──────────────────────────────────────────────── */
+/* ── Live Timer Hook (ticks every second for live countdown) ─────── */
 function useLiveClock(active) {
   const [, setTick] = useState(0);
   useEffect(() => {
     if (!active) return;
-    const iv = setInterval(() => setTick(t => t + 1), 30000); // update every 30s
+    const iv = setInterval(() => setTick(t => t + 1), 1000);
     return () => clearInterval(iv);
   }, [active]);
 }
