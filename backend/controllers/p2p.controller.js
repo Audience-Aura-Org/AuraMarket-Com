@@ -127,6 +127,7 @@ const createP2PShipment = async (req, res) => {
     }
 
     const trackingCode = await generateTrackingCode();
+    console.log(`[P2P] Booking shipment ${trackingCode} → provider ${provider._id} (${provider.company_name})`);
 
     // Build shipment data
     const shipmentData = {
@@ -134,7 +135,7 @@ const createP2PShipment = async (req, res) => {
       direction,
       logistics_id: provider._id,
       tracking_code: trackingCode,
-      status: 'pending',
+      status: 'assigned', // P2P shipments start as assigned since provider is already selected
       price: quote.price,
       pickup_address: {
         street: pickup_address.street,
@@ -162,9 +163,9 @@ const createP2PShipment = async (req, res) => {
       },
       scheduled_pickup: scheduled_pickup || null,
       shipment_logs: [{
-        status: 'pending',
+        status: 'assigned',
         updated_by: req.user?._id || null,
-        note: 'P2P shipment created',
+        note: 'P2P shipment created and assigned to provider',
       }],
     };
 
@@ -228,6 +229,8 @@ const createP2PShipment = async (req, res) => {
 
     const [shipment] = await Shipment.create([shipmentData], { session });
     await session.commitTransaction();
+
+    console.log(`✅ [P2P] Shipment ${trackingCode} created successfully with status=${shipment.status}, logistics_id=${shipment.logistics_id}`);
 
     // Non-blocking notifications
     setImmediate(async () => {
