@@ -6,7 +6,7 @@ import {
   Package, ChevronLeft, MapPin,
   ShoppingBag, ShieldCheck, Truck, CheckCircle2,
   AlertTriangle, Loader2, XCircle, Star,
-  CreditCard, Clock, Share2,
+  CreditCard, Clock, Share2, Timer,
   Printer, Scale, Phone, Layers,
   Fingerprint, History, Zap, User, MessageCircle,
   RotateCcw, AlertCircle, ArrowRight, Send,
@@ -40,6 +40,32 @@ function isFoodLogisticsOverdue(order) {
   if (order?.shipping_method !== 'logistics_partner') return false;
   const elapsed = getFoodReadyElapsed(order);
   return elapsed !== null && elapsed >= FOOD_OVERRIDE_MS;
+}
+// ── ETA Countdown helpers ──────────────────────────────────────────────────────
+function countdown(eta) {
+  if (!eta) return null;
+  const diff = new Date(eta).getTime() - Date.now();
+  if (diff <= 0) return { text: 'Overdue', overdue: true };
+  const totalSec = Math.floor(diff / 1000);
+  const s = totalSec % 60;
+  const totalMin = Math.floor(totalSec / 60);
+  const min = totalMin % 60;
+  const totalHr = Math.floor(totalMin / 60);
+  const hr = totalHr % 24;
+  const d = Math.floor(totalHr / 24);
+  if (d > 0) return { text: `${d}d ${hr}h ${min}m`, overdue: false };
+  if (hr > 0) return { text: `${hr}h ${min}m ${s.toString().padStart(2, '0')}s`, overdue: false };
+  if (min > 0) return { text: `${min}m ${s.toString().padStart(2, '0')}s`, overdue: false };
+  return { text: `${s}s`, overdue: false };
+}
+
+function useLiveClock(active) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const iv = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(iv);
+  }, [active]);
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -436,6 +462,12 @@ export default function SingleOrderView({ orderId, onBack }) {
             new Date(a?.createdAt || a?.created_at || 0)
         )[0]
       : null;
+
+  // ── ETA countdown ──
+  const orderEta = shipment?.estimated_delivery;
+  const isOrderTerminal = ['delivered', 'completed', 'cancelled', 'refunded'].includes(order.order_status);
+  useLiveClock(!!orderEta && !isOrderTerminal);
+
   const shipmentLogs = shipment?.shipment_logs || [];
   const orderActivity = [
     {
@@ -977,6 +1009,52 @@ export default function SingleOrderView({ orderId, onBack }) {
           )}
         </div>
       </section>
+
+      {/* ── ETA Countdown ───────────────────────────────────────────────── */}
+      {orderEta && !isOrderTerminal && (() => {
+        const cd = countdown(orderEta);
+        const isOverdue = cd?.overdue;
+        const parts = cd && !isOverdue ? cd.text.split(' ') : [];
+        return (
+          <div className={`rounded-2xl border p-5 ${
+            isOverdue
+              ? 'border-rose-500/20 bg-rose-500/[0.04]'
+              : 'border-[var(--accent)]/15 bg-[var(--accent)]/[0.04]'
+          }`}>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={`size-11 rounded-xl flex items-center justify-center ${
+                  isOverdue ? 'bg-rose-500/10 text-rose-500' : 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                }`}>
+                  <Timer className={`size-5 ${!isOverdue ? 'animate-pulse' : ''}`} />
+                </div>
+                <div>
+                  <p className={`text-[9px] font-bold uppercase tracking-widest ${isOverdue ? 'text-rose-500/60' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                    {isOverdue ? 'Past Due' : 'Estimated Arrival'}
+                  </p>
+                  <p className={`text-[11px] font-medium ${isOverdue ? 'text-rose-500/50' : 'text-[var(--text-secondary)] opacity-50'}`}>
+                    {new Date(orderEta).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {isOverdue ? (
+                  <span className="text-lg font-black text-rose-500 tracking-tight">Overdue</span>
+                ) : parts.map((p, i) => {
+                  const num = p.replace(/[^\d]/g, '');
+                  const unit = p.replace(/[\d]/g, '');
+                  return (
+                    <div key={i} className="flex items-baseline">
+                      <span className="text-2xl font-black tabular-nums text-[var(--accent)] tracking-tight">{num}</span>
+                      <span className="text-[10px] font-bold text-[var(--accent)]/50 ml-0.5">{unit}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="grid w-full min-w-0 flex-1 grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-12 lg:items-stretch lg:gap-10">
         <div className="order-2 flex min-h-0 flex-col space-y-8 sm:space-y-10 lg:order-1 lg:col-span-8">
