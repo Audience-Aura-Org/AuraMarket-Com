@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import {
   Loader2, MapPin, RefreshCw, ChevronRight, ChevronLeft,
   LayoutDashboard, List, LineChart, Package, Clock, Truck,
@@ -593,7 +593,7 @@ function ShipmentDetail({ shipmentId, onBack }) {
 }
 
 /* ─── Main Page ─── */
-export default function LogisticsTrackingPage() {
+function TrackingContent() {
   const user = useAuthStore((s) => s.user);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -803,4 +803,16 @@ export default function LogisticsTrackingPage() {
   );
 
   function addr(a) { return [a?.street, a?.quartier, a?.city].filter(Boolean).join(', '); }
+}
+
+export default function LogisticsTrackingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex w-full min-h-screen items-center justify-center bg-[var(--bg-primary)]">
+        <Loader2 className="size-8 animate-spin text-[var(--accent)] opacity-50" />
+      </div>
+    }>
+      <TrackingContent />
+    </Suspense>
+  );
 }
