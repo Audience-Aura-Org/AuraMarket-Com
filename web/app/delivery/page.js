@@ -28,8 +28,8 @@ const WEIGHT_TIERS = [
   { value: 'extra_heavy', label: 'Extra Heavy (30+ kg)' },
 ];
 
-const INPUT_CLASS = 'delivery-input w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3 py-2 font-medium text-[var(--text-primary)] placeholder:font-normal outline-none transition-all focus:border-[var(--accent)]/50';
-const LABEL_CLASS = 'delivery-label block font-semibold text-[var(--text-secondary)] mb-1 ml-1';
+const INPUT_CLASS = 'delivery-input w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3 py-2 text-[13px] font-semibold text-[var(--text-primary)] placeholder:font-normal outline-none transition-all focus:border-[var(--accent)]/50';
+const LABEL_CLASS = 'delivery-label block text-[11px] font-bold text-[var(--text-secondary)] mb-1 ml-1';
 
 export default function DeliveryPage() {
   const router = useRouter();
@@ -596,7 +596,7 @@ export default function DeliveryPage() {
 
             {/* Payment Method */}
             <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-5">
-              <h3 className="font-bold text-[var(--text-primary)] mb-3">Payment</h3>
+              <h3 className="text-[14px] font-bold text-[var(--text-primary)] mb-3">Payment</h3>
               <div className="space-y-2">
                 {user && (
                   <label className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] p-3 cursor-pointer hover:border-[var(--accent)]/40">
@@ -690,7 +690,7 @@ export default function DeliveryPage() {
               <label className="flex items-start gap-3 cursor-pointer mt-2">
                 <input type="checkbox" checked={form.prohibited_confirmed} onChange={e => setForm(p => ({ ...p, prohibited_confirmed: e.target.checked }))}
                   className="mt-0.5 accent-[var(--accent)]" />
-                <span className="text-[12px] text-[var(--text-secondary)] leading-tight">
+                <span className="text-[11px] text-[var(--text-secondary)] leading-tight">
                   I confirm this package does not contain prohibited items (weapons, drugs, hazardous materials, illegal goods).
                 </span>
               </label>
@@ -703,7 +703,7 @@ export default function DeliveryPage() {
                   <Clock className="size-4 text-[var(--accent)]" /> Pickup Time
                 </h3>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="text-[12px] font-semibold text-[var(--text-primary)]">{form.scheduled ? 'Scheduled' : 'ASAP'}</span>
+                  <span className="text-[11px] font-bold text-[var(--text-primary)]">{form.scheduled ? 'Scheduled' : 'ASAP'}</span>
                   <input type="checkbox" checked={form.scheduled} onChange={e => setForm(p => ({ ...p, scheduled: e.target.checked }))}
                     className="accent-[var(--accent)]" />
                 </label>
