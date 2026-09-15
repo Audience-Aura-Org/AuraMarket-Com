@@ -13,8 +13,8 @@ import { useChat } from '@/context/ChatContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useLanguage } from '@/context/LanguageContext';
 
-export const TOP_NAV_HEIGHT = 'calc(56px + env(safe-area-inset-top, 0px))';
-export const TOP_NAV_HEIGHT_LG = 'calc(56px + env(safe-area-inset-top, 0px))';
+export const TOP_NAV_HEIGHT = 'calc(52px + env(safe-area-inset-top, 0px))';
+export const TOP_NAV_HEIGHT_LG = 'calc(52px + env(safe-area-inset-top, 0px))';
 
 const CartPreview = dynamic(() => import('@/components/CartPreview'), { ssr: false });
 
@@ -42,7 +42,7 @@ export default function TopNav() {
   }, []);
   // Keep the page and sticky-content offset in sync with the mobile nav state.
   useEffect(() => {
-    const mobileHeight = 'calc(56px + env(safe-area-inset-top, 0px))';
+    const mobileHeight = 'calc(52px + env(safe-area-inset-top, 0px))';
     document.documentElement.style.setProperty('--top-nav-height', mobileHeight);
 
     return () => {
