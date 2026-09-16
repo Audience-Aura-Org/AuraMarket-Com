@@ -174,7 +174,10 @@ const setTransactionMetadata = (transaction, patch = {}) => {
 // GET /wallet round-trip (eliminates up to 12 s of perceived lag).
 const emitWalletCredit = (app, transaction, newBalance) => {
   const io = app?.get?.('io');
-  if (!io || !transaction?.user_id) return;
+  if (!io || !transaction?.user_id) {
+    console.warn('[emitWalletCredit] Skipped — io:', !!io, 'user_id:', transaction?.user_id);
+    return;
+  }
 
   const payload = {
     amount: transaction.amount,
@@ -184,6 +187,7 @@ const emitWalletCredit = (app, transaction, newBalance) => {
     ...(newBalance !== undefined && Number.isFinite(newBalance) ? { balance: newBalance } : {}),
   };
   const userRoom = transaction.user_id.toString();
+  console.log('[emitWalletCredit] Emitting wallet:credited to rooms:', userRoom, `user:${userRoom}`, 'payload.balance:', payload.balance);
   io.to(userRoom).emit('wallet:credited', payload);
   io.to(`user:${userRoom}`).emit('wallet:credited', payload);
 };
