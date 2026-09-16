@@ -360,7 +360,7 @@ export default function LogisticsWalletPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-[11px] font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
                         <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
-                        {['pending', 'failed'].includes(tx.status) && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway) && tx.type === 'deposit' && (
+                        {tx.status === 'pending' && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway) && tx.type === 'deposit' && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handleRecheckTx(tx); }}
                             disabled={recheckingTxId === tx._id}

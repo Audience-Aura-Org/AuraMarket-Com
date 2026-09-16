@@ -361,7 +361,10 @@ const verifyWebhookSignature = (rawBody, headers) => {
   try {
     // Parse sig1 params and covered components from Signature-Input
     const sig1Match = signatureInput.match(/sig1=(\([^)]*\)[^,]*)/);
-    if (!sig1Match) return false;
+    if (!sig1Match) {
+      console.warn('[PawaPay] Could not parse sig1 from Signature-Input:', signatureInput);
+      return false;
+    }
     const sigParams = sig1Match[1];
 
     const componentsMatch = sigParams.match(/\(([^)]*)\)/);
@@ -381,16 +384,23 @@ const verifyWebhookSignature = (rawBody, headers) => {
 
     // Extract base64 signature bytes
     const sigMatch = signatureHeader.match(/sig1=:([^:]+):/);
-    if (!sigMatch) return false;
+    if (!sigMatch) {
+      console.warn('[PawaPay] Could not parse sig1 from Signature header:', signatureHeader);
+      return false;
+    }
     const signatureBytes = Buffer.from(sigMatch[1], 'base64');
 
     // ECDSA P-256 with SHA-256; RFC-9421 §3.3.5 specifies raw r||s encoding (IEEE P1363)
-    return crypto.verify(
+    const verified = crypto.verify(
       'sha256',
       Buffer.from(signatureBase),
       { key: pubKey, dsaEncoding: 'ieee-p1363' },
       signatureBytes
     );
+    if (!verified) {
+      console.warn('[PawaPay] ECDSA signature verification failed (Content-Digest OK, key mismatch or wrong algorithm)');
+    }
+    return verified;
   } catch (err) {
     console.error('[PawaPay] Signature verification error:', err.message);
     return false;
