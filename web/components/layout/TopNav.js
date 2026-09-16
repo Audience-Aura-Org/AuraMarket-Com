@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
-import { useWalletBalance } from '@/hooks/useWalletBalance';
 import { ShoppingCart, Search, User as UserIcon, MessageCircle, Wallet, Truck } from 'lucide-react';
 import { trackSearch } from "@/services/tracking";
 import cartStore from '@/services/cartStore';
@@ -12,6 +11,13 @@ import dynamic from 'next/dynamic';
 import { useChat } from '@/context/ChatContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useLanguage } from '@/context/LanguageContext';
+
+// Direct store subscription for wallet balance — bypasses Zustand's React
+// integration entirely. useSyncExternalStore guarantees a synchronous
+// re-render whenever the store value changes, regardless of Next.js App
+// Router layout preservation or React batching.
+const subscribeBalance = (cb) => useAuthStore.subscribe(cb);
+const getBalance = () => useAuthStore.getState().walletBalance;
 
 export const TOP_NAV_HEIGHT = 'calc(52px + env(safe-area-inset-top, 0px))';
 export const TOP_NAV_HEIGHT_LG = 'calc(52px + env(safe-area-inset-top, 0px))';
@@ -27,8 +33,8 @@ export default function TopNav() {
   const pathname = usePathname();
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
   const router = useRouter();
-  const { user } = useAuthStore();
-  const { walletBalance } = useWalletBalance();
+  const user = useAuthStore((s) => s.user);
+  const walletBalance = useSyncExternalStore(subscribeBalance, getBalance, getBalance);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { unreadMessages } = useNotifications();

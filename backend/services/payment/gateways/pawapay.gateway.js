@@ -414,7 +414,9 @@ const verifyWebhookSignature = (rawBody, headers, reqInfo = {}) => {
         }
       }
     }
-    lines.push(`"@signature-params": ${sigLabel}=${sigParams}`);
+    // RFC-9421 §2.3: @signature-params is the Dictionary Member VALUE only,
+    // i.e. everything after "sig-pp=" in the Signature-Input header.
+    lines.push(`"@signature-params": ${sigParams}`);
     const signatureBase = lines.join('\n');
 
     // Extract base64 signature bytes using the dynamic label
