@@ -12,17 +12,19 @@
  * Actually apply:             DRY_RUN=0 node ../scratch/fix-p2p-missing-payouts.js
  */
 
-require('dotenv').config();
-const mongoose = require('mongoose');
-const Shipment = require('./models/Shipment.model');
-const LogisticsCompany = require('./models/LogisticsCompany.model');
-const Transaction = require('./models/Transaction.model');
-const User = require('./models/User.model');
+const path = require('path');
+const BACKEND = path.resolve(__dirname, '..', 'backend');
+require(path.join(BACKEND, 'node_modules', 'dotenv')).config({ path: path.join(BACKEND, '.env') });
+const mongoose = require(path.join(BACKEND, 'node_modules', 'mongoose'));
+const Shipment = require(path.join(BACKEND, 'models', 'Shipment.model'));
+const LogisticsCompany = require(path.join(BACKEND, 'models', 'LogisticsCompany.model'));
+const Transaction = require(path.join(BACKEND, 'models', 'Transaction.model'));
+const User = require(path.join(BACKEND, 'models', 'User.model'));
 
 const DRY_RUN = (process.env.DRY_RUN ?? '1') !== '0';
 
 async function main() {
-  await mongoose.connect(process.env.MONGO_URI);
+  await mongoose.connect(process.env.MONGODB_URI);
   console.log(`[fix-p2p-payouts] Connected. DRY_RUN=${DRY_RUN}`);
 
   // Find all delivered + paid P2P shipments
