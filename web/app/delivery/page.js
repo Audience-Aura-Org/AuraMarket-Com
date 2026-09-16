@@ -691,10 +691,6 @@ export default function DeliveryPage() {
                             )}
                           </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className={`text-[18px] font-bold tracking-tight ${isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{q.price?.toLocaleString()}</p>
-                          <p className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">XAF</p>
-                        </div>
                       </div>
                     </button>
                   );
@@ -839,7 +835,7 @@ export default function DeliveryPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -6 }}
                                 transition={{ duration: 0.16 }}
-                                className="absolute left-0 right-0 top-full z-[120] mt-1 overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl"
+                                className="absolute left-0 right-0 top-full z-[120] mt-1 max-h-[220px] overflow-y-auto rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl"
                               >
                                 {sortedMomoProviders.map(option => {
                                   const Icon = option.icon;

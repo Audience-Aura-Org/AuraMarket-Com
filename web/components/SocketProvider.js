@@ -20,6 +20,8 @@ const NOTIF_CONFIG = {
   logistics_update: { Icon: Truck,      color: '#06b6d4', href: '/logistics/manifests' },
   system_alert:  { Icon: Bell,          color: '#f59e0b', href: '/notifications' },
   vendor_update: { Icon: Package,       color: '#06b6d4', href: '/notifications' },
+  shipment_message: { Icon: Truck,      color: '#6366f1', href: '/delivery/track' },
+  order_message: { Icon: MessageCircle, color: '#6366f1', href: '/account' },
   default:       { Icon: Bell,          color: 'var(--accent)', href: '/notifications' },
 };
 
@@ -471,12 +473,11 @@ export default function SocketProvider({ children }) {
         return;
       }
 
-      if (['wallet_update', 'payment', 'payment_received', 'order_status'].includes(type)) {
-        if (Number.isFinite(Number(metadataBalance))) {
-          setWalletBalance(Number(metadataBalance));
-        }
-        refreshWalletBalance?.();
+      if (Number.isFinite(Number(metadataBalance))) {
+        setWalletBalance(Number(metadataBalance));
       }
+      // Always refresh balance — any notification could signal a transaction
+      refreshWalletBalance?.();
 
       setNotifToast({ 
         id: notif?._id || Date.now(), 
