@@ -225,6 +225,19 @@ export default function SingleOrderView({ orderId, onBack }) {
     };
   }, [orderId, user?._id]);
 
+  // ── ETA countdown (must be called before any early returns to satisfy React hooks rules) ──
+  const _latestShipment =
+    Array.isArray(shipments) && shipments.length > 0
+      ? [...shipments].sort(
+          (a, b) =>
+            new Date(b?.createdAt || b?.created_at || 0) -
+            new Date(a?.createdAt || a?.created_at || 0)
+        )[0]
+      : null;
+  const _orderEta = _latestShipment?.estimated_delivery;
+  const _isTerminal = ['delivered', 'completed', 'cancelled', 'refunded'].includes(order?.order_status);
+  useLiveClock(!!_orderEta && !_isTerminal);
+
   const handleRaiseDispute = async (e) => {
     e.preventDefault();
     setDisputeLoading(true);
@@ -454,19 +467,9 @@ export default function SingleOrderView({ orderId, onBack }) {
     }
   };
 
-  const shipment =
-    Array.isArray(shipments) && shipments.length > 0
-      ? [...shipments].sort(
-          (a, b) =>
-            new Date(b?.createdAt || b?.created_at || 0) -
-            new Date(a?.createdAt || a?.created_at || 0)
-        )[0]
-      : null;
-
-  // ── ETA countdown ──
-  const orderEta = shipment?.estimated_delivery;
-  const isOrderTerminal = ['delivered', 'completed', 'cancelled', 'refunded'].includes(order.order_status);
-  useLiveClock(!!orderEta && !isOrderTerminal);
+  const shipment = _latestShipment;
+  const orderEta = _orderEta;
+  const isOrderTerminal = _isTerminal;
 
   const shipmentLogs = shipment?.shipment_logs || [];
   const orderActivity = [
