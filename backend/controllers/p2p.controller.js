@@ -164,6 +164,9 @@ const createP2PShipment = async (req, res) => {
         prohibited_items_confirmed: true,
       },
       scheduled_pickup: scheduled_pickup || null,
+      estimated_delivery: quote.estimated_delivery_minutes
+        ? new Date(Date.now() + quote.estimated_delivery_minutes * 60_000)
+        : null,
       shipment_logs: [{
         status: 'assigned',
         updated_by: req.user?._id || null,
@@ -372,11 +375,18 @@ const trackP2PShipment = async (req, res) => {
     })
       .select('tracking_code status direction price payment_status pickup_address delivery_address package_details shipment_logs proof_of_delivery estimated_delivery createdAt booked_by guest_booker other_party logistics_id scheduled_pickup')
       .populate('booked_by', 'name email phone')
-      .populate('logistics_id', 'company_name')
+      .populate('logistics_id', 'company_name avg_delivery_minutes')
       .lean();
 
     if (!shipment) {
       return res.status(404).json({ success: false, message: 'Shipment not found' });
+    }
+
+    // Compute ETA on-the-fly for existing shipments that lack it
+    if (!shipment.estimated_delivery && shipment.logistics_id?.avg_delivery_minutes && shipment.createdAt) {
+      shipment.estimated_delivery = new Date(
+        new Date(shipment.createdAt).getTime() + shipment.logistics_id.avg_delivery_minutes * 60_000
+      );
     }
 
     return res.json({ success: true, data: { shipment } });

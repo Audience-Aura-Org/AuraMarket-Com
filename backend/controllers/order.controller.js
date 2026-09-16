@@ -906,7 +906,7 @@ const getOrderById = async (req, res, next) => {
     }
 
     const shipments = await Shipment.find({ order_id: order._id })
-      .populate('logistics_id', 'company_name contact_phone')
+      .populate('logistics_id', 'company_name contact_phone avg_delivery_minutes')
       .populate({
         path: 'vendor_id',
         select: 'store_name user_id',
@@ -916,9 +916,20 @@ const getOrderById = async (req, res, next) => {
         }
       });
 
+    // Compute ETA on-the-fly for shipments that lack it
+    const shipmentsData = shipments.map(s => {
+      const obj = s.toObject();
+      if (!obj.estimated_delivery && obj.logistics_id?.avg_delivery_minutes && obj.createdAt) {
+        obj.estimated_delivery = new Date(
+          new Date(obj.createdAt).getTime() + obj.logistics_id.avg_delivery_minutes * 60_000
+        );
+      }
+      return obj;
+    });
+
     const escrow = await Escrow.findOne({ order_id: order._id }).select('status vendor_confirmed customer_confirmed delivered_at auto_release_at release_date');
 
-    res.status(200).json({ success: true, data: { order, shipments, escrow } });
+    res.status(200).json({ success: true, data: { order, shipments: shipmentsData, escrow } });
   } catch (error) { next(error); }
 };
 

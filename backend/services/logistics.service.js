@@ -330,6 +330,12 @@ const createShipmentsForOrder = async (order, quartier, logisticsId, session = n
 
   const { perShipmentFee } = await calculateShipmentFees(vendors, quartier, logisticsId);
 
+  // Fetch avg delivery minutes for ETA computation
+  const logCompany = await LogisticsCompany.findById(logisticsId).select('avg_delivery_minutes').lean().session(session);
+  const etaDate = logCompany?.avg_delivery_minutes
+    ? new Date(Date.now() + logCompany.avg_delivery_minutes * 60_000)
+    : null;
+
   const shipments = [];
   for (const vendor of vendors) {
     const trackingCode = await generateTrackingCode();
@@ -341,6 +347,7 @@ const createShipmentsForOrder = async (order, quartier, logisticsId, session = n
       tracking_code: trackingCode,
       status: 'pending',
       price: perShipmentFee,
+      estimated_delivery: etaDate,
       pickup_address: {
         ...vendor.pickup_address,
         phone: vendor.phone,
