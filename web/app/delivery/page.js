@@ -8,7 +8,9 @@ import {
   Package, Send, ArrowDownToLine, ChevronRight, MapPin,
   Clock, Wallet, CreditCard, Loader2, CheckCircle2,
   Pencil, Phone, Mail, User as UserIcon, X,
+  ChevronDown, Smartphone, AlertCircle, Truck,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/context/LanguageContext';
 
 const PACKAGE_CATEGORIES = [
@@ -33,7 +35,8 @@ const LABEL_CLASS = 'delivery-label block text-[11px] font-bold text-[var(--text
 
 export default function DeliveryPage() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, walletBalance } = useAuthStore();
+  const displayedWalletBalance = Number(walletBalance ?? 0);
   const { t } = useLanguage();
 
 
@@ -45,6 +48,7 @@ export default function DeliveryPage() {
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [zones, setZones] = useState([]);
   const [success, setSuccess] = useState(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   // Form state
   const [form, setForm] = useState({
@@ -56,7 +60,7 @@ export default function DeliveryPage() {
     description: '', prohibited_confirmed: false,
     scheduled: false, scheduled_date: '',
     other_user_id: null,
-    payment_method: user ? 'wallet' : 'gateway',
+    payment_method: user ? 'wallet' : 'pawapay',
   });
 
   // Lookup
@@ -84,6 +88,17 @@ export default function DeliveryPage() {
       }
     }).catch(() => {});
   }, [user]);
+
+  // Close payment dropdown on outside click
+  useEffect(() => {
+    if (!paymentOpen) return;
+    const handleClick = () => setPaymentOpen(false);
+    const timer = setTimeout(() => document.addEventListener('click', handleClick), 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleClick);
+    };
+  }, [paymentOpen]);
 
   const quartiers = zones.filter(z => z.type === 'quartier');
   const cities = zones.filter(z => z.type === 'city' || z.type === 'region');
@@ -481,6 +496,50 @@ export default function DeliveryPage() {
     );
   };
 
+  // ── Payment strategy (mirrors checkout pattern) ──────────────────
+  const paymentOptions = [
+    {
+      id: 'pawapay',
+      label: 'PawaPay',
+      badge: 'Primary',
+      description: 'MTN / Orange Mobile Money in Cameroon via PawaPay.',
+      icon: Smartphone,
+    },
+    {
+      id: 'payunit',
+      label: 'PayUnit',
+      badge: 'Fallback',
+      description: 'MTN Mobile Money and Orange Money via PayUnit.',
+      icon: Smartphone,
+    },
+    ...(user ? [{
+      id: 'wallet',
+      label: 'Aura Wallet',
+      badge: `${displayedWalletBalance.toLocaleString()} XAF`,
+      description: 'Pay from your Auradime wallet balance.',
+      icon: CreditCard,
+    }] : []),
+    {
+      id: 'eversend',
+      label: 'Eversend',
+      badge: '500 XAF min',
+      description: 'Mobile money collection with a 500 XAF minimum.',
+      icon: Smartphone,
+    },
+  ];
+
+  const selectedPayment = paymentOptions.find(o => o.id === form.payment_method) || paymentOptions[0];
+  const SelectedPaymentIcon = selectedPayment.icon;
+  const sortedPaymentOptions = [
+    selectedPayment,
+    ...paymentOptions.filter(o => o.id !== selectedPayment.id),
+  ];
+
+  const selectPaymentMethod = (method) => {
+    setPaymentOpen(false);
+    setForm(prev => ({ ...prev, payment_method: method }));
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)]/20 pb-32 pt-4 sm:pt-6">
       <style jsx>{`
@@ -577,54 +636,67 @@ export default function DeliveryPage() {
         {step === 2 && quotes.length > 0 && (
           <div className="space-y-6">
             {/* Provider Selection */}
-            <div>
-              <h3 className="font-bold text-[var(--text-primary)] text-[16px] mb-4">Available Delivery Providers</h3>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-[var(--accent)]/15 p-2.5">
+                  <Truck className="size-5 text-[var(--accent)]" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[var(--text-primary)] text-[16px] tracking-tight">Choose Your Provider</h3>
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{quotes.length} provider{quotes.length !== 1 ? 's' : ''} available for your route</p>
+                </div>
+              </div>
               <div className="space-y-3">
-                {quotes.map(q => (
-                  <button
-                    key={q.provider_id}
-                    onClick={() => setSelectedQuote(q)}
-                    className={`w-full text-left rounded-2xl border p-4 transition-all duration-300 ${
-                      selectedQuote?.provider_id === q.provider_id
-                        ? 'border-[var(--accent)] bg-gradient-to-r from-[var(--accent)]/10 to-[var(--accent)]/5 shadow-md shadow-[var(--accent)]/10 scale-105'
-                        : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40 hover:shadow-md hover:shadow-black/5'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1">
+                {quotes.map(q => {
+                  const isSelected = selectedQuote?.provider_id === q.provider_id;
+                  return (
+                    <button
+                      key={q.provider_id}
+                      onClick={() => setSelectedQuote(q)}
+                      className={`group w-full text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
+                        isSelected
+                          ? 'border-[var(--accent)] bg-gradient-to-r from-[var(--accent)]/10 to-[var(--accent)]/5 shadow-lg shadow-[var(--accent)]/10'
+                          : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 hover:shadow-md hover:shadow-black/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
                         {q.provider_logo ? (
-                          <img src={q.provider_logo} className="size-12 rounded-xl object-cover shadow-sm" alt="" />
+                          <img src={q.provider_logo} className={`size-14 rounded-2xl object-cover shadow-sm transition-all ${isSelected ? 'ring-2 ring-[var(--accent)]/30' : ''}`} alt="" />
                         ) : (
-                          <div className="size-12 rounded-xl bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[16px]">
+                          <div className={`size-14 rounded-2xl flex items-center justify-center font-bold text-[18px] transition-all ${
+                            isSelected
+                              ? 'bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]/70 text-white shadow-md shadow-[var(--accent)]/20'
+                              : 'bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/10 text-[var(--accent)]'
+                          }`}>
                             {q.provider_name?.[0]}
                           </div>
                         )}
-                        <div className="flex-1">
-                          <p className="text-[14px] font-bold text-[var(--text-primary)]">{q.provider_name}</p>
-                          <div className="flex items-center gap-3 mt-1">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-[14px] font-bold text-[var(--text-primary)] truncate">{q.provider_name}</p>
+                            {isSelected && <CheckCircle2 className="size-4 shrink-0 text-[var(--accent)]" />}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                             {q.estimated_delivery_minutes && (
-                              <span className="inline-flex items-center gap-1 text-[12px] text-[var(--text-secondary)] bg-white/5 px-2.5 py-1 rounded-lg">
-                                <Clock className="size-3.5" />~{q.estimated_delivery_minutes} min
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--text-secondary)] bg-[var(--bg-primary)] px-2.5 py-1 rounded-lg border border-[var(--glass-border)]">
+                                <Clock className="size-3" />~{q.estimated_delivery_minutes} min
                               </span>
                             )}
                             {q.provider_rating > 0 && (
-                              <span className="inline-flex items-center gap-1 text-[12px] text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-lg">
-                                ⭐ {q.provider_rating.toFixed(1)}
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+                                <span className="text-[10px]">&#9733;</span> {q.provider_rating.toFixed(1)}
                               </span>
                             )}
                           </div>
                         </div>
+                        <div className="text-right shrink-0">
+                          <p className={`text-[18px] font-bold tracking-tight ${isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>{q.price?.toLocaleString()}</p>
+                          <p className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">XAF</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[16px] font-bold text-[var(--accent)]">{q.price?.toLocaleString()}</p>
-                        <p className="text-[11px] text-[var(--text-secondary)]">XAF</p>
-                        {q.platform_fee > 0 && (
-                          <p className="text-[10px] text-[var(--text-secondary)] mt-1">Fee: {q.platform_fee.toLocaleString()}</p>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -648,50 +720,114 @@ export default function DeliveryPage() {
               </div>
             )}
 
-            {/* Payment Method */}
-            <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-5 space-y-3">
-              <h3 className="text-[14px] font-bold text-[var(--text-primary)] flex items-center gap-2">
-                <CreditCard className="size-4 text-[var(--accent)]" />
-                Select Payment Method
-              </h3>
-              <div className="space-y-2.5">
-                {user && (
-                  <label className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] p-4 cursor-pointer transition-all hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5">
-                    <div className={`size-4 rounded-full border-2 flex items-center justify-center transition-all ${
-                      form.payment_method === 'wallet'
-                        ? 'border-[var(--accent)] bg-[var(--accent)]'
-                        : 'border-[var(--text-secondary)]/40'
-                    }`}>
-                      {form.payment_method === 'wallet' && <div className="size-1.5 bg-white rounded-full" />}
+            {/* Payment Strategy */}
+            <div className="space-y-3">
+              <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight ml-1">Payment Strategy</label>
+              <div className="relative">
+                <button
+                  key={form.payment_method}
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setPaymentOpen(open => !open); }}
+                  className={`flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-all ${
+                    paymentOpen
+                      ? 'border-[var(--accent)] bg-[var(--accent)]/5'
+                      : 'border-[var(--accent)]/40 bg-[var(--bg-secondary)]'
+                  }`}
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--accent)]">
+                      <SelectedPaymentIcon className="size-5" />
                     </div>
-                    <Wallet className="size-5 text-[var(--accent)]" />
-                    <input type="radio" name="payment" value="wallet" checked={form.payment_method === 'wallet'}
-                      onChange={e => setForm(prev => ({ ...prev, payment_method: e.target.value }))}
-                      className="hidden" />
-                    <span className="text-[13px] font-semibold text-[var(--text-primary)]">Wallet Balance</span>
-                  </label>
-                )}
-                <label className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] p-4 cursor-pointer transition-all hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5">
-                  <div className={`size-4 rounded-full border-2 flex items-center justify-center transition-all ${
-                    form.payment_method === 'gateway'
-                      ? 'border-[var(--accent)] bg-[var(--accent)]'
-                      : 'border-[var(--text-secondary)]/40'
-                  }`}>
-                    {form.payment_method === 'gateway' && <div className="size-1.5 bg-white rounded-full" />}
+                    <div className="min-w-0">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate text-[12px] font-semibold tracking-tight text-[var(--text-primary)]">{selectedPayment.label}</p>
+                        <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
+                          {selectedPayment.badge}
+                        </span>
+                      </div>
+                      <p className="mt-1 line-clamp-1 text-[10px] font-medium text-[var(--text-secondary)] sm:text-[11px]">{selectedPayment.description}</p>
+                    </div>
                   </div>
-                  <CreditCard className="size-5 text-[var(--accent)]" />
-                  <input type="radio" name="payment" value="gateway" checked={form.payment_method === 'gateway'}
-                    onChange={e => setForm(prev => ({ ...prev, payment_method: e.target.value }))}
-                    className="hidden" />
-                  <span className="text-[13px] font-semibold text-[var(--text-primary)]">Mobile Money</span>
-                </label>
+                  <ChevronDown className={`size-4 shrink-0 opacity-45 transition-transform ${paymentOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {paymentOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.16 }}
+                      className="absolute left-0 right-0 top-full z-[120] mt-2 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl"
+                    >
+                      {sortedPaymentOptions.map(option => {
+                        const Icon = option.icon;
+                        const active = option.id === form.payment_method;
+                        return (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => selectPaymentMethod(option.id)}
+                            className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-all hover:bg-[var(--accent)]/5 ${
+                              active ? 'bg-[var(--accent)]/10' : ''
+                            }`}
+                          >
+                            <div className={`flex size-10 shrink-0 items-center justify-center rounded-2xl border ${
+                              active
+                                ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]'
+                                : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                            }`}>
+                              <Icon className="size-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="truncate text-[11px] font-semibold text-[var(--text-primary)] sm:text-[12px]">{option.label}</p>
+                                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                                  active ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                                }`}>
+                                  {active ? 'Selected' : option.badge}
+                                </span>
+                              </div>
+                              <p className="mt-0.5 line-clamp-1 text-[10px] font-medium text-[var(--text-secondary)]">{option.description}</p>
+                            </div>
+                            {active && <CheckCircle2 className="size-4 shrink-0 text-[var(--accent)]" />}
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
-            {error && <p className="text-rose-500 text-[13px] font-semibold bg-rose-500/10 rounded-xl px-4 py-2.5">{error}</p>}
+            {/* Error Banner */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  className="rounded-2xl border border-rose-500/20 bg-gradient-to-r from-rose-500/10 to-rose-500/5 p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="shrink-0 rounded-xl bg-rose-500/15 p-2">
+                      <AlertCircle className="size-4 text-rose-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-bold text-rose-500">Booking Failed</p>
+                      <p className="text-[12px] text-rose-500/80 mt-0.5 leading-relaxed">{error}</p>
+                    </div>
+                    <button onClick={() => setError('')} className="shrink-0 rounded-lg p-1.5 text-rose-400 hover:bg-rose-500/10 transition-colors">
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="flex gap-3">
-              <button onClick={() => setStep(1)}
+              <button onClick={() => { setStep(1); setPaymentOpen(false); }}
                 className="flex-1 rounded-2xl border border-[var(--glass-border)] py-3.5 text-[14px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-all hover:border-[var(--accent)]/40">
                 ← Back
               </button>
@@ -808,7 +944,27 @@ export default function DeliveryPage() {
               )}
             </div>
 
-            {error && <p className="text-rose-500 text-[13px] font-semibold bg-rose-500/10 rounded-xl px-4 py-2.5">{error}</p>}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  className="rounded-2xl border border-rose-500/20 bg-gradient-to-r from-rose-500/10 to-rose-500/5 p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="shrink-0 rounded-xl bg-rose-500/15 p-2">
+                      <AlertCircle className="size-4 text-rose-500" />
+                    </div>
+                    <p className="flex-1 text-[13px] font-semibold text-rose-500 leading-relaxed">{error}</p>
+                    <button onClick={() => setError('')} className="shrink-0 rounded-lg p-1.5 text-rose-400 hover:bg-rose-500/10 transition-colors">
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <button onClick={handleGetQuote} disabled={loading}
               className="w-full rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent)]/80 py-3.5 sm:py-4 text-[13px] sm:text-[14px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20 transition-all active:scale-[0.98] min-h-[48px]">
