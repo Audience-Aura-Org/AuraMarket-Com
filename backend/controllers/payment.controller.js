@@ -286,10 +286,13 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
     } else if (claimed.order_ids?.length > 0) {
       await settleOrdersInSession(claimed.user_id, claimed.order_ids, app, session, true, webUrl, paymentGateway);
     } else if (isP2PPayment) {
-      // P2P delivery payment — mark shipment as paid and credit platform fee
+      // P2P delivery payment — mark shipment as paid, upgrade to assigned, credit platform fee
       await Shipment.findByIdAndUpdate(
         claimed.metadata.shipment_id,
-        { $set: { payment_status: 'paid', payment_reference: claimed.reference } },
+        {
+          $set: { payment_status: 'paid', payment_reference: claimed.reference, status: 'assigned' },
+          $push: { shipment_logs: { status: 'assigned', timestamp: new Date(), note: 'Payment confirmed — assigned to provider' } },
+        },
         { session }
       );
       if (claimed.metadata.platform_fee > 0) {

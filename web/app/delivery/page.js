@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -50,6 +50,8 @@ export default function DeliveryPage() {
   const [zones, setZones] = useState([]);
   const [success, setSuccess] = useState(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState(null); // { gateway, reference }
+  const paymentPollRef = useRef(null);
 
   // Form state
   const [form, setForm] = useState({
@@ -117,23 +119,27 @@ export default function DeliveryPage() {
     return distZone ? zones.filter(z => z.type === 'quartier' && String(z.parent_id?._id ?? z.parent_id) === String(distZone._id)) : [];
   };
 
-  // Autofill signed-in user's data to the correct side based on direction
+  // Track which direction was last autofilled so we distinguish an initial /
+  // direction-change autofill from an async-data-load re-run.
+  const autofillDirRef = useRef(null);
+
+  // Autofill signed-in user's data to the correct side based on direction.
+  // Full overwrite only happens on first mount or when direction changes.
+  // Subsequent async data loads (zones, userAddresses) only fill EMPTY fields
+  // so the user's manual selections are never wiped.
   useEffect(() => {
     if (!user || !zones.length) return;
-    // Prefer fetched addresses, fall back to addresses on user object
     const allAddrs = userAddresses.length ? userAddresses : (user.addresses || []);
     const defaultAddr = allAddrs.find(a => a.isDefault) || allAddrs[0] || null;
     const loc = user.onboarding_location || {};
     const myPrefix  = direction === 'send' ? 'pickup' : 'dropoff';
     const otherPrefix = direction === 'send' ? 'dropoff' : 'pickup';
 
-    // Resolve city, district, quartier and zone_id from saved address or onboarding_location
     const cityName = defaultAddr?.city || loc.city || '';
     const districtName = defaultAddr?.region || loc.zone || '';
     let quartierName = defaultAddr?.quartier || loc.quartier || '';
     let zoneId = defaultAddr?.zone_id || '';
 
-    // If no zone_id, try to resolve it by matching quartier name against loaded zones
     if (!zoneId && quartierName && quartiers.length) {
       const match = quartiers.find(z => z.name.toLowerCase() === quartierName.toLowerCase());
       if (match) {
@@ -142,34 +148,50 @@ export default function DeliveryPage() {
       }
     }
 
+    const isFirstOrDirectionChange = autofillDirRef.current !== direction;
+    autofillDirRef.current = direction;
+
     setForm(prev => {
-      const updates = {
-        ...prev,
-        // Populate user's side with their profile + address
-        [`${myPrefix}_name`]: user.name || '',
-        [`${myPrefix}_phone`]: defaultAddr?.contact_phone || user.phone || '',
-        [`${myPrefix}_email`]: user.email || '',
-        momo_phone: prev.momo_phone || defaultAddr?.contact_phone || user.phone || '',
-        [`${myPrefix}_street`]: defaultAddr?.street || loc.address_description || '',
-        [`${myPrefix}_city`]: cityName,
-        [`${myPrefix}_district`]: districtName,
-        [`${myPrefix}_quartier`]: quartierName,
-        [`${myPrefix}_zone_id`]: zoneId,
-      };
-      // Only clear the other side if no lookup user has been selected yet.
-      // This prevents async zone/address loading from wiping a user the
-      // booker already picked via the lookup field.
-      if (!prev.other_user_id) {
-        updates[`${otherPrefix}_name`] = '';
-        updates[`${otherPrefix}_phone`] = '';
-        updates[`${otherPrefix}_email`] = '';
-        updates[`${otherPrefix}_street`] = '';
-        updates[`${otherPrefix}_city`] = '';
-        updates[`${otherPrefix}_district`] = '';
-        updates[`${otherPrefix}_quartier`] = '';
-        updates[`${otherPrefix}_zone_id`] = '';
-        updates.other_user_id = null;
+      const updates = { ...prev };
+
+      if (isFirstOrDirectionChange) {
+        // First mount or direction changed → full autofill of user's side
+        updates[`${myPrefix}_name`] = user.name || '';
+        updates[`${myPrefix}_phone`] = defaultAddr?.contact_phone || user.phone || '';
+        updates[`${myPrefix}_email`] = user.email || '';
+        updates.momo_phone = prev.momo_phone || defaultAddr?.contact_phone || user.phone || '';
+        updates[`${myPrefix}_street`] = defaultAddr?.street || loc.address_description || '';
+        updates[`${myPrefix}_city`] = cityName;
+        updates[`${myPrefix}_district`] = districtName;
+        updates[`${myPrefix}_quartier`] = quartierName;
+        updates[`${myPrefix}_zone_id`] = zoneId;
+        // Clear the other side on direction change (but not if lookup user selected)
+        if (!prev.other_user_id) {
+          updates[`${otherPrefix}_name`] = '';
+          updates[`${otherPrefix}_phone`] = '';
+          updates[`${otherPrefix}_email`] = '';
+          updates[`${otherPrefix}_street`] = '';
+          updates[`${otherPrefix}_city`] = '';
+          updates[`${otherPrefix}_district`] = '';
+          updates[`${otherPrefix}_quartier`] = '';
+          updates[`${otherPrefix}_zone_id`] = '';
+          updates.other_user_id = null;
+        }
+      } else {
+        // Async data loaded (zones or userAddresses) — only fill EMPTY fields
+        // so we never overwrite the user's manual quartier / zone_id selections.
+        if (!prev[`${myPrefix}_name`]) updates[`${myPrefix}_name`] = user.name || '';
+        if (!prev[`${myPrefix}_phone`]) updates[`${myPrefix}_phone`] = defaultAddr?.contact_phone || user.phone || '';
+        if (!prev[`${myPrefix}_email`]) updates[`${myPrefix}_email`] = user.email || '';
+        if (!prev.momo_phone) updates.momo_phone = defaultAddr?.contact_phone || user.phone || '';
+        if (!prev[`${myPrefix}_street`]) updates[`${myPrefix}_street`] = defaultAddr?.street || loc.address_description || '';
+        if (!prev[`${myPrefix}_city`]) updates[`${myPrefix}_city`] = cityName;
+        if (!prev[`${myPrefix}_district`]) updates[`${myPrefix}_district`] = districtName;
+        if (!prev[`${myPrefix}_quartier`]) updates[`${myPrefix}_quartier`] = quartierName;
+        if (!prev[`${myPrefix}_zone_id`]) updates[`${myPrefix}_zone_id`] = zoneId;
+        // Never clear the other side on async data loads
       }
+
       return updates;
     });
   }, [user, direction, userAddresses, zones]);
@@ -268,6 +290,45 @@ export default function DeliveryPage() {
     setLoading(false);
   };
 
+  // Poll the payment verify endpoint until confirmed or failed
+  const startPaymentPolling = (gateway, reference, shipmentData) => {
+    if (paymentPollRef.current) clearInterval(paymentPollRef.current);
+    let attempts = 0;
+    const maxAttempts = 60; // ~5 minutes at 5s intervals
+    paymentPollRef.current = setInterval(async () => {
+      attempts++;
+      if (attempts > maxAttempts) {
+        clearInterval(paymentPollRef.current);
+        paymentPollRef.current = null;
+        setPendingPayment(prev => prev ? { ...prev, timedOut: true } : null);
+        return;
+      }
+      try {
+        const res = await api.get(`/payments/${gateway}/verify/${reference}`);
+        const status = res.data?.status || res.data?.data?.status;
+        if (status === 'SUCCESSFUL') {
+          clearInterval(paymentPollRef.current);
+          paymentPollRef.current = null;
+          setPendingPayment(null);
+          setSuccess(prev => prev ? { ...prev, payment_status: 'paid' } : prev);
+        } else if (status === 'FAILED') {
+          clearInterval(paymentPollRef.current);
+          paymentPollRef.current = null;
+          setPendingPayment(null);
+          setError(res.data?.reason || 'Payment was declined. Please try again.');
+          setStep(2);
+        }
+      } catch (_) { /* keep polling on network errors */ }
+    }, 5000);
+  };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (paymentPollRef.current) clearInterval(paymentPollRef.current);
+    };
+  }, []);
+
   const handleBook = async () => {
     setError('');
     setLoading(true);
@@ -315,18 +376,16 @@ export default function DeliveryPage() {
       const res = await api.post('/p2p/book', payload);
       if (res.data?.success) {
         const { shipment: shipmentData, payment, payment_error } = res.data.data;
-        // MoMo payment initiated — redirect to payment verification page
-        if (payment?.checkout_url) {
+        if (payment?.reference) {
+          // MoMo payment initiated — show waiting screen and poll for confirmation
           setSuccess(shipmentData);
+          setPendingPayment(payment);
           setStep(3);
-          // Small delay so user sees the success state before redirect
-          setTimeout(() => {
-            router.push(payment.checkout_url);
-          }, 1500);
+          startPaymentPolling(payment.gateway, payment.reference, shipmentData);
         } else if (payment_error) {
           setError(`Shipment booked but payment failed: ${payment_error}. Please try paying from your deliveries.`);
         } else {
-          // Wallet payment or no payment needed
+          // Wallet payment — already paid
           setSuccess(shipmentData);
           setStep(3);
           if (form.payment_method === 'wallet') refreshWalletBalance?.();
@@ -650,22 +709,66 @@ export default function DeliveryPage() {
           </div>
         </div>
 
-        {/* Step 3: Success */}
+        {/* Step 3: Success / Waiting for Payment */}
         {step === 3 && success && (
           <div className="space-y-6">
-            <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-8 text-center">
-              <div className="mb-4 flex justify-center">
-                <div className="rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 p-3">
-                  <CheckCircle2 className="size-10 text-white" />
+            {/* Waiting for MoMo payment */}
+            {pendingPayment && !pendingPayment.timedOut && (
+              <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-8 text-center">
+                <div className="mb-4 flex justify-center">
+                  <div className="rounded-full bg-gradient-to-br from-amber-400 to-amber-600 p-4">
+                    <Loader2 className="size-10 text-white animate-spin" />
+                  </div>
+                </div>
+                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1">Approve Payment</h2>
+                <p className="text-[var(--text-secondary)] text-[14px] mb-4">Check your phone for the USSD prompt and approve the payment</p>
+                <div className="rounded-2xl bg-white/5 p-4 backdrop-blur-sm space-y-2">
+                  <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Amount</p>
+                  <p className="font-mono text-[22px] font-bold text-amber-600">{(pendingPayment.gross_amount || success.price)?.toLocaleString()} XAF</p>
+                  {pendingPayment.collection_fee > 0 && (
+                    <p className="text-[11px] text-[var(--text-secondary)]">Includes {pendingPayment.collection_fee?.toLocaleString()} XAF collection fee</p>
+                  )}
                 </div>
               </div>
-              <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1">Delivery Booked!</h2>
-              <p className="text-[var(--text-secondary)] text-[14px] mb-4">Your package is ready for pickup</p>
-              <div className="rounded-2xl bg-white/5 p-4 backdrop-blur-sm">
-                <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-2">Tracking Code</p>
-                <p className="font-mono text-[18px] font-bold text-[var(--accent)] tracking-wider">{success.tracking_code}</p>
+            )}
+            {/* Payment timed out */}
+            {pendingPayment?.timedOut && (
+              <div className="rounded-3xl border border-rose-500/30 bg-gradient-to-br from-rose-500/10 to-rose-500/5 p-8 text-center">
+                <div className="mb-4 flex justify-center">
+                  <div className="rounded-full bg-gradient-to-br from-rose-400 to-rose-600 p-3">
+                    <AlertCircle className="size-10 text-white" />
+                  </div>
+                </div>
+                <h2 className="text-xl font-bold text-[var(--text-primary)] mb-1">Payment Not Confirmed</h2>
+                <p className="text-[var(--text-secondary)] text-[14px] mb-4">We didn't receive a confirmation. If you approved the payment, it may still process.</p>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button onClick={() => router.push(`/delivery/track?code=${success.tracking_code}`)}
+                    className="flex-1 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent)]/80 px-6 py-3.5 text-[14px] font-semibold text-white">
+                    Track Delivery
+                  </button>
+                  <button onClick={() => { setPendingPayment(null); setStep(2); setSuccess(null); }}
+                    className="flex-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-6 py-3.5 text-[14px] font-semibold text-[var(--text-primary)]">
+                    Try Again
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+            {/* Payment confirmed / wallet payment */}
+            {!pendingPayment && (
+              <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-8 text-center">
+                <div className="mb-4 flex justify-center">
+                  <div className="rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 p-3">
+                    <CheckCircle2 className="size-10 text-white" />
+                  </div>
+                </div>
+                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1">Delivery Booked!</h2>
+                <p className="text-[var(--text-secondary)] text-[14px] mb-4">Your package is ready for pickup</p>
+                <div className="rounded-2xl bg-white/5 p-4 backdrop-blur-sm">
+                  <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-2">Tracking Code</p>
+                  <p className="font-mono text-[18px] font-bold text-[var(--accent)] tracking-wider">{success.tracking_code}</p>
+                </div>
+              </div>
+            )}
 
             {/* Booking Details Grid */}
             <div className="grid grid-cols-2 gap-4">

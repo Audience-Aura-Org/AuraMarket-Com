@@ -394,6 +394,13 @@ const createP2PShipment = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Phone number is required for mobile money payment' });
       }
       shipmentData.payment_status = 'pending';
+      // Don't assign to provider until payment is confirmed
+      shipmentData.status = 'pending';
+      shipmentData.shipment_logs = [{
+        status: 'pending',
+        updated_by: req.user._id,
+        note: 'P2P shipment created — awaiting mobile money payment',
+      }];
       shipmentData._gatewayPayment = {
         gateway: payment_method,
         phone: momoPhone,
