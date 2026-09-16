@@ -29,7 +29,10 @@ const getP2PProviders = async () => {
  * @returns {{ ids: string[], names: string[] }} Zone IDs and names from leaf to root
  */
 const buildZoneHierarchy = async (zoneId) => {
-  if (!zoneId) return { ids: [], names: [] };
+  if (!zoneId) {
+    console.warn(`[buildZoneHierarchy] Called with falsy zoneId: ${JSON.stringify(zoneId)}`);
+    return { ids: [], names: [] };
+  }
   const zone = await LogisticZone.findById(zoneId).select('name ancestors').lean();
   if (!zone) {
     console.log(`[buildZoneHierarchy] Zone not found: ${zoneId}`);

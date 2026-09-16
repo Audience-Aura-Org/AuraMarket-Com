@@ -106,11 +106,17 @@ const createP2PShipment = async (req, res) => {
       }
     }
 
+    // Validate zone IDs
+    if (!pickup_address?.zone_id || !dropoff_address?.zone_id) {
+      await session.abortTransaction();
+      return res.status(400).json({ success: false, message: 'Pickup and delivery zones are required — please select quartiers' });
+    }
+
     // Validate provider is enabled and get quote for this specific provider
     const quote = await getQuoteForProvider({
       provider_id,
-      pickup_zone_id: pickup_address?.zone_id,
-      dropoff_zone_id: dropoff_address?.zone_id,
+      pickup_zone_id: pickup_address.zone_id,
+      dropoff_zone_id: dropoff_address.zone_id,
       weight_tier: package_details?.weight_tier || 'light',
     });
 

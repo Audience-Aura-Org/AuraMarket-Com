@@ -805,11 +805,10 @@ export default function DeliveryPage() {
                 <AnimatePresence>
                   {isMomo && (
                     <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
                     >
                       <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4 space-y-3">
                         {/* Provider Selector Dropdown */}
