@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import {
@@ -70,6 +71,7 @@ export default function DeliveryPage() {
   const [lookupResults, setLookupResults] = useState([]);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [editingMyBox, setEditingMyBox] = useState(false);
+  const [editingOtherBox, setEditingOtherBox] = useState(false);
 
   // Fetch saved addresses for signed-in user
   const [userAddresses, setUserAddresses] = useState([]);
@@ -140,33 +142,49 @@ export default function DeliveryPage() {
       }
     }
 
-    setForm(prev => ({
-      ...prev,
-      // Populate user's side with their profile + address
-      [`${myPrefix}_name`]: user.name || '',
-      [`${myPrefix}_phone`]: defaultAddr?.contact_phone || user.phone || '',
-      [`${myPrefix}_email`]: user.email || '',
-      momo_phone: prev.momo_phone || defaultAddr?.contact_phone || user.phone || '',
-      [`${myPrefix}_street`]: defaultAddr?.street || loc.address_description || '',
-      [`${myPrefix}_city`]: cityName,
-      [`${myPrefix}_district`]: districtName,
-      [`${myPrefix}_quartier`]: quartierName,
-      [`${myPrefix}_zone_id`]: zoneId,
-      // Clear the other side so the user fills it for the other party
-      [`${otherPrefix}_name`]: '',
-      [`${otherPrefix}_phone`]: '',
-      [`${otherPrefix}_email`]: '',
-      [`${otherPrefix}_street`]: '',
-      [`${otherPrefix}_city`]: '',
-      [`${otherPrefix}_district`]: '',
-      [`${otherPrefix}_quartier`]: '',
-      [`${otherPrefix}_zone_id`]: '',
-      other_user_id: null,
-    }));
+    setForm(prev => {
+      const updates = {
+        ...prev,
+        // Populate user's side with their profile + address
+        [`${myPrefix}_name`]: user.name || '',
+        [`${myPrefix}_phone`]: defaultAddr?.contact_phone || user.phone || '',
+        [`${myPrefix}_email`]: user.email || '',
+        momo_phone: prev.momo_phone || defaultAddr?.contact_phone || user.phone || '',
+        [`${myPrefix}_street`]: defaultAddr?.street || loc.address_description || '',
+        [`${myPrefix}_city`]: cityName,
+        [`${myPrefix}_district`]: districtName,
+        [`${myPrefix}_quartier`]: quartierName,
+        [`${myPrefix}_zone_id`]: zoneId,
+      };
+      // Only clear the other side if no lookup user has been selected yet.
+      // This prevents async zone/address loading from wiping a user the
+      // booker already picked via the lookup field.
+      if (!prev.other_user_id) {
+        updates[`${otherPrefix}_name`] = '';
+        updates[`${otherPrefix}_phone`] = '';
+        updates[`${otherPrefix}_email`] = '';
+        updates[`${otherPrefix}_street`] = '';
+        updates[`${otherPrefix}_city`] = '';
+        updates[`${otherPrefix}_district`] = '';
+        updates[`${otherPrefix}_quartier`] = '';
+        updates[`${otherPrefix}_zone_id`] = '';
+        updates.other_user_id = null;
+      }
+      return updates;
+    });
   }, [user, direction, userAddresses, zones]);
 
   // The "other" prefix is the side the other party fills
   const otherPrefix = direction === 'send' ? 'dropoff' : 'pickup';
+
+  // Reset lookup state when direction changes (the "other" party side flips)
+  useEffect(() => {
+    setLookupResult(null);
+    setLookupResults([]);
+    setLookupQuery('');
+    setLookupMsg('');
+    setEditingOtherBox(false);
+  }, [direction]);
 
   const [lookupMsg, setLookupMsg] = useState('');
 
@@ -296,9 +314,23 @@ export default function DeliveryPage() {
 
       const res = await api.post('/p2p/book', payload);
       if (res.data?.success) {
-        setSuccess(res.data.data.shipment);
-        setStep(3);
-        if (form.payment_method === 'wallet') refreshWalletBalance?.();
+        const { shipment: shipmentData, payment, payment_error } = res.data.data;
+        // MoMo payment initiated — redirect to payment verification page
+        if (payment?.checkout_url) {
+          setSuccess(shipmentData);
+          setStep(3);
+          // Small delay so user sees the success state before redirect
+          setTimeout(() => {
+            router.push(payment.checkout_url);
+          }, 1500);
+        } else if (payment_error) {
+          setError(`Shipment booked but payment failed: ${payment_error}. Please try paying from your deliveries.`);
+        } else {
+          // Wallet payment or no payment needed
+          setSuccess(shipmentData);
+          setStep(3);
+          if (form.payment_method === 'wallet') refreshWalletBalance?.();
+        }
       } else {
         setError(res.data?.message || 'Booking failed');
       }
@@ -314,38 +346,94 @@ export default function DeliveryPage() {
     const distOpts = getDistrictOpts(form[`${prefix}_city`]);
     const qOpts = getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]);
 
-    // Summary view for the user's own box (when not editing)
-    const showSummary = isMyBox && user && !editingMyBox;
+    // Summary view: collapsed card for the user's own box OR the other side when lookup user is selected
+    const otherHasLookup = isOtherSide && lookupResult && user;
+    const showSummary = (isMyBox && user && !editingMyBox) || (otherHasLookup && !editingOtherBox);
     const hasAddress = form[`${prefix}_city`] || form[`${prefix}_street`];
+    const isPopulated = isMyBox ? !!user : !!otherHasLookup;
 
     // Build address string
     const addressParts = [form[`${prefix}_street`], form[`${prefix}_quartier`], form[`${prefix}_district`], form[`${prefix}_city`]].filter(Boolean);
 
+    // Determine header label
+    const headerLabel = isMyBox && user
+      ? `${label} (${user.name?.split(' ')[0] || 'You'})`
+      : otherHasLookup
+        ? `${label} (${lookupResult.name?.split(' ')[0] || 'Other'})`
+        : `${label} Location`;
+
     return (
-      <div className={`rounded-2xl border p-5 space-y-4 transition-all ${isMyBox && user ? 'border-[var(--accent)]/30 bg-gradient-to-br from-[var(--accent)]/10 to-transparent' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}>
+      <div className={`rounded-2xl border p-5 space-y-4 transition-all ${isPopulated ? 'border-[var(--accent)]/30 bg-gradient-to-br from-[var(--accent)]/10 to-transparent' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}>
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-[var(--text-primary)] text-[15px] flex items-center gap-2.5">
-            <div className={`rounded-lg p-2 ${isMyBox && user ? 'bg-[var(--accent)]/20' : 'bg-[var(--text-secondary)]/10'}`}>
-              <MapPin className={`size-4 ${isMyBox && user ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+            <div className={`rounded-lg p-2 ${isPopulated ? 'bg-[var(--accent)]/20' : 'bg-[var(--text-secondary)]/10'}`}>
+              <MapPin className={`size-4 ${isPopulated ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
             </div>
-            <span>{isMyBox && user ? `${label} (${user.name?.split(' ')[0] || 'You'})` : `${label} Location`}</span>
+            <span>{headerLabel}</span>
           </h3>
-          {isMyBox && user && !editingMyBox && (
-            <button onClick={() => setEditingMyBox(true)} className="rounded-lg p-2 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors">
-              <Pencil className="size-4" />
-            </button>
-          )}
-          {isMyBox && user && editingMyBox && (
-            <button onClick={() => setEditingMyBox(false)} className="rounded-lg p-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/10 transition-colors">
-              <CheckCircle2 className="size-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-1">
+            {/* Edit / Done for my box */}
+            {isMyBox && user && !editingMyBox && (
+              <button onClick={() => setEditingMyBox(true)} className="rounded-lg p-2 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors">
+                <Pencil className="size-4" />
+              </button>
+            )}
+            {isMyBox && user && editingMyBox && (
+              <button onClick={() => setEditingMyBox(false)} className="rounded-lg p-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/10 transition-colors">
+                <CheckCircle2 className="size-4" />
+              </button>
+            )}
+            {/* Edit / Done / Clear for other box with lookup result */}
+            {otherHasLookup && !editingOtherBox && (
+              <button onClick={() => setEditingOtherBox(true)} className="rounded-lg p-2 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors">
+                <Pencil className="size-4" />
+              </button>
+            )}
+            {otherHasLookup && editingOtherBox && (
+              <button onClick={() => setEditingOtherBox(false)} className="rounded-lg p-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/10 transition-colors">
+                <CheckCircle2 className="size-4" />
+              </button>
+            )}
+            {otherHasLookup && (
+              <button onClick={() => {
+                setLookupResult(null);
+                setLookupResults([]);
+                setLookupQuery('');
+                setLookupMsg('');
+                setEditingOtherBox(false);
+                setForm(p => ({
+                  ...p, other_user_id: null,
+                  [`${prefix}_name`]: '', [`${prefix}_phone`]: '', [`${prefix}_email`]: '',
+                  [`${prefix}_street`]: '', [`${prefix}_city`]: '', [`${prefix}_district`]: '',
+                  [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '',
+                }));
+              }} className="rounded-lg p-2 text-[11px] font-semibold text-rose-500 hover:bg-rose-500/10 transition-colors">
+                <X className="size-4" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Summary card for user's own info */}
+        {/* Summary card (collapsed view for logged-in user or looked-up other party) */}
         {showSummary && (
           <div className="space-y-2">
-            {form[`${prefix}_name`] && (
+            {/* Show avatar + username for lookup result */}
+            {otherHasLookup && lookupResult && (
+              <div className="flex items-center gap-2.5 mb-1">
+                {lookupResult.avatar ? (
+                  <img src={lookupResult.avatar} className="size-8 rounded-full object-cover" alt="" />
+                ) : (
+                  <div className="size-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[12px]">
+                    {lookupResult.name?.[0]}
+                  </div>
+                )}
+                <div>
+                  <p className="text-[13px] font-semibold text-[var(--text-primary)]">{lookupResult.name}</p>
+                  {lookupResult.username && <p className="text-[10px] text-[var(--text-secondary)]">@{lookupResult.username}</p>}
+                </div>
+              </div>
+            )}
+            {form[`${prefix}_name`] && !otherHasLookup && (
               <div className="flex items-center gap-2.5">
                 <UserIcon className="size-3.5 text-[var(--text-secondary)]/60 shrink-0" />
                 <span className="text-[13px] font-medium text-[var(--text-primary)]">{form[`${prefix}_name`]}</span>
@@ -370,7 +458,9 @@ export default function DeliveryPage() {
               </div>
             )}
             {!form[`${prefix}_name`] && !form[`${prefix}_phone`] && !hasAddress && (
-              <p className="text-[12px] text-[var(--text-secondary)]/60 italic">No info yet — tap Edit to add your details</p>
+              <p className="text-[12px] text-[var(--text-secondary)]/60 italic">
+                {isMyBox ? 'No info yet — tap Edit to add your details' : 'No address info — tap Edit to add details'}
+              </p>
             )}
           </div>
         )}
@@ -427,31 +517,18 @@ export default function DeliveryPage() {
                     ))}
                   </div>
                 )}
-                {lookupResult && (
-                  <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+                {/* When lookupResult is selected but user tapped Edit, show a small
+                    reminder chip so they know which user is linked */}
+                {lookupResult && editingOtherBox && (
+                  <div className="flex items-center gap-2 rounded-lg bg-[var(--accent)]/5 px-3 py-2">
                     {lookupResult.avatar ? (
-                      <img src={lookupResult.avatar} className="size-10 rounded-full object-cover" alt="" />
+                      <img src={lookupResult.avatar} className="size-6 rounded-full object-cover" alt="" />
                     ) : (
-                      <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[14px]">
+                      <div className="size-6 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[10px]">
                         {lookupResult.name?.[0]}
                       </div>
                     )}
-                    <div>
-                      <p className="text-[13px] font-semibold text-[var(--text-primary)]">{lookupResult.name}</p>
-                      {lookupResult.username && <p className="text-[11px] text-[var(--text-secondary)]">@{lookupResult.username}</p>}
-                    </div>
-                    <button onClick={() => {
-                      setLookupResult(null);
-                      setLookupResults([]);
-                      setLookupQuery('');
-                      setLookupMsg('');
-                      setForm(p => ({
-                        ...p, other_user_id: null,
-                        [`${prefix}_name`]: '', [`${prefix}_phone`]: '', [`${prefix}_email`]: '',
-                        [`${prefix}_street`]: '', [`${prefix}_city`]: '', [`${prefix}_district`]: '',
-                        [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '',
-                      }));
-                    }} className="ml-auto text-[11px] text-rose-500 font-semibold">Clear</button>
+                    <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Editing for {lookupResult.name}</span>
                   </div>
                 )}
               </>
@@ -1068,12 +1145,12 @@ export default function DeliveryPage() {
 
             {/* Links */}
             <div className="flex flex-col gap-2.5 text-[12px] sm:text-[13px]">
-              <button onClick={() => router.push('/delivery/track')} className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 text-[var(--accent)] font-semibold py-3 min-h-[44px] active:scale-[0.98] transition-all">
+              <Link href="/delivery/track" className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 text-[var(--accent)] font-semibold py-3 min-h-[44px] active:scale-[0.98] transition-all text-center">
                 Track an Existing Delivery
-              </button>
-              {user && <button onClick={() => router.push('/delivery/history')} className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-primary)] font-semibold py-3 min-h-[44px] active:scale-[0.98] transition-all">
+              </Link>
+              {user && <Link href="/delivery/history" className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-primary)] font-semibold py-3 min-h-[44px] active:scale-[0.98] transition-all text-center">
                 View My Deliveries
-              </button>}
+              </Link>}
             </div>
           </div>
         )}

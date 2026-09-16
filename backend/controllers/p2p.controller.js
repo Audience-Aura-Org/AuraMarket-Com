@@ -16,6 +16,10 @@ const { debitBalance, creditBalance } = require('../services/wallet.service');
 const { sendNotification } = require('../utils/notifier');
 const { sendEmail } = require('../utils/emailService');
 const { uploadToS3, isS3Enabled } = require('../utils/s3');
+const pawapay = require('../services/payment/gateways/pawapay.gateway');
+const payunit = require('../services/payunit.service');
+const eversend = require('../services/eversend.service');
+const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -25,6 +29,150 @@ const hashOtp = (otp) =>
   crypto.createHmac('sha256', JWT_SECRET).update(String(otp)).digest('hex');
 
 const genRef = (prefix) => `${prefix}-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+
+/**
+ * Sanitize phone to E.164 format (Cameroon default).
+ */
+const sanitizePhone = (phone, country = 'CM') => {
+  if (!phone) return phone;
+  let cleaned = phone.replace(/[^\d+]/g, '');
+  if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
+  if (!cleaned.startsWith('+')) {
+    if (cleaned.startsWith('0')) cleaned = cleaned.slice(1);
+    cleaned = `+237${cleaned}`;
+  }
+  return cleaned;
+};
+
+/**
+ * Initiate a mobile money collection for a P2P shipment.
+ * Called AFTER the shipment has been committed to the DB.
+ * Creates a pending Transaction linked to the shipment and triggers the
+ * USSD push on the subscriber's phone.
+ *
+ * @returns {{ gateway, reference, checkout_url, collection_fee, gross_amount }}
+ */
+const initiateP2PGatewayPayment = async ({ gateway, phone, amount, platformFee, user, shipment, trackingCode, req }) => {
+  const currency = 'XAF';
+  const feeBreakdown = applyMobileMoneyCollectionFee(amount, gateway, currency);
+
+  const sharedMeta = {
+    shipment_id: shipment._id,
+    tracking_code: trackingCode,
+    net_amount: feeBreakdown.netAmount,
+    collection_fee: feeBreakdown.collectionFee,
+    gross_amount: feeBreakdown.grossAmount,
+    platform_fee: platformFee,
+    type: 'p2p',
+  };
+
+  // ── PawaPay ────────────────────────────────────────────────────────
+  if (gateway === 'pawapay') {
+    const correspondent = pawapay.detectProvider(phone);
+    if (!pawapay.isSupportedCameroonProvider(correspondent)) {
+      throw new Error('PawaPay is currently available for MTN Mobile Money only. Please use PayUnit for Orange Money.');
+    }
+    // pawapay.initialize() creates the deposit + Transaction internally
+    const result = await pawapay.initialize({
+      user,
+      amount: feeBreakdown.grossAmount,
+      currency,
+      orderIds: [],
+      fields: { phone, provider: correspondent },
+      req,
+    });
+    // Patch the auto-created Transaction with P2P shipment metadata
+    await Transaction.findOneAndUpdate(
+      { reference: result.reference },
+      {
+        $set: {
+          type: 'payment',
+          amount,
+          description: `P2P delivery payment — ${trackingCode}`,
+          metadata: { ...sharedMeta, depositId: result.transaction_id, correspondent, phone: pawapay.normalizePhone(phone) },
+        },
+      }
+    );
+    return { gateway: 'pawapay', reference: result.reference, checkout_url: result.checkout_url, collection_fee: feeBreakdown.collectionFee, gross_amount: feeBreakdown.grossAmount };
+  }
+
+  // ── PayUnit ────────────────────────────────────────────────────────
+  if (gateway === 'payunit') {
+    const publicWebUrl = process.env.WEB_CLIENT_URL || 'https://auradime.com';
+    const apiUrl = process.env.API_PUBLIC_URL || process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.hostname}`;
+    const transactionRef = payunit.cleanTransactionId(('AU' + Date.now() + String(user._id).slice(-5)).toUpperCase());
+    const returnUrl = `${publicWebUrl}/wallet/verify?gateway=payunit&ref=${transactionRef}`;
+    const notifyUrl = `${apiUrl}/api/v1/payments/payunit/webhook`;
+
+    const init = await payunit.initializePayment({ amount: feeBreakdown.grossAmount, currency, transactionId: transactionRef, returnUrl, notifyUrl, country: 'CM' });
+
+    let direct = null;
+    const resolvedProvider = payunit.detectCmProvider(phone);
+    try {
+      direct = await payunit.makeMobilePayment({ amount: feeBreakdown.grossAmount, currency, transactionId: transactionRef, returnUrl, notifyUrl, phone, provider: resolvedProvider });
+    } catch (mpeError) {
+      if (payunit.isTimeoutError(mpeError)) {
+        console.warn('[P2P PayUnit] makepayment timed out — may still process');
+      } else if (mpeError.response?.status === 422 || mpeError.response?.status === 417) {
+        throw new Error('A payment is already pending on your phone. Please approve the USSD prompt or wait a few minutes and try again.');
+      } else {
+        throw mpeError;
+      }
+    }
+
+    const gatewayData = direct?.data || init?.data || {};
+    await Transaction.create({
+      user_id: user._id, type: 'payment', amount, currency,
+      reference: transactionRef,
+      gateway_transaction_id: gatewayData.transaction_id || transactionRef,
+      status: 'pending', gateway: 'payunit',
+      description: `P2P delivery payment — ${trackingCode}`,
+      gateway_response: { initialize: init?.raw || null, makepayment: direct?.raw || null },
+      metadata: { ...sharedMeta, provider: resolvedProvider, phone: payunit.normalizePhoneIntl(phone, 'CM') },
+    });
+
+    return { gateway: 'payunit', reference: transactionRef, checkout_url: init?.data?.transaction_url || returnUrl, collection_fee: feeBreakdown.collectionFee, gross_amount: feeBreakdown.grossAmount };
+  }
+
+  // ── Eversend ───────────────────────────────────────────────────────
+  if (gateway === 'eversend') {
+    const transactionRef = `AURA-${Date.now()}-${user._id}`;
+    const redirectUrl = `${process.env.WEB_CLIENT_URL || 'https://auradime.com'}/wallet/verify?gateway=eversend&ref=${transactionRef}`;
+    const nameParts = (user.name || '').split(' ');
+    const sanitized = sanitizePhone(phone);
+
+    const isSandbox = process.env.EVERSEND_SANDBOX_MODE === 'true';
+    let gatewayTxId = null;
+    let checkoutUrl = null;
+
+    if (isSandbox) {
+      gatewayTxId = `SBX-${Date.now()}`;
+      checkoutUrl = `${redirectUrl}&sandbox=true`;
+    } else {
+      const result = await eversend.initiateCollection({
+        amount: feeBreakdown.grossAmount, currency, phone: sanitized, country: 'CM',
+        firstName: nameParts[0] || 'Aura', lastName: nameParts.slice(1).join(' ') || 'User',
+        email: user.email, redirectUrl, transactionRef,
+      });
+      if (!result || result.success === false) throw new Error(result?.message || 'Eversend payment initiation failed');
+      const rd = result?.data || result;
+      gatewayTxId = rd?.transactionId || rd?.transaction_id || null;
+      checkoutUrl = rd?.checkoutUrl || rd?.checkout_url || rd?.paymentUrl || null;
+    }
+
+    await Transaction.create({
+      user_id: user._id, type: 'payment', amount, currency,
+      reference: transactionRef, gateway_transaction_id: gatewayTxId,
+      status: 'pending', gateway: 'eversend',
+      description: `P2P delivery payment — ${trackingCode}`,
+      metadata: { ...sharedMeta, ...(isSandbox ? { is_sandbox: true } : {}) },
+    });
+
+    return { gateway: 'eversend', reference: transactionRef, checkout_url: checkoutUrl || redirectUrl, collection_fee: feeBreakdown.collectionFee, gross_amount: feeBreakdown.grossAmount };
+  }
+
+  throw new Error(`Unsupported payment gateway: ${gateway}`);
+};
 
 // ── GET QUOTE ──────────────────────────────────────────────────────────
 
@@ -235,8 +383,23 @@ const createP2PShipment = async (req, res) => {
         await settings.save({ session });
       }
     } else {
-      // Gateway payment — shipment created as unpaid, payment handled via webhook
+      // Gateway payment — shipment created as pending, payment initiated after commit
+      if (!req.user) {
+        await session.abortTransaction();
+        return res.status(400).json({ success: false, message: 'Mobile money payment requires an account. Please sign in.' });
+      }
+      const momoPhone = req.body.momo_phone || req.user.phone || '';
+      if (!momoPhone) {
+        await session.abortTransaction();
+        return res.status(400).json({ success: false, message: 'Phone number is required for mobile money payment' });
+      }
       shipmentData.payment_status = 'pending';
+      shipmentData._gatewayPayment = {
+        gateway: payment_method,
+        phone: momoPhone,
+        amount: quote.price,
+        platformFee: quote.platform_fee || 0,
+      };
     }
 
     const [shipment] = await Shipment.create([shipmentData], { session });
@@ -253,6 +416,44 @@ const createP2PShipment = async (req, res) => {
         const payload = { balance, amount, type: 'p2p_payment' };
         io.to(room).emit('wallet:debited', payload);
         io.to(`user:${room}`).emit('wallet:debited', payload);
+      }
+    }
+
+    // Initiate gateway payment AFTER DB commit (external API calls must not be
+    // inside the Mongo transaction — a rollback can't undo a PawaPay deposit).
+    let paymentResult = null;
+    if (shipmentData._gatewayPayment) {
+      try {
+        paymentResult = await initiateP2PGatewayPayment({
+          ...shipmentData._gatewayPayment,
+          user: req.user,
+          shipment,
+          trackingCode,
+          req,
+        });
+        // Store payment reference on shipment
+        await Shipment.findByIdAndUpdate(shipment._id, {
+          $set: { payment_reference: paymentResult.reference },
+        });
+        console.log(`[P2P] Gateway payment initiated for ${trackingCode}: ${paymentResult.gateway} ref=${paymentResult.reference}`);
+      } catch (paymentErr) {
+        console.error(`[P2P] Gateway payment initiation failed for ${trackingCode}:`, paymentErr.message);
+        // Shipment exists but payment failed — caller can retry payment
+        return res.status(201).json({
+          success: true,
+          message: 'Shipment created but payment could not be initiated. Please try again.',
+          data: {
+            shipment: {
+              _id: shipment._id,
+              tracking_code: shipment.tracking_code,
+              status: shipment.status,
+              price: shipment.price,
+              payment_status: shipment.payment_status,
+              direction: shipment.direction,
+            },
+            payment_error: paymentErr.message,
+          },
+        });
       }
     }
 
@@ -289,24 +490,31 @@ const createP2PShipment = async (req, res) => {
       }
     });
 
+    const responseData = {
+      shipment: {
+        _id: shipment._id,
+        tracking_code: shipment.tracking_code,
+        status: shipment.status,
+        price: shipment.price,
+        payment_status: shipment.payment_status,
+        direction: shipment.direction,
+      },
+    };
+    if (paymentResult) {
+      responseData.payment = paymentResult;
+    }
+
     return res.status(201).json({
       success: true,
-      message: 'P2P shipment created',
-      data: {
-        shipment: {
-          _id: shipment._id,
-          tracking_code: shipment.tracking_code,
-          status: shipment.status,
-          price: shipment.price,
-          payment_status: shipment.payment_status,
-          direction: shipment.direction,
-        },
-      },
+      message: paymentResult
+        ? 'Delivery booked — approve the payment on your phone'
+        : 'P2P shipment created',
+      data: responseData,
     });
   } catch (err) {
     if (session.inTransaction()) await session.abortTransaction();
     console.error('[p2p] createP2PShipment error:', err.message);
-    return res.status(500).json({ success: false, message: 'Failed to create shipment' });
+    return res.status(500).json({ success: false, message: err.message || 'Failed to create shipment' });
   } finally {
     session.endSession();
   }

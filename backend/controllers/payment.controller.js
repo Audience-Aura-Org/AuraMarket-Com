@@ -18,6 +18,8 @@ const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
 const { activateSubscription } = require('../services/subscription.service');
 const pawapay = require('../services/payment/gateways/pawapay.gateway');
 const webhookHealth = require('../services/webhookHealthMonitor.service');
+const Shipment = require('../models/Shipment.model');
+const PlatformSettings = require('../models/PlatformSettings.model');
 
 // -----------------------------------------------------------------------------
 // HELPERS
@@ -277,10 +279,25 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
     }
 
     let newWalletBalance;
+    const isP2PPayment = claimed.metadata?.type === 'p2p' && claimed.metadata?.shipment_id;
+
     if (isSubscriptionTransaction(claimed)) {
       await settleSubscriptionTransaction(claimed, session, app);
     } else if (claimed.order_ids?.length > 0) {
       await settleOrdersInSession(claimed.user_id, claimed.order_ids, app, session, true, webUrl, paymentGateway);
+    } else if (isP2PPayment) {
+      // P2P delivery payment — mark shipment as paid and credit platform fee
+      await Shipment.findByIdAndUpdate(
+        claimed.metadata.shipment_id,
+        { $set: { payment_status: 'paid', payment_reference: claimed.reference } },
+        { session }
+      );
+      if (claimed.metadata.platform_fee > 0) {
+        const settings = await PlatformSettings.getSettings(session);
+        settings.platform_wallet_balance = (settings.platform_wallet_balance || 0) + claimed.metadata.platform_fee;
+        await settings.save({ session });
+      }
+      console.log(`[settleGateway] P2P shipment ${claimed.metadata.tracking_code} payment settled via ${paymentGateway}`);
     } else {
       // Capture new balance so we can push it in the socket payload (frontend
       // updates instantly without a GET /wallet round-trip)
@@ -293,7 +310,22 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
     }
 
     await session.commitTransaction();
-    if (!isSubscriptionTransaction(claimed) && !(claimed.order_ids?.length > 0)) {
+
+    // Post-commit side-effects
+    if (isP2PPayment) {
+      // Notify the user that their delivery payment was confirmed
+      const { sendNotification } = require('../utils/notifier');
+      setImmediate(async () => {
+        try {
+          await sendNotification(app, claimed.user_id, {
+            title: 'Delivery Payment Confirmed',
+            message: `Your payment of ${claimed.amount.toLocaleString()} XAF for delivery ${claimed.metadata.tracking_code} has been confirmed.`,
+            type: 'p2p_status',
+            metadata: { tracking_code: claimed.metadata.tracking_code, link: `/delivery/track?code=${claimed.metadata.tracking_code}` },
+          });
+        } catch (err) { console.error('[P2P payment notification]', err.message); }
+      });
+    } else if (!isSubscriptionTransaction(claimed) && !(claimed.order_ids?.length > 0)) {
       emitWalletCredit(app, claimed, newWalletBalance);
       setImmediate(async () => {
         try {
