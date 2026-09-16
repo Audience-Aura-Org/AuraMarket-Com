@@ -238,7 +238,7 @@ const submitWithdrawal = async (req, res) => {
       if (vendorRecord?.vendor_type === 'restaurant') {
         // 1. KYC check
         const kyc = await KYC.findOne({ user_id: userId }).select('status').lean().session(session);
-        if (!kyc || kyc.status !== 'verified') {
+        if (!kyc || kyc.status !== 'approved') {
           await session.abortTransaction();
           session.endSession();
           return res.status(403).json({
