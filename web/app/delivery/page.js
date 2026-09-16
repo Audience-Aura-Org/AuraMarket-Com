@@ -61,6 +61,7 @@ export default function DeliveryPage() {
     scheduled: false, scheduled_date: '',
     other_user_id: null,
     payment_method: user ? 'wallet' : 'pawapay',
+    momo_phone: '',
   });
 
   // Lookup
@@ -145,6 +146,7 @@ export default function DeliveryPage() {
       [`${myPrefix}_name`]: user.name || '',
       [`${myPrefix}_phone`]: defaultAddr?.contact_phone || user.phone || '',
       [`${myPrefix}_email`]: user.email || '',
+      momo_phone: prev.momo_phone || defaultAddr?.contact_phone || user.phone || '',
       [`${myPrefix}_street`]: defaultAddr?.street || loc.address_description || '',
       [`${myPrefix}_city`]: cityName,
       [`${myPrefix}_district`]: districtName,
@@ -282,6 +284,7 @@ export default function DeliveryPage() {
         },
         scheduled_pickup: form.scheduled ? form.scheduled_date : null,
         payment_method: form.payment_method,
+        momo_phone: form.momo_phone || undefined,
       };
 
       if (!user) {
@@ -496,8 +499,10 @@ export default function DeliveryPage() {
     );
   };
 
-  // ── Payment strategy (mirrors checkout pattern) ──────────────────
-  const paymentOptions = [
+  // ── Payment strategy ──────────────────────────────────────────────
+  const isMomo = ['pawapay', 'payunit', 'eversend'].includes(form.payment_method);
+
+  const momoProviders = [
     {
       id: 'pawapay',
       label: 'PawaPay',
@@ -512,13 +517,6 @@ export default function DeliveryPage() {
       description: 'MTN Mobile Money and Orange Money via PayUnit.',
       icon: Smartphone,
     },
-    ...(user ? [{
-      id: 'wallet',
-      label: 'Aura Wallet',
-      badge: `${displayedWalletBalance.toLocaleString()} XAF`,
-      description: 'Pay from your Auradime wallet balance.',
-      icon: CreditCard,
-    }] : []),
     {
       id: 'eversend',
       label: 'Eversend',
@@ -528,16 +526,20 @@ export default function DeliveryPage() {
     },
   ];
 
-  const selectedPayment = paymentOptions.find(o => o.id === form.payment_method) || paymentOptions[0];
-  const SelectedPaymentIcon = selectedPayment.icon;
-  const sortedPaymentOptions = [
-    selectedPayment,
-    ...paymentOptions.filter(o => o.id !== selectedPayment.id),
+  const selectedMomo = momoProviders.find(o => o.id === form.payment_method) || momoProviders[0];
+  const SelectedMomoIcon = selectedMomo.icon;
+  const sortedMomoProviders = [
+    selectedMomo,
+    ...momoProviders.filter(o => o.id !== selectedMomo.id),
   ];
 
   const selectPaymentMethod = (method) => {
     setPaymentOpen(false);
-    setForm(prev => ({ ...prev, payment_method: method }));
+    setForm(prev => ({
+      ...prev,
+      payment_method: method,
+      momo_phone: prev.momo_phone || (user?.phone || ''),
+    }));
   };
 
   return (
@@ -723,77 +725,172 @@ export default function DeliveryPage() {
             {/* Payment Strategy */}
             <div className="space-y-3">
               <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight ml-1">Payment Strategy</label>
-              <div className="relative">
+
+              {/* Wallet Option */}
+              {user && (
                 <button
-                  key={form.payment_method}
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); setPaymentOpen(open => !open); }}
-                  className={`flex w-full items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-all ${
-                    paymentOpen
-                      ? 'border-[var(--accent)] bg-[var(--accent)]/5'
-                      : 'border-[var(--accent)]/40 bg-[var(--bg-secondary)]'
+                  onClick={() => { setForm(prev => ({ ...prev, payment_method: 'wallet' })); setPaymentOpen(false); }}
+                  className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all ${
+                    form.payment_method === 'wallet'
+                      ? 'border-[var(--accent)] bg-gradient-to-r from-[var(--accent)]/10 to-[var(--accent)]/5 shadow-md shadow-[var(--accent)]/10'
+                      : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30'
                   }`}
                 >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--accent)]">
-                      <SelectedPaymentIcon className="size-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <p className="truncate text-[12px] font-semibold tracking-tight text-[var(--text-primary)]">{selectedPayment.label}</p>
-                        <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
-                          {selectedPayment.badge}
-                        </span>
-                      </div>
-                      <p className="mt-1 line-clamp-1 text-[10px] font-medium text-[var(--text-secondary)] sm:text-[11px]">{selectedPayment.description}</p>
-                    </div>
+                  <div className={`flex size-11 shrink-0 items-center justify-center rounded-2xl border transition-all ${
+                    form.payment_method === 'wallet'
+                      ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]'
+                      : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)]'
+                  }`}>
+                    <Wallet className="size-5" />
                   </div>
-                  <ChevronDown className={`size-4 shrink-0 opacity-45 transition-transform ${paymentOpen ? 'rotate-180' : ''}`} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <p className="truncate text-[12px] font-semibold tracking-tight text-[var(--text-primary)]">Aura Wallet</p>
+                      <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
+                        {displayedWalletBalance.toLocaleString()} XAF
+                      </span>
+                    </div>
+                    <p className="mt-0.5 line-clamp-1 text-[10px] font-medium text-[var(--text-secondary)]">Pay from your Auradime wallet balance.</p>
+                  </div>
+                  {form.payment_method === 'wallet' && <CheckCircle2 className="size-5 shrink-0 text-[var(--accent)]" />}
+                </button>
+              )}
+
+              {/* Mobile Money Option */}
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isMomo) {
+                      setForm(prev => ({
+                        ...prev,
+                        payment_method: 'pawapay',
+                        momo_phone: prev.momo_phone || (user?.phone || ''),
+                      }));
+                    }
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all ${
+                    isMomo
+                      ? 'border-[var(--accent)] bg-gradient-to-r from-[var(--accent)]/10 to-[var(--accent)]/5 shadow-md shadow-[var(--accent)]/10'
+                      : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30'
+                  }`}
+                >
+                  <div className={`flex size-11 shrink-0 items-center justify-center rounded-2xl border transition-all ${
+                    isMomo
+                      ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]'
+                      : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)]'
+                  }`}>
+                    <Smartphone className="size-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <p className="truncate text-[12px] font-semibold tracking-tight text-[var(--text-primary)]">Mobile Money</p>
+                      {isMomo && (
+                        <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
+                          {selectedMomo.label}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 line-clamp-1 text-[10px] font-medium text-[var(--text-secondary)]">MTN or Orange Mobile Money payment.</p>
+                  </div>
+                  {isMomo && <CheckCircle2 className="size-5 shrink-0 text-[var(--accent)]" />}
                 </button>
 
+                {/* Mobile Money Details (provider dropdown + phone field) */}
                 <AnimatePresence>
-                  {paymentOpen && (
+                  {isMomo && (
                     <motion.div
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.16 }}
-                      className="absolute left-0 right-0 top-full z-[120] mt-2 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
                     >
-                      {sortedPaymentOptions.map(option => {
-                        const Icon = option.icon;
-                        const active = option.id === form.payment_method;
-                        return (
+                      <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4 space-y-3">
+                        {/* Provider Selector Dropdown */}
+                        <div className="relative">
+                          <label className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight ml-0.5 mb-1.5 block">Payment Provider</label>
                           <button
-                            key={option.id}
                             type="button"
-                            onClick={() => selectPaymentMethod(option.id)}
-                            className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-all hover:bg-[var(--accent)]/5 ${
-                              active ? 'bg-[var(--accent)]/10' : ''
+                            onClick={(e) => { e.stopPropagation(); setPaymentOpen(open => !open); }}
+                            className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition-all ${
+                              paymentOpen
+                                ? 'border-[var(--accent)] bg-[var(--bg-primary)]'
+                                : 'border-[var(--glass-border)] bg-[var(--bg-primary)]'
                             }`}
                           >
-                            <div className={`flex size-10 shrink-0 items-center justify-center rounded-2xl border ${
-                              active
-                                ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]'
-                                : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                            }`}>
-                              <Icon className="size-4" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <p className="truncate text-[11px] font-semibold text-[var(--text-primary)] sm:text-[12px]">{option.label}</p>
-                                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-                                  active ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                                }`}>
-                                  {active ? 'Selected' : option.badge}
-                                </span>
+                            <div className="flex min-w-0 items-center gap-2.5">
+                              <div className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]">
+                                <SelectedMomoIcon className="size-4" />
                               </div>
-                              <p className="mt-0.5 line-clamp-1 text-[10px] font-medium text-[var(--text-secondary)]">{option.description}</p>
+                              <div className="min-w-0">
+                                <p className="truncate text-[12px] font-semibold text-[var(--text-primary)]">{selectedMomo.label}</p>
+                                <p className="line-clamp-1 text-[10px] text-[var(--text-secondary)]">{selectedMomo.description}</p>
+                              </div>
                             </div>
-                            {active && <CheckCircle2 className="size-4 shrink-0 text-[var(--accent)]" />}
+                            <ChevronDown className={`size-4 shrink-0 opacity-45 transition-transform ${paymentOpen ? 'rotate-180' : ''}`} />
                           </button>
-                        );
-                      })}
+
+                          <AnimatePresence>
+                            {paymentOpen && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -6 }}
+                                transition={{ duration: 0.16 }}
+                                className="absolute left-0 right-0 top-full z-[120] mt-1 overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl"
+                              >
+                                {sortedMomoProviders.map(option => {
+                                  const Icon = option.icon;
+                                  const active = option.id === form.payment_method;
+                                  return (
+                                    <button
+                                      key={option.id}
+                                      type="button"
+                                      onClick={() => selectPaymentMethod(option.id)}
+                                      className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-all hover:bg-[var(--accent)]/5 ${
+                                        active ? 'bg-[var(--accent)]/10' : ''
+                                      }`}
+                                    >
+                                      <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl border ${
+                                        active
+                                          ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]'
+                                          : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                                      }`}>
+                                        <Icon className="size-3.5" />
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2">
+                                          <p className="truncate text-[11px] font-semibold text-[var(--text-primary)]">{option.label}</p>
+                                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                                            active ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
+                                          }`}>
+                                            {active ? 'Selected' : option.badge}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      {active && <CheckCircle2 className="size-3.5 shrink-0 text-[var(--accent)]" />}
+                                    </button>
+                                  );
+                                })}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Phone Number Field */}
+                        <div>
+                          <label className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight ml-0.5 mb-1.5 block">Collection Number</label>
+                          <input
+                            type="tel"
+                            value={form.momo_phone}
+                            onChange={e => setForm(prev => ({ ...prev, momo_phone: e.target.value }))}
+                            placeholder="+237 6XX XXX XXX"
+                            className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[13px] font-semibold text-[var(--text-primary)] placeholder:font-normal placeholder:text-[var(--text-secondary)]/50 outline-none transition-all focus:border-[var(--accent)]/50 min-h-[44px]"
+                          />
+                        </div>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>

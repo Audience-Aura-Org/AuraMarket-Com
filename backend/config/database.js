@@ -17,6 +17,24 @@ const connectDB = async () => {
     });
 
     logger.info(`✅ MongoDB Connected: ${conn.connection.host}`);
+
+    // Drop stale unique index on shipments.order_id that blocks P2P shipments
+    try {
+      const col = conn.connection.collection('shipments');
+      const indexes = await col.indexes();
+      const stale = indexes.find(
+        (idx) => idx.name === 'order_id_1' && idx.unique
+      );
+      if (stale) {
+        await col.dropIndex('order_id_1');
+        logger.info('🗑️  Dropped stale unique index order_id_1 on shipments');
+      }
+    } catch (idxErr) {
+      // Non-fatal — log and continue
+      if (!idxErr.message?.includes('not found')) {
+        logger.warn(`⚠️ Could not drop stale order_id_1 index: ${idxErr.message}`);
+      }
+    }
   } catch (error) {
     logger.error(`❌ MongoDB Connection Error: ${error.message}`);
     
