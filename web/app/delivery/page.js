@@ -570,12 +570,6 @@ export default function DeliveryPage() {
               <h1 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tight">Pickup & Delivery</h1>
               <p className="text-[11px] sm:text-[13px] text-[var(--text-secondary)] mt-0.5">Send or receive packages across Cameroon</p>
             </div>
-            {step === 2 && selectedQuote && (
-              <div className="hidden sm:flex flex-col items-end">
-                <span className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Total</span>
-                <span className="text-[16px] font-bold text-[var(--accent)]">{selectedQuote.price?.toLocaleString()} <span className="text-[11px] font-semibold">XAF</span></span>
-              </div>
-            )}
           </div>
         </div>
 
