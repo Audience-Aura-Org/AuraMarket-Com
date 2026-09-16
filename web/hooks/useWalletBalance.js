@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
 import socketService from '@/services/socket';
 
@@ -28,6 +28,8 @@ export function useWalletBalance() {
   // subscription propagation is stalled by Next.js App Router batching
   // or persist middleware quirks.
   const [localBalance, setLocalBalance] = useState(zustandBalance);
+  const localBalanceRef = useRef(localBalance);
+  localBalanceRef.current = localBalance;
 
   // Keep local state in sync whenever zustand value changes (e.g. page refresh)
   useEffect(() => {
@@ -35,6 +37,18 @@ export function useWalletBalance() {
       setLocalBalance(zustandBalance);
     }
   }, [zustandBalance]);
+
+  // Direct Zustand store subscription — fires synchronously on set() calls,
+  // bypasses React selector equality and batching entirely.
+  useEffect(() => {
+    const unsub = useAuthStore.subscribe((state) => {
+      const b = state.walletBalance;
+      if (b !== null && b !== undefined && b !== localBalanceRef.current) {
+        setLocalBalance(b);
+      }
+    });
+    return unsub;
+  }, []);
 
   // Unified setter: updates Zustand + local state + broadcasts to window
   const updateBalance = useCallback((balance) => {
@@ -127,7 +141,7 @@ export function useWalletBalance() {
     socketService.on('withdrawal:paid', onWithdrawalPaid);
 
     // Polling fallback — catches missed socket events (e.g. Redis adapter down)
-    const pollInterval = setInterval(doRefresh, 60_000);
+    const pollInterval = setInterval(doRefresh, 20_000);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
