@@ -476,8 +476,11 @@ export default function SocketProvider({ children }) {
       if (Number.isFinite(Number(metadataBalance))) {
         setWalletBalance(Number(metadataBalance));
       }
-      // Always refresh balance — any notification could signal a transaction
-      refreshWalletBalance?.();
+      // Refresh balance only on financial notifications
+      const FINANCIAL_TYPES = ['payment', 'payment_received', 'wallet_update', 'deposit', 'withdrawal', 'payout', 'refund', 'order_status', 'p2p_status'];
+      if (FINANCIAL_TYPES.includes(type)) {
+        refreshWalletBalance?.();
+      }
 
       setNotifToast({ 
         id: notif?._id || Date.now(), 
