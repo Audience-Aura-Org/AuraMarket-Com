@@ -35,7 +35,7 @@ const LABEL_CLASS = 'delivery-label block text-[11px] font-bold text-[var(--text
 
 export default function DeliveryPage() {
   const router = useRouter();
-  const { user, walletBalance } = useAuthStore();
+  const { user, walletBalance, refreshWalletBalance } = useAuthStore();
   const displayedWalletBalance = Number(walletBalance ?? 0);
   const { t } = useLanguage();
 
@@ -298,6 +298,7 @@ export default function DeliveryPage() {
       if (res.data?.success) {
         setSuccess(res.data.data.shipment);
         setStep(3);
+        if (form.payment_method === 'wallet') refreshWalletBalance?.();
       } else {
         setError(res.data?.message || 'Booking failed');
       }
@@ -560,19 +561,21 @@ export default function DeliveryPage() {
       `}</style>
       <div className="mx-auto max-w-2xl px-3 sm:px-4">
         {/* Header */}
-        <div className="mb-5 sm:mb-8">
-          <div className="flex items-center gap-3 sm:gap-4 mb-2">
-            {user?.avatar || user?.branding?.logo ? (
-              <img src={user.branding?.logo || user.avatar} alt={user.name} className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl object-cover shadow-sm" />
-            ) : (
-              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl sm:rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]/70 text-white font-bold text-base sm:text-lg shadow-sm">
-                {user?.name?.charAt(0)?.toUpperCase() || 'P'}
+        <div className="mb-5 sm:mb-8 rounded-2xl border border-[var(--accent)]/15 bg-gradient-to-r from-[var(--accent)]/10 via-[var(--accent)]/5 to-transparent p-4 sm:p-5">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex size-11 sm:size-13 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]/70 text-white shadow-lg shadow-[var(--accent)]/20">
+              <Truck className="size-5 sm:size-6" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tight">Pickup & Delivery</h1>
+              <p className="text-[11px] sm:text-[13px] text-[var(--text-secondary)] mt-0.5">Send or receive packages across Cameroon</p>
+            </div>
+            {step === 2 && selectedQuote && (
+              <div className="hidden sm:flex flex-col items-end">
+                <span className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Total</span>
+                <span className="text-[16px] font-bold text-[var(--accent)]">{selectedQuote.price?.toLocaleString()} <span className="text-[11px] font-semibold">XAF</span></span>
               </div>
             )}
-            <div>
-              <h1 className="text-lg sm:text-2xl font-bold text-[var(--text-primary)]">Pickup & Delivery</h1>
-              <p className="text-[11px] sm:text-[13px] text-[var(--text-secondary)] mt-0.5">Quick & reliable package delivery</p>
-            </div>
           </div>
         </div>
 
@@ -639,14 +642,14 @@ export default function DeliveryPage() {
           <div className="space-y-6">
             {/* Provider Selection */}
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-[var(--accent)]/15 p-2.5">
-                  <Truck className="size-5 text-[var(--accent)]" />
-                </div>
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-[var(--text-primary)] text-[16px] tracking-tight">Choose Your Provider</h3>
-                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{quotes.length} provider{quotes.length !== 1 ? 's' : ''} available for your route</p>
+                  <h3 className="font-bold text-[var(--text-primary)] text-[15px] tracking-tight">Select Provider</h3>
+                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{quotes.length} available for your route</p>
                 </div>
+                <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-bold text-[var(--accent)]">
+                  Step 1 of 2
+                </span>
               </div>
               <div className="space-y-3">
                 {quotes.map(q => {
@@ -720,7 +723,12 @@ export default function DeliveryPage() {
 
             {/* Payment Strategy */}
             <div className="space-y-3">
-              <label className="text-[11px] font-bold text-[var(--text-secondary)] tracking-tight ml-1">Payment Strategy</label>
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-[var(--text-primary)] text-[15px] tracking-tight">Payment Method</h3>
+                <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-bold text-[var(--accent)]">
+                  Step 2 of 2
+                </span>
+              </div>
 
               {/* Wallet Option */}
               {user && (

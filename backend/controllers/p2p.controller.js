@@ -221,6 +221,7 @@ const createP2PShipment = async (req, res) => {
 
       shipmentData.payment_status = 'paid';
       shipmentData.payment_reference = genRef('P2P-PAY');
+      shipmentData._walletDebited = { userId: req.user._id, balance: debited.wallet_balance, amount: quote.price };
 
       // Pre-commit platform fee
       if (quote.platform_fee > 0) {
@@ -236,6 +237,18 @@ const createP2PShipment = async (req, res) => {
     await session.commitTransaction();
 
     console.log(`✅ [P2P] Shipment ${trackingCode} created successfully with status=${shipment.status}, logistics_id=${shipment.logistics_id}`);
+
+    // Emit wallet:debited after transaction commits so frontend updates instantly
+    if (shipmentData._walletDebited) {
+      const io = req.app.get('io');
+      if (io) {
+        const { userId, balance, amount } = shipmentData._walletDebited;
+        const room = userId.toString();
+        const payload = { balance, amount, type: 'p2p_payment' };
+        io.to(room).emit('wallet:debited', payload);
+        io.to(`user:${room}`).emit('wallet:debited', payload);
+      }
+    }
 
     // Non-blocking notifications
     setImmediate(async () => {
