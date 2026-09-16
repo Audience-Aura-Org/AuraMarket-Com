@@ -1284,7 +1284,9 @@ const pawapayPayoutWebhook = async (req, res) => {
       : Buffer.isBuffer(req.body) ? req.body
       : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
 
-    if (!pawapay.verifyWebhookSignature(rawBody, req.headers)) {
+    if (!pawapay.verifyWebhookSignature(rawBody, req.headers, {
+      method: req.method, path: req.originalUrl, authority: req.get('host'),
+    })) {
       webhookHealth.record('rejected', 'pawapay', 'signature-invalid');
       console.warn('[PawaPay Payout Webhook] Signature verification failed');
       return res.status(401).send('Unauthorized');

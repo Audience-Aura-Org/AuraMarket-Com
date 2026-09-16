@@ -312,15 +312,18 @@ const checkCallerIp = (callerIp) => {
 
 /**
  * Verify the Content-Digest header (SHA-256 of body).
- * This is the minimum integrity check. Full RSA-PSS signature verification
- * can be enabled by setting PAWAPAY_WEBHOOK_PUBLIC_KEY to PawaPay's RSA public
- * key in PEM format (available from the PawaPay dashboard / JWKS endpoint).
+ * This is the minimum integrity check. Full ECDSA P-256 signature verification
+ * can be enabled by setting PAWAPAY_WEBHOOK_PUBLIC_KEY to PawaPay's EC public
+ * key in PEM format (available from GET /v2/public-key/http).
  *
  * @param {Buffer} rawBody
  * @param {Object} headers  — lowercased header map
+ * @param {{ method?: string, path?: string, authority?: string }} [reqInfo]
+ *   Optional request metadata for RFC-9421 derived components.
+ *   Pass { method: req.method, path: req.originalUrl, authority: req.get('host') }.
  * @returns {boolean}
  */
-const verifyWebhookSignature = (rawBody, headers) => {
+const verifyWebhookSignature = (rawBody, headers, reqInfo = {}) => {
   // 1. Content-Digest check (mandatory — confirms body wasn't tampered with)
   const contentDigest = headers['content-digest'];
   if (!contentDigest) {
@@ -359,13 +362,16 @@ const verifyWebhookSignature = (rawBody, headers) => {
   }
 
   try {
-    // Parse sig1 params and covered components from Signature-Input
-    const sig1Match = signatureInput.match(/sig1=(\([^)]*\)[^,]*)/);
-    if (!sig1Match) {
-      console.warn('[PawaPay] Could not parse sig1 from Signature-Input:', signatureInput);
+    // Parse the signature label dynamically — PawaPay uses "sig-pp" but other
+    // implementations may use "sig1" or any other RFC-9421 label.
+    // Format: <label>=("component1" "component2" ...);params...
+    const labelMatch = signatureInput.match(/^([a-zA-Z][a-zA-Z0-9_.-]*)=(\([^)]*\).*)$/);
+    if (!labelMatch) {
+      console.warn('[PawaPay] Could not parse signature label from Signature-Input:', signatureInput);
       return false;
     }
-    const sigParams = sig1Match[1];
+    const sigLabel  = labelMatch[1]; // e.g. "sig-pp", "sig1"
+    const sigParams = labelMatch[2]; // e.g. ("@method" ...);alg=...
 
     const componentsMatch = sigParams.match(/\(([^)]*)\)/);
     const componentIds = componentsMatch
@@ -373,19 +379,49 @@ const verifyWebhookSignature = (rawBody, headers) => {
       : [];
 
     // Build signature base string (RFC-9421 §2.5)
+    // Resolve each covered component — derived (@-prefixed) and regular headers.
     const lines = [];
     for (const comp of componentIds) {
-      if (comp === 'content-digest') {
-        lines.push(`"content-digest": ${contentDigest}`);
+      if (comp.startsWith('@')) {
+        // Derived component (RFC-9421 §2.2)
+        switch (comp) {
+          case '@method':
+            lines.push(`"@method": ${(reqInfo.method || 'POST').toUpperCase()}`);
+            break;
+          case '@authority':
+            lines.push(`"@authority": ${reqInfo.authority || headers['host'] || ''}`);
+            break;
+          case '@path':
+            lines.push(`"@path": ${reqInfo.path || '/'}`);
+            break;
+          case '@target-uri':
+            lines.push(`"@target-uri": ${reqInfo.targetUri || ''}`);
+            break;
+          case '@scheme':
+            lines.push(`"@scheme": ${reqInfo.scheme || 'https'}`);
+            break;
+          default:
+            console.warn(`[PawaPay] Unsupported derived component "${comp}" — skipping`);
+            break;
+        }
+      } else {
+        // Regular header field — look up the value from request headers
+        const headerVal = headers[comp.toLowerCase()];
+        if (headerVal !== undefined) {
+          lines.push(`"${comp}": ${headerVal}`);
+        } else {
+          console.warn(`[PawaPay] Missing header "${comp}" required by Signature-Input — skipping`);
+        }
       }
     }
-    lines.push(`@signature-params: sig1=${sigParams}`);
+    lines.push(`"@signature-params": ${sigLabel}=${sigParams}`);
     const signatureBase = lines.join('\n');
 
-    // Extract base64 signature bytes
-    const sigMatch = signatureHeader.match(/sig1=:([^:]+):/);
+    // Extract base64 signature bytes using the dynamic label
+    const sigRegex = new RegExp(`${sigLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=:([^:]+):`);
+    const sigMatch = signatureHeader.match(sigRegex);
     if (!sigMatch) {
-      console.warn('[PawaPay] Could not parse sig1 from Signature header:', signatureHeader);
+      console.warn(`[PawaPay] Could not parse ${sigLabel} from Signature header:`, signatureHeader);
       return false;
     }
     const signatureBytes = Buffer.from(sigMatch[1], 'base64');

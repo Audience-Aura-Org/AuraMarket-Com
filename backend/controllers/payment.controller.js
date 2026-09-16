@@ -1998,7 +1998,9 @@ const pawapayDepositWebhook = async (req, res) => {
       : Buffer.isBuffer(req.body) ? req.body
       : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
 
-    const isValid = pawapay.verifyWebhookSignature(rawBody, req.headers);
+    const isValid = pawapay.verifyWebhookSignature(rawBody, req.headers, {
+      method: req.method, path: req.originalUrl, authority: req.get('host'),
+    });
     if (!isValid) {
       webhookHealth.record('rejected', 'pawapay', 'signature-invalid');
       console.warn('[PawaPay Deposit Webhook] Invalid signature — rejecting');
@@ -2068,7 +2070,9 @@ const pawapayRefundWebhook = async (req, res) => {
       : Buffer.isBuffer(req.body) ? req.body
       : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
 
-    const isValid = pawapay.verifyWebhookSignature(rawBody, req.headers);
+    const isValid = pawapay.verifyWebhookSignature(rawBody, req.headers, {
+      method: req.method, path: req.originalUrl, authority: req.get('host'),
+    });
     if (!isValid) {
       console.warn('[PawaPay Refund Webhook] Invalid signature — rejecting');
       return res.status(401).send('Unauthorized');
@@ -2257,7 +2261,9 @@ const pawapayCheckoutWebhook = async (req, res) => {
       : Buffer.isBuffer(req.body) ? req.body
       : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body));
 
-    const isValid = pawapay.verifyWebhookSignature(rawBody, req.headers);
+    const isValid = pawapay.verifyWebhookSignature(rawBody, req.headers, {
+      method: req.method, path: req.originalUrl, authority: req.get('host'),
+    });
     if (!isValid) {
       console.warn('[PawaPay Checkout Webhook] Invalid signature — rejecting');
       return res.status(401).send('Unauthorized');
