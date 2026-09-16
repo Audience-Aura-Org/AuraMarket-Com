@@ -10,6 +10,7 @@ const Order = require('../models/Order.model');
 const Vendor = require('../models/Vendor.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const Shipment = require('../models/Shipment.model');
+const { sendNotification } = require('../utils/notifier');
 
 // ── GET MESSAGES FOR AN ORDER ───────────────────────────────────────
 const getOrderMessages = async (req, res) => {
@@ -103,10 +104,36 @@ const sendOrderMessage = async (req, res) => {
       sender_name: user.name || 'User',
       sender_role: senderRole,
       text: text.trim(),
+      read_by: [user._id],
       timestamp: new Date(),
     });
 
     await message.save();
+
+    // ── Notify other parties ───────────────────────────────────────
+    const recipientIds = new Set();
+    if (order.customer_id) recipientIds.add(order.customer_id.toString());
+    if (order.vendor_id?.user_id) recipientIds.add(order.vendor_id.user_id.toString());
+    if (order.logistics_company_id) {
+      const firm = await LogisticsCompany.findById(order.logistics_company_id).select('user_id').lean();
+      if (firm?.user_id) recipientIds.add(firm.user_id.toString());
+    }
+    recipientIds.delete(userId);
+
+    const app = req.app;
+    const orderNum = orderId.toString().slice(-8).toUpperCase();
+    for (const rid of recipientIds) {
+      sendNotification(app, rid, {
+        title: `Order #${orderNum}`,
+        message: `${user.name || 'User'}: ${text.trim().substring(0, 120)}`,
+        type: 'order_message',
+        metadata: {
+          order_id: orderId,
+          sender_id: userId,
+          link: `/account?tab=orders&order=${orderId}`,
+        },
+      }).catch(err => console.error('[orderMessages] notification error:', err.message));
+    }
 
     return res.json({ success: true, data: { message } });
   } catch (err) {
@@ -169,11 +196,16 @@ const getMyOrderThreads = async (req, res) => {
       .filter(o => msgByOrder[o._id.toString()]?.length > 0)
       .map(o => {
         const msgs = msgByOrder[o._id.toString()] || [];
+        const unreadCount = msgs.filter(m =>
+          m.sender_id?.toString() !== userId &&
+          !(m.read_by || []).some(r => r.toString() === userId)
+        ).length;
         return {
           order: o,
           messages: msgs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)),
           lastMessage: msgs[0] || null,
           messageCount: msgs.length,
+          unreadCount,
         };
       });
 
@@ -184,8 +216,28 @@ const getMyOrderThreads = async (req, res) => {
   }
 };
 
+// ── MARK ORDER THREAD AS READ ─────────────────────────────────────
+const markOrderThreadRead = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
+
+    await OrderMessage.updateMany(
+      { order_id: orderId, read_by: { $ne: userId } },
+      { $addToSet: { read_by: userId } }
+    );
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[orderMessages] markOrderThreadRead error:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to mark as read' });
+  }
+};
+
 module.exports = {
   getOrderMessages,
   sendOrderMessage,
   getMyOrderThreads,
+  markOrderThreadRead,
 };

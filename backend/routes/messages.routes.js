@@ -11,11 +11,13 @@ const {
   sendShipmentMessage,
   getLogisticsMessages,
   getMyShipmentThreads,
+  markShipmentThreadRead,
 } = require('../controllers/messages.controller');
 const {
   getOrderMessages,
   sendOrderMessage,
   getMyOrderThreads,
+  markOrderThreadRead,
 } = require('../controllers/orderMessages.controller');
 
 // ── SHIPMENT MESSAGES (for tracking page) ──────────────────────────
@@ -26,9 +28,11 @@ router.post('/shipment/:shipmentId', protectOptional, sendShipmentMessage);
 router.get('/order/:orderId', protect, getOrderMessages);
 router.post('/order/:orderId', protect, sendOrderMessage);
 router.get('/order-threads/mine', protect, getMyOrderThreads);
+router.patch('/order/:orderId/read', protect, markOrderThreadRead);
 
 // ── MY SHIPMENT THREADS (P2P deliveries in chat/messages) ──────────
 router.get('/shipment-threads/mine', protect, getMyShipmentThreads);
+router.patch('/shipment/:shipmentId/read', protect, markShipmentThreadRead);
 
 // ── LOGISTICS ROUTES ────────────────────────────────────────────────
 router.get('/logistics/all', protectOptional, getLogisticsMessages);

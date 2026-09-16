@@ -207,7 +207,13 @@ function TrackContent() {
   };
 
   useEffect(() => { if (codeParam) fetchShipment(codeParam); }, [codeParam, fetchShipment]);
-  useEffect(() => { if (shipment?._id) fetchMsgs(shipment._id); }, [shipment?._id, fetchMsgs]);
+  useEffect(() => {
+    if (shipment?._id) {
+      fetchMsgs(shipment._id);
+      // Mark thread as read
+      api.patch(`/messages/shipment/${shipment._id}/read`).catch(() => {});
+    }
+  }, [shipment?._id, fetchMsgs]);
   useEffect(() => {
     if (!shipment || ['delivered', 'cancelled', 'failed'].includes(shipment.status)) return;
     const iv = setInterval(() => { fetchShipment(shipment.tracking_code); fetchMsgs(shipment._id); }, 30000);

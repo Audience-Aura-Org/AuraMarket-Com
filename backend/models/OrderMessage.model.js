@@ -35,6 +35,10 @@ const OrderMessageSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    read_by: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    }],
     timestamp: {
       type: Date,
       default: Date.now,

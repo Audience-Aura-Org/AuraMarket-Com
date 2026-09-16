@@ -174,6 +174,8 @@ export default function SingleOrderView({ orderId, onBack }) {
         const res = await api.get(`/messages/order/${orderId}`);
         if (!cancelled && res.data?.success) {
           setOrderMessages(res.data.data?.messages || []);
+          // Mark thread as read
+          api.patch(`/messages/order/${orderId}/read`).catch(() => {});
         }
       } catch { /* ignore auth errors for non-parties */ }
       if (!cancelled) setLoadingOrderMsgs(false);

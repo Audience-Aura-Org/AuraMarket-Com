@@ -8,6 +8,7 @@
 const ShipmentMessage = require('../models/ShipmentMessage.model');
 const Shipment = require('../models/Shipment.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
+const { sendNotification } = require('../utils/notifier');
 
 // ── GET MESSAGES FOR SHIPMENT ────────────────────────────────────────
 const getShipmentMessages = async (req, res) => {
@@ -72,17 +73,46 @@ const sendShipmentMessage = async (req, res) => {
       }
     }
 
-    // Create message
+    // Create message (sender has automatically read it)
     const message = new ShipmentMessage({
       shipment_id: shipmentId,
       sender_id: senderId,
       sender_name: senderName,
       sender_role: senderRole,
       text: text.trim(),
+      read_by: senderId ? [senderId] : [],
       timestamp: new Date(),
     });
 
     await message.save();
+
+    // ── Notify other parties ───────────────────────────────────────
+    const recipientIds = new Set();
+    if (shipment.booked_by) recipientIds.add(shipment.booked_by.toString());
+    if (shipment.other_party?.user_id) recipientIds.add(shipment.other_party.user_id.toString());
+    // Logistics company user
+    if (shipment.logistics_id) {
+      const firm = await LogisticsCompany.findById(shipment.logistics_id).select('user_id').lean();
+      if (firm?.user_id) recipientIds.add(firm.user_id.toString());
+    }
+    // Remove sender
+    if (senderId) recipientIds.delete(senderId.toString());
+
+    const app = req.app;
+    const trackLink = `/delivery/track?code=${shipment.tracking_code}`;
+    for (const rid of recipientIds) {
+      sendNotification(app, rid, {
+        title: `Shipment ${shipment.tracking_code}`,
+        message: `${senderName}: ${text.trim().substring(0, 120)}`,
+        type: 'shipment_message',
+        metadata: {
+          shipment_id: shipmentId,
+          tracking_code: shipment.tracking_code,
+          sender_id: senderId,
+          link: trackLink,
+        },
+      }).catch(err => console.error('[messages] notification error:', err.message));
+    }
 
     return res.json({ success: true, data: { message } });
   } catch (err) {
@@ -194,10 +224,16 @@ const getMyShipmentThreads = async (req, res) => {
     const threads = shipments.map(s => {
       const msgs = msgByShipment[s._id.toString()] || [];
       const isActive = !['delivered', 'cancelled', 'failed'].includes(s.status);
+      // Count unread: messages not sent by this user AND not in their read_by
+      const unreadCount = msgs.filter(m =>
+        m.sender_id?.toString() !== userId &&
+        !(m.read_by || []).some(r => r.toString() === userId)
+      ).length;
       return {
         shipment: s,
         lastMessage: msgs[0] || null,
         messageCount: msgs.length,
+        unreadCount,
         isActive,
       };
     });
@@ -209,9 +245,29 @@ const getMyShipmentThreads = async (req, res) => {
   }
 };
 
+// ── MARK SHIPMENT THREAD AS READ ──────────────────────────────────────
+const markShipmentThreadRead = async (req, res) => {
+  try {
+    const { shipmentId } = req.params;
+    const userId = req.user?._id;
+    if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
+
+    await ShipmentMessage.updateMany(
+      { shipment_id: shipmentId, read_by: { $ne: userId } },
+      { $addToSet: { read_by: userId } }
+    );
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('[messages] markShipmentThreadRead error:', err.message);
+    return res.status(500).json({ success: false, message: 'Failed to mark as read' });
+  }
+};
+
 module.exports = {
   getShipmentMessages,
   sendShipmentMessage,
   getLogisticsMessages,
   getMyShipmentThreads,
+  markShipmentThreadRead,
 };

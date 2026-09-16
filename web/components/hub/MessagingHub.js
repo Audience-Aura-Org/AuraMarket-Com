@@ -761,7 +761,14 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     };
     fetchDeliveryThreads();
     const iv = setInterval(fetchDeliveryThreads, 30000);
-    return () => { cancelled = true; clearInterval(iv); };
+    // Refresh immediately when a shipment message notification arrives
+    const handleNotif = (payload) => {
+      if (payload?.type === 'shipment_message' || payload?.type === 'order_message') {
+        fetchDeliveryThreads();
+      }
+    };
+    socketService.on('notification', handleNotif);
+    return () => { cancelled = true; clearInterval(iv); socketService.off('notification', handleNotif); };
   }, [user?._id]);
 
   useEffect(() => {
@@ -2013,9 +2020,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                     };
                     const dot = statusColors[s.status] || 'bg-blue-500';
                     const label = (s.status || '').replace(/_/g, ' ');
-                    const dropCity = s.delivery_address?.city || s.delivery_address?.quartier || '';
-                    const pickCity = s.pickup_address?.city || s.pickup_address?.quartier || '';
-                    const route = [pickCity, dropCity].filter(Boolean).join(' → ') || 'Delivery';
+                    const snippet = thread.lastMessage?.text || '';
+                    const hasUnread = (thread.unreadCount || 0) > 0;
                     return (
                       <a
                         key={s._id}
@@ -2028,8 +2034,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="mb-0.5 flex items-start justify-between gap-2">
-                            <h4 className="truncate text-[14px] font-medium text-[var(--text-primary)] sm:text-[15px]">
-                              {route}
+                            <h4 className={`truncate text-[14px] sm:text-[15px] ${hasUnread ? 'font-bold text-[var(--text-primary)]' : 'font-medium text-[var(--text-primary)]'}`}>
+                              {s.tracking_code}
                             </h4>
                             <span className="shrink-0 pt-0.5 text-[10px] text-[var(--text-secondary)] sm:text-[11px]">
                               {new Date(s.updatedAt || s.createdAt).toLocaleDateString([], { day: 'numeric', month: 'short' })}
@@ -2039,11 +2045,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                             <div className="flex items-center gap-1.5 min-w-0 flex-1">
                               <span className={`size-1.5 rounded-full ${dot} shrink-0 animate-pulse`} />
                               <span className="text-[12px] capitalize text-[var(--text-secondary)] truncate sm:text-[13px]">{label}</span>
-                              <span className="text-[11px] text-[var(--text-secondary)] opacity-40 font-mono">· {s.tracking_code}</span>
+                              {snippet && <span className={`text-[11px] truncate ${hasUnread ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-secondary)] opacity-40'}`}>· {snippet}</span>}
                             </div>
-                            {thread.messageCount > 0 && (
-                              <span className="flex size-[20px] shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/15 text-[10px] font-semibold text-[var(--accent)]">
-                                {thread.messageCount}
+                            {hasUnread && (
+                              <span className="flex size-[20px] shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-[10px] font-bold text-white">
+                                {thread.unreadCount}
                               </span>
                             )}
                           </div>
