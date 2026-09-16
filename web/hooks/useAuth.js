@@ -60,6 +60,11 @@ export const useAuthStore = create(
           walletBalance: numericBalance,
           user: state.user ? { ...state.user, wallet_balance: numericBalance } : state.user,
         }));
+        // Broadcast so useWalletBalance hook picks it up even if Zustand
+        // subscription propagation is stalled by Next.js batching
+        if (typeof window !== 'undefined') {
+          try { window.dispatchEvent(new CustomEvent('aura:wallet-updated', { detail: { balance: numericBalance } })); } catch (_) {}
+        }
       },
       refreshWalletBalance: async () => {
         if (!get().isAuthenticated && !get().user?._id) return { success: false };

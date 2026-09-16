@@ -126,8 +126,12 @@ export function useWalletBalance() {
     socketService.on('wallet:debited', onWalletCredited);
     socketService.on('withdrawal:paid', onWithdrawalPaid);
 
+    // Polling fallback — catches missed socket events (e.g. Redis adapter down)
+    const pollInterval = setInterval(doRefresh, 60_000);
+
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
+      clearInterval(pollInterval);
       window.removeEventListener('aura:wallet-updated', onWalletUpdatedEvent);
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
