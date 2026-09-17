@@ -20,6 +20,7 @@ const pawapay = require('../services/payment/gateways/pawapay.gateway');
 const webhookHealth = require('../services/webhookHealthMonitor.service');
 const Shipment = require('../models/Shipment.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
+const { sendEmail } = require('../utils/emailService');
 
 // -----------------------------------------------------------------------------
 // HELPERS
@@ -316,16 +317,43 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
 
     // Post-commit side-effects
     if (isP2PPayment) {
-      // Notify the user that their delivery payment was confirmed
-      const { sendNotification } = require('../utils/notifier');
+      const trackingCode = claimed.metadata.tracking_code;
+      const trackLink = `/delivery/track?code=${trackingCode}`;
+
       setImmediate(async () => {
         try {
+          // Load shipment to get other_party and direction
+          const shipment = await Shipment.findById(claimed.metadata.shipment_id)
+            .select('other_party direction')
+            .lean();
+
+          // 1. Notify booker (payment confirmed + delivery booked)
           await sendNotification(app, claimed.user_id, {
             title: 'Delivery Payment Confirmed',
-            message: `Your payment of ${claimed.amount.toLocaleString()} XAF for delivery ${claimed.metadata.tracking_code} has been confirmed.`,
+            message: `Your payment of ${claimed.amount.toLocaleString()} XAF for delivery ${trackingCode} has been confirmed. We'll notify you when a rider is assigned.`,
             type: 'p2p_status',
-            metadata: { tracking_code: claimed.metadata.tracking_code, link: `/delivery/track?code=${claimed.metadata.tracking_code}` },
+            metadata: { tracking_code: trackingCode, link: trackLink },
           });
+
+          // 2. Notify other_party if they have an account
+          if (shipment?.other_party?.user_id) {
+            await sendNotification(app, shipment.other_party.user_id, {
+              title: shipment.direction === 'send' ? 'Package Coming Your Way' : 'Pickup Requested',
+              message: `A delivery (${trackingCode}) has been booked. Track it in your deliveries.`,
+              type: 'p2p_status',
+              metadata: { target_id: claimed.metadata.shipment_id, tracking_code: trackingCode, link: trackLink },
+            });
+          }
+
+          // 3. Email guest other_party (no account) with signup nudge
+          if (shipment?.other_party?.email && !shipment?.other_party?.user_id) {
+            const dir = shipment.direction;
+            await sendEmail({
+              to: shipment.other_party.email,
+              subject: `Delivery ${trackingCode} — ${dir === 'send' ? 'Package on the way' : 'Pickup requested'}`,
+              html: `<p>A delivery has been booked for you on Auradime.</p><p>Tracking code: <strong>${trackingCode}</strong></p><p>Track your delivery at: <a href="https://auradime.com/delivery/track?code=${trackingCode}">auradime.com/delivery/track</a></p><hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb"/><p style="color:#4b5563">Create a free <a href="https://auradime.com/register" style="color:#5B21B6;font-weight:600">Auradime account</a> to easily track all your deliveries, receive instant notifications, and manage future shipments.</p>`,
+            });
+          }
         } catch (err) { console.error('[P2P payment notification]', err.message); }
       });
     } else if (!isSubscriptionTransaction(claimed) && !(claimed.order_ids?.length > 0)) {

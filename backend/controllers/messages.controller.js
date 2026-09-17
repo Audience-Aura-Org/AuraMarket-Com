@@ -111,6 +111,7 @@ const sendShipmentMessage = async (req, res) => {
           sender_id: senderId,
           link: trackLink,
         },
+        sendEmail: true,
       }).catch(err => console.error('[messages] notification error:', err.message));
     }
 

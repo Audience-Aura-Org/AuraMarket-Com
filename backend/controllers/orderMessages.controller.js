@@ -132,6 +132,7 @@ const sendOrderMessage = async (req, res) => {
           sender_id: userId,
           link: `/account?tab=orders&order=${orderId}`,
         },
+        sendEmail: true,
       }).catch(err => console.error('[orderMessages] notification error:', err.message));
     }
 

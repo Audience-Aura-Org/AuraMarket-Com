@@ -464,38 +464,41 @@ const createP2PShipment = async (req, res) => {
       }
     }
 
-    // Non-blocking notifications
-    setImmediate(async () => {
-      try {
-        if (req.user) {
-          await sendNotification(req.app, req.user._id, {
-            title: 'Delivery Booked',
-            message: `Your delivery ${trackingCode} has been booked. We'll notify you when a rider is assigned.`,
-            type: 'p2p_status',
-            metadata: { target_id: shipment._id, tracking_code: trackingCode, link: `/delivery/track?code=${trackingCode}` },
-          });
+    // Non-blocking notifications — only for paid shipments (wallet).
+    // Gateway payments send notifications when payment is confirmed (payment.controller.js).
+    if (shipment.payment_status === 'paid') {
+      setImmediate(async () => {
+        try {
+          if (req.user) {
+            await sendNotification(req.app, req.user._id, {
+              title: 'Delivery Booked',
+              message: `Your delivery ${trackingCode} has been booked. We'll notify you when a rider is assigned.`,
+              type: 'p2p_status',
+              metadata: { target_id: shipment._id, tracking_code: trackingCode, link: `/delivery/track?code=${trackingCode}` },
+            });
+          }
+          // Notify other party if they have an account
+          if (other_party?.user_id) {
+            await sendNotification(req.app, other_party.user_id, {
+              title: direction === 'send' ? 'Package Coming Your Way' : 'Pickup Requested',
+              message: `A delivery (${trackingCode}) has been booked. Track it in your deliveries.`,
+              type: 'p2p_status',
+              metadata: { target_id: shipment._id, tracking_code: trackingCode, link: `/delivery/track?code=${trackingCode}` },
+            });
+          }
+          // Email guest other party
+          if (other_party?.email && !other_party?.user_id) {
+            await sendEmail({
+              to: other_party.email,
+              subject: `Delivery ${trackingCode} — ${direction === 'send' ? 'Package on the way' : 'Pickup requested'}`,
+              html: `<p>A delivery has been booked for you on Auradime.</p><p>Tracking code: <strong>${trackingCode}</strong></p><p>Track your delivery at: <a href="https://auradime.com/delivery/track?code=${trackingCode}">auradime.com/delivery/track</a></p><hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb"/><p style="color:#4b5563">Create a free <a href="https://auradime.com/register" style="color:#5B21B6;font-weight:600">Auradime account</a> to easily track all your deliveries, receive instant notifications, and manage future shipments.</p>`,
+            });
+          }
+        } catch (notifyErr) {
+          console.error('[p2p] notification error:', notifyErr.message);
         }
-        // Notify other party if they have an account
-        if (other_party?.user_id) {
-          await sendNotification(req.app, other_party.user_id, {
-            title: direction === 'send' ? 'Package Coming Your Way' : 'Pickup Requested',
-            message: `A delivery (${trackingCode}) has been booked. Track it in your deliveries.`,
-            type: 'p2p_status',
-            metadata: { target_id: shipment._id, tracking_code: trackingCode, link: `/delivery/track?code=${trackingCode}` },
-          });
-        }
-        // Email guest other party
-        if (other_party?.email && !other_party?.user_id) {
-          await sendEmail({
-            to: other_party.email,
-            subject: `Delivery ${trackingCode} — ${direction === 'send' ? 'Package on the way' : 'Pickup requested'}`,
-            html: `<p>A delivery has been booked for you on Auradime.</p><p>Tracking code: <strong>${trackingCode}</strong></p><p>Track your delivery at: <a href="https://auradime.com/delivery/track?code=${trackingCode}">auradime.com/delivery/track</a></p>`,
-          });
-        }
-      } catch (notifyErr) {
-        console.error('[p2p] notification error:', notifyErr.message);
-      }
-    });
+      });
+    }
 
     const responseData = {
       shipment: {
