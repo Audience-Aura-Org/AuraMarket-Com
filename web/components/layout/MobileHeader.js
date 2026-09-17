@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useSyncExternalStore } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, X, ShoppingCart, MessageCircle, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { useNotifications } from '@/hooks/useNotifications';
@@ -7,12 +7,19 @@ import { useAuthStore } from '@/hooks/useAuth';
 import { useChat } from '@/context/ChatContext';
 import cartStore from '@/services/cartStore';
 
-const subscribeBalance = (cb) => useAuthStore.subscribe(cb);
-const getBalance = () => useAuthStore.getState().walletBalance;
-
 export default function MobileHeader({ isOpen, toggleSidebar }) {
   const user = useAuthStore((s) => s.user);
-  const walletBalance = useSyncExternalStore(subscribeBalance, getBalance, getBalance);
+  const [walletBalance, setWb] = useState(() => useAuthStore.getState().walletBalance);
+  useEffect(() => {
+    setWb(useAuthStore.getState().walletBalance);
+    const unsub = useAuthStore.subscribe((state) => { setWb(state.walletBalance); });
+    const onWalletEvent = (e) => {
+      const b = Number(e?.detail?.balance);
+      if (Number.isFinite(b)) setWb(b);
+    };
+    window.addEventListener('aura:wallet-updated', onWalletEvent);
+    return () => { unsub(); window.removeEventListener('aura:wallet-updated', onWalletEvent); };
+  }, []);
   const { openChat, isOpen: chatOverlayOpen } = useChat();
   const { unreadMessages } = useNotifications();
   const [cartCount, setCartCount] = useState(cartStore.getCount());

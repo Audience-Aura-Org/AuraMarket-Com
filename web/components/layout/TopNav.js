@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useSyncExternalStore } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
@@ -11,13 +11,6 @@ import dynamic from 'next/dynamic';
 import { useChat } from '@/context/ChatContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useLanguage } from '@/context/LanguageContext';
-
-// Direct store subscription for wallet balance — bypasses Zustand's React
-// integration entirely. useSyncExternalStore guarantees a synchronous
-// re-render whenever the store value changes, regardless of Next.js App
-// Router layout preservation or React batching.
-const subscribeBalance = (cb) => useAuthStore.subscribe(cb);
-const getBalance = () => useAuthStore.getState().walletBalance;
 
 export const TOP_NAV_HEIGHT = 'calc(52px + env(safe-area-inset-top, 0px))';
 export const TOP_NAV_HEIGHT_LG = 'calc(52px + env(safe-area-inset-top, 0px))';
@@ -34,7 +27,24 @@ export default function TopNav() {
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const walletBalance = useSyncExternalStore(subscribeBalance, getBalance, getBalance);
+  // Wallet balance: own useState + dual subscription (Zustand store + window event)
+  // to guarantee re-render regardless of React batching or Zustand middleware quirks.
+  const [walletBalance, setWb] = useState(() => useAuthStore.getState().walletBalance);
+  useEffect(() => {
+    // Sync initial value (covers hydration race)
+    setWb(useAuthStore.getState().walletBalance);
+    // Path 1: direct Zustand store subscription
+    const unsub = useAuthStore.subscribe((state) => {
+      setWb(state.walletBalance);
+    });
+    // Path 2: window event dispatched by setWalletBalance in the auth store
+    const onWalletEvent = (e) => {
+      const b = Number(e?.detail?.balance);
+      if (Number.isFinite(b)) setWb(b);
+    };
+    window.addEventListener('aura:wallet-updated', onWalletEvent);
+    return () => { unsub(); window.removeEventListener('aura:wallet-updated', onWalletEvent); };
+  }, []);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { unreadMessages } = useNotifications();

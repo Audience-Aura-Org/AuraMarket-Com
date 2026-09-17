@@ -28,7 +28,7 @@ const NotificationSchema = new mongoose.Schema(
         'wallet_update', 'deposit', 'withdrawal', 'payout', 'refund',
         'subscription', 'chat_alert', 'message', 'system_alert', 'security',
         'vendor_update', 'logistics_update', 'p2p_status', 'promo',
-        'shipment_message', 'order_message',
+        'shipment_message', 'order_message', 'p2p_pickup',
       ],
       default: 'system_alert'
     },
