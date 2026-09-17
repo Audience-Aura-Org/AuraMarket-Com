@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from '@/hooks/useAuth';
+import socketService from '@/services/socket';
 import { ShoppingCart, Search, User as UserIcon, MessageCircle, Wallet, Truck } from 'lucide-react';
 import { trackSearch } from "@/services/tracking";
 import cartStore from '@/services/cartStore';
@@ -28,16 +29,61 @@ export default function TopNav() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const walletBalance = useAuthStore((s) => s.walletBalance);
-  // Safety-net: force a re-render when the auth store dispatches wallet events
-  // or every 30 s, so the Zustand selector above is always re-evaluated even if
-  // React/Next.js batching delays the normal subscription-driven re-render.
+  const refreshWalletBalance = useAuthStore((s) => s.refreshWalletBalance);
+  const setWalletBalance = useAuthStore((s) => s.setWalletBalance);
+
+  // Keep wallet balance in sync: socket events, API refresh, focus/visibility, polling.
+  // Mirrors the same mechanisms as useWalletBalance so TopNav stays current on every page.
   const [, _wTick] = useState(0);
   useEffect(() => {
+    if (!user?._id) return;
+
+    const doRefresh = async () => { try { await refreshWalletBalance(); } catch (_) {} };
+    let debounceTimer = null;
+    const debouncedRefresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(doRefresh, 400);
+    };
+
+    // Refresh on mount
+    doRefresh();
+
+    // Socket events — update store immediately + refresh from API
+    const onWalletSocket = (data) => {
+      if (data?.balance !== undefined && Number.isFinite(Number(data.balance))) {
+        setWalletBalance(Number(data.balance));
+      }
+      debouncedRefresh();
+    };
+    socketService.on('wallet:credited', onWalletSocket);
+    socketService.on('wallet:debited', onWalletSocket);
+    socketService.on('withdrawal:paid', debouncedRefresh);
+    socketService.on('connect', doRefresh);
+
+    // Window / visibility — refresh when user returns to the tab
+    const onVisible = () => { if (document.visibilityState === 'visible') debouncedRefresh(); };
+    window.addEventListener('focus', debouncedRefresh);
+    document.addEventListener('visibilitychange', onVisible);
+
+    // Safety-net re-render trigger so the Zustand selector is re-evaluated
     const bump = () => _wTick((n) => n + 1);
     window.addEventListener('aura:wallet-updated', bump);
-    const pollId = setInterval(bump, 30_000);
-    return () => { window.removeEventListener('aura:wallet-updated', bump); clearInterval(pollId); };
-  }, []);
+
+    // Poll every 60 s
+    const pollId = setInterval(doRefresh, 60_000);
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      clearInterval(pollId);
+      socketService.off('wallet:credited', onWalletSocket);
+      socketService.off('wallet:debited', onWalletSocket);
+      socketService.off('withdrawal:paid', debouncedRefresh);
+      socketService.off('connect', doRefresh);
+      window.removeEventListener('focus', debouncedRefresh);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('aura:wallet-updated', bump);
+    };
+  }, [user?._id, refreshWalletBalance, setWalletBalance]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
   const { unreadMessages } = useNotifications();
