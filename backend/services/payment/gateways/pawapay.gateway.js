@@ -419,11 +419,6 @@ const verifyWebhookSignature = (rawBody, headers, reqInfo = {}) => {
     lines.push(`"@signature-params": ${sigParams}`);
     const signatureBase = lines.join('\n');
 
-    // Debug: log the signature base so we can compare against PawaPay's expected format
-    console.log('[PawaPay] Signature base string:\n' + signatureBase);
-    console.log('[PawaPay] Signature-Input header:', signatureInput);
-    console.log('[PawaPay] Signature header:', signatureHeader);
-
     // Extract base64 signature bytes using the dynamic label
     const sigRegex = new RegExp(`${sigLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=:([^:]+):`);
     const sigMatch = signatureHeader.match(sigRegex);
@@ -432,35 +427,20 @@ const verifyWebhookSignature = (rawBody, headers, reqInfo = {}) => {
       return false;
     }
     const signatureBytes = Buffer.from(sigMatch[1], 'base64');
-    console.log('[PawaPay] Signature bytes length:', signatureBytes.length, '(expect 64 for P-256 IEEE P1363)');
+    const sigBase = Buffer.from(signatureBase);
 
-    // ECDSA P-256 with SHA-256; RFC-9421 §3.3.5 specifies raw r||s encoding (IEEE P1363)
-    // Try ieee-p1363 first (RFC-9421 standard), fall back to DER if it fails.
+    // PawaPay uses DER-encoded ECDSA signatures (~70-72 bytes).
+    // Try DER first, fall back to IEEE P1363 (64 bytes, per RFC-9421 §3.3.5).
     let verified = false;
-    try {
-      verified = crypto.verify(
-        'sha256',
-        Buffer.from(signatureBase),
-        { key: pubKey, dsaEncoding: 'ieee-p1363' },
-        signatureBytes
-      );
-    } catch (_) { /* ieee-p1363 parsing may throw on DER-encoded bytes */ }
-
-    if (!verified) {
+    for (const encoding of ['der', 'ieee-p1363']) {
       try {
-        verified = crypto.verify(
-          'sha256',
-          Buffer.from(signatureBase),
-          { key: pubKey, dsaEncoding: 'der' },
-          signatureBytes
-        );
-        if (verified) console.log('[PawaPay] Verified with DER encoding (not ieee-p1363)');
-      } catch (_) { /* DER parsing failed too */ }
+        verified = crypto.verify('sha256', sigBase, { key: pubKey, dsaEncoding: encoding }, signatureBytes);
+        if (verified) break;
+      } catch (_) { /* encoding mismatch — try next */ }
     }
 
     if (!verified) {
-      console.warn('[PawaPay] ECDSA signature verification failed (Content-Digest OK, key mismatch or wrong base string)');
-      console.warn('[PawaPay] Public key (first 80 chars):', pubKey?.substring(0, 80));
+      console.warn('[PawaPay] ECDSA signature verification failed (Content-Digest OK, key mismatch or wrong algorithm)');
     }
     return verified;
   } catch (err) {
