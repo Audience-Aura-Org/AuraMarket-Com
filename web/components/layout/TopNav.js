@@ -27,23 +27,16 @@ export default function TopNav() {
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  // Wallet balance: own useState + dual subscription (Zustand store + window event)
-  // to guarantee re-render regardless of React batching or Zustand middleware quirks.
-  const [walletBalance, setWb] = useState(() => useAuthStore.getState().walletBalance);
+  const walletBalance = useAuthStore((s) => s.walletBalance);
+  // Safety-net: force a re-render when the auth store dispatches wallet events
+  // or every 30 s, so the Zustand selector above is always re-evaluated even if
+  // React/Next.js batching delays the normal subscription-driven re-render.
+  const [, _wTick] = useState(0);
   useEffect(() => {
-    // Sync initial value (covers hydration race)
-    setWb(useAuthStore.getState().walletBalance);
-    // Path 1: direct Zustand store subscription
-    const unsub = useAuthStore.subscribe((state) => {
-      setWb(state.walletBalance);
-    });
-    // Path 2: window event dispatched by setWalletBalance in the auth store
-    const onWalletEvent = (e) => {
-      const b = Number(e?.detail?.balance);
-      if (Number.isFinite(b)) setWb(b);
-    };
-    window.addEventListener('aura:wallet-updated', onWalletEvent);
-    return () => { unsub(); window.removeEventListener('aura:wallet-updated', onWalletEvent); };
+    const bump = () => _wTick((n) => n + 1);
+    window.addEventListener('aura:wallet-updated', bump);
+    const pollId = setInterval(bump, 30_000);
+    return () => { window.removeEventListener('aura:wallet-updated', bump); clearInterval(pollId); };
   }, []);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [search, setSearch] = useState("");

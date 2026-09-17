@@ -9,16 +9,13 @@ import cartStore from '@/services/cartStore';
 
 export default function MobileHeader({ isOpen, toggleSidebar }) {
   const user = useAuthStore((s) => s.user);
-  const [walletBalance, setWb] = useState(() => useAuthStore.getState().walletBalance);
+  const walletBalance = useAuthStore((s) => s.walletBalance);
+  const [, _wTick] = useState(0);
   useEffect(() => {
-    setWb(useAuthStore.getState().walletBalance);
-    const unsub = useAuthStore.subscribe((state) => { setWb(state.walletBalance); });
-    const onWalletEvent = (e) => {
-      const b = Number(e?.detail?.balance);
-      if (Number.isFinite(b)) setWb(b);
-    };
-    window.addEventListener('aura:wallet-updated', onWalletEvent);
-    return () => { unsub(); window.removeEventListener('aura:wallet-updated', onWalletEvent); };
+    const bump = () => _wTick((n) => n + 1);
+    window.addEventListener('aura:wallet-updated', bump);
+    const pollId = setInterval(bump, 30_000);
+    return () => { window.removeEventListener('aura:wallet-updated', bump); clearInterval(pollId); };
   }, []);
   const { openChat, isOpen: chatOverlayOpen } = useChat();
   const { unreadMessages } = useNotifications();
