@@ -270,7 +270,7 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
     const claimed = await Transaction.findOneAndUpdate(
       { _id: transaction._id, status: { $ne: 'completed' } },
       { $set: { status: 'completed', gateway_response: gatewayData } },
-      { session, new: true }
+      { session, returnDocument: "after" }
     );
     if (!claimed) {
       // Another concurrent request already settled this transaction — nothing to do.
@@ -704,7 +704,7 @@ const payunitWebhook = async (req, res) => {
       const claimed = await Transaction.findOneAndUpdate(
         { reference, gateway: 'payunit', status: { $in: ['pending', 'processing'] } },
         { $set: { status: 'processing' } },
-        { new: true },
+        { returnDocument: "after" },
       );
       if (!claimed) {
         // Already completed or claimed by another webhook retry
@@ -921,7 +921,7 @@ const eversendVerify = async (req, res) => {
       const sandboxClaimed = await Transaction.findOneAndUpdate(
         { _id: transaction._id, status: { $ne: 'completed' } },
         { $set: { status: 'completed' } },
-        { new: true }
+        { returnDocument: "after" }
       );
       if (!sandboxClaimed) {
         return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
@@ -956,7 +956,7 @@ const eversendVerify = async (req, res) => {
         const claimed = await Transaction.findOneAndUpdate(
           { _id: transaction._id, status: { $ne: 'completed' } },
           { $set: updateFields },
-          { session: sess, new: true }
+          { session: sess, returnDocument: "after" }
         );
         if (!claimed) {
           await sess.abortTransaction();
@@ -1834,7 +1834,7 @@ const pawapayVerify = async (req, res) => {
       const claimed = await Transaction.findOneAndUpdate(
         { _id: transaction._id, status: { $ne: 'completed' } },
         { $set: { status: 'completed' } },
-        { new: true }
+        { returnDocument: "after" }
       );
       if (!claimed) {
         return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
@@ -2030,7 +2030,7 @@ const pawapayDepositWebhook = async (req, res) => {
       const claimed = await Transaction.findOneAndUpdate(
         { reference: { $in: transactionRefs }, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
         { $set: { status: 'processing' } },
-        { new: true }
+        { returnDocument: "after" }
       );
       if (!claimed) return res.status(200).send('OK'); // Already processed
       await settleGatewayTransaction(claimed, event, req.app, '', 'pawapay');
@@ -2039,7 +2039,7 @@ const pawapayDepositWebhook = async (req, res) => {
       const updated = await Transaction.findOneAndUpdate(
         { reference: { $in: transactionRefs }, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
         { $set: { status: 'failed', gateway_response: event } },
-        { new: true }
+        { returnDocument: "after" }
       );
       if (updated?.order_ids?.length) await markCheckoutOrdersFailed(updated.user_id, updated.order_ids);
     }
@@ -2296,7 +2296,7 @@ const pawapayCheckoutWebhook = async (req, res) => {
             ...(depositId ? { 'metadata.depositId': depositId } : {}),
           },
         },
-        { new: true }
+        { returnDocument: "after" }
       );
       if (!claimed) return res.status(200).send('OK'); // Already processed
       await settleGatewayTransaction(claimed, event, req.app, '', 'pawapay');
@@ -2305,7 +2305,7 @@ const pawapayCheckoutWebhook = async (req, res) => {
       const updated = await Transaction.findOneAndUpdate(
         { reference: transactionRef, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
         { $set: { status: 'failed', gateway_response: event } },
-        { new: true }
+        { returnDocument: "after" }
       );
       if (updated?.order_ids?.length) await markCheckoutOrdersFailed(updated.user_id, updated.order_ids);
     }

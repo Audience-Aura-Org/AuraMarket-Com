@@ -1317,7 +1317,7 @@ const pawapayPayoutWebhook = async (req, res) => {
             status: { $nin: ['completed', 'failed', 'rejected'] },
           },
           { $set: { status: 'completed', eversend_status: rawStatus } },
-          { session, new: true }
+          { session, returnDocument: "after" }
         );
 
         if (!claimed) {

@@ -938,7 +938,7 @@ const getProfile = async (req, res, next) => {
         firm = await LogisticsCompany.findByIdAndUpdate(
           firm._id,
           { $set: { is_verified: true } },
-          { new: true }
+          { returnDocument: "after" }
         );
       }
     }

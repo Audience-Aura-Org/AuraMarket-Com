@@ -60,7 +60,7 @@ const adjustBalance = async (userId, delta, session, meta = {}) => {
     const updatedUser = await User.findOneAndUpdate(
       filter,
       { $inc: { wallet_balance: signedAmount } },
-      { session: activeSession, new: true },
+      { session: activeSession, returnDocument: "after" },
     );
 
     if (!updatedUser) {
@@ -125,7 +125,7 @@ const debitBalance = async (userId, amount, session, opts = {}) => {
   const filter = opts.allowNegative
     ? { _id: userId }
     : { _id: userId, wallet_balance: { $gte: amt } };
-  const updateOpts = session ? { session, new: true } : { new: true };
+  const updateOpts = session ? { session, returnDocument: "after" } : { returnDocument: "after" };
   return User.findOneAndUpdate(filter, { $inc: { wallet_balance: -amt } }, updateOpts);
 };
 
@@ -135,7 +135,7 @@ const debitBalance = async (userId, amount, session, opts = {}) => {
  */
 const creditBalance = async (userId, amount, session) => {
   const amt = toXAF(Math.abs(amount));
-  const opts = session ? { session, new: true } : { new: true };
+  const opts = session ? { session, returnDocument: "after" } : { returnDocument: "after" };
   return User.findOneAndUpdate({ _id: userId }, { $inc: { wallet_balance: amt } }, opts);
 };
 

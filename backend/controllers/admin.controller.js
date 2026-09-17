@@ -1100,7 +1100,7 @@ const updateZone = async (req, res, next) => {
     const zone = await LogisticZone.findByIdAndUpdate(
       req.params.id,
       { $set: allowed },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     );
     if (!zone) return res.status(404).json({ success: false, message: 'Zone not found.' });
 
@@ -1717,7 +1717,7 @@ const updateTransactionStatus = async (req, res, next) => {
       transaction = await Transaction.findOneAndUpdate(
         { _id: id, status: { $in: ['pending', 'failed'] } },
         { $set: { status: 'processing' } },
-        { new: true },
+        { returnDocument: "after" },
       );
       if (!transaction) {
         const existing = await Transaction.findById(id).select('status reference');
@@ -2004,7 +2004,7 @@ async function updateIntercityRate(req, res, next) {
     const rate = await IntercityRate.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     );
     if (!rate) return res.status(404).json({ success: false, message: 'Rate not found.' });
     await bustIntercityRateCache();
@@ -2051,7 +2051,7 @@ async function updatePickupPoint(req, res, next) {
     const point = await PickupPoint.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
-      { new: true, runValidators: true }
+      { returnDocument: "after", runValidators: true }
     );
     if (!point) return res.status(404).json({ success: false, message: 'Pickup point not found.' });
     await cache.delete(INTERCITY_POINTS_KEY);

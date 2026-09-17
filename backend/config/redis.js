@@ -63,8 +63,11 @@ const wireEvents = (redis, label) => {
 
   redis.on('end', () => {
     status = 'disconnected';
-    const suffix = reconnecting.get(label) ? ' Waiting for reconnect.' : ' Connection closed.';
-    logRedisEvent('warn', `${label}:end`, `[Redis] ${label} disconnected.${suffix}`, 60000);
+    // retryStrategy never returns null so ioredis will always reconnect.
+    // The 'end' event fires before the 'reconnecting' event, so the Map
+    // check used to misleadingly say "Connection closed". Log at info
+    // level and throttle heavily — these are normal for cloud Redis.
+    logRedisEvent('log', `${label}:end`, `[Redis] ${label} disconnected. Will reconnect.`, 300000);
   });
 };
 

@@ -595,7 +595,7 @@ const followVendor = async (req, res, next) => {
     const updated = await Vendor.findByIdAndUpdate(
       vendorId,
       { $inc: { follower_count: 1 } },
-      { new: true, select: 'store_name follower_count' }
+      { returnDocument: "after", select: 'store_name follower_count' }
     );
 
     res.status(201).json({ success: true, message: `Now following ${updated.store_name}.`, follower_count: updated.follower_count });
@@ -621,7 +621,7 @@ const unfollowVendor = async (req, res, next) => {
     const updated = await Vendor.findByIdAndUpdate(
       vendorId,
       [{ $set: { follower_count: { $max: [0, { $subtract: ['$follower_count', 1] }] } } }],
-      { new: true, select: 'follower_count', updatePipeline: true }
+      { returnDocument: "after", select: 'follower_count', updatePipeline: true }
     );
 
     res.status(200).json({ success: true, message: 'Unfollowed successfully.', follower_count: updated?.follower_count ?? 0 });

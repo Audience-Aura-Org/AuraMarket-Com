@@ -96,7 +96,7 @@ const settleDeposit = async (txn, app, gateway) => {
     const claimed = await Transaction.findOneAndUpdate(
       { _id: txn._id, status: { $in: ['pending', 'processing'] } },
       { $set: { status: 'completed' } },
-      { session, new: true }
+      { session, returnDocument: "after" }
     );
     if (!claimed) {
       await session.abortTransaction();
@@ -148,7 +148,7 @@ const failDeposit = async (txn, gatewayResponse, reason) => {
   const updated = await Transaction.findOneAndUpdate(
     { _id: txn._id, status: { $in: ['pending', 'processing'] } },
     { $set: { status: 'failed', gateway_response: gatewayResponse } },
-    { new: true }
+    { returnDocument: "after" }
   );
   if (updated?.order_ids?.length) {
     await cancelStaleOrders(updated.order_ids, reason);
@@ -163,7 +163,7 @@ const expireDeposit = async (txn, reason) => {
   const expired = await Transaction.findOneAndUpdate(
     { _id: txn._id, status: { $in: ['pending', 'processing'] } },
     { $set: { status: 'expired', gateway_response: { note: reason } } },
-    { new: true }
+    { returnDocument: "after" }
   );
   if (expired?.order_ids?.length) {
     await cancelStaleOrders(expired.order_ids, reason);
@@ -288,7 +288,7 @@ const runCleanup = async (app) => {
         const updated = await WithdrawalRequest.findOneAndUpdate(
           { _id: wr._id, status: { $in: ['approved', 'processing'] } },
           { $set: { status: 'completed', eversend_status: 'SUCCESSFUL' } },
-          { new: true }
+          { returnDocument: "after" }
         );
         if (updated) {
           // Also mark linked transaction as completed
@@ -305,7 +305,7 @@ const runCleanup = async (app) => {
         const updated = await WithdrawalRequest.findOneAndUpdate(
           { _id: wr._id, status: { $in: ['approved', 'processing'] } },
           { $set: { status: 'failed', eversend_status: 'FAILED', failure_reason: `${payoutGateway} payout failed — reconciliation.` } },
-          { new: true }
+          { returnDocument: "after" }
         );
         if (updated) {
           // Restore balance if it was deducted

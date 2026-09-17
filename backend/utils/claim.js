@@ -23,7 +23,7 @@
  * @returns {Promise<object|null>}
  */
 const claim = async (Model, filter, fromStatus, toStatus, session) => {
-  const options = { new: true };
+  const options = { returnDocument: "after" };
   if (session) options.session = session;
 
   return Model.findOneAndUpdate(

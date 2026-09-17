@@ -270,7 +270,7 @@ const createOrder = async (req, res, next) => {
       product = await Product.findOneAndUpdate(
         atomicFilter,
         atomicUpdate,
-        { session, new: true },
+        { session, returnDocument: "after" },
       );
 
       if (!product) {
@@ -344,7 +344,7 @@ const createOrder = async (req, res, next) => {
         const updatedCoupon = await Coupon.findOneAndUpdate(
           couponUpdateFilter,
           { $inc: { used_count: 1 } },
-          { session, new: true },
+          { session, returnDocument: "after" },
         );
         if (!updatedCoupon) {
           throw new Error('Coupon has reached its maximum usage limit.');
