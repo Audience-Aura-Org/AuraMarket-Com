@@ -429,7 +429,7 @@ export default function LogisticsDashboard() {
                           </td>
                           <td className="py-3 pr-3 align-top">
                             <div className="flex flex-col gap-1">
-                              <p className="font-mono text-[11px] font-semibold">{fee}</p>
+                              <p className="font-mono text-[11px] font-semibold tabular-nums">{fee}</p>
                               <span className={`inline-flex text-[9px] font-semibold px-2 py-0.5 rounded-full w-fit ${
                                 s.payment_status === 'paid'
                                   ? 'bg-emerald-500/15 text-emerald-600'
@@ -557,7 +557,7 @@ export default function LogisticsDashboard() {
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--glass-border)] pt-3 text-[11px]">
                         <div className="flex flex-col gap-1">
-                          <span className="font-mono font-semibold">
+                          <span className="font-mono font-semibold tabular-nums">
                             {typeof s.price === "number"
                               ? `${s.price.toLocaleString()} XAF`
                               : "—"}
@@ -615,7 +615,7 @@ export default function LogisticsDashboard() {
               {/* Pagination */}
               {total > 0 ? (
                 <div className="mt-6 flex flex-col items-center justify-between gap-3 border-t border-[var(--glass-border)] pt-6 sm:flex-row">
-                  <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-70">
+                  <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-70 tabular-nums">
                     Showing {(page - 1) * PAGE_SIZE + 1}–
                     {Math.min(page * PAGE_SIZE, total)} of {total}
                   </p>
@@ -628,7 +628,7 @@ export default function LogisticsDashboard() {
                     >
                       <ChevronLeft className="size-4" /> Previous
                     </button>
-                    <span className="min-w-[4rem] text-center font-mono text-[11px] font-semibold opacity-70">
+                    <span className="min-w-[4rem] text-center font-mono text-[11px] font-semibold opacity-70 tabular-nums">
                       {page} / {pages}
                     </span>
                     <button

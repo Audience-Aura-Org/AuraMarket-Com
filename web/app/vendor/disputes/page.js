@@ -158,7 +158,7 @@ export default function VendorDisputesPage() {
                     </div>
                     
                     <div className="text-right">
-                      <p className="text-sm  font-bold text-[var(--text-primary)]">
+                      <p className="text-sm  font-bold text-[var(--text-primary)] tabular-nums">
                         {(d.order_id?.total_amount || 0).toLocaleString()}
                       </p>
                       <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-60">XAF</p>

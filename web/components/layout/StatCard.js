@@ -98,7 +98,7 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'prima
           </>
         ) : (
           <>
-            <h3 className="truncate text-xl md:text-2xl lg:text-3xl font-bold tracking-tighter leading-none text-[var(--text-primary)]">{value}</h3>
+            <h3 className="truncate text-xl md:text-2xl lg:text-3xl font-bold tracking-tighter leading-none text-[var(--text-primary)] tabular-nums">{value}</h3>
             {sub && (
               <p className="mt-0.5 truncate text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-55">{sub}</p>
             )}

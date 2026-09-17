@@ -369,7 +369,7 @@ export default function VendorDashboard() {
                 <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Net sales</p>
                 {loading
                   ? <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{totalSales.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
+                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate tabular-nums">{totalSales.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
                 }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -399,7 +399,7 @@ export default function VendorDashboard() {
                 <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Open orders</p>
                 {loading
                   ? <div className="h-7 w-16 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{openOrderCount}</p>
+                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none tabular-nums">{openOrderCount}</p>
                 }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -428,7 +428,7 @@ export default function VendorDashboard() {
                 <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Inventory</p>
                 {loading
                   ? <div className="h-7 w-20 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none">{totalProducts} <span className="text-sm opacity-50">SKUs</span></p>
+                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none tabular-nums">{totalProducts} <span className="text-sm opacity-50">SKUs</span></p>
                 }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -457,7 +457,7 @@ export default function VendorDashboard() {
                 <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">{t('dashboard.walletBalance', 'Wallet balance')}</p>
                 {loading
                   ? <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate">{walletBalance.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
+                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate tabular-nums">{walletBalance.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
                 }
               </div>
               <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
@@ -465,7 +465,7 @@ export default function VendorDashboard() {
               </div>
               {loading
                 ? <div className="h-3 w-36 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] lg:text-[13px] font-medium tracking-tight text-[var(--accent)]/80">{pendingEscrow.toLocaleString()} {t('dashboard.xafInEscrow', 'XAF in escrow')}</p>
+                : <p className="text-[10px] lg:text-[13px] font-medium tracking-tight text-[var(--accent)]/80 tabular-nums">{pendingEscrow.toLocaleString()} {t('dashboard.xafInEscrow', 'XAF in escrow')}</p>
               }
             </div>
           </div>
@@ -604,7 +604,7 @@ export default function VendorDashboard() {
                         #{order._id?.slice(-5) || i} • {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : '—'}
                       </p>
                     </div>
-                    <p className="text-sm  font-bold text-[var(--text-primary)] shrink-0">{order.total_amount ? `${Number(order.total_amount).toLocaleString()} XAF` : '—'}</p>
+                    <p className="text-sm  font-bold text-[var(--text-primary)] shrink-0 tabular-nums">{order.total_amount ? `${Number(order.total_amount).toLocaleString()} XAF` : '—'}</p>
                   </Link>
                 ))}
                 {orders.length === 0 && (

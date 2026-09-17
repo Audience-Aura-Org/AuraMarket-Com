@@ -371,7 +371,7 @@ export default function ShipmentStatusModal({
                   <Banknote className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.04] transition-transform group-hover:scale-110" />
                   <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">Your earnings</p>
                   <div className="mt-1 flex items-baseline gap-1">
-                    <span className="text-xl font-black tracking-tight text-[var(--text-primary)] md:text-2xl">{(shipment.price ?? 0).toLocaleString()}</span>
+                    <span className="text-xl font-black tracking-tight text-[var(--text-primary)] md:text-2xl tabular-nums">{(shipment.price ?? 0).toLocaleString()}</span>
                     <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">XAF</span>
                   </div>
                 </div>
@@ -403,7 +403,7 @@ export default function ShipmentStatusModal({
                 <Banknote className="absolute -right-2 -top-2 size-12 rotate-12 opacity-[0.03] transition-transform group-hover:scale-110" />
                 <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--text-secondary)] opacity-60">Your Earnings</p>
                 <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-lg font-bold text-[var(--text-primary)]">{(shipment.price ?? 0).toLocaleString()}</span>
+                  <span className="text-lg font-bold text-[var(--text-primary)] tabular-nums">{(shipment.price ?? 0).toLocaleString()}</span>
                   <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40">XAF</span>
                 </div>
               </div>
@@ -612,7 +612,7 @@ export default function ShipmentStatusModal({
                         </span>
                       )}
                       {pkgDetails.declared_value > 0 && (
-                        <span className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-1.5 text-[11px] font-bold text-amber-600">
+                        <span className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-1.5 text-[11px] font-bold text-amber-600 tabular-nums">
                           Value: {pkgDetails.declared_value.toLocaleString()} XAF
                         </span>
                       )}
@@ -644,11 +644,11 @@ export default function ShipmentStatusModal({
                           {variantLabel && (
                             <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--accent)]/80">{variantLabel}</p>
                           )}
-                          <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">Unit price: {(item.price || 0).toLocaleString()} XAF</p>
+                          <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60 tabular-nums">Unit price: {(item.price || 0).toLocaleString()} XAF</p>
                         </div>
                         <div className="flex items-center gap-2 rounded-lg bg-[var(--bg-primary)] px-3 py-1.5 border border-[var(--glass-border)]">
                           <span className="text-[10px] font-bold text-[var(--text-secondary)]">Qty</span>
-                          <span className="text-xs font-bold text-[var(--accent)]">{item.quantity ?? 1}</span>
+                          <span className="text-xs font-bold text-[var(--accent)] tabular-nums">{item.quantity ?? 1}</span>
                         </div>
                       </div>
                     );

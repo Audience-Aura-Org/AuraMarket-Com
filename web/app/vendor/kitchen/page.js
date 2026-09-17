@@ -167,7 +167,7 @@ function OrderCard({ order, onAction, onDecline, updating }) {
               {isVendorManaged ? 'Your Rider' : 'Partner Logistics'}
             </span>
           </div>
-          <p className="text-[14px] font-bold text-[var(--text-primary)] shrink-0">
+          <p className="text-[14px] font-bold text-[var(--text-primary)] shrink-0 tabular-nums">
             {order.total_amount?.toLocaleString()}{' '}
             <span className="text-[10px] font-normal text-[var(--text-secondary)]">XAF</span>
           </p>

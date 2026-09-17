@@ -235,7 +235,7 @@ export default function LogisticsAnalyticsPage() {
                 <stat.icon className={`w-5 h-5 ${stat.color}`} />
               </div>
               <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight mb-1">{stat.label}</p>
-              <h4 className="mb-1 text-2xl font-bold tracking-tight sm:text-3xl">{stat.value}</h4>
+              <h4 className="mb-1 text-2xl font-bold tracking-tight sm:text-3xl tabular-nums">{stat.value}</h4>
               <p className="text-[11px] lg:text-[12px]  font-semibold opacity-40 ">{stat.sub}</p>
             </motion.div>
           ))}

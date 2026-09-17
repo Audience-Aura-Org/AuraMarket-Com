@@ -199,7 +199,7 @@ export default function VendorAnalyticsPage() {
                          <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-30 mt-0.5">{p.purchase_count || 0} {t('analytics.sales', 'SALES')}</p>
                       </div>
                       <div className="text-right shrink-0">
-                         <p className="text-[11px] lg:text-[12px]  font-semibold">FCFA {fmt(p.price)}</p>
+                         <p className="text-[11px] lg:text-[12px]  font-semibold tabular-nums">FCFA {fmt(p.price)}</p>
                       </div>
                    </div>
                 ))}
@@ -239,7 +239,7 @@ export default function VendorAnalyticsPage() {
                     </span>
                   </div>
                   <div className="text-right min-w-[100px]">
-                    <p className="text-[11px] lg:text-[12px]  font-semibold">FCFA {fmt(o.total_amount)}</p>
+                    <p className="text-[11px] lg:text-[12px]  font-semibold tabular-nums">FCFA {fmt(o.total_amount)}</p>
                     <p className="text-[10px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-20 tracking-tight mt-0.5">{t('analytics.settlementAmount', 'Settlement Amount')}</p>
                   </div>
                 </div>

@@ -149,7 +149,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
           <div>
             <h2 className="text-xl font-semibold tracking-tight">Request Submitted</h2>
             <p className="text-sm text-[var(--text-secondary)] mt-2 leading-relaxed font-normal">
-              Your withdrawal of <strong>{fmt(amtNum)} XAF</strong> is pending admin approval. You'll be notified when it's processed.
+              Your withdrawal of <strong className="tabular-nums">{fmt(amtNum)} XAF</strong> is pending admin approval. You'll be notified when it's processed.
             </p>
           </div>
           <button onClick={onClose}
@@ -176,7 +176,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             )}
             <div>
               <h2 className="text-base font-semibold tracking-tight">Withdraw Funds</h2>
-              <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-40">Available: {fmt(balance)} XAF</p>
+              <p className="text-[10px] lg:text-[12px] text-[var(--text-secondary)] opacity-40 tabular-nums">Available: {fmt(balance)} XAF</p>
             </div>
           </div>
           <button onClick={onClose} className="size-8 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center">

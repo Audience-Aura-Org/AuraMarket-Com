@@ -325,10 +325,10 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
                     placeholder={gateway === 'eversend' ? 'Min 500' : 'Enter amount'}
-                    className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-xl font-semibold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10 shadow-inner"
+                    className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-xl font-semibold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10 shadow-inner tabular-nums"
                   />
                   {netAmount > 0 && (
-                    <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 text-center">
+                    <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 text-center tabular-nums">
                       You will be charged {approvalAmount.toLocaleString()} XAF (includes {collectionFee} XAF processing fee)
                     </p>
                   )}

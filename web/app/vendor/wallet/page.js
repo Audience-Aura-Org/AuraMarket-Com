@@ -70,7 +70,7 @@ function ReceiptModal({ tx, onClose }) {
           </div>
           <div className="py-4 text-center">
             <p className="text-[11px] font-semibold text-slate-400 tracking-tight mb-1">Amount</p>
-            <h4 className="text-3xl font-bold text-slate-900">{fmt(tx.amount)} XAF</h4>
+            <h4 className="text-3xl font-bold text-slate-900 tabular-nums">{fmt(tx.amount)} XAF</h4>
           </div>
         </div>
 
@@ -437,7 +437,7 @@ export default function VendorWalletPage() {
                            )}
                          </div>
                          <div className="text-right shrink-0">
-                           <p className={`text-base font-bold tracking-tight ${
+                           <p className={`text-base font-bold tracking-tight tabular-nums ${
                              tx.status === 'completed'
                                ? (isCredit ? 'text-emerald-500' : 'text-red-500')
                                : tx.status === 'failed'
@@ -505,7 +505,7 @@ export default function VendorWalletPage() {
                               </div>
                            </div>
                            <div className="text-right shrink-0">
-                              <p className="text-sm font-bold text-[var(--text-primary)]">{fmt(tx.amount)} XAF</p>
+                              <p className="text-sm font-bold text-[var(--text-primary)] tabular-nums">{fmt(tx.amount)} XAF</p>
                               <p className={`text-[9px] font-bold mt-0.5 ${isReleased ? 'text-emerald-500' : 'text-amber-500'}`}>
                                 {isReleased ? 'Released' : 'Escrowed'}
                               </p>
@@ -537,7 +537,7 @@ export default function VendorWalletPage() {
                             <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{new Date(wr.createdAt).toLocaleDateString()} · {wr.status}</p>
                          </div>
                          <div className="text-right">
-                            <p className="text-base font-bold text-[var(--text-primary)]">{fmt(wr.amount)}</p>
+                            <p className="text-base font-bold text-[var(--text-primary)] tabular-nums">{fmt(wr.amount)}</p>
                             <p className="text-[10px] font-semibold opacity-30 capitalize">{wr.currency}</p>
                          </div>
                       </div>
