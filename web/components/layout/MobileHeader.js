@@ -4,61 +4,15 @@ import { Menu, X, ShoppingCart, MessageCircle, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAuthStore } from '@/hooks/useAuth';
-import socketService from '@/services/socket';
+import { useWalletBalance } from '@/hooks/useWalletBalance';
 import { useChat } from '@/context/ChatContext';
 import cartStore from '@/services/cartStore';
 
 export default function MobileHeader({ isOpen, toggleSidebar }) {
   const user = useAuthStore((s) => s.user);
-  const walletBalance = useAuthStore((s) => s.walletBalance);
-  const refreshWalletBalance = useAuthStore((s) => s.refreshWalletBalance);
-  const setWalletBalance = useAuthStore((s) => s.setWalletBalance);
-
-  const [, _wTick] = useState(0);
-  useEffect(() => {
-    if (!user?._id) return;
-
-    const doRefresh = async () => { try { await refreshWalletBalance(); } catch (_) {} };
-    let debounceTimer = null;
-    const debouncedRefresh = () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(doRefresh, 400);
-    };
-
-    doRefresh();
-
-    const onWalletSocket = (data) => {
-      if (data?.balance !== undefined && Number.isFinite(Number(data.balance))) {
-        setWalletBalance(Number(data.balance));
-      }
-      debouncedRefresh();
-    };
-    socketService.on('wallet:credited', onWalletSocket);
-    socketService.on('wallet:debited', onWalletSocket);
-    socketService.on('withdrawal:paid', debouncedRefresh);
-    socketService.on('connect', doRefresh);
-
-    const onVisible = () => { if (document.visibilityState === 'visible') debouncedRefresh(); };
-    window.addEventListener('focus', debouncedRefresh);
-    document.addEventListener('visibilitychange', onVisible);
-
-    const bump = () => _wTick((n) => n + 1);
-    window.addEventListener('aura:wallet-updated', bump);
-
-    const pollId = setInterval(doRefresh, 60_000);
-
-    return () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      clearInterval(pollId);
-      socketService.off('wallet:credited', onWalletSocket);
-      socketService.off('wallet:debited', onWalletSocket);
-      socketService.off('withdrawal:paid', debouncedRefresh);
-      socketService.off('connect', doRefresh);
-      window.removeEventListener('focus', debouncedRefresh);
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('aura:wallet-updated', bump);
-    };
-  }, [user?._id, refreshWalletBalance, setWalletBalance]);
+  // Use the same hook as the wallet page — handles socket events, API refresh,
+  // focus/visibility, navigation detection, and 60 s polling.
+  const { walletBalance } = useWalletBalance();
   const { openChat, isOpen: chatOverlayOpen } = useChat();
   const { unreadMessages } = useNotifications();
   const [cartCount, setCartCount] = useState(cartStore.getCount());

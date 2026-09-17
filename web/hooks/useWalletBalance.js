@@ -36,6 +36,8 @@ export function useWalletBalance() {
     // ── Window / visibility events ──────────────────────────────────────
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
+    // Financial events from SocketProvider (deposit, withdrawal, payment, etc.)
+    window.addEventListener('aura:financial-update', refresh);
 
     // Detect in-app navigation (Next.js App Router uses pushState/replaceState)
     let lastHref = location.href;
@@ -81,6 +83,7 @@ export function useWalletBalance() {
       clearInterval(pollInterval);
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('aura:financial-update', refresh);
       window.removeEventListener('popstate', onNavChange);
       history.pushState = origPushState;
       history.replaceState = origReplaceState;

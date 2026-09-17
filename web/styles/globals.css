@@ -67,6 +67,7 @@
   
   --font-display: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-numeric: "Inter", "Poppins", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --font-body-md: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-headline-lg: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
@@ -77,6 +78,7 @@
 
 :root {
   --font-poppins: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-numeric: "Inter", "Poppins", ui-sans-serif, system-ui, sans-serif;
   --font-quicksand: "Quicksand", "Poppins", sans-serif;
   --font-order: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --bg-primary: #ffffff;
@@ -414,6 +416,15 @@ h1,h2,h3,h4,h5,h6 {
 
 .font-quicksand {
   font-family: var(--font-quicksand) !important;
+}
+
+/* ── Inter for numeric displays ────────────────────────────────────────
+   Applies Inter font to all elements displaying numbers (prices, balances,
+   quantities, tracking codes, etc.) for crisp tabular-num rendering.   */
+.tabular-nums,
+.font-numeric {
+  font-family: var(--font-numeric) !important;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Global Case Suppression for Dashboards ── */

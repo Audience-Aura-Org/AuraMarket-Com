@@ -476,10 +476,12 @@ export default function SocketProvider({ children }) {
       if (Number.isFinite(Number(metadataBalance))) {
         setWalletBalance(Number(metadataBalance));
       }
-      // Refresh balance only on financial notifications
+      // Refresh balance and page data on financial notifications
       const FINANCIAL_TYPES = ['payment', 'payment_received', 'wallet_update', 'deposit', 'withdrawal', 'payout', 'refund', 'order_status', 'p2p_status'];
       if (FINANCIAL_TYPES.includes(type)) {
         refreshWalletBalance?.();
+        // Let page-level components know they should re-fetch (e.g. transaction lists)
+        window.dispatchEvent(new CustomEvent('aura:financial-update', { detail: { type, notif } }));
       }
 
       setNotifToast({ 
@@ -524,6 +526,8 @@ export default function SocketProvider({ children }) {
         setWalletBalance(Number(data.balance));
       }
       refreshWalletBalance?.();
+      // Signal page-level data refresh (transaction lists, order status, etc.)
+      window.dispatchEvent(new CustomEvent('aura:financial-update', { detail: { type: 'wallet', data } }));
     };
 
     socketService.on('receive_message', handleNewMessage);
