@@ -69,12 +69,13 @@ router.patch('/store', updateStore);
 router.post('/kyc', submitKYC);
 router.get('/:id/followers', getFollowers);
 
+// ── Read-only routes (allowed without active subscription) ───────
+router.get('/products', getVendorProducts);
+router.get('/orders', getVendorOrders);
+
 // ── Active operations require active subscription ────────────────
 router.use(requireActiveSubscription('vendor'));
 
-// Operation-based subroutes
-router.get('/products', getVendorProducts);
-router.get('/orders', getVendorOrders);
 router.get('/disputes', getVendorDisputes);
 router.get('/reviews', getVendorReviews);
 router.get('/analytics', getVendorAnalytics);

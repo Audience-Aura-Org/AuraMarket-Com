@@ -13,7 +13,56 @@ const Category = require('../models/Category.model');
 const { sendNotification } = require('../utils/notifier');
 const cache = require('../utils/cache');
 const { normalizeUserMedia, normalizeMediaUrl } = require('../utils/media');
-const { getActiveSubscription } = require('../services/subscription.service');
+const { getActiveSubscription, getSubscriptionStatus } = require('../services/subscription.service');
+const UserSubscription = require('../models/UserSubscription.model');
+const PlatformSettings = require('../models/PlatformSettings.model');
+
+// ── Batch subscription-status flag for product lists ────────────────────────
+// Adds `vendor_subscription_active` boolean to each product object so
+// the storefront can display "Unavailable" when a vendor's subscription lapses.
+const markVendorSubscriptionStatus = async (products) => {
+  if (!products || products.length === 0) return products;
+
+  // If vendor subscriptions aren't required, mark all active
+  const settings = await PlatformSettings.getSettings();
+  if (!settings.subscription_required_roles?.vendor) {
+    for (const p of products) p.vendor_subscription_active = true;
+    return products;
+  }
+
+  // Collect unique vendor user_id values
+  const userIdSet = new Set();
+  for (const p of products) {
+    const uid = p.vendor_id?.user_id?._id?.toString?.()
+             || p.vendor_id?.user_id?.toString?.();
+    if (uid) userIdSet.add(uid);
+  }
+
+  if (userIdSet.size === 0) {
+    for (const p of products) p.vendor_subscription_active = true;
+    return products;
+  }
+
+  const now = new Date();
+  const activeSubs = await UserSubscription.find({
+    user_id: { $in: [...userIdSet] },
+    role: 'vendor',
+    status: { $in: ['active', 'grace'] },
+    $or: [
+      { expires_at: { $gt: now } },
+      { grace_expires_at: { $gt: now } },
+    ],
+  }).select('user_id').lean();
+
+  const activeSet = new Set(activeSubs.map(s => s.user_id.toString()));
+
+  for (const p of products) {
+    const uid = p.vendor_id?.user_id?._id?.toString?.()
+             || p.vendor_id?.user_id?.toString?.();
+    p.vendor_subscription_active = uid ? activeSet.has(uid) : true;
+  }
+  return products;
+};
 
 const PRODUCT_DETAIL_SELECT = [
   '_id',
@@ -331,6 +380,8 @@ const getProducts = async (req, res, next) => {
       return obj;
     });
 
+    await markVendorSubscriptionStatus(productsPlain);
+
     const responseData = {
       success: true,
       count: productsPlain.length,
@@ -375,6 +426,8 @@ const getProductById = async (req, res, next) => {
     if (prodObj.vendor_id && prodObj.vendor_id.store) {
       if (prodObj.vendor_id.store.logo) prodObj.vendor_id.store.logo = normalizeMediaUrl(prodObj.vendor_id.store.logo);
     }
+
+    await markVendorSubscriptionStatus([prodObj]);
 
     res.status(200).json({ success: true, data: { product: prodObj } });
   } catch (error) {
@@ -628,8 +681,11 @@ const watchProduct = async (req, res, next) => {
 
 const getVendorProducts = async (req, res, next) => {
   try {
-    const products = await Product.find({ vendor_id: req.vendor._id, status: { $ne: 'archived' } }).sort('-createdAt');
-    res.status(200).json({ success: true, count: products.length, data: { products } });
+    const [products, subStatus] = await Promise.all([
+      Product.find({ vendor_id: req.vendor._id, status: { $ne: 'archived' } }).sort('-createdAt'),
+      getSubscriptionStatus(req.user, 'vendor'),
+    ]);
+    res.status(200).json({ success: true, count: products.length, data: { products, subscription_active: subStatus.active } });
   } catch (error) {
     next(error);
   }
@@ -883,4 +939,5 @@ module.exports = {
   getVendorProducts,
   getRelatedProducts,
   getProductDeliveryInfo,
+  markVendorSubscriptionStatus,
 };

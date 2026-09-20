@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Pencil, ToggleLeft, ToggleRight, Utensils, Search } from 'lucide-react';
+import { Plus, Pencil, ToggleLeft, ToggleRight, Utensils, Search, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/services/api';
@@ -19,6 +19,7 @@ export default function MealsListPage() {
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(null);
   const [search, setSearch] = useState('');
+  const [subscriptionActive, setSubscriptionActive] = useState(true);
 
   const fetchMeals = useCallback(async () => {
     try {
@@ -26,6 +27,7 @@ export default function MealsListPage() {
       if (res.data.success) {
         const products = res.data.data.products || res.data.data.items || [];
         setMeals(products.filter(p => !!p.meal));
+        if (res.data.data.subscription_active === false) setSubscriptionActive(false);
       }
     } catch (err) {
       const msg = err?.response?.data?.message || 'Could not load meals.';
@@ -87,16 +89,44 @@ export default function MealsListPage() {
             </p>
           </div>
         </div>
-        <Link
-          href="/vendor/meals/add"
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-500 text-white text-[11px] font-bold shadow-md shadow-orange-500/25 hover:opacity-90 transition-all"
-        >
-          <Plus className="size-3.5" />
-          Add Meal
-        </Link>
+        {subscriptionActive ? (
+          <Link
+            href="/vendor/meals/add"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-500 text-white text-[11px] font-bold shadow-md shadow-orange-500/25 hover:opacity-90 transition-all"
+          >
+            <Plus className="size-3.5" />
+            Add Meal
+          </Link>
+        ) : (
+          <span className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-500/30 text-[var(--text-secondary)] text-[11px] font-bold cursor-not-allowed">
+            <Plus className="size-3.5" />
+            Add Meal
+          </span>
+        )}
       </header>
 
       <div className="mx-auto max-w-[800px] px-4 py-5 sm:px-6 pb-32 space-y-4">
+
+        {/* Subscription expired banner */}
+        {!loading && !subscriptionActive && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5">
+            <AlertTriangle className="size-4 text-amber-500 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-semibold text-[var(--text-primary)]">
+                Your subscription has expired
+              </p>
+              <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
+                You can view your meals but cannot add or edit them until you renew.
+              </p>
+            </div>
+            <Link
+              href="/subscribe?role=vendor"
+              className="shrink-0 px-3.5 py-1.5 rounded-lg bg-orange-500 text-white text-[11px] font-bold hover:opacity-90 transition-all"
+            >
+              Renew
+            </Link>
+          </div>
+        )}
 
         {/* Search */}
         <div className="relative">
@@ -126,7 +156,7 @@ export default function MealsListPage() {
             <p className="text-[12px] text-[var(--text-secondary)] mb-5">
               {search ? 'Try a different search term.' : 'Add your first menu item to get started.'}
             </p>
-            {!search && (
+            {!search && subscriptionActive && (
               <Link
                 href="/vendor/meals/add"
                 className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-orange-500 text-white text-[12px] font-bold shadow-md shadow-orange-500/25 hover:opacity-90 transition-all"
@@ -189,21 +219,27 @@ export default function MealsListPage() {
                     <button
                       type="button"
                       onClick={() => handleToggleAvailability(meal)}
-                      disabled={toggling === meal._id}
-                      title={isAvailable ? 'Mark unavailable' : 'Mark available'}
-                      className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-orange-500/30 hover:text-orange-500 transition-all disabled:opacity-50"
+                      disabled={toggling === meal._id || !subscriptionActive}
+                      title={!subscriptionActive ? 'Subscription required' : isAvailable ? 'Mark unavailable' : 'Mark available'}
+                      className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-orange-500/30 hover:text-orange-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isAvailable
                         ? <ToggleRight className="size-4 text-emerald-500" />
                         : <ToggleLeft className="size-4" />
                       }
                     </button>
-                    <Link
-                      href={`/vendor/meals/edit/${meal._id}`}
-                      className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-orange-500/30 hover:text-orange-500 transition-all"
-                    >
-                      <Pencil className="size-4" />
-                    </Link>
+                    {subscriptionActive ? (
+                      <Link
+                        href={`/vendor/meals/edit/${meal._id}`}
+                        className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:border-orange-500/30 hover:text-orange-500 transition-all"
+                      >
+                        <Pencil className="size-4" />
+                      </Link>
+                    ) : (
+                      <span className="p-2 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] opacity-50 cursor-not-allowed">
+                        <Pencil className="size-4" />
+                      </span>
+                    )}
                   </div>
                 </div>
               );

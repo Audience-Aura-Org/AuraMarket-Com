@@ -76,6 +76,7 @@ export default function RestaurantCard({ restaurant }) {
   const { isFollowing, toggleFollow, loading: followLoading } = useFollow(vendor_id?.toString());
 
   const isOpen = open_status === 'open' && is_accepting_orders;
+  const isSubscriptionActive = restaurant.vendor_subscription_active !== false;
   const theme = getTheme(cuisine_types, store_name || '');
   const initial = (store_name || '?')[0].toUpperCase();
   const hasMealImages = top_meals.some(m => m.thumbnail_url);
@@ -126,12 +127,12 @@ export default function RestaurantCard({ restaurant }) {
           {/* Gradient fade at bottom for text legibility */}
           <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-          {/* Open / Closed badge — top right */}
+          {/* Open / Closed / Inactive badge — top right */}
           <div className={`absolute top-2.5 right-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold shadow backdrop-blur-sm ${
-            isOpen ? 'bg-emerald-500 text-white' : 'bg-black/60 text-white/80'
+            !isSubscriptionActive ? 'bg-slate-600 text-white/90' : isOpen ? 'bg-emerald-500 text-white' : 'bg-black/60 text-white/80'
           }`}>
-            {isOpen && <span className="size-1.5 rounded-full bg-white animate-pulse" />}
-            {isOpen ? 'Open' : 'Closed'}
+            {isOpen && isSubscriptionActive && <span className="size-1.5 rounded-full bg-white animate-pulse" />}
+            {!isSubscriptionActive ? 'Unavailable' : isOpen ? 'Open' : 'Closed'}
           </div>
 
           {/* Rating pill — top left */}

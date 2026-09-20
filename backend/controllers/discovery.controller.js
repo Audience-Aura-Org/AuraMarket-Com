@@ -2,13 +2,14 @@ const Product = require('../models/Product.model');
 const UserActivity = require('../models/UserActivity.model');
 const Vendor = require('../models/Vendor.model');
 const Store = require('../models/Store.model');
+const { markVendorSubscriptionStatus } = require('./product.controller');
 
 /**
  * GET /api/discovery/new
  */
 const getNewArrivals = async (req, res, next) => {
   try {
-    const products = await Product.find({ status: 'active', meal: null })
+    const rawProducts = await Product.find({ status: 'active', meal: null })
       .sort({ createdAt: -1 })
       .limit(12)
       .populate({
@@ -17,6 +18,8 @@ const getNewArrivals = async (req, res, next) => {
         populate: { path: 'store', select: 'logo' }
       });
 
+    const products = rawProducts.map(p => p.toObject());
+    await markVendorSubscriptionStatus(products);
     res.status(200).json({ success: true, count: products.length, data: products });
   } catch (error) {
     next(error);
@@ -28,7 +31,7 @@ const getNewArrivals = async (req, res, next) => {
  */
 const getTrending = async (req, res, next) => {
   try {
-    const products = await Product.find({ status: 'active', meal: null })
+    const rawProducts = await Product.find({ status: 'active', meal: null })
       .sort({ view_count: -1, wishlist_count: -1 })
       .limit(12)
       .populate({
@@ -37,6 +40,8 @@ const getTrending = async (req, res, next) => {
         populate: { path: 'store', select: 'logo' }
       });
 
+    const products = rawProducts.map(p => p.toObject());
+    await markVendorSubscriptionStatus(products);
     res.status(200).json({ success: true, count: products.length, data: products });
   } catch (error) {
     next(error);
@@ -48,7 +53,7 @@ const getTrending = async (req, res, next) => {
  */
 const getPopular = async (req, res, next) => {
   try {
-    const products = await Product.find({ status: 'active', meal: null })
+    const rawProducts = await Product.find({ status: 'active', meal: null })
       .sort({ purchase_count: -1, rating: -1 })
       .limit(12)
       .populate({
@@ -57,6 +62,8 @@ const getPopular = async (req, res, next) => {
         populate: { path: 'store', select: 'logo' }
       });
 
+    const products = rawProducts.map(p => p.toObject());
+    await markVendorSubscriptionStatus(products);
     res.status(200).json({ success: true, count: products.length, data: products });
   } catch (error) {
     next(error);
@@ -71,7 +78,7 @@ const getRecommended = async (req, res, next) => {
     const userId = req.user ? req.user._id : null;
     
     if (!userId) {
-      const products = await Product.find({ status: 'active', meal: null })
+      const rawProducts = await Product.find({ status: 'active', meal: null })
         .sort({ view_count: -1, rating: -1 })
         .limit(12)
         .populate({
@@ -79,6 +86,8 @@ const getRecommended = async (req, res, next) => {
           select: 'store_name rating verified average_response_time user_id',
           populate: { path: 'store', select: 'logo' }
         });
+      const products = rawProducts.map(p => p.toObject());
+      await markVendorSubscriptionStatus(products);
       return res.status(200).json({ success: true, data: products });
     }
 
@@ -87,14 +96,14 @@ const getRecommended = async (req, res, next) => {
       .limit(50);
 
     const categories = recentActivities.map(a => a.category).filter(c => !!c);
-    const favCategory = categories.length > 0 
+    const favCategory = categories.length > 0
       ? categories.reduce((a, b) => (categories.filter(v => v === a).length >= categories.filter(v => v === b).length ? a : b))
       : null;
 
     let query = { status: 'active', meal: null };
     if (favCategory) query.category = favCategory;
 
-    const products = await Product.find(query)
+    const rawProducts = await Product.find(query)
       .sort({ view_count: -1, rating: -1 })
       .limit(12)
       .populate({
@@ -103,6 +112,8 @@ const getRecommended = async (req, res, next) => {
         populate: { path: 'store', select: 'logo' }
       });
 
+    const products = rawProducts.map(p => p.toObject());
+    await markVendorSubscriptionStatus(products);
     res.status(200).json({ success: true, data: products });
   } catch (error) {
     next(error);
@@ -200,6 +211,7 @@ const getDiscoveryFeed = async (req, res, next) => {
       }
     }));
 
+    await markVendorSubscriptionStatus(formattedProducts);
     res.status(200).json({ success: true, page, count: products.length, data: formattedProducts });
   } catch (error) {
     next(error);

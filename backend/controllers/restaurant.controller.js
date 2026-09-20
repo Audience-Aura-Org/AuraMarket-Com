@@ -21,6 +21,8 @@ const Category = require('../models/Category.model');
 const LogisticZone = require('../models/LogisticZone.model');
 const { syncRestaurantServiceZones } = require('../services/restaurantZoneSync.service');
 const { hasCoverageInCity, getCompatibleFirms, calculateShipmentFees } = require('../services/logistics.service');
+const PlatformSettings = require('../models/PlatformSettings.model');
+const UserSubscription = require('../models/UserSubscription.model');
 const cache = require('../utils/cache');
 
 const DINE_CACHE_TTL_SECONDS = 300; // 5 minutes — short because is_accepting_orders changes hourly
@@ -317,9 +319,8 @@ const getDinePage = async (req, res, next) => {
     const vendorIds = profiles.map(p => p.vendor_id);
 
     // 3. Build restaurant cards in parallel
-    const UserSubscription = require('../models/UserSubscription.model');
     const [vendors, stores, activeSubUserIds] = await Promise.all([
-      Vendor.find({ _id: { $in: vendorIds } }).select('_id store_name rating num_reviews verified').lean(),
+      Vendor.find({ _id: { $in: vendorIds } }).select('_id user_id store_name rating num_reviews verified').lean(),
       Store.find({ vendor_id: { $in: vendorIds } }).select('vendor_id minimum_order_amount logo banner').lean(),
       UserSubscription.distinct('user_id', { role: 'logistics', status: 'active' }),
     ]);
@@ -352,6 +353,25 @@ const getDinePage = async (req, res, next) => {
     const vendorMap  = Object.fromEntries(vendors.map(v => [v._id.toString(), v]));
     const storeMap   = Object.fromEntries(stores.map(s => [s.vendor_id.toString(), s]));
     const profileMap = Object.fromEntries(profiles.map(p => [p.vendor_id.toString(), p]));
+
+    // Batch vendor subscription check
+    const platformSettings = await PlatformSettings.getSettings();
+    let vendorSubActiveMap = null;
+    if (platformSettings.subscription_required_roles?.vendor) {
+      const vendorUserIds = vendors.map(v => v.user_id).filter(Boolean);
+      const now = new Date();
+      const activeSubs = await UserSubscription.find({
+        user_id: { $in: vendorUserIds },
+        role: 'vendor',
+        status: { $in: ['active', 'grace'] },
+        $or: [{ expires_at: { $gt: now } }, { grace_expires_at: { $gt: now } }],
+      }).select('user_id').lean();
+      const activeSet = new Set(activeSubs.map(s => s.user_id.toString()));
+      vendorSubActiveMap = {};
+      for (const v of vendors) {
+        vendorSubActiveMap[v._id.toString()] = v.user_id ? activeSet.has(v.user_id.toString()) : true;
+      }
+    }
 
     // 4. Fetch all active meals for this zone (no meal_category filter yet — applied per-section below)
     const mealProductFilter = {
@@ -448,6 +468,7 @@ const getDinePage = async (req, res, next) => {
           is_verified:          vendor.verified || false,
           delivery_available:    cityIdStr ? (coverageMap[cityIdStr] ?? true) : true,
           delivery_fee_estimate: deliveryFeeEstimate,
+          vendor_subscription_active: vendorSubActiveMap ? (vendorSubActiveMap[profile.vendor_id.toString()] ?? true) : true,
         };
       })
       // Sort by top-visited (num_reviews desc), then by rating
@@ -492,6 +513,7 @@ const getDinePage = async (req, res, next) => {
         restaurant_logo_url: storeMap[m.vendor_id?.toString()]?.logo || null,
         prep_time_minutes:   m.meal?.prep_time_minutes || profileMap[m.vendor_id?.toString()]?.prep_time_minutes || null,
         restaurant_open:     vendorOpenMap[m.vendor_id?.toString()] ?? true,
+        vendor_subscription_active: vendorSubActiveMap ? (vendorSubActiveMap[m.vendor_id?.toString()] ?? true) : true,
       }));
 
     // 7. Cuisine types and meal categories for filters
@@ -582,7 +604,7 @@ const getRestaurantMenu = async (req, res, next) => {
     if (cached) return res.status(200).json(cached);
 
     const [vendor, store, profile, meals] = await Promise.all([
-      Vendor.findById(vendor_id).select('store_name rating num_reviews verified').lean(),
+      Vendor.findById(vendor_id).select('store_name rating num_reviews verified user_id').lean(),
       Store.findOne({ vendor_id }).select('logo banner').lean(),
       RestaurantProfile.findOne({ vendor_id })
         .populate('cuisine_types', 'name slug _id')
@@ -643,6 +665,20 @@ const getRestaurantMenu = async (req, res, next) => {
       return (b.items.length || 0) - (a.items.length || 0);
     });
 
+    // Check vendor subscription
+    let vendorSubActive = true;
+    const menuPlatformSettings = await PlatformSettings.getSettings();
+    if (menuPlatformSettings.subscription_required_roles?.vendor && vendor.user_id) {
+      const now = new Date();
+      const activeSub = await UserSubscription.findOne({
+        user_id: vendor.user_id,
+        role: 'vendor',
+        status: { $in: ['active', 'grace'] },
+        $or: [{ expires_at: { $gt: now } }, { grace_expires_at: { $gt: now } }],
+      }).select('_id').lean();
+      vendorSubActive = !!activeSub;
+    }
+
     const response = {
       success: true,
       data: {
@@ -654,6 +690,7 @@ const getRestaurantMenu = async (req, res, next) => {
           rating:      vendor.rating || 0,
           num_reviews: vendor.num_reviews || 0,
           verified:    vendor.verified || false,
+          vendor_subscription_active: vendorSubActive,
         },
         profile: {
           cuisine_types:        profile?.cuisine_types || [],
