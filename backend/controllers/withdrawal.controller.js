@@ -180,6 +180,17 @@ const submitWithdrawal = async (req, res) => {
     }
 
     const platformSettings = await PlatformSettings.getSettings(session);
+
+    // ── Maintenance mode gate ──────────────────────────────────────────────
+    if (platformSettings.withdrawals_maintenance_mode) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(503).json({
+        success: false,
+        message: 'Withdrawals are temporarily paused for scheduled maintenance. Please try again later.',
+      });
+    }
+
     const minWithdrawal = platformSettings.min_withdrawal_amount || 500;
     if (!amount || amount < minWithdrawal) {
       await session.abortTransaction();

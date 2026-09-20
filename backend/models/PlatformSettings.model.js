@@ -59,6 +59,9 @@ const PlatformSettingsSchema = new mongoose.Schema(
       admin: { type: Number, default: 0, min: 0, max: 365 }
     },
 
+    // ── Withdrawal maintenance mode ─────────────────────────────────────────
+    withdrawals_maintenance_mode: { type: Boolean, default: false },
+
     // ── Phase 3 — Restaurant-specific settings ──────────────────────────────
 
     // Kitchen acceptance window: minutes the restaurant has to accept before auto-cancel.

@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { Save, Loader2, CheckCircle2, Truck } from 'lucide-react';
+import { Save, Loader2, CheckCircle2, Truck, AlertTriangle } from 'lucide-react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 
@@ -120,6 +120,21 @@ export default function AdminSettingsPage() {
         </Field>
         <Field label="Minimum withdrawal amount (XAF)">
           <NumInput min={0} {...field('min_withdrawal_amount')} />
+        </Field>
+
+        <Field label="Withdrawal Maintenance Mode" hint="When enabled, all new withdrawal requests are blocked with a maintenance message. Existing pending requests remain in the admin queue.">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={s?.withdrawals_maintenance_mode || false}
+              onChange={e => setS(prev => ({ ...prev, withdrawals_maintenance_mode: e.target.checked }))}
+              className="accent-red-500 size-4"
+            />
+            <span className={`text-[12px] font-semibold flex items-center gap-1.5 ${s?.withdrawals_maintenance_mode ? 'text-red-500' : 'text-[var(--text-secondary)]'}`}>
+              {s?.withdrawals_maintenance_mode && <AlertTriangle className="size-3.5" />}
+              {s?.withdrawals_maintenance_mode ? 'Withdrawals Paused' : 'Withdrawals Active'}
+            </span>
+          </label>
         </Field>
       </section>
 

@@ -371,6 +371,8 @@ const updateSettings = async (req, res, next) => {
       escrow_fee_value,
       withdrawal_fee,
       min_withdrawal_amount,
+      // Withdrawal maintenance mode
+      withdrawals_maintenance_mode,
       // Restaurant-specific
       food_acceptance_timeout_minutes,
       new_restaurant_hold_order_count,
@@ -404,6 +406,9 @@ const updateSettings = async (req, res, next) => {
     if (escrow_fee_value !== undefined) settings.escrow_fee_value = toNonNegativeNumber(escrow_fee_value);
     if (withdrawal_fee !== undefined) settings.withdrawal_fee = withdrawal_fee;
     if (min_withdrawal_amount !== undefined) settings.min_withdrawal_amount = min_withdrawal_amount;
+
+    // Withdrawal maintenance mode
+    if (withdrawals_maintenance_mode !== undefined) settings.withdrawals_maintenance_mode = !!withdrawals_maintenance_mode;
 
     // Restaurant-specific settings
     if (food_acceptance_timeout_minutes !== undefined) settings.food_acceptance_timeout_minutes = Number(food_acceptance_timeout_minutes);
