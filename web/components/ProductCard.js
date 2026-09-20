@@ -294,9 +294,9 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
               <button
                 onClick={handleBuyNow}
                 disabled={!vendorActive || (!product.has_variants && product.stock <= 0)}
-                className="h-8 sm:h-9 rounded-xl sm:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[6px] sm:text-[8px] aura-buynow font-semibold sm:font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
+                className="h-8 sm:h-9 rounded-xl sm:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
               >
-                <span className="truncate">{!vendorActive ? 'Unavailable' : (!product.has_variants && product.stock <= 0) ? t('common.outOfStock') : t('common.buyNow')}</span>
+                <ShoppingCart className="size-3.5 sm:size-4 shrink-0" />
               </button>
             </div>
           </div>
@@ -427,9 +427,9 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
             <button
               onClick={handleBuyNow}
               disabled={!purchasable}
-              className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[6px] md:text-[8px] aura-buynow font-semibold md:font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
+              className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
             >
-              <span className="whitespace-nowrap">{!purchasable ? (!inStock ? t('common.outOfStock') : 'Unavailable') : t('common.buyNow')}</span>
+              <ShoppingCart className="size-3 md:size-3.5 shrink-0" />
             </button>
           </div>
         </div>
