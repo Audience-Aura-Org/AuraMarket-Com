@@ -280,7 +280,7 @@ export default function KitchenDashboardPage() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const res = await api.get('/vendors/orders', { skipClientCache: true });
+      const res = await api.get('/vendor/orders', { skipClientCache: true });
       if (res.data.success) {
         const allOrders = res.data.data.orders || [];
         const foodOrders = allOrders.filter(o =>

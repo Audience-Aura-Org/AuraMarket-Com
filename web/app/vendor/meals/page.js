@@ -22,13 +22,19 @@ export default function MealsListPage() {
 
   const fetchMeals = useCallback(async () => {
     try {
-      const res = await api.get('/vendors/products', { skipClientCache: true });
+      const res = await api.get('/vendor/products', { skipClientCache: true });
       if (res.data.success) {
         const products = res.data.data.products || res.data.data.items || [];
         setMeals(products.filter(p => !!p.meal));
       }
     } catch (err) {
-      toast.error('Could not load meals.');
+      const msg = err?.response?.data?.message || 'Could not load meals.';
+      const code = err?.response?.data?.code;
+      if (code === 'SUBSCRIPTION_REQUIRED') {
+        toast.error('An active subscription is required to manage meals.');
+      } else {
+        toast.error(msg);
+      }
       console.error(err);
     } finally {
       setLoading(false);
