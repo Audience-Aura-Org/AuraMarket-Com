@@ -428,19 +428,51 @@ const adminGetAllWithdrawals = async (req, res) => {
       if (to)   query.createdAt.$lte = new Date(to);
     }
 
-    const total = await WithdrawalRequest.countDocuments(query);
-    const pendingCount = await WithdrawalRequest.countDocuments({ status: 'pending' });
-    const withdrawalDocs = await WithdrawalRequest.find(query)
-      .populate('requested_by', 'name email phone avatar role branding store_name storeName')
-      .populate('reviewed_by', 'name email')
-      .sort('-createdAt')
-      .skip((page - 1) * limit)
-      .limit(Number(limit));
+    const [total, statusCounts, withdrawalDocs] = await Promise.all([
+      WithdrawalRequest.countDocuments(query),
+      WithdrawalRequest.aggregate([
+        { $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          total_amount: { $sum: '$amount' },
+        }},
+      ]),
+      WithdrawalRequest.find(query)
+        .populate('requested_by', 'name email phone avatar role branding store_name storeName')
+        .populate('reviewed_by', 'name email')
+        .sort('-createdAt')
+        .skip((page - 1) * limit)
+        .limit(Number(limit)),
+    ]);
+
     const withdrawals = await buildRequesterProfiles(withdrawalDocs);
+
+    // Build accurate status counts from the aggregation
+    const counts = {};
+    statusCounts.forEach((s) => { counts[s._id] = s.count; });
+    const pendingCount = counts.pending || 0;
+    const approvedCount = counts.approved || 0;
+    const completedCount = counts.completed || 0;
+    const rejectedCount = counts.rejected || 0;
+    const failedCount = (counts.failed || 0) + (counts.processing_error || 0);
 
     return res.status(200).json({
       success: true,
-      data: { withdrawals, total, pendingCount, page: Number(page), pages: Math.ceil(total / limit) }
+      data: {
+        withdrawals,
+        total,
+        pendingCount,
+        stats: {
+          pending: pendingCount,
+          approved: approvedCount,
+          completed: completedCount,
+          rejected: rejectedCount,
+          failed: failedCount,
+          total: statusCounts.reduce((sum, s) => sum + s.count, 0),
+        },
+        page: Number(page),
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (err) {
     console.error('[adminGetAllWithdrawals]', err);

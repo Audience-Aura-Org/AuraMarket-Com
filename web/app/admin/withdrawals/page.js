@@ -87,6 +87,7 @@ export default function AdminWithdrawalsPage() {
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [wdStats, setWdStats] = useState(null);
   const [filter, setFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -117,6 +118,7 @@ export default function AdminWithdrawalsPage() {
       if (res.data?.success || res.status === 200) {
         setWithdrawals(payload?.withdrawals || []);
         setPendingCount(payload?.pendingCount || 0);
+        if (payload?.stats) setWdStats(payload.stats);
       }
     } catch (err) {
       console.error('[Withdrawals] Load failed:', err);
@@ -237,17 +239,20 @@ export default function AdminWithdrawalsPage() {
 
         <AdminFinanceBody>
           {(() => {
-            const approved   = withdrawals.filter(w => w.status === 'approved').length;
-            const total      = withdrawals.length || 1;
-            const pendingPct = Math.min(pendingCount * 5, 100);
-            const approvedPct = Math.round((approved / total) * 100);
-            const issuePct   = Math.min(flaggedCount * 10, 100);
+            const pending    = wdStats?.pending  ?? pendingCount;
+            const approved   = wdStats?.approved ?? withdrawals.filter(w => w.status === 'approved').length;
+            const completed  = wdStats?.completed ?? 0;
+            const issues     = wdStats?.failed   ?? flaggedCount;
+            const allTotal   = wdStats?.total    ?? (withdrawals.length || 1);
+            const pendingPct = Math.min(pending * 5, 100);
+            const approvedPct = allTotal > 0 ? Math.round((approved / allTotal) * 100) : 0;
+            const issuePct   = Math.min(issues * 10, 100);
             return (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <StatCard label="Pending" value={pendingCount} icon={CheckCircle2} color="amber" sub="Awaiting review" progress={pendingPct} footer={pendingCount > 0 ? `${pendingCount} need action` : 'Queue clear'} />
-                <StatCard label="In view" value={displayed.length} icon={Wallet} color="primary" sub="Currently filtered" progress={Math.min(Math.round((displayed.length / total) * 100), 100)} footer={`${displayed.length} shown`} />
+                <StatCard label="Pending" value={pending} icon={CheckCircle2} color="amber" sub="Awaiting review" progress={pendingPct} footer={pending > 0 ? `${pending} need action` : 'Queue clear'} />
+                <StatCard label="Completed" value={completed} icon={Wallet} color="primary" sub="Paid out" progress={allTotal > 0 ? Math.round((completed / allTotal) * 100) : 0} footer={`${completed} disbursed`} />
                 <StatCard label="Approved" value={approved} icon={CheckCircle2} color="emerald" sub="Processed" progress={approvedPct} footer={`${approvedPct}% approved`} />
-                <StatCard label="Issues" value={flaggedCount} icon={AlertCircle} color="rose" sub="Failed / errors" progress={issuePct} footer={flaggedCount > 0 ? `${flaggedCount} flagged` : 'All clear'} />
+                <StatCard label="Issues" value={issues} icon={AlertCircle} color="rose" sub="Failed / errors" progress={issuePct} footer={issues > 0 ? `${issues} flagged` : 'All clear'} />
               </div>
             );
           })()}

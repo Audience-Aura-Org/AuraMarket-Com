@@ -41,6 +41,7 @@ function ChatContent() {
     notificationTitle: contextNotificationTitle,
     conversations,
     setActiveConversation,
+    setSystemWide,
     closeChat,
   } = useChat();
   const router = useRouter();
@@ -73,6 +74,11 @@ function ChatContent() {
     urlNotificationTitle ||
     pendingNotificationTitle ||
     null;
+
+  // Admin sees all platform chats (system-wide mode)
+  useEffect(() => {
+    if (user?.role === 'admin') setSystemWide(true);
+  }, [user?.role, setSystemWide]);
 
   // Reset ChatContext when leaving the full-page chat so GlobalChatOverlay
   // does not reappear on the next page (isOpen was set to true by setActiveConversation).

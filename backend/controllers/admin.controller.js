@@ -457,19 +457,64 @@ const updateSettings = async (req, res, next) => {
 const getAllOrders = async (req, res, next) => {
   try {
     const { status, search, page = 1, limit = 30 } = req.query;
-    const query = { 
+    const baseFilter = {
       $or: [
         { payment_status: { $in: ['paid', 'failed'] } },
         { payment_method: 'pay_on_delivery' }
       ]
-    }; 
+    };
+    const query = { ...baseFilter };
     if (status && status !== 'all') {
       if (status === 'failed') query.payment_status = 'failed';
       else query.order_status = status;
     }
-    const orders = await Order.find(query).populate('customer_id', 'name email phone avatar').populate('logistics_company_id', 'company_name contact_phone').populate({ path: 'vendor_id', select: 'store_name user_id', populate: { path: 'user_id', select: 'name email phone avatar' } }).populate('products.product_id', 'name price images').sort('-createdAt').skip((page - 1) * limit).limit(Number(limit));
-    const total = await Order.countDocuments(query);
-    res.status(200).json({ success: true, count: orders.length, total, data: { orders } });
+
+    const [orders, total, statusCounts] = await Promise.all([
+      Order.find(query)
+        .populate('customer_id', 'name email phone avatar')
+        .populate('logistics_company_id', 'company_name contact_phone')
+        .populate({ path: 'vendor_id', select: 'store_name user_id', populate: { path: 'user_id', select: 'name email phone avatar' } })
+        .populate('products.product_id', 'name price images')
+        .sort('-createdAt')
+        .skip((page - 1) * limit)
+        .limit(Number(limit)),
+      Order.countDocuments(query),
+      Order.aggregate([
+        { $match: baseFilter },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            active: { $sum: { $cond: [{ $in: ['$order_status', ['placed', 'processing', 'shipped']] }, 1, 0] } },
+            delivered: { $sum: { $cond: [{ $eq: ['$order_status', 'delivered'] }, 1, 0] } },
+            cancelled: { $sum: { $cond: [{ $eq: ['$order_status', 'cancelled'] }, 1, 0] } },
+            refund_pending: { $sum: { $cond: [{ $eq: ['$order_status', 'refund_pending'] }, 1, 0] } },
+            refunded: { $sum: { $cond: [{ $eq: ['$order_status', 'refunded'] }, 1, 0] } },
+            failed_payments: { $sum: { $cond: [{ $eq: ['$payment_status', 'failed'] }, 1, 0] } },
+          },
+        },
+      ]),
+    ]);
+
+    const counts = statusCounts[0] || {};
+    res.status(200).json({
+      success: true,
+      count: orders.length,
+      total,
+      data: {
+        orders,
+        stats: {
+          total: counts.total || 0,
+          active: counts.active || 0,
+          delivered: counts.delivered || 0,
+          cancelled: counts.cancelled || 0,
+          refund_pending: counts.refund_pending || 0,
+          refunded: counts.refunded || 0,
+          failed_payments: counts.failed_payments || 0,
+          attention: (counts.refund_pending || 0) + (counts.failed_payments || 0),
+        },
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -889,11 +934,41 @@ const getAllVendors = async (req, res, next) => {
     if (status === 'verified') query.verified = true;
     if (status === 'unverified') query.verified = false;
     if (status === 'deactivated') query.is_onboarded = false;
-    const vendors = await Vendor.find(query)
-      .populate('user_id', 'name email avatar verification_status branding')
-      .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount')
-      .sort('-createdAt');
-    res.status(200).json({ success: true, count: vendors.length, data: { vendors } });
+
+    const [vendors, totalVendors, vendorOrderStats] = await Promise.all([
+      Vendor.find(query)
+        .populate('user_id', 'name email avatar verification_status branding')
+        .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount')
+        .sort('-createdAt'),
+      Vendor.countDocuments(),
+      Order.aggregate([
+        { $match: { payment_status: 'paid' } },
+        {
+          $group: {
+            _id: '$vendor_id',
+            total_sales: { $sum: 1 },
+            total_revenue: { $sum: '$total_amount' },
+          },
+        },
+      ]),
+    ]);
+
+    // Build a lookup map for vendor order stats
+    const statsMap = {};
+    vendorOrderStats.forEach((s) => {
+      statsMap[s._id?.toString()] = { total_sales: s.total_sales, total_revenue: s.total_revenue };
+    });
+
+    // Merge live order stats into each vendor
+    const enriched = vendors.map((v) => {
+      const plain = v.toObject();
+      const live = statsMap[plain._id?.toString()] || {};
+      plain.total_sales = live.total_sales || 0;
+      plain.total_revenue = live.total_revenue || 0;
+      return plain;
+    });
+
+    res.status(200).json({ success: true, count: enriched.length, total: totalVendors, data: { vendors: enriched } });
   } catch (error) {
     next(error);
   }

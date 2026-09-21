@@ -344,6 +344,9 @@ function chatReducer(state, action) {
         typingIndicators: {},
       };
 
+    case 'SET_SYSTEM_WIDE':
+      return { ...state, isSystemWide: Boolean(action.value) };
+
     case 'SET_ACTIVE_CONVERSATION': {
       const partnerId = action.partnerId ? action.partnerId.toString() : null;
       if (!partnerId) {
@@ -1057,6 +1060,10 @@ export function ChatProvider({ children }) {
     dispatch({ type: 'DELETE_MESSAGE', ...payload });
   }, []);
 
+  const setSystemWide = useCallback((value) => {
+    dispatch({ type: 'SET_SYSTEM_WIDE', value });
+  }, []);
+
   const value = useMemo(() => {
     const activeConversationId = state.activeConversationId;
     const activeConversation = activeConversationId ? state.conversationsById[activeConversationId] : null;
@@ -1074,6 +1081,7 @@ export function ChatProvider({ children }) {
       openChat,
       closeChat,
       setActiveConversation,
+      setSystemWide,
       upsertConversations,
       upsertMessages,
       receiveMessage,
@@ -1090,6 +1098,7 @@ export function ChatProvider({ children }) {
     openChat,
     closeChat,
     setActiveConversation,
+    setSystemWide,
     upsertConversations,
     upsertMessages,
     receiveMessage,

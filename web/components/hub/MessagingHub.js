@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import {
   Send, X, ArrowLeft, Package, Truck, Navigation,
   MessageCircle, Check, CheckCheck, Loader2, Clock, WifiOff,
-  Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical
+  Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical, UserPlus
 } from 'lucide-react';
 import api from '@/services/api';
 import { uploadService } from '@/services/upload';
@@ -240,6 +240,12 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   
+  // Admin compose (new chat with any user)
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeQuery, setComposeQuery] = useState('');
+  const [composeResults, setComposeResults] = useState([]);
+  const [composeLoading, setComposeLoading] = useState(false);
+
   // UX Features
   const [isTyping, setIsTyping] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -873,6 +879,31 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       if (!silent) setInboxLoading(false);
     }
   };
+
+  // Admin compose: search users to start a new chat
+  const composeTimerRef = useRef(null);
+  useEffect(() => {
+    if (!isSystemWide || !composeOpen) return;
+    if (!composeQuery.trim() || composeQuery.trim().length < 2) {
+      setComposeResults([]);
+      return;
+    }
+    clearTimeout(composeTimerRef.current);
+    composeTimerRef.current = setTimeout(async () => {
+      setComposeLoading(true);
+      try {
+        const res = await api.get('/admin/users', { params: { search: composeQuery.trim(), limit: 15 } });
+        if (res.data?.success) {
+          setComposeResults((res.data.data?.users || []).filter(u => u._id !== user?._id));
+        }
+      } catch (err) {
+        console.error('Compose search failed:', err);
+      } finally {
+        setComposeLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(composeTimerRef.current);
+  }, [composeQuery, composeOpen, isSystemWide, user?._id]);
 
   const loadConversation = async (pid, pageNum = 1, options = {}) => {
     const silent = Boolean(options.silent);
@@ -1939,19 +1970,34 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                     </p>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    dismissOverlay();
-                  }}
-                  onClick={dismissOverlay}
-                  className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/90 transition-colors hover:bg-white/10 active:bg-white/15"
-                  aria-label="Close"
-                >
-                  <X className="size-[20px]" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  {isSystemWide && (
+                    <button
+                      type="button"
+                      onClick={() => { setComposeOpen(true); setComposeQuery(''); setComposeResults([]); }}
+                      className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/90 transition-colors hover:bg-white/10 active:bg-white/15"
+                      aria-label="New chat"
+                    >
+                      <UserPlus className="size-[18px]" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      dismissOverlay();
+                    }}
+                    onClick={dismissOverlay}
+                    className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/90 transition-colors hover:bg-white/10 active:bg-white/15"
+                    aria-label="Close"
+                  >
+                    <X className="size-[20px]" />
+                  </button>
+                </div>
               </div>
+              {isSystemWide && (
+                <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-[var(--nav-text)]/50">System Comms — All Platform Chats</p>
+              )}
             </motion.div>
             <div className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 py-1.5 sm:px-3 sm:py-2">
               <div className="relative">
@@ -1985,6 +2031,66 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             <button type="button" className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--bg-primary)] text-[var(--text-secondary)] shadow-sm ring-1 ring-[var(--glass-border)] transition active:bg-[var(--bg-secondary)]">
               <Package className="size-[17px]" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* -- ADMIN COMPOSE PANEL ----------------------------------- */}
+      {composeOpen && isSystemWide && (
+        <div className="absolute inset-0 z-50 flex flex-col bg-[var(--bg-primary)]">
+          <div className="flex items-center gap-3 border-b border-[var(--glass-border)] bg-[var(--nav-bg)] px-3 py-3 sm:px-4">
+            <button type="button" onClick={() => setComposeOpen(false)} className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/90 hover:bg-white/10">
+              <ArrowLeft className="size-5" />
+            </button>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-[15px] font-semibold text-[var(--nav-text)]">New Chat</h3>
+              <p className="text-[11px] text-[var(--nav-text)]/60">Search for any user to message</p>
+            </div>
+          </div>
+          <div className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-[15px] -translate-y-1/2 text-[var(--text-secondary)]" />
+              <input
+                autoFocus
+                type="search"
+                value={composeQuery}
+                onChange={(e) => setComposeQuery(e.target.value)}
+                placeholder="Search by name or email..."
+                className="w-full rounded-lg border-0 bg-[var(--bg-primary)] py-2.5 pl-8 pr-3 text-[13px] text-[var(--text-primary)] shadow-sm outline-none ring-1 ring-[var(--glass-border)] placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-[var(--accent)]/40"
+              />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {composeLoading && (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="size-5 animate-spin text-[var(--accent)]" />
+              </div>
+            )}
+            {!composeLoading && composeQuery.trim().length >= 2 && composeResults.length === 0 && (
+              <div className="px-4 py-10 text-center text-[13px] text-[var(--text-secondary)]">No users found</div>
+            )}
+            {composeResults.map((u) => (
+              <button
+                key={u._id}
+                type="button"
+                onClick={() => {
+                  setComposeOpen(false);
+                  setPartnerBInfo(null);
+                  setActiveConversation(u._id, u);
+                }}
+                className="flex w-full items-center gap-3 border-b border-[var(--glass-border)] px-4 py-3 text-left hover:bg-[var(--bg-secondary)] active:bg-[var(--bg-secondary)]"
+              >
+                <div className="size-10 shrink-0 overflow-hidden rounded-full bg-[var(--bg-secondary)]">
+                  {u.avatar || u.branding?.logo
+                    ? <img src={u.avatar || u.branding?.logo} className="size-full object-cover" alt="" />
+                    : <div className="flex size-full items-center justify-center text-sm font-semibold text-[var(--text-secondary)]">{(u.name || 'U')[0]}</div>}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[14px] font-medium text-[var(--text-primary)]">{u.branding?.store_name || u.name}</p>
+                  <p className="truncate text-[12px] text-[var(--text-secondary)]">{u.email} · <span className="capitalize">{u.role}</span></p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       )}

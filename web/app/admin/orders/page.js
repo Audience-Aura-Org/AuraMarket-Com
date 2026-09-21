@@ -120,6 +120,7 @@ export default function AdminOrdersPage() {
   const [savingOrderId, setSavingOrderId] = useState(null);
   const [orderEdits, setOrderEdits] = useState({});
   const [stats, setStats] = useState(null);
+  const [totalOrders, setTotalOrders] = useState(0);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -128,21 +129,16 @@ export default function AdminOrdersPage() {
     if (orderId) setExpandedId(orderId);
   }, []);
 
-  const fetchStats = async () => {
-    try {
-      const res = await api.get('/admin/analytics');
-      if (res.data.success) setStats(res.data.data.stats);
-    } catch (err) {
-      console.error('Failed to fetch platform metrics:', err);
-    }
-  };
-
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const params = activeTab !== 'all' ? { status: activeTab } : {};
       const res = await api.get('/admin/orders', { params });
-      if (res.data.success) setOrders(res.data.data.orders || []);
+      if (res.data.success) {
+        setOrders(res.data.data.orders || []);
+        if (res.data.data.stats) setStats(res.data.data.stats);
+        if (res.data.total != null) setTotalOrders(res.data.total);
+      }
     } catch (err) {
       console.error('Failed to fetch admin orders:', err);
       toast.error(err.response?.data?.message || 'Failed to fetch orders');
@@ -153,7 +149,6 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-    fetchStats();
     setCurrentPage(1);
   }, [fetchOrders]);
 
@@ -280,7 +275,7 @@ export default function AdminOrdersPage() {
         icon={Package}
         title="Order Manifest"
         description="Operational pipeline and order controls."
-        badge={`${filtered.length} orders`}
+        badge={`${totalOrders || filtered.length} orders`}
         onRefresh={fetchOrders}
         loading={loading}
         embedRefreshInToolbar
@@ -311,19 +306,19 @@ export default function AdminOrdersPage() {
 
       <AdminFinanceBody>
         {(() => {
-          const activeOrders    = stats?.active_orders    || 0;
-          const resolvedOrders  = stats?.delivered_orders || 0;
-          const totalOrders     = stats?.orders           || 1;
-          const attentionOrders = orders.filter(o => o.order_status === 'refund_pending' || o.payment_status === 'failed').length;
-          const activePct    = Math.min(Math.round((activeOrders   / totalOrders) * 100), 100);
-          const resolvedPct  = Math.min(Math.round((resolvedOrders / totalOrders) * 100), 100);
+          const activeOrders    = stats?.active    || 0;
+          const resolvedOrders  = stats?.delivered  || 0;
+          const allOrders       = stats?.total      || totalOrders || 1;
+          const attentionOrders = stats?.attention   || 0;
+          const activePct    = Math.min(Math.round((activeOrders   / allOrders) * 100), 100);
+          const resolvedPct  = Math.min(Math.round((resolvedOrders / allOrders) * 100), 100);
           const attentionPct = Math.min(attentionOrders * 5, 100);
           return (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <StatCard label="Active orders" value={stats ? activeOrders : '…'} icon={ShoppingBag} color="primary" sub="In progress" progress={activePct} footer={`${activePct}% of total`} />
-              <StatCard label="Attention" value={attentionOrders} icon={Zap} color="amber" sub="Needs review" progress={attentionPct} footer={attentionOrders > 0 ? `${attentionOrders} flagged` : 'All clear'} />
+              <StatCard label="Attention" value={stats ? attentionOrders : '…'} icon={Zap} color="amber" sub="Needs review" progress={attentionPct} footer={attentionOrders > 0 ? `${attentionOrders} flagged` : 'All clear'} />
               <StatCard label="Resolved" value={stats ? resolvedOrders : '…'} icon={ShieldCheck} color="emerald" sub="Cycle complete" progress={resolvedPct} footer={`${resolvedPct}% resolved`} />
-              <StatCard label="Closed" value={stats ? totalOrders : '…'} icon={Database} color="indigo" sub="Archive total" progress={100} footer="All-time orders" />
+              <StatCard label="Closed" value={stats ? allOrders : '…'} icon={Database} color="indigo" sub="Archive total" progress={100} footer="All-time orders" />
             </div>
           );
         })()}

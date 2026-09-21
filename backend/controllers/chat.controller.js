@@ -482,6 +482,9 @@ const markAsRead = async (req, res, next) => {
 const getAllMessagesAdmin = async (req, res, next) => {
   try {
     const { userA, userB } = req.query;
+    const page  = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit = Math.min(100, parseInt(req.query.limit) || 40);
+
     let query = {};
 
     if (userA && userB) {
@@ -493,17 +496,26 @@ const getAllMessagesAdmin = async (req, res, next) => {
       };
     }
 
+    // Admin sees ALL messages including deleted ones (no deleted_for filter)
+    const total = await Message.countDocuments(query);
     const messages = await Message.find(query)
-      .populate('sender_id', 'name avatar role email branding')
-      .populate('receiver_id', 'name avatar role email branding')
+      .populate('sender_id', 'name avatar role email branding is_online last_seen')
+      .populate('receiver_id', 'name avatar role email branding is_online last_seen')
       .populate('product_reference', PRODUCT_REFERENCE_SELECT)
       .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
       .lean();
 
     res.status(200).json({
       success: true,
       count: messages.length,
-      data: { messages: messages.map(sanitizeMessageProductReference) },
+      data: {
+        messages: messages.map(sanitizeMessageProductReference).reverse(),
+        total,
+        page,
+        limit,
+      },
     });
   } catch (error) {
     next(error);

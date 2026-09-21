@@ -23,6 +23,7 @@ function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
 export default function AdminVendorsPage() {
   const [vendors, setVendors] = useState([]);
+  const [totalVendors, setTotalVendors] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -47,7 +48,10 @@ export default function AdminVendorsPage() {
     setLoading(true);
     try {
       const res = await api.get(`/admin/vendors?status=${statusFilter === 'all' ? '' : statusFilter}`);
-      if (res.data?.success) setVendors(res.data.data.vendors || []);
+      if (res.data?.success) {
+        setVendors(res.data.data.vendors || []);
+        if (res.data.total != null) setTotalVendors(res.data.total);
+      }
     } catch (err) {
       toast.error('Failed to resolve vendor registry');
     } finally { setLoading(false); }
@@ -229,16 +233,18 @@ export default function AdminVendorsPage() {
          {/* Live Intelligence Stats */}
          {(() => {
            const verified  = vendors.filter(v => v.verified).length;
-           const verifyPct = vendors.length > 0 ? Math.round((verified / vendors.length) * 100) : 0;
+           const totalCount = totalVendors || vendors.length;
+           const verifyPct = totalCount > 0 ? Math.round((verified / totalCount) * 100) : 0;
            const rated     = vendors.map(v => Number(v.rating || 0)).filter(v => v > 0);
            const avgRating = rated.length ? (rated.reduce((s, v) => s + v, 0) / rated.length).toFixed(2) : 'New';
            const ratingPct = rated.length ? Math.min(Math.round((parseFloat(avgRating) / 5) * 100), 100) : 0;
+           const totalSales = vendors.reduce((sum, v) => sum + (v.total_sales || 0), 0);
            return (
              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-               <StatCard label="Total Merchants" value={vendors.length} icon="storefront" color="fuchsia" sub="REGISTRY" progress={Math.min(vendors.length * 2, 100)} footer={`${vendors.length} in registry`} />
-               <StatCard label="Verified Items" value={verified} icon="verified_user" color="emerald" sub="TRUST" progress={verifyPct} footer={`${verifyPct}% verified`} />
+               <StatCard label="Total Merchants" value={totalCount} icon="storefront" color="fuchsia" sub="REGISTRY" progress={Math.min(totalCount * 2, 100)} footer={`${totalCount} in registry`} />
+               <StatCard label="Verified" value={verified} icon="verified_user" color="emerald" sub="TRUST" progress={verifyPct} footer={`${verifyPct}% verified`} />
                <StatCard label="Avg Rating" value={avgRating} icon="star" color="amber" sub="SCORE" progress={ratingPct} footer="Quality score" />
-               <StatCard label="Network Yield" value="High" icon="trending_up" color="indigo" sub="SCALE" progress={75} footer="Platform growth" />
+               <StatCard label="Total Sales" value={fmt(totalSales)} icon="trending_up" color="indigo" sub="ORDERS" progress={Math.min(totalSales, 100)} footer={`${fmt(totalSales)} paid orders`} />
              </div>
            );
          })()}
