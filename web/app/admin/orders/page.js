@@ -222,6 +222,22 @@ export default function AdminOrdersPage() {
     }
   };
 
+  const handleImposeEscrow = async (order) => {
+    if (!confirm(`Impose escrow on order #${shortId(order, 6)}? This will hold the vendor's funds until you release them.`)) return;
+    setEscrowActionId(order._id);
+    try {
+      const res = await api.post(`/admin/orders/${order._id}/impose-escrow`);
+      if (res.data.success) {
+        toast.success('Escrow imposed — vendor funds are now held');
+        fetchOrders();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to impose escrow');
+    } finally {
+      setEscrowActionId(null);
+    }
+  };
+
   const handleEscrowRefund = async (order) => {
     if (!confirm(`Force refund escrow funds for order #${shortId(order, 6)} back to the customer?`)) return;
     setEscrowActionId(order._id);
@@ -524,21 +540,28 @@ export default function AdminOrdersPage() {
                         </div>
 
                         {/* ── Escrow controls ── */}
-                        {(order.payment_method === 'escrow' || order.escrow_enabled) && (
-                          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 space-y-3 lg:col-span-3">
-                            <p className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                              <Lock className="size-3.5" /> Escrow vault
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 text-[10px]">
-                              <span className="font-semibold text-[var(--text-secondary)]">
-                                Amount: <span className="text-[var(--text-primary)]">{fmt(order.total_amount)} XAF</span>
+                        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 space-y-3 lg:col-span-3">
+                          <p className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                            <Lock className="size-3.5" /> Escrow vault
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                            <span className="font-semibold text-[var(--text-secondary)]">
+                              Amount: <span className="text-[var(--text-primary)]">{fmt(order.total_amount)} XAF</span>
+                            </span>
+                            <span className="font-semibold text-[var(--text-secondary)]">
+                              Payment: <span className={`${(PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending).color}`}>
+                                {(PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending).label}
                               </span>
-                              <span className="font-semibold text-[var(--text-secondary)]">
-                                Payment: <span className={`${(PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending).color}`}>
-                                  {(PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending).label}
-                                </span>
+                            </span>
+                            <span className="font-semibold text-[var(--text-secondary)]">
+                              Escrow: <span className={order.escrow_enabled ? 'text-amber-500' : 'text-[var(--text-secondary)] opacity-50'}>
+                                {order.escrow_enabled ? 'Active' : 'Not enabled'}
                               </span>
-                            </div>
+                            </span>
+                          </div>
+
+                          {order.escrow_enabled ? (
+                            /* Escrow is active — show release/refund controls */
                             <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
                               <button
                                 type="button"
@@ -547,7 +570,7 @@ export default function AdminOrdersPage() {
                                 className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-4 text-[10px] font-semibold text-white shadow-lg shadow-emerald-500/15 transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                               >
                                 {escrowActionId === order._id ? <Loader2 className="size-3.5 animate-spin" /> : <Unlock className="size-3.5" />}
-                                Force release to vendor
+                                Release to vendor
                               </button>
                               <button
                                 type="button"
@@ -556,17 +579,29 @@ export default function AdminOrdersPage() {
                                 className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-rose-600 px-4 text-[10px] font-semibold text-white shadow-lg shadow-rose-500/15 transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                               >
                                 {escrowActionId === order._id ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
-                                Force refund to customer
+                                Refund to customer
                               </button>
                             </div>
-                            {order.payment_status !== 'paid' && (
-                              <p className="flex items-center gap-1 text-[9px] text-amber-600/70">
-                                <AlertTriangle className="size-3 shrink-0" />
-                                Escrow actions require payment status to be "Paid"
-                              </p>
-                            )}
-                          </div>
-                        )}
+                          ) : (
+                            /* Escrow not enabled — show impose button */
+                            <button
+                              type="button"
+                              onClick={() => handleImposeEscrow(order)}
+                              disabled={escrowActionId === order._id || order.payment_status !== 'paid'}
+                              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-amber-600 px-4 text-[10px] font-semibold text-white shadow-lg shadow-amber-500/15 transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              {escrowActionId === order._id ? <Loader2 className="size-3.5 animate-spin" /> : <Lock className="size-3.5" />}
+                              Impose escrow — hold vendor funds
+                            </button>
+                          )}
+
+                          {order.payment_status !== 'paid' && (
+                            <p className="flex items-center gap-1 text-[9px] text-amber-600/70">
+                              <AlertTriangle className="size-3 shrink-0" />
+                              Escrow actions require payment status to be &quot;Paid&quot;
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </motion.div>
                   )}

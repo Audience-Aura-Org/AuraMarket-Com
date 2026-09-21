@@ -27,7 +27,9 @@ const templates = require('../utils/emailTemplates');
 const { escapeRegExp } = require('../middleware/security.middleware');
 const cache = require('../utils/cache');
 const { normalizeFeeType, toNonNegativeNumber } = require('../utils/platformFees');
-const { creditBalance } = require('../services/wallet.service');
+const { creditBalance, debitBalance } = require('../services/wallet.service');
+const { calculatePlatformFees, applyCommissionOverride } = require('../utils/platformFees');
+const mongoose = require('mongoose');
 const { clearApiCache } = require('../middleware/cache.middleware');
 const { recordAudit } = require('../utils/auditTrail');
 
@@ -533,6 +535,126 @@ const updateOrderAdmin = async (req, res, next) => {
 
     res.status(200).json({ success: true, message: 'Order updated.', data: { order } });
   } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
+// @route   POST /api/admin/orders/:id/impose-escrow
+// @desc    Admin imposes escrow on a paid order — holds vendor funds
+// @access  Private (Role: admin)
+// ─────────────────────────────────────────────
+const imposeEscrow = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const order = await Order.findById(req.params.id).session(session);
+    if (!order) throw new Error('Order not found.');
+    if (order.payment_status !== 'paid') throw new Error('Order must be paid before escrow can be imposed.');
+
+    // Check if escrow already exists
+    const existing = await Escrow.findOne({ order_id: order._id }).session(session);
+    if (existing) throw new Error(`Escrow already exists for this order (status: ${existing.status}).`);
+
+    // Calculate vendor base amount and fees
+    const vendorBaseAmount = (order.shipping_method === 'logistics_partner' && order.logistics_company_id)
+      ? order.subtotal
+      : order.subtotal + (order.shipping_fee || 0);
+
+    const platformSettings = await PlatformSettings.getSettings(session);
+    const store = await Store.findOne({ vendor_id: order.vendor_id }).select('commission_rate').session(session);
+    const effectiveSettings = applyCommissionOverride(platformSettings, store?.commission_rate);
+    const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(vendorBaseAmount, effectiveSettings, {
+      includeEscrowFee: true,
+    });
+
+    // Claw back vendor payout if already credited
+    const vendorRecord = await Vendor.findById(order.vendor_id).session(session);
+    if (!vendorRecord) throw new Error('Vendor not found.');
+
+    // Check if vendor was already paid (completed payout transaction exists)
+    const completedPayout = await Transaction.findOne({
+      order_id: order._id,
+      user_id: vendorRecord.user_id,
+      type: 'payout',
+      status: 'completed',
+    }).session(session);
+
+    if (completedPayout) {
+      // Debit vendor wallet to claw back the direct payout
+      const debited = await debitBalance(vendorRecord.user_id, completedPayout.amount, session, { allowNegative: false });
+      if (!debited) throw new Error('Vendor has insufficient balance to claw back the direct payout. Cannot impose escrow.');
+      // Mark old payout as reversed
+      completedPayout.status = 'reversed';
+      completedPayout.metadata = { ...(completedPayout.metadata || {}), reversed_by: 'admin_escrow_impose', reversed_at: new Date() };
+      await completedPayout.save({ session });
+    } else {
+      // Mark any pending payout as voided (food acceptance hold, new restaurant hold, etc.)
+      await Transaction.updateMany(
+        { order_id: order._id, user_id: vendorRecord.user_id, type: 'payout', status: 'pending' },
+        { $set: { status: 'voided', 'metadata.voided_by': 'admin_escrow_impose', 'metadata.voided_at': new Date() } },
+        { session }
+      );
+    }
+
+    // Create escrow record
+    await Escrow.create([{
+      order_id: order._id,
+      vendor_id: order.vendor_id,
+      buyer_id: order.customer_id,
+      amount: vendorBaseAmount,
+      status: 'held',
+    }], { session, ordered: true });
+
+    // Create new pending payout transaction for the escrow
+    const crypto = require('crypto');
+    await Transaction.create([{
+      user_id: vendorRecord.user_id,
+      type: 'payout',
+      amount: vendorBaseAmount,
+      reference: `AURA-ESCROW-${crypto.randomBytes(6).toString('hex').toUpperCase()}`,
+      status: 'pending',
+      description: `Admin-imposed escrow for Order #${order._id.toString().slice(-6).toUpperCase()} — funds held pending release`,
+      order_id: order._id,
+      gateway: 'escrow',
+      metadata: {
+        platform_fee_breakdown: {
+          base_amount: vendorBaseAmount,
+          commission_fee: commissionFee,
+          escrow_fee: escrowFee,
+          platform_fee: platformFee,
+          vendor_payout: vendorPayout,
+        },
+        imposed_by: req.user._id,
+      },
+    }], { session, ordered: true });
+
+    // Mark order as escrow-enabled
+    order.escrow_enabled = true;
+    await order.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    // Notify vendor
+    await sendNotification(req.app, vendorRecord.user_id, {
+      title: 'Escrow Imposed on Order',
+      message: `An administrator has placed Order #${order._id.toString().slice(-6).toUpperCase()} under escrow protection. Funds will be released after delivery confirmation.`,
+      type: 'system_alert',
+      metadata: { order_id: order._id },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Escrow imposed successfully. Vendor funds are now held.',
+      data: { order_id: order._id, escrow_amount: vendorBaseAmount },
+    });
+  } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    if (['Order not found.', 'Order must be paid', 'Escrow already exists', 'Vendor not found', 'Vendor has insufficient'].some(m => error.message?.startsWith(m))) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     next(error);
   }
 };
@@ -1889,6 +2011,7 @@ module.exports = {
   updateSettings,
   getAllOrders,
   updateOrderAdmin,
+  imposeEscrow,
   getPendingVendors,
   getPendingProducts,
   reviewProduct,
