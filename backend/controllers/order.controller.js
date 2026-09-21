@@ -198,8 +198,7 @@ const createOrder = async (req, res, next) => {
       const profile = await RestaurantProfile.findOne({ vendor_id: vendor._id })
         .select('is_accepting_orders opening_hours')
         .lean();
-      const { computeOpenStatus } = require('./restaurant.controller');
-      if (!profile?.is_accepting_orders || computeOpenStatus(profile.opening_hours).open_status !== 'open') {
+      if (!profile?.is_accepting_orders) {
         session.endSession();
         return res.status(409).json({
           success: false,
@@ -1553,18 +1552,6 @@ const createOrdersFromCart = async (req, res, next) => {
           message: 'The restaurant is not accepting orders right now. Please try again later.',
         });
       }
-      // Enforce time-based opening hours
-      const { computeOpenStatus } = require('./restaurant.controller');
-      const { open_status } = computeOpenStatus(rProfile.opening_hours);
-      if (open_status !== 'open') {
-        await session.abortTransaction();
-        session.endSession();
-        return res.status(409).json({
-          success: false,
-          code: 'RESTAURANT_CLOSED',
-          message: 'This restaurant is currently closed. Please check their opening hours and try again.',
-        });
-      }
 
       for (const it of items) {
         if (it.product?.is_meal !== true) continue;
@@ -2191,16 +2178,6 @@ const reorder = async (req, res, next) => {
         success: false,
         code: 'RESTAURANT_CLOSED',
         message: 'This restaurant is not accepting orders right now.',
-      });
-    }
-    // Enforce time-based opening hours on reorder
-    const { computeOpenStatus } = require('./restaurant.controller');
-    const { open_status: reorderOpenStatus } = computeOpenStatus(rProfile.opening_hours);
-    if (reorderOpenStatus !== 'open') {
-      return res.status(409).json({
-        success: false,
-        code: 'RESTAURANT_CLOSED',
-        message: 'This restaurant is currently closed. Please check their opening hours and try again.',
       });
     }
 

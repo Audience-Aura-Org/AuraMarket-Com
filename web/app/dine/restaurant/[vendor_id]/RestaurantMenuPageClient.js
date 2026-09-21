@@ -264,7 +264,7 @@ export default function RestaurantMenuPageClient() {
           {!isOpen && (
             <div className="mt-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 py-2.5 flex items-center gap-2">
               <Clock className="size-4 text-[var(--text-secondary)] shrink-0" />
-              <p className="text-[11px] lg:text-[13px] text-[var(--text-secondary)]">This restaurant is currently closed. Browse the menu below.</p>
+              <p className="text-[11px] lg:text-[13px] text-[var(--text-secondary)]">This restaurant is currently closed. You can still pre-order for when they open.</p>
             </div>
           )}
         </div>
@@ -351,7 +351,6 @@ export default function RestaurantMenuPageClient() {
                     prepTime={profile.prep_time_minutes}
                     unavailable={
                       !meal.meal?.is_available_today ||
-                      !isOpen ||
                       !profile.delivery_available
                     }
                   />
