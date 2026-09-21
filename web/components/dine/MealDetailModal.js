@@ -93,6 +93,13 @@ export default function MealDetailModal({ meal, onClose }) {
           .map(o => (typeof o === 'string' ? o : o.type))
           .filter(Boolean);
         setAvailableModes(modes);
+        // Auto-set pre-order date if meal has a specific available_date
+        const mealDate = p?.meal?.available_date;
+        if (mealDate) {
+          const dateStr = new Date(mealDate).toISOString().split('T')[0];
+          setPreOrderDate(dateStr);
+        }
+
         // When restaurant is closed, force pre_order only
         if (restaurantClosed) {
           setBookingType('pre_order');
@@ -109,6 +116,22 @@ export default function MealDetailModal({ meal, onClose }) {
   const optionGroups = fullProduct?.meal?.option_groups || [];
   const description  = fullProduct?.description || meal.description || '';
   const prepTime     = fullProduct?.meal?.prep_time_minutes || meal.prep_time_minutes;
+
+  // Pre-order date constraints from meal data
+  const mealAvailableDate = fullProduct?.meal?.available_date
+    ? new Date(fullProduct.meal.available_date).toISOString().split('T')[0]
+    : null;
+  const preOrderOption = (fullProduct?.meal?.booking_options || []).find(
+    o => (typeof o === 'string' ? o : o.type) === 'pre_order' && typeof o === 'object'
+  );
+  const preOrderMin = mealAvailableDate
+    || (preOrderOption?.available_from ? new Date(preOrderOption.available_from).toISOString().split('T')[0] : null)
+    || new Date(Date.now() + 86400000).toISOString().split('T')[0]; // fallback: tomorrow
+  const preOrderMax = mealAvailableDate
+    || (preOrderOption?.available_until ? new Date(preOrderOption.available_until).toISOString().split('T')[0] : null)
+    || null; // no max by default
+  // If meal has a specific available_date, the date is locked to that single day
+  const preOrderDateLocked = !!mealAvailableDate;
 
   /* ── Option toggle ── */
   const toggleOption = (groupName, optionLabel, maxSelect) => {
@@ -355,15 +378,23 @@ export default function MealDetailModal({ meal, onClose }) {
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1.5">
-                    Select date <span className="text-orange-500">*</span>
+                    {preOrderDateLocked ? 'Available on' : 'Select date'} <span className="text-orange-500">*</span>
                   </label>
-                  <input
-                    type="date"
-                    value={preOrderDate}
-                    onChange={e => setPreOrderDate(e.target.value)}
-                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                    className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors"
-                  />
+                  {preOrderDateLocked ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-3 py-2.5 text-[12px] font-semibold text-[var(--text-primary)]">
+                      <CalendarClock className="size-3.5 text-[var(--accent)] shrink-0" />
+                      {new Date(mealAvailableDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                    </div>
+                  ) : (
+                    <input
+                      type="date"
+                      value={preOrderDate}
+                      onChange={e => setPreOrderDate(e.target.value)}
+                      min={preOrderMin}
+                      {...(preOrderMax && { max: preOrderMax })}
+                      className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors"
+                    />
+                  )}
                 </div>
               </div>
             )}
@@ -412,15 +443,23 @@ export default function MealDetailModal({ meal, onClose }) {
             {!loadingProduct && !restaurantClosed && isPreOrder && (
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-bold text-[var(--text-secondary)]">
-                  Schedule for <span className="text-orange-500">*</span>
+                  {preOrderDateLocked ? 'Available on' : 'Schedule for'} <span className="text-orange-500">*</span>
                 </label>
-                <input
-                  type="date"
-                  value={preOrderDate}
-                  onChange={e => setPreOrderDate(e.target.value)}
-                  min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-                  className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors"
-                />
+                {preOrderDateLocked ? (
+                  <div className="flex items-center gap-2 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-3 py-2.5 text-[12px] font-semibold text-[var(--text-primary)]">
+                    <CalendarClock className="size-3.5 text-[var(--accent)] shrink-0" />
+                    {new Date(mealAvailableDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </div>
+                ) : (
+                  <input
+                    type="date"
+                    value={preOrderDate}
+                    onChange={e => setPreOrderDate(e.target.value)}
+                    min={preOrderMin}
+                    {...(preOrderMax && { max: preOrderMax })}
+                    className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors"
+                  />
+                )}
               </div>
             )}
 
