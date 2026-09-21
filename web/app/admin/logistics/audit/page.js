@@ -30,6 +30,8 @@ export default function AdminLogisticsAuditPage() {
   const [mounted, setMounted] = useState(false);
   const [shipments, setShipments] = useState([]);
   const [firms, setFirms] = useState([]);
+  const [shipStats, setShipStats] = useState(null);
+  const [totalShipments, setTotalShipments] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedFirm, setSelectedFirm] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -62,6 +64,8 @@ export default function AdminLogisticsAuditPage() {
 
       if (shipRes.data?.success) {
         setShipments(shipRes.data.data.shipments || []);
+        if (shipRes.data.data.stats) setShipStats(shipRes.data.data.stats);
+        if (shipRes.data.total != null) setTotalShipments(shipRes.data.total);
       }
       if (firmRes.data?.success) {
         setFirms(firmRes.data.data.firms || []);
@@ -89,10 +93,10 @@ export default function AdminLogisticsAuditPage() {
     const rows = filteredShipments.map(s => [
       s.tracking_code || 'N/A',
       s.status,
-      firms.find(f => f._id === s.logistics_id)?.company_name || 'Unknown',
-      s.pickup_zone?.name || 'N/A',
-      s.delivery_zone?.name || 'N/A',
-      s.logistics_price || 0,
+      s.logistics_id?.company_name || 'Unknown',
+      s.pickup_address?.quartier || s.pickup_address?.city || 'N/A',
+      s.delivery_address?.quartier || s.delivery_address?.city || 'N/A',
+      s.price || 0,
       new Date(s.createdAt).toLocaleDateString(),
       new Date(s.updatedAt).toLocaleDateString()
     ]);
@@ -120,10 +124,12 @@ export default function AdminLogisticsAuditPage() {
     return true;
   });
 
-  const deliveredCount = filteredShipments.filter(s => s.status === 'delivered').length;
-  const failedCount = filteredShipments.filter(s => s.status === 'failed' || s.status === 'cancelled').length;
-  const onTimeRate = filteredShipments.length > 0
-    ? Math.round((deliveredCount / filteredShipments.length) * 100)
+  const totalCount = shipStats?.total || totalShipments || filteredShipments.length;
+  const deliveredCount = shipStats?.delivered ?? filteredShipments.filter(s => s.status === 'delivered').length;
+  const failedCount = shipStats?.failed ?? filteredShipments.filter(s => s.status === 'failed' || s.status === 'cancelled').length;
+  const activeCount = (shipStats?.in_transit || 0) + (shipStats?.out_for_delivery || 0) + (shipStats?.assigned || 0) + (shipStats?.picked_up || 0);
+  const onTimeRate = totalCount > 0
+    ? Math.round((deliveredCount / totalCount) * 100)
     : 0;
 
   if (!mounted) return null;
@@ -165,9 +171,9 @@ export default function AdminLogisticsAuditPage() {
         {(() => {
           return (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard label="Total Shipments" value={filteredShipments.length} icon={Package} color="primary" sub="Audit period" progress={Math.min(filteredShipments.length, 100)} footer={`${filteredShipments.length} tracked`} />
-              <StatCard label="On-Time Delivery" value={`${onTimeRate}%`} icon={TrendingUp} color="emerald" sub="Success rate" progress={onTimeRate} footer={`${deliveredCount} delivered`} />
-              <StatCard label="Failed/Cancelled" value={failedCount} icon={AlertTriangle} color="rose" sub="Issues" progress={filteredShipments.length > 0 ? Math.round((failedCount / filteredShipments.length) * 100) : 0} footer={`${failedCount} issue${failedCount !== 1 ? 's' : ''}`} />
+              <StatCard label="Total Shipments" value={totalCount} icon={Package} color="primary" sub="Audit period" progress={Math.min(totalCount, 100)} footer={`${totalCount} tracked`} />
+              <StatCard label="Delivered" value={`${onTimeRate}%`} icon={TrendingUp} color="emerald" sub="Success rate" progress={onTimeRate} footer={`${deliveredCount} delivered`} />
+              <StatCard label="Failed/Cancelled" value={failedCount} icon={AlertTriangle} color="rose" sub="Issues" progress={totalCount > 0 ? Math.round((failedCount / totalCount) * 100) : 0} footer={`${failedCount} issue${failedCount !== 1 ? 's' : ''}`} />
               <StatCard label="Active Firms" value={firms.length} icon={Truck} color="indigo" sub="Logistics partners" progress={Math.min(firms.length * 15, 100)} footer={`${firms.length} providers`} />
             </div>
           );
@@ -262,7 +268,7 @@ export default function AdminLogisticsAuditPage() {
               </div>
             ) : filteredShipments.length > 0 ? (
               filteredShipments.map((shipment) => {
-                const firm = firms.find(f => f._id === shipment.logistics_id);
+                const firm = shipment.logistics_id; // populated object
                 const isExpanded = expanded === shipment._id;
                 return (
                   <div key={shipment._id} className="border-b border-[var(--glass-border)]/10 last:border-b-0">
@@ -291,15 +297,15 @@ export default function AdminLogisticsAuditPage() {
                             </div>
                             <div>
                               <p className="opacity-40 uppercase tracking-widest mb-1">Price</p>
-                              <p className="text-[var(--text-primary)] font-mono">{(shipment.logistics_price || 0).toLocaleString()} XAF</p>
+                              <p className="text-[var(--text-primary)] font-mono">{(shipment.price || 0).toLocaleString()} XAF</p>
                             </div>
                             <div>
                               <p className="opacity-40 uppercase tracking-widest mb-1">Origin</p>
-                              <p className="text-[var(--text-primary)] truncate">{shipment.pickup_zone?.name || 'N/A'}</p>
+                              <p className="text-[var(--text-primary)] truncate">{shipment.pickup_address?.quartier || shipment.pickup_address?.city || 'N/A'}</p>
                             </div>
                             <div>
                               <p className="opacity-40 uppercase tracking-widest mb-1">Destination</p>
-                              <p className="text-[var(--text-primary)] truncate">{shipment.delivery_zone?.name || 'N/A'}</p>
+                              <p className="text-[var(--text-primary)] truncate">{shipment.delivery_address?.quartier || shipment.delivery_address?.city || 'N/A'}</p>
                             </div>
                           </div>
                         </div>
@@ -315,14 +321,14 @@ export default function AdminLogisticsAuditPage() {
                             <div className="space-y-4">
                               <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-4 rounded-xl">
                                 <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-3 opacity-40">Vendor</p>
-                                <p className="text-[11px] font-semibold text-[var(--text-primary)]">{shipment.vendor_id?.store_name || 'Unknown'}</p>
-                                <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 mt-1">{shipment.vendor_id?.email || 'N/A'}</p>
+                                <p className="text-[11px] font-semibold text-[var(--text-primary)]">{shipment.vendor_id?.store_name || (shipment.type === 'p2p' ? 'P2P Shipment' : 'Unknown')}</p>
+                                <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 mt-1 capitalize">{shipment.type || 'marketplace'}</p>
                               </div>
 
                               <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-4 rounded-xl">
                                 <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-3 opacity-40">Booked By</p>
-                                <p className="text-[11px] font-semibold text-[var(--text-primary)]">{shipment.booked_by?.name || 'Guest'}</p>
-                                <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 mt-1">{shipment.booked_by?.phone || 'N/A'}</p>
+                                <p className="text-[11px] font-semibold text-[var(--text-primary)]">{shipment.booked_by?.name || shipment.guest_booker?.name || 'Guest'}</p>
+                                <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 mt-1">{shipment.booked_by?.phone || shipment.guest_booker?.phone || 'N/A'}</p>
                               </div>
                             </div>
 
@@ -347,12 +353,18 @@ export default function AdminLogisticsAuditPage() {
                                 <div className="space-y-2 text-[10px] font-semibold text-[var(--text-secondary)]">
                                   <div className="flex items-center justify-between">
                                     <span className="opacity-60">Weight:</span>
-                                    <span className="text-[var(--text-primary)] font-mono">{shipment.weight_class || 'N/A'}</span>
+                                    <span className="text-[var(--text-primary)] font-mono">{shipment.package_details?.weight_tier || 'N/A'}</span>
                                   </div>
                                   <div className="flex items-center justify-between">
-                                    <span className="opacity-60">Items:</span>
-                                    <span className="text-[var(--text-primary)] font-mono">{shipment.items?.length || 0}</span>
+                                    <span className="opacity-60">Category:</span>
+                                    <span className="text-[var(--text-primary)] font-mono capitalize">{shipment.package_details?.category || 'N/A'}</span>
                                   </div>
+                                  {shipment.package_details?.declared_value > 0 && (
+                                    <div className="flex items-center justify-between">
+                                      <span className="opacity-60">Declared Value:</span>
+                                      <span className="text-[var(--text-primary)] font-mono">{shipment.package_details.declared_value.toLocaleString()} XAF</span>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -371,7 +383,7 @@ export default function AdminLogisticsAuditPage() {
                                     <div className="flex-1 min-w-0">
                                       <p className="text-[10px] font-bold text-[var(--text-primary)]">{log.status?.replace('_', ' ').toUpperCase()}</p>
                                       <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-40">{log.note || 'No note'}</p>
-                                      <p className="text-[9px] font-mono text-[var(--text-secondary)] opacity-30 mt-1">{new Date(log.createdAt).toLocaleString()}</p>
+                                      <p className="text-[9px] font-mono text-[var(--text-secondary)] opacity-30 mt-1">{new Date(log.timestamp).toLocaleString()}</p>
                                     </div>
                                   </div>
                                 ))}

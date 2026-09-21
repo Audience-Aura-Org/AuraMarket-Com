@@ -1128,11 +1128,54 @@ const toggleLogisticsVerified = async (req, res, next) => {
 
 const fetchAdminShipments = async (req, res, next) => {
   try {
-    const { status, page = 1, limit = 50 } = req.query;
-    const query = status && status !== 'all' ? { status } : {};
-    const shipments = await Shipment.find(query).populate('order_id', 'total_amount tracking_number createdAt').populate('vendor_id', 'store_name').populate('logistics_id', 'company_name').sort('-createdAt').skip((page - 1) * limit).limit(Number(limit));
-    const total = await Shipment.countDocuments(query);
-    res.status(200).json({ success: true, count: shipments.length, total, data: { shipments } });
+    const { status, firm_id, since, page = 1, limit = 50 } = req.query;
+    const query = {};
+    if (status && status !== 'all') query.status = status;
+    if (firm_id && firm_id !== 'all') query.logistics_id = firm_id;
+    if (since) query.createdAt = { $gte: new Date(since) };
+
+    const [shipments, total, statusCounts] = await Promise.all([
+      Shipment.find(query)
+        .populate('order_id', 'total_amount tracking_number createdAt')
+        .populate('vendor_id', 'store_name')
+        .populate('logistics_id', 'company_name')
+        .populate('booked_by', 'name phone email')
+        .sort('-createdAt')
+        .skip((page - 1) * limit)
+        .limit(Number(limit)),
+      Shipment.countDocuments(query),
+      Shipment.aggregate([
+        ...(Object.keys(query).length ? [{ $match: query }] : []),
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    const counts = {};
+    statusCounts.forEach((s) => { counts[s._id] = s.count; });
+
+    res.status(200).json({
+      success: true,
+      count: shipments.length,
+      total,
+      data: {
+        shipments,
+        stats: {
+          total,
+          delivered: counts.delivered || 0,
+          in_transit: counts.in_transit || 0,
+          pending: counts.pending || 0,
+          assigned: counts.assigned || 0,
+          picked_up: counts.picked_up || 0,
+          out_for_delivery: counts.out_for_delivery || 0,
+          failed: (counts.failed || 0) + (counts.cancelled || 0),
+        },
+      },
+    });
   } catch (error) {
     next(error);
   }
