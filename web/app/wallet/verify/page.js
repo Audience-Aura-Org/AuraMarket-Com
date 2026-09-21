@@ -23,6 +23,7 @@ function VerifyContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const refreshWalletBalance = useAuthStore((state) => state.refreshWalletBalance);
+  const setWalletBalance = useAuthStore((state) => state.setWalletBalance);
 
   const ref = searchParams.get('ref');
   const gateway = searchParams.get('gateway');
@@ -63,7 +64,9 @@ function VerifyContent() {
             setState('successful');
             setMessage(msg || (isSubscription ? 'Subscription activated! Your workspace is ready.' : 'Payment confirmed! Your transaction is complete.'));
             setBalanceAdded(data?.balance_added || 0);
-            refreshWalletBalance?.();
+            const confirmedBalance = Number(data?.balance);
+            if (Number.isFinite(confirmedBalance)) setWalletBalance(confirmedBalance);
+            else refreshWalletBalance?.();
             if (type === 'checkout') {
               cartStore.clearCart();
               // Also clear the server-side cart (external payments skip the clear at order
@@ -100,7 +103,7 @@ function VerifyContent() {
     return () => {
       if (stopPollingRef.current) stopPollingRef.current();
     };
-  }, [ref, gateway, type, refreshWalletBalance]);
+  }, [ref, gateway, type, refreshWalletBalance, setWalletBalance]);
 
 
   const handleRecheck = async () => {
@@ -116,7 +119,9 @@ function VerifyContent() {
       setState('successful');
       setMessage(result.message || (isSubscription ? 'Subscription activated!' : 'Payment confirmed!'));
       setBalanceAdded(result.data?.balance_added || 0);
-      refreshWalletBalance?.();
+      const confirmedBalance = Number(result.data?.balance);
+      if (Number.isFinite(confirmedBalance)) setWalletBalance(confirmedBalance);
+      else refreshWalletBalance?.();
       if (type === 'checkout') {
         cartStore.clearCart();
         api.delete('/cart/clear').catch(() => {});

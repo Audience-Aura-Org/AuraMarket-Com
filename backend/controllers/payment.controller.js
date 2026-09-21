@@ -591,7 +591,15 @@ const payunitVerify = async (req, res) => {
     const transaction = await Transaction.findOne({ reference, gateway: 'payunit' });
     if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
     if (transaction.status === 'completed') {
-      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed.' });
+      const user = await User.findById(transaction.user_id).select('wallet_balance').lean();
+      return res.status(200).json({
+        success: true,
+        status: 'SUCCESSFUL',
+        message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed.',
+        data: isSubscriptionTransaction(transaction)
+          ? { subscription: true }
+          : { balance_added: transaction.amount, balance: user?.wallet_balance },
+      });
     }
     if (transaction.status === 'failed') {
       return res.status(400).json({ success: false, status: 'FAILED', message: 'Payment failed.', reason: transaction.gateway_response?.message });
@@ -603,11 +611,14 @@ const payunitVerify = async (req, res) => {
 
     if (status === 'SUCCESSFUL') {
       await settleGatewayTransaction(transaction, result.raw || data, req.app, getWebUrl(req), 'payunit');
+      const user = await User.findById(transaction.user_id).select('wallet_balance').lean();
       return res.status(200).json({
         success: true,
         status: 'SUCCESSFUL',
         message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed.',
-        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+        data: isSubscriptionTransaction(transaction)
+          ? { subscription: true }
+          : { balance_added: transaction.amount, balance: user?.wallet_balance },
       });
     }
 
@@ -641,11 +652,14 @@ const payunitRecheck = async (req, res) => {
 
     // Already settled — nothing to do
     if (transaction.status === 'completed') {
+      const user = await User.findById(transaction.user_id).select('wallet_balance').lean();
       return res.status(200).json({
         success: true,
         status: 'SUCCESSFUL',
         message: isSubscriptionTransaction(transaction) ? 'Subscription is already active.' : 'Payment has already been confirmed.',
-        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+        data: isSubscriptionTransaction(transaction)
+          ? { subscription: true }
+          : { balance_added: transaction.amount, balance: user?.wallet_balance },
       });
     }
 
@@ -656,11 +670,14 @@ const payunitRecheck = async (req, res) => {
 
     if (status === 'SUCCESSFUL') {
       await settleGatewayTransaction(transaction, result.raw || data, req.app, getWebUrl(req), 'payunit');
+      const user = await User.findById(transaction.user_id).select('wallet_balance').lean();
       return res.status(200).json({
         success: true,
         status: 'SUCCESSFUL',
         message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed! Your account has been updated.',
-        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+        data: isSubscriptionTransaction(transaction)
+          ? { subscription: true }
+          : { balance_added: transaction.amount, balance: user?.wallet_balance },
       });
     }
 
@@ -1008,6 +1025,7 @@ const eversendVerify = async (req, res) => {
         const io = req.app.get('io');
         if (io) {
           const evPayload = { amount: claimed.amount, reference, ...(evNewBalance !== undefined ? { balance: evNewBalance } : {}) };
+          io.to(claimed.user_id.toString()).emit('wallet:credited', evPayload);
           io.to(`user:${claimed.user_id}`).emit('wallet:credited', evPayload);
         }
       } catch (e) { await sess.abortTransaction(); throw e; }
@@ -1341,6 +1359,7 @@ const eversendWebhook = async (req, res) => {
       if (transaction) {
         const isCheckout = transaction.order_ids?.length > 0;
         const isSubscription = isSubscriptionTransaction(transaction);
+        let newWalletBalance;
 
         if (isSubscription) {
           const session = await mongoose.startSession();
@@ -1376,8 +1395,12 @@ const eversendWebhook = async (req, res) => {
           try {
             await Transaction.findByIdAndUpdate(transaction._id,
               { $set: { status: 'completed', gateway_response: data } }, { session });
-            await User.findByIdAndUpdate(transaction.user_id,
-              { $inc: { wallet_balance: transaction.amount } }, { session });
+            const updatedUser = await User.findByIdAndUpdate(
+              transaction.user_id,
+              { $inc: { wallet_balance: transaction.amount } },
+              { session, returnDocument: 'after' }
+            );
+            newWalletBalance = updatedUser?.wallet_balance;
             await session.commitTransaction();
           } catch (err) {
             await session.abortTransaction();
@@ -1388,14 +1411,19 @@ const eversendWebhook = async (req, res) => {
 
         webhookHealth.record('webhookSettled', 'eversend');
 
-        // -- Instant Socket.io push ? frontend shows success immediately --
+        // Deliver the committed balance to every active session. A pure wallet
+        // top-up is the only Eversend success that changes this user's balance.
         const io = req.app.get('io');
-        if (io) {
-          io.to(transaction.user_id.toString()).emit('wallet:credited', {
+        if (io && !isSubscription && !isCheckout && Number.isFinite(Number(newWalletBalance))) {
+          const room = transaction.user_id.toString();
+          const payload = {
             amount: transaction.amount,
             reference: transaction.reference,
-            type: isSubscription ? 'subscription' : (isCheckout ? 'checkout' : 'deposit'),
-          });
+            type: 'deposit',
+            balance: Number(newWalletBalance),
+          };
+          io.to(room).emit('wallet:credited', payload);
+          io.to(`user:${room}`).emit('wallet:credited', payload);
         }
 
         // In-app notification

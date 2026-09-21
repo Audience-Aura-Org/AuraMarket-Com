@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { initiateCollection, initiateSmartCameroonCollection, pollTransactionStatus } from '@/services/paymentProvider';
 import api from '@/services/api';
+import { useAuthStore } from '@/hooks/useAuth';
 
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
 
@@ -20,6 +21,7 @@ const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
  *   userPhone  — pre-fill phone from user profile
  */
 export default function DepositModal({ open, onClose, onSuccess, userPhone = '' }) {
+  const setWalletBalance = useAuthStore((state) => state.setWalletBalance);
   const [step, setStep]         = useState('amount'); // 'amount' | 'processing' | 'result'
   const [gateway, setGateway]   = useState('pawapay');
   const [amount, setAmount]     = useState('');
@@ -96,6 +98,17 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   const collectionFee  = netAmount > 0 ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
   const approvalAmount = netAmount + collectionFee;
 
+  // PayUnit verification returns the committed balance. Applying it directly
+  // makes the persistent top nav update even if Socket.IO is delayed or absent.
+  const applyConfirmedBalance = (data) => {
+    const balance = Number(data?.balance);
+    if (Number.isFinite(balance)) {
+      setWalletBalance(balance);
+    } else {
+      window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
+    }
+  };
+
   // Shared timeout handler — called by polling onTimeout
   const triggerTimeout = async (localRef, gw) => {
     stopPollingRef.current?.();
@@ -110,7 +123,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
         if (r.data?.status === 'SUCCESSFUL') {
           setStatus('success');
           setMessage('Payment confirmed! Your wallet has been credited.');
-          window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
+          applyConfirmedBalance(r.data?.data);
           onSuccess?.();
           return;
         } else if (r.data?.status === 'FAILED') {
@@ -184,12 +197,12 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
           localRef,
           {
             onPending: (data) => setMessage(data.message || 'Awaiting mobile money confirmation...'),
-            onSuccess: () => {
+            onSuccess: (result) => {
               stopPollingRef.current = null;
               setStatus('success');
               setStep('result');
               setMessage('Payment confirmed! Your wallet has been credited.');
-              window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
+              applyConfirmedBalance(result?.data);
               onSuccess?.();
             },
             onFailed: (data) => {
@@ -236,7 +249,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
       if (s === 'SUCCESSFUL') {
         setStatus('success');
         setMessage(msg || 'Payment confirmed! Your wallet has been credited.');
-        window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
+        applyConfirmedBalance(res.data?.data);
         onSuccess?.();
       } else if (s === 'FAILED') {
         setStatus('failed');
