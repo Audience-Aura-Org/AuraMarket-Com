@@ -4,10 +4,11 @@ import Providers from '@/components/Providers';
 export const metadata = {
   metadataBase: new URL('https://auradime.com'),
   title: {
-    default: 'Auradime | Shop Premium Products from Trusted Sellers',
+    default: 'Auradime — Shop, Dine & Deliver Across Cameroon',
     template: '%s | Auradime',
   },
-  description: 'Auradime is a premium marketplace for buying and selling quality digital and physical products, built for trusted commerce in Cameroon and Africa.',
+  description: 'Auradime is Cameroon\'s trusted marketplace for shopping, dining, and delivery. Buy quality products, order meals from local restaurants, and enjoy fast logistics — all in one platform.',
+  keywords: ['Auradime', 'Cameroon marketplace', 'online shopping Cameroon', 'buy online Cameroon', 'food delivery Cameroon', 'African marketplace', 'Douala shopping', 'Yaoundé shopping', 'Cameroon ecommerce', 'order food online Cameroon', 'local restaurants Cameroon', 'delivery service Cameroon'],
   manifest: '/manifest.json',
   alternates: {
     canonical: '/',
@@ -17,21 +18,21 @@ export const metadata = {
     },
   },
   openGraph: {
-    title: 'Auradime | Shop Premium Products from Trusted Sellers',
-    description: 'A premium marketplace for trusted buying, selling, logistics, and fulfilment in Cameroon and Africa.',
+    title: 'Auradime — Shop, Dine & Deliver Across Cameroon',
+    description: 'Buy quality products, order meals from local restaurants, and enjoy fast delivery — Cameroon\'s trusted all-in-one marketplace.',
     url: 'https://auradime.com',
     siteName: 'Auradime',
     images: [
-      { url: '/icon-512.png?v=8', width: 512, height: 512, alt: 'Auradime logo' },
+      { url: '/icon-512.png?v=8', width: 512, height: 512, alt: 'Auradime — Cameroon marketplace for shopping, dining and delivery' },
     ],
     locale: 'en_US',
     alternateLocale: ['fr_CM'],
     type: 'website',
   },
   twitter: {
-    card: 'summary',
-    title: 'Auradime | Shop Premium Products from Trusted Sellers',
-    description: 'A premium marketplace for trusted buying, selling, logistics, and fulfilment in Cameroon and Africa.',
+    card: 'summary_large_image',
+    title: 'Auradime — Shop, Dine & Deliver Across Cameroon',
+    description: 'Buy quality products, order meals from local restaurants, and enjoy fast delivery — Cameroon\'s trusted all-in-one marketplace.',
     images: ['/icon-512.png?v=8'],
   },
   appleWebApp: {
@@ -48,6 +49,55 @@ export const metadata = {
       { url: '/apple-touch-icon.png?v=8', sizes: '512x512', type: 'image/png' },
     ],
   },
+  other: {
+    'google-site-verification': '',
+  },
+};
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Auradime',
+  url: 'https://auradime.com',
+  logo: 'https://auradime.com/icon-512.png',
+  description: 'Cameroon\'s trusted marketplace for shopping, dining, and delivery.',
+  sameAs: [],
+  contactPoint: {
+    '@type': 'ContactPoint',
+    email: 'hello@auradime.com',
+    contactType: 'customer service',
+    availableLanguage: ['English', 'French'],
+  },
+  areaServed: {
+    '@type': 'Country',
+    name: 'Cameroon',
+  },
+};
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Auradime',
+  url: 'https://auradime.com',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: 'https://auradime.com/shop?q={search_term_string}',
+    'query-input': 'required name=search_term_string',
+  },
+};
+
+const siteNavJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  itemListElement: [
+    { '@type': 'SiteNavigationElement', position: 1, name: 'Shop', url: 'https://auradime.com/shop' },
+    { '@type': 'SiteNavigationElement', position: 2, name: 'Restaurants', url: 'https://auradime.com/dine' },
+    { '@type': 'SiteNavigationElement', position: 3, name: 'Stores', url: 'https://auradime.com/stores' },
+    { '@type': 'SiteNavigationElement', position: 4, name: 'Discover', url: 'https://auradime.com/collections' },
+    { '@type': 'SiteNavigationElement', position: 5, name: 'Brands', url: 'https://auradime.com/brands' },
+    { '@type': 'SiteNavigationElement', position: 6, name: 'Help Center', url: 'https://auradime.com/help-center' },
+    { '@type': 'SiteNavigationElement', position: 7, name: 'Sign In', url: 'https://auradime.com/login' },
+  ],
 };
 
 export default function RootLayout({ children }) {
@@ -60,6 +110,10 @@ export default function RootLayout({ children }) {
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"
         />
         <meta name="theme-color" content="#0a050a" />
+        {/* Structured Data */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(siteNavJsonLd) }} />
         {/* Dynamic Theme-Aware Favicons */}
         <link rel="icon" href="/icon-192.png?v=8" media="(prefers-color-scheme: light)" />
         <link rel="icon" href="/icon-512.png?v=8" media="(prefers-color-scheme: dark)" />
