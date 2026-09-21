@@ -405,10 +405,15 @@ const getPublicStores = async (req, res, next) => {
       .sort(sort)
       .lean();
 
-    // Filter out vendors whose Store is explicitly deactivated or whose user account was deleted
+    // Filter out vendors whose Store is missing/deactivated, whose user account was deleted,
+    // or whose store_name is just a generic placeholder like "Store"
     const filtered = stores.filter(s => {
-      if (s.store && s.store.is_active === false) return false;
+      if (!s.store) return false; // no Store document created
+      if (s.store.is_active === false) return false;
       if (!s.user_id) return false; // user account deleted
+      // Filter out generic placeholder names
+      const name = (s.store_name || '').trim().toLowerCase();
+      if (['store', 'my store', 'shop', 'my shop'].includes(name)) return false;
       return true;
     });
 
