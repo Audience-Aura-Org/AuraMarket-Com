@@ -449,12 +449,14 @@ const adminGetAllWithdrawals = async (req, res) => {
 
     // Build accurate status counts from the aggregation
     const counts = {};
-    statusCounts.forEach((s) => { counts[s._id] = s.count; });
+    const amounts = {};
+    statusCounts.forEach((s) => { counts[s._id] = s.count; amounts[s._id] = s.total_amount || 0; });
     const pendingCount = counts.pending || 0;
     const approvedCount = counts.approved || 0;
     const completedCount = counts.completed || 0;
     const rejectedCount = counts.rejected || 0;
     const failedCount = (counts.failed || 0) + (counts.processing_error || 0);
+    const totalAmount = statusCounts.reduce((sum, s) => sum + (s.total_amount || 0), 0);
 
     return res.status(200).json({
       success: true,
@@ -469,6 +471,7 @@ const adminGetAllWithdrawals = async (req, res) => {
           rejected: rejectedCount,
           failed: failedCount,
           total: statusCounts.reduce((sum, s) => sum + s.count, 0),
+          total_amount: totalAmount,
         },
         page: Number(page),
         pages: Math.ceil(total / limit),

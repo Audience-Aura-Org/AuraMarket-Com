@@ -35,7 +35,7 @@ const STATUS = Object.fromEntries(
   ])
 );
 
-const STATUS_TABS = ['all', 'pending', 'approved', 'completed', 'rejected', 'failed'];
+const STATUS_TABS = ['all', 'pending', 'approved', 'rejected', 'failed'];
 
 function getRequesterProfile(withdrawal) {
   const profile = withdrawal?.requesterProfile || {};
@@ -240,18 +240,18 @@ export default function AdminWithdrawalsPage() {
         <AdminFinanceBody>
           {(() => {
             const pending    = wdStats?.pending  ?? pendingCount;
-            const approved   = wdStats?.approved ?? withdrawals.filter(w => w.status === 'approved').length;
-            const completed  = wdStats?.completed ?? 0;
+            const approved   = (wdStats?.approved ?? 0) + (wdStats?.completed ?? 0);
             const issues     = wdStats?.failed   ?? flaggedCount;
             const allTotal   = wdStats?.total    ?? (withdrawals.length || 1);
+            const totalVolume = wdStats?.total_amount ?? 0;
             const pendingPct = Math.min(pending * 5, 100);
             const approvedPct = allTotal > 0 ? Math.round((approved / allTotal) * 100) : 0;
             const issuePct   = Math.min(issues * 10, 100);
             return (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <StatCard label="Pending" value={pending} icon={CheckCircle2} color="amber" sub="Awaiting review" progress={pendingPct} footer={pending > 0 ? `${pending} need action` : 'Queue clear'} />
-                <StatCard label="Completed" value={completed} icon={Wallet} color="primary" sub="Paid out" progress={allTotal > 0 ? Math.round((completed / allTotal) * 100) : 0} footer={`${completed} disbursed`} />
-                <StatCard label="Approved" value={approved} icon={CheckCircle2} color="emerald" sub="Processed" progress={approvedPct} footer={`${approvedPct}% approved`} />
+                <StatCard label="Approved" value={approved} icon={CheckCircle2} color="emerald" sub="Processed & paid" progress={approvedPct} footer={`${approvedPct}% approved`} />
+                <StatCard label="Total Volume" value={`${(totalVolume / 1000).toFixed(0)}k`} icon={Wallet} color="primary" sub="All payouts (XAF)" progress={Math.min(Math.round(totalVolume / 10000), 100)} footer={`${totalVolume.toLocaleString()} XAF`} />
                 <StatCard label="Issues" value={issues} icon={AlertCircle} color="rose" sub="Failed / errors" progress={issuePct} footer={issues > 0 ? `${issues} flagged` : 'All clear'} />
               </div>
             );
