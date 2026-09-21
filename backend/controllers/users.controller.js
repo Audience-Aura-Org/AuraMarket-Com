@@ -145,7 +145,7 @@ const submitKYC = async (req, res, next) => {
 // GET /api/v1/users/followed-vendors
 const getFollowedVendors = async (req, res, next) => {
   try {
-    const follows = await Follow.find({ user_id: req.user._id })
+    const rawFollows = await Follow.find({ user_id: req.user._id })
       .populate({
         path: 'vendor_id',
         select: 'store_name description rating verified follower_count user_id vendor_type',
@@ -156,6 +156,9 @@ const getFollowedVendors = async (req, res, next) => {
       })
       .sort('-createdAt')
       .lean();
+
+    // Filter out follows where the vendor was deleted or has no store name
+    const follows = rawFollows.filter(f => f.vendor_id && f.vendor_id.store_name);
 
     // Batch-sync real follower counts so the followed-vendors list never shows stale 0s
     const vendorIds = follows.map(f => f.vendor_id?._id).filter(Boolean);

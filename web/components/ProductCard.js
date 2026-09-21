@@ -261,7 +261,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
                 <div className="flex items-center gap-2 font-semibold text-[var(--text-secondary)] opacity-70">
                    <span className="flex items-center gap-1 text-[8px] lg:text-[10px]"><ShoppingCart className="size-3.5 text-emerald-500" /> {t('product.soldCount', '{count} sold', { count: product.purchase_count || 0 })}</span>
                   {deliveryTime && (
-                     <span className="flex items-center gap-1 opacity-50" style={{ fontSize: '7px' }}><Clock className="size-2.5 text-[var(--text-secondary)]" /> Delivery in {deliveryTime}</span>
+                     <span className="flex items-center gap-1 text-[6px] sm:text-[7px] opacity-50"><Clock className="size-2.5 text-[var(--text-secondary)]" /> Delivery in {deliveryTime}</span>
                    )}
                 </div>
               </div>
@@ -388,7 +388,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
             </div>
           </div>
           {deliveryTime && (
-            <span className="flex items-center gap-1 font-semibold text-[var(--text-secondary)] opacity-50" style={{ fontSize: '7px' }}>
+            <span className="flex items-center gap-1 text-[6px] sm:text-[7px] font-semibold text-[var(--text-secondary)] opacity-50">
               <Clock className="size-2.5 text-[var(--text-secondary)] shrink-0" />
               <span className="truncate">Delivery in {deliveryTime}</span>
             </span>

@@ -129,19 +129,34 @@ const getFeeBreakdown = (tx = {}) => {
 };
 
 const buildAdminEarningsSummary = async () => {
-  const revenueTransactions = await Transaction.find({
-    status: 'completed',
-    $or: [
-      { gateway: 'platform' },
-      { 'metadata.collection_fee': { $exists: true } },
-      { 'metadata.collectionFee': { $exists: true } },
-      { 'metadata.subscription_fee': { $exists: true } },
-      { 'metadata.subscriptionFee': { $exists: true } },
-      { description: /subscription/i },
-    ],
-  })
-    .select('amount gateway description metadata createdAt')
-    .lean();
+  // Three parallel queries for comprehensive earnings:
+  // 1. All payout transactions with fee breakdowns (commission + escrow from ALL order types)
+  // 2. Payment transactions with collection fees (mobile money charges)
+  // 3. Subscription payment totals
+  const [payoutTxns, collectionTxns, subAgg] = await Promise.all([
+    Transaction.find({
+      type: 'payout',
+      status: { $in: ['completed', 'pending'] },
+      'metadata.platform_fee_breakdown': { $exists: true },
+    })
+      .select('metadata')
+      .lean(),
+
+    Transaction.find({
+      status: 'completed',
+      $or: [
+        { 'metadata.collection_fee': { $exists: true } },
+        { 'metadata.collectionFee': { $exists: true } },
+      ],
+    })
+      .select('metadata')
+      .lean(),
+
+    Transaction.aggregate([
+      { $match: { type: 'subscription', status: 'completed' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]),
+  ]);
 
   const summary = {
     commission: 0,
@@ -150,33 +165,25 @@ const buildAdminEarningsSummary = async () => {
     subscription: 0,
     total: 0,
     currency: 'XAF',
-    transaction_count: revenueTransactions.length,
+    transaction_count: payoutTxns.length + collectionTxns.length,
     updated_at: new Date(),
   };
 
-  revenueTransactions.forEach((tx) => {
-    const fees = getFeeBreakdown(tx);
-    summary.collection += fees.collection;
-    summary.subscription += fees.subscription;
-
-    const hasSplit = fees.commission > 0 || fees.escrow > 0;
-    if (hasSplit) {
-      summary.commission += fees.commission;
-      summary.escrow += fees.escrow;
-      return;
-    }
-
-    if (tx.gateway === 'platform') {
-      const description = String(tx.description || '');
-      if (/escrow/i.test(description) && !/commission/i.test(description)) {
-        summary.escrow += asMoney(tx.amount);
-      } else if (/subscription/i.test(description)) {
-        summary.subscription += asMoney(tx.amount);
-      } else {
-        summary.commission += asMoney(tx.amount);
-      }
-    }
+  // Extract commission and escrow fees from every payout transaction's breakdown
+  payoutTxns.forEach((tx) => {
+    const breakdown = tx.metadata?.platform_fee_breakdown || {};
+    summary.commission += asMoney(breakdown.commission_fee);
+    summary.escrow += asMoney(breakdown.escrow_fee);
   });
+
+  // Extract collection fees from payment gateway transactions
+  collectionTxns.forEach((tx) => {
+    const meta = tx.metadata || {};
+    summary.collection += asMoney(meta.collection_fee ?? meta.collectionFee);
+  });
+
+  // Subscription revenue from completed subscription payments
+  summary.subscription = asMoney(subAgg[0]?.total);
 
   summary.total = summary.commission + summary.escrow + summary.collection + summary.subscription;
   return summary;

@@ -125,7 +125,9 @@ const getRecommended = async (req, res, next) => {
  */
 const getTopVendors = async (req, res, next) => {
   try {
-    const vendors = await Vendor.find()
+    const vendors = await Vendor.find({
+      store_name: { $exists: true, $ne: '' },
+    })
       .select('store_name rating verified description average_response_time')
       .populate('store', 'logo banner categories delivery_time')
       .sort({ rating: -1 })
