@@ -38,6 +38,15 @@ export function useWalletBalance() {
     document.addEventListener('visibilitychange', refresh);
     // Financial events from SocketProvider (deposit, withdrawal, payment, etc.)
     window.addEventListener('aura:financial-update', refresh);
+    // A local transaction can finish before its Socket.IO event reaches this
+    // browser. Refresh immediately so the persistent top nav shows the
+    // committed debit or credit without waiting for navigation or polling.
+    // Store-originated events include a balance and have already updated state.
+    const onWalletUpdated = (event) => {
+      if (Number.isFinite(Number(event?.detail?.balance))) return;
+      doRefresh();
+    };
+    window.addEventListener('aura:wallet-updated', onWalletUpdated);
 
     // Detect in-app navigation (Next.js App Router uses pushState/replaceState)
     let lastHref = location.href;
@@ -84,6 +93,7 @@ export function useWalletBalance() {
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', refresh);
       window.removeEventListener('aura:financial-update', refresh);
+      window.removeEventListener('aura:wallet-updated', onWalletUpdated);
       window.removeEventListener('popstate', onNavChange);
       history.pushState = origPushState;
       history.replaceState = origReplaceState;
