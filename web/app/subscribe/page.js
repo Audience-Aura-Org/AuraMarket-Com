@@ -361,8 +361,8 @@ function SubscribeContent() {
                     >
                       <Smartphone className="size-5 text-[var(--accent)]" />
                       <div>
-                        <p className="text-sm font-bold">{t('subscription.pawapayTitle', 'PawaPay - primary Cameroon')}</p>
-                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.pawapayHelp', 'Primary Cameroon collection for MTN Mobile Money and Orange Money.')}</p>
+                        <p className="text-sm font-bold">{t('subscription.pawapayTitle', 'MTN Mobile Money')}</p>
+                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.pawapayHelp', 'Pay with MTN Mobile Money (Cameroon).')}</p>
                       </div>
                     </button>
                     <button

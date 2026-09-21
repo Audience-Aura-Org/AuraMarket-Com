@@ -204,8 +204,6 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
   };
 
   const renderCardContent = () => {
-    const vendorActive = product.vendor_subscription_active !== false;
-
     if (layout === 'list') {
       return (
         <div 
@@ -274,7 +272,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
               {/* Add to Cart — PRIMARY */}
               <button
                 onClick={handleAddToCart}
-                disabled={addingToCart || !vendorActive || (!product.has_variants && product.stock <= 0)}
+                disabled={addingToCart || (!product.has_variants && product.stock <= 0)}
                 title={t('product.addToCart', 'Add to cart')}
                 aria-label={t('product.addToCart', 'Add to cart')}
                 className="h-8 sm:h-9 rounded-xl sm:rounded-2xl bg-[var(--accent)] text-white flex items-center justify-center gap-1.5 text-[11px] font-bold shadow-lg shadow-[var(--accent)]/20 hover:brightness-110 active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
@@ -293,7 +291,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
               {/* Buy Now — SECONDARY */}
               <button
                 onClick={handleBuyNow}
-                disabled={!vendorActive || (!product.has_variants && product.stock <= 0)}
+                disabled={!product.has_variants && product.stock <= 0}
                 className="h-8 sm:h-9 rounded-xl sm:rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-2"
               >
                 <ShoppingCart className="size-3.5 sm:size-4 shrink-0" />
@@ -305,7 +303,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
     }
 
     const inStock = product.has_variants ? true : (product.stock > 0);
-    const purchasable = inStock && vendorActive;
+    const purchasable = inStock;
 
     return (
       <div
@@ -357,11 +355,6 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
           {!inStock && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
               <span className="px-4 py-2 bg-red-500 text-white text-[11px] font-semibold tracking-tight rounded-full shadow-xl">{t('common.outOfStock')}</span>
-            </div>
-          )}
-          {inStock && !vendorActive && (
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
-              <span className="px-4 py-2 bg-slate-600 text-white text-[11px] font-semibold tracking-tight rounded-full shadow-xl">Unavailable</span>
             </div>
           )}
           <button onClick={handleWishlist} disabled={wishlistLoading} className={`absolute top-2.5 right-2.5 size-7 rounded-full flex items-center justify-center transition-all border shadow-lg backdrop-blur-xl z-20 ${wishlisted ? 'bg-red-500 text-white border-red-500' : 'bg-black/60 text-white border-white/10 hover:bg-red-500'}`}>

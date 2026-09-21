@@ -123,7 +123,6 @@ export default function RestaurantMenuPageClient() {
 
   const { vendor, profile, menu } = data;
   const isOpen = profile.open_status === 'open' && profile.is_accepting_orders;
-  const isSubscriptionActive = vendor.vendor_subscription_active !== false;
   const heroTheme = getHeroTheme(profile.cuisine_types, vendor.store_name);
   const initial = (vendor.store_name || '?')[0].toUpperCase();
 
@@ -176,10 +175,10 @@ export default function RestaurantMenuPageClient() {
         </button>
 
         <div className={`absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] lg:text-[12px] font-bold shadow-lg backdrop-blur-sm ${
-          !isSubscriptionActive ? 'bg-slate-600 text-white/90' : isOpen ? 'bg-emerald-500 text-white' : 'bg-black/55 text-white/85'
+          isOpen ? 'bg-emerald-500 text-white' : 'bg-black/55 text-white/85'
         }`}>
-          {isOpen && isSubscriptionActive && <span className="size-1.5 rounded-full bg-white animate-pulse" />}
-          {!isSubscriptionActive ? 'Unavailable' : isOpen ? 'Open now' : 'Closed'}
+          {isOpen && <span className="size-1.5 rounded-full bg-white animate-pulse" />}
+          {isOpen ? 'Open now' : 'Closed'}
         </div>
       </div>
 
@@ -268,12 +267,6 @@ export default function RestaurantMenuPageClient() {
               <p className="text-[11px] lg:text-[13px] text-[var(--text-secondary)]">This restaurant is currently closed. Browse the menu below.</p>
             </div>
           )}
-          {!isSubscriptionActive && (
-            <div className="mt-3 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2.5 flex items-center gap-2">
-              <AlertTriangle className="size-4 text-amber-500 shrink-0" />
-              <p className="text-[11px] lg:text-[13px] text-amber-600 font-medium">This restaurant is temporarily unavailable. Orders cannot be placed at this time.</p>
-            </div>
-          )}
         </div>
       </div>
 
@@ -359,8 +352,7 @@ export default function RestaurantMenuPageClient() {
                     unavailable={
                       !meal.meal?.is_available_today ||
                       !isOpen ||
-                      !profile.delivery_available ||
-                      !isSubscriptionActive
+                      !profile.delivery_available
                     }
                   />
                 </motion.div>

@@ -169,6 +169,25 @@ const initiateDeposit = async (req, res, next) => {
 // @access  Private
 // ─────────────────────────────────────────────
 const requestWithdrawal = async (req, res, next) => {
+  // Block withdrawals for vendors/logistics without active subscription
+  const subscriptionRoles = ['vendor', 'logistics'];
+  if (subscriptionRoles.includes(req.user?.role)) {
+    try {
+      const { getSubscriptionStatus } = require('../services/subscription.service');
+      const status = await getSubscriptionStatus(req.user, req.user.role);
+      if (!status.active) {
+        return res.status(402).json({
+          success: false,
+          code: 'SUBSCRIPTION_REQUIRED',
+          message: 'An active subscription is required to withdraw funds. Your earnings are safe and will be available once you subscribe.',
+          redirect: `/subscribe?role=${encodeURIComponent(req.user.role)}`,
+        });
+      }
+    } catch (subErr) {
+      return next(subErr);
+    }
+  }
+
   const session = await mongoose.startSession();
   session.startTransaction();
 
