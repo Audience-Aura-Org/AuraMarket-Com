@@ -1,6 +1,6 @@
 "use client";
 
-import { Star, Clock, Plus, MessageSquare } from 'lucide-react';
+import { Star, Clock, Plus, MessageSquare, ShoppingCart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@/context/ChatContext';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -206,9 +206,10 @@ export default function MealCard({
           <button
             onClick={handleBuyNow}
             disabled={unavailable}
-            className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center text-[9px] md:text-[10px] font-bold hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-1"
+            title="Buy now"
+            className="h-8 md:h-9 rounded-lg md:rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-[var(--text-primary)] flex items-center justify-center hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed px-1"
           >
-            <span className="truncate">Buy Now</span>
+            <ShoppingCart className="size-3.5 md:size-4 shrink-0" />
           </button>
         </div>
       </div>
