@@ -63,6 +63,18 @@ export default function AdminVendorsPage() {
     } catch (err) { toast.error('Shift failed'); }
   };
 
+  const handleToggleDeactivate = async (vendorId, currentOnboarded) => {
+    const action = currentOnboarded ? 'deactivate' : 'reactivate';
+    if (!confirm(`Are you sure you want to ${action} this vendor? They will ${currentOnboarded ? 'no longer' : 'again'} appear in public listings.`)) return;
+    try {
+      const res = await api.patch(`/admin/vendors/${vendorId}/status`, { is_onboarded: !currentOnboarded });
+      if (res.data.success) {
+        toast.success(`Vendor ${currentOnboarded ? 'deactivated' : 'reactivated'} successfully`);
+        setVendors(prev => prev.map(v => v._id === vendorId ? { ...v, is_onboarded: !currentOnboarded } : v));
+      }
+    } catch (err) { toast.error(`Failed to ${action} vendor`); }
+  };
+
   const getVendorLogo = (vendor) => (
     vendor?.store?.logo ||
     vendor?.user_id?.branding?.logo ||
@@ -197,7 +209,7 @@ export default function AdminVendorsPage() {
            
            <div className="flex items-center gap-3 w-full md:w-auto">
               <div className="flex-1 md:flex-none flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 shadow-inner">
-                 {['all', 'verified', 'unverified'].map(s => (
+                 {['all', 'verified', 'unverified', 'deactivated'].map(s => (
                    <button
                      key={s} onClick={() => setStatusFilter(s)}
                      className={`flex-1 md:flex-none px-4 py-1.5 rounded-xl text-[10px] md:text-[11px] font-bold tracking-tight transition-all uppercase ${statusFilter === s ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
@@ -289,8 +301,8 @@ export default function AdminVendorsPage() {
 
                           <div className="flex items-center justify-between md:justify-end gap-6 shrink-0">
                              <div className="flex items-center gap-2">
-                                <div className={`size-1.5 rounded-full ${v.verified ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-amber-500 shadow-[0_0_8px_#f59e0b]'}`} />
-                                <span className="text-[10px] font-bold tracking-widest uppercase opacity-60">{v.verified ? 'Verified' : 'Pending'}</span>
+                                <div className={`size-1.5 rounded-full ${v.is_onboarded === false ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' : v.verified ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : 'bg-amber-500 shadow-[0_0_8px_#f59e0b]'}`} />
+                                <span className="text-[10px] font-bold tracking-widest uppercase opacity-60">{v.is_onboarded === false ? 'Deactivated' : v.verified ? 'Verified' : 'Pending'}</span>
                              </div>
                              
                              <div className="flex items-center gap-2">
@@ -312,7 +324,11 @@ export default function AdminVendorsPage() {
                                 <Link href={`/stores/${v._id}`} className="size-10 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all shadow-sm active:scale-95">
                                    <ExternalLink className="size-4.5" />
                                 </Link>
-                                <button className="size-10 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm active:scale-95">
+                                <button
+                                   onClick={() => handleToggleDeactivate(v._id, v.is_onboarded !== false)}
+                                   className={`size-10 rounded-xl flex items-center justify-center border transition-all shadow-sm active:scale-95 ${v.is_onboarded === false ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500 hover:text-white' : 'bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500 hover:text-white'}`}
+                                   title={v.is_onboarded === false ? 'Reactivate Vendor' : 'Deactivate Vendor'}
+                                >
                                    <Ban className="size-4.5" />
                                 </button>
                              </div>

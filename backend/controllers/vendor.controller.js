@@ -381,7 +381,10 @@ const getPublicStores = async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 20;
     const startIndex = (page - 1) * limit;
 
-    let query = { is_onboarded: true };
+    let query = {
+      is_onboarded: true,
+      store_name: { $exists: true, $nin: ['', null] },
+    };
 
     if (search) {
       query.store_name = { $regex: escapeRegExp(search), $options: 'i' };
@@ -395,32 +398,39 @@ const getPublicStores = async (req, res, next) => {
     // Used for store directories and discovery feeds
     const stores = await Vendor.find(query)
       .select('store_name rating verified description user_id follower_count createdAt vendor_type')
-      .populate('store', 'logo banner categories delivery_time minimum_order_amount') // only fetch visible assets
+      .populate('store', 'logo banner categories delivery_time minimum_order_amount is_active') // only fetch visible assets
       .populate('user_id', 'branding avatar is_online last_seen') // fetch user-level branding for fallbacks
       .skip(startIndex)
       .limit(limit)
       .sort(sort)
       .lean();
 
+    // Filter out vendors whose Store is explicitly deactivated or whose user account was deleted
+    const filtered = stores.filter(s => {
+      if (s.store && s.store.is_active === false) return false;
+      if (!s.user_id) return false; // user account deleted
+      return true;
+    });
+
     // Batch-sync real follower counts to avoid showing stale 0s
-    if (stores.length > 0) {
-      const vendorIds = stores.map(s => s._id);
+    if (filtered.length > 0) {
+      const vendorIds = filtered.map(s => s._id);
       const counts = await Follow.aggregate([
         { $match: { vendor_id: { $in: vendorIds } } },
         { $group: { _id: '$vendor_id', count: { $sum: 1 } } },
       ]);
       const countMap = {};
       counts.forEach(c => { countMap[c._id.toString()] = c.count; });
-      stores.forEach(s => {
+      filtered.forEach(s => {
         s.follower_count = countMap[s._id.toString()] ?? s.follower_count ?? 0;
       });
     }
 
     res.status(200).json({
       success: true,
-      count: stores.length,
+      count: filtered.length,
       pagination: { total, page, pages: Math.ceil(total / limit) },
-      data: { stores },
+      data: { stores: filtered },
     });
   } catch (error) {
     next(error);

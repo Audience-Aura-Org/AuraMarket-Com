@@ -759,6 +759,7 @@ const getAllVendors = async (req, res, next) => {
     const query = {};
     if (status === 'verified') query.verified = true;
     if (status === 'unverified') query.verified = false;
+    if (status === 'deactivated') query.is_onboarded = false;
     const vendors = await Vendor.find(query)
       .populate('user_id', 'name email avatar verification_status branding')
       .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount')
@@ -881,8 +882,27 @@ const updateUserStatus = async (req, res, next) => {
 
 const updateVendorStatus = async (req, res, next) => {
   try {
-    const { verified } = req.body;
-    const vendor = await Vendor.findByIdAndUpdate(req.params.id, { verified }, { returnDocument: 'after' });
+    const { verified, is_onboarded } = req.body;
+    const update = {};
+    if (typeof verified === 'boolean') update.verified = verified;
+    if (typeof is_onboarded === 'boolean') update.is_onboarded = is_onboarded;
+
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ success: false, message: 'No valid fields to update.' });
+    }
+
+    const vendor = await Vendor.findByIdAndUpdate(req.params.id, update, { returnDocument: 'after' });
+    if (!vendor) {
+      return res.status(404).json({ success: false, message: 'Vendor not found.' });
+    }
+
+    // If deactivating vendor, also deactivate their store
+    if (is_onboarded === false) {
+      await Store.findOneAndUpdate({ vendor_id: vendor._id }, { is_active: false });
+    } else if (is_onboarded === true) {
+      await Store.findOneAndUpdate({ vendor_id: vendor._id }, { is_active: true });
+    }
+
     res.status(200).json({ success: true, data: { vendor } });
   } catch (error) {
     next(error);
