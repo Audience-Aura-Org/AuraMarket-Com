@@ -69,6 +69,10 @@ export default function MealDetailModal({ meal, onClose }) {
   const [adding,         setAdding]         = useState(false);
   const [bookingType,    setBookingType]    = useState(null);   // selected order mode
   const [availableModes, setAvailableModes] = useState([]);     // from meal.booking_options
+  const [preOrderDate,   setPreOrderDate]   = useState('');     // scheduled date for pre-order
+
+  // restaurant_open defaults to true for backward compat
+  const restaurantClosed = meal.restaurant_open === false;
 
   const theme       = FALLBACK_THEMES[strHash(meal.name || '') % FALLBACK_THEMES.length];
   const initial     = (meal.restaurant_name || '?')[0].toUpperCase();
@@ -89,9 +93,14 @@ export default function MealDetailModal({ meal, onClose }) {
           .map(o => (typeof o === 'string' ? o : o.type))
           .filter(Boolean);
         setAvailableModes(modes);
-        // Auto-select when only one mode is available
-        if (modes.length === 1) setBookingType(modes[0]);
-        else if (modes.includes('delivery')) setBookingType('delivery'); // sensible default
+        // When restaurant is closed, force pre_order only
+        if (restaurantClosed) {
+          setBookingType('pre_order');
+        } else if (modes.length === 1) {
+          setBookingType(modes[0]);
+        } else if (modes.includes('delivery')) {
+          setBookingType('delivery'); // sensible default
+        }
       })
       .catch(() => setFullProduct(null))
       .finally(() => setLoadingProduct(false));
@@ -130,13 +139,15 @@ export default function MealDetailModal({ meal, onClose }) {
   const invalidGroups = optionGroups.filter(
     g => g.is_required && (selections[g.name] || []).length < (g.min_select || 1)
   );
-  const canOrder = invalidGroups.length === 0 && !!bookingType;
+  const isPreOrder = bookingType === 'pre_order';
+  const canOrder = invalidGroups.length === 0 && !!bookingType && (!isPreOrder || !!preOrderDate);
 
   /* ── Build cart payload ── */
   const buildPayload = () => ({
     product_id:       meal._id,
     quantity,
     booking_type:     bookingType || 'delivery',
+    ...(isPreOrder && preOrderDate && { scheduled_for: preOrderDate }),
     selected_options: optionGroups.flatMap(group =>
       (group.options || [])
         .filter(o => (selections[group.name] || []).includes(o.label))
@@ -180,7 +191,7 @@ export default function MealDetailModal({ meal, onClose }) {
     /* No options → direct checkout URL */
     if (optionGroups.length === 0) {
       onClose();
-      router.push(`/checkout?productId=${meal._id}&quantity=${quantity}&bookingType=${bookingType || 'delivery'}`);
+      router.push(`/checkout?productId=${meal._id}&quantity=${quantity}&bookingType=${bookingType || 'delivery'}${isPreOrder && preOrderDate ? `&scheduledFor=${encodeURIComponent(preOrderDate)}` : ''}`);
       return;
     }
 
@@ -335,8 +346,30 @@ export default function MealDetailModal({ meal, onClose }) {
               </p>
             )}
 
-            {/* Single mode badge — when only one mode, show it as informational */}
-            {!loadingProduct && availableModes.length === 1 && bookingType && (() => {
+            {/* ── Closed restaurant → forced pre-order with date picker ── */}
+            {!loadingProduct && restaurantClosed && (
+              <div className="border-t border-[var(--glass-border)] pt-3 space-y-2.5">
+                <div className="flex items-center gap-2 rounded-xl bg-orange-500/10 border border-orange-500/20 px-3 py-2 text-[11px] font-semibold text-orange-600">
+                  <CalendarClock className="size-4 shrink-0" />
+                  Restaurant is closed — Pre-order for a specific date
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1.5">
+                    Select date <span className="text-orange-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={preOrderDate}
+                    onChange={e => setPreOrderDate(e.target.value)}
+                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                    className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Single mode badge — when only one mode, show it as informational (not when closed) */}
+            {!loadingProduct && !restaurantClosed && availableModes.length === 1 && bookingType && (() => {
               const m = BOOKING_MODES.find(b => b.value === bookingType);
               if (!m) return null;
               const { Icon } = m;
@@ -348,8 +381,8 @@ export default function MealDetailModal({ meal, onClose }) {
               );
             })()}
 
-            {/* Order mode picker — only shown when multiple modes are available */}
-            {!loadingProduct && availableModes.length > 1 && (
+            {/* Order mode picker — only shown when multiple modes are available and restaurant is open */}
+            {!loadingProduct && !restaurantClosed && availableModes.length > 1 && (
               <div className="border-t border-[var(--glass-border)] pt-3 space-y-2">
                 <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-wide">
                   Order Mode <span className="text-orange-500">*</span>
@@ -359,7 +392,7 @@ export default function MealDetailModal({ meal, onClose }) {
                     <button
                       key={value}
                       type="button"
-                      onClick={() => setBookingType(value)}
+                      onClick={() => { setBookingType(value); if (value !== 'pre_order') setPreOrderDate(''); }}
                       className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-[11px] font-bold transition-all active:scale-95 ${
                         bookingType === value
                           ? 'border-[var(--accent)]/50 bg-[var(--accent)]/10 text-[var(--accent)]'
@@ -372,6 +405,22 @@ export default function MealDetailModal({ meal, onClose }) {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Pre-order date picker — when user manually selects pre_order while restaurant is open */}
+            {!loadingProduct && !restaurantClosed && isPreOrder && (
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-[var(--text-secondary)]">
+                  Schedule for <span className="text-orange-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={preOrderDate}
+                  onChange={e => setPreOrderDate(e.target.value)}
+                  min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                  className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors"
+                />
               </div>
             )}
 

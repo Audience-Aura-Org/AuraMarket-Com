@@ -74,6 +74,7 @@ function CheckoutContent() {
   const variantStr = searchParams.get('variant');
   const variant = variantStr ? JSON.parse(decodeURIComponent(variantStr)) : null;
   const bookingTypeParam = searchParams.get('bookingType'); // set by MealDetailModal Buy Now
+  const scheduledForParam = searchParams.get('scheduledFor'); // pre-order date from MealDetailModal
   const { user, setWalletBalance: setSharedWalletBalance, walletBalance, refreshWalletBalance } = useAuthStore();
   const displayedWalletBalance = Number(walletBalance ?? 0);
   
@@ -403,6 +404,9 @@ function CheckoutContent() {
       if (bookingTypeParam) {
         setFormData(prev => ({ ...prev, fulfilment_type: bookingTypeParam }));
       }
+      if (scheduledForParam) {
+        setPreOrderDate(scheduledForParam);
+      }
       api.get(`/products/${productId}`)
         .then(res => {
           if (res.data.success) {
@@ -450,6 +454,10 @@ function CheckoutContent() {
              // Persist booking type for food orders so it's included in the order payload
              if (cart.context_booking_type) {
                setFormData(prev => ({ ...prev, fulfilment_type: cart.context_booking_type }));
+             }
+             // Pre-order date from cart
+             if (cart.scheduled_for) {
+               setPreOrderDate(cart.scheduled_for.split('T')[0]);
              }
 
              setCartItems(mergeCheckoutItems(items));

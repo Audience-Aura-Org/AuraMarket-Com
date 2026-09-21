@@ -101,6 +101,7 @@ export default function RestaurantMenuPageClient() {
       thumbnail_url:       meal.images?.[0]?.url || meal.thumbnail_url || null,
       restaurant_name:     data?.vendor?.store_name || '',
       restaurant_logo_url: data?.vendor?.logo_url   || null,
+      restaurant_open:     isOpen,
     });
   };
 

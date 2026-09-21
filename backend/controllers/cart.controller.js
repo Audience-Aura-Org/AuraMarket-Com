@@ -39,6 +39,7 @@ const addToCart = async (req, res, next) => {
       variant = null,
       selected_options = [],   // Meal option group selections (Phase 3 Step 6)
       booking_type = null,     // 'delivery' | 'pickup' | 'pre_order' | 'dine_in' for meals
+      scheduled_for = null,    // Pre-order date (only for pre_order booking_type)
     } = req.body;
     const userId = req.user._id;
 
@@ -135,6 +136,7 @@ const addToCart = async (req, res, next) => {
           context_booking_type: booking_type || 'delivery',
           // Only track vendor for dine-in (single-restaurant enforcement)
           ...(booking_type === 'dine_in' && { context_vendor_id: productVendorId }),
+          ...(booking_type === 'pre_order' && scheduled_for && { scheduled_for }),
         }),
       };
       cart = await Cart.create(cartData);
@@ -154,6 +156,8 @@ const addToCart = async (req, res, next) => {
         cart.context_booking_type = booking_type || 'delivery';
         // Only track vendor for dine-in
         if (booking_type === 'dine_in') cart.context_vendor_id = productVendorId;
+        // Store pre-order date
+        if (booking_type === 'pre_order' && scheduled_for) cart.scheduled_for = scheduled_for;
       }
       await cart.save();
     }
