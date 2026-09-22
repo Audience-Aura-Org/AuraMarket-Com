@@ -712,8 +712,9 @@ const payunitWebhook = async (req, res) => {
     // over the raw request body. We verify before touching any data.
     const receivedSig = req.headers['x-payunit-signature'] || req.headers['x-webhook-signature'];
     if (!receivedSig || !PAYUNIT_WEBHOOK_SECRET) {
+      const reason = !PAYUNIT_WEBHOOK_SECRET ? 'PAYUNIT_WEBHOOK_SECRET env var not set' : 'No x-payunit-signature header in request';
       webhookHealth.record('rejected', 'payunit', 'missing-signature');
-      console.warn('[PayUnit Webhook] Missing signature or secret — rejecting');
+      console.warn(`[PayUnit Webhook] ${reason} — rejecting. Headers: ${Object.keys(req.headers).filter(h => h.includes('sign') || h.includes('payunit') || h.includes('webhook')).join(', ') || 'none matching'}`);
       return res.status(401).send('Unauthorized');
     }
     // Raw body is needed for correct HMAC — body-parser must be configured with

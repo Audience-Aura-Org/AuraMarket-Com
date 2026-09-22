@@ -34,7 +34,7 @@ const BATCH = 500; // scan in batches to avoid memory spikes
  */
 async function findMissingRefs(Model, ids) {
   if (!ids.length) return [];
-  const unique = [...new Set(ids.map(String))];
+  const unique = [...new Set(ids.filter(id => id != null).map(String))];
   const found = await Model.find({ _id: { $in: unique } }).select('_id').lean();
   const foundSet = new Set(found.map(d => d._id.toString()));
   return unique.filter(id => !foundSet.has(id));
@@ -65,7 +65,7 @@ async function runOrphanScan(app) {
     }
 
     // ── 3. Shipments → Order (CRITICAL) ──────────────────────────────────────
-    const shipmentOrderIds = await Shipment.distinct('order_id');
+    const shipmentOrderIds = (await Shipment.distinct('order_id')).filter(id => id != null);
     const missingOrders = await findMissingRefs(Order, shipmentOrderIds);
     if (missingOrders.length) {
       critical.push(`Shipments→Order: ${missingOrders.length} shipment(s) reference non-existent order(s): ${missingOrders.slice(0, 3).join(', ')}${missingOrders.length > 3 ? '…' : ''}`);
