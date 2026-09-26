@@ -27,7 +27,10 @@ const templates = require('../utils/emailTemplates');
 const { escapeRegExp } = require('../middleware/security.middleware');
 const cache = require('../utils/cache');
 const { normalizeFeeType, toNonNegativeNumber } = require('../utils/platformFees');
-const { creditBalance, debitBalance } = require('../services/wallet.service');
+const { creditBalance, debitBalance, adjustBalance, generateRef } = require('../services/wallet.service');
+const eversend = require('../services/eversend.service');
+const pawapay = require('../services/payment/gateways/pawapay.gateway');
+const crypto = require('crypto');
 const { calculatePlatformFees, applyCommissionOverride } = require('../utils/platformFees');
 const mongoose = require('mongoose');
 const { clearApiCache } = require('../middleware/cache.middleware');
@@ -2122,6 +2125,415 @@ const fetchAdminP2PShipments = async (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// Treasury & Vendor Balance Management
+// ─────────────────────────────────────────────
+
+const DIAL_CODES = { CM: '237', CI: '225', SN: '221', GA: '241', CD: '243', CG: '242', GQ: '240' };
+const toE164 = (phone, countryIso = 'CM') => {
+  if (!phone) return phone;
+  let v = String(phone).replace(/[^\d+]/g, '');
+  if (v.startsWith('00')) v = '+' + v.slice(2);
+  if (v.startsWith('+')) return v;
+  const dialCode = DIAL_CODES[String(countryIso).toUpperCase()] || '237';
+  if (v.startsWith(dialCode)) v = v.slice(dialCode.length);
+  if (v.startsWith('0')) v = v.slice(1);
+  return `+${dialCode}${v}`;
+};
+
+const EVERSEND_MIN_XAF  = 1000;
+const PAWAPAY_MIN_XAF   = 100;
+
+/**
+ * POST /api/admin/treasury/payout
+ * Execute a direct payout via Eversend or PawaPay without a WithdrawalRequest.
+ */
+const adminDirectPayout = async (req, res, next) => {
+  try {
+    const { gateway, amount, phone, firstName, lastName, country = 'CM', currency = 'XAF', note } = req.body;
+
+    if (!gateway || !['eversend', 'pawapay'].includes(gateway)) {
+      return res.status(400).json({ success: false, message: 'Gateway must be eversend or pawapay.' });
+    }
+    if (!amount || Number(amount) <= 0) {
+      return res.status(400).json({ success: false, message: 'Amount must be greater than 0.' });
+    }
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Recipient phone number is required.' });
+    }
+    if (!firstName || !lastName) {
+      return res.status(400).json({ success: false, message: 'Recipient first and last name are required.' });
+    }
+
+    const amt = Math.round(Number(amount));
+    const txRef = generateRef();
+
+    if (gateway === 'eversend') {
+      if (currency === 'XAF' && amt < EVERSEND_MIN_XAF) {
+        return res.status(400).json({ success: false, message: `Eversend requires at least ${EVERSEND_MIN_XAF.toLocaleString()} XAF.` });
+      }
+
+      const quotation = await eversend.getPayoutQuotation(amt, currency, currency, country, 'momo');
+      const balanceAfter = quotation?.data?.quotation?.sourceCurrencyBalanceAfter;
+      if (balanceAfter !== undefined && balanceAfter < 0) {
+        return res.status(400).json({ success: false, message: `Insufficient funds in Eversend ${currency} wallet.` });
+      }
+
+      const quotationToken = quotation?.data?.token || quotation?.token;
+      if (!quotationToken) {
+        return res.status(502).json({ success: false, message: 'No quotation token returned from Eversend.' });
+      }
+
+      const payoutResult = await eversend.executeMomoPayout(
+        quotationToken,
+        toE164(phone, country),
+        firstName,
+        lastName,
+        country,
+        txRef
+      );
+
+      const payoutTxId = payoutResult?.data?.transactionId || payoutResult?.transactionId;
+      const payoutStatus = payoutResult?.data?.status || payoutResult?.status || 'pending';
+
+      const transaction = await Transaction.create({
+        user_id: req.user._id,
+        type: 'withdrawal',
+        amount: amt,
+        reference: txRef,
+        status: payoutStatus === 'completed' ? 'completed' : 'pending',
+        description: `Admin direct payout via Eversend to ${phone}${note ? ` — ${note}` : ''}`,
+        gateway: 'eversend',
+        gateway_transaction_id: payoutTxId || txRef,
+        gateway_response: payoutResult,
+        currency,
+        metadata: {
+          admin_direct: true,
+          admin_id: req.user._id,
+          recipient: { phone, firstName, lastName, country },
+          note: note || null,
+          quotation_token: quotationToken,
+        },
+      });
+
+      await recordAudit({
+        actorId: req.user._id,
+        action: 'admin_direct_payout',
+        targetType: 'Transaction',
+        targetId: transaction._id,
+        after: { gateway: 'eversend', amount: amt, phone, reference: txRef },
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Payout sent via Eversend.',
+        data: { transaction, payoutTransactionId: payoutTxId },
+      });
+    }
+
+    // PawaPay
+    if (currency === 'XAF' && amt < PAWAPAY_MIN_XAF) {
+      return res.status(400).json({ success: false, message: `PawaPay requires at least ${PAWAPAY_MIN_XAF.toLocaleString()} XAF.` });
+    }
+
+    const correspondent = pawapay.detectProvider(phone);
+    if (!pawapay.isSupportedCameroonProvider(correspondent)) {
+      return res.status(400).json({
+        success: false,
+        message: 'PawaPay payouts currently support MTN Mobile Money only. Use Eversend for Orange Money.',
+      });
+    }
+
+    const payoutId = crypto.randomUUID();
+    const payoutResult = await pawapay.createPayout({
+      payoutId,
+      amount: amt,
+      currency,
+      correspondent,
+      phone,
+      description: 'Auradime admin payout',
+      clientRef: txRef,
+    });
+
+    const ppStatus = (payoutResult?.status || '').toUpperCase();
+    const finalStatus = ppStatus === 'REJECTED' ? 'failed' : 'pending';
+
+    const transaction = await Transaction.create({
+      user_id: req.user._id,
+      type: 'withdrawal',
+      amount: amt,
+      reference: txRef,
+      status: finalStatus,
+      description: `Admin direct payout via PawaPay to ${phone}${note ? ` — ${note}` : ''}`,
+      gateway: 'pawapay',
+      gateway_transaction_id: payoutId,
+      gateway_response: payoutResult,
+      currency,
+      metadata: {
+        admin_direct: true,
+        admin_id: req.user._id,
+        recipient: { phone, firstName, lastName, country },
+        note: note || null,
+        pawapay_payout_id: payoutId,
+      },
+    });
+
+    await recordAudit({
+      actorId: req.user._id,
+      action: 'admin_direct_payout',
+      targetType: 'Transaction',
+      targetId: transaction._id,
+      after: { gateway: 'pawapay', amount: amt, phone, reference: txRef, status: finalStatus },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: finalStatus === 'failed' ? 'PawaPay rejected the payout.' : 'Payout initiated via PawaPay.',
+      data: { transaction, payoutId },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/admin/treasury/history
+ * List all admin-initiated direct payouts.
+ */
+const getAdminDirectPayoutHistory = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 30, status, gateway, search } = req.query;
+    const query = { 'metadata.admin_direct': true };
+    if (status && status !== 'all') query.status = status;
+    if (gateway && gateway !== 'all') query.gateway = gateway;
+    if (search) {
+      const regex = new RegExp(escapeRegExp(search), 'i');
+      query.$or = [{ reference: regex }, { description: regex }];
+    }
+
+    const [transactions, total, statsAgg] = await Promise.all([
+      Transaction.find(query)
+        .populate('user_id', 'name email')
+        .sort('-createdAt')
+        .skip((Number(page) - 1) * Number(limit))
+        .limit(Number(limit))
+        .lean(),
+      Transaction.countDocuments(query),
+      Transaction.aggregate([
+        { $match: { 'metadata.admin_direct': true } },
+        {
+          $group: {
+            _id: null,
+            total_count: { $sum: 1 },
+            total_amount: { $sum: '$amount' },
+            completed: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] } },
+            pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+            failed: { $sum: { $cond: [{ $eq: ['$status', 'failed'] }, 1, 0] } },
+            completed_amount: { $sum: { $cond: [{ $eq: ['$status', 'completed'] }, '$amount', 0] } },
+          },
+        },
+      ]),
+    ]);
+
+    const stats = statsAgg[0] || { total_count: 0, total_amount: 0, completed: 0, pending: 0, failed: 0, completed_amount: 0 };
+
+    res.status(200).json({
+      success: true,
+      data: { transactions, total, stats },
+      page: Number(page),
+      pages: Math.ceil(total / Number(limit)),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/admin/treasury/gateway-balances
+ * Return Eversend wallet balances.
+ */
+const getGatewayBalances = async (req, res, next) => {
+  try {
+    const wallets = await eversend.getWallets();
+    res.status(200).json({ success: true, data: { wallets: wallets?.data || wallets || [] } });
+  } catch (error) {
+    console.warn('[getGatewayBalances] Could not fetch wallets:', error.message);
+    res.status(200).json({ success: true, data: { wallets: [] }, warning: 'Could not fetch gateway wallets.' });
+  }
+};
+
+/**
+ * GET /api/admin/vendor-balance/search
+ * Search vendors by name/phone/email for balance management.
+ */
+const searchVendorsForBalance = async (req, res, next) => {
+  try {
+    const { search } = req.query;
+    if (!search || search.length < 2) {
+      return res.status(400).json({ success: false, message: 'Search query must be at least 2 characters.' });
+    }
+
+    const regex = new RegExp(escapeRegExp(search), 'i');
+
+    // Find matching users first
+    const matchingUsers = await User.find({
+      $or: [{ name: regex }, { email: regex }, { phone: regex }],
+    }).select('_id').lean();
+    const matchingUserIds = matchingUsers.map(u => u._id);
+
+    // Then find vendors by store_name OR user match
+    const vendors = await Vendor.find({
+      $or: [
+        { store_name: regex },
+        ...(matchingUserIds.length ? [{ user_id: { $in: matchingUserIds } }] : []),
+      ],
+    })
+      .populate('user_id', 'name email phone wallet_balance avatar')
+      .limit(20)
+      .lean();
+
+    const results = vendors
+      .filter(v => v.user_id)
+      .map(v => ({
+        vendor_id: v._id,
+        store_name: v.store_name,
+        user_id: v.user_id._id,
+        user_name: v.user_id.name,
+        email: v.user_id.email,
+        phone: v.user_id.phone,
+        wallet_balance: v.user_id.wallet_balance || 0,
+        avatar: v.user_id.avatar,
+      }));
+
+    res.status(200).json({ success: true, data: { vendors: results } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/vendor-balance/adjust
+ * Credit or debit a vendor's wallet balance with audit trail.
+ */
+const adminAdjustVendorBalance = async (req, res, next) => {
+  try {
+    const { userId, amount, operation, reason } = req.body;
+
+    if (!userId) return res.status(400).json({ success: false, message: 'userId is required.' });
+    if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than 0.' });
+    if (!['credit', 'debit'].includes(operation)) return res.status(400).json({ success: false, message: 'Operation must be credit or debit.' });
+    if (!reason || reason.length < 5) return res.status(400).json({ success: false, message: 'Reason must be at least 5 characters.' });
+
+    const user = await User.findById(userId).select('name wallet_balance');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const signedDelta = operation === 'credit' ? Math.abs(Number(amount)) : -Math.abs(Number(amount));
+
+    const result = await adjustBalance(userId, signedDelta, null, {
+      type: 'payout',
+      gateway: 'manual',
+      description: `Admin ${operation}: ${reason}`,
+      actorId: req.user._id,
+      metadata: {
+        admin_balance_adjustment: true,
+        admin_id: req.user._id,
+        admin_name: req.user.name,
+        operation,
+        reason,
+      },
+      allowNegative: true,
+    });
+
+    if (!result) {
+      return res.status(400).json({ success: false, message: 'Balance adjustment failed.' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `${operation === 'credit' ? 'Credited' : 'Debited'} ${Number(amount).toLocaleString()} XAF successfully.`,
+      data: {
+        user: { _id: result.user._id, wallet_balance: result.user.wallet_balance },
+        transaction: result.transaction,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/admin/vendor-balance/history
+ * List all admin-initiated balance adjustments.
+ */
+const getAdminBalanceAdjustmentHistory = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 30, search } = req.query;
+    const query = { 'metadata.admin_balance_adjustment': true };
+
+    const [transactions, total, statsAgg] = await Promise.all([
+      Transaction.find(query)
+        .populate('user_id', 'name email phone')
+        .sort('-createdAt')
+        .skip((Number(page) - 1) * Number(limit))
+        .limit(Number(limit))
+        .lean(),
+      Transaction.countDocuments(query),
+      Transaction.aggregate([
+        { $match: { 'metadata.admin_balance_adjustment': true } },
+        {
+          $group: {
+            _id: null,
+            total_count: { $sum: 1 },
+            total_credited: { $sum: { $cond: [{ $eq: ['$metadata.operation', 'credit'] }, '$amount', 0] } },
+            total_debited: { $sum: { $cond: [{ $eq: ['$metadata.operation', 'debit'] }, '$amount', 0] } },
+          },
+        },
+      ]),
+    ]);
+
+    const stats = statsAgg[0] || { total_count: 0, total_credited: 0, total_debited: 0 };
+    stats.net = (stats.total_credited || 0) - (stats.total_debited || 0);
+
+    res.status(200).json({
+      success: true,
+      data: { transactions, total, stats },
+      page: Number(page),
+      pages: Math.ceil(total / Number(limit)),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/admin/vendor-balance/transactions/:userId
+ * Get a specific vendor/user's transaction history.
+ */
+const getVendorTransactionHistory = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+
+    const [transactions, total] = await Promise.all([
+      Transaction.find({ user_id: userId })
+        .sort('-createdAt')
+        .skip((Number(page) - 1) * Number(limit))
+        .limit(Number(limit))
+        .lean(),
+      Transaction.countDocuments({ user_id: userId }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: { transactions, total },
+      page: Number(page),
+      pages: Math.ceil(total / Number(limit)),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getHomepageLayout,
   updateBanners,
@@ -2183,6 +2595,14 @@ module.exports = {
   createPickupPoint,
   updatePickupPoint,
   deletePickupPoint,
+  // Treasury & Vendor Balance
+  adminDirectPayout,
+  getAdminDirectPayoutHistory,
+  getGatewayBalances,
+  searchVendorsForBalance,
+  adminAdjustVendorBalance,
+  getAdminBalanceAdjustmentHistory,
+  getVendorTransactionHistory,
 };
 
 // ─────────────────────────────────────────────

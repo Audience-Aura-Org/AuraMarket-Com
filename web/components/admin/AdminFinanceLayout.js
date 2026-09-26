@@ -13,6 +13,16 @@ export const ADMIN_THEMES = {
     panel: 'border-emerald-500/10 shadow-sm shadow-emerald-950/5',
     inputFocus: 'focus:border-emerald-500/45',
   },
+  treasury: {
+    pageBg:
+      'bg-[var(--bg-secondary)] bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(245,158,11,0.12),transparent)]',
+    headerIcon: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+    headerAccent: 'border-amber-500/20',
+    pillActive: 'bg-amber-600 text-white shadow-sm shadow-amber-600/20',
+    metricCard: 'border-amber-500/15 bg-amber-500/[0.04]',
+    panel: 'border-amber-500/10 shadow-sm shadow-amber-950/5',
+    inputFocus: 'focus:border-amber-500/45',
+  },
   transactions: {
     pageBg:
       'bg-[var(--bg-secondary)] bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(99,102,241,0.14),transparent)]',

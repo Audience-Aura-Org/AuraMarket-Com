@@ -69,6 +69,14 @@ const {
   createZone,
   updateZone,
   deleteZone,
+  // Treasury & Vendor Balance
+  adminDirectPayout,
+  getAdminDirectPayoutHistory,
+  getGatewayBalances,
+  searchVendorsForBalance,
+  adminAdjustVendorBalance,
+  getAdminBalanceAdjustmentHistory,
+  getVendorTransactionHistory,
 } = require('../controllers/admin.controller');
 
 const { getAuditLogs } = require('../controllers/audit.controller');
@@ -192,5 +200,16 @@ router.get('/zones', listZones);
 router.post('/zones', createZone);
 router.patch('/zones/:id', updateZone);
 router.delete('/zones/:id', deleteZone);
+
+// ── Treasury: Admin Direct Payouts ────────────────────────────────────────────
+router.post('/treasury/payout', adminDirectPayout);
+router.get('/treasury/history', getAdminDirectPayoutHistory);
+router.get('/treasury/gateway-balances', getGatewayBalances);
+
+// ── Vendor Balance Management ─────────────────────────────────────────────────
+router.get('/vendor-balance/search', searchVendorsForBalance);
+router.post('/vendor-balance/adjust', adminAdjustVendorBalance);
+router.get('/vendor-balance/history', getAdminBalanceAdjustmentHistory);
+router.get('/vendor-balance/transactions/:userId', getVendorTransactionHistory);
 
 module.exports = router;

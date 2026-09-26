@@ -38,6 +38,8 @@ const ADMIN_NAV = [
   { icon: 'gavel',          label: 'Disputes',         href: '/admin/disputes' },
   { icon: 'security',       label: 'Escrow & Fees',    href: '/admin/escrow' },
   { icon: 'account_balance_wallet',label: 'Withdrawals',    href: '/admin/withdrawals' },
+  { icon: 'account_balance', label: 'Treasury',        href: '/admin/treasury' },
+  { icon: 'tune',           label: 'Vendor Balances',  href: '/admin/vendor-balance' },
   { icon: 'receipt_long',   label: 'Transactions',    href: '/admin/transactions' },
   { icon: 'workspace_premium', label: 'Subscriptions', href: '/admin/subscriptions' },
   { icon: 'local_shipping', label: 'Shipment Node',    href: '/admin/logistics' },
