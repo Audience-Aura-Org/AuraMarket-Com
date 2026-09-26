@@ -2125,6 +2125,46 @@ const fetchAdminP2PShipments = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/admin/backfill-user-names
+ * Find vendors whose associated user has no name (or placeholder) and
+ * set the user's name to the vendor's store_name.
+ */
+const backfillUserNames = async (req, res, next) => {
+  try {
+    const vendors = await Vendor.find({ store_name: { $exists: true, $ne: '' } })
+      .populate('user_id', 'name')
+      .lean();
+
+    const updates = [];
+    for (const v of vendors) {
+      if (!v.user_id) continue;
+      const userName = (v.user_id.name || '').trim();
+      // Consider it missing if empty, single char, "user"/"unnamed", or looks like a phone/email
+      const isPlaceholder = !userName || userName.length <= 1
+        || /^(user|unnamed|test|customer|vendor)$/i.test(userName)
+        || /^\+?\d{7,}$/.test(userName)
+        || /^\S+@\S+\.\S+$/.test(userName);
+      if (isPlaceholder) {
+        updates.push({
+          userId: v.user_id._id,
+          oldName: userName || '(empty)',
+          newName: v.store_name,
+        });
+        await User.findByIdAndUpdate(v.user_id._id, { name: v.store_name });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Updated ${updates.length} user name(s).`,
+      data: { updated: updates },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // ─────────────────────────────────────────────
 // Treasury & Vendor Balance Management
 // ─────────────────────────────────────────────
@@ -2595,6 +2635,7 @@ module.exports = {
   createPickupPoint,
   updatePickupPoint,
   deletePickupPoint,
+  backfillUserNames,
   // Treasury & Vendor Balance
   adminDirectPayout,
   getAdminDirectPayoutHistory,

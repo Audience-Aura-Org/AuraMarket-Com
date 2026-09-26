@@ -69,6 +69,7 @@ const {
   createZone,
   updateZone,
   deleteZone,
+  backfillUserNames,
   // Treasury & Vendor Balance
   adminDirectPayout,
   getAdminDirectPayoutHistory,
@@ -200,6 +201,9 @@ router.get('/zones', listZones);
 router.post('/zones', createZone);
 router.patch('/zones/:id', updateZone);
 router.delete('/zones/:id', deleteZone);
+
+// ── User Name Backfill ────────────────────────────────────────────────────────
+router.post('/backfill-user-names', backfillUserNames);
 
 // ── Treasury: Admin Direct Payouts ────────────────────────────────────────────
 router.post('/treasury/payout', adminDirectPayout);
