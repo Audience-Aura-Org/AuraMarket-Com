@@ -72,6 +72,7 @@ const {
   backfillUserNames,
   // Treasury & Vendor Balance
   adminDirectPayout,
+  recheckTreasuryPayouts,
   getAdminDirectPayoutHistory,
   getGatewayBalances,
   searchVendorsForBalance,
@@ -207,6 +208,7 @@ router.post('/backfill-user-names', backfillUserNames);
 
 // ── Treasury: Admin Direct Payouts ────────────────────────────────────────────
 router.post('/treasury/payout', adminDirectPayout);
+router.post('/treasury/recheck', recheckTreasuryPayouts);
 router.get('/treasury/history', getAdminDirectPayoutHistory);
 router.get('/treasury/gateway-balances', getGatewayBalances);
 

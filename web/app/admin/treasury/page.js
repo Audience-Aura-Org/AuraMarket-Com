@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Landmark, Send, Loader2, AlertCircle, CheckCircle2,
-  Clock, XCircle, Wallet, TrendingUp,
+  Clock, XCircle, Wallet, TrendingUp, RefreshCw,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -139,6 +139,23 @@ export default function AdminTreasuryPage() {
       toast.error(err.response?.data?.message || 'Payout failed');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const [rechecking, setRechecking] = useState(false);
+
+  const handleRecheck = async () => {
+    setRechecking(true);
+    try {
+      const res = await api.post('/admin/treasury/recheck');
+      if (res.data?.success) {
+        toast.success(res.data.message || 'Recheck complete');
+        fetchHistory();
+      }
+    } catch {
+      toast.error('Recheck failed');
+    } finally {
+      setRechecking(false);
     }
   };
 
@@ -333,6 +350,15 @@ export default function AdminTreasuryPage() {
                 <option value="eversend">Eversend</option>
                 <option value="pawapay">PawaPay</option>
               </AdminFilterSelect>
+              <button
+                type="button"
+                onClick={handleRecheck}
+                disabled={rechecking}
+                className="h-10 px-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-600 text-[11px] font-bold hover:bg-amber-500/20 disabled:opacity-50 transition-all flex items-center gap-2 shrink-0"
+              >
+                <RefreshCw className={`size-3.5 ${rechecking ? 'animate-spin' : ''}`} />
+                {rechecking ? 'Syncing...' : 'Sync Status'}
+              </button>
             </AdminFilterToolbar>
           }
           footer={

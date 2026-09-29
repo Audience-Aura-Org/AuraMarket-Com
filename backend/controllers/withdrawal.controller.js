@@ -1367,9 +1367,20 @@ const pawapayPayoutWebhook = async (req, res) => {
         );
 
         if (!claimed) {
-          // Already settled or not found — idempotent
-          await session.abortTransaction();
+          // Not a WithdrawalRequest — check for admin direct payout transaction
+          const directTx = await Transaction.findOneAndUpdate(
+            {
+              gateway: 'pawapay',
+              gateway_transaction_id: payoutId,
+              'metadata.admin_direct': true,
+              status: { $nin: ['completed', 'failed'] },
+            },
+            { $set: { status: 'completed', gateway_response: event } },
+            { session, returnDocument: "after" }
+          );
+          await session.commitTransaction();
           session.endSession();
+          if (directTx) webhookHealth.record('webhookSettled', 'pawapay');
           return res.status(200).send('OK');
         }
 
@@ -1415,7 +1426,18 @@ const pawapayPayoutWebhook = async (req, res) => {
         );
 
         if (!claimed) {
-          await session.abortTransaction();
+          // Not a WithdrawalRequest — check for admin direct payout transaction
+          const directTx = await Transaction.findOneAndUpdate(
+            {
+              gateway: 'pawapay',
+              gateway_transaction_id: payoutId,
+              'metadata.admin_direct': true,
+              status: { $nin: ['completed', 'failed'] },
+            },
+            { $set: { status: 'failed', gateway_response: event } },
+            { session, returnDocument: "after" }
+          );
+          await session.commitTransaction();
           session.endSession();
           return res.status(200).send('OK');
         }

@@ -2234,14 +2234,17 @@ const adminDirectPayout = async (req, res, next) => {
       );
 
       const payoutTxId = payoutResult?.data?.transactionId || payoutResult?.transactionId;
-      const payoutStatus = payoutResult?.data?.status || payoutResult?.status || 'pending';
+      const rawStatus = (payoutResult?.data?.status || payoutResult?.status || '').toUpperCase();
+      // Eversend returns SUCCESSFUL / FAILED / PENDING
+      const mappedStatus = rawStatus === 'SUCCESSFUL' ? 'completed'
+        : rawStatus === 'FAILED' ? 'failed' : 'pending';
 
       const transaction = await Transaction.create({
         user_id: req.user._id,
         type: 'withdrawal',
         amount: amt,
         reference: txRef,
-        status: payoutStatus === 'completed' ? 'completed' : 'pending',
+        status: mappedStatus,
         description: `Admin direct payout via Eversend to ${phone}${note ? ` — ${note}` : ''}`,
         gateway: 'eversend',
         gateway_transaction_id: payoutTxId || txRef,
@@ -2330,6 +2333,68 @@ const adminDirectPayout = async (req, res, next) => {
       success: true,
       message: finalStatus === 'failed' ? 'PawaPay rejected the payout.' : 'Payout initiated via PawaPay.',
       data: { transaction, payoutId },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/admin/treasury/recheck
+ * Recheck all pending admin direct payout transactions with their gateways
+ * and update status to completed/failed accordingly.
+ */
+const recheckTreasuryPayouts = async (req, res, next) => {
+  try {
+    const pendingTxns = await Transaction.find({
+      'metadata.admin_direct': true,
+      status: 'pending',
+    }).lean();
+
+    if (!pendingTxns.length) {
+      return res.status(200).json({ success: true, message: 'No pending payouts to recheck.', data: { updated: [] } });
+    }
+
+    const updated = [];
+
+    for (const tx of pendingTxns) {
+      try {
+        if (tx.gateway === 'eversend') {
+          const txId = tx.gateway_transaction_id;
+          if (!txId) continue;
+          const statusRes = await eversend.getTransactionStatus(txId);
+          const gatewayStatus = (statusRes?.data?.status || statusRes?.status || '').toUpperCase();
+
+          if (gatewayStatus === 'SUCCESSFUL') {
+            await Transaction.findByIdAndUpdate(tx._id, { status: 'completed', gateway_response: statusRes });
+            updated.push({ _id: tx._id, reference: tx.reference, oldStatus: 'pending', newStatus: 'completed' });
+          } else if (gatewayStatus === 'FAILED') {
+            await Transaction.findByIdAndUpdate(tx._id, { status: 'failed', gateway_response: statusRes });
+            updated.push({ _id: tx._id, reference: tx.reference, oldStatus: 'pending', newStatus: 'failed' });
+          }
+        } else if (tx.gateway === 'pawapay') {
+          const payoutId = tx.gateway_transaction_id || tx.metadata?.pawapay_payout_id;
+          if (!payoutId) continue;
+          const statusRes = await pawapay.getPayoutStatus(payoutId);
+          const gatewayStatus = pawapay.normalizePawaPayoutStatus(statusRes?.status || '');
+
+          if (gatewayStatus === 'SUCCESSFUL') {
+            await Transaction.findByIdAndUpdate(tx._id, { status: 'completed', gateway_response: statusRes });
+            updated.push({ _id: tx._id, reference: tx.reference, oldStatus: 'pending', newStatus: 'completed' });
+          } else if (gatewayStatus === 'FAILED') {
+            await Transaction.findByIdAndUpdate(tx._id, { status: 'failed', gateway_response: statusRes });
+            updated.push({ _id: tx._id, reference: tx.reference, oldStatus: 'pending', newStatus: 'failed' });
+          }
+        }
+      } catch (err) {
+        console.warn(`[recheckTreasuryPayouts] Error checking ${tx.reference}:`, err.message);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Rechecked ${pendingTxns.length} pending payout(s). Updated ${updated.length}.`,
+      data: { checked: pendingTxns.length, updated },
     });
   } catch (error) {
     next(error);
@@ -2638,6 +2703,7 @@ module.exports = {
   backfillUserNames,
   // Treasury & Vendor Balance
   adminDirectPayout,
+  recheckTreasuryPayouts,
   getAdminDirectPayoutHistory,
   getGatewayBalances,
   searchVendorsForBalance,
