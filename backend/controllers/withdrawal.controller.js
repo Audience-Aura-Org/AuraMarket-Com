@@ -23,6 +23,7 @@ const pawapay  = require('../services/payment/gateways/pawapay.gateway');
 const webhookHealth = require('../services/webhookHealthMonitor.service');
 const { sendNotification } = require('../utils/notifier');
 const { debitBalance, creditBalance } = require('../services/wallet.service');
+const { scoped, assertInScope, assertAccessLevel } = require('../utils/scopeFilter');
 const crypto = require('crypto');
 
 // ── Restaurant withdrawal gate thresholds ────────────────────────────────────
@@ -428,16 +429,18 @@ const adminGetAllWithdrawals = async (req, res) => {
       if (to)   query.createdAt.$lte = new Date(to);
     }
 
+    const scopedQuery = scoped('WithdrawalRequest', query, req.managerScope);
     const [total, statusCounts, withdrawalDocs] = await Promise.all([
-      WithdrawalRequest.countDocuments(query),
+      WithdrawalRequest.countDocuments(scopedQuery),
       WithdrawalRequest.aggregate([
+        { $match: scoped('WithdrawalRequest', {}, req.managerScope) },
         { $group: {
           _id: '$status',
           count: { $sum: 1 },
           total_amount: { $sum: '$amount' },
         }},
       ]),
-      WithdrawalRequest.find(query)
+      WithdrawalRequest.find(scopedQuery)
         .populate('requested_by', 'name email phone avatar role branding store_name storeName')
         .populate('reviewed_by', 'name email')
         .sort('-createdAt')
@@ -497,6 +500,7 @@ const adminApproveWithdrawal = async (req, res) => {
       session.endSession();
       return res.status(404).json({ success: false, message: 'Withdrawal request not found.' });
     }
+    assertAccessLevel(req.managerScope, wr.requested_by, 'full');
     if (wr.status !== 'pending') {
       await session.abortTransaction();
       session.endSession();
@@ -908,6 +912,7 @@ const adminRejectWithdrawal = async (req, res) => {
       session.endSession();
       return res.status(404).json({ success: false, message: 'Withdrawal request not found.' });
     }
+    assertAccessLevel(req.managerScope, wr.requested_by, 'full');
 
     if (wr.status !== 'pending') {
       await session.abortTransaction();
@@ -1108,6 +1113,7 @@ const adminRecheckWithdrawal = async (req, res) => {
       session.endSession();
       return res.status(404).json({ success: false, message: 'Withdrawal request not found.' });
     }
+    assertInScope(req.managerScope, wr.requested_by);
     const payoutGateway = wr.payout_gateway || (wr.eversend_transaction_id ? 'eversend' : null);
     if (!payoutGateway) {
       await session.abortTransaction();
@@ -1273,6 +1279,7 @@ const adminCompleteManualWithdrawal = async (req, res) => {
       session.endSession();
       return res.status(404).json({ success: false, message: 'Withdrawal request not found.' });
     }
+    assertAccessLevel(req.managerScope, wr.requested_by, 'full');
 
     if (wr.payout_gateway !== 'payunit') {
       await session.abortTransaction();

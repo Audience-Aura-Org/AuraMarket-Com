@@ -9,6 +9,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useChat } from '@/context/ChatContext';
 import { useLanguage } from '@/context/LanguageContext';
 import api from '@/services/api';
+import AccountSwitcher from './AccountSwitcher';
 
 const VENDOR_NAV = [
   { icon: 'home',                     label: 'Marketplace',      href: '/shop' },
@@ -29,6 +30,7 @@ const ADMIN_NAV = [
   { icon: 'home',           label: 'Marketplace',      href: '/shop' },
   { icon: 'dashboard',      label: 'Dashboard',        href: '/admin/dashboard' },
   { icon: 'person',         label: 'Users',            href: '/admin/users' },
+  { icon: 'supervised_user_circle', label: 'Managers',  href: '/admin/managers' },
   { icon: 'store',          label: 'Vendors',          href: '/admin/vendors' },
   { icon: 'inventory',      label: 'Products',         href: '/admin/products' },
   { icon: 'receipt_long',   label: 'Orders',           href: '/admin/orders' },
@@ -89,6 +91,7 @@ const LOGISTICS_NAV = [
 const MANAGER_NAV = [
   { icon: 'home',           label: 'Marketplace',      href: '/shop' },
   { icon: 'dashboard',      label: 'Dashboard',        href: '/admin/dashboard' },
+  { icon: 'work',           label: 'Portfolio',        href: '/admin/portfolio' },
   { icon: 'person',         label: 'Users',            href: '/admin/users' },
   { icon: 'store',          label: 'Vendors',          href: '/admin/vendors' },
   { icon: 'inventory',      label: 'Products',         href: '/admin/products' },
@@ -250,6 +253,9 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             )}
           </Link>
         </div>
+
+        {/* Account Switcher for Managers */}
+        {role === 'manager' && <AccountSwitcher accent={config.accent} />}
 
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto no-scrollbar">
 

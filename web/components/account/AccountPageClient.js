@@ -27,6 +27,7 @@ const ProductCard = dynamic(() => import('@/components/ProductCard'), { ssr: fal
 import { TABS } from './constants';
 import AccountHeader from './AccountHeader';
 import AccountSidebar from './AccountSidebar';
+import MyManagersTab from './MyManagersTab';
 import { useLanguage } from '@/context/LanguageContext';
 import { setFontSize, getFontSize, resetFontSettings, FONT_SIZES } from '@/utils/fontSettings';
 
@@ -1489,6 +1490,8 @@ export default function AccountPageClient() {
                   </div>
                 </div>
               )}
+
+              {activeTab === 'my-managers' && <MyManagersTab />}
 
               {activeTab === 'install' && <InstallAppTab />}
 

@@ -26,6 +26,10 @@ const logisticsService = require('../services/logistics.service');
 const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
 const templates = require('../utils/emailTemplates');
 const { escapeRegExp } = require('../middleware/security.middleware');
+const Dispute = require('../models/Dispute.model');
+const WithdrawalRequest = require('../models/WithdrawalRequest.model');
+const ManagerAssignment = require('../models/ManagerAssignment.model');
+const { scoped, assertInScope, assertAccessLevel } = require('../utils/scopeFilter');
 const cache = require('../utils/cache');
 const { normalizeFeeType, toNonNegativeNumber } = require('../utils/platformFees');
 const { creditBalance, debitBalance, adjustBalance, generateRef } = require('../services/wallet.service');
@@ -54,13 +58,14 @@ const getEmailLogs = async (req, res, next) => {
       ];
     }
 
-    const emailLogs = await EmailLog.find(query)
+    const scopedQuery = scoped('EmailLog', query, req.managerScope);
+    const emailLogs = await EmailLog.find(scopedQuery)
       .populate('recipient_user_id', 'name email role')
       .sort('-timestamp')
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
-    const total = await EmailLog.countDocuments(query);
+    const total = await EmailLog.countDocuments(scopedQuery);
 
     res.status(200).json({
       success: true,
@@ -213,6 +218,7 @@ const toggleVendorVerified = async (req, res, next) => {
   try {
     const vendor = await Vendor.findById(req.params.id);
     if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found mapping.' });
+    assertAccessLevel(req.managerScope, vendor.user_id, 'standard');
     vendor.verified = req.body.verified !== undefined ? req.body.verified : !vendor.verified;
     await vendor.save();
     res.status(200).json({ success: true, message: `Vendor verification shifted to ${vendor.verified}.`, data: { vendor } });
@@ -223,6 +229,7 @@ const toggleVendorVerified = async (req, res, next) => {
 
 const getPlatformAnalytics = async (req, res, next) => {
   try {
+    const s = req.managerScope;
     const [
       totalUsers,
       totalVendors,
@@ -240,28 +247,29 @@ const getPlatformAnalytics = async (req, res, next) => {
       deliveredOrders,
       activeOrders
     ] = await Promise.all([
-      User.countDocuments(),
-      Vendor.countDocuments(),
-      Product.countDocuments(),
-      Product.countDocuments({ status: 'active' }),
-      Product.countDocuments({ status: 'pending' }),
-      Order.countDocuments(),
+      User.countDocuments(scoped('User', {}, s)),
+      Vendor.countDocuments(scoped('Vendor', {}, s)),
+      Product.countDocuments(scoped('Product', {}, s)),
+      Product.countDocuments(scoped('Product', { status: 'active' }, s)),
+      Product.countDocuments(scoped('Product', { status: 'pending' }, s)),
+      Order.countDocuments(scoped('Order', {}, s)),
       Order.aggregate([
-        { $match: SETTLED_ORDER_MATCH },
+        { $match: scoped('Order', SETTLED_ORDER_MATCH, s) },
         { $group: { _id: null, totalRevenue: { $sum: '$total_amount' } } }
       ]),
-      KYC.countDocuments({ status: 'pending' }),
+      KYC.countDocuments(scoped('KYC', { status: 'pending' }, s)),
       Escrow.aggregate([
+        { $match: scoped('Escrow', {}, s) },
         { $group: { _id: '$status', total: { $sum: '$amount' } } }
       ]),
-      buildAdminEarningsSummary(),
-      User.countDocuments({ is_online: true }),
-      User.countDocuments({ 
-        last_seen: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } 
-      }),
-      Transaction.countDocuments({ status: 'failed' }),
-      Order.countDocuments({ order_status: 'delivered' }),
-      Order.countDocuments({ order_status: { $in: ['placed', 'processing', 'shipped'] } })
+      s ? Promise.resolve(null) : buildAdminEarningsSummary(),
+      User.countDocuments(scoped('User', { is_online: true }, s)),
+      User.countDocuments(scoped('User', {
+        last_seen: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+      }, s)),
+      Transaction.countDocuments(scoped('Transaction', { status: 'failed' }, s)),
+      Order.countDocuments(scoped('Order', { order_status: 'delivered' }, s)),
+      Order.countDocuments(scoped('Order', { order_status: { $in: ['placed', 'processing', 'shipped'] } }, s))
     ]);
 
     const totalRevenue = revenueStats.length > 0 ? revenueStats[0].totalRevenue : 0;
@@ -306,7 +314,7 @@ const getPlatformAnalytics = async (req, res, next) => {
 const getPendingKYC = async (req, res, next) => {
   try {
     const { status } = req.query;
-    const query = status && status !== 'all' ? { status } : {};
+    const query = scoped('KYC', status && status !== 'all' ? { status } : {}, req.managerScope);
     const submissions = await KYC.find(query)
       .populate('user_id', 'name email avatar role verification_status')
       .populate('vendor_id', 'store_name')
@@ -322,6 +330,7 @@ const reviewKYC = async (req, res, next) => {
     const { status, feedback } = req.body;
     const kyc = await KYC.findById(req.params.id);
     if (!kyc) return res.status(404).json({ success: false, message: 'KYC record not found.' });
+    assertAccessLevel(req.managerScope, kyc.user_id, 'standard');
     kyc.status = status;
     kyc.admin_feedback = feedback;
     kyc.reviewed_at = new Date();
@@ -346,7 +355,7 @@ const reviewKYC = async (req, res, next) => {
 
 const getPendingReports = async (req, res, next) => {
   try {
-    const reports = await Report.find({ status: 'pending' }).populate('reporter_id', 'name email').sort('-createdAt');
+    const reports = await Report.find(scoped('Report', { status: 'pending' }, req.managerScope)).populate('reporter_id', 'name email').sort('-createdAt');
     res.status(200).json({ success: true, count: reports.length, data: { reports } });
   } catch (error) {
     next(error);
@@ -356,8 +365,13 @@ const getPendingReports = async (req, res, next) => {
 const resolveReport = async (req, res, next) => {
   try {
     const { status, admin_notes } = req.body;
-    const report = await Report.findByIdAndUpdate(req.params.id, { status, admin_notes, resolved_by: req.user._id }, { returnDocument: 'after' });
+    const report = await Report.findById(req.params.id);
     if (!report) return res.status(404).json({ success: false, message: 'Report not found.' });
+    assertAccessLevel(req.managerScope, report.reporter_id, 'standard');
+    report.status = status;
+    report.admin_notes = admin_notes;
+    report.resolved_by = req.user._id;
+    await report.save();
     res.status(200).json({ success: true, message: 'Report updated.', data: { report } });
   } catch (error) {
     next(error);
@@ -466,11 +480,13 @@ const getAllOrders = async (req, res, next) => {
         { payment_method: 'pay_on_delivery' }
       ]
     };
-    const query = { ...baseFilter };
+    const filter = { ...baseFilter };
     if (status && status !== 'all') {
-      if (status === 'failed') query.payment_status = 'failed';
-      else query.order_status = status;
+      if (status === 'failed') filter.payment_status = 'failed';
+      else filter.order_status = status;
     }
+    const query = scoped('Order', filter, req.managerScope);
+    const scopedBase = scoped('Order', baseFilter, req.managerScope);
 
     const [orders, total, statusCounts] = await Promise.all([
       Order.find(query)
@@ -483,7 +499,7 @@ const getAllOrders = async (req, res, next) => {
         .limit(Number(limit)),
       Order.countDocuments(query),
       Order.aggregate([
-        { $match: baseFilter },
+        { $match: scopedBase },
         {
           $group: {
             _id: null,
@@ -529,6 +545,7 @@ const updateOrderAdmin = async (req, res, next) => {
     const { order_status, payment_status, shipping_method, logistics_company_id } = req.body;
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+    assertAccessLevel(req.managerScope, order.customer_id, 'standard');
     if (order_status) order.order_status = order_status;
     if (payment_status) order.payment_status = payment_status;
     if (shipping_method) order.shipping_method = shipping_method;
@@ -605,6 +622,7 @@ const imposeEscrow = async (req, res, next) => {
   try {
     const order = await Order.findById(req.params.id).session(session);
     if (!order) throw new Error('Order not found.');
+    assertAccessLevel(req.managerScope, order.customer_id, 'full');
     if (order.payment_status !== 'paid') throw new Error('Order must be paid before escrow can be imposed.');
 
     // Check if escrow already exists
@@ -716,7 +734,7 @@ const imposeEscrow = async (req, res, next) => {
 
 const getPendingVendors = async (req, res, next) => {
   try {
-    const submissions = await KYC.find({ status: 'pending' }).populate('user_id', 'name email avatar').populate('vendor_id', 'store_name description rating');
+    const submissions = await KYC.find(scoped('KYC', { status: 'pending' }, req.managerScope)).populate('user_id', 'name email avatar').populate('vendor_id', 'store_name description rating');
     res.status(200).json({ success: true, count: submissions.length, data: { submissions } });
   } catch (error) {
     next(error);
@@ -725,7 +743,7 @@ const getPendingVendors = async (req, res, next) => {
 
 const getPendingProducts = async (req, res, next) => {
   try {
-    const products = await Product.find({ status: 'pending' }).populate('vendor_id', 'store_name').sort('-createdAt');
+    const products = await Product.find(scoped('Product', { status: 'pending' }, req.managerScope)).populate('vendor_id', 'store_name').sort('-createdAt');
     res.status(200).json({ success: true, count: products.length, data: { products } });
   } catch (error) {
     next(error);
@@ -740,8 +758,12 @@ const reviewProduct = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid product status.' });
     }
 
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id).populate('vendor_id', 'user_id');
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
+    if (req.managerScope && product.vendor_id) {
+      const vendorUserId = product.vendor_id.user_id || product.vendor_id;
+      assertAccessLevel(req.managerScope, vendorUserId, 'standard');
+    }
     product.status = status;
     await product.save();
     cache.clear();
@@ -754,8 +776,12 @@ const reviewProduct = async (req, res, next) => {
 
 const updateProductAdmin = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id).populate('vendor_id', 'user_id');
     if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
+    if (req.managerScope && product.vendor_id) {
+      const vendorUserId = product.vendor_id.user_id || product.vendor_id;
+      assertAccessLevel(req.managerScope, vendorUserId, 'standard');
+    }
 
     const updateData = {};
 
@@ -893,7 +919,7 @@ const getAllUsers = async (req, res, next) => {
       query.$or = [{ name: new RegExp(safeSearch, 'i') }, { email: new RegExp(safeSearch, 'i') }];
     }
     if (status) query.verification_status = status;
-    const users = await User.find(query).select('-password').sort('-createdAt').limit(500);
+    const users = await User.find(scoped('User', query, req.managerScope)).select('-password').sort('-createdAt').limit(500);
     res.status(200).json({ success: true, count: users.length, data: { users } });
   } catch (error) {
     next(error);
@@ -938,14 +964,15 @@ const getAllVendors = async (req, res, next) => {
     if (status === 'unverified') query.verified = false;
     if (status === 'deactivated') query.is_onboarded = false;
 
+    const scopedQuery = scoped('Vendor', query, req.managerScope);
     const [vendors, totalVendors, vendorOrderStats] = await Promise.all([
-      Vendor.find(query)
+      Vendor.find(scopedQuery)
         .populate('user_id', 'name email avatar verification_status branding')
         .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount')
         .sort('-createdAt'),
-      Vendor.countDocuments(),
+      Vendor.countDocuments(scopedQuery),
       Order.aggregate([
-        { $match: { payment_status: 'paid' } },
+        { $match: scoped('Order', { payment_status: 'paid' }, req.managerScope) },
         {
           $group: {
             _id: '$vendor_id',
@@ -982,6 +1009,7 @@ const updateVendorMedia = async (req, res, next) => {
     const { logo, banner } = req.body;
     const vendor = await Vendor.findById(req.params.id);
     if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found.' });
+    assertAccessLevel(req.managerScope, vendor.user_id, 'standard');
 
     const updates = {};
     if (typeof logo === 'string') updates.logo = logo.trim() || null;
@@ -1019,6 +1047,7 @@ const updateVendorStoreSettings = async (req, res, next) => {
   try {
     const vendor = await Vendor.findById(req.params.id);
     if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found.' });
+    assertAccessLevel(req.managerScope, vendor.user_id, 'standard');
 
     const storeUpdates = {};
     const commissionRate = normalizeNullablePercentage(req.body.commission_rate);
@@ -1070,7 +1099,7 @@ const getAllProducts = async (req, res, next) => {
     if (status) query.status = status;
     if (vendor) query.vendor_id = vendor;
     if (search) query.name = new RegExp(escapeRegExp(search), 'i');
-    const products = await Product.find(query).populate('vendor_id', 'store_name').sort('-createdAt').limit(500);
+    const products = await Product.find(scoped('Product', query, req.managerScope)).populate('vendor_id', 'store_name').sort('-createdAt').limit(500);
     res.status(200).json({ success: true, count: products.length, data: { products } });
   } catch (error) {
     next(error);
@@ -1080,6 +1109,7 @@ const getAllProducts = async (req, res, next) => {
 const updateUserStatus = async (req, res, next) => {
   try {
     const { status } = req.body;
+    assertAccessLevel(req.managerScope, req.params.id, 'standard');
     const user = await User.findByIdAndUpdate(req.params.id, { verification_status: status }, { returnDocument: 'after' });
     res.status(200).json({ success: true, data: { user } });
   } catch (error) {
@@ -1098,6 +1128,9 @@ const updateVendorStatus = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No valid fields to update.' });
     }
 
+    const vendorCheck = await Vendor.findById(req.params.id).select('user_id').lean();
+    if (!vendorCheck) return res.status(404).json({ success: false, message: 'Vendor not found.' });
+    assertAccessLevel(req.managerScope, vendorCheck.user_id, 'standard');
     const vendor = await Vendor.findByIdAndUpdate(req.params.id, update, { returnDocument: 'after' });
     if (!vendor) {
       return res.status(404).json({ success: false, message: 'Vendor not found.' });
@@ -1121,6 +1154,7 @@ const toggleLogisticsVerified = async (req, res, next) => {
     const { id } = req.params;
     const firm = await LogisticsCompany.findById(id);
     if (!firm) return res.status(404).json({ success: false, message: 'Logistics firm not found' });
+    assertAccessLevel(req.managerScope, firm.user_id, 'standard');
     firm.is_verified = !firm.is_verified;
     await firm.save();
     res.status(200).json({ success: true, data: { firm } });
@@ -1132,10 +1166,11 @@ const toggleLogisticsVerified = async (req, res, next) => {
 const fetchAdminShipments = async (req, res, next) => {
   try {
     const { status, firm_id, since, page = 1, limit = 50 } = req.query;
-    const query = {};
-    if (status && status !== 'all') query.status = status;
-    if (firm_id && firm_id !== 'all') query.logistics_id = firm_id;
-    if (since) query.createdAt = { $gte: new Date(since) };
+    const filter = {};
+    if (status && status !== 'all') filter.status = status;
+    if (firm_id && firm_id !== 'all') filter.logistics_id = firm_id;
+    if (since) filter.createdAt = { $gte: new Date(since) };
+    const query = scoped('Shipment', filter, req.managerScope);
 
     const [shipments, total, statusCounts] = await Promise.all([
       Shipment.find(query)
@@ -1148,7 +1183,7 @@ const fetchAdminShipments = async (req, res, next) => {
         .limit(Number(limit)),
       Shipment.countDocuments(query),
       Shipment.aggregate([
-        ...(Object.keys(query).length ? [{ $match: query }] : []),
+        { $match: query },
         {
           $group: {
             _id: '$status',
@@ -1190,6 +1225,11 @@ const updateAdminShipment = async (req, res, next) => {
     const { status, logistics_id, price, tracking_code, pickup_address, delivery_address, note, failure_reason, receiver_name, proof_image } = req.body;
     const shipment = await Shipment.findById(id);
     if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found.' });
+    // Resolve vendor user_id for scope check
+    if (req.managerScope && shipment.vendor_id) {
+      const userId = req.managerScope.resolveUserId('vendor', shipment.vendor_id);
+      assertAccessLevel(req.managerScope, userId, 'standard');
+    }
     if (typeof logistics_id !== 'undefined') shipment.logistics_id = logistics_id || shipment.logistics_id;
     if (typeof price !== 'undefined') shipment.price = Number(price) || 0;
     if (status) shipment.status = status;
@@ -1224,7 +1264,7 @@ const updateAdminShipment = async (req, res, next) => {
 
 const getAdminLogisticsFirms = async (req, res, next) => {
   try {
-    const firms = await LogisticsCompany.find().populate('user_id', 'name email avatar is_active').sort('-createdAt');
+    const firms = await LogisticsCompany.find(scoped('LogisticsCompany', {}, req.managerScope)).populate('user_id', 'name email avatar is_active').sort('-createdAt');
     res.status(200).json({ success: true, count: firms.length, data: { firms } });
   } catch (error) {
     next(error);
@@ -1234,7 +1274,7 @@ const getAdminLogisticsFirms = async (req, res, next) => {
 const getLogisticsEarningsReport = async (req, res, next) => {
   try {
     const vendorTotals = await Order.aggregate([
-      { $match: { payment_status: { $in: ['paid', 'pending'] }, order_status: { $ne: 'cancelled' } } },
+      { $match: scoped('Order', { payment_status: { $in: ['paid', 'pending'] }, order_status: { $ne: 'cancelled' } }, req.managerScope) },
       { $group: { _id: '$vendor_id', total_orders: { $sum: 1 }, gross_sales: { $sum: '$total_amount' } } },
       {
         $lookup: {
@@ -1250,6 +1290,7 @@ const getLogisticsEarningsReport = async (req, res, next) => {
     ]);
 
     const logisticsTotals = await Shipment.aggregate([
+      { $match: scoped('Shipment', {}, req.managerScope) },
       { $group: { _id: '$logistics_id', total_shipments: { $sum: 1 }, total_shipping_value: { $sum: '$price' } } },
       {
         $lookup: {
@@ -1276,6 +1317,7 @@ const updateLogisticsFirm = async (req, res, next) => {
     
     const firm = await LogisticsCompany.findById(req.params.id);
     if (!firm) return res.status(404).json({ success: false, message: 'Logistics firm not found.' });
+    assertAccessLevel(req.managerScope, firm.user_id, 'standard');
 
     if (typeof is_verified !== 'undefined') firm.is_verified = is_verified;
     if (quartier_prices) firm.quartier_prices = quartier_prices;
@@ -1423,20 +1465,21 @@ const addLogisticZone = async (req, res, next) => {
 
 const getAdvancedAnalytics = async (req, res, next) => {
   try {
+    const s = req.managerScope;
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     // 1. Settled sales over time. Pending payment attempts are operational
     // orders, not revenue, so they are intentionally excluded.
     const salesOverTime = await Order.aggregate([
-      { $match: { ...SETTLED_ORDER_MATCH, createdAt: { $gte: thirtyDaysAgo } } },
+      { $match: scoped('Order', { ...SETTLED_ORDER_MATCH, createdAt: { $gte: thirtyDaysAgo } }, s) },
       { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, dailyRevenue: { $sum: "$total_amount" }, orderCount: { $sum: 1 } } },
       { $sort: { "_id": 1 } }
     ]);
 
     // 2. Top vendors by settled sales
     const topVendors = await Order.aggregate([
-      { $match: SETTLED_ORDER_MATCH },
+      { $match: scoped('Order', SETTLED_ORDER_MATCH, s) },
       { $group: { _id: '$vendor_id', revenue: { $sum: '$total_amount' }, orders: { $sum: 1 } } },
       { $sort: { revenue: -1 } },
       { $limit: 10 },
@@ -1453,46 +1496,49 @@ const getAdvancedAnalytics = async (req, res, next) => {
     ]);
 
     // 3. Top Products
-    const topProducts = await Product.find({ status: 'active' })
+    const topProducts = await Product.find(scoped('Product', { status: 'active' }, s))
       .sort({ purchase_count: -1, view_count: -1 })
       .limit(10)
       .select('name price purchase_count view_count stock category images');
 
     // 4. Role-Based User Breakdown
     const roleBreakdown = await User.aggregate([
+      { $match: scoped('User', {}, s) },
       { $group: { _id: '$role', count: { $sum: 1 } } }
     ]);
 
     // 5. Product Category Distribution
     const categoryStats = await Product.aggregate([
+      { $match: scoped('Product', {}, s) },
       { $group: { _id: '$category', count: { $sum: 1 }, totalValue: { $sum: '$price' } } }
     ]);
 
     // 6. Order Status Matrix
     const orderMatrix = await Order.aggregate([
+      { $match: scoped('Order', {}, s) },
       { $group: { _id: '$order_status', count: { $sum: 1 }, total_volume: { $sum: '$total_amount' } } }
     ]);
 
     // 7. Global Financial Integrity (Total platform flow)
     const totalRevenue = await Order.aggregate([
-      { $match: { payment_status: 'paid' } },
+      { $match: scoped('Order', { payment_status: 'paid' }, s) },
       { $group: { _id: null, total: { $sum: '$total_amount' } } }
     ]);
 
     // Custody is tracked by Escrow records, not by orders awaiting payment.
     // Pending mobile-money orders have not funded the platform yet.
     const totalEscrow = await Escrow.aggregate([
-      { $match: { status: { $in: ['held', 'disputed'] } } },
+      { $match: scoped('Escrow', { status: { $in: ['held', 'disputed'] } }, s) },
       { $group: { _id: null, total: { $sum: '$amount' } } }
     ]);
 
     // 8. Platform Summary Additions
-    const liveShipments = await Shipment.countDocuments({ status: { $in: ['pending', 'picked_up', 'in_transit'] } });
-    const stockAlerts = await Product.countDocuments({ stock: { $lte: 5 }, status: 'active' });
+    const liveShipments = await Shipment.countDocuments(scoped('Shipment', { status: { $in: ['pending', 'picked_up', 'in_transit'] } }, s));
+    const stockAlerts = await Product.countDocuments(scoped('Product', { stock: { $lte: 5 }, status: 'active' }, s));
 
-    res.status(200).json({ 
-      success: true, 
-      data: { 
+    res.status(200).json({
+      success: true,
+      data: {
         sales_over_time: salesOverTime,
         top_vendors: topVendors,
         top_products: topProducts,
@@ -1504,12 +1550,12 @@ const getAdvancedAnalytics = async (req, res, next) => {
           total_escrow: totalEscrow[0]?.total || 0
         },
         platform_summary: {
-          total_users: await User.countDocuments(),
-          total_vendors: await Vendor.countDocuments(),
+          total_users: await User.countDocuments(scoped('User', {}, s)),
+          total_vendors: await Vendor.countDocuments(scoped('Vendor', {}, s)),
           live_shipments: liveShipments,
           stock_alerts: stockAlerts
         }
-      } 
+      }
     });
   } catch (error) {
     next(error);
@@ -1522,6 +1568,7 @@ const updateUserAdmin = async (req, res, next) => {
     const { name, email, role, verification_status, phone } = req.body;
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    assertAccessLevel(req.managerScope, user._id, 'standard');
 
     // Track old email to check if it changed
     let emailChanged = false;
@@ -1601,6 +1648,7 @@ const deleteUser = async (req, res, next) => {
     const { id } = req.params;
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    assertAccessLevel(req.managerScope, user._id, 'full');
 
     // Cascading deletion for business entities
     if (user.role === 'vendor') {
@@ -1636,6 +1684,13 @@ const bulkDeleteUsers = async (req, res, next) => {
     const filteredIds = ids.filter(id => id.toString() !== req.user._id.toString());
     if (filteredIds.length === 0) {
       return res.status(403).json({ success: false, message: 'You cannot delete yourself via bulk operation.' });
+    }
+
+    // Scope check: managers can only bulk-delete users in their portfolio
+    if (req.managerScope) {
+      for (const uid of filteredIds) {
+        assertAccessLevel(req.managerScope, uid, 'full');
+      }
     }
 
     const usersToDelete = await User.find({ _id: { $in: filteredIds } });
@@ -1743,7 +1798,8 @@ const getAllTransactions = async (req, res, next) => {
       path: 'order_ids'
     };
 
-    const transactions = await Transaction.find(query)
+    const scopedQuery = scoped('Transaction', query, req.managerScope);
+    const transactions = await Transaction.find(scopedQuery)
       .populate('user_id', 'name email avatar role phone wallet_balance')
       .populate(orderContextPopulate)
       .populate(ordersContextPopulate)
@@ -1751,7 +1807,7 @@ const getAllTransactions = async (req, res, next) => {
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
-    const total = await Transaction.countDocuments(query);
+    const total = await Transaction.countDocuments(scopedQuery);
 
     res.status(200).json({
       success: true,
@@ -1770,6 +1826,7 @@ const fulfillOrderFromTransaction = async (req, res, next) => {
     const transaction = await Transaction.findById(transactionId);
     
     if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+    assertAccessLevel(req.managerScope, transaction.user_id, 'full');
     if (transaction.status !== 'completed') return res.status(400).json({ success: false, message: 'Only completed transactions can trigger order fulfillment.' });
     if (!transaction.order_ids || transaction.order_ids.length === 0) return res.status(400).json({ success: false, message: 'No orders linked to this transaction.' });
 
@@ -1984,6 +2041,13 @@ const updateTransactionStatus = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Invalid transaction status.' });
     }
 
+    // Scope check: look up the transaction's user_id first
+    if (req.managerScope) {
+      const txCheck = await Transaction.findById(id).select('user_id').lean();
+      if (!txCheck) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+      assertAccessLevel(req.managerScope, txCheck.user_id, 'full');
+    }
+
     let transaction;
 
     // Claim a financial completion before reading its balance/order data. Two
@@ -2097,11 +2161,12 @@ const getQueueStats = async (req, res, next) => {
 const fetchAdminP2PShipments = async (req, res, next) => {
   try {
     const { status, search, page = 1, limit = 50 } = req.query;
-    const query = { type: 'p2p' };
-    if (status && status !== 'all') query.status = status;
+    const filter = { type: 'p2p' };
+    if (status && status !== 'all') filter.status = status;
     if (search) {
-      query.tracking_code = { $regex: escapeRegExp(search), $options: 'i' };
+      filter.tracking_code = { $regex: escapeRegExp(search), $options: 'i' };
     }
+    const query = scoped('Shipment', filter, req.managerScope);
 
     const [shipments, total] = await Promise.all([
       Shipment.find(query)
@@ -2408,13 +2473,14 @@ const recheckTreasuryPayouts = async (req, res, next) => {
 const getAdminDirectPayoutHistory = async (req, res, next) => {
   try {
     const { page = 1, limit = 30, status, gateway, search } = req.query;
-    const query = { 'metadata.admin_direct': true };
-    if (status && status !== 'all') query.status = status;
-    if (gateway && gateway !== 'all') query.gateway = gateway;
+    const filter = { 'metadata.admin_direct': true };
+    if (status && status !== 'all') filter.status = status;
+    if (gateway && gateway !== 'all') filter.gateway = gateway;
     if (search) {
       const regex = new RegExp(escapeRegExp(search), 'i');
-      query.$or = [{ reference: regex }, { description: regex }];
+      filter.$or = [{ reference: regex }, { description: regex }];
     }
+    const query = scoped('Transaction', filter, req.managerScope);
 
     const [transactions, total, statsAgg] = await Promise.all([
       Transaction.find(query)
@@ -2425,7 +2491,7 @@ const getAdminDirectPayoutHistory = async (req, res, next) => {
         .lean(),
       Transaction.countDocuments(query),
       Transaction.aggregate([
-        { $match: { 'metadata.admin_direct': true } },
+        { $match: scoped('Transaction', { 'metadata.admin_direct': true }, req.managerScope) },
         {
           $group: {
             _id: null,
@@ -2487,12 +2553,13 @@ const searchVendorsForBalance = async (req, res, next) => {
     const matchingUserIds = matchingUsers.map(u => u._id);
 
     // Then find vendors by store_name OR user match
-    const vendors = await Vendor.find({
+    const vendorQuery = scoped('Vendor', {
       $or: [
         { store_name: regex },
         ...(matchingUserIds.length ? [{ user_id: { $in: matchingUserIds } }] : []),
       ],
-    })
+    }, req.managerScope);
+    const vendors = await Vendor.find(vendorQuery)
       .populate('user_id', 'name email phone wallet_balance avatar')
       .limit(20)
       .lean();
@@ -2528,6 +2595,7 @@ const adminAdjustVendorBalance = async (req, res, next) => {
     if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, message: 'Amount must be greater than 0.' });
     if (!['credit', 'debit'].includes(operation)) return res.status(400).json({ success: false, message: 'Operation must be credit or debit.' });
     if (!reason || reason.length < 5) return res.status(400).json({ success: false, message: 'Reason must be at least 5 characters.' });
+    assertAccessLevel(req.managerScope, userId, 'full');
 
     const user = await User.findById(userId).select('name wallet_balance');
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
@@ -2573,7 +2641,7 @@ const adminAdjustVendorBalance = async (req, res, next) => {
 const getAdminBalanceAdjustmentHistory = async (req, res, next) => {
   try {
     const { page = 1, limit = 30, search } = req.query;
-    const query = { 'metadata.admin_balance_adjustment': true };
+    const query = scoped('Transaction', { 'metadata.admin_balance_adjustment': true }, req.managerScope);
 
     const [transactions, total, statsAgg] = await Promise.all([
       Transaction.find(query)
@@ -2584,7 +2652,7 @@ const getAdminBalanceAdjustmentHistory = async (req, res, next) => {
         .lean(),
       Transaction.countDocuments(query),
       Transaction.aggregate([
-        { $match: { 'metadata.admin_balance_adjustment': true } },
+        { $match: query },
         {
           $group: {
             _id: null,
@@ -2618,6 +2686,7 @@ const getVendorTransactionHistory = async (req, res, next) => {
   try {
     const { userId } = req.params;
     const { page = 1, limit = 20 } = req.query;
+    assertInScope(req.managerScope, userId);
 
     const [transactions, total] = await Promise.all([
       Transaction.find({ user_id: userId })
@@ -2755,6 +2824,12 @@ const demoteManager = async (req, res, next) => {
       return res.status(409).json({ success: false, message: 'Role was changed by another request. Please retry.' });
     }
 
+    // Revoke all active/pending assignments (preserve history)
+    await ManagerAssignment.updateMany(
+      { manager_id: user._id, status: { $in: ['active', 'pending'] } },
+      { $set: { status: 'revoked', revoked_at: new Date(), revoked_by: req.user._id } }
+    );
+
     await recordAudit({
       actorId: req.user._id,
       action: 'demote_manager',
@@ -2768,6 +2843,601 @@ const demoteManager = async (req, res, next) => {
       success: true,
       message: `${updated.name || updated.email} restored to ${restoredRole}.`,
       data: { user: updated },
+    });
+  } catch (error) { next(error); }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Manager Assignment System
+// ─────────────────────────────────────────────────────────────────────────────
+
+// POST /api/admin/managers/:managerId/assign — Admin direct-assigns users
+const assignUsersToManager = async (req, res, next) => {
+  try {
+    const { userIds, access_level = 'standard', note } = req.body;
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'userIds array is required.' });
+    }
+    if (userIds.length > 500) {
+      return res.status(400).json({ success: false, message: 'Maximum 500 user IDs per request.' });
+    }
+    if (!['read_only', 'standard', 'full'].includes(access_level)) {
+      return res.status(400).json({ success: false, message: 'Invalid access_level.' });
+    }
+
+    const manager = await User.findById(req.params.managerId).select('name email role');
+    if (!manager) return res.status(404).json({ success: false, message: 'Manager not found.' });
+    if (manager.role !== 'manager') {
+      return res.status(400).json({ success: false, message: 'Target user is not a manager.' });
+    }
+
+    const results = { assigned: [], skipped: [], rejected: [] };
+
+    for (const uid of userIds) {
+      try {
+        // Validate the target user
+        const target = await User.findById(uid).select('name email role');
+        if (!target) {
+          results.rejected.push({ id: uid, reason: 'User not found' });
+          continue;
+        }
+        if (['admin', 'manager'].includes(target.role)) {
+          results.rejected.push({ id: uid, reason: `Cannot assign ${target.role} accounts` });
+          continue;
+        }
+        if (target._id.toString() === manager._id.toString()) {
+          results.rejected.push({ id: uid, reason: 'Cannot assign manager to themselves' });
+          continue;
+        }
+
+        // Check for existing active assignment
+        const existing = await ManagerAssignment.findOne({
+          manager_id: manager._id,
+          user_id: target._id,
+        });
+
+        if (existing && existing.status === 'active') {
+          results.skipped.push({ id: uid, name: target.name, reason: 'Already assigned' });
+          continue;
+        }
+
+        if (existing) {
+          // Reactivate revoked/declined assignment
+          existing.status = 'active';
+          existing.access_level = access_level;
+          existing.assigned_by = req.user._id;
+          existing.note = note || existing.note;
+          existing.revoked_at = null;
+          existing.revoked_by = null;
+          await existing.save();
+        } else {
+          await ManagerAssignment.create({
+            manager_id: manager._id,
+            user_id: target._id,
+            access_level,
+            status: 'active',
+            assigned_by: req.user._id,
+            note,
+          });
+        }
+
+        results.assigned.push({ id: uid, name: target.name });
+
+        // Notify the user
+        sendNotification(req.app, target._id, {
+          title: 'Account Manager Assigned',
+          message: `${manager.name || manager.email} has been assigned as your account manager.`,
+          type: 'system_alert',
+          metadata: { target_id: manager._id },
+        });
+      } catch (dupErr) {
+        if (dupErr.code === 11000) {
+          results.skipped.push({ id: uid, reason: 'Duplicate assignment' });
+        } else {
+          results.rejected.push({ id: uid, reason: dupErr.message });
+        }
+      }
+    }
+
+    await recordAudit({
+      actorId: req.user._id,
+      action: 'manager_assign',
+      targetType: 'ManagerAssignment',
+      targetId: manager._id,
+      after: { assigned: results.assigned.length, access_level, managerId: manager._id },
+    });
+
+    res.json({ success: true, data: results });
+  } catch (error) { next(error); }
+};
+
+// POST /api/admin/managers/:managerId/invite — Invite flow (pending until user accepts)
+const inviteUsersToManager = async (req, res, next) => {
+  try {
+    const { userIds, access_level = 'standard', note } = req.body;
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'userIds array is required.' });
+    }
+    if (userIds.length > 500) {
+      return res.status(400).json({ success: false, message: 'Maximum 500 user IDs per request.' });
+    }
+    if (!['read_only', 'standard', 'full'].includes(access_level)) {
+      return res.status(400).json({ success: false, message: 'Invalid access_level.' });
+    }
+
+    const managerId = req.params.managerId;
+    // Manager can only invite to themselves; admin can invite to any manager
+    if (req.user.role === 'manager' && req.user._id.toString() !== managerId) {
+      return res.status(403).json({ success: false, message: 'Managers can only send invites for themselves.' });
+    }
+
+    const manager = await User.findById(managerId).select('name email role');
+    if (!manager) return res.status(404).json({ success: false, message: 'Manager not found.' });
+    if (manager.role !== 'manager') {
+      return res.status(400).json({ success: false, message: 'Target user is not a manager.' });
+    }
+
+    const results = { invited: [], skipped: [], rejected: [] };
+
+    for (const uid of userIds) {
+      try {
+        const target = await User.findById(uid).select('name email role');
+        if (!target) {
+          results.rejected.push({ id: uid, reason: 'User not found' });
+          continue;
+        }
+        if (['admin', 'manager'].includes(target.role)) {
+          results.rejected.push({ id: uid, reason: `Cannot invite ${target.role} accounts` });
+          continue;
+        }
+
+        const existing = await ManagerAssignment.findOne({
+          manager_id: manager._id,
+          user_id: target._id,
+        });
+
+        if (existing && ['active', 'pending'].includes(existing.status)) {
+          results.skipped.push({ id: uid, name: target.name, reason: `Already ${existing.status}` });
+          continue;
+        }
+
+        if (existing) {
+          existing.status = 'pending';
+          existing.access_level = access_level;
+          existing.assigned_by = req.user._id;
+          existing.note = note || existing.note;
+          existing.revoked_at = null;
+          existing.revoked_by = null;
+          await existing.save();
+        } else {
+          await ManagerAssignment.create({
+            manager_id: manager._id,
+            user_id: target._id,
+            access_level,
+            status: 'pending',
+            assigned_by: req.user._id,
+            note,
+          });
+        }
+
+        results.invited.push({ id: uid, name: target.name });
+
+        sendNotification(req.app, target._id, {
+          title: 'Manager Access Request',
+          message: `${manager.name || manager.email} has requested to manage your account. Please review and accept or decline.`,
+          type: 'system_alert',
+          metadata: { target_id: manager._id },
+        });
+      } catch (dupErr) {
+        if (dupErr.code === 11000) {
+          results.skipped.push({ id: uid, reason: 'Duplicate' });
+        } else {
+          results.rejected.push({ id: uid, reason: dupErr.message });
+        }
+      }
+    }
+
+    await recordAudit({
+      actorId: req.user._id,
+      action: 'manager_invite',
+      targetType: 'ManagerAssignment',
+      targetId: manager._id,
+      after: { invited: results.invited.length, access_level },
+    });
+
+    res.json({ success: true, data: results });
+  } catch (error) { next(error); }
+};
+
+// POST /api/manager-assignments/:assignmentId/respond — User accepts/declines invite
+const respondToInvite = async (req, res, next) => {
+  try {
+    const { accept } = req.body;
+    if (typeof accept !== 'boolean') {
+      return res.status(400).json({ success: false, message: '"accept" (boolean) is required.' });
+    }
+
+    const assignment = await ManagerAssignment.findById(req.params.assignmentId)
+      .populate('manager_id', 'name email');
+    if (!assignment) {
+      return res.status(404).json({ success: false, message: 'Assignment not found.' });
+    }
+    // Only the target user can respond
+    if (assignment.user_id.toString() !== req.user._id.toString()) {
+      return res.status(404).json({ success: false, message: 'Assignment not found.' });
+    }
+    if (assignment.status !== 'pending') {
+      return res.status(400).json({ success: false, message: `Assignment is already ${assignment.status}.` });
+    }
+
+    const oldStatus = assignment.status;
+    assignment.status = accept ? 'active' : 'declined';
+    await assignment.save();
+
+    // Notify the manager
+    sendNotification(req.app, assignment.manager_id._id, {
+      title: accept ? 'Invite Accepted' : 'Invite Declined',
+      message: `${req.user.name || req.user.email} has ${accept ? 'accepted' : 'declined'} your management request.`,
+      type: 'system_alert',
+      metadata: { target_id: req.user._id },
+    });
+
+    await recordAudit({
+      actorId: req.user._id,
+      action: accept ? 'manager_accept' : 'manager_decline',
+      targetType: 'ManagerAssignment',
+      targetId: assignment._id,
+      before: { status: oldStatus },
+      after: { status: assignment.status },
+    });
+
+    res.json({
+      success: true,
+      message: accept ? 'Manager access granted.' : 'Manager invite declined.',
+    });
+  } catch (error) { next(error); }
+};
+
+// POST /api/admin/managers/:managerId/unassign — Admin revokes assignments
+const unassignUsers = async (req, res, next) => {
+  try {
+    const { userIds } = req.body;
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'userIds array is required.' });
+    }
+
+    const manager = await User.findById(req.params.managerId).select('name email role');
+    if (!manager) return res.status(404).json({ success: false, message: 'Manager not found.' });
+
+    const result = await ManagerAssignment.updateMany(
+      {
+        manager_id: manager._id,
+        user_id: { $in: userIds },
+        status: { $in: ['active', 'pending'] },
+      },
+      {
+        $set: {
+          status: 'revoked',
+          revoked_at: new Date(),
+          revoked_by: req.user._id,
+        },
+      }
+    );
+
+    // Notify manager and users
+    if (result.modifiedCount > 0) {
+      sendNotification(req.app, manager._id, {
+        title: 'Accounts Unassigned',
+        message: `${result.modifiedCount} account(s) have been removed from your management.`,
+        type: 'system_alert',
+      });
+      for (const uid of userIds) {
+        sendNotification(req.app, uid, {
+          title: 'Manager Removed',
+          message: `${manager.name || manager.email} is no longer managing your account.`,
+          type: 'system_alert',
+        });
+      }
+    }
+
+    await recordAudit({
+      actorId: req.user._id,
+      action: 'manager_revoke',
+      targetType: 'ManagerAssignment',
+      targetId: manager._id,
+      after: { revokedCount: result.modifiedCount, userIds },
+    });
+
+    res.json({ success: true, message: `${result.modifiedCount} assignment(s) revoked.` });
+  } catch (error) { next(error); }
+};
+
+// GET /api/admin/managers/:managerId/assignments — List assignments
+const getManagerAssignments = async (req, res, next) => {
+  try {
+    const managerId = req.params.managerId;
+    // Manager can only view own assignments
+    if (req.user.role === 'manager' && req.user._id.toString() !== managerId) {
+      return res.status(404).json({ success: false, message: 'Not found.' });
+    }
+
+    const { status, access_level, search, page = 1, limit = 100 } = req.query;
+    const query = { manager_id: managerId };
+    if (status && status !== 'all') query.status = status;
+    else if (!status) query.status = 'active'; // default to active
+    if (access_level && access_level !== 'all') query.access_level = access_level;
+
+    let assignments = await ManagerAssignment.find(query)
+      .populate('user_id', 'name email role avatar verification_status is_active')
+      .populate('assigned_by', 'name email')
+      .sort('-createdAt')
+      .skip(((+page) - 1) * (+limit))
+      .limit(+limit)
+      .lean();
+
+    // Client-side search on populated user name/email
+    if (search) {
+      const safeSearch = escapeRegExp(search);
+      const re = new RegExp(safeSearch, 'i');
+      assignments = assignments.filter(a =>
+        a.user_id && (re.test(a.user_id.name) || re.test(a.user_id.email))
+      );
+    }
+
+    const total = await ManagerAssignment.countDocuments(query);
+
+    res.json({ success: true, data: assignments, total });
+  } catch (error) { next(error); }
+};
+
+// PATCH /api/admin/managers/:managerId/assignments/:assignmentId — Change access level
+const updateAssignmentLevel = async (req, res, next) => {
+  try {
+    const { access_level } = req.body;
+    if (!['read_only', 'standard', 'full'].includes(access_level)) {
+      return res.status(400).json({ success: false, message: 'Invalid access_level.' });
+    }
+
+    const assignment = await ManagerAssignment.findOne({
+      _id: req.params.assignmentId,
+      manager_id: req.params.managerId,
+    }).populate('user_id', 'name email').populate('manager_id', 'name email');
+
+    if (!assignment) {
+      return res.status(404).json({ success: false, message: 'Assignment not found.' });
+    }
+
+    const oldLevel = assignment.access_level;
+    assignment.access_level = access_level;
+    await assignment.save();
+
+    // Notify both parties
+    sendNotification(req.app, assignment.manager_id._id, {
+      title: 'Access Level Changed',
+      message: `Your access level for ${assignment.user_id.name || assignment.user_id.email} changed from ${oldLevel} to ${access_level}.`,
+      type: 'system_alert',
+    });
+    sendNotification(req.app, assignment.user_id._id, {
+      title: 'Manager Access Updated',
+      message: `${assignment.manager_id.name || assignment.manager_id.email}'s access level changed to ${access_level}.`,
+      type: 'system_alert',
+    });
+
+    await recordAudit({
+      actorId: req.user._id,
+      action: 'manager_access_level_change',
+      targetType: 'ManagerAssignment',
+      targetId: assignment._id,
+      before: { access_level: oldLevel },
+      after: { access_level },
+    });
+
+    res.json({ success: true, message: 'Access level updated.', data: assignment });
+  } catch (error) { next(error); }
+};
+
+// POST /api/admin/managers/transfer — Transfer accounts between managers
+const transferAssignments = async (req, res, next) => {
+  try {
+    const { fromManagerId, toManagerId, userIds } = req.body;
+    if (!fromManagerId || !toManagerId) {
+      return res.status(400).json({ success: false, message: 'fromManagerId and toManagerId are required.' });
+    }
+    if (fromManagerId === toManagerId) {
+      return res.status(400).json({ success: false, message: 'Cannot transfer to the same manager.' });
+    }
+
+    const [fromMgr, toMgr] = await Promise.all([
+      User.findById(fromManagerId).select('name email role'),
+      User.findById(toManagerId).select('name email role'),
+    ]);
+    if (!fromMgr || fromMgr.role !== 'manager') {
+      return res.status(400).json({ success: false, message: 'Source manager not found or not a manager.' });
+    }
+    if (!toMgr || toMgr.role !== 'manager') {
+      return res.status(400).json({ success: false, message: 'Target manager not found or not a manager.' });
+    }
+
+    // Find assignments to transfer
+    const filter = {
+      manager_id: fromManagerId,
+      status: 'active',
+    };
+    if (Array.isArray(userIds) && userIds.length > 0) {
+      filter.user_id = { $in: userIds };
+    }
+
+    const toTransfer = await ManagerAssignment.find(filter).lean();
+    if (toTransfer.length === 0) {
+      return res.status(400).json({ success: false, message: 'No active assignments found to transfer.' });
+    }
+
+    let transferred = 0;
+
+    for (const asgn of toTransfer) {
+      // Revoke old assignment
+      await ManagerAssignment.findByIdAndUpdate(asgn._id, {
+        $set: { status: 'revoked', revoked_at: new Date(), revoked_by: req.user._id },
+      });
+
+      // Create or reactivate for the new manager
+      const existing = await ManagerAssignment.findOne({
+        manager_id: toManagerId,
+        user_id: asgn.user_id,
+      });
+
+      if (existing) {
+        existing.status = 'active';
+        existing.access_level = asgn.access_level;
+        existing.assigned_by = req.user._id;
+        existing.note = `Transferred from ${fromMgr.name || fromMgr.email}`;
+        existing.revoked_at = null;
+        existing.revoked_by = null;
+        await existing.save();
+      } else {
+        await ManagerAssignment.create({
+          manager_id: toManagerId,
+          user_id: asgn.user_id,
+          access_level: asgn.access_level,
+          status: 'active',
+          assigned_by: req.user._id,
+          note: `Transferred from ${fromMgr.name || fromMgr.email}`,
+        });
+      }
+      transferred++;
+    }
+
+    // Notify both managers
+    sendNotification(req.app, fromMgr._id, {
+      title: 'Accounts Transferred',
+      message: `${transferred} account(s) transferred to ${toMgr.name || toMgr.email}.`,
+      type: 'system_alert',
+    });
+    sendNotification(req.app, toMgr._id, {
+      title: 'Accounts Received',
+      message: `${transferred} account(s) transferred from ${fromMgr.name || fromMgr.email}.`,
+      type: 'system_alert',
+    });
+
+    await recordAudit({
+      actorId: req.user._id,
+      action: 'manager_transfer',
+      targetType: 'ManagerAssignment',
+      targetId: fromMgr._id,
+      before: { manager: fromManagerId, count: transferred },
+      after: { manager: toManagerId, count: transferred },
+    });
+
+    res.json({ success: true, message: `${transferred} assignment(s) transferred.` });
+  } catch (error) { next(error); }
+};
+
+// GET /api/my-managers — User views their assigned managers
+const getMyManagers = async (req, res, next) => {
+  try {
+    const assignments = await ManagerAssignment.find({
+      user_id: req.user._id,
+      status: { $in: ['active', 'pending'] },
+    })
+      .populate('manager_id', 'name email avatar')
+      .sort('-createdAt')
+      .lean();
+
+    res.json({ success: true, data: assignments });
+  } catch (error) { next(error); }
+};
+
+// POST /api/my-managers/:assignmentId/revoke — User removes a manager
+const revokeMyManager = async (req, res, next) => {
+  try {
+    const assignment = await ManagerAssignment.findById(req.params.assignmentId)
+      .populate('manager_id', 'name email');
+    if (!assignment) {
+      return res.status(404).json({ success: false, message: 'Assignment not found.' });
+    }
+    // Only the target user can revoke their own manager
+    if (assignment.user_id.toString() !== req.user._id.toString()) {
+      return res.status(404).json({ success: false, message: 'Assignment not found.' });
+    }
+    if (assignment.status === 'revoked') {
+      return res.status(400).json({ success: false, message: 'Already revoked.' });
+    }
+
+    const oldStatus = assignment.status;
+    assignment.status = 'revoked';
+    assignment.revoked_at = new Date();
+    assignment.revoked_by = req.user._id;
+    await assignment.save();
+
+    // Notify manager
+    sendNotification(req.app, assignment.manager_id._id, {
+      title: 'Account Access Revoked',
+      message: `${req.user.name || req.user.email} has removed you as their account manager.`,
+      type: 'system_alert',
+      metadata: { target_id: req.user._id },
+    });
+
+    await recordAudit({
+      actorId: req.user._id,
+      action: 'manager_revoke',
+      targetType: 'ManagerAssignment',
+      targetId: assignment._id,
+      before: { status: oldStatus },
+      after: { status: 'revoked' },
+    });
+
+    res.json({ success: true, message: 'Manager access revoked.' });
+  } catch (error) { next(error); }
+};
+
+// GET /api/admin/portfolio — Manager's scoped dashboard summary
+const getManagerPortfolio = async (req, res, next) => {
+  try {
+    const scope = req.managerScope;
+    if (!scope) {
+      return res.status(400).json({ success: false, message: 'Portfolio is only available for managers.' });
+    }
+
+    const [
+      totalUsers,
+      totalVendors,
+      activeOrders,
+      pendingKYC,
+      openDisputes,
+      escrowHeld,
+      pendingWithdrawals,
+      assignments,
+    ] = await Promise.all([
+      User.countDocuments(scoped('User', {}, scope)),
+      Vendor.countDocuments(scoped('Vendor', {}, scope)),
+      Order.countDocuments(scoped('Order', { order_status: { $in: ['placed', 'processing', 'shipped'] } }, scope)),
+      KYC.countDocuments(scoped('KYC', { status: 'pending' }, scope)),
+      Dispute.countDocuments(scoped('Dispute', { status: { $in: ['open', 'under_review'] } }, scope)),
+      Escrow.aggregate([
+        { $match: scoped('Escrow', { status: 'held' }, scope) },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]),
+      WithdrawalRequest.countDocuments(scoped('WithdrawalRequest', { status: 'pending' }, scope)),
+      ManagerAssignment.find({ manager_id: req.user._id, status: 'active' })
+        .populate('user_id', 'name email avatar role')
+        .sort('-createdAt')
+        .lean(),
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        stats: {
+          users: totalUsers,
+          vendors: totalVendors,
+          active_orders: activeOrders,
+          pending_kyc: pendingKYC,
+          open_disputes: openDisputes,
+          escrow_held: escrowHeld[0]?.total || 0,
+          pending_withdrawals: pendingWithdrawals,
+        },
+        assignments,
+      },
     });
   } catch (error) { next(error); }
 };
@@ -2846,6 +3516,18 @@ module.exports = {
   // Manager management
   promoteToManager,
   demoteManager,
+  // Manager assignments
+  assignUsersToManager,
+  inviteUsersToManager,
+  respondToInvite,
+  unassignUsers,
+  getManagerAssignments,
+  updateAssignmentLevel,
+  transferAssignments,
+  getMyManagers,
+  revokeMyManager,
+  // Manager portfolio
+  getManagerPortfolio,
 };
 
 // ─────────────────────────────────────────────
@@ -2858,9 +3540,10 @@ module.exports = {
 async function setCancelRateHoldOverride(req, res, next) {
   try {
     const { override, clear_hold } = req.body;
-    const vendor = await Vendor.findById(req.params.id).select('vendor_type cancel_rate_hold cancel_rate_hold_since cancel_rate_hold_override');
+    const vendor = await Vendor.findById(req.params.id).select('user_id vendor_type cancel_rate_hold cancel_rate_hold_since cancel_rate_hold_override');
 
     if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found.' });
+    assertAccessLevel(req.managerScope, vendor.user_id, 'standard');
     if (vendor.vendor_type !== 'restaurant') {
       return res.status(400).json({ success: false, message: 'Cancel-rate hold only applies to restaurant vendors.' });
     }

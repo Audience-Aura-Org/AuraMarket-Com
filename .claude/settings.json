@@ -46,10 +46,18 @@
       "Bash(TEST_ORANGE_PHONE=658928598 node backend/scripts/test_payunit.js:*)",
       "WebFetch(domain:payunit.net)",
       "WebFetch(domain:web.payunit.net)",
-      "WebFetch(domain:developer.payunit.net)"
+      "WebFetch(domain:developer.payunit.net)",
+      "Read(//c/Users/Zero/Desktop/AuraMarket/**)",
+      "Bash(npx vitest run)",
+      "Bash(git status:*)",
+      "Bash(for f in routes/category.routes.js routes/chat.routes.js routes/dispute.routes.js routes/escrow.routes.js routes/homepage.routes.js routes/order.routes.js routes/product.routes.js routes/review.routes.js routes/subscription.routes.js)",
+      "Bash(do node -c \"$f\")",
+      "Bash(echo:*)",
+      "Bash(done)"
     ],
     "additionalDirectories": [
-      "C:\\Users\\Zero\\.gradle\\caches"
+      "C:\\Users\\Zero\\.gradle\\caches",
+      "c:\\Users\\Zero\\.claude\\plans"
     ]
   }
 }

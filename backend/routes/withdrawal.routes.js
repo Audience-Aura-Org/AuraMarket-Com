@@ -16,6 +16,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { loadManagerScope } = require('../middleware/managerScope.middleware');
 
 const {
   submitWithdrawal,
@@ -35,10 +36,13 @@ router.get('/mine', getMyWithdrawals);
 router.get('/mine/:id/recheck', userRecheckWithdrawal);
 
 // ── Admin + Manager ──────────────────────────
-router.get('/admin', restrictTo('admin', 'manager'), adminGetAllWithdrawals);
-router.post('/admin/:id/approve', restrictTo('admin', 'manager'), adminApproveWithdrawal);
-router.post('/admin/:id/reject',  restrictTo('admin', 'manager'), adminRejectWithdrawal);
-router.post('/admin/:id/recheck', restrictTo('admin', 'manager'), adminRecheckWithdrawal);
-router.post('/admin/:id/complete', restrictTo('admin', 'manager'), adminCompleteManualWithdrawal);
+const adminWithdrawals = express.Router();
+adminWithdrawals.use(restrictTo('admin', 'manager'), loadManagerScope);
+adminWithdrawals.get('/', adminGetAllWithdrawals);
+adminWithdrawals.post('/:id/approve', adminApproveWithdrawal);
+adminWithdrawals.post('/:id/reject',  adminRejectWithdrawal);
+adminWithdrawals.post('/:id/recheck', adminRecheckWithdrawal);
+adminWithdrawals.post('/:id/complete', adminCompleteManualWithdrawal);
+router.use('/admin', adminWithdrawals);
 
 module.exports = router;

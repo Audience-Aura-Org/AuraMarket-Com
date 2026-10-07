@@ -27,6 +27,7 @@ const { debitBalance, creditBalance } = require('../services/wallet.service');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { hasRole } = require('../utils/roles');
+const { scoped } = require('../utils/scopeFilter');
 
 const generateTxRef = () => `AURA-ESCROW-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 const AUTO_RELEASE_WINDOW_MS = 6 * 60 * 60 * 1000;
@@ -836,7 +837,7 @@ const denyEscrow = async (req, res, next) => {
 const getEscrowLogs = async (req, res, next) => {
   try {
     const { status } = req.query;
-    const query = status && status !== 'all' ? { status } : {};
+    const query = scoped('Escrow', status && status !== 'all' ? { status } : {}, req.managerScope);
 
     const logs = await Escrow.find(query)
       .populate('buyer_id', 'name email avatar')
@@ -845,6 +846,7 @@ const getEscrowLogs = async (req, res, next) => {
       .sort('-createdAt');
 
     const stats = await Escrow.aggregate([
+      { $match: scoped('Escrow', {}, req.managerScope) },
       {
         $group: {
           _id: '$status',

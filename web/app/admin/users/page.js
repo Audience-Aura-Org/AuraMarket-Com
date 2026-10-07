@@ -3,11 +3,12 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { 
-  User, Shield, ShieldAlert, Mail, Search, 
-  Filter, Loader2, Ban, CheckCircle, MoreVertical, 
-  X, Phone, Trash2, Users, ArrowUpRight, 
-  ChevronRight, Activity, RefreshCw, LayoutGrid, List
+import {
+  User, Shield, ShieldAlert, Mail, Search,
+  Filter, Loader2, Ban, CheckCircle, MoreVertical,
+  X, Phone, Trash2, Users, ArrowUpRight,
+  ChevronRight, Activity, RefreshCw, LayoutGrid, List,
+  UserPlus, Link2
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -35,6 +36,13 @@ export default function AdminUsersPage() {
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const { user } = useAuthStore();
   const [verificationFilter, setVerificationFilter] = useState('');
+
+  // Manager assignment state
+  const [assignModal, setAssignModal] = useState(false);
+  const [assignTarget, setAssignTarget] = useState(null); // single user or null for bulk
+  const [managers, setManagers] = useState([]);
+  const [assignForm, setAssignForm] = useState({ managerId: '', accessLevel: 'standard' });
+  const [assignLoading, setAssignLoading] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -155,6 +163,38 @@ export default function AdminUsersPage() {
         setUsers(prev => prev.map(u => u._id === userId ? { ...u, role: restored } : u));
       }
     } catch (err) { toast.error(err.response?.data?.message || 'Demotion failed'); }
+  };
+
+  const openAssignModal = async (singleUser = null) => {
+    setAssignTarget(singleUser);
+    setAssignForm({ managerId: '', accessLevel: 'standard' });
+    setAssignModal(true);
+    // Fetch managers list
+    try {
+      const res = await api.get('/admin/users?role=manager');
+      if (res.data?.success) setManagers(res.data.data.users || []);
+    } catch { setManagers([]); }
+  };
+
+  const handleAssignToManager = async () => {
+    if (!assignForm.managerId) return toast.error('Select a manager');
+    const userIds = assignTarget ? [assignTarget._id] : selectedIds;
+    if (userIds.length === 0) return toast.error('No users selected');
+    setAssignLoading(true);
+    try {
+      const res = await api.post(`/admin/managers/${assignForm.managerId}/assign`, {
+        user_ids: userIds,
+        access_level: assignForm.accessLevel,
+      });
+      if (res.data.success) {
+        const count = res.data.data?.created || userIds.length;
+        toast.success(`${count} account${count !== 1 ? 's' : ''} assigned`);
+        setAssignModal(false);
+        setAssignTarget(null);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Assignment failed');
+    } finally { setAssignLoading(false); }
   };
 
   const filteredUsers = users.filter(u =>
@@ -374,6 +414,11 @@ export default function AdminUsersPage() {
                             <ShieldAlert className="size-4 md:size-5" />
                           </button>
                         )}
+                        {user?.role === 'admin' && u.role !== 'admin' && (
+                          <button onClick={() => openAssignModal(u)} className="size-10 md:size-11 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all active:scale-90 shadow-sm" title="Assign to Manager">
+                            <Link2 className="size-4 md:size-5" />
+                          </button>
+                        )}
                         {['admin', 'manager'].includes(user?.role) && (
                         <button onClick={() => handleDeleteUser(u._id, u.name)} className="size-10 md:size-11 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all active:scale-90 shadow-sm">
                            <Trash2 className="size-4 md:size-5" />
@@ -457,6 +502,11 @@ export default function AdminUsersPage() {
                                     <ShieldAlert className="size-4" />
                                   </button>
                                 )}
+                                {user?.role === 'admin' && u.role !== 'admin' && (
+                                  <button onClick={() => openAssignModal(u)} className="size-9 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center hover:bg-emerald-500 hover:text-white transition-all" title="Assign to Manager">
+                                    <Link2 className="size-4" />
+                                  </button>
+                                )}
                                 {['admin', 'manager'].includes(user?.role) && (
                                 <button onClick={() => handleDeleteUser(u._id, u.name)} className="size-9 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
                                   <Trash2 className="size-4" />
@@ -507,6 +557,15 @@ export default function AdminUsersPage() {
               >
                 Cancel
               </button>
+              {user?.role === 'admin' && (
+                <button
+                  onClick={() => openAssignModal(null)}
+                  className="px-5 md:px-7 py-3 rounded-full bg-emerald-500 text-white text-[11px] font-semibold tracking-tight hover:bg-emerald-600 transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/30"
+                >
+                  <Link2 className="size-3" />
+                  Assign
+                </button>
+              )}
               <button
                 onClick={handleBulkDelete}
                 disabled={bulkDeleting}
@@ -612,6 +671,88 @@ export default function AdminUsersPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+        {assignModal && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setAssignModal(false)} />
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-md bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2.5rem] p-6 md:p-8 shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="size-11 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shadow-inner">
+                    <UserPlus className="size-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm md:text-base font-bold tracking-tight">Assign to Manager</h3>
+                    <p className="text-[10px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest mt-0.5">
+                      {assignTarget ? assignTarget.name || assignTarget.email : `${selectedIds.length} user${selectedIds.length !== 1 ? 's' : ''}`}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setAssignModal(false)} className="p-2 rounded-xl hover:bg-[var(--bg-secondary)] transition-all text-[var(--text-secondary)]">
+                  <X className="size-5" />
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold tracking-widest opacity-40 uppercase ml-1">Manager</p>
+                  <select
+                    value={assignForm.managerId}
+                    onChange={(e) => setAssignForm((f) => ({ ...f, managerId: e.target.value }))}
+                    className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-4 text-[11px] font-bold tracking-tight outline-none appearance-none cursor-pointer focus:border-emerald-500 shadow-inner"
+                  >
+                    <option value="">Select a manager...</option>
+                    {managers.map((m) => (
+                      <option key={m._id} value={m._id}>
+                        {m.name || m.email} ({m.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold tracking-widest opacity-40 uppercase ml-1">Access Level</p>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'read_only', label: 'View Only', desc: 'Read access only' },
+                      { value: 'standard', label: 'Standard', desc: 'Read + edit' },
+                      { value: 'full', label: 'Full', desc: 'All operations' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setAssignForm((f) => ({ ...f, accessLevel: opt.value }))}
+                        className={`flex-1 p-3 rounded-xl border text-center transition-all ${
+                          assignForm.accessLevel === opt.value
+                            ? 'border-emerald-500/40 bg-emerald-500/10'
+                            : 'border-[var(--glass-border)] hover:border-emerald-500/20'
+                        }`}
+                      >
+                        <p className={`text-[11px] font-bold ${assignForm.accessLevel === opt.value ? 'text-emerald-500' : 'text-[var(--text-primary)]'}`}>
+                          {opt.label}
+                        </p>
+                        <p className="text-[9px] text-[var(--text-secondary)] opacity-50 mt-0.5">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleAssignToManager}
+                  disabled={assignLoading || !assignForm.managerId}
+                  className="w-full h-14 bg-emerald-500 text-white rounded-2xl font-bold text-xs uppercase tracking-[0.2em] shadow-lg shadow-emerald-500/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {assignLoading ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Assigning...
+                    </>
+                  ) : (
+                    'Assign Accounts'
+                  )}
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

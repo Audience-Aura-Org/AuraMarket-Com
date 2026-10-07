@@ -20,12 +20,13 @@ const {
 } = require('../controllers/escrow.controller');
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { loadManagerScope } = require('../middleware/managerScope.middleware');
 
 // All Escrow endpoints require an authorized identity
 router.use(protect);
 
 // ── Admin Monitoring ──────────────────────────
-router.get('/logs', restrictTo('admin', 'manager'), getEscrowLogs);
+router.get('/logs', restrictTo('admin', 'manager'), loadManagerScope, getEscrowLogs);
 
 // ── Buyer Initiations ─────────────────────────────────────────────────────
 // Vendors and logistics can also act as buyers, so they can hold/release funds

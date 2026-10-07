@@ -2,6 +2,7 @@ const User = require('../models/User.model');
 const KYC = require('../models/KYC.model');
 const Vendor = require('../models/Vendor.model');
 const Follow = require('../models/Follow.model');
+const { hasRole } = require('../utils/roles');
 
 const getMe = async (req, res, next) => {
   try {
@@ -80,7 +81,7 @@ const updateMe = async (req, res, next) => {
     const user = await User.findById(req.user._id).populate('liked_categories').lean();
 
     // Cascading updates for role-specific records
-    if (user.role === 'vendor') {
+    if (hasRole(user, 'vendor')) {
       const Store = require('../models/Store.model');
       const storeUpdates = {};
       if (updates['branding.logo'] !== undefined) storeUpdates.logo = updates['branding.logo'];

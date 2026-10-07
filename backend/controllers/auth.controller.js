@@ -23,6 +23,7 @@ const {
   verifyOtpForEmail,
   verifySignupToken,
 } = require('../services/authOtp.service');
+const { hasRole } = require('../utils/roles');
 
 let otplibAuthenticator;
 const getAuthenticator = async () => {
@@ -674,7 +675,7 @@ const getUser = async (req, res, next) => {
           }
         }
       }
-    } else if (user.role === 'vendor') {
+    } else if (hasRole(user, 'vendor')) {
        // If we found the user directly but they are a vendor, also try pulling their store name
        const vendor = await require('../models/Vendor.model').findOne({ user_id: user._id });
        if (vendor) {

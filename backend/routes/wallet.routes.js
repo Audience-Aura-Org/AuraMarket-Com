@@ -29,6 +29,7 @@ const {
 } = require('../controllers/wallet.controller');
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { loadManagerScope } = require('../middleware/managerScope.middleware');
 
 // All Wallet routes require authentication
 router.use(protect);
@@ -42,8 +43,11 @@ router.post('/withdraw', requestWithdrawal);
 router.post('/pay-order', payOrderWithWallet); // Direct Wallet Payment checkout
 
 // ── Admin + Manager Tools ────────────────────
-router.get('/admin/stats', restrictTo('admin', 'manager'), getPlatformFinancialStats);
-router.get('/admin/withdrawals', restrictTo('admin', 'manager'), getAllWithdrawals);
-router.patch('/admin/withdrawals/:id', restrictTo('admin', 'manager'), processWithdrawal);
+const adminWallet = express.Router();
+adminWallet.use(restrictTo('admin', 'manager'), loadManagerScope);
+adminWallet.get('/stats', getPlatformFinancialStats);
+adminWallet.get('/withdrawals', getAllWithdrawals);
+adminWallet.patch('/withdrawals/:id', processWithdrawal);
+router.use('/admin', adminWallet);
 
 module.exports = router;

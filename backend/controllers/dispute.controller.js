@@ -16,6 +16,7 @@ const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../serv
 const { applyCommissionOverride, calculatePlatformFees, describeFee } = require('../utils/platformFees');
 const { clawbackFoodRefund } = require('../services/payment/settle.service');
 const { creditBalance } = require('../services/wallet.service');
+const { scoped, assertAccessLevel } = require('../utils/scopeFilter');
 
 const getEffectivePlatformSettings = async (vendorId, session) => {
   const platformSettings = await PlatformSettings.getSettings(session);
@@ -102,7 +103,7 @@ const createDispute = async (req, res, next) => {
 // @access  Private (Role: admin)
 const getAdminDisputes = async (req, res, next) => {
   try {
-    const disputes = await Dispute.find()
+    const disputes = await Dispute.find(scoped('Dispute', {}, req.managerScope))
       .populate('order_id')
       .populate('initiator_id', 'name email avatar verification_status')
       .sort('-createdAt');
@@ -145,6 +146,7 @@ const resolveDispute = async (req, res, next) => {
       session.endSession();
       return res.status(404).json({ success: false, message: 'Dispute not found.' });
     }
+    assertAccessLevel(req.managerScope, dispute.initiator_id, 'full');
 
     if (dispute.status === 'resolved') {
       await session.abortTransaction();

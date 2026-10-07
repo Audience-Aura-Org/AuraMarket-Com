@@ -5,6 +5,7 @@
 
 const User = require('../models/User.model');
 const Vendor = require('../models/Vendor.model');
+const { hasRole } = require('../utils/roles');
 
 // ─────────────────────────────────────────────
 // @route   GET /api/addresses
@@ -17,7 +18,7 @@ const getAddresses = async (req, res, next) => {
     let addresses = user.addresses || [];
 
     // If user has no saved addresses and is a vendor, fall back to vendor pickup_address
-    if (addresses.length === 0 && (user.role === 'vendor' || user.role === 'restaurant')) {
+    if (addresses.length === 0 && (hasRole(user, 'vendor') || user.role === 'restaurant')) {
       const vendor = await Vendor.findOne({ user_id: user._id }).select('pickup_address').lean();
       const pa = vendor?.pickup_address;
       if (pa && (pa.city || pa.street || pa.quartier)) {

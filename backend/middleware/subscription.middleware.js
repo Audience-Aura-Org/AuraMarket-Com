@@ -6,7 +6,7 @@ const {
 const requireActiveSubscription = (role = null) => async (req, res, next) => {
   try {
     const activeRole = role || req.user?.role;
-    if (!req.user || activeRole === 'admin') return next();
+    if (!req.user || ['admin', 'manager'].includes(activeRole)) return next();
 
     const status = await getSubscriptionStatus(req.user, activeRole);
     if (status.active) return next();

@@ -19,6 +19,8 @@ const WithdrawalRequest = require('../models/WithdrawalRequest.model');
 const { sendNotification } = require('../utils/notifier');
 const { getCommissionValue } = require('../utils/platformFees');
 const { debitBalance, creditBalance } = require('../services/wallet.service');
+const { hasRole } = require('../utils/roles');
+const { scoped, assertAccessLevel } = require('../utils/scopeFilter');
 
 // Emit only after the DB transaction commits so every connected device receives
 // an authoritative balance, never an optimistic/intermediate value.
@@ -48,7 +50,7 @@ const getWalletBalance = async (req, res, next) => {
     const user = await User.findById(req.user._id).select('wallet_balance role');
     let pendingEscrow = 0;
 
-    if (user.role === 'vendor') {
+    if (hasRole(user, 'vendor')) {
       const vendor = await Vendor.findOne({ user_id: user._id });
       if (vendor) {
         const stats = await Escrow.aggregate([
@@ -57,7 +59,7 @@ const getWalletBalance = async (req, res, next) => {
         ]);
         pendingEscrow = stats[0]?.total || 0;
       }
-    } else if (user.role === 'logistics') {
+    } else if (hasRole(user, 'logistics')) {
       const firm = await LogisticsCompany.findOne({ user_id: user._id }).select('_id').lean();
       if (firm) {
         const stats = await Shipment.aggregate([
@@ -270,6 +272,7 @@ const processWithdrawal = async (req, res, next) => {
     if (!transaction || transaction.type !== 'withdrawal' || transaction.status !== 'pending') {
       throw new Error('Invalid or already processed withdrawal request.');
     }
+    assertAccessLevel(req.managerScope, transaction.user_id, 'full');
 
     if (action === 'approve') {
       const payoutService = require('../services/payout.service');
@@ -434,8 +437,9 @@ const payOrderWithWallet = async (req, res, next) => {
 const getAllWithdrawals = async (req, res, next) => {
   try {
     const { status } = req.query;
-    const query = { type: 'withdrawal' };
-    if (status && status !== 'all') query.status = status;
+    const filter = { type: 'withdrawal' };
+    if (status && status !== 'all') filter.status = status;
+    const query = scoped('Transaction', filter, req.managerScope);
 
     const withdrawals = await Transaction.find(query)
       .populate('user_id', 'name email phone avatar')
@@ -492,11 +496,11 @@ const getPlatformFinancialStats = async (req, res, next) => {
     
     const [escrowStats, withdrawalStats] = await Promise.all([
       Escrow.aggregate([
-        { $match: { status: 'held' } },
+        { $match: scoped('Escrow', { status: 'held' }, req.managerScope) },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ]),
       WithdrawalRequest.aggregate([
-        { $match: { status: 'pending' } },
+        { $match: scoped('WithdrawalRequest', { status: 'pending' }, req.managerScope) },
         { $group: { _id: null, total: { $sum: '$amount' } } }
       ])
     ]);

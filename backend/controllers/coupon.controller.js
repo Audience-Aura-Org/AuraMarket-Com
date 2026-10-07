@@ -63,12 +63,14 @@ const validateCoupon = async (req, res, next) => {
 // @access  Private
 const createCoupon = async (req, res, next) => {
   try {
-    if (req.user.role !== 'admin' && req.user.role !== 'vendor') {
+    if (!['admin', 'manager', 'vendor'].includes(req.user.role)) {
       return res.status(403).json({ success: false, message: 'Not authorized.' });
     }
 
     const couponData = { ...req.body };
-    if (req.user.role === 'vendor') {
+    const { hasRole } = require('../utils/roles');
+    const isVendorUser = hasRole(req.user, 'vendor');
+    if (isVendorUser) {
       // Find the vendor linked to this user
       const Vendor = require('../models/Vendor.model');
       const vendor = await Vendor.findOne({ user_id: req.user._id });
@@ -81,7 +83,7 @@ const createCoupon = async (req, res, next) => {
     const coupon = await Coupon.create(couponData);
 
     // Notify Followers of the promotion
-    if (req.user.role === 'vendor') {
+    if (isVendorUser) {
        const userVendor = await require('../models/Vendor.model').findOne({ user_id: req.user._id });
        if (userVendor) {
           const { notifyFollowers } = require('../utils/notifier');

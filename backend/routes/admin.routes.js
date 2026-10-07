@@ -5,9 +5,13 @@
  * Public access strictly for pulling layouts. Secure access mapped to
  * Platform Administrators and Operations Managers.
  *
- * Routes are split into two groups:
- *   1. Shared (admin + manager) — day-to-day operations
- *   2. Admin-only — financial operations, destructive actions, platform settings
+ * Routes are split into groups:
+ *   1. Public           — homepage layout (app boot)
+ *   2. Shared           — day-to-day operations (admin + manager, scope-filtered)
+ *   3. Operational      — financial ops, destructive actions (admin + manager)
+ *   4. Admin-only       — platform settings, manager promotion/demotion
+ *   5. Assignment mgmt  — admin manages manager ↔ user assignments
+ *   6. User-facing      — any authenticated user views/manages their managers
  */
 
 const express = require('express');
@@ -86,19 +90,32 @@ const {
   // Manager management
   promoteToManager,
   demoteManager,
+  // Manager assignments
+  assignUsersToManager,
+  inviteUsersToManager,
+  respondToInvite,
+  unassignUsers,
+  getManagerAssignments,
+  updateAssignmentLevel,
+  transferAssignments,
+  // User-facing
+  getMyManagers,
+  revokeMyManager,
+  // Manager portfolio
+  getManagerPortfolio,
 } = require('../controllers/admin.controller');
 
 const { getAuditLogs } = require('../controllers/audit.controller');
 
-
 const {
   getAdminDisputes,
-  resolveDispute
+  resolveDispute,
 } = require('../controllers/dispute.controller');
 
 const { getEscrowLogs } = require('../controllers/escrow.controller');
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { loadManagerScope } = require('../middleware/managerScope.middleware');
 
 // ── Public Access (Config fetches) ────────────
 router.get('/homepage', getHomepageLayout); // App boot sequence
@@ -109,9 +126,14 @@ router.use(protect);
 // ════════════════════════════════════════════════════════════════════
 // GROUP 1: SHARED ACCESS (admin + manager)
 // Day-to-day operational routes accessible by both roles.
+// loadManagerScope resolves assigned accounts for managers;
+// admins get unrestricted (req.managerScope = null).
 // ════════════════════════════════════════════════════════════════════
 const shared = express.Router();
-shared.use(restrictTo('admin', 'manager'));
+shared.use(restrictTo('admin', 'manager'), loadManagerScope);
+
+// Manager Portfolio (managers only — admins get 400)
+shared.get('/portfolio', getManagerPortfolio);
 
 // Layout Updates
 shared.patch('/homepage/banners', updateBanners);
@@ -166,7 +188,7 @@ shared.get('/audit', getAuditLogs);
 // Queue Monitoring
 shared.get('/queues', getQueueStats);
 
-// Transactions (read-only for managers — write routes in admin-only below)
+// Transactions (read-only for managers — write routes in operational below)
 shared.get('/transactions', getAllTransactions);
 
 // Product Management
@@ -210,11 +232,11 @@ shared.get('/settings', getSettings);
 router.use(shared);
 
 // ════════════════════════════════════════════════════════════════════
-// GROUP 2: SHARED OPERATIONAL CONTROL (admin + manager)
-// User management, financial operations, and treasury.
+// GROUP 2: OPERATIONAL CONTROL (admin + manager)
+// Financial operations, destructive actions, and treasury.
 // ════════════════════════════════════════════════════════════════════
 const operational = express.Router();
-operational.use(restrictTo('admin', 'manager'));
+operational.use(restrictTo('admin', 'manager'), loadManagerScope);
 
 // Destructive User/Product Operations
 operational.delete('/users/:id', deleteUser);
@@ -244,7 +266,7 @@ router.use(operational);
 
 // ════════════════════════════════════════════════════════════════════
 // GROUP 3: ADMIN-ONLY ACCESS
-// Platform settings and manager promotion/demotion.
+// Platform settings (write) and manager promotion/demotion.
 // ════════════════════════════════════════════════════════════════════
 const adminOnly = express.Router();
 adminOnly.use(restrictTo('admin'));
@@ -257,5 +279,30 @@ adminOnly.post('/managers/:userId/promote', promoteToManager);
 adminOnly.post('/managers/:userId/demote', demoteManager);
 
 router.use(adminOnly);
+
+// ════════════════════════════════════════════════════════════════════
+// GROUP 4: ASSIGNMENT MANAGEMENT (admin only)
+// Admin manages manager ↔ user account assignments.
+// ════════════════════════════════════════════════════════════════════
+const assignments = express.Router();
+assignments.use(restrictTo('admin'));
+
+assignments.get('/managers/:managerId/assignments', getManagerAssignments);
+assignments.post('/managers/:managerId/assign', assignUsersToManager);
+assignments.post('/managers/:managerId/invite', inviteUsersToManager);
+assignments.post('/managers/:managerId/unassign', unassignUsers);
+assignments.patch('/assignments/:assignmentId/level', updateAssignmentLevel);
+assignments.post('/assignments/transfer', transferAssignments);
+
+router.use(assignments);
+
+// ════════════════════════════════════════════════════════════════════
+// GROUP 5: USER-FACING (any authenticated user)
+// View/manage managers assigned to the current user's account.
+// Invite responses are also handled here.
+// ════════════════════════════════════════════════════════════════════
+router.get('/my-managers', getMyManagers);
+router.post('/my-managers/:assignmentId/revoke', revokeMyManager);
+router.post('/invites/:assignmentId/respond', respondToInvite);
 
 module.exports = router;
