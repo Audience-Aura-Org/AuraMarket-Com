@@ -28,7 +28,7 @@ const { generateInvoice }     = require('../utils/invoiceGenerator');
 const { getWebUrl }           = require('../utils/url');
 const logisticsService        = require('../services/logistics.service');
 const { handleVendorPayout }  = require('../services/payment/settle.service');
-const { debitBalance }        = require('../services/wallet.service');
+const { debitBalance, creditBalance, generateRef } = require('../services/wallet.service');
 const { resolveDelivery, isIntercityEnabled } = require('../services/intercityResolver.service');
 const {
   syncShipmentsToOrderStatus,
@@ -1371,7 +1371,17 @@ const approveRefund = async (req, res, next) => {
       // Refund the full order.total_amount (what the buyer actually paid), not just escrow.amount
       // (escrow.amount is the vendor base portion only and excludes shipping + collection fees).
       const refundAmount = order.total_amount || escrow.amount;
-      await User.findByIdAndUpdate(order.customer_id, { $inc: { wallet_balance: refundAmount } }, { session });
+      await creditBalance(order.customer_id, refundAmount, session);
+      await Transaction.create([{
+        user_id:     order.customer_id,
+        type:        'refund',
+        amount:      refundAmount,
+        reference:   generateRef(),
+        status:      'completed',
+        gateway:     'escrow',
+        description: `Escrow refund for Order #${order._id.toString().slice(-6).toUpperCase()} (vendor approved)`,
+        order_id:    order._id,
+      }], { session });
       escrow.status = 'refunded';
       await escrow.save({ session });
     }

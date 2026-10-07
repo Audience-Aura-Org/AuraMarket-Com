@@ -115,11 +115,7 @@ const settleDeposit = async (txn, app, gateway) => {
       );
     } else {
       // Pure wallet deposit
-      await User.findOneAndUpdate(
-        { _id: claimed.user_id },
-        { $inc: { wallet_balance: claimed.amount } },
-        { session }
-      );
+      await creditBalance(claimed.user_id, claimed.amount, session);
     }
 
     await session.commitTransaction();
@@ -302,31 +298,43 @@ const runCleanup = async (app) => {
         }
 
       } else if (normalizedStatus === 'FAILED') {
-        const updated = await WithdrawalRequest.findOneAndUpdate(
-          { _id: wr._id, status: { $in: ['approved', 'processing'] } },
-          { $set: { status: 'failed', eversend_status: 'FAILED', failure_reason: `${payoutGateway} payout failed — reconciliation.` } },
-          { returnDocument: "after" }
-        );
-        if (updated) {
-          // Restore balance if it was deducted
-          if (updated.balance_deducted) {
-            await User.findByIdAndUpdate(updated.requested_by, {
-              $inc: { wallet_balance: updated.amount },
-            });
-            console.log(`[StaleCleanup] Restored ${updated.amount} XAF to user ${updated.requested_by} (failed withdrawal)`);
-            // Notify user in real time — include live balance so TopNav updates instantly
+        const wrSess = await mongoose.startSession();
+        wrSess.startTransaction();
+        try {
+          const updated = await WithdrawalRequest.findOneAndUpdate(
+            { _id: wr._id, status: { $in: ['approved', 'processing'] } },
+            { $set: { status: 'failed', eversend_status: 'FAILED', failure_reason: `${payoutGateway} payout failed — reconciliation.` } },
+            { session: wrSess, returnDocument: "after" }
+          );
+          if (updated) {
+            // Restore balance if it was deducted
+            if (updated.balance_deducted) {
+              await creditBalance(updated.requested_by, updated.amount, wrSess);
+              console.log(`[StaleCleanup] Restored ${updated.amount} XAF to user ${updated.requested_by} (failed withdrawal)`);
+            }
+            // Mark linked transaction as failed
+            await Transaction.findOneAndUpdate(
+              { 'metadata.withdrawal_request_id': wr._id.toString(), status: { $ne: 'completed' } },
+              { $set: { status: 'failed' } },
+              { session: wrSess }
+            );
+            stats.withdrawalFailed++;
+            console.log(`[StaleCleanup] Marked ${payoutGateway} withdrawal ${wr._id} as failed`);
+          }
+          await wrSess.commitTransaction();
+
+          // Notify user in real time (post-commit, non-critical)
+          if (updated?.balance_deducted) {
             try {
               const { emitWalletUpdate } = require('../../utils/walletSocket');
               await emitWalletUpdate(app?.get?.('io'), updated.requested_by, { type: 'withdrawal_reversal', reference: wr._id });
             } catch (_) { /* non-critical */ }
           }
-          // Mark linked transaction as failed
-          await Transaction.findOneAndUpdate(
-            { 'metadata.withdrawal_request_id': wr._id.toString(), status: { $ne: 'completed' } },
-            { $set: { status: 'failed' } }
-          );
-          stats.withdrawalFailed++;
-          console.log(`[StaleCleanup] Marked ${payoutGateway} withdrawal ${wr._id} as failed`);
+        } catch (wrErr) {
+          await wrSess.abortTransaction();
+          console.error(`[StaleCleanup] Failed to process failed withdrawal ${wr._id}:`, wrErr.message);
+        } finally {
+          wrSess.endSession();
         }
       }
       // PENDING — leave it, will be checked next sweep

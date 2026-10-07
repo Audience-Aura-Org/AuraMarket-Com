@@ -1042,11 +1042,18 @@ const userRecheckWithdrawal = async (req, res) => {
       await wr.save({ session });
       await Transaction.updateOne(
         { "metadata.withdrawal_request_id": wr._id },
-        { status: 'completed' },
+        { $set: { status: 'completed' } },
         { session },
       );
       await session.commitTransaction();
       session.endSession();
+
+      // Emit real-time wallet update so the wallet page refreshes instantly
+      try {
+        const { emitWalletUpdate } = require('../utils/walletSocket');
+        await emitWalletUpdate(req.app?.get?.('io'), wr.requested_by, { type: 'withdrawal_completed', reference: wr._id });
+      } catch (_) { /* non-critical */ }
+
       return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Withdrawal confirmed successful.' });
     }
 
@@ -1060,11 +1067,18 @@ const userRecheckWithdrawal = async (req, res) => {
       await wr.save({ session });
       await Transaction.updateOne(
         { "metadata.withdrawal_request_id": wr._id },
-        { status: 'failed' },
+        { $set: { status: 'failed' } },
         { session },
       );
       await session.commitTransaction();
       session.endSession();
+
+      // Emit real-time wallet update so the wallet page refreshes instantly
+      try {
+        const { emitWalletUpdate } = require('../utils/walletSocket');
+        await emitWalletUpdate(req.app?.get?.('io'), wr.requested_by, { type: 'withdrawal_reversal', reference: wr._id });
+      } catch (_) { /* non-critical */ }
+
       return res.status(200).json({ success: true, status: 'FAILED', message: 'Withdrawal failed. Balance restored.' });
     }
 
@@ -1156,12 +1170,18 @@ const adminRecheckWithdrawal = async (req, res) => {
 
       await Transaction.updateOne(
         { "metadata.withdrawal_request_id": wr._id },
-        { status: 'completed' },
+        { $set: { status: 'completed' } },
         { session }
       );
 
       await session.commitTransaction();
       session.endSession();
+
+      // Emit real-time wallet update so the wallet page refreshes instantly
+      try {
+        const { emitWalletUpdate } = require('../utils/walletSocket');
+        await emitWalletUpdate(req.app?.get?.('io'), wr.requested_by, { type: 'withdrawal_completed', reference: wr._id });
+      } catch (_) { /* non-critical */ }
 
       setImmediate(async () => {
         try {
@@ -1192,12 +1212,18 @@ const adminRecheckWithdrawal = async (req, res) => {
 
       await Transaction.updateOne(
         { "metadata.withdrawal_request_id": wr._id },
-        { status: 'failed' },
+        { $set: { status: 'failed' } },
         { session }
       );
 
       await session.commitTransaction();
       session.endSession();
+
+      // Emit real-time wallet update so the wallet page refreshes instantly
+      try {
+        const { emitWalletUpdate } = require('../utils/walletSocket');
+        await emitWalletUpdate(req.app?.get?.('io'), wr.requested_by, { type: 'withdrawal_reversal', reference: wr._id });
+      } catch (_) { /* non-critical */ }
 
       setImmediate(async () => {
         try {

@@ -16,6 +16,7 @@ const { settleOrders } = require('../services/payment/settle.service');
 const { getAvailableGateways } = require('../services/payment/gateway.registry');
 const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
 const { activateSubscription } = require('../services/subscription.service');
+const { creditBalance, generateRef: genWalletRef } = require('../services/wallet.service');
 const pawapay = require('../services/payment/gateways/pawapay.gateway');
 const webhookHealth = require('../services/webhookHealthMonitor.service');
 const Shipment = require('../models/Shipment.model');
@@ -305,11 +306,7 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
     } else {
       // Capture new balance so we can push it in the socket payload (frontend
       // updates instantly without a GET /wallet round-trip)
-      const updatedUser = await User.findOneAndUpdate(
-        { _id: claimed.user_id },
-        { $inc: { wallet_balance: claimed.amount } },
-        { session, returnDocument: 'after' }
-      );
+      const updatedUser = await creditBalance(claimed.user_id, claimed.amount, session);
       newWalletBalance = updatedUser?.wallet_balance;
     }
 
@@ -964,19 +961,27 @@ const eversendVerify = async (req, res) => {
 
     // -- Sandbox: auto-succeed instantly ----------------------------------
     if (transaction.metadata?.is_sandbox || transaction.gateway_transaction_id?.startsWith('SBX-')) {
-      const sandboxClaimed = await Transaction.findOneAndUpdate(
-        { _id: transaction._id, status: { $ne: 'completed' } },
-        { $set: { status: 'completed' } },
-        { returnDocument: "after" }
-      );
-      if (!sandboxClaimed) {
-        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
-      }
-      if (isSubscriptionTransaction(sandboxClaimed)) {
-        await settleSubscriptionTransaction(sandboxClaimed, null, req.app);
-        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Subscription activated.' });
-      }
-      await User.findByIdAndUpdate(sandboxClaimed.user_id, { $inc: { wallet_balance: sandboxClaimed.amount } });
+      const sbxSession = await mongoose.startSession();
+      sbxSession.startTransaction();
+      try {
+        const sandboxClaimed = await Transaction.findOneAndUpdate(
+          { _id: transaction._id, status: { $ne: 'completed' } },
+          { $set: { status: 'completed' } },
+          { session: sbxSession, returnDocument: "after" }
+        );
+        if (!sandboxClaimed) {
+          await sbxSession.abortTransaction();
+          sbxSession.endSession();
+          return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
+        }
+        if (isSubscriptionTransaction(sandboxClaimed)) {
+          await settleSubscriptionTransaction(sandboxClaimed, sbxSession, req.app);
+        } else {
+          await creditBalance(sandboxClaimed.user_id, sandboxClaimed.amount, sbxSession);
+        }
+        await sbxSession.commitTransaction();
+      } catch (err) { await sbxSession.abortTransaction(); throw err; }
+      finally { sbxSession.endSession(); }
       return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
     }
 
@@ -1014,11 +1019,7 @@ const eversendVerify = async (req, res) => {
         } else if (claimed.order_ids?.length > 0) {
           await settleOrdersInSession(claimed.user_id, claimed.order_ids, req.app, sess, true, getWebUrl(req), 'eversend');
         } else {
-          const evUpdated = await User.findOneAndUpdate(
-            { _id: claimed.user_id },
-            { $inc: { wallet_balance: claimed.amount } },
-            { session: sess, returnDocument: 'after' }
-          );
+          const evUpdated = await creditBalance(claimed.user_id, claimed.amount, sess);
           evNewBalance = evUpdated?.wallet_balance;
         }
         await sess.commitTransaction();
@@ -1108,13 +1109,19 @@ const eversendRecheck = async (req, res) => {
       if (isSandbox) {
         // Sandbox: auto-succeed
         if (transaction.status !== 'completed') {
-          transaction.status = 'completed';
-          await transaction.save();
-          if (isSubscriptionTransaction(transaction)) {
-            await settleSubscriptionTransaction(transaction, null, req.app);
-          } else {
-            await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } });
-          }
+          const sbxSess = await mongoose.startSession();
+          sbxSess.startTransaction();
+          try {
+            transaction.status = 'completed';
+            await transaction.save({ session: sbxSess });
+            if (isSubscriptionTransaction(transaction)) {
+              await settleSubscriptionTransaction(transaction, sbxSess, req.app);
+            } else {
+              await creditBalance(transaction.user_id, transaction.amount, sbxSess);
+            }
+            await sbxSess.commitTransaction();
+          } catch (err) { await sbxSess.abortTransaction(); throw err; }
+          finally { sbxSess.endSession(); }
         }
         return res.status(200).json({
           success: true,
@@ -1166,11 +1173,7 @@ const eversendRecheck = async (req, res) => {
             } else if (isCheckout) {
               await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, getWebUrl(req), 'eversend');
             } else {
-              const erUpdated = await User.findOneAndUpdate(
-                { _id: transaction.user_id },
-                { $inc: { wallet_balance: transaction.amount } },
-                { session, returnDocument: 'after' }
-              );
+              const erUpdated = await creditBalance(transaction.user_id, transaction.amount, session);
               erNewBalance = erUpdated?.wallet_balance;
             }
             await session.commitTransaction();
@@ -1269,7 +1272,7 @@ const eversendRecheck = async (req, res) => {
           } else if (isCheckout) {
             await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, getWebUrl(req), 'eversend');
           } else {
-            await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
+            await creditBalance(transaction.user_id, transaction.amount, session);
           }
 
           await session.commitTransaction();
@@ -1396,11 +1399,7 @@ const eversendWebhook = async (req, res) => {
           try {
             await Transaction.findByIdAndUpdate(transaction._id,
               { $set: { status: 'completed', gateway_response: data } }, { session });
-            const updatedUser = await User.findByIdAndUpdate(
-              transaction.user_id,
-              { $inc: { wallet_balance: transaction.amount } },
-              { session, returnDocument: 'after' }
-            );
+            const updatedUser = await creditBalance(transaction.user_id, transaction.amount, session);
             newWalletBalance = updatedUser?.wallet_balance;
             await session.commitTransaction();
           } catch (err) {
@@ -1629,7 +1628,7 @@ const eversendRecover = async (req, res) => {
       } else if (isCheckout) {
         await settleOrders(transaction.user_id, transaction.order_ids, session, req.app, true, getWebUrl(req), 'eversend');
       } else {
-        await User.findByIdAndUpdate(transaction.user_id, { $inc: { wallet_balance: transaction.amount } }, { session });
+        await creditBalance(transaction.user_id, transaction.amount, session);
       }
 
       await session.commitTransaction();
@@ -1888,24 +1887,30 @@ const pawapayVerify = async (req, res) => {
 
     // Sandbox: auto-succeed
     if (transaction.metadata?.is_sandbox) {
-      const claimed = await Transaction.findOneAndUpdate(
-        { _id: transaction._id, status: { $ne: 'completed' } },
-        { $set: { status: 'completed' } },
-        { returnDocument: "after" }
-      );
-      if (!claimed) {
-        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
-      }
-      if (isSubscriptionTransaction(claimed)) {
-        await settleSubscriptionTransaction(claimed, null, req.app);
-        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Subscription activated.' });
-      }
-      if (claimed.order_ids?.length > 0) {
-        await settleOrdersInSession(claimed.user_id, claimed.order_ids, req.app, null, true, getWebUrl(req), claimed.gateway || 'pawapay');
-        return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment confirmed.' });
-      }
-      await User.findByIdAndUpdate(claimed.user_id, { $inc: { wallet_balance: claimed.amount } });
-      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox deposit confirmed.' });
+      const ppSbxSess = await mongoose.startSession();
+      ppSbxSess.startTransaction();
+      try {
+        const claimed = await Transaction.findOneAndUpdate(
+          { _id: transaction._id, status: { $ne: 'completed' } },
+          { $set: { status: 'completed' } },
+          { session: ppSbxSess, returnDocument: "after" }
+        );
+        if (!claimed) {
+          await ppSbxSess.abortTransaction();
+          ppSbxSess.endSession();
+          return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
+        }
+        if (isSubscriptionTransaction(claimed)) {
+          await settleSubscriptionTransaction(claimed, ppSbxSess, req.app);
+        } else if (claimed.order_ids?.length > 0) {
+          await settleOrdersInSession(claimed.user_id, claimed.order_ids, req.app, ppSbxSess, true, getWebUrl(req), claimed.gateway || 'pawapay');
+        } else {
+          await creditBalance(claimed.user_id, claimed.amount, ppSbxSess);
+        }
+        await ppSbxSess.commitTransaction();
+      } catch (err) { await ppSbxSess.abortTransaction(); throw err; }
+      finally { ppSbxSess.endSession(); }
+      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
     }
 
     const isCheckoutFlow = transaction.metadata?.checkout_flow === true;
