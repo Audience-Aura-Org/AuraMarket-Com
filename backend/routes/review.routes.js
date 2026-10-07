@@ -15,7 +15,7 @@ router.get('/product/:id', getProductReviews);
 router.post('/', protect, submitReview);
 
 // Admin Only
-router.get('/admin', protect, restrictTo('admin'), getAllReviews);
-router.delete('/:id', protect, restrictTo('admin'), deleteReview);
+router.get('/admin', protect, restrictTo('admin', 'manager'), getAllReviews);
+router.delete('/:id', protect, restrictTo('admin', 'manager'), deleteReview);
 
 module.exports = router;

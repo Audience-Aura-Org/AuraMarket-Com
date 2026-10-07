@@ -17,6 +17,7 @@ const Reservation = require('../models/Reservation.model');
 const Vendor      = require('../models/Vendor.model');
 const RestaurantProfile = require('../models/RestaurantProfile.model');
 const { sendNotification } = require('../utils/notifier');
+const { hasRole } = require('../utils/roles');
 
 // ─────────────────────────────────────────────
 // @route   POST /api/reservations
@@ -206,7 +207,7 @@ const updateReservationStatus = async (req, res, next) => {
     if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found.' });
 
     // Auth check — must be the restaurant vendor or admin
-    const isAdmin = req.user.role === 'admin';
+    const isAdmin = ['admin', 'manager'].includes(req.user.role);
     if (!isAdmin) {
       const callerVendor = await Vendor.findOne({ user_id: req.user._id }).select('_id').lean();
       if (!callerVendor || callerVendor._id.toString() !== reservation.vendor_id.toString()) {
@@ -265,9 +266,9 @@ const cancelReservation = async (req, res, next) => {
     const reservation = await Reservation.findById(req.params.id);
     if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found.' });
 
-    const isAdmin   = req.user.role === 'admin';
+    const isAdmin   = ['admin', 'manager'].includes(req.user.role);
     const isBuyer   = reservation.customer_id.toString() === req.user._id.toString();
-    const callerVendor = req.user.role === 'vendor'
+    const callerVendor = hasRole(req.user, 'vendor')
       ? await Vendor.findOne({ user_id: req.user._id }).select('_id').lean()
       : null;
     const isVendor  = callerVendor && callerVendor._id.toString() === reservation.vendor_id.toString();

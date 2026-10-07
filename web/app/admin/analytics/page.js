@@ -37,13 +37,13 @@ export default function AdminAnalyticsPage() {
     if (!hasHydrated) return;
     if (!user) {
       router.replace('/login?from=admin-analytics');
-    } else if (user.role !== 'admin') {
+    } else if (!['admin', 'manager'].includes(user.role)) {
       router.replace('/wallet');
     }
   }, [user, router, hasHydrated]);
 
   const fetchAnalytics = async () => {
-    if (!hasHydrated || user?.role !== 'admin') return;
+    if (!hasHydrated || !['admin', 'manager'].includes(user?.role)) return;
     setLoading(true);
     try {
       const res = await api.get('/admin/analytics/advanced');
@@ -56,7 +56,7 @@ export default function AdminAnalyticsPage() {
   };
 
   useEffect(() => {
-    if (!hasHydrated || user?.role !== 'admin') return;
+    if (!hasHydrated || !['admin', 'manager'].includes(user?.role)) return;
     fetchAnalytics();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasHydrated, user?.role]);

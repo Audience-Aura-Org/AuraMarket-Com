@@ -16,6 +16,6 @@ router.post('/', createDispute);
 router.get('/customer', getCustomerDisputes);
 
 // Admin routes
-router.get('/admin', restrictTo('admin'), getAdminDisputes);
+router.get('/admin', restrictTo('admin', 'manager'), getAdminDisputes);
 
 module.exports = router;

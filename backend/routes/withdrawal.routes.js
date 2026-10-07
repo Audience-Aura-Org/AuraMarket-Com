@@ -34,11 +34,11 @@ router.post('/', submitWithdrawal);
 router.get('/mine', getMyWithdrawals);
 router.get('/mine/:id/recheck', userRecheckWithdrawal);
 
-// ── Admin only ────────────────────────────────
-router.get('/admin', restrictTo('admin'), adminGetAllWithdrawals);
-router.post('/admin/:id/approve', restrictTo('admin'), adminApproveWithdrawal);
-router.post('/admin/:id/reject',  restrictTo('admin'), adminRejectWithdrawal);
-router.post('/admin/:id/recheck', restrictTo('admin'), adminRecheckWithdrawal);
-router.post('/admin/:id/complete', restrictTo('admin'), adminCompleteManualWithdrawal);
+// ── Admin + Manager ──────────────────────────
+router.get('/admin', restrictTo('admin', 'manager'), adminGetAllWithdrawals);
+router.post('/admin/:id/approve', restrictTo('admin', 'manager'), adminApproveWithdrawal);
+router.post('/admin/:id/reject',  restrictTo('admin', 'manager'), adminRejectWithdrawal);
+router.post('/admin/:id/recheck', restrictTo('admin', 'manager'), adminRecheckWithdrawal);
+router.post('/admin/:id/complete', restrictTo('admin', 'manager'), adminCompleteManualWithdrawal);
 
 module.exports = router;

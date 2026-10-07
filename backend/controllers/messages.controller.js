@@ -62,7 +62,7 @@ const sendShipmentMessage = async (req, res) => {
 
       if (user.role === 'logistics') {
         senderRole = 'logistics';
-      } else if (user.role === 'admin') {
+      } else if (['admin', 'manager'].includes(user.role)) {
         senderRole = 'admin';
       } else if (shipment.booked_by?.toString() === user._id.toString()) {
         senderRole = 'shipper';

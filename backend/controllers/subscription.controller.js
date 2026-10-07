@@ -73,8 +73,8 @@ const initializeSubscription = async (req, res, next) => {
       redirect_url,
     } = req.body || {};
 
-    if (role === 'admin') {
-      return res.status(400).json({ success: false, message: 'Admin accounts do not require subscriptions.' });
+    if (['admin', 'manager'].includes(role)) {
+      return res.status(400).json({ success: false, message: 'Admin and manager accounts do not require subscriptions.' });
     }
 
     if (role !== req.user.role) {

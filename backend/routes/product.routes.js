@@ -58,6 +58,6 @@ router.patch('/:id', protect, restrictTo('vendor'), requireActiveSubscription('v
 router.delete('/:id', protect, restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, deleteProduct);
 
 // ── Admin Routes ──────────────────────────────
-router.patch('/:id/feature', protect, restrictTo('admin'), toggleFeaturedStatus);
+router.patch('/:id/feature', protect, restrictTo('admin', 'manager'), toggleFeaturedStatus);
 
 module.exports = router;

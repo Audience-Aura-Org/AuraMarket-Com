@@ -655,7 +655,7 @@ const cancelP2PShipment = async (req, res) => {
       ? shipment.booked_by?.toString() === req.user._id.toString()
       : shipment.guest_booker?.guest_session_id === req.body.guest_session_id;
 
-    if (!isOwner && req.user?.role !== 'admin') {
+    if (!isOwner && !['admin', 'manager'].includes(req.user?.role)) {
       await session.abortTransaction();
       return res.status(403).json({ success: false, message: 'Not authorized to cancel this shipment' });
     }

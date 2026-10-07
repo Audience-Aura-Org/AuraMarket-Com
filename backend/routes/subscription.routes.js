@@ -19,7 +19,7 @@ router.use(protect);
 router.get('/me', getMySubscription);
 router.post('/initialize', initializeSubscription);
 
-router.use('/admin', restrictTo('admin'));
+router.use('/admin', restrictTo('admin', 'manager'));
 router.get('/admin/overview', getAdminOverview);
 router.post('/admin/plans', createPlan);
 router.patch('/admin/plans/:id', updatePlan);

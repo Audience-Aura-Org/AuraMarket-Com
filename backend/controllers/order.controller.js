@@ -39,6 +39,7 @@ const templates               = require('../utils/emailTemplates');
 const { markEscrowDelivered } = require('./escrow.controller');
 const { toXAF, assertOrderTotal } = require('../utils/platformFees');
 const { getMobileMoneyCollectionFee, isMobileMoneyGateway } = require('../utils/mobileMoneyFees');
+const { hasRole } = require('../utils/roles');
 
 const normalizeNullableAmount = (value) => {
   if (value === undefined || value === null || value === '') return null;
@@ -182,7 +183,7 @@ const createOrder = async (req, res, next) => {
     }
 
     // Prevent vendors from purchasing from their own store
-    if (req.user.role === 'vendor' && vendor.user_id?._id?.toString() === req.user._id.toString()) {
+    if (hasRole(req.user, 'vendor') && vendor.user_id?._id?.toString() === req.user._id.toString()) {
       session.endSession();
       return res.status(400).json({
         success: false,
@@ -898,7 +899,7 @@ const getOrderById = async (req, res, next) => {
     const requestorId  = req.user._id.toString();
     const isCustomer   = order.customer_id?._id?.toString() === requestorId;
     const isVendor     = order.vendor_id?.user_id?._id?.toString() === requestorId;
-    const isPrivileged = ['admin', 'logistics'].includes(req.user.role);
+    const isPrivileged = ['admin', 'manager', 'logistics'].includes(req.user.role);
 
     if (!isCustomer && !isVendor && !isPrivileged) {
       return res.status(403).json({ success: false, message: 'Access denied. You are not a party to this order.' });
@@ -949,7 +950,7 @@ const updateOrderStatus = async (req, res, next) => {
     // Only the vendor who SOLD this order can update its status.
     // A vendor who BOUGHT from another store is acting as a customer and must
     // use the customer cancel/refund routes — not this seller endpoint.
-    if (req.user.role === 'vendor') {
+    if (hasRole(req.user, 'vendor')) {
       const sellerVendorId = order.vendor_id?.toString();
       const requestingVendorId = req.vendor?._id?.toString();
       if (!sellerVendorId || sellerVendorId !== requestingVendorId) {
@@ -977,7 +978,7 @@ const updateOrderStatus = async (req, res, next) => {
       });
     }
 
-    if (req.user.role === 'vendor' && orderUsesLogistics) {
+    if (hasRole(req.user, 'vendor') && orderUsesLogistics) {
       const Shipment = require('../models/Shipment.model');
       const activeShipment = await Shipment.findOne({ 
         order_id: order._id, 
@@ -1477,7 +1478,7 @@ const createOrdersFromCart = async (req, res, next) => {
     }
 
     // If the buyer is a vendor, remove any items from their own store
-    if (req.user.role === 'vendor') {
+    if (hasRole(req.user, 'vendor')) {
       const ownVendor = await Vendor.findOne({ user_id: req.user._id }).select('_id').lean();
       if (ownVendor) {
         delete itemsByVendor[ownVendor._id.toString()];
@@ -1971,11 +1972,11 @@ const updateFoodStatus = async (req, res, next) => {
     }
 
     // Resolve the caller's role and ownership
-    const isAdmin = req.user.role === 'admin';
+    const isAdmin = ['admin', 'manager'].includes(req.user.role);
     let isRestaurantVendor = false;
-    let isLogistics = req.user.role === 'logistics';
+    let isLogistics = hasRole(req.user, 'logistics');
 
-    if (req.user.role === 'vendor') {
+    if (hasRole(req.user, 'vendor')) {
       const callerVendor = await Vendor.findOne({ user_id: req.user._id }).select('_id vendor_type').lean();
       isRestaurantVendor = callerVendor?.vendor_type === 'restaurant' &&
                            callerVendor._id.toString() === order.vendor_id.toString();
@@ -2435,7 +2436,7 @@ const markIntercityCollected = async (req, res, next) => {
 
     // Only buyer or admin may confirm collection
     if (
-      req.user.role !== 'admin' &&
+      !['admin', 'manager'].includes(req.user.role) &&
       order.customer_id.toString() !== req.user._id.toString()
     ) {
       await session.abortTransaction(); session.endSession();

@@ -26,6 +26,7 @@ const { applyCommissionOverride, calculatePlatformFees, describeFee } = require(
 const { debitBalance, creditBalance } = require('../services/wallet.service');
 const crypto = require('crypto');
 const mongoose = require('mongoose');
+const { hasRole } = require('../utils/roles');
 
 const generateTxRef = () => `AURA-ESCROW-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 const AUTO_RELEASE_WINDOW_MS = 6 * 60 * 60 * 1000;
@@ -284,7 +285,7 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   escrow.status = 'released';
   escrow.release_date = new Date();
   escrow.auto_released = !!req.autoRelease;
-  escrow.released_by = req.autoRelease ? 'auto' : (req.user?.role === 'admin' ? 'admin' : 'customer');
+  escrow.released_by = req.autoRelease ? 'auto' : (['admin', 'manager'].includes(req.user?.role) ? 'admin' : 'customer');
   await escrow.save({ session });
 
   order.order_status = 'completed';
@@ -383,7 +384,7 @@ const releaseFunds = async (req, res, next) => {
     const paymentIsSettled = order.payment_status === 'paid' || order.payment_method === 'pay_on_delivery';
 
     // ── CASE: Admin Override ────────────────────────────────────────────────
-    if (req.user.role === 'admin') {
+    if (['admin', 'manager'].includes(req.user.role)) {
       if (escrow && order.payment_status !== 'paid') {
         throw new Error('Escrow cannot be released because this order payment is not paid.');
       }
@@ -680,7 +681,7 @@ const refundFunds = async (req, res, next) => {
 
     // Check auth bounds carefully: Admins can force dispute refunds. Vendors can voluntarily cancel orders.
     const order = await Order.findById(orderId).session(session);
-    if (req.user.role === 'vendor') {
+    if (hasRole(req.user, 'vendor')) {
       const activeVendor = await Vendor.findOne({ user_id: req.user._id }).session(session);
       if (!activeVendor || order.vendor_id.toString() !== activeVendor._id.toString()) {
         throw new Error('Not authorized to refund this order.');
@@ -713,7 +714,7 @@ const refundFunds = async (req, res, next) => {
     // 4. Break down Escrow model
     escrow.status = 'refunded';
     escrow.refund_reason = reason || 'Vendor cancellation / Admin dispute resolution';
-    escrow.released_by = req.user?.role === 'admin' ? 'admin' : 'customer';
+    escrow.released_by = ['admin', 'manager'].includes(req.user?.role) ? 'admin' : 'customer';
     await escrow.save({ session });
 
     // 4. Conclude Order cleanly
@@ -783,7 +784,7 @@ const denyEscrow = async (req, res, next) => {
     const vendorRecord = await Vendor.findOne({ user_id: req.user._id }).session(session);
     const isVendor = vendorRecord && escrow.vendor_id.toString() === vendorRecord._id.toString();
 
-    if (!isBuyer && !isVendor && req.user.role !== 'admin') {
+    if (!isBuyer && !isVendor && !['admin', 'manager'].includes(req.user.role)) {
       throw new Error('Not authorized to contest this escrow.');
     }
 

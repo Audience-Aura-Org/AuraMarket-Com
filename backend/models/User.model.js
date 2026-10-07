@@ -63,10 +63,16 @@ const UserSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ['customer', 'vendor', 'logistics', 'admin'],
-        message: 'Role must be: customer, vendor, logistics, or admin',
+        values: ['customer', 'vendor', 'logistics', 'manager', 'admin'],
+        message: 'Role must be: customer, vendor, logistics, manager, or admin',
       },
       default: 'customer',
+    },
+    // Stored when promoting to manager so demotion restores the original role
+    previous_role: {
+      type: String,
+      enum: ['customer', 'vendor', 'logistics'],
+      default: null,
     },
 
     // ── Wallet ───────────────────────────────────

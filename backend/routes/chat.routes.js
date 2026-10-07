@@ -14,8 +14,8 @@ const { protect, restrictTo } = require('../middleware/auth.middleware');
 router.use(protect);
 
 // ── Admin-only Routes ──────────────────────────
-router.get('/admin/all', restrictTo('admin'), getAllMessagesAdmin);
-router.get('/admin/inbox', restrictTo('admin'), getSystemWideInbox);
+router.get('/admin/all', restrictTo('admin', 'manager'), getAllMessagesAdmin);
+router.get('/admin/inbox', restrictTo('admin', 'manager'), getSystemWideInbox);
 
 // ── Operations ──────────────────────────────
 router.get('/', getUserInbox);                 // List of all active distinct conversations

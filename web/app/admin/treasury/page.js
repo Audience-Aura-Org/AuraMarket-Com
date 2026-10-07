@@ -67,7 +67,7 @@ export default function AdminTreasuryPage() {
   }, []);
 
   useEffect(() => {
-    if (mounted && !authLoading && user?.role !== 'admin') {
+    if (mounted && !authLoading && !['admin', 'manager'].includes(user?.role)) {
       router.replace('/');
     }
   }, [mounted, authLoading, user, router]);
@@ -104,7 +104,7 @@ export default function AdminTreasuryPage() {
   }, []);
 
   useEffect(() => {
-    if (mounted && user?.role === 'admin') {
+    if (mounted && ['admin', 'manager'].includes(user?.role)) {
       fetchHistory();
       fetchBalances();
     }
@@ -168,7 +168,7 @@ export default function AdminTreasuryPage() {
   const xafBalance = xafWallet?.amount ?? xafWallet?.balance ?? null;
 
   if (!mounted || authLoading) return null;
-  if (user?.role !== 'admin') return null;
+  if (!['admin', 'manager'].includes(user?.role)) return null;
 
   return (
     <AdminFinancePage theme={THEME}>

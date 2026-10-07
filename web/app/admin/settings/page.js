@@ -4,6 +4,8 @@ export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
 import { Save, Loader2, CheckCircle2, Truck, AlertTriangle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 
@@ -28,12 +30,24 @@ const NumInput = ({ value, onChange, min, max, step = 1 }) => (
 );
 
 export default function AdminSettingsPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [s, setS] = useState(null);
   const [firms, setFirms] = useState([]);
 
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
+    if (mounted && !authLoading && user?.role !== 'admin') {
+      router.replace('/admin/dashboard');
+    }
+  }, [mounted, authLoading, user, router]);
+
+  useEffect(() => {
+    if (user?.role !== 'admin') return;
     Promise.all([
       api.get('/admin/settings'),
       api.get('/admin/logistics/firms'),
@@ -44,7 +58,7 @@ export default function AdminSettingsPage() {
       })
       .catch(() => toast.error('Failed to load settings'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user?.role]);
 
   const field = (key) => ({
     value: s?.[key] ?? '',

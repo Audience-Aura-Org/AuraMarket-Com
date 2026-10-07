@@ -44,10 +44,11 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
+    if (!['admin', 'manager'].includes(user?.role)) return;
     fetchUsers();
     setCurrentPage(1);
     setSelectedIds([]);
-  }, [roleFilter, verificationFilter]);
+  }, [roleFilter, verificationFilter, user?.role]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -113,6 +114,47 @@ export default function AdminUsersPage() {
     } finally {
       setBulkDeleting(false);
     }
+  };
+
+  const handlePromote = async (userId, userName) => {
+    if (userId === user?._id) return toast.error('You cannot promote yourself.');
+    if (!window.confirm(`Promote ${userName} to Manager? They will gain admin panel access while keeping their current role capabilities.`)) return;
+    try {
+      const res = await api.post(`/admin/managers/${userId}/promote`);
+      if (res.data.success) {
+        if (res.data.warnings?.length) toast.success(`${userName} promoted (note: ${res.data.warnings.join('; ')})`);
+        else toast.success(`${userName} promoted to Manager`);
+        setUsers(prev => prev.map(u => u._id === userId ? { ...u, role: 'manager', verification_status: 'verified' } : u));
+      }
+    } catch (err) {
+      if (err.response?.data?.code === 'ACTIVE_OPERATIONS') {
+        const msg = err.response.data.warnings?.join('\n• ') || err.response.data.message;
+        if (window.confirm(`${userName} has active operations:\n• ${msg}\n\nProceed anyway? Their store and orders will continue to function.`)) {
+          try {
+            const res = await api.post(`/admin/managers/${userId}/promote`, { force: true });
+            if (res.data.success) {
+              toast.success(`${userName} promoted to Manager`);
+              setUsers(prev => prev.map(u => u._id === userId ? { ...u, role: 'manager', verification_status: 'verified' } : u));
+            }
+          } catch (e) { toast.error(e.response?.data?.message || 'Promotion failed'); }
+        }
+      } else {
+        toast.error(err.response?.data?.message || 'Promotion failed');
+      }
+    }
+  };
+
+  const handleDemote = async (userId, userName) => {
+    if (userId === user?._id) return toast.error('You cannot demote yourself.');
+    if (!window.confirm(`Remove manager access for ${userName}? They will be restored to their original role.`)) return;
+    try {
+      const res = await api.post(`/admin/managers/${userId}/demote`);
+      if (res.data.success) {
+        const restored = res.data.data?.user?.role || 'customer';
+        toast.success(`${userName} restored to ${restored}`);
+        setUsers(prev => prev.map(u => u._id === userId ? { ...u, role: restored } : u));
+      }
+    } catch (err) { toast.error(err.response?.data?.message || 'Demotion failed'); }
   };
 
   const filteredUsers = users.filter(u =>
@@ -203,7 +245,7 @@ export default function AdminUsersPage() {
 
         <div className="flex items-center gap-3 w-full md:w-auto">
            <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 overflow-x-auto no-scrollbar flex-1 md:flex-none justify-between md:justify-start">
-              {['all', 'customer', 'vendor', 'admin'].map(r => (
+              {['all', 'customer', 'vendor', 'manager', 'admin'].map(r => (
                 <button
                   key={r} onClick={() => setRoleFilter(r)}
                   className={`px-3 md:px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-semibold tracking-tight transition-all uppercase whitespace-nowrap ${roleFilter === r ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-40'}`}
@@ -294,7 +336,7 @@ export default function AdminUsersPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3">
                         <p className="text-[12px] md:text-sm font-bold tracking-tight truncate text-[var(--text-primary)]">{u.name}</p>
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold tracking-widest border uppercase shrink-0 ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold tracking-widest border uppercase shrink-0 ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'manager' ? 'bg-sky-500/10 text-sky-500 border-sky-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
                           {u.role}
                         </span>
                       </div>
@@ -322,9 +364,21 @@ export default function AdminUsersPage() {
                         <button onClick={() => handleEditClick(u)} className="size-10 md:size-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-all active:scale-90 shadow-sm">
                            <Activity className="size-4 md:size-5" />
                         </button>
+                        {user?.role === 'admin' && u.role !== 'admin' && u.role !== 'manager' && (
+                          <button onClick={() => handlePromote(u._id, u.name)} className="size-10 md:size-11 rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20 flex items-center justify-center hover:bg-sky-500 hover:text-white transition-all active:scale-90 shadow-sm" title="Promote to Manager">
+                            <Shield className="size-4 md:size-5" />
+                          </button>
+                        )}
+                        {user?.role === 'admin' && u.role === 'manager' && (
+                          <button onClick={() => handleDemote(u._id, u.name)} className="size-10 md:size-11 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center hover:bg-amber-500 hover:text-white transition-all active:scale-90 shadow-sm" title="Demote Manager">
+                            <ShieldAlert className="size-4 md:size-5" />
+                          </button>
+                        )}
+                        {['admin', 'manager'].includes(user?.role) && (
                         <button onClick={() => handleDeleteUser(u._id, u.name)} className="size-10 md:size-11 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all active:scale-90 shadow-sm">
                            <Trash2 className="size-4 md:size-5" />
                         </button>
+                        )}
                      </div>
                   </div>
                 </div>
@@ -378,7 +432,7 @@ export default function AdminUsersPage() {
                             </td>
                             <td className="px-4 py-4 text-[11px] font-semibold text-[var(--text-secondary)]">{u.email}</td>
                             <td className="px-4 py-4">
-                              <span className={`px-2 py-1 rounded-full text-[9px] font-bold tracking-widest border uppercase ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
+                              <span className={`px-2 py-1 rounded-full text-[9px] font-bold tracking-widest border uppercase ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'manager' ? 'bg-sky-500/10 text-sky-500 border-sky-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
                                 {u.role}
                               </span>
                             </td>
@@ -393,9 +447,21 @@ export default function AdminUsersPage() {
                                 <button onClick={() => handleEditClick(u)} className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-all">
                                   <Activity className="size-4" />
                                 </button>
+                                {user?.role === 'admin' && u.role !== 'admin' && u.role !== 'manager' && (
+                                  <button onClick={() => handlePromote(u._id, u.name)} className="size-9 rounded-xl bg-sky-500/10 text-sky-500 border border-sky-500/20 flex items-center justify-center hover:bg-sky-500 hover:text-white transition-all" title="Promote to Manager">
+                                    <Shield className="size-4" />
+                                  </button>
+                                )}
+                                {user?.role === 'admin' && u.role === 'manager' && (
+                                  <button onClick={() => handleDemote(u._id, u.name)} className="size-9 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center hover:bg-amber-500 hover:text-white transition-all" title="Demote Manager">
+                                    <ShieldAlert className="size-4" />
+                                  </button>
+                                )}
+                                {['admin', 'manager'].includes(user?.role) && (
                                 <button onClick={() => handleDeleteUser(u._id, u.name)} className="size-9 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
                                   <Trash2 className="size-4" />
                                 </button>
+                                )}
                               </div>
                             </td>
                           </tr>
@@ -422,7 +488,7 @@ export default function AdminUsersPage() {
 
       {/* Edit Modal - Surgical Alignment */}
       <AnimatePresence>
-        {selectedIds.length > 0 && (
+        {['admin', 'manager'].includes(user?.role) && selectedIds.length > 0 && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -481,6 +547,8 @@ export default function AdminUsersPage() {
                     <select value={editForm.role} onChange={e=>setEditForm(f=>({...f,role:e.target.value}))} className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl px-4 text-[11px] font-bold tracking-tight outline-none appearance-none cursor-pointer focus:border-[var(--accent)] shadow-inner">
                       <option value="customer">Customer</option>
                       <option value="vendor">Vendor</option>
+                      <option value="logistics">Logistics</option>
+                      <option value="manager">Manager</option>
                       <option value="admin">Admin</option>
                     </select>
                   </div>

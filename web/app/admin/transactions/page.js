@@ -475,7 +475,7 @@ export default function AdminTransactionsPage() {
   const earnings = stats?.admin_earnings || {};
 
   const fetchTransactions = useCallback(async () => {
-    if (!hasHydrated || user?.role !== 'admin') return;
+    if (!hasHydrated || !['admin', 'manager'].includes(user?.role)) return;
     setLoading(true);
     try {
       const params = {
@@ -498,7 +498,7 @@ export default function AdminTransactionsPage() {
   }, [currentPage, statusFilter, typeFilter, gatewayFilter, hasHydrated, search, user?.role]);
 
   const fetchStats = useCallback(async () => {
-    if (!hasHydrated || user?.role !== 'admin') return;
+    if (!hasHydrated || !['admin', 'manager'].includes(user?.role)) return;
     try {
       const res = await api.get('/admin/analytics');
       if (res.data.success) {
@@ -514,18 +514,18 @@ export default function AdminTransactionsPage() {
     if (!hasHydrated) return;
     if (!user) {
       router.replace('/login?from=admin-transactions');
-    } else if (user.role !== 'admin') {
+    } else if (!['admin', 'manager'].includes(user.role)) {
       router.replace('/wallet');
     }
   }, [hasHydrated, router, user]);
 
   useEffect(() => {
-    if (!hasHydrated || user?.role !== 'admin') return;
+    if (!hasHydrated || !['admin', 'manager'].includes(user?.role)) return;
     fetchStats();
   }, [fetchStats, hasHydrated, user?.role]);
 
   useEffect(() => {
-    if (!hasHydrated || user?.role !== 'admin') return;
+    if (!hasHydrated || !['admin', 'manager'].includes(user?.role)) return;
     fetchTransactions();
   }, [fetchTransactions, hasHydrated, user?.role]);
 
@@ -748,6 +748,7 @@ export default function AdminTransactionsPage() {
                     ))}
                   </AdminFilterSelect>
                 </AdminFilterRow>
+                {['admin', 'manager'].includes(user?.role) && (
                 <AdminFilterButton
                   theme="transactions"
                   onClick={handleGatewaySync}
@@ -757,6 +758,7 @@ export default function AdminTransactionsPage() {
                   {gatewaySyncing ? <Loader2 className="size-3.5 animate-spin" /> : <Globe className="size-3.5" />}
                   Sync gateways
                 </AdminFilterButton>
+                )}
               </AdminFilterToolbar>
               <AdminFilterPills
                 theme="transactions"
@@ -963,6 +965,7 @@ export default function AdminTransactionsPage() {
                             </div>
                           )}
 
+                          {['admin', 'manager'].includes(user?.role) && (
                           <div className="rounded-xl border border-[var(--glass-border)] p-3">
                             <p className="mb-2 text-[11px] font-semibold text-[var(--text-secondary)]">
                               Update status
@@ -985,8 +988,9 @@ export default function AdminTransactionsPage() {
                               ))}
                             </div>
                           </div>
+                          )}
 
-                          {tx.gateway === 'eversend' &&
+                          {user?.role === 'admin' && tx.gateway === 'eversend' &&
                             ['failed', 'pending'].includes(tx.status) &&
                             tx.type === 'deposit' && (
                               <button
@@ -1004,7 +1008,7 @@ export default function AdminTransactionsPage() {
                               </button>
                             )}
 
-                          {tx.status === 'completed' && tx.order_ids?.length > 0 && (
+                          {user?.role === 'admin' && tx.status === 'completed' && tx.order_ids?.length > 0 && (
                             <button
                               type="button"
                               onClick={() => handleFulfillOrders(tx._id)}

@@ -21,6 +21,7 @@ const PlatformSettings = require('../models/PlatformSettings.model');
 const Transaction = require('../models/Transaction.model');
 const EmailLog = require('../models/EmailLog.model');
 const { sendNotification } = require('../utils/notifier');
+const { recordAudit } = require('../utils/auditTrail');
 const logisticsService = require('../services/logistics.service');
 const { syncShipmentsToOrderStatus, notifyOrderStatusChange } = require('../services/orderSync.service');
 const templates = require('../utils/emailTemplates');
@@ -34,7 +35,6 @@ const crypto = require('crypto');
 const { calculatePlatformFees, applyCommissionOverride } = require('../utils/platformFees');
 const mongoose = require('mongoose');
 const { clearApiCache } = require('../middleware/cache.middleware');
-const { recordAudit } = require('../utils/auditTrail');
 
 // ─────────────────────────────────────────────
 // @route   GET /api/admin/notifications/email-logs
@@ -2639,6 +2639,139 @@ const getVendorTransactionHistory = async (req, res, next) => {
   }
 };
 
+// ─────────────────────────────────────────────
+// Manager Promotion / Demotion
+// ─────────────────────────────────────────────
+const promoteToManager = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.userId).select('+token_version');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: 'You cannot promote yourself.' });
+    }
+    if (user.role === 'admin') return res.status(400).json({ success: false, message: 'Cannot change an admin\'s role.' });
+    if (user.role === 'manager') return res.status(400).json({ success: false, message: 'User is already a manager.' });
+
+    const warnings = [];
+    const previousRole = user.role;
+
+    // Check for active vendor operations that will be paused while promoted
+    if (previousRole === 'vendor') {
+      const vendor = await Vendor.findOne({ user_id: user._id }).select('_id store_name').lean();
+      if (vendor) {
+        const pendingOrders = await Order.countDocuments({
+          vendor_id: vendor._id,
+          status: { $in: ['pending', 'processing', 'confirmed', 'preparing', 'ready'] },
+        });
+        const heldEscrow = await Escrow.countDocuments({
+          vendor_id: vendor._id,
+          status: { $in: ['held', 'pending_release'] },
+        });
+        if (pendingOrders > 0) warnings.push(`${pendingOrders} pending order(s) on store "${vendor.store_name}"`);
+        if (heldEscrow > 0) warnings.push(`${heldEscrow} escrow record(s) still held`);
+      }
+    }
+
+    // Check for active logistics operations
+    if (previousRole === 'logistics') {
+      const LogisticsFirm = require('../models/LogisticsFirm.model');
+      const firm = await LogisticsFirm.findOne({ user_id: user._id }).select('_id company_name').lean();
+      if (firm) {
+        const Shipment = require('../models/Shipment.model');
+        const activeShipments = await Shipment.countDocuments({
+          logistics_firm_id: firm._id,
+          status: { $in: ['pending', 'picked_up', 'in_transit', 'out_for_delivery'] },
+        });
+        if (activeShipments > 0) warnings.push(`${activeShipments} active shipment(s) under "${firm.company_name}"`);
+      }
+    }
+
+    // If force flag not set and there are warnings, return them for confirmation
+    if (warnings.length > 0 && !req.body.force) {
+      return res.status(409).json({
+        success: false,
+        code: 'ACTIVE_OPERATIONS',
+        message: `User has active operations: ${warnings.join('; ')}. Send { "force": true } to proceed anyway.`,
+        warnings,
+      });
+    }
+
+    // Atomic update with role condition guard to prevent TOCTOU race
+    const oldVerification = user.verification_status;
+    const updated = await User.findOneAndUpdate(
+      { _id: user._id, role: previousRole },
+      {
+        $set: { role: 'manager', previous_role: previousRole, verification_status: 'verified' },
+        $inc: { token_version: 1 },
+      },
+      { new: true },
+    );
+
+    if (!updated) {
+      return res.status(409).json({ success: false, message: 'Role was changed by another request. Please retry.' });
+    }
+
+    await recordAudit({
+      actorId: req.user._id,
+      action: 'promote_to_manager',
+      targetType: 'User',
+      targetId: user._id,
+      before: { role: previousRole, verification_status: oldVerification },
+      after: { role: 'manager', previous_role: previousRole, verification_status: 'verified' },
+    });
+
+    res.json({
+      success: true,
+      message: `${updated.name || updated.email} promoted to manager.`,
+      warnings: warnings.length > 0 ? warnings : undefined,
+      data: { user: updated },
+    });
+  } catch (error) { next(error); }
+};
+
+const demoteManager = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    if (user._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: 'You cannot demote yourself.' });
+    }
+    if (user.role !== 'manager') return res.status(400).json({ success: false, message: 'User is not a manager.' });
+
+    const restoredRole = user.previous_role || 'customer';
+    const oldPreviousRole = user.previous_role;
+
+    // Atomic update with role condition guard to prevent TOCTOU race
+    const updated = await User.findOneAndUpdate(
+      { _id: user._id, role: 'manager' },
+      {
+        $set: { role: restoredRole, previous_role: null },
+        $inc: { token_version: 1 },
+      },
+      { new: true },
+    );
+
+    if (!updated) {
+      return res.status(409).json({ success: false, message: 'Role was changed by another request. Please retry.' });
+    }
+
+    await recordAudit({
+      actorId: req.user._id,
+      action: 'demote_manager',
+      targetType: 'User',
+      targetId: user._id,
+      before: { role: 'manager', previous_role: oldPreviousRole },
+      after: { role: restoredRole, previous_role: null },
+    });
+
+    res.json({
+      success: true,
+      message: `${updated.name || updated.email} restored to ${restoredRole}.`,
+      data: { user: updated },
+    });
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   getHomepageLayout,
   updateBanners,
@@ -2710,6 +2843,9 @@ module.exports = {
   adminAdjustVendorBalance,
   getAdminBalanceAdjustmentHistory,
   getVendorTransactionHistory,
+  // Manager management
+  promoteToManager,
+  demoteManager,
 };
 
 // ─────────────────────────────────────────────

@@ -41,9 +41,9 @@ router.post('/deposit', initiateDeposit);
 router.post('/withdraw', requestWithdrawal);
 router.post('/pay-order', payOrderWithWallet); // Direct Wallet Payment checkout
 
-// ── Admin Tools ───────────────────────────────
-router.get('/admin/stats', restrictTo('admin'), getPlatformFinancialStats);
-router.get('/admin/withdrawals', restrictTo('admin'), getAllWithdrawals);
-router.patch('/admin/withdrawals/:id', restrictTo('admin'), processWithdrawal);
+// ── Admin + Manager Tools ────────────────────
+router.get('/admin/stats', restrictTo('admin', 'manager'), getPlatformFinancialStats);
+router.get('/admin/withdrawals', restrictTo('admin', 'manager'), getAllWithdrawals);
+router.patch('/admin/withdrawals/:id', restrictTo('admin', 'manager'), processWithdrawal);
 
 module.exports = router;

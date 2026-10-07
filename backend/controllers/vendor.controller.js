@@ -656,7 +656,7 @@ const getFollowers = async (req, res, next) => {
     if (!vendor) return res.status(404).json({ success: false, message: 'Vendor not found.' });
 
     // Ensure vendor only sees their own followers (unless admin)
-    if (req.user.role !== 'admin' && vendor.user_id.toString() !== req.user._id.toString()) {
+    if (!['admin', 'manager'].includes(req.user.role) && vendor.user_id.toString() !== req.user._id.toString()) {
       return res.status(403).json({ success: false, message: 'Unauthorized access to node manifest.' });
     }
 

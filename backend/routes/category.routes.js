@@ -18,8 +18,8 @@ router.get('/with-products', getCategoriesWithProducts);
 router.get('/children/:parentId', getCategoryChildren);
 
 // Protected Admin routes
-router.post('/', protect, restrictTo('admin'), createCategory);
-router.put('/:id', protect, restrictTo('admin'), updateCategory);
-router.delete('/:id', protect, restrictTo('admin'), deleteCategory);
+router.post('/', protect, restrictTo('admin', 'manager'), createCategory);
+router.put('/:id', protect, restrictTo('admin', 'manager'), updateCategory);
+router.delete('/:id', protect, restrictTo('admin', 'manager'), deleteCategory);
 
 module.exports = router;

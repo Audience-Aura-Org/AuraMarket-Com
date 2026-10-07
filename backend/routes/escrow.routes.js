@@ -25,14 +25,14 @@ const { protect, restrictTo } = require('../middleware/auth.middleware');
 router.use(protect);
 
 // ── Admin Monitoring ──────────────────────────
-router.get('/logs', restrictTo('admin'), getEscrowLogs);
+router.get('/logs', restrictTo('admin', 'manager'), getEscrowLogs);
 
 // ── Buyer Initiations ─────────────────────────────────────────────────────
 // Vendors and logistics can also act as buyers, so they can hold/release funds
 router.post('/hold', restrictTo('customer', 'vendor', 'logistics'), holdFunds);
 
 // Can only be fired when Buyer hits 'Delivery Confirmed'
-router.post('/release/:orderId', restrictTo('customer', 'vendor', 'logistics', 'admin'), releaseFunds);
+router.post('/release/:orderId', restrictTo('customer', 'vendor', 'logistics', 'admin', 'manager'), releaseFunds);
 
 // ── Vendor / Admin Initiations ───────────────
 // Vendor confirms they have delivered (acting as seller, not buyer)
@@ -42,6 +42,6 @@ router.post('/confirm-delivery/:orderId', restrictTo('vendor'), vendorConfirmRel
 router.post('/deny/:orderId', denyEscrow);
 
 // Occurs when Vendor cancels the Order / Admins settle a dispute
-router.post('/refund/:orderId', restrictTo('vendor', 'admin'), refundFunds);
+router.post('/refund/:orderId', restrictTo('vendor', 'admin', 'manager'), refundFunds);
 
 module.exports = router;

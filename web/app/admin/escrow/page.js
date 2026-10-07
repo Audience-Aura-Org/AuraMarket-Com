@@ -109,7 +109,7 @@ export default function AdminEscrow() {
   const itemsPerPage = 10;
 
   const fetchEscrow = async () => {
-    if (!hasHydrated || user?.role !== 'admin') return;
+    if (!hasHydrated || !['admin', 'manager'].includes(user?.role)) return;
     setLoading(true);
     try {
       const [escrowRes, analyticsRes, settingsRes] = await Promise.all([
@@ -147,13 +147,13 @@ export default function AdminEscrow() {
     if (!hasHydrated) return;
     if (!user) {
       router.replace('/login?from=admin-escrow');
-    } else if (user.role !== 'admin') {
+    } else if (!['admin', 'manager'].includes(user.role)) {
       router.replace('/wallet');
     }
   }, [hasHydrated, router, user]);
 
   useEffect(() => {
-    if (!hasHydrated || user?.role !== 'admin') return;
+    if (!hasHydrated || !['admin', 'manager'].includes(user?.role)) return;
     fetchEscrow();
   // fetchEscrow deliberately reads the latest local filters/settings only on explicit refresh.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -265,7 +265,7 @@ export default function AdminEscrow() {
 
   // Do not render privileged escrow data until the persisted session is known.
   // This also keeps the server render deterministic for the client-only store.
-  if (!hasHydrated || !user || user.role !== 'admin') return null;
+  if (!hasHydrated || !user || !['admin', 'manager'].includes(user.role)) return null;
 
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
@@ -405,7 +405,8 @@ export default function AdminEscrow() {
                       <select
                         value={settings[item.typeField]}
                         onChange={e => handleSettingsChange(item.typeField, e.target.value)}
-                        className="h-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
+                        disabled={!['admin', 'manager'].includes(user?.role)}
+                        className="h-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                          <option value="percentage">Percentage (%)</option>
                          <option value="amount">Fixed (XAF)</option>
@@ -416,7 +417,8 @@ export default function AdminEscrow() {
                         step="0.01"
                         value={settings[item.valueField]}
                         onChange={e => handleSettingsChange(item.valueField, e.target.value)}
-                        className="h-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50"
+                        disabled={!['admin', 'manager'].includes(user?.role)}
+                        className="h-11 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] px-3 text-[11px] font-bold text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
                    </div>
                 </div>
@@ -445,14 +447,18 @@ export default function AdminEscrow() {
               <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 leading-relaxed max-w-2xl">
                 Fees are calculated against the vendor base amount. Logistics shipping fees are paid directly to the carrier after delivery and are excluded from the commission base.
               </p>
-              <button
-                onClick={handleSaveSettings}
-                disabled={savingSettings}
-                className="h-12 px-5 rounded-2xl bg-[var(--accent)] text-white text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20 disabled:opacity-50 active:scale-95 transition-all whitespace-nowrap"
-              >
-                {savingSettings ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                Save Fees
-              </button>
+              {['admin', 'manager'].includes(user?.role) ? (
+                <button
+                  onClick={handleSaveSettings}
+                  disabled={savingSettings}
+                  className="h-12 px-5 rounded-2xl bg-[var(--accent)] text-white text-[10px] font-bold uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20 disabled:opacity-50 active:scale-95 transition-all whitespace-nowrap"
+                >
+                  {savingSettings ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                  Save Fees
+                </button>
+              ) : (
+                <span className="text-[10px] font-bold text-[var(--text-secondary)] opacity-60 uppercase tracking-widest">View Only</span>
+              )}
            </div>
         </div>
 

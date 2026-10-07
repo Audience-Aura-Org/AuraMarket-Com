@@ -69,7 +69,7 @@ export default function AdminVendorBalancePage() {
   useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
-    if (mounted && !authLoading && user?.role !== 'admin') router.replace('/');
+    if (mounted && !authLoading && !['admin', 'manager'].includes(user?.role)) router.replace('/');
   }, [mounted, authLoading, user, router]);
 
   // Debounced vendor search
@@ -106,7 +106,7 @@ export default function AdminVendorBalancePage() {
   }, [historyPage]);
 
   useEffect(() => {
-    if (mounted && user?.role === 'admin') fetchHistory();
+    if (mounted && ['admin', 'manager'].includes(user?.role)) fetchHistory();
   }, [mounted, user, fetchHistory]);
 
   // Fetch selected vendor's transactions
@@ -174,7 +174,7 @@ export default function AdminVendorBalancePage() {
   };
 
   if (!mounted || authLoading) return null;
-  if (user?.role !== 'admin') return null;
+  if (!['admin', 'manager'].includes(user?.role)) return null;
 
   return (
     <AdminFinancePage theme={THEME}>

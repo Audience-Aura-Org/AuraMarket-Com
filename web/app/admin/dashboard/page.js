@@ -69,7 +69,7 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!hasHydrated || !user || user.role !== 'admin') return;
+    if (!hasHydrated || !user || !['admin', 'manager'].includes(user.role)) return;
     fetchStats();
   }, [hasHydrated, user, fetchStats]);
 
@@ -120,6 +120,7 @@ export default function AdminDashboard() {
           );
         })()}
 
+        {user?.role === 'admin' && (
         <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm md:p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
@@ -153,6 +154,7 @@ export default function AdminDashboard() {
             ))}
           </div>
         </section>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-6">
           

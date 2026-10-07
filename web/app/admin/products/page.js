@@ -7,6 +7,7 @@ import { Package, Search, Loader2, Eye, Building2, Star, CheckCircle, Trash2, Re
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import { useAuthStore } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import Pagination from '@/components/common/Pagination';
 import StatCard from '@/components/layout/StatCard';
@@ -33,6 +34,7 @@ function applySort(list, sortBy) {
 }
 
 export default function AdminProductsPage() {
+  const { user } = useAuthStore();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -344,7 +346,7 @@ export default function AdminProductsPage() {
 
       {/* BULK ACTION BAR */}
       <AnimatePresence>
-        {selectedIds.length > 0 && (
+        {['admin', 'manager'].includes(user?.role) && selectedIds.length > 0 && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

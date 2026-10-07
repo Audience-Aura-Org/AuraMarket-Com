@@ -86,6 +86,34 @@ const LOGISTICS_NAV = [
   { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/logistics/wallet' },
 ];
 
+const MANAGER_NAV = [
+  { icon: 'home',           label: 'Marketplace',      href: '/shop' },
+  { icon: 'dashboard',      label: 'Dashboard',        href: '/admin/dashboard' },
+  { icon: 'person',         label: 'Users',            href: '/admin/users' },
+  { icon: 'store',          label: 'Vendors',          href: '/admin/vendors' },
+  { icon: 'inventory',      label: 'Products',         href: '/admin/products' },
+  { icon: 'receipt_long',   label: 'Orders',           href: '/admin/orders' },
+  { icon: 'chat',           label: 'Messages',         href: '/chat',              badge: 'messages' },
+  { icon: 'forum',          label: 'System Comms',     href: '/admin/messages' },
+  { icon: 'how_to_reg',     label: 'Vendor KYC',       href: '/admin/approvals' },
+  { icon: 'gavel',          label: 'Disputes',         href: '/admin/disputes' },
+  { icon: 'security',       label: 'Escrow & Fees',    href: '/admin/escrow' },
+  { icon: 'account_balance_wallet',label: 'Withdrawals',    href: '/admin/withdrawals' },
+  { icon: 'account_balance', label: 'Treasury',        href: '/admin/treasury' },
+  { icon: 'tune',           label: 'Vendor Balances',  href: '/admin/vendor-balance' },
+  { icon: 'receipt_long',   label: 'Transactions',     href: '/admin/transactions' },
+  { icon: 'workspace_premium', label: 'Subscriptions', href: '/admin/subscriptions' },
+  { icon: 'local_shipping', label: 'Shipment Node',    href: '/admin/logistics' },
+  { icon: 'assessment',     label: 'Logistics Audit',  href: '/admin/logistics/audit' },
+  { icon: 'payments',       label: 'Earnings',         href: '/admin/logistics/earnings' },
+  { icon: 'monitoring',     label: 'Analytics',        href: '/admin/analytics' },
+  { icon: 'category',       label: 'Categories',       href: '/admin/categories' },
+  { icon: 'star',           label: 'Reviews',          href: '/admin/reviews' },
+  { icon: 'mark_email_read', label: 'Email Logs',      href: '/admin/notifications/email-logs' },
+  { icon: 'history',        label: 'Audit Ledger',     href: '/admin/audit' },
+  { icon: 'web',            label: 'CMS / Hero',       href: '/admin/homepage' },
+];
+
 const ROLE_CONFIG = {
   customer: {
     nav: CUSTOMER_NAV,
@@ -107,6 +135,13 @@ const ROLE_CONFIG = {
     accent: '#bf34bf',
     plan: 'Admin Access',
     icon: 'shield_with_heart',
+  },
+  manager: {
+    nav: MANAGER_NAV,
+    label: 'Operations Manager',
+    accent: '#3b82f6',
+    plan: 'Manager Access',
+    icon: 'supervised_user_circle',
   },
   logistics: {
     nav: LOGISTICS_NAV,

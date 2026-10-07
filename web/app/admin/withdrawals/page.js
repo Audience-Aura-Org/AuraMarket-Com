@@ -104,7 +104,7 @@ export default function AdminWithdrawalsPage() {
       router.replace('/login?from=admin-withdrawals');
       return;
     }
-    if (user.role !== 'admin') router.replace('/wallet');
+    if (!['admin', 'manager'].includes(user.role)) router.replace('/wallet');
   }, [user, router, hasHydrated]);
 
   const load = useCallback(async () => {
@@ -129,7 +129,7 @@ export default function AdminWithdrawalsPage() {
   }, [filter, roleFilter]);
 
   useEffect(() => {
-    if (!hasHydrated || user?.role !== 'admin') return;
+    if (!hasHydrated || !['admin', 'manager'].includes(user?.role)) return;
     load();
   }, [hasHydrated, load, user?.role]);
 

@@ -41,7 +41,7 @@ export default function AdminReviewsPage() {
   }, []);
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') return;
+    if (!user || !['admin', 'manager'].includes(user.role)) return;
     fetchAllReviews();
   }, [fetchAllReviews, user]);
 
@@ -74,7 +74,7 @@ export default function AdminReviewsPage() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const currentReviews = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  if (user?.role !== 'admin') return null;
+  if (!['admin', 'manager'].includes(user?.role)) return null;
 
   return (
     <>

@@ -51,7 +51,7 @@ const isVerificationWriteAllowed = (req) => {
 };
 
 const shouldRestrictForVerification = (user) => (
-  user.role !== 'admin' && ['held', 'pending', 'rejected'].includes(user.verification_status)
+  !['admin', 'manager'].includes(user.role) && ['held', 'pending', 'rejected'].includes(user.verification_status)
 );
 
 // ─────────────────────────────────────────────
@@ -118,10 +118,16 @@ const protect = async (req, res, next) => {
 // ─────────────────────────────────────────────
 // restrictTo — Role-Based Access Control
 // Usage: restrictTo('admin', 'vendor')
+// Managers also carry their previous_role (e.g. vendor) so they
+// retain original capabilities alongside manager access.
 // ─────────────────────────────────────────────
 const restrictTo = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    const userRoles = [req.user.role];
+    if (req.user.role === 'manager' && req.user.previous_role) {
+      userRoles.push(req.user.previous_role);
+    }
+    if (!roles.some(r => userRoles.includes(r))) {
       return res.status(403).json({
         success: false,
         message: `Access denied. Required role: ${roles.join(' or ')}. Your role: ${req.user.role}.`,
@@ -160,8 +166,12 @@ const loadVendor = async (req, res, next) => {
   try {
     const Vendor = require('../models/Vendor.model');
     const vendor = await Vendor.findOne({ user_id: req.user._id });
-    
-    if (!vendor && req.user.role !== 'admin') {
+
+    // Admins and managers (without a vendor previous_role) don't need a vendor profile
+    const isAdminWithoutVendor = ['admin', 'manager'].includes(req.user.role)
+      && !(req.user.role === 'manager' && req.user.previous_role === 'vendor');
+
+    if (!vendor && !isAdminWithoutVendor) {
       return res.status(403).json({
         success: false,
         message: 'Vendor profile not found. If you just signed up, please complete your profile onboarding first.'
@@ -182,7 +192,11 @@ const loadVendor = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const loadVendorOptional = async (req, res, next) => {
   try {
-    if (req.user && req.user.role === 'vendor') {
+    const isVendorLike = req.user && (
+      req.user.role === 'vendor' ||
+      (req.user.role === 'manager' && req.user.previous_role === 'vendor')
+    );
+    if (isVendorLike) {
       const Vendor = require('../models/Vendor.model');
       const vendor = await Vendor.findOne({ user_id: req.user._id });
       if (vendor) req.vendor = vendor;

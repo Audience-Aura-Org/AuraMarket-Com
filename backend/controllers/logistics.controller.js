@@ -353,7 +353,7 @@ const getFirmShipmentById = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Shipment not found.' });
     }
 
-    if (req.user.role !== 'admin') {
+    if (!['admin', 'manager'].includes(req.user.role)) {
       const firm = await LogisticsCompany.findOne({ user_id: req.user._id });
       if (!firm || shipment.logistics_id?.toString() !== firm._id.toString()) {
         return res.status(403).json({ success: false, message: 'Access denied.' });
@@ -401,7 +401,7 @@ const modifyShipmentStatus = async (req, res, next) => {
     }
 
     const firm = await LogisticsCompany.findById(shipment.logistics_id).session(session);
-    if (req.user.role !== 'admin' && firm?.user_id.toString() !== req.user._id.toString()) {
+    if (!['admin', 'manager'].includes(req.user.role) && firm?.user_id.toString() !== req.user._id.toString()) {
       throw new Error('Access denied.');
     }
 
