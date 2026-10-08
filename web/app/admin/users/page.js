@@ -398,8 +398,9 @@ export default function AdminUsersPage() {
                           {u.role}
                         </span>
                         {u.managed_by && (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-teal-500/10 text-teal-600 border border-teal-500/20 truncate max-w-[160px] shrink-0" title={`Managed by ${u.managed_by.manager_name}`}>
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-teal-500/10 text-teal-500 border border-teal-500/20 truncate max-w-[160px] shrink-0" title={`Managed by ${u.managed_by.manager_name}`}>
                             <Link2 className="inline size-2.5 mr-0.5 -mt-px" />{u.managed_by.manager_name}
+                            {u.managers_count > 1 && <span className="ml-0.5 opacity-60">+{u.managers_count - 1}</span>}
                           </span>
                         )}
                       </div>
@@ -505,8 +506,9 @@ export default function AdminUsersPage() {
                                   {u.role}
                                 </span>
                                 {u.managed_by && (
-                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-teal-500/10 text-teal-600 border border-teal-500/20 truncate max-w-[140px]" title={`Managed by ${u.managed_by.manager_name}`}>
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-teal-500/10 text-teal-500 border border-teal-500/20 truncate max-w-[140px]" title={`Managed by ${u.managed_by.manager_name}`}>
                                     <Link2 className="inline size-2.5 mr-0.5 -mt-px" />{u.managed_by.manager_name}
+                                    {u.managers_count > 1 && <span className="ml-0.5 opacity-60">+{u.managers_count - 1}</span>}
                                   </span>
                                 )}
                               </div>

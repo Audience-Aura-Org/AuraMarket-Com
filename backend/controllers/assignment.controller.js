@@ -55,7 +55,7 @@ exports.listManagers = async (req, res, next) => {
   try {
     const managers = await User.find(
       { role: 'manager' },
-      'name email'
+      'name email avatar'
     ).lean();
 
     const counts = await ManagerAssignment.aggregate([
@@ -327,7 +327,7 @@ exports.getManagerAssignments = async (req, res, next) => {
       manager_id: req.params.managerId,
       status: { $in: OPEN },
     })
-      .populate('user_id', 'name email role')
+      .populate('user_id', 'name email role avatar')
       .lean();
 
     res.json({ success: true, data: { assignments: rows } });

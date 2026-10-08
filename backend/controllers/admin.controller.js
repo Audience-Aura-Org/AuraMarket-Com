@@ -940,19 +940,29 @@ const getAllUsers = async (req, res, next) => {
       status: 'active',
     }).populate('manager_id', 'name email').lean();
 
+    // Group assignments by user — a user can have multiple managers
     const assignmentMap = {};
     for (const a of assignments) {
-      assignmentMap[String(a.user_id)] = {
+      const uid = String(a.user_id);
+      const entry = {
         manager_name: a.manager_id?.name || a.manager_id?.email || null,
         manager_id: a.manager_id?._id || null,
-        access_level: a.access_level,
+        permissions: a.permissions || {},
       };
+      if (!assignmentMap[uid]) {
+        assignmentMap[uid] = entry; // primary (for managed_by)
+      }
+      if (!assignmentMap[uid].all) assignmentMap[uid].all = [];
+      assignmentMap[uid].all.push(entry);
     }
 
     const enriched = users.map(u => {
       const obj = u.toObject ? u.toObject() : u;
       const mgr = assignmentMap[String(obj._id)];
-      if (mgr) obj.managed_by = mgr;
+      if (mgr) {
+        obj.managed_by = mgr;
+        obj.managers_count = mgr.all?.length || 1;
+      }
       return obj;
     });
 
