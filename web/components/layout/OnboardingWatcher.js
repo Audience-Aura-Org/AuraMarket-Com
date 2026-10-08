@@ -48,7 +48,7 @@ export default function OnboardingWatcher() {
       '/settings',
     ];
 
-    const isProfessionalRole = ['admin', 'vendor', 'logistics'].includes(role);
+    const isProfessionalRole = ['admin', 'manager', 'vendor', 'logistics'].includes(role);
 
     // 3. Protected route logic
     if (protectedPrefixes.some((p) => pathname.startsWith(p))) {
@@ -75,8 +75,8 @@ export default function OnboardingWatcher() {
       router.replace('/'); 
       return;
     }
-    if (pathname.startsWith('/admin') && role !== 'admin') {
-      console.warn('[Watcher] Access Denied: Not an admin', role);
+    if (pathname.startsWith('/admin') && role !== 'admin' && role !== 'manager') {
+      console.warn('[Watcher] Access Denied: Not an admin or manager', role);
       router.replace('/');
       return;
     }
