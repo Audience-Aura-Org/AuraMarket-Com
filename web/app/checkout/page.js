@@ -995,7 +995,7 @@ function CheckoutContent() {
                 <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Approve Payment</h2>
                 {eversendCheckout.gateway && (
                   <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] opacity-80">
-                    via {eversendCheckout.gateway === 'payunit' ? 'PayUnit' : 'Eversend'}
+                    via {eversendCheckout.gateway === 'payunit' ? 'PayUnit' : eversendCheckout.gateway === 'pawapay' ? 'PawaPay' : 'Eversend'}
                   </p>
                 )}
                 <p className="mt-2 text-[12px] font-semibold leading-relaxed tracking-tight text-[var(--text-secondary)] opacity-70">
@@ -1003,7 +1003,7 @@ function CheckoutContent() {
                 </p>
                 <div className="mt-6 space-y-2 text-left">
                   {[
-                    `Request sent to ${eversendCheckout.gateway === 'payunit' ? 'PayUnit' : eversendCheckout.gateway === 'eversend' ? 'Eversend' : 'gateway'}`,
+                    `Request sent to ${eversendCheckout.gateway === 'payunit' ? 'PayUnit' : eversendCheckout.gateway === 'pawapay' ? 'PawaPay' : 'Eversend'}`,
                     eversendCheckout.orangeHosted ? 'Authorize via Orange payment page' : `Approve prompt on ${eversendCheckout.phone || formData.phone}`,
                     'Confirming order payment',
                   ].map((label, index) => (
