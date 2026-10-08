@@ -14,8 +14,9 @@ export default function ManagerLayout({ children }) {
   const startBadgePolling = useManagerMode((s) => s.startBadgePolling);
   const stopBadgePolling = useManagerMode((s) => s.stopBadgePolling);
 
+  // Force-load accounts on mount (not cached) so new assignments appear
   useEffect(() => {
-    loadAccounts();
+    loadAccounts({ force: true });
   }, [loadAccounts]);
 
   // Start badge polling while in manager routes
