@@ -248,6 +248,24 @@ api.interceptors.request.use(async (config) => {
     config.url = config.url.substring(1);
   }
 
+  // Manager workspace: inject X-Act-As header when acting as a user.
+  // The useManagerMode store sets actAsId from the URL (/manager/as/{userId}).
+  if (typeof window !== 'undefined') {
+    try {
+      const managerState = JSON.parse(
+        window.localStorage.getItem('aura-manager-mode') || '{}'
+      );
+      // actAsId is runtime-only (not persisted), so read from the module cache
+      const mod = require('../hooks/useManagerMode');
+      const actAsId = mod?.useManagerMode?.getState?.()?.actAsId;
+      if (actAsId) {
+        config.headers['X-Act-As'] = actAsId;
+      }
+    } catch (_) {
+      // Hook not yet loaded — no-op
+    }
+  }
+
   if (typeof window !== 'undefined') {
     const language = window.localStorage.getItem('aura_language') || 'en';
     config.headers['Accept-Language'] = language;

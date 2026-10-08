@@ -114,7 +114,7 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
     if (nextUser?.onboarded === false && role !== 'admin' && role !== 'manager') return '/onboarding';
     if (role === 'vendor') return '/vendor/dashboard';
     if (role === 'admin') return '/admin/dashboard';
-    if (role === 'manager') return '/admin/dashboard';
+    if (role === 'manager') return '/manager';
     if (role === 'logistics') return '/logistics/dashboard';
     return '/shop';
   };

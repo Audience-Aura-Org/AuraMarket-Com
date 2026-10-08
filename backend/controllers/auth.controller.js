@@ -37,7 +37,13 @@ const getAuthenticator = async () => {
 // ─────────────────────────────────────────────
 // Helper: Send token response
 // ─────────────────────────────────────────────
-const sendTokenResponse = (user, statusCode, res) => {
+const sendTokenResponse = async (user, statusCode, res) => {
+  // token_version has select:false — if missing, reload it so the JWT embeds
+  // the correct version and passes the auth middleware check on subsequent calls.
+  if (user.token_version === undefined || user.token_version === null) {
+    const fresh = await User.findById(user._id).select('+token_version').lean();
+    if (fresh) user.token_version = fresh.token_version || 0;
+  }
   const token = createAuthToken(user);
   setAuthCookie(res, token);
 
@@ -449,7 +455,7 @@ const register = async (req, res, next) => {
       }).catch(console.error);
     });
 
-    sendTokenResponse(user, 201, res);
+    await sendTokenResponse(user, 201, res);
   } catch (error) {
     next(error);
   }
@@ -509,7 +515,7 @@ const login = async (req, res, next) => {
       });
     }
 
-    sendTokenResponse(user, 200, res);
+    await sendTokenResponse(user, 200, res);
   } catch (error) {
     next(error);
   }
@@ -550,7 +556,7 @@ const verify2FALogin = async (req, res, next) => {
       });
     }
 
-    sendTokenResponse(user, 200, res);
+    await sendTokenResponse(user, 200, res);
   } catch (error) {
     next(error);
   }
@@ -641,7 +647,7 @@ const changePassword = async (req, res, next) => {
     user.token_version = Number(user.token_version || 0) + 1;
     await user.save();
 
-    sendTokenResponse(user, 200, res);
+    await sendTokenResponse(user, 200, res);
   } catch (error) {
     next(error);
   }

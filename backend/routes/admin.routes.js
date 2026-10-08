@@ -1,14 +1,14 @@
 /**
  * routes/admin.routes.js
- * Auradime — Admin & Manager Route Maps
+ * Auradime — Admin-Only Route Map
  *
- * Public access strictly for pulling layouts. Secure access mapped to
- * Platform Administrators and Operations Managers.
+ * All routes here are restricted to admin role only.
+ * Managers have their own routes in manager.routes.js.
  *
  * Routes are split into groups:
  *   1. Public           — homepage layout (app boot)
- *   2. Shared           — day-to-day operations (admin + manager, scope-filtered)
- *   3. Operational      — financial ops, destructive actions (admin + manager)
+ *   2. Admin operations — day-to-day admin operations
+ *   3. Operational      — financial ops, destructive actions
  *   4. Admin-only       — platform settings, manager promotion/demotion
  *   5. Assignment mgmt  — admin manages manager ↔ user assignments
  *   6. User-facing      — any authenticated user views/manages their managers
@@ -90,22 +90,22 @@ const {
   // Manager management
   promoteToManager,
   demoteManager,
-  // Manager assignments
-  assignUsersToManager,
-  inviteUsersToManager,
-  respondToInvite,
-  unassignUsers,
-  getManagerAssignments,
-  updateAssignmentLevel,
-  transferAssignments,
-  // User-facing
-  getMyManagers,
-  revokeMyManager,
-  // Manager portfolio
-  getManagerPortfolio,
 } = require('../controllers/admin.controller');
 
 const { getAuditLogs } = require('../controllers/audit.controller');
+
+const {
+  listManagers,
+  assignUsersToManager,
+  unassignUsersFromManager,
+  transferAccounts,
+  getManagerAssignments,
+  getMyManagers,
+  inviteManager,
+  respondToInvite,
+  updateMyManagerPermissions,
+  revokeMyManager,
+} = require('../controllers/assignment.controller');
 
 const {
   getAdminDisputes,
@@ -124,16 +124,11 @@ router.get('/homepage', getHomepageLayout); // App boot sequence
 router.use(protect);
 
 // ════════════════════════════════════════════════════════════════════
-// GROUP 1: SHARED ACCESS (admin + manager)
-// Day-to-day operational routes accessible by both roles.
-// loadManagerScope resolves assigned accounts for managers;
-// admins get unrestricted (req.managerScope = null).
+// GROUP 1: ADMIN ACCESS
+// Day-to-day operational routes. Managers now use /manager/* routes.
 // ════════════════════════════════════════════════════════════════════
 const shared = express.Router();
-shared.use(restrictTo('admin', 'manager'), loadManagerScope);
-
-// Manager Portfolio (managers only — admins get 400)
-shared.get('/portfolio', getManagerPortfolio);
+shared.use(restrictTo('admin'), loadManagerScope);
 
 // Layout Updates
 shared.patch('/homepage/banners', updateBanners);
@@ -232,11 +227,11 @@ shared.get('/settings', getSettings);
 router.use(shared);
 
 // ════════════════════════════════════════════════════════════════════
-// GROUP 2: OPERATIONAL CONTROL (admin + manager)
+// GROUP 2: OPERATIONAL CONTROL (admin only)
 // Financial operations, destructive actions, and treasury.
 // ════════════════════════════════════════════════════════════════════
 const operational = express.Router();
-operational.use(restrictTo('admin', 'manager'), loadManagerScope);
+operational.use(restrictTo('admin'), loadManagerScope);
 
 // Destructive User/Product Operations
 operational.delete('/users/:id', deleteUser);
@@ -287,12 +282,11 @@ router.use(adminOnly);
 const assignments = express.Router();
 assignments.use(restrictTo('admin'));
 
-assignments.get('/managers/:managerId/assignments', getManagerAssignments);
-assignments.post('/managers/:managerId/assign', assignUsersToManager);
-assignments.post('/managers/:managerId/invite', inviteUsersToManager);
-assignments.post('/managers/:managerId/unassign', unassignUsers);
-assignments.patch('/assignments/:assignmentId/level', updateAssignmentLevel);
-assignments.post('/assignments/transfer', transferAssignments);
+assignments.get('/managers',                          listManagers);
+assignments.get('/managers/:managerId/assignments',   getManagerAssignments);
+assignments.post('/managers/:managerId/assign',       assignUsersToManager);
+assignments.post('/managers/:managerId/unassign',     unassignUsersFromManager);
+assignments.post('/assignments/transfer',             transferAccounts);
 
 router.use(assignments);
 
@@ -301,8 +295,10 @@ router.use(assignments);
 // View/manage managers assigned to the current user's account.
 // Invite responses are also handled here.
 // ════════════════════════════════════════════════════════════════════
-router.get('/my-managers', getMyManagers);
-router.post('/my-managers/:assignmentId/revoke', revokeMyManager);
-router.post('/invites/:assignmentId/respond', respondToInvite);
+router.get('/my-managers',                                getMyManagers);
+router.post('/my-managers/invite',                        inviteManager);
+router.patch('/my-managers/:assignmentId/permissions',    updateMyManagerPermissions);
+router.post('/my-managers/:assignmentId/revoke',          revokeMyManager);
+router.post('/invites/:assignmentId/respond',             respondToInvite);
 
 module.exports = router;

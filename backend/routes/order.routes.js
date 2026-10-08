@@ -30,10 +30,13 @@ const {
 } = require('../controllers/order.controller');
 
 const { protect, restrictTo, loadVendor } = require('../middleware/auth.middleware');
+const { actAs } = require('../middleware/delegate.middleware');
 const { requireActiveSubscription } = require('../middleware/subscription.middleware');
 
 // All order routes require authentication
+// actAs lets managers work as a user via X-Act-As header
 router.use(protect);
+router.use(actAs);
 
 // ── Buyer Routes (customer + vendor + logistics can all purchase) ──────────
 // Vendors can buy from OTHER stores; logistics agents can shop for personal use.

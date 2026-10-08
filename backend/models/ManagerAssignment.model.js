@@ -3,15 +3,25 @@
  * Auradime — Manager ↔ Account Assignments
  *
  * Tracks which managers manage which user accounts,
- * with access levels, invite/accept flow, and full history.
+ * with per-category permissions, invite/accept flow, and full history.
  *
  * Status lifecycle:
- *   Admin direct assign → active
- *   Manager invite      → pending → active | declined
- *   Revoke (admin/user) → revoked
+ *   Admin direct assign   → active
+ *   Manager/user invite   → pending → active | declined
+ *   Revoke (admin/user)   → revoked
+ *   Expiration             → expired
  */
 
 const mongoose = require('mongoose');
+
+const PERMISSIONS = ['products', 'orders', 'messages', 'money', 'profile'];
+const DEFAULT_PERMISSIONS = {
+  products: true,
+  orders: true,
+  messages: true,
+  money: false,   // off unless the user/admin explicitly enables it
+  profile: true,
+};
 
 const ManagerAssignmentSchema = new mongoose.Schema(
   {
@@ -27,21 +37,31 @@ const ManagerAssignmentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    access_level: {
-      type: String,
-      enum: ['read_only', 'standard', 'full'],
-      default: 'standard',
+    permissions: {
+      products: { type: Boolean, default: true },
+      orders:   { type: Boolean, default: true },
+      messages: { type: Boolean, default: true },
+      money:    { type: Boolean, default: false },
+      profile:  { type: Boolean, default: true },
     },
     status: {
       type: String,
-      enum: ['pending', 'active', 'revoked', 'declined'],
-      default: 'active',
+      enum: ['pending', 'active', 'revoked', 'declined', 'expired'],
+      default: 'pending',
       index: true,
+    },
+    initiated_by: {
+      type: String,
+      enum: ['admin', 'manager', 'user'],
+      required: true,
     },
     assigned_by: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+    },
+    expires_at: {
+      type: Date,
+      default: null,
     },
     revoked_at: {
       type: Date,
@@ -57,18 +77,20 @@ const ManagerAssignmentSchema = new mongoose.Schema(
       maxlength: 500,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// A manager can only have one active/pending assignment per user
+// One open link per manager/user pair (allows historical revoked/declined records)
 ManagerAssignmentSchema.index(
   { manager_id: 1, user_id: 1 },
-  { unique: true }
+  { unique: true, partialFilterExpression: { status: { $in: ['pending', 'active'] } } }
 );
 
 // Fast lookup: "who manages this user?"
 ManagerAssignmentSchema.index({ user_id: 1, status: 1 });
 
-module.exports = mongoose.model('ManagerAssignment', ManagerAssignmentSchema);
+const ManagerAssignment = mongoose.model('ManagerAssignment', ManagerAssignmentSchema);
+
+module.exports = ManagerAssignment;
+module.exports.PERMISSIONS = PERMISSIONS;
+module.exports.DEFAULT_PERMISSIONS = DEFAULT_PERMISSIONS;

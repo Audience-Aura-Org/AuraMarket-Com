@@ -36,6 +36,7 @@ export default function OnboardingWatcher() {
     const protectedPrefixes = [
       '/vendor',
       '/admin',
+      '/manager',
       '/logistics',
       '/messages',
       '/chat',
@@ -58,7 +59,7 @@ export default function OnboardingWatcher() {
         router.replace('/login');
         return;
       }
-      
+
       // 3.2. Onboarding check — for customers and vendors
       // Ensures they complete their profile before accessing protected features
       if ((role === 'customer' || role === 'vendor') && !user.onboarded && sessionStorage.getItem('onboarding_skipped') !== 'true') {
@@ -72,11 +73,16 @@ export default function OnboardingWatcher() {
     // Ensure users are on the correct dashboard for their role
     if (pathname.startsWith('/vendor') && role !== 'vendor') {
       console.warn('[Watcher] Access Denied: Not a vendor', role);
-      router.replace('/'); 
+      router.replace('/');
       return;
     }
-    if (pathname.startsWith('/admin') && role !== 'admin' && role !== 'manager') {
-      console.warn('[Watcher] Access Denied: Not an admin or manager', role);
+    if (pathname.startsWith('/admin') && role !== 'admin') {
+      console.warn('[Watcher] Access Denied: Not an admin', role);
+      router.replace('/');
+      return;
+    }
+    if (pathname.startsWith('/manager') && role !== 'manager') {
+      console.warn('[Watcher] Access Denied: Not a manager', role);
       router.replace('/');
       return;
     }

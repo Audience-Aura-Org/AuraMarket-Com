@@ -29,10 +29,13 @@ const {
 } = require('../controllers/wallet.controller');
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { actAs } = require('../middleware/delegate.middleware');
 const { loadManagerScope } = require('../middleware/managerScope.middleware');
 
 // All Wallet routes require authentication
+// actAs lets managers work as a user via X-Act-As header
 router.use(protect);
+router.use(actAs);
 
 // ── General Customer / Vendor ─────────────────
 router.get('/', getWalletBalance);

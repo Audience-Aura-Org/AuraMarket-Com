@@ -16,6 +16,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { actAs } = require('../middleware/delegate.middleware');
 const { loadManagerScope } = require('../middleware/managerScope.middleware');
 
 const {
@@ -30,7 +31,9 @@ const {
 } = require('../controllers/withdrawal.controller');
 
 // ── All authenticated users ───────────────────
+// actAs lets managers work as a user via X-Act-As header
 router.use(protect);
+router.use(actAs);
 router.post('/', submitWithdrawal);
 router.get('/mine', getMyWithdrawals);
 router.get('/mine/:id/recheck', userRecheckWithdrawal);
