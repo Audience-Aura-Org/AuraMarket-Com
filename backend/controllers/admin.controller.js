@@ -944,24 +944,20 @@ const getAllUsers = async (req, res, next) => {
     const assignmentMap = {};
     for (const a of assignments) {
       const uid = String(a.user_id);
-      const entry = {
+      if (!assignmentMap[uid]) assignmentMap[uid] = [];
+      assignmentMap[uid].push({
         manager_name: a.manager_id?.name || a.manager_id?.email || null,
         manager_id: a.manager_id?._id || null,
         permissions: a.permissions || {},
-      };
-      if (!assignmentMap[uid]) {
-        assignmentMap[uid] = entry; // primary (for managed_by)
-      }
-      if (!assignmentMap[uid].all) assignmentMap[uid].all = [];
-      assignmentMap[uid].all.push(entry);
+      });
     }
 
     const enriched = users.map(u => {
       const obj = u.toObject ? u.toObject() : u;
-      const mgr = assignmentMap[String(obj._id)];
-      if (mgr) {
-        obj.managed_by = mgr;
-        obj.managers_count = mgr.all?.length || 1;
+      const managers = assignmentMap[String(obj._id)];
+      if (managers?.length) {
+        obj.managed_by = managers[0];
+        obj.managers_count = managers.length;
       }
       return obj;
     });
