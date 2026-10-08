@@ -78,7 +78,7 @@ export const useManagerMode = create(
           } catch (err) {
             const message =
               err.response?.data?.message || err.message || 'Failed to load accounts';
-            set({ loading: false, error: message });
+            set({ loading: false, loaded: true, error: message });
             return { success: false, message };
           } finally {
             accountsInFlight = null;
