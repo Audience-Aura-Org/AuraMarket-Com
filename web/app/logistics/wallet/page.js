@@ -199,9 +199,13 @@ export default function LogisticsWalletPage() {
       const { status, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
         showToast('Payment confirmed! Your wallet has been credited.', 'success');
+        setTransactions(prev => prev.map(t => t._id === tx._id ? { ...t, status: 'completed' } : t));
+        loadingRef.current = false;
         load(true);
       } else if (status === 'FAILED') {
         showToast(reason || message || 'Payment could not be confirmed.', 'error');
+        setTransactions(prev => prev.map(t => t._id === tx._id ? { ...t, status: 'failed' } : t));
+        loadingRef.current = false;
         load(true);
       } else {
         showToast('Still processing — your phone may still have a pending prompt.', 'info');

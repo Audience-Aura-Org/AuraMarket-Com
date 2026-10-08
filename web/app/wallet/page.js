@@ -267,9 +267,21 @@ export default function WalletPage() {
       const { status, message, reason } = res.data;
       if (status === 'SUCCESSFUL') {
         showToast(tx.type === 'withdrawal' ? 'Withdrawal confirmed!' : 'Payment confirmed! Your wallet has been credited.', 'success');
+        // Optimistic UI update so the user sees the change immediately
+        setTransactions(prev => prev.map(t => t._id === tx._id ? { ...t, status: 'completed' } : t));
+        if (tx.type === 'withdrawal' && tx.metadata?.withdrawal_request_id) {
+          setWithdrawalRequests(prev => prev.map(wr => wr._id === tx.metadata.withdrawal_request_id ? { ...wr, status: 'completed' } : wr));
+        }
+        // Also do a full refresh for balance updates
+        loadingRef.current = false;
         fetchWallet(true);
       } else if (status === 'FAILED') {
         showToast(reason || message || 'Could not be confirmed.', 'error');
+        setTransactions(prev => prev.map(t => t._id === tx._id ? { ...t, status: 'failed' } : t));
+        if (tx.type === 'withdrawal' && tx.metadata?.withdrawal_request_id) {
+          setWithdrawalRequests(prev => prev.map(wr => wr._id === tx.metadata.withdrawal_request_id ? { ...wr, status: 'failed' } : wr));
+        }
+        loadingRef.current = false;
         fetchWallet(true);
       } else {
         showToast(message || 'Still processing — try again shortly.', 'info');
