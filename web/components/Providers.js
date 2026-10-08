@@ -7,6 +7,7 @@ import { LanguageProvider } from '@/context/LanguageContext';
 import { UploadQueueProvider } from '@/context/UploadQueueContext';
 import SocketProvider from '@/components/SocketProvider';
 import OnboardingWatcher from '@/components/layout/OnboardingWatcher';
+import WorkspaceFloatingBar from '@/components/manager/WorkspaceFloatingBar';
 import TopNav from '@/components/layout/TopNav';
 import SubscriptionAccessNotice from '@/components/layout/SubscriptionAccessNotice';
 import { ChatProvider } from '@/context/ChatContext';
@@ -131,6 +132,8 @@ export default function Providers({ children }) {
 
           {/* Onboarding gate — lightweight, needed on every route */}
           <OnboardingWatcher />
+          {/* Manager workspace floating bar — shows when acting as another user */}
+          <WorkspaceFloatingBar />
           {/* Dashboard routes render their own sidebar-aware mobile header. */}
           {!isImmersiveChat && !isDashboardRoute && !isAuthRoute && <TopNav />}
 

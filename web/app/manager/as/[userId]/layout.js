@@ -1,24 +1,36 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useManagerMode } from '@/hooks/useManagerMode';
+
+// Use useLayoutEffect on client, useEffect on server (SSR safety)
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 /**
  * Workspace layout — sets the actAsId when entering a user's workspace.
  * All API calls made by child pages will include X-Act-As header.
+ *
+ * NOTE: We do NOT clear actAsId on unmount. When the workspace redirects
+ * to the target user's actual route (e.g. /vendor/dashboard, /profile),
+ * this layout unmounts but actAsId must remain set so the API interceptor
+ * continues sending X-Act-As. Clearing happens in the manager layout
+ * when navigating back to manager-space routes.
+ *
+ * Uses useLayoutEffect so actAsId is set BEFORE child useEffect hooks
+ * fire (the workspace page's redirect useEffect needs actAsId set).
  */
 export default function WorkspaceLayout({ children }) {
   const { userId } = useParams();
   const setActAs = useManagerMode((s) => s.setActAs);
-  const clearActAs = useManagerMode((s) => s.clearActAs);
   const accounts = useManagerMode((s) => s.accounts);
   const account = accounts.find((a) => a.id === userId);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (userId) setActAs(userId);
-    return () => clearActAs();
-  }, [userId, setActAs, clearActAs]);
+    // Intentionally no cleanup — see note above
+  }, [userId, setActAs]);
 
   return (
     <div>

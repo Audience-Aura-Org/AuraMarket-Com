@@ -10,7 +10,7 @@ import { useAuthStore } from "@/hooks/useAuth";
  */
 export default function AccountSwitcher({ accent = "#3b82f6" }) {
   const { user } = useAuthStore();
-  const { accounts, loading, loaded, loadAccounts } = useManagerMode();
+  const { accounts, loading, loaded, error, loadAccounts } = useManagerMode();
 
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -96,8 +96,16 @@ export default function AccountSwitcher({ accent = "#3b82f6" }) {
           {!loading && count === 0 && (
             <div className="px-3 py-4 text-center">
               <p className="text-[11px] text-[var(--text-secondary)] opacity-60">
-                No accounts assigned yet
+                {error || "No accounts assigned yet"}
               </p>
+              {error && (
+                <button
+                  onClick={() => loadAccounts({ force: true })}
+                  className="mt-2 text-[10px] font-semibold text-blue-400 hover:text-blue-300"
+                >
+                  Retry
+                </button>
+              )}
             </div>
           )}
         </div>

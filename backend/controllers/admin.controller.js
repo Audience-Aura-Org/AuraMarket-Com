@@ -1022,7 +1022,7 @@ const getAllVendors = async (req, res, next) => {
         .populate('user_id', 'name email avatar verification_status branding')
         .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount')
         .sort('-createdAt'),
-      Vendor.countDocuments(scoped('Vendor', {}, req.managerScope)),
+      Vendor.countDocuments(scopedQuery),
     ]);
 
     // Aggregate order stats only for the vendors found (avoids full Order scan)

@@ -10,6 +10,8 @@ import { useChat } from '@/context/ChatContext';
 import { useLanguage } from '@/context/LanguageContext';
 import api from '@/services/api';
 import AccountSwitcher from './AccountSwitcher';
+import { useManagerMode } from '@/hooks/useManagerMode';
+import { getWorkspaceNav } from '@/components/manager/workspaceRegistry';
 
 const VENDOR_NAV = [
   { icon: 'home',                     label: 'Marketplace',      href: '/shop' },
@@ -158,6 +160,20 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
   const { unreadCount, unreadMessages } = useNotifications();
   const { openChat, isOpen: chatOverlayOpen } = useChat();
 
+  // Manager workspace mode: when actAsId is set, show workspace nav instead of manager nav
+  const actAsId = useManagerMode((s) => s.actAsId);
+  const managerAccounts = useManagerMode((s) => s.accounts);
+  const actAsAccount = role === 'manager' && actAsId
+    ? managerAccounts.find((a) => a.id === actAsId)
+    : null;
+  const workspaceNav = actAsAccount
+    ? getWorkspaceNav(actAsAccount.role).map((item) => ({
+        icon: item.icon,
+        label: item.label,
+        href: `/manager/as/${actAsId}/${item.slug}`,
+      }))
+    : null;
+
   // Detect restaurant vendors to show Kitchen / Meals links
   const [isRestaurantVendor, setIsRestaurantVendor] = useState(false);
   useEffect(() => {
@@ -281,10 +297,32 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
             </>
           )}
 
+          {/* Workspace mode header — show who the manager is acting as */}
+          {role === 'manager' && workspaceNav && actAsAccount && (
+            <>
+              <div className="px-4 pb-2">
+                <div className="px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400 mb-1">Workspace</p>
+                  <p className="text-[12px] font-semibold text-[var(--text-primary)] truncate">{actAsAccount.name}</p>
+                  <p className="text-[10px] text-amber-400/70 capitalize">{actAsAccount.role}</p>
+                </div>
+              </div>
+              <Link
+                href="/manager"
+                onClick={() => { if (window.innerWidth < 1024) onClose(); }}
+                className="mx-4 mb-2 flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold text-blue-400 hover:bg-blue-500/10 transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">arrow_back</span>
+                Back to Manager Hub
+              </Link>
+              <div className="mx-4 border-b border-[var(--glass-border)] mb-2" />
+            </>
+          )}
+
           {/* Main Navigation
               For restaurant vendors, drop generic "Products" — My Meals covers it.
               Normal retail/digital vendors keep the full VENDOR_NAV unchanged. */}
-          {[...(isRestaurantVendor ? config.nav.filter(i => i.label !== 'Products') : config.nav), ...ACCOUNT_NAV].map(item => {
+          {[...(workspaceNav || (isRestaurantVendor ? config.nav.filter(i => i.label !== 'Products') : config.nav)), ...(workspaceNav ? [] : ACCOUNT_NAV)].map(item => {
             const itemPath = item.href.split('?')[0];
             
             // Re-evaluating isActive more simply for the profile tabs

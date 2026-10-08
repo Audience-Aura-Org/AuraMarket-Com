@@ -33,7 +33,7 @@ export default function AdminVendorsPage() {
   const [mediaForm, setMediaForm] = useState({ logo: '', banner: '', commission_rate: '', delivery_time: '', minimum_order_amount: '', vendor_type: 'retail' });
   const [mediaSaving, setMediaSaving] = useState(false);
   const [mediaUploading, setMediaUploading] = useState(null);
-  const itemsPerPage = 12;
+  const itemsPerPage = 50;
 
   useEffect(() => {
     setMounted(true);
@@ -46,10 +46,22 @@ export default function AdminVendorsPage() {
     setCurrentPage(1);
   }, [statusFilter]);
 
+  const prevSearchRef = useRef(search);
+
   // Debounced server-side search (for email lookups)
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    if (!search || search.trim().length < 2) return;
+    const prev = prevSearchRef.current;
+    prevSearchRef.current = search;
+
+    if (!search || search.trim().length < 2) {
+      // When search is cleared after having a value, re-fetch all vendors
+      if (prev && prev.trim().length >= 2 && search.trim().length < 2) {
+        fetchVendors('');
+        setCurrentPage(1);
+      }
+      return;
+    }
     searchTimer.current = setTimeout(() => {
       fetchVendors(search);
       setCurrentPage(1);

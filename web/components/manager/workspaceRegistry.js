@@ -39,6 +39,7 @@ const ROUTES = {
 
   customer: {
     ''          : '/profile',
+    dashboard   : '/profile',
     profile     : '/profile',
     orders      : '/profile?tab=orders',
   },
@@ -80,7 +81,7 @@ export function getWorkspaceNav(role) {
       { slug: 'messages',   label: 'Messages',   icon: 'chat' },
     ],
     customer: [
-      { slug: 'profile',    label: 'Profile',    icon: 'person' },
+      { slug: 'dashboard',  label: 'Dashboard',  icon: 'account_circle' },
       { slug: 'orders',     label: 'Orders',     icon: 'shopping_bag' },
     ],
   };

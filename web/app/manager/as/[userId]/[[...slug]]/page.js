@@ -14,12 +14,13 @@ export default function WorkspacePage() {
   const { userId, slug } = useParams();
   const router = useRouter();
   const accounts = useManagerMode((s) => s.accounts);
+  const loaded = useManagerMode((s) => s.loaded);
   const account = accounts.find((a) => a.id === userId);
-  const role = account?.role || 'customer';
+  const role = account?.role;
   const pageSlug = Array.isArray(slug) ? slug[0] : slug || '';
 
-  const targetRoute = getWorkspaceRoute(role, pageSlug);
-  const nav = getWorkspaceNav(role);
+  const targetRoute = role ? getWorkspaceRoute(role, pageSlug) : null;
+  const nav = role ? getWorkspaceNav(role) : [];
 
   // Navigate to the actual page — actAsId is already set by the layout
   useEffect(() => {
@@ -27,6 +28,30 @@ export default function WorkspacePage() {
       router.replace(targetRoute);
     }
   }, [targetRoute, router]);
+
+  // Wait for accounts to load before showing "not found"
+  if (!loaded || (!account && !loaded)) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Account not found in assignments
+  if (!account) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto text-center py-16">
+        <p className="text-lg text-[var(--text-primary)] mb-2">Account not found</p>
+        <p className="text-sm text-[var(--text-muted)]">
+          This account may not be assigned to you.{' '}
+          <Link href="/manager/accounts" className="text-blue-400 hover:text-blue-300">
+            View your accounts
+          </Link>
+        </p>
+      </div>
+    );
+  }
 
   // Show navigation if no matching route
   if (!targetRoute) {
