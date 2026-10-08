@@ -529,6 +529,18 @@ describe('GET /admin/analytics — platform analytics', () => {
     expect(res.body.data.stats.revenue).toBe(5_000)
   })
 
+  it('returns zero platform revenue for an unassigned manager', async () => {
+    const manager = await createUser({ role: 'manager', previous_role: 'customer' })
+
+    const res = await request(app)
+      .get('/api/v1/admin/analytics')
+      .set(authHeader(signToken(manager)))
+
+    expect(res.status).toBe(200)
+    expect(res.body.data.stats.admin_earnings).toBeNull()
+    expect(res.body.data.stats.admin_revenue).toBe(0)
+  })
+
   it('returns 403 for a regular user', async () => {
     const res = await request(app)
       .get('/api/v1/admin/analytics')

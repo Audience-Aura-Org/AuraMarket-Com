@@ -283,6 +283,9 @@ const getPlatformAnalytics = async (req, res, next) => {
 
     // Platform Liquidity / Custody total is the sum of both locked 'held' funds and 'disputed' funds
     const activeEscrowCustody = totalHeldFunds + totalDisputedFunds;
+    // Manager-scoped analytics deliberately omit platform-wide earnings.
+    // Return a numeric zero rather than dereferencing the null summary.
+    const adminRevenue = Number(adminEarnings?.total) || 0;
 
     res.status(200).json({
       success: true,
@@ -304,7 +307,7 @@ const getPlatformAnalytics = async (req, res, next) => {
           orders: totalOrders,
           revenue: totalRevenue,
           admin_earnings: adminEarnings,
-          admin_revenue: adminEarnings.total,
+          admin_revenue: adminRevenue,
           escrow_vault: activeEscrowCustody,
           escrow_held: totalHeldFunds,
           escrow_released: totalReleasedFunds,
