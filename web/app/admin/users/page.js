@@ -379,6 +379,11 @@ export default function AdminUsersPage() {
                         <span className={`px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold tracking-widest border uppercase shrink-0 ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'manager' ? 'bg-sky-500/10 text-sky-500 border-sky-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
                           {u.role}
                         </span>
+                        {u.managed_by && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-teal-500/10 text-teal-600 border border-teal-500/20 truncate max-w-[160px] shrink-0" title={`Managed by ${u.managed_by.manager_name}`}>
+                            <Link2 className="inline size-2.5 mr-0.5 -mt-px" />{u.managed_by.manager_name}
+                          </span>
+                        )}
                       </div>
                       <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40 truncate mt-0.5 tracking-tight">{u.email}</p>
                     </div>
@@ -477,9 +482,16 @@ export default function AdminUsersPage() {
                             </td>
                             <td className="px-4 py-4 text-[11px] font-semibold text-[var(--text-secondary)]">{u.email}</td>
                             <td className="px-4 py-4">
-                              <span className={`px-2 py-1 rounded-full text-[9px] font-bold tracking-widest border uppercase ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'manager' ? 'bg-sky-500/10 text-sky-500 border-sky-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
-                                {u.role}
-                              </span>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className={`px-2 py-1 rounded-full text-[9px] font-bold tracking-widest border uppercase ${u.role === 'admin' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20' : u.role === 'manager' ? 'bg-sky-500/10 text-sky-500 border-sky-500/20' : u.role === 'vendor' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'}`}>
+                                  {u.role}
+                                </span>
+                                {u.managed_by && (
+                                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-teal-500/10 text-teal-600 border border-teal-500/20 truncate max-w-[140px]" title={`Managed by ${u.managed_by.manager_name}`}>
+                                    <Link2 className="inline size-2.5 mr-0.5 -mt-px" />{u.managed_by.manager_name}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-4 py-4">
                               <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">

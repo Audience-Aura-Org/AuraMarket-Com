@@ -920,7 +920,31 @@ const getAllUsers = async (req, res, next) => {
     }
     if (status) query.verification_status = status;
     const users = await User.find(scoped('User', query, req.managerScope)).select('-password').sort('-createdAt').limit(500);
-    res.status(200).json({ success: true, count: users.length, data: { users } });
+
+    // Attach active manager assignment info per user
+    const userIds = users.map(u => u._id);
+    const assignments = await ManagerAssignment.find({
+      user_id: { $in: userIds },
+      status: 'active',
+    }).populate('manager_id', 'name email').lean();
+
+    const assignmentMap = {};
+    for (const a of assignments) {
+      assignmentMap[String(a.user_id)] = {
+        manager_name: a.manager_id?.name || a.manager_id?.email || null,
+        manager_id: a.manager_id?._id || null,
+        access_level: a.access_level,
+      };
+    }
+
+    const enriched = users.map(u => {
+      const obj = u.toObject ? u.toObject() : u;
+      const mgr = assignmentMap[String(obj._id)];
+      if (mgr) obj.managed_by = mgr;
+      return obj;
+    });
+
+    res.status(200).json({ success: true, count: enriched.length, data: { users: enriched } });
   } catch (error) {
     next(error);
   }
