@@ -223,7 +223,7 @@ const verifyOtp = async (req, res, next) => {
     if (signupToken) {
       console.log('[auth.controller] Using signupToken path');
       verifiedEmail = verifySignupToken(signupToken);
-      const existing = await User.findOne({ email: verifiedEmail });
+      const existing = await User.findOne({ email: verifiedEmail }).select('+token_version');
       if (existing) {
         console.log('[auth.controller] Found existing user via signupToken, sending token response');
         await ensureSupportAdmin(existing);
@@ -235,7 +235,7 @@ const verifyOtp = async (req, res, next) => {
       console.log('[auth.controller] OTP verified for email:', verifiedEmail);
     }
 
-    let user = await User.findOne({ email: verifiedEmail });
+    let user = await User.findOne({ email: verifiedEmail }).select('+token_version');
     console.log('[auth.controller] User found:', user ? user.email : 'null');
     
     if (user) user = await ensureSupportAdmin(user);
@@ -473,7 +473,7 @@ const login = async (req, res, next) => {
     }
 
     // 2. Find user and explicitly include password for comparison
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select('+password +token_version');
 
     if (!user) {
       return res.status(401).json({
@@ -531,7 +531,7 @@ const verify2FALogin = async (req, res, next) => {
       });
     }
 
-    const user = await User.findById(userId).select('+two_factor_secret');
+    const user = await User.findById(userId).select('+two_factor_secret +token_version');
 
     if (!user || !user.two_factor_enabled) {
       return res.status(400).json({
@@ -625,7 +625,7 @@ const changePassword = async (req, res, next) => {
     }
 
     // Fetch user with password
-    const user = await User.findById(req.user._id).select('+password');
+    const user = await User.findById(req.user._id).select('+password +token_version');
 
     // Verify current password
     const isMatch = await user.comparePassword(current_password);
