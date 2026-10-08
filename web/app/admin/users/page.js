@@ -183,7 +183,7 @@ export default function AdminUsersPage() {
     setAssignLoading(true);
     try {
       const res = await api.post(`/admin/managers/${assignForm.managerId}/assign`, {
-        user_ids: userIds,
+        userIds,
         access_level: assignForm.accessLevel,
       });
       if (res.data.success) {

@@ -107,7 +107,7 @@ export default function AdminManagersPage() {
     if (!window.confirm(`Remove ${userName} from this manager?`)) return;
     try {
       const res = await api.post(`/admin/managers/${managerId}/unassign`, {
-        user_ids: [userId],
+        userIds: [userId],
       });
       if (res.data.success) {
         toast.success(`${userName} unassigned`);
@@ -149,8 +149,8 @@ export default function AdminManagersPage() {
     setTransferLoading(true);
     try {
       const res = await api.post("/admin/assignments/transfer", {
-        from_manager_id: transferFrom._id,
-        to_manager_id: transferTo,
+        fromManagerId: transferFrom._id,
+        toManagerId: transferTo,
       });
       if (res.data.success) {
         toast.success(`${res.data.data?.transferred || 0} assignments transferred`);
