@@ -58,7 +58,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
   const [activeTab, setActiveTab] = useState(initialTab);
 
   const isCustomer = !user || user.role === 'customer';
-  const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
+  const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'manager' ? '/manager' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const TABS = isCustomer ? [
     { id: 'discover', label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },

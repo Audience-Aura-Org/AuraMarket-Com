@@ -187,7 +187,7 @@ export default function TopNav() {
 
           {user ? (
             <Link
-              href={user.role === 'admin' ? '/admin/dashboard' : user.role === 'logistics' ? '/logistics/dashboard' : '/profile'}
+              href={user.role === 'admin' ? '/admin/dashboard' : user.role === 'manager' ? '/manager' : user.role === 'logistics' ? '/logistics/dashboard' : '/profile'}
               className="shrink-0 relative z-[600] pointer-events-auto cursor-pointer"
             >
                <div className="size-10 rounded-full bg-gradient-to-tr from-[var(--accent)] to-[var(--accent-light)] p-0.5 shadow-xl shadow-[var(--accent)]/10 hover:scale-110 transition-all">

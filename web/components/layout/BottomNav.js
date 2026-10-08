@@ -41,7 +41,7 @@ export default function BottomNav() {
   if (isDiscoveryPage) return null;
 
   const isCustomer = user?.role === 'customer';
-  const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
+  const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'manager' ? '/manager' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
   const storiesHref = user?.role === 'vendor' ? "/vendor/stories" : "/discovery?tab=status";
 

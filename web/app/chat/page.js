@@ -11,6 +11,7 @@ import MessagingHub from '@/components/hub/MessagingHub';
 function chatExitHref(role) {
   if (role === 'vendor') return '/vendor/dashboard';
   if (role === 'admin') return '/admin/dashboard';
+  if (role === 'manager') return '/manager';
   if (role === 'logistics') return '/logistics/dashboard';
   return '/shop';
 }

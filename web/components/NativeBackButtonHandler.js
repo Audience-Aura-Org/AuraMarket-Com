@@ -25,6 +25,7 @@ export default function NativeBackButtonHandler() {
   const fallbackRoute = useMemo(() => {
     if (!isAuthenticated) return '/login';
     if (user?.role === 'admin') return '/admin/dashboard';
+    if (user?.role === 'manager') return '/manager';
     if (user?.role === 'vendor') return '/vendor/dashboard';
     if (user?.role === 'logistics') return '/logistics/dashboard';
     return '/shop';

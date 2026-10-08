@@ -111,9 +111,11 @@ export default function MobileHeader({ isOpen, toggleSidebar }) {
             href={
               user?.role === "admin"
                 ? "/admin/dashboard"
-                : user?.role === "logistics"
-                  ? "/logistics/dashboard"
-                  : "/profile"
+                : user?.role === "manager"
+                  ? "/manager"
+                  : user?.role === "logistics"
+                    ? "/logistics/dashboard"
+                    : "/profile"
             }
             className="shrink-0 relative z-[600] pointer-events-auto cursor-pointer block"
           >

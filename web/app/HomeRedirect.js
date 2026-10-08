@@ -21,6 +21,11 @@ export default function HomeRedirect() {
       return;
     }
 
+    if (user?.role === 'manager') {
+      router.replace('/manager');
+      return;
+    }
+
     if (user?.role === 'vendor') {
       router.replace('/vendor/dashboard');
       return;

@@ -134,6 +134,11 @@ export default function OnboardingFlow() {
       router.replace('/admin/dashboard');
       return;
     }
+    if (role === 'manager') {
+      console.warn('[Onboarding] Manager role detected, ejecting to manager hub:', role);
+      router.replace('/manager');
+      return;
+    }
 
     if (role === 'logistics' && user.onboarded) {
       router.replace('/logistics/dashboard');
