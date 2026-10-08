@@ -100,6 +100,7 @@ const {
   unassignUsersFromManager,
   transferAccounts,
   getManagerAssignments,
+  adminUpdatePermissions,
   getMyManagers,
   inviteManager,
   respondToInvite,
@@ -287,6 +288,7 @@ assignments.get('/managers/:managerId/assignments',   getManagerAssignments);
 assignments.post('/managers/:managerId/assign',       assignUsersToManager);
 assignments.post('/managers/:managerId/unassign',     unassignUsersFromManager);
 assignments.post('/assignments/transfer',             transferAccounts);
+assignments.patch('/assignments/:assignmentId/permissions', adminUpdatePermissions);
 
 router.use(assignments);
 

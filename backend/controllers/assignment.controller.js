@@ -336,6 +336,41 @@ exports.getManagerAssignments = async (req, res, next) => {
   }
 };
 
+/**
+ * PATCH /admin/assignments/:assignmentId/permissions
+ * Body: { permissions: { products: true, money: false, ... } }
+ */
+exports.adminUpdatePermissions = async (req, res, next) => {
+  try {
+    const link = await ManagerAssignment.findOne({
+      _id: req.params.assignmentId,
+      status: { $in: OPEN },
+    });
+    if (!link)
+      return res
+        .status(404)
+        .json({ success: false, message: 'Assignment not found.' });
+
+    link.permissions = cleanPerms({
+      ...(link.permissions?.toObject?.() || link.permissions),
+      ...req.body.permissions,
+    });
+    await link.save();
+
+    await logAction(
+      req.user._id,
+      'admin.update_assignment_permissions',
+      'assignment',
+      link._id,
+      link.permissions
+    );
+
+    res.json({ success: true, data: link.permissions });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // ═══════════════════════════════════════════════════════════════════
 //  USER-SIDE — any authenticated user manages their managers
 // ═══════════════════════════════════════════════════════════════════
