@@ -1,30 +1,37 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useManagerMode } from '@/hooks/useManagerMode';
-import { getWorkspacePage, getWorkspaceNav } from '@/components/manager/workspaceRegistry';
-import { ChevronRight } from 'lucide-react';
+import { getWorkspaceRoute, getWorkspaceNav } from '@/components/manager/workspaceRegistry';
 
 /**
- * Dynamic workspace page — renders the existing vendor/logistics/customer
- * page inside the manager workspace using the registry.
+ * Dynamic workspace page — navigates the manager to the actual
+ * vendor/logistics/customer page while the X-Act-As header is active.
  */
 export default function WorkspacePage() {
   const { userId, slug } = useParams();
+  const router = useRouter();
   const accounts = useManagerMode((s) => s.accounts);
   const account = accounts.find((a) => a.id === userId);
   const role = account?.role || 'customer';
   const pageSlug = Array.isArray(slug) ? slug[0] : slug || '';
 
-  const PageComponent = getWorkspacePage(role, pageSlug);
+  const targetRoute = getWorkspaceRoute(role, pageSlug);
   const nav = getWorkspaceNav(role);
 
-  if (!PageComponent) {
+  // Navigate to the actual page — actAsId is already set by the layout
+  useEffect(() => {
+    if (targetRoute) {
+      router.replace(targetRoute);
+    }
+  }, [targetRoute, router]);
+
+  // Show navigation if no matching route
+  if (!targetRoute) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
-        {/* Workspace navigation */}
         <div className="mb-6">
           <h2 className="text-lg font-display font-semibold text-[var(--text-primary)] mb-3">
             {account?.name || 'Account'} Workspace
@@ -55,28 +62,10 @@ export default function WorkspacePage() {
     );
   }
 
+  // Show loading spinner while redirecting
   return (
-    <div>
-      {/* Workspace sub-navigation */}
-      <div className="px-4 lg:px-6 mt-3 mb-1">
-        <div className="flex flex-wrap gap-1.5">
-          {nav.map((item) => (
-            <Link
-              key={item.slug}
-              href={`/manager/as/${userId}/${item.slug}`}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                item.slug === pageSlug
-                  ? 'bg-blue-500/15 text-blue-400 border border-blue-500/25'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <PageComponent />
+    <div className="flex items-center justify-center py-20">
+      <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }

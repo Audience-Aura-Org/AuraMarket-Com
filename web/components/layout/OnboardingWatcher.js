@@ -70,8 +70,16 @@ export default function OnboardingWatcher() {
     }
 
     // 4. Role specific strictness (Security)
-    // Ensure users are on the correct dashboard for their role
-    if (pathname.startsWith('/vendor') && role !== 'vendor') {
+    // Ensure users are on the correct dashboard for their role.
+    // Managers with an active act-as session may access vendor/logistics routes.
+    const isManagerActing = role === 'manager' && (() => {
+      try {
+        const mod = require('@/hooks/useManagerMode');
+        return !!mod?.useManagerMode?.getState?.()?.actAsId;
+      } catch { return false; }
+    })();
+
+    if (pathname.startsWith('/vendor') && role !== 'vendor' && !isManagerActing) {
       console.warn('[Watcher] Access Denied: Not a vendor', role);
       router.replace('/');
       return;
@@ -86,7 +94,7 @@ export default function OnboardingWatcher() {
       router.replace('/');
       return;
     }
-    if (pathname.startsWith('/logistics') && role !== 'logistics') {
+    if (pathname.startsWith('/logistics') && role !== 'logistics' && !isManagerActing) {
       console.warn('[Watcher] Access Denied: Not logistics', role);
       router.replace('/');
       return;

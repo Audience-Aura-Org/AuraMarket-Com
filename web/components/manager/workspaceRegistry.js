@@ -1,67 +1,57 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-
 /**
  * Workspace Registry
  *
- * Maps role → slug → existing page component using next/dynamic.
- * When a manager enters /manager/as/{userId}/{slug}, the workspace
- * layout renders the appropriate existing page. The X-Act-As header
- * makes the API treat the manager as that user, so pages work unchanged.
+ * Maps role → slug → actual route path. When a manager enters
+ * /manager/as/{userId}/{slug}, the workspace page navigates to
+ * the actual route. The X-Act-As header injected by the API
+ * interceptor (via useManagerMode.actAsId) makes the API treat
+ * the manager as that user, so pages work unchanged.
  */
 
-const load = (path) => dynamic(() => import(`@/app/${path}/page`), {
-  loading: () => (
-    <div className="flex items-center justify-center py-20">
-      <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-    </div>
-  ),
-  ssr: false,
-});
-
-const REGISTRY = {
+const ROUTES = {
   vendor: {
-    ''          : load('vendor/dashboard'),
-    dashboard   : load('vendor/dashboard'),
-    products    : load('vendor/products'),
-    orders      : load('vendor/orders'),
-    wallet      : load('vendor/wallet'),
-    analytics   : load('vendor/analytics'),
-    ratings     : load('vendor/ratings'),
-    disputes    : load('vendor/disputes'),
-    stories     : load('vendor/stories'),
-    kitchen     : load('vendor/kitchen'),
-    meals       : load('vendor/meals'),
+    ''          : '/vendor/dashboard',
+    dashboard   : '/vendor/dashboard',
+    products    : '/vendor/products',
+    orders      : '/vendor/orders',
+    wallet      : '/vendor/wallet',
+    analytics   : '/vendor/analytics',
+    ratings     : '/vendor/ratings',
+    disputes    : '/vendor/disputes',
+    stories     : '/vendor/stories',
+    kitchen     : '/vendor/kitchen',
+    meals       : '/vendor/meals',
   },
 
   logistics: {
-    ''          : load('logistics/dashboard'),
-    dashboard   : load('logistics/dashboard'),
-    manifests   : load('logistics/manifests'),
-    pricing     : load('logistics/pricing'),
-    tracking    : load('logistics/tracking'),
-    wallet      : load('logistics/wallet'),
-    messages    : load('logistics/messages'),
-    analytics   : load('logistics/analytics'),
-    deliveries  : load('logistics/manifests'), // alias
+    ''          : '/logistics/dashboard',
+    dashboard   : '/logistics/dashboard',
+    manifests   : '/logistics/manifests',
+    pricing     : '/logistics/pricing',
+    tracking    : '/logistics/tracking',
+    wallet      : '/logistics/wallet',
+    messages    : '/logistics/messages',
+    analytics   : '/logistics/analytics',
+    deliveries  : '/logistics/manifests',
   },
 
   customer: {
-    ''          : load('profile'),
-    profile     : load('profile'),
-    orders      : load('profile'), // profile page has orders tab
+    ''          : '/profile',
+    profile     : '/profile',
+    orders      : '/profile?tab=orders',
   },
 };
 
 /**
- * Get the page component for a given role and slug.
+ * Get the target route for a given role and slug.
  * @param {string} role — vendor, logistics, or customer
  * @param {string} slug — first segment of the catch-all path
- * @returns {React.Component|null}
+ * @returns {string|null}
  */
-export function getWorkspacePage(role, slug = '') {
-  const roleMap = REGISTRY[role];
+export function getWorkspaceRoute(role, slug = '') {
+  const roleMap = ROUTES[role];
   if (!roleMap) return null;
   return roleMap[slug] || null;
 }
