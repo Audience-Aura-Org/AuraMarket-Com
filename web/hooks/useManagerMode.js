@@ -9,11 +9,26 @@ import api from '../services/api';
  *
  * Manages:
  *   - accounts: full list of assigned accounts (from GET /manager/accounts)
- *   - actAsId:  the user ID the manager is currently acting as (URL-driven, not persisted)
+ *   - actAsId:  the user ID the manager is currently acting as
+ *               Synced to sessionStorage so it survives page reloads
+ *               but is scoped to the current tab.
  *   - recent:   recently-visited accounts for quick switching (persisted)
  */
 
 let accountsInFlight = null;
+
+/** Read actAsId from sessionStorage (tab-scoped). */
+const readActAsId = () => {
+  try { return sessionStorage.getItem('aura-act-as') || null; } catch { return null; }
+};
+
+/** Write actAsId to sessionStorage (tab-scoped). */
+const writeActAsId = (id) => {
+  try {
+    if (id) sessionStorage.setItem('aura-act-as', id);
+    else sessionStorage.removeItem('aura-act-as');
+  } catch {}
+};
 
 export const useManagerMode = create(
   persist(
@@ -23,8 +38,11 @@ export const useManagerMode = create(
       loaded: false,
       error: null,
 
-      /** Currently acting-as user ID (set from URL, NOT persisted). */
-      actAsId: null,
+      /**
+       * Currently acting-as user ID.
+       * Hydrated from sessionStorage on init so it survives page reloads.
+       */
+      actAsId: typeof window !== 'undefined' ? readActAsId() : null,
 
       /** Recently visited accounts for quick switching. */
       recent: [],
@@ -75,7 +93,10 @@ export const useManagerMode = create(
        * Adds the account to the recent list.
        */
       setActAs: (userId) => {
-        if (!userId) return set({ actAsId: null });
+        if (!userId) {
+          writeActAsId(null);
+          return set({ actAsId: null });
+        }
 
         const { accounts, recent } = get();
         const account = accounts.find((a) => a.id === userId);
@@ -88,14 +109,19 @@ export const useManagerMode = create(
           ...recent.filter((r) => r.id !== userId),
         ].slice(0, 5);
 
+        writeActAsId(userId);
         set({ actAsId: userId, recent: newRecent });
       },
 
       /** Clear the act-as context (return to manager space). */
-      clearActAs: () => set({ actAsId: null }),
+      clearActAs: () => {
+        writeActAsId(null);
+        set({ actAsId: null });
+      },
 
       /** Clear everything (logout or role change). */
       reset: () => {
+        writeActAsId(null);
         set({
           accounts: [],
           loading: false,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useManagerMode } from "@/hooks/useManagerMode";
 import { useAuthStore } from "@/hooks/useAuth";
 
@@ -62,7 +63,7 @@ export default function AccountSwitcher({ accent = "#3b82f6" }) {
       {open && (
         <div className="absolute left-3 right-3 top-full mt-1 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-xl shadow-xl z-[300] max-h-[280px] overflow-y-auto no-scrollbar">
           {accounts.map((account) => (
-            <a
+            <Link
               key={account.id}
               href={`/manager/as/${account.id}/dashboard`}
               onClick={() => setOpen(false)}
@@ -90,7 +91,7 @@ export default function AccountSwitcher({ accent = "#3b82f6" }) {
               <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-[var(--glass-border)]/30 text-[var(--text-secondary)] uppercase">
                 {account.role}
               </span>
-            </a>
+            </Link>
           ))}
 
           {!loading && count === 0 && (
