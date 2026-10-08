@@ -8,14 +8,17 @@ import api from '../services/api';
  * useManagerMode — Zustand store for the manager workspace.
  *
  * Manages:
- *   - accounts: full list of assigned accounts (from GET /manager/accounts)
- *   - actAsId:  the user ID the manager is currently acting as
- *               Synced to sessionStorage so it survives page reloads
- *               but is scoped to the current tab.
- *   - recent:   recently-visited accounts for quick switching (persisted)
+ *   - accounts:  full list of assigned accounts (from GET /manager/accounts)
+ *   - actAsId:   the user ID the manager is currently acting as
+ *                 Synced to sessionStorage so it survives page reloads
+ *                 but is scoped to the current tab. NOT stored in localStorage.
+ *   - recent:    recently-visited accounts for quick switching (persisted per manager)
+ *   - starred:   pinned accounts for quick access (persisted per manager, max 10)
+ *   - switching: true while a workspace switch is in progress (shows progress bar)
  */
 
 let accountsInFlight = null;
+let badgeRefreshTimer = null;
 
 /** Read actAsId from sessionStorage (tab-scoped). */
 const readActAsId = () => {
@@ -44,8 +47,14 @@ export const useManagerMode = create(
        */
       actAsId: typeof window !== 'undefined' ? readActAsId() : null,
 
-      /** Recently visited accounts for quick switching. */
+      /** Recently visited accounts for quick switching (max 5). */
       recent: [],
+
+      /** Starred/pinned accounts for quick access (max 10). */
+      starred: [],
+
+      /** True while switching workspaces (progress bar). */
+      switching: false,
 
       /**
        * Load all assigned accounts from the manager API.
@@ -102,10 +111,11 @@ export const useManagerMode = create(
         const account = accounts.find((a) => a.id === userId);
 
         // Build updated recent list (max 5, no duplicates)
+        const entry = account
+          ? { id: account.id, name: account.name, role: account.role, email: account.email }
+          : { id: userId };
         const newRecent = [
-          ...(account
-            ? [{ id: account.id, name: account.name, role: account.role }]
-            : [{ id: userId }]),
+          entry,
           ...recent.filter((r) => r.id !== userId),
         ].slice(0, 5);
 
@@ -116,12 +126,98 @@ export const useManagerMode = create(
       /** Clear the act-as context (return to manager space). */
       clearActAs: () => {
         writeActAsId(null);
-        set({ actAsId: null });
+        set({ actAsId: null, switching: false });
+      },
+
+      /** Set switching state (progress bar). */
+      setSwitching: (v) => set({ switching: !!v }),
+
+      /**
+       * Toggle starred status for an account.
+       * Max 10 starred accounts.
+       */
+      toggleStar: (accountId) => {
+        const { starred, accounts } = get();
+        const isStarred = starred.some((s) => s.id === accountId);
+        if (isStarred) {
+          set({ starred: starred.filter((s) => s.id !== accountId) });
+        } else if (starred.length < 10) {
+          const account = accounts.find((a) => a.id === accountId);
+          if (account) {
+            set({
+              starred: [
+                ...starred,
+                { id: account.id, name: account.name, role: account.role, email: account.email },
+              ],
+            });
+          }
+        }
+      },
+
+      /** Check if an account is starred. */
+      isStarred: (accountId) => get().starred.some((s) => s.id === accountId),
+
+      /**
+       * Remove an account from recent and starred (e.g. when access is revoked).
+       */
+      removeAccount: (accountId) => {
+        const { recent, starred, actAsId } = get();
+        const updates = {
+          recent: recent.filter((r) => r.id !== accountId),
+          starred: starred.filter((s) => s.id !== accountId),
+        };
+        if (actAsId === accountId) {
+          writeActAsId(null);
+          updates.actAsId = null;
+          updates.switching = false;
+        }
+        set(updates);
+      },
+
+      /**
+       * Refresh task badge counts for all accounts.
+       * Called on panel open, every 60s, and on socket events.
+       */
+      refreshBadges: async () => {
+        try {
+          const res = await api.get('/manager/accounts', {
+            timeout: 10000,
+            __skipRetry: true,
+          });
+          const accounts = res.data?.data || [];
+          set({ accounts });
+        } catch {
+          // silent — badges are a nice-to-have
+        }
+      },
+
+      /**
+       * Start the 60-second badge refresh interval.
+       */
+      startBadgePolling: () => {
+        if (badgeRefreshTimer) return;
+        badgeRefreshTimer = setInterval(() => {
+          if (typeof document !== 'undefined' && !document.hidden) {
+            get().refreshBadges();
+          }
+        }, 60000);
+      },
+
+      /** Stop badge polling. */
+      stopBadgePolling: () => {
+        if (badgeRefreshTimer) {
+          clearInterval(badgeRefreshTimer);
+          badgeRefreshTimer = null;
+        }
       },
 
       /** Clear everything (logout or role change). */
       reset: () => {
         writeActAsId(null);
+        if (badgeRefreshTimer) {
+          clearInterval(badgeRefreshTimer);
+          badgeRefreshTimer = null;
+        }
         set({
           accounts: [],
           loading: false,
@@ -129,14 +225,17 @@ export const useManagerMode = create(
           error: null,
           actAsId: null,
           recent: [],
+          starred: [],
+          switching: false,
         });
       },
     }),
     {
       name: 'aura-manager-mode',
       partialize: (state) => ({
-        // Only persist recently visited accounts
+        // Only persist recently visited and starred accounts
         recent: state.recent,
+        starred: state.starred,
       }),
     }
   )

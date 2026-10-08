@@ -23,7 +23,13 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState(() => {
+    if (typeof window === 'undefined') return 'all';
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('role') || 'all';
+    } catch { return 'all'; }
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState('table');
   const itemsPerPage = 12;
@@ -182,13 +188,25 @@ export default function AdminUsersPage() {
     if (userIds.length === 0) return toast.error('No users selected');
     setAssignLoading(true);
     try {
+      // Translate access level to permissions object
+      const permMap = {
+        read_only: { products: false, orders: false, messages: false, money: false, profile: false },
+        standard:  { products: true,  orders: true,  messages: true,  money: false, profile: true },
+        full:      { products: true,  orders: true,  messages: true,  money: true,  profile: true },
+      };
       const res = await api.post(`/admin/managers/${assignForm.managerId}/assign`, {
         userIds,
-        access_level: assignForm.accessLevel,
+        permissions: permMap[assignForm.accessLevel] || permMap.standard,
       });
       if (res.data.success) {
-        const count = res.data.data?.created || userIds.length;
-        toast.success(`${count} account${count !== 1 ? 's' : ''} assigned`);
+        const d = res.data.data || {};
+        const count = d.assigned?.length || userIds.length;
+        const skipped = d.skipped?.length || 0;
+        if (skipped > 0) {
+          toast.success(`${count} assigned, ${skipped} already assigned`);
+        } else {
+          toast.success(`${count} account${count !== 1 ? 's' : ''} assigned`);
+        }
         setAssignModal(false);
         setAssignTarget(null);
       }

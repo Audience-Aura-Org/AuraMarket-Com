@@ -9,7 +9,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useChat } from '@/context/ChatContext';
 import { useLanguage } from '@/context/LanguageContext';
 import api from '@/services/api';
-import AccountSwitcher from './AccountSwitcher';
+import AccountSwitcher from '@/components/manager/AccountSwitcher';
 import { useManagerMode } from '@/hooks/useManagerMode';
 import { getWorkspaceNav } from '@/components/manager/workspaceRegistry';
 
@@ -258,7 +258,7 @@ export default function RoleSidebar({ role, isOpen, onClose }) {
         </div>
 
         {/* Account Switcher for Managers */}
-        {role === 'manager' && <AccountSwitcher accent={config.accent} />}
+        {role === 'manager' && <AccountSwitcher />}
 
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto no-scrollbar">
 

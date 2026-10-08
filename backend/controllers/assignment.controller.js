@@ -330,7 +330,7 @@ exports.getManagerAssignments = async (req, res, next) => {
       .populate('user_id', 'name email role')
       .lean();
 
-    res.json({ success: true, data: rows });
+    res.json({ success: true, data: { assignments: rows } });
   } catch (err) {
     next(err);
   }
