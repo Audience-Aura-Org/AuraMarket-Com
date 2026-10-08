@@ -257,7 +257,11 @@ const getPlatformAnalytics = async (req, res, next) => {
         { $match: scoped('Order', SETTLED_ORDER_MATCH, s) },
         { $group: { _id: null, totalRevenue: { $sum: '$total_amount' } } }
       ]),
-      KYC.countDocuments(scoped('KYC', { status: 'pending' }, s)),
+      KYC.find(scoped('KYC', { status: 'pending' }, s))
+        .populate('user_id', 'name email')
+        .populate('vendor_id', 'store_name')
+        .select('user_id vendor_id')
+        .lean(),
       Escrow.aggregate([
         { $match: scoped('Escrow', {}, s) },
         { $group: { _id: '$status', total: { $sum: '$amount' } } }
@@ -288,7 +292,12 @@ const getPlatformAnalytics = async (req, res, next) => {
           online_users: onlineUsers,
           active_users_24h: active24h,
           vendors: totalVendors,
-          pending_vendors: pendingKYC,
+          pending_vendors: pendingKYC.length,
+          pending_kyc_details: pendingKYC.map(k => ({
+            user_name: k.user_id?.name || 'Unknown',
+            user_email: k.user_id?.email || '',
+            store_name: k.vendor_id?.store_name || '',
+          })),
           products: totalProducts,
           active_products: activeProducts,
           pending_products: pendingProducts,
@@ -988,30 +997,43 @@ const getAllVendors = async (req, res, next) => {
     if (status === 'unverified') query.verified = false;
     if (status === 'deactivated') query.is_onboarded = false;
 
+    // Search by store name, owner name, or owner email
+    if (search) {
+      const safeSearch = escapeRegExp(search);
+      const matchingUsers = await User.find({
+        $or: [
+          { name: new RegExp(safeSearch, 'i') },
+          { email: new RegExp(safeSearch, 'i') },
+        ],
+      }).select('_id').lean();
+      const matchingUserIds = matchingUsers.map(u => u._id);
+      query.$or = [
+        { store_name: new RegExp(safeSearch, 'i') },
+        ...(matchingUserIds.length > 0 ? [{ user_id: { $in: matchingUserIds } }] : []),
+      ];
+    }
+
     const scopedQuery = scoped('Vendor', query, req.managerScope);
-    const [vendors, totalVendors, vendorOrderStats] = await Promise.all([
+    const [vendors, totalVendors] = await Promise.all([
       Vendor.find(scopedQuery)
         .populate('user_id', 'name email avatar verification_status branding')
         .populate('store', 'logo banner categories commission_rate delivery_time minimum_order_amount')
         .sort('-createdAt'),
-      Vendor.countDocuments(scopedQuery),
-      Order.aggregate([
-        { $match: scoped('Order', { payment_status: 'paid' }, req.managerScope) },
-        {
-          $group: {
-            _id: '$vendor_id',
-            total_sales: { $sum: 1 },
-            total_revenue: { $sum: '$total_amount' },
-          },
-        },
-      ]),
+      Vendor.countDocuments(scoped('Vendor', {}, req.managerScope)),
     ]);
 
-    // Build a lookup map for vendor order stats
-    const statsMap = {};
-    vendorOrderStats.forEach((s) => {
-      statsMap[s._id?.toString()] = { total_sales: s.total_sales, total_revenue: s.total_revenue };
-    });
+    // Aggregate order stats only for the vendors found (avoids full Order scan)
+    const vendorIds = vendors.map(v => v._id);
+    let statsMap = {};
+    if (vendorIds.length > 0) {
+      const vendorOrderStats = await Order.aggregate([
+        { $match: { vendor_id: { $in: vendorIds }, payment_status: 'paid' } },
+        { $group: { _id: '$vendor_id', total_sales: { $sum: 1 }, total_revenue: { $sum: '$total_amount' } } },
+      ]);
+      vendorOrderStats.forEach((s) => {
+        statsMap[s._id?.toString()] = { total_sales: s.total_sales, total_revenue: s.total_revenue };
+      });
+    }
 
     // Merge live order stats into each vendor
     const enriched = vendors.map((v) => {

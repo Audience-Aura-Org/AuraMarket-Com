@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Store, ShieldCheck, Mail, MapPin, 
@@ -39,15 +39,32 @@ export default function AdminVendorsPage() {
     setMounted(true);
   }, []);
 
+  const searchTimer = useRef(null);
+
   useEffect(() => {
     fetchVendors();
     setCurrentPage(1);
   }, [statusFilter]);
 
-  const fetchVendors = async () => {
+  // Debounced server-side search (for email lookups)
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!search || search.trim().length < 2) return;
+    searchTimer.current = setTimeout(() => {
+      fetchVendors(search);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(searchTimer.current);
+  }, [search]);
+
+  const fetchVendors = async (searchOverride) => {
     setLoading(true);
     try {
-      const res = await api.get(`/admin/vendors?status=${statusFilter === 'all' ? '' : statusFilter}`);
+      const params = {};
+      if (statusFilter !== 'all') params.status = statusFilter;
+      const q = searchOverride ?? search;
+      if (q && q.trim().length >= 2) params.search = q.trim();
+      const res = await api.get('/admin/vendors', { params });
       if (res.data?.success) {
         setVendors(res.data.data.vendors || []);
         if (res.data.total != null) setTotalVendors(res.data.total);
@@ -169,10 +186,15 @@ export default function AdminVendorsPage() {
     }
   };
 
-  const filteredVendors = vendors.filter(v => 
-    v.store_name?.toLowerCase().includes(search.toLowerCase()) || 
-    v.user_id?.name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredVendors = vendors.filter(v => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      v.store_name?.toLowerCase().includes(q) ||
+      v.user_id?.name?.toLowerCase().includes(q) ||
+      v.user_id?.email?.toLowerCase().includes(q)
+    );
+  });
 
   const totalPages = Math.ceil(filteredVendors.length / itemsPerPage);
   const currentVendors = filteredVendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
