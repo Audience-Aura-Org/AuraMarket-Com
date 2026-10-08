@@ -111,9 +111,10 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
 
   const getAuthDestination = (nextUser) => {
     const role = nextUser?.role?.toLowerCase();
-    if (nextUser?.onboarded === false && role !== 'admin') return '/onboarding';
+    if (nextUser?.onboarded === false && role !== 'admin' && role !== 'manager') return '/onboarding';
     if (role === 'vendor') return '/vendor/dashboard';
     if (role === 'admin') return '/admin/dashboard';
+    if (role === 'manager') return '/admin/dashboard';
     if (role === 'logistics') return '/logistics/dashboard';
     return '/shop';
   };
