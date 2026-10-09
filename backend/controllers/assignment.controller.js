@@ -122,47 +122,51 @@ exports.assignUsersToManager = async (req, res, next) => {
         continue;
       }
       try {
-        // Check if an open assignment already exists
-        const existing = await ManagerAssignment.findOne({
-          manager_id: managerId,
-          user_id: id,
-          status: { $in: OPEN },
-        });
+        const targetStatus = require_consent ? 'pending' : 'active';
+        const perms = cleanPerms(permissions);
 
-        if (existing) {
-          if (!require_consent && existing.status === 'pending') {
-            // Pending → activate it and update permissions
-            existing.status = 'active';
-            existing.permissions = cleanPerms(permissions);
-            existing.assigned_by = req.user._id;
-            if (expires_at !== undefined) existing.expires_at = expires_at;
-            await existing.save();
-            out.assigned.push(id);
-          } else if (existing.status === 'active') {
-            // Already active — update permissions if provided
-            existing.permissions = cleanPerms(permissions);
-            if (expires_at !== undefined) existing.expires_at = expires_at;
-            await existing.save();
-            out.skipped.push({ id, reason: 'already_active' });
-          } else {
-            out.skipped.push({ id, reason: 'already_assigned', status: existing.status });
-          }
-        } else {
-          // No existing open assignment — create one
-          await ManagerAssignment.create({
+        // First: revoke any old revoked/declined/expired assignments
+        // so they don't block a fresh assignment.
+        await ManagerAssignment.updateMany(
+          {
             manager_id: managerId,
             user_id: id,
-            permissions: cleanPerms(permissions),
-            status: require_consent ? 'pending' : 'active',
-            initiated_by: 'admin',
-            assigned_by: req.user._id,
-            expires_at,
-          });
+            status: { $in: ['revoked', 'declined', 'expired'] },
+          },
+          { $set: { status: 'revoked' } }
+        );
+
+        // Atomic upsert: creates if no open assignment exists,
+        // UPDATES (activates + sets permissions) if one does.
+        // $set runs on both insert and update.
+        const r = await ManagerAssignment.findOneAndUpdate(
+          { manager_id: managerId, user_id: id, status: { $in: OPEN } },
+          {
+            $set: {
+              status: targetStatus,
+              permissions: perms,
+              assigned_by: req.user._id,
+              ...(expires_at !== undefined ? { expires_at } : {}),
+            },
+            $setOnInsert: {
+              manager_id: managerId,
+              user_id: id,
+              initiated_by: 'admin',
+            },
+          },
+          { upsert: true, new: true, rawResult: true }
+        );
+
+        if (r.lastErrorObject?.updatedExisting) {
+          // Document existed — we activated/updated it
+          out.assigned.push(id);
+        } else {
+          // New document was created
           out.assigned.push(id);
         }
       } catch (e) {
         if (e.code === 11000)
-          out.skipped.push({ id, reason: 'already_assigned' });
+          out.skipped.push({ id, reason: 'duplicate' });
         else throw e;
       }
     }

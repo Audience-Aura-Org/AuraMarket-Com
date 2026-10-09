@@ -201,17 +201,12 @@ export default function AdminUsersPage() {
       if (res.data.success) {
         const d = res.data.data || {};
         const count = d.assigned?.length ?? 0;
-        const skipped = d.skipped || [];
-        const activeCount = skipped.filter(s => s.reason === 'already_active').length;
-        const otherSkipped = skipped.length - activeCount;
-        if (count > 0 && otherSkipped > 0) {
-          toast.success(`${count} assigned, ${otherSkipped} already assigned`);
-        } else if (count > 0) {
+        const rejected = d.rejected?.length ?? 0;
+        if (count > 0) {
           toast.success(`${count} account${count !== 1 ? 's' : ''} assigned`);
-        } else if (activeCount > 0 && otherSkipped === 0) {
-          toast.success(`${activeCount} already active — permissions updated`);
-        } else if (otherSkipped > 0) {
-          toast(`${otherSkipped} already assigned`, { icon: 'ℹ️' });
+        }
+        if (rejected > 0) {
+          toast.error(`${rejected} could not be assigned`);
         }
         setAssignModal(false);
         setAssignTarget(null);
