@@ -122,25 +122,38 @@ exports.assignUsersToManager = async (req, res, next) => {
         continue;
       }
       try {
-        const r = await ManagerAssignment.updateOne(
-          { manager_id: managerId, user_id: id, status: { $in: OPEN } },
-          {
-            $setOnInsert: {
-              manager_id: managerId,
-              user_id: id,
-              permissions: cleanPerms(permissions),
-              status: require_consent ? 'pending' : 'active',
-              initiated_by: 'admin',
-              assigned_by: req.user._id,
-              expires_at,
-            },
-          },
-          { upsert: true }
-        );
-        if (r.upsertedCount) {
-          out.assigned.push(id);
+        // Check if an open assignment already exists
+        const existing = await ManagerAssignment.findOne({
+          manager_id: managerId,
+          user_id: id,
+          status: { $in: OPEN },
+        });
+
+        if (existing) {
+          // If admin is assigning without consent and the existing
+          // assignment is pending, activate it and update permissions
+          if (!require_consent && existing.status === 'pending') {
+            existing.status = 'active';
+            existing.permissions = cleanPerms(permissions);
+            existing.assigned_by = req.user._id;
+            if (expires_at !== undefined) existing.expires_at = expires_at;
+            await existing.save();
+            out.assigned.push(id);
+          } else {
+            out.skipped.push({ id, reason: 'already_assigned' });
+          }
         } else {
-          out.skipped.push({ id, reason: 'already_assigned' });
+          // No existing open assignment — create one
+          await ManagerAssignment.create({
+            manager_id: managerId,
+            user_id: id,
+            permissions: cleanPerms(permissions),
+            status: require_consent ? 'pending' : 'active',
+            initiated_by: 'admin',
+            assigned_by: req.user._id,
+            expires_at,
+          });
+          out.assigned.push(id);
         }
       } catch (e) {
         if (e.code === 11000)
