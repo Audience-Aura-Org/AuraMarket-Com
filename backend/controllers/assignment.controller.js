@@ -189,27 +189,18 @@ exports.unassignUsersFromManager = async (req, res, next) => {
     const { managerId } = req.params;
     const ids = (req.body.userIds || []).filter(isId).slice(0, MAX_IDS);
 
-    const r = await ManagerAssignment.updateMany(
-      {
-        manager_id: managerId,
-        user_id: { $in: ids },
-        status: { $in: OPEN },
-      },
-      {
-        $set: {
-          status: 'revoked',
-          revoked_at: new Date(),
-          revoked_by: req.user._id,
-        },
-      }
-    );
+    // Delete assignments entirely to avoid stale documents.
+    const r = await ManagerAssignment.deleteMany({
+      manager_id: managerId,
+      user_id: { $in: ids },
+    });
 
     await logAction(
       req.user._id,
       'manager.unassign',
       'manager',
       managerId,
-      { ids, revoked: r.modifiedCount }
+      { ids, removed: r.deletedCount }
     );
 
     await Promise.all(
@@ -218,7 +209,7 @@ exports.unassignUsersFromManager = async (req, res, next) => {
       )
     );
 
-    res.json({ success: true, data: { revoked: r.modifiedCount } });
+    res.json({ success: true, data: { revoked: r.deletedCount } });
   } catch (err) {
     next(err);
   }
@@ -530,16 +521,11 @@ exports.revokeMyManager = async (req, res, next) => {
     const link = await ManagerAssignment.findOne({
       _id: req.params.assignmentId,
       user_id: req.user._id,
-      status: { $in: OPEN },
     });
     if (!link) return res.json({ success: true }); // safe to call twice
 
-    Object.assign(link, {
-      status: 'revoked',
-      revoked_at: new Date(),
-      revoked_by: req.user._id,
-    });
-    await link.save();
+    const managerId = link.manager_id;
+    await ManagerAssignment.deleteOne({ _id: link._id });
 
     await logAction(
       req.user._id,
@@ -549,7 +535,7 @@ exports.revokeMyManager = async (req, res, next) => {
     );
 
     await notify(
-      link.manager_id,
+      managerId,
       'Access revoked',
       `${req.user.name} has revoked your management access.`
     );
@@ -567,14 +553,5 @@ exports.revokeMyManager = async (req, res, next) => {
 /**
  * Revoke all open assignments for a manager (used when demoting).
  */
-exports.revokeAllForManager = (managerId, byId) =>
-  ManagerAssignment.updateMany(
-    { manager_id: managerId, status: { $in: OPEN } },
-    {
-      $set: {
-        status: 'revoked',
-        revoked_at: new Date(),
-        revoked_by: byId,
-      },
-    }
-  );
+exports.revokeAllForManager = (managerId) =>
+  ManagerAssignment.deleteMany({ manager_id: managerId });

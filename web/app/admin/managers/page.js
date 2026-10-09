@@ -149,6 +149,7 @@ export default function AdminManagersPage() {
         setAssignments((prev) =>
           prev.filter((a) => String(a.user_id?._id || a.user_id) !== String(userId))
         );
+        fetchManagers(); // refresh account counts
       }
     } catch (err) {
       toast.error(err.response?.data?.message || "Unassign failed");
