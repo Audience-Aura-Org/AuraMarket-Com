@@ -222,6 +222,8 @@ exports.getOverview = async (req, res, next) => {
 exports.getAccounts = async (req, res, next) => {
   try {
     const { scope } = req;
+    // Debug: trace scope state
+    console.log('[getAccounts] manager:', req.user._id?.toString(), 'links:', scope.links.length, 'userIds:', scope.userIds.length);
     const um = await userMap(scope);
     const tasks = await collectTasks(scope, 100);
 

@@ -45,14 +45,18 @@ export default function ManagerAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [error, setError] = useState(null);
 
   const fetchAccounts = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.get('/manager/accounts');
       setAccounts(res.data?.data || []);
     } catch (err) {
-      console.error('[Manager] Failed to load accounts:', err.message);
+      const msg = err.response?.data?.message || err.message || 'Failed to load accounts';
+      console.error('[Manager] Failed to load accounts:', msg, err.response?.status);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -104,8 +108,16 @@ export default function ManagerAccounts() {
         />
       </div>
 
+      {/* Error State */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-sm text-red-400">
+          <p className="font-medium">Failed to load accounts</p>
+          <p className="text-xs mt-1 opacity-70">{error}</p>
+        </div>
+      )}
+
       {/* Accounts Grid */}
-      {!loading && filtered.length === 0 && (
+      {!loading && !error && filtered.length === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}

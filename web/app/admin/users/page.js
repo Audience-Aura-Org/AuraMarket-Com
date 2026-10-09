@@ -200,15 +200,18 @@ export default function AdminUsersPage() {
       });
       if (res.data.success) {
         const d = res.data.data || {};
-        const count = d.assigned?.length || userIds.length;
-        const skipped = d.skipped?.length || 0;
-        if (skipped > 0) {
+        const count = d.assigned?.length ?? 0;
+        const skipped = d.skipped?.length ?? 0;
+        if (count > 0 && skipped > 0) {
           toast.success(`${count} assigned, ${skipped} already assigned`);
-        } else {
+        } else if (count > 0) {
           toast.success(`${count} account${count !== 1 ? 's' : ''} assigned`);
+        } else if (skipped > 0) {
+          toast(`${skipped} already assigned`, { icon: 'ℹ️' });
         }
         setAssignModal(false);
         setAssignTarget(null);
+        fetchUsers(); // Refresh to show managed_by indicators
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Assignment failed');
