@@ -125,37 +125,24 @@ exports.assignUsersToManager = async (req, res, next) => {
         const targetStatus = require_consent ? 'pending' : 'active';
         const perms = cleanPerms(permissions);
 
-        // First: revoke any old revoked/declined/expired assignments
-        // so they don't block a fresh assignment.
-        await ManagerAssignment.updateMany(
-          {
-            manager_id: managerId,
-            user_id: id,
-            status: { $in: ['revoked', 'declined', 'expired'] },
-          },
-          { $set: { status: 'revoked' } }
-        );
+        // Nuke ALL existing assignments for this pair regardless of status.
+        // Old documents created by previous code versions may have stale
+        // schema fields that prevent proper updates, so we start fresh.
+        await ManagerAssignment.deleteMany({
+          manager_id: managerId,
+          user_id: id,
+        });
 
-        // Atomic upsert: creates if no open assignment exists,
-        // UPDATES (activates + sets permissions) if one does.
-        // $set runs on both insert and update.
-        await ManagerAssignment.findOneAndUpdate(
-          { manager_id: managerId, user_id: id, status: { $in: OPEN } },
-          {
-            $set: {
-              status: targetStatus,
-              permissions: perms,
-              assigned_by: req.user._id,
-              ...(expires_at !== undefined ? { expires_at } : {}),
-            },
-            $setOnInsert: {
-              manager_id: managerId,
-              user_id: id,
-              initiated_by: 'admin',
-            },
-          },
-          { upsert: true, new: true }
-        );
+        // Create a clean assignment document.
+        await ManagerAssignment.create({
+          manager_id: managerId,
+          user_id: id,
+          status: targetStatus,
+          permissions: perms,
+          initiated_by: 'admin',
+          assigned_by: req.user._id,
+          ...(expires_at ? { expires_at } : {}),
+        });
         out.assigned.push(id);
       } catch (e) {
         if (e.code === 11000)
@@ -282,23 +269,20 @@ exports.transferAccounts = async (req, res, next) => {
 
         // Create new assignments under target manager
         for (const l of links) {
-          await ManagerAssignment.updateOne(
-            {
+          await ManagerAssignment.deleteMany(
+            { manager_id: toManagerId, user_id: l.user_id },
+            { session }
+          );
+          await ManagerAssignment.create(
+            [{
               manager_id: toManagerId,
               user_id: l.user_id,
-              status: { $in: OPEN },
-            },
-            {
-              $setOnInsert: {
-                manager_id: toManagerId,
-                user_id: l.user_id,
-                permissions: l.permissions,
-                status: 'active',
-                initiated_by: 'admin',
-                assigned_by: req.user._id,
-              },
-            },
-            { upsert: true, session }
+              permissions: l.permissions,
+              status: 'active',
+              initiated_by: 'admin',
+              assigned_by: req.user._id,
+            }],
+            { session }
           );
         }
       });
