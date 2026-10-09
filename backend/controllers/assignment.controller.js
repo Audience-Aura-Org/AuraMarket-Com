@@ -130,17 +130,22 @@ exports.assignUsersToManager = async (req, res, next) => {
         });
 
         if (existing) {
-          // If admin is assigning without consent and the existing
-          // assignment is pending, activate it and update permissions
           if (!require_consent && existing.status === 'pending') {
+            // Pending → activate it and update permissions
             existing.status = 'active';
             existing.permissions = cleanPerms(permissions);
             existing.assigned_by = req.user._id;
             if (expires_at !== undefined) existing.expires_at = expires_at;
             await existing.save();
             out.assigned.push(id);
+          } else if (existing.status === 'active') {
+            // Already active — update permissions if provided
+            existing.permissions = cleanPerms(permissions);
+            if (expires_at !== undefined) existing.expires_at = expires_at;
+            await existing.save();
+            out.skipped.push({ id, reason: 'already_active' });
           } else {
-            out.skipped.push({ id, reason: 'already_assigned' });
+            out.skipped.push({ id, reason: 'already_assigned', status: existing.status });
           }
         } else {
           // No existing open assignment — create one
