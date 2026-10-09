@@ -2,31 +2,22 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  Users, Search, RefreshCw, ChevronRight, Clock,
-  Shield, ShoppingCart, MessageSquare, Eye, Settings,
-  UserCheck, Inbox,
+  Search, RefreshCw, ChevronRight, Clock, Inbox, ArrowUpRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
 
-const ROLE_STYLES = {
-  vendor:  { color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Vendor' },
-  buyer:   { color: 'text-blue-400',    bg: 'bg-blue-500/10',    label: 'Buyer' },
-  seller:  { color: 'text-purple-400',  bg: 'bg-purple-500/10',  label: 'Seller' },
-  admin:   { color: 'text-rose-400',    bg: 'bg-rose-500/10',    label: 'Admin' },
-  manager: { color: 'text-amber-400',   bg: 'bg-amber-500/10',   label: 'Manager' },
+const ROLE_COLORS = {
+  vendor:    { text: 'text-pink-400',   bg: 'bg-pink-500/10',   chip: 'bg-pink-500/10 text-pink-400 border-pink-500/15' },
+  logistics: { text: 'text-purple-400', bg: 'bg-purple-500/10', chip: 'bg-purple-500/10 text-purple-400 border-purple-500/15' },
+  customer:  { text: 'text-teal-400',   bg: 'bg-teal-500/10',   chip: 'bg-teal-500/10 text-teal-400 border-teal-500/15' },
 };
+const getRoleColor = (role) => ROLE_COLORS[role] || ROLE_COLORS.customer;
 
-const PERM_ICONS = {
-  orders:    ShoppingCart,
-  messages:  MessageSquare,
-  view:      Eye,
-  settings:  Settings,
-  kyc:       UserCheck,
-};
+const PERM_LABELS = { products: 'Products', orders: 'Orders', messages: 'Messages', money: 'Money', profile: 'Profile' };
 
 function timeAgo(ts) {
   if (!ts) return 'Never';
@@ -44,21 +35,24 @@ function timeAgo(ts) {
 export default function ManagerAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [error, setError] = useState(null);
+  const hasFetched = useRef(false);
 
-  const fetchAccounts = useCallback(async () => {
-    setLoading(true);
+  const fetchAccounts = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else if (!hasFetched.current) setLoading(true);
     setError(null);
     try {
       const res = await api.get('/manager/accounts');
       setAccounts(res.data?.data || []);
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Failed to load accounts';
-      console.error('[Manager] Failed to load accounts:', msg, err.response?.status);
-      setError(msg);
+      setError(err.response?.data?.message || err.message || 'Failed to load accounts');
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      hasFetched.current = true;
     }
   }, []);
 
@@ -68,140 +62,142 @@ export default function ManagerAccounts() {
     if (!search.trim()) return accounts;
     const q = search.toLowerCase();
     return accounts.filter(
-      (a) =>
-        (a.name || '').toLowerCase().includes(q) ||
-        (a.email || '').toLowerCase().includes(q),
+      (a) => (a.name || '').toLowerCase().includes(q) || (a.email || '').toLowerCase().includes(q) || (a.role || '').toLowerCase().includes(q),
     );
   }, [accounts, search]);
 
+  if (loading && !hasFetched.current) {
+    return (
+      <div className="p-4 md:p-6 space-y-3 w-full animate-pulse">
+        <div className="h-7 w-36 rounded-lg bg-[var(--bg-card)]" />
+        <div className="h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--glass-border)]" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-[76px] rounded-2xl bg-[var(--bg-card)] border border-[var(--glass-border)]" />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="p-4 lg:p-6 xl:p-8 space-y-6 w-full">
+    <div className="p-4 md:p-6 space-y-3 md:space-y-4 w-full max-w-[900px]">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-display font-bold text-[var(--text-primary)]">
-            Assigned Accounts
-          </h1>
-          <p className="text-sm text-[var(--text-muted)] mt-1">
-            {loading ? 'Loading...' : `${filtered.length} account${filtered.length !== 1 ? 's' : ''}`}
+          <h1 className="text-lg md:text-xl font-display font-bold text-[var(--text-primary)] tracking-tight">Accounts</h1>
+          <p className="text-[11px] md:text-xs text-[var(--text-muted)] mt-0.5">
+            {filtered.length} assigned account{filtered.length !== 1 ? 's' : ''}
           </p>
         </div>
         <button
-          onClick={fetchAccounts}
-          disabled={loading}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-card)] border border-[var(--glass-border)] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+          onClick={() => fetchAccounts(true)}
+          disabled={refreshing}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] border border-transparent hover:border-[var(--glass-border)] transition-all"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline">Refresh</span>
         </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-        <input
-          type="text"
-          placeholder="Search by name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--glass-border)] text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/50 transition-colors"
-        />
-      </div>
-
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-sm text-red-400">
-          <p className="font-medium">Failed to load accounts</p>
-          <p className="text-xs mt-1 opacity-70">{error}</p>
+      {/* Search */}
+      {accounts.length > 2 && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
+          <input
+            type="text"
+            placeholder="Search accounts..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--glass-border)] text-[12px] font-semibold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-blue-500/40 transition-colors"
+          />
         </div>
       )}
 
-      {/* Accounts Grid */}
-      {!loading && !error && filtered.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[var(--bg-card)] border border-[var(--glass-border)] rounded-xl p-12 backdrop-blur-sm text-center"
-        >
-          <Inbox className="w-10 h-10 text-[var(--text-muted)] mx-auto mb-3" />
-          <p className="text-[var(--text-muted)] text-sm">
-            {search ? 'No accounts match your search' : 'No accounts assigned yet'}
-          </p>
-        </motion.div>
+      {/* Error */}
+      {error && (
+        <div className="rounded-xl bg-red-500/8 border border-red-500/15 px-3.5 py-3">
+          <p className="text-[12px] font-semibold text-red-400">Failed to load accounts</p>
+          <p className="text-[10px] text-red-400/60 mt-0.5">{error}</p>
+        </div>
       )}
 
-      <div className="grid gap-3">
+      {/* Empty */}
+      {!error && filtered.length === 0 && (
+        <div className="rounded-2xl bg-[var(--bg-card)] border border-[var(--glass-border)] py-14 text-center">
+          <Inbox className="size-9 text-[var(--text-muted)] mx-auto mb-3 opacity-30" />
+          <p className="text-[12px] font-semibold text-[var(--text-muted)]">
+            {search ? 'No accounts match your search' : 'No accounts assigned yet'}
+          </p>
+          {!search && (
+            <Link href="/manager/invitations" className="inline-flex items-center gap-1 mt-2 text-[11px] font-bold text-blue-400 hover:text-blue-300 transition-colors">
+              Invite an account <ArrowUpRight className="size-3" />
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Account Cards */}
+      <div className="space-y-2">
         <AnimatePresence mode="popLayout">
           {filtered.map((account, i) => {
-            const role = ROLE_STYLES[account.role] || ROLE_STYLES.buyer;
-            const perms = account.permissions || [];
+            const role = getRoleColor(account.role);
+            const perms = account.permissions || {};
+            const activePerms = Object.entries(perms).filter(([, v]) => v).map(([k]) => k);
 
             return (
               <motion.div
                 key={account.id || account._id}
-                initial={{ opacity: 0, y: 12 }}
+                initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ delay: i * 0.03 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ delay: i * 0.025 }}
               >
                 <Link
-                  href={`/manager/as/${account.id || account._id}`}
-                  className="flex items-center justify-between px-4 py-3.5 rounded-xl bg-[var(--bg-card)] border border-[var(--glass-border)] backdrop-blur-sm hover:border-blue-500/30 transition-all group"
+                  href={`/manager/as/${account.id || account._id}/dashboard`}
+                  className="block rounded-2xl bg-[var(--bg-card)] border border-[var(--glass-border)] hover:border-blue-500/20 transition-all active:scale-[0.995] group"
                 >
-                  {/* Left: Avatar + Info */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center text-sm font-bold text-blue-400 shrink-0">
+                  <div className="flex items-center gap-3 p-3 md:p-4">
+                    {/* Avatar */}
+                    <div className={`size-10 md:size-11 rounded-xl flex items-center justify-center text-[13px] md:text-[14px] font-bold shrink-0 ${role.bg} ${role.text}`}>
                       {(account.name || '?')[0].toUpperCase()}
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                        {account.name || 'Unknown'}
-                      </p>
-                      <p className="text-xs text-[var(--text-muted)] truncate">
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[12px] md:text-[13px] font-semibold text-[var(--text-primary)] truncate leading-tight">
+                          {account.name || 'Unknown'}
+                        </p>
+                        <span className={`shrink-0 px-1.5 py-0.5 rounded-md text-[7px] md:text-[8px] font-bold uppercase tracking-wider border ${role.chip}`}>
+                          {account.role}
+                        </span>
+                      </div>
+                      <p className="text-[10px] md:text-[11px] text-[var(--text-muted)] truncate mt-0.5">
                         {account.email || '—'}
                       </p>
-                    </div>
-                  </div>
-
-                  {/* Right: Role + Tasks + Activity + Permissions + Arrow */}
-                  <div className="flex items-center gap-3 shrink-0 ml-4">
-                    {/* Role badge */}
-                    <span className={`hidden sm:inline-flex px-2 py-0.5 rounded text-xs font-medium ${role.bg} ${role.color}`}>
-                      {role.label}
-                    </span>
-
-                    {/* Task count pill */}
-                    {(account.tasks != null && account.tasks > 0) && (
-                      <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-xs font-medium">
-                        {account.tasks} task{account.tasks !== 1 ? 's' : ''}
-                      </span>
-                    )}
-
-                    {/* Last activity */}
-                    <span className="hidden md:flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                      <Clock className="w-3 h-3" />
-                      {timeAgo(account.last_activity)}
-                    </span>
-
-                    {/* Permission icons */}
-                    {perms.length > 0 && (
-                      <div className="hidden lg:flex items-center gap-1">
-                        {perms.map((p) => {
-                          const Icon = PERM_ICONS[p] || Shield;
-                          return (
-                            <span
-                              key={p}
-                              title={p}
-                              className="w-6 h-6 rounded-md bg-[var(--bg-secondary)] flex items-center justify-center"
-                            >
-                              <Icon className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+                      {activePerms.length > 0 && (
+                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                          {activePerms.map((p) => (
+                            <span key={p} className="px-1.5 py-px rounded text-[8px] font-medium bg-[var(--bg-secondary)] text-[var(--text-muted)] capitalize">
+                              {PERM_LABELS[p] || p}
                             </span>
-                          );
-                        })}
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      )}
+                    </div>
 
-                    <ChevronRight className="w-4 h-4 text-[var(--text-muted)] group-hover:text-[var(--text-primary)] transition-colors" />
+                    {/* Right */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {account.tasks > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-lg bg-amber-500/10 text-amber-400 text-[10px] font-bold tabular-nums">
+                          {account.tasks}
+                        </span>
+                      )}
+                      <span className="hidden sm:flex items-center gap-1 text-[9px] text-[var(--text-muted)]">
+                        <Clock className="size-2.5" />
+                        {timeAgo(account.last_activity)}
+                      </span>
+                      <ChevronRight className="size-4 text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity hidden md:block" />
+                    </div>
                   </div>
                 </Link>
               </motion.div>
@@ -209,18 +205,6 @@ export default function ManagerAccounts() {
           })}
         </AnimatePresence>
       </div>
-
-      {/* Loading skeleton */}
-      {loading && (
-        <div className="grid gap-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-16 rounded-xl bg-[var(--bg-card)] border border-[var(--glass-border)] animate-pulse"
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }
