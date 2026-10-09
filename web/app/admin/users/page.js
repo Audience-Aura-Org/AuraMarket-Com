@@ -182,6 +182,21 @@ export default function AdminUsersPage() {
     } catch { setManagers([]); }
   };
 
+  const handleUnassignFromManager = async (userId, userName, managerId, managerName) => {
+    if (!window.confirm(`Remove ${userName} from manager ${managerName}?`)) return;
+    try {
+      const res = await api.post(`/admin/managers/${managerId}/unassign`, {
+        userIds: [userId],
+      });
+      if (res.data.success) {
+        toast.success(`${userName} unassigned from ${managerName}`);
+        fetchUsers();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Unassign failed');
+    }
+  };
+
   const handleAssignToManager = async () => {
     if (!assignForm.managerId) return toast.error('Select a manager');
     const userIds = assignTarget ? [assignTarget._id] : selectedIds;
@@ -400,10 +415,16 @@ export default function AdminUsersPage() {
                           {u.role}
                         </span>
                         {u.managed_by && (
-                          <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-teal-500/10 text-teal-500 border border-teal-500/20 truncate max-w-[160px] shrink-0" title={`Managed by ${u.managed_by.manager_name}`}>
-                            <Link2 className="inline size-2.5 mr-0.5 -mt-px" />{u.managed_by.manager_name}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleUnassignFromManager(u._id, u.name || u.email, u.managed_by.manager_id, u.managed_by.manager_name); }}
+                            className="group/badge inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-semibold bg-teal-500/10 text-teal-500 border border-teal-500/20 truncate max-w-[160px] shrink-0 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all cursor-pointer"
+                            title={`Managed by ${u.managed_by.manager_name} — click to unassign`}
+                          >
+                            <Link2 className="inline size-2.5 group-hover/badge:hidden" />
+                            <X className="hidden size-2.5 group-hover/badge:inline" />
+                            {u.managed_by.manager_name}
                             {u.managers_count > 1 && <span className="ml-0.5 opacity-60">+{u.managers_count - 1}</span>}
-                          </span>
+                          </button>
                         )}
                       </div>
                       <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] opacity-40 truncate mt-0.5 tracking-tight">{u.email}</p>
