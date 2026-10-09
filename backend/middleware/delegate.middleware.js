@@ -78,20 +78,11 @@ const DENY_PATTERNS = [
  */
 async function loadManagerScope(req, res, next) {
   try {
-    const filter = activeFilter({ manager_id: req.user._id });
-    const links = await ManagerAssignment.find(filter)
+    const links = await ManagerAssignment.find(
+      activeFilter({ manager_id: req.user._id })
+    )
       .select('user_id permissions expires_at')
       .lean();
-
-    // Debug: trace empty scope
-    if (!links.length) {
-      const allForManager = await ManagerAssignment.find({ manager_id: req.user._id }).lean();
-      console.log('[loadManagerScope] manager_id:', req.user._id?.toString());
-      console.log('[loadManagerScope] filter:', JSON.stringify(filter));
-      console.log('[loadManagerScope] links found:', links.length);
-      console.log('[loadManagerScope] all assignments for this manager:', allForManager.length,
-        allForManager.map(a => ({ status: a.status, user_id: a.user_id?.toString(), expires_at: a.expires_at })));
-    }
 
     const userIds = links.map((l) => l.user_id);
 

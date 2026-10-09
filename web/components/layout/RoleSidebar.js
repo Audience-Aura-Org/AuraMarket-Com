@@ -150,20 +150,26 @@ const RESTAURANT_NAV = [
   { icon: 'add_circle', label: 'Add Meal', href: '/vendor/meals/add', exact: true },
 ];
 
-export default function RoleSidebar({ role, isOpen, onClose }) {
+export default function RoleSidebar({ role: roleProp, isOpen, onClose }) {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const { theme } = useTheme();
   const { t } = useLanguage();
-  const config = ROLE_CONFIG[role] || ROLE_CONFIG.customer;
 
   const { unreadCount, unreadMessages } = useNotifications();
   const { openChat, isOpen: chatOverlayOpen } = useChat();
 
-  // Manager workspace mode: when actAsId is set, show workspace nav instead of manager nav
+  // Manager workspace mode: when actAsId is set, the manager may be
+  // on a vendor/logistics page. Override role to 'manager' so the
+  // sidebar shows manager nav with account switcher instead of the
+  // target role's nav.
   const actAsId = useManagerMode((s) => s.actAsId);
   const managerAccounts = useManagerMode((s) => s.accounts);
-  const actAsAccount = role === 'manager' && actAsId
+  const isManagerActing = user?.role === 'manager' && !!actAsId;
+  const role = isManagerActing ? 'manager' : roleProp;
+  const config = ROLE_CONFIG[role] || ROLE_CONFIG.customer;
+
+  const actAsAccount = isManagerActing
     ? managerAccounts.find((a) => a.id === actAsId)
     : null;
   const workspaceNav = actAsAccount
