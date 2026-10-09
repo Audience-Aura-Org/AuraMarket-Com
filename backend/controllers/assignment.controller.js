@@ -139,7 +139,7 @@ exports.assignUsersToManager = async (req, res, next) => {
         // Atomic upsert: creates if no open assignment exists,
         // UPDATES (activates + sets permissions) if one does.
         // $set runs on both insert and update.
-        const r = await ManagerAssignment.findOneAndUpdate(
+        await ManagerAssignment.findOneAndUpdate(
           { manager_id: managerId, user_id: id, status: { $in: OPEN } },
           {
             $set: {
@@ -154,16 +154,9 @@ exports.assignUsersToManager = async (req, res, next) => {
               initiated_by: 'admin',
             },
           },
-          { upsert: true, new: true, rawResult: true }
+          { upsert: true, new: true }
         );
-
-        if (r.lastErrorObject?.updatedExisting) {
-          // Document existed — we activated/updated it
-          out.assigned.push(id);
-        } else {
-          // New document was created
-          out.assigned.push(id);
-        }
+        out.assigned.push(id);
       } catch (e) {
         if (e.code === 11000)
           out.skipped.push({ id, reason: 'duplicate' });
