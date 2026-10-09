@@ -1,60 +1,49 @@
 'use client';
 
+import dynamic from 'next/dynamic';
+
 /**
  * Workspace Registry
  *
- * Maps role → slug → actual route path. When a manager enters
- * /manager/as/{userId}/{slug}, the workspace page navigates to
- * the actual route. The X-Act-As header injected by the API
- * interceptor (via useManagerMode.actAsId) makes the API treat
- * the manager as that user, so pages work unchanged.
+ * Maps role -> slug -> dynamically imported page component.
+ * Pages are rendered INSIDE the manager layout with X-Act-As active,
+ * so the manager never leaves their workspace. The API interceptor
+ * adds the X-Act-As header making the backend treat the manager as
+ * the target user.
  */
 
-const ROUTES = {
+const COMPONENTS = {
   vendor: {
-    ''          : '/vendor/dashboard',
-    dashboard   : '/vendor/dashboard',
-    products    : '/vendor/products',
-    orders      : '/vendor/orders',
-    wallet      : '/vendor/wallet',
-    analytics   : '/vendor/analytics',
-    ratings     : '/vendor/ratings',
-    disputes    : '/vendor/disputes',
-    stories     : '/vendor/stories',
-    kitchen     : '/vendor/kitchen',
-    meals       : '/vendor/meals',
+    dashboard: dynamic(() => import('@/app/vendor/dashboard/page'), { ssr: false }),
+    products:  dynamic(() => import('@/app/vendor/products/page'), { ssr: false }),
+    orders:    dynamic(() => import('@/app/vendor/orders/page'), { ssr: false }),
+    wallet:    dynamic(() => import('@/app/vendor/wallet/page'), { ssr: false }),
+    analytics: dynamic(() => import('@/app/vendor/analytics/page'), { ssr: false }),
+    ratings:   dynamic(() => import('@/app/vendor/ratings/page'), { ssr: false }),
+    disputes:  dynamic(() => import('@/app/vendor/disputes/page'), { ssr: false }),
   },
-
   logistics: {
-    ''          : '/logistics/dashboard',
-    dashboard   : '/logistics/dashboard',
-    manifests   : '/logistics/manifests',
-    pricing     : '/logistics/pricing',
-    tracking    : '/logistics/tracking',
-    wallet      : '/logistics/wallet',
-    messages    : '/logistics/messages',
-    analytics   : '/logistics/analytics',
-    deliveries  : '/logistics/manifests',
+    dashboard: dynamic(() => import('@/app/logistics/dashboard/page'), { ssr: false }),
+    manifests: dynamic(() => import('@/app/logistics/manifests/page'), { ssr: false }),
+    pricing:   dynamic(() => import('@/app/logistics/pricing/page'), { ssr: false }),
+    tracking:  dynamic(() => import('@/app/logistics/tracking/page'), { ssr: false }),
+    wallet:    dynamic(() => import('@/app/logistics/wallet/page'), { ssr: false }),
+    messages:  dynamic(() => import('@/app/logistics/messages/page'), { ssr: false }),
   },
-
   customer: {
-    ''          : '/profile',
-    dashboard   : '/profile',
-    profile     : '/profile',
-    orders      : '/profile?tab=orders',
+    dashboard: dynamic(() => import('@/app/profile/page'), { ssr: false }),
+    profile:   dynamic(() => import('@/app/profile/page'), { ssr: false }),
   },
 };
 
 /**
- * Get the target route for a given role and slug.
- * @param {string} role — vendor, logistics, or customer
- * @param {string} slug — first segment of the catch-all path
- * @returns {string|null}
+ * Get the page component for a given role and slug.
+ * Returns null if no match found.
  */
-export function getWorkspaceRoute(role, slug = '') {
-  const roleMap = ROUTES[role];
+export function getWorkspaceComponent(role, slug = 'dashboard') {
+  const roleMap = COMPONENTS[role];
   if (!roleMap) return null;
-  return roleMap[slug] || null;
+  return roleMap[slug] || roleMap.dashboard || null;
 }
 
 /**
@@ -82,7 +71,6 @@ export function getWorkspaceNav(role) {
     ],
     customer: [
       { slug: 'dashboard',  label: 'Dashboard',  icon: 'account_circle' },
-      { slug: 'orders',     label: 'Orders',     icon: 'shopping_bag' },
     ],
   };
   return navs[role] || [];

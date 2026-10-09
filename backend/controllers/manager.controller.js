@@ -554,7 +554,7 @@ exports.updateNote = async (req, res, next) => {
     const note = await ManagerNote.findOneAndUpdate(
       { _id: req.params.id, manager_id: req.user._id },
       { $set: update },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!note)

@@ -1,27 +1,24 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import api from '@/services/api';
 import { useManagerMode } from '@/hooks/useManagerMode';
-import { getWorkspaceRoute, getWorkspaceNav } from '@/components/manager/workspaceRegistry';
+import { getWorkspaceComponent, getWorkspaceNav } from '@/components/manager/workspaceRegistry';
 
 /**
- * Dynamic workspace page — resolves the target user's role then
- * navigates to their actual page (vendor dashboard, logistics dashboard, etc.)
- * while the X-Act-As header is active.
+ * Dynamic workspace page — renders the target user's page component
+ * inline within the manager layout. The X-Act-As header is active
+ * so all API calls work as the target user.
  *
- * The role is resolved from:
- *   1. The manager's loaded accounts list (fast, no network call)
- *   2. A lightweight API call to GET /manager/accounts (fallback)
+ * No redirect — the manager stays in /manager/as/{userId}/{slug}
+ * and sees the vendor/logistics/customer page inside their workspace.
  */
 export default function WorkspacePage() {
   const { userId, slug } = useParams();
-  const router = useRouter();
   const accounts = useManagerMode((s) => s.accounts);
   const loadAccounts = useManagerMode((s) => s.loadAccounts);
-  const pageSlug = Array.isArray(slug) ? slug[0] : slug || '';
+  const pageSlug = Array.isArray(slug) ? slug[0] : slug || 'dashboard';
 
   // Resolve role from accounts list, or fetch it
   const accountFromStore = accounts.find((a) => a.id === userId);
@@ -29,7 +26,6 @@ export default function WorkspacePage() {
   const [resolving, setResolving] = useState(!accountFromStore);
   const [error, setError] = useState(null);
 
-  // If not in store, fetch accounts to resolve the role
   const resolveRole = useCallback(async () => {
     if (accountFromStore?.role) {
       setResolvedRole(accountFromStore.role);
@@ -39,7 +35,6 @@ export default function WorkspacePage() {
 
     setResolving(true);
     try {
-      // Try loading accounts (may already be cached)
       const result = await loadAccounts({ force: true });
       if (result?.success && result?.accounts) {
         const found = result.accounts.find((a) => a.id === userId);
@@ -49,16 +44,7 @@ export default function WorkspacePage() {
           return;
         }
       }
-
-      // Fallback: direct API call for this specific user
-      const res = await api.get(`/manager/accounts`);
-      const accts = res.data?.data || [];
-      const match = accts.find((a) => a.id === userId);
-      if (match?.role) {
-        setResolvedRole(match.role);
-      } else {
-        setError('Account not found in your assignments.');
-      }
+      setError('Account not found in your assignments.');
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to load account info');
     } finally {
@@ -70,7 +56,6 @@ export default function WorkspacePage() {
     if (!resolvedRole) resolveRole();
   }, [resolvedRole, resolveRole]);
 
-  // Update if store changes (e.g. accounts finish loading later)
   useEffect(() => {
     if (accountFromStore?.role && !resolvedRole) {
       setResolvedRole(accountFromStore.role);
@@ -78,16 +63,10 @@ export default function WorkspacePage() {
     }
   }, [accountFromStore, resolvedRole]);
 
-  const targetRoute = resolvedRole ? getWorkspaceRoute(resolvedRole, pageSlug) : null;
+  // Get the page component for this role + slug
+  const PageComponent = resolvedRole ? getWorkspaceComponent(resolvedRole, pageSlug) : null;
   const nav = resolvedRole ? getWorkspaceNav(resolvedRole) : [];
   const accountName = accountFromStore?.name || 'Account';
-
-  // Navigate to the actual page — actAsId is already set by the layout
-  useEffect(() => {
-    if (targetRoute) {
-      router.replace(targetRoute);
-    }
-  }, [targetRoute, router]);
 
   // Loading state
   if (resolving) {
@@ -123,8 +102,8 @@ export default function WorkspacePage() {
     );
   }
 
-  // No matching route for this slug
-  if (!targetRoute) {
+  // No matching component for this slug — show nav links
+  if (!PageComponent) {
     return (
       <div className="p-6 max-w-4xl mx-auto">
         <div className="mb-6">
@@ -156,11 +135,6 @@ export default function WorkspacePage() {
     );
   }
 
-  // Show loading spinner while redirecting
-  return (
-    <div className="flex flex-col items-center justify-center py-20 gap-3">
-      <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-      <p className="text-sm text-[var(--text-muted)]">Opening {resolvedRole} dashboard...</p>
-    </div>
-  );
+  // Render the page component inline within the manager workspace
+  return <PageComponent />;
 }

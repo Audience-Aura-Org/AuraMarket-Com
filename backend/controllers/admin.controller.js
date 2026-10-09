@@ -2828,7 +2828,7 @@ const promoteToManager = async (req, res, next) => {
         $set: { role: 'manager', previous_role: previousRole, verification_status: 'verified' },
         $inc: { token_version: 1 },
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     if (!updated) {
@@ -2872,7 +2872,7 @@ const demoteManager = async (req, res, next) => {
         $set: { role: restoredRole, previous_role: null },
         $inc: { token_version: 1 },
       },
-      { new: true },
+      { returnDocument: 'after' },
     );
 
     if (!updated) {

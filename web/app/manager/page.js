@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Users, ClipboardList, ShoppingCart, TrendingUp,
   Wallet, AlertCircle, RefreshCw, ChevronRight, Clock,
@@ -25,9 +25,14 @@ const TYPE_STYLES = {
 export default function ManagerOverview() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const hasFetched = useRef(false);
 
-  const fetchOverview = useCallback(async () => {
-    setLoading(true);
+  const fetchOverview = useCallback(async (isRefresh = false) => {
+    // Only show full loading skeleton on first load, not refreshes
+    if (isRefresh) setRefreshing(true);
+    else if (!hasFetched.current) setLoading(true);
+
     try {
       const res = await api.get('/manager/overview');
       if (res.data?.success) setData(res.data.data);
@@ -35,6 +40,8 @@ export default function ManagerOverview() {
       console.error('[Manager] Failed to load overview:', err.message);
     } finally {
       setLoading(false);
+      setRefreshing(false);
+      hasFetched.current = true;
     }
   }, []);
 
@@ -44,6 +51,7 @@ export default function ManagerOverview() {
   const byType = data?.byType || {};
   const attention = data?.attention || [];
   const recent = data?.recent || [];
+  const hasData = !!data;
 
   return (
     <div className="p-4 lg:p-6 xl:p-8 space-y-6 w-full">
@@ -58,11 +66,11 @@ export default function ManagerOverview() {
           </p>
         </div>
         <button
-          onClick={fetchOverview}
-          disabled={loading}
+          onClick={() => fetchOverview(true)}
+          disabled={refreshing}
           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[var(--bg-card)] border border-[var(--glass-border)] text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
         >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
@@ -88,7 +96,7 @@ export default function ManagerOverview() {
               <span className="text-xs text-[var(--text-muted)] uppercase tracking-wider">{kpi.label}</span>
             </div>
             <p className="text-xl font-bold text-[var(--text-primary)]">
-              {loading ? '...' : kpi.value}
+              {loading && !hasData ? '...' : kpi.value}
             </p>
           </motion.div>
         ))}
@@ -113,7 +121,7 @@ export default function ManagerOverview() {
             </Link>
           </div>
 
-          {!loading && attention.length === 0 && (
+          {hasData && attention.length === 0 && (
             <p className="text-sm text-[var(--text-muted)] py-8 text-center">All clear - no accounts need attention</p>
           )}
 
@@ -161,7 +169,7 @@ export default function ManagerOverview() {
             </Link>
           </div>
 
-          {!loading && recent.length === 0 && (
+          {hasData && recent.length === 0 && (
             <p className="text-sm text-[var(--text-muted)] py-8 text-center">No pending tasks</p>
           )}
 
