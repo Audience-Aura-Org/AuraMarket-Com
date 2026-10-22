@@ -15,7 +15,8 @@ function PageLoading() {
     </div>
   );
 }
-const PAGE_OPTIONS = { ssr: false, loading: PageLoading };
+// Next requires dynamic() options as an inline object literal, so each entry
+// spells out { ssr: false, loading: PageLoading }.
 
 /**
  * Workspace Registry
@@ -31,33 +32,33 @@ const PAGE_OPTIONS = { ssr: false, loading: PageLoading };
 // link inside an embedded page maps 1:1 onto /manager/as/{id}/{key}.
 const COMPONENTS = {
   vendor: {
-    dashboard:       dynamic(() => import('@/app/vendor/dashboard/page'), PAGE_OPTIONS),
-    products:        dynamic(() => import('@/app/vendor/products/page'), PAGE_OPTIONS),
-    'products/add':  dynamic(() => import('@/app/vendor/products/add/page'), PAGE_OPTIONS),
-    'products/edit': dynamic(() => import('@/app/vendor/products/edit/page'), PAGE_OPTIONS),
-    meals:           dynamic(() => import('@/app/vendor/meals/page'), PAGE_OPTIONS),
-    'meals/add':     dynamic(() => import('@/app/vendor/meals/add/page'), PAGE_OPTIONS),
-    kitchen:         dynamic(() => import('@/app/vendor/kitchen/page'), PAGE_OPTIONS),
-    stories:         dynamic(() => import('@/app/vendor/stories/page'), PAGE_OPTIONS),
-    orders:          dynamic(() => import('@/app/vendor/orders/page'), PAGE_OPTIONS),
-    wallet:          dynamic(() => import('@/app/vendor/wallet/page'), PAGE_OPTIONS),
-    analytics:       dynamic(() => import('@/app/vendor/analytics/page'), PAGE_OPTIONS),
-    ratings:         dynamic(() => import('@/app/vendor/ratings/page'), PAGE_OPTIONS),
-    disputes:        dynamic(() => import('@/app/vendor/disputes/page'), PAGE_OPTIONS),
+    dashboard:       dynamic(() => import('@/app/vendor/dashboard/page'), { ssr: false, loading: PageLoading }),
+    products:        dynamic(() => import('@/app/vendor/products/page'), { ssr: false, loading: PageLoading }),
+    'products/add':  dynamic(() => import('@/app/vendor/products/add/page'), { ssr: false, loading: PageLoading }),
+    'products/edit': dynamic(() => import('@/app/vendor/products/edit/page'), { ssr: false, loading: PageLoading }),
+    meals:           dynamic(() => import('@/app/vendor/meals/page'), { ssr: false, loading: PageLoading }),
+    'meals/add':     dynamic(() => import('@/app/vendor/meals/add/page'), { ssr: false, loading: PageLoading }),
+    kitchen:         dynamic(() => import('@/app/vendor/kitchen/page'), { ssr: false, loading: PageLoading }),
+    stories:         dynamic(() => import('@/app/vendor/stories/page'), { ssr: false, loading: PageLoading }),
+    orders:          dynamic(() => import('@/app/vendor/orders/page'), { ssr: false, loading: PageLoading }),
+    wallet:          dynamic(() => import('@/app/vendor/wallet/page'), { ssr: false, loading: PageLoading }),
+    analytics:       dynamic(() => import('@/app/vendor/analytics/page'), { ssr: false, loading: PageLoading }),
+    ratings:         dynamic(() => import('@/app/vendor/ratings/page'), { ssr: false, loading: PageLoading }),
+    disputes:        dynamic(() => import('@/app/vendor/disputes/page'), { ssr: false, loading: PageLoading }),
   },
   logistics: {
-    dashboard: dynamic(() => import('@/app/logistics/dashboard/page'), PAGE_OPTIONS),
-    manifests: dynamic(() => import('@/app/logistics/manifests/page'), PAGE_OPTIONS),
-    pricing:   dynamic(() => import('@/app/logistics/pricing/page'), PAGE_OPTIONS),
-    tracking:  dynamic(() => import('@/app/logistics/tracking/page'), PAGE_OPTIONS),
-    wallet:    dynamic(() => import('@/app/logistics/wallet/page'), PAGE_OPTIONS),
-    messages:  dynamic(() => import('@/app/logistics/messages/page'), PAGE_OPTIONS),
-    analytics: dynamic(() => import('@/app/logistics/analytics/page'), PAGE_OPTIONS),
-    nodes:     dynamic(() => import('@/app/logistics/nodes/page'), PAGE_OPTIONS),
+    dashboard: dynamic(() => import('@/app/logistics/dashboard/page'), { ssr: false, loading: PageLoading }),
+    manifests: dynamic(() => import('@/app/logistics/manifests/page'), { ssr: false, loading: PageLoading }),
+    pricing:   dynamic(() => import('@/app/logistics/pricing/page'), { ssr: false, loading: PageLoading }),
+    tracking:  dynamic(() => import('@/app/logistics/tracking/page'), { ssr: false, loading: PageLoading }),
+    wallet:    dynamic(() => import('@/app/logistics/wallet/page'), { ssr: false, loading: PageLoading }),
+    messages:  dynamic(() => import('@/app/logistics/messages/page'), { ssr: false, loading: PageLoading }),
+    analytics: dynamic(() => import('@/app/logistics/analytics/page'), { ssr: false, loading: PageLoading }),
+    nodes:     dynamic(() => import('@/app/logistics/nodes/page'), { ssr: false, loading: PageLoading }),
   },
   customer: {
-    dashboard: dynamic(() => import('@/app/profile/page'), PAGE_OPTIONS),
-    profile:   dynamic(() => import('@/app/profile/page'), PAGE_OPTIONS),
+    dashboard: dynamic(() => import('@/app/profile/page'), { ssr: false, loading: PageLoading }),
+    profile:   dynamic(() => import('@/app/profile/page'), { ssr: false, loading: PageLoading }),
   },
 };
 
