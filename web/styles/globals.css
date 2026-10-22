@@ -847,3 +847,23 @@ html[data-font-size] h4 { font-size: calc(1.25rem * var(--aura-text-scale, 1)); 
   -webkit-mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 100%);
   mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 100%);
 }
+
+/* Readability without blur: on phones a translucent surface that relied on
+   backdrop blur (bars, menus, sheets, panels) would let the text behind it
+   show through and become unreadable. Any blurred element with a theme
+   background colour is made solid instead. Dark dimming scrims behind modals
+   (bg-black/…) are not theme-coloured and keep their translucency. */
+@media (max-width: 767px), (prefers-reduced-transparency: reduce) {
+  [class*="backdrop-blur"][class*="bg-[var(--bg-primary)]"],
+  [class*="backdrop-blur"][class*="bg-[color-mix(in_srgb,var(--bg-primary)"],
+  [class*="backdrop-blur"][class*="bg-[var(--nav-bg)]"],
+  .glass-panel {
+    background-color: var(--bg-primary) !important;
+  }
+  [class*="backdrop-blur"][class*="bg-[var(--bg-secondary)]"] {
+    background-color: var(--bg-secondary) !important;
+  }
+  [class*="backdrop-blur"][class*="bg-[var(--m-surface"] {
+    background-color: var(--m-surface-solid) !important;
+  }
+}

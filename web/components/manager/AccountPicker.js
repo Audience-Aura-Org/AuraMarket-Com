@@ -6,7 +6,7 @@ import { ChevronsUpDown, Search, Star, X, LayoutGrid } from 'lucide-react';
 import { useManagerMode } from '@/hooks/useManagerMode';
 import { StatusDot, HEALTH_LABEL } from '@/components/manager/ui';
 import { pickerSections, resolveSwitchTarget } from './switching';
-import { TYPE_LABEL } from './shell/nav';
+import { TYPE_LABEL, workspaceAccountId } from './shell/nav';
 
 const ALL = { id: null, name: 'All accounts' };
 
@@ -35,7 +35,9 @@ export default function AccountPicker({ mode = 'navigate', value = null, onSelec
   const rootRef = useRef(null);
   const inputRef = useRef(null);
 
-  const currentId = mode === 'navigate' ? actAsId : value;
+  // In navigate mode the URL is the source of truth for which account is open
+  // (actAsId can lag a moment behind a switch).
+  const currentId = mode === 'navigate' ? (workspaceAccountId(pathname) ?? null) : value;
   const current = accounts.find((a) => a.id === currentId);
 
   const sections = useMemo(
@@ -109,7 +111,9 @@ export default function AccountPicker({ mode = 'navigate', value = null, onSelec
     else if (e.key === 'Enter' && flat[active]) { e.preventDefault(); choose(flat[active]); }
   };
 
-  const label = current?.name || (mode === 'navigate' ? 'All accounts' : 'All accounts');
+  // Inside an account whose details haven't loaded yet (right after switching):
+  // say so, never "All accounts".
+  const label = current?.name || (currentId ? 'Loading…' : 'All accounts');
 
   const trigger = {
     rail: (

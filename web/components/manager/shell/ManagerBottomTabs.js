@@ -9,23 +9,37 @@ import { SidePanel } from '@/components/manager/ui';
 import { getWorkspaceNav } from '@/components/manager/workspaceNav';
 import { MANAGER_SECTIONS, workspaceAccountId } from './nav';
 
+/** One tab, styled exactly like the customer bottom nav (components/layout/BottomNav). */
 function Tab({ href, icon: Icon, label, active, count, onClick }) {
   const body = (
     <>
-      <span className="relative">
-        <span className={`flex items-center justify-center h-8 w-12 rounded-full transition-colors ${active ? 'bg-[color-mix(in_srgb,var(--accent)_12%,transparent)] text-[var(--accent)]' : ''}`}>
-          <Icon size={20} strokeWidth={active ? 2 : 1.5} />
-        </span>
+      <div
+        className={`relative rounded-xl p-1.5 transition-colors duration-200 ${
+          active
+            ? 'bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--accent)_22%,transparent)]'
+            : 'bg-transparent'
+        }`}
+      >
+        <Icon className="size-5 shrink-0 stroke-2 transition-colors" />
         {count > 0 && (
-          <span className="absolute -top-1 left-7 min-w-4 h-4 px-1 rounded-full bg-[var(--accent)] text-white m-fs-10 leading-4 text-center m-num font-bold">
+          <span className="absolute -top-1 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-[var(--accent)] text-white text-[10px] leading-4 text-center font-bold tabular-nums">
             {count > 99 ? '99+' : count}
           </span>
         )}
+      </div>
+      <span
+        className={`max-w-full truncate px-0.5 text-[12px] font-medium leading-none tracking-tight transition-colors min-[380px]:text-[13px] font-[Poppins] ${
+          active ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] opacity-90'
+        }`}
+      >
+        {label}
       </span>
-      <span className="m-fs-11 truncate max-w-full">{label}</span>
+      {active && <span className="absolute bottom-1 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-[var(--accent)] opacity-80" aria-hidden="true" />}
     </>
   );
-  const cls = `flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 h-16 ${active ? 'text-[var(--m-text)] font-semibold' : 'm-muted font-medium'}`;
+  const cls = `relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 transition-colors duration-200 active:scale-[0.98] ${
+    active ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+  }`;
   return onClick ? (
     <button type="button" onClick={onClick} className={cls}>{body}</button>
   ) : (
@@ -44,7 +58,16 @@ export default function ManagerBottomTabs() {
 
   let tabs;
   let more = [];
-  if (accountId) {
+  if (accountId && !account) {
+    // Account details still loading (right after switching): placeholders
+    // shaped like the tabs, not a lone "More".
+    tabs = [0, 1, 2, 3].map((i) => (
+      <div key={i} className="flex flex-1 flex-col items-center justify-center gap-1.5" aria-hidden="true">
+        <span className="size-8 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
+        <span className="h-2 w-10 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
+      </div>
+    ));
+  } else if (accountId) {
     const pages = getWorkspaceNav(account?.role).map((p) => ({ ...p, href: `/manager/as/${accountId}/${p.slug}` }));
     const isActive = (href) => pathname === href || pathname.startsWith(`${href}/`);
     tabs = pages.slice(0, 4).map((p) => <Tab key={p.slug} href={p.href} icon={p.icon} label={p.label} active={isActive(p.href)} />);
@@ -58,10 +81,10 @@ export default function ManagerBottomTabs() {
 
   return (
     <>
-      <nav aria-label="Manager" className="md:hidden fixed inset-x-0 bottom-0 z-40 border-t border-[var(--m-border)] bg-[var(--m-surface-solid)]/85 backdrop-blur-2xl pb-[env(safe-area-inset-bottom,0px)]">
-        <div className="flex">
+      <nav aria-label="Manager" className="md:hidden fixed inset-x-0 bottom-0 z-40 w-full overflow-hidden rounded-t-[24px] border-t border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--text-primary)_8%,transparent),0_-8px_32px_-8px_rgba(0,0,0,0.14)] dark:shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--text-primary)_10%,transparent),0_-10px_36px_-8px_rgba(0,0,0,0.35)] pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="relative flex h-[68px] w-full items-center justify-around px-1 pt-0.5">
           {tabs}
-          {accountId && <Tab icon={MoreHorizontal} label="More" onClick={() => setMoreOpen(true)} />}
+          {accountId && account && <Tab icon={MoreHorizontal} label="More" onClick={() => setMoreOpen(true)} />}
         </div>
       </nav>
       {accountId && (
