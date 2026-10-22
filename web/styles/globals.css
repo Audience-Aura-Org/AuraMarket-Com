@@ -856,9 +856,14 @@ html[data-font-size] h4 { font-size: calc(1.25rem * var(--aura-text-scale, 1)); 
 @media (max-width: 767px), (prefers-reduced-transparency: reduce) {
   [class*="backdrop-blur"][class*="bg-[var(--bg-primary)]"],
   [class*="backdrop-blur"][class*="bg-[color-mix(in_srgb,var(--bg-primary)"],
-  [class*="backdrop-blur"][class*="bg-[var(--nav-bg)]"],
   .glass-panel {
     background-color: var(--bg-primary) !important;
+  }
+  /* Keep navigation text paired with its own theme-aware surface. The nav
+     intentionally uses the inverse surface in each theme, so replacing it
+     with --bg-primary makes the text and background nearly the same color. */
+  [class*="backdrop-blur"][class*="bg-[var(--nav-bg)]"] {
+    background-color: var(--nav-bg) !important;
   }
   [class*="backdrop-blur"][class*="bg-[var(--bg-secondary)]"] {
     background-color: var(--bg-secondary) !important;

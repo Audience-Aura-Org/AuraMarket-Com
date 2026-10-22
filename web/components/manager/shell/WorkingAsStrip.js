@@ -9,7 +9,7 @@ import { TYPE_LABEL } from './nav';
  */
 export default function WorkingAsStrip({ account }) {
   return (
-    <div className="sticky top-[calc(56px+env(safe-area-inset-top,0px))] md:top-0 z-50 border-b border-[var(--m-border)] bg-[var(--m-surface-solid)] md:bg-[var(--m-surface-solid)]/90 md:backdrop-blur-2xl">
+    <div className="sticky top-[var(--manager-mobile-bar-height)] md:top-0 z-50 border-b border-[var(--m-border)] bg-[var(--m-surface-solid)] md:bg-[var(--m-surface-solid)]/90 md:backdrop-blur-2xl">
       <div className="flex items-center gap-3 h-11 px-4 md:px-6">
         <span className="size-2 rounded-full bg-[var(--accent)] animate-pulse shrink-0" aria-hidden="true" />
         <p className="min-w-0 flex-1 truncate">

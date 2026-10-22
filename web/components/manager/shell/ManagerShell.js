@@ -26,7 +26,7 @@ export default function ManagerShell({ children }) {
       )}
       <ManagerRail />
       <ManagerMobileBar />
-      <main className="md:pl-16 lg:pl-[232px] pt-[calc(56px+env(safe-area-inset-top,0px))] md:pt-0 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0 min-h-screen">
+      <main className="md:pl-16 lg:pl-[232px] pt-[var(--manager-mobile-bar-height)] md:pt-0 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0 min-h-screen">
         {inWorkspace ? children : (
           <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8">{children}</div>
         )}
