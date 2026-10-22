@@ -79,7 +79,7 @@ export default function VendorAnalyticsPage() {
 
   return (
     <div className="flex-1 bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">
-      <div className="p-6 md:p-8 space-y-8 pb-32">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6 md:space-y-8 pb-32">
         
       <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-14 lg:top-0 z-40 gap-4 md:gap-0">
         <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
@@ -125,7 +125,7 @@ export default function VendorAnalyticsPage() {
           const fulfilledPct  = pct(totalSales, allOrders);
           const escrowRatio   = pct(pendingEscrow, totalRevenue);
           return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <StatCard label={t('analytics.revenue', 'Revenue')}   value={fmt(totalRevenue)}       icon="payments"                color="emerald" progress={fulfilledPct}  footer={`${totalSales} orders fulfilled`} />
               <StatCard label={t('analytics.escrow', 'Escrow')}     value={fmt(pendingEscrow)}      icon="account_balance_wallet"  color="amber"   progress={escrowRatio}                footer={`${fmt(pendingEscrow)} pending release`} />
               <StatCard label={t('analytics.orders', 'Orders')}     value={String(allOrders)}       icon="shopping_bag"            color="blue"    progress={fulfilledPct}  footer={`${openOrders} open · ${totalSales} fulfilled`} />

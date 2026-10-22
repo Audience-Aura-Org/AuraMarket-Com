@@ -92,6 +92,7 @@ export default function WalletPage() {
   // Shared with the top nav: one balance everywhere.
   const balance = Number(storeWalletBalance ?? 0);
   const [pendingBalance,     setPendingBalance]    = useState(0);
+  const [lifetime,           setLifetime]          = useState(null); // server { money_in, money_out, … }
   const [transactions,       setTransactions]      = useState([]);
   const [withdrawalRequests, setWithdrawalRequests]= useState([]);
   const [loading,            setLoading]           = useState(true);
@@ -133,6 +134,7 @@ export default function WalletPage() {
         const nextBalance = balRes.value.data.data.balance || 0;
         setWalletBalance(nextBalance, { readStamp });
         setPendingBalance(balRes.value.data.data.pending_escrow || 0);
+        setLifetime(balRes.value.data.data.totals || null);
       }
       if (txRes.status === 'fulfilled' && txRes.value.data.success) {
         const txList = txRes.value.data.data.transactions || [];
@@ -293,17 +295,20 @@ export default function WalletPage() {
   if (!mounted || !hasHydrated || !user) return null;
 
   // ── Derived stats ──────────────────────────────────────────────────────────
-  const totalIn = transactions
+  // All-time figures from the server; sums over the loaded page are only a
+  // fallback for an older server (they undercount once history grows).
+  const pageIn = transactions
     .filter(tx => tx.status === 'completed' &&
-      (tx.type === 'refund' || tx.type === 'payout' ||
+      (tx.type === 'refund' || tx.type === 'payout' || tx.type === 'escrow_release' ||
        (tx.type === 'deposit' && !(tx.order_ids?.length > 0))))
     .reduce((s, tx) => s + (tx.amount || 0), 0);
-
-  const totalOut = transactions
+  const pageOut = transactions
     .filter(tx => tx.status === 'completed' &&
       (tx.type === 'withdrawal' || tx.type === 'payment' ||
        (tx.type === 'deposit' && tx.order_ids?.length > 0)))
     .reduce((s, tx) => s + (tx.amount || 0), 0);
+  const totalIn = lifetime?.money_in ?? pageIn;
+  const totalOut = lifetime?.money_out ?? pageOut;
 
   const totalFunds   = balance + pendingBalance;
   const availRatio   = totalFunds > 0 ? Math.round((balance / totalFunds) * 100) : 0;
@@ -366,10 +371,10 @@ export default function WalletPage() {
         </button>
       </header>
 
-      <div className="p-4 md:p-10 space-y-8 pb-32">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6 md:space-y-8 pb-32">
 
         {/* KPI Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           <StatCard
             label={t('wallet.available', 'Available')}
             value={fmt(balance)}

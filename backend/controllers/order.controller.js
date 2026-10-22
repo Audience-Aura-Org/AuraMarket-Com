@@ -837,7 +837,9 @@ const getCustomerOrders = async (req, res, next) => {
         }
       })
       .populate('shipment', 'status tracking_code')
-      .sort('-createdAt');
+      .sort('-createdAt')
+      .limit(300) // newest 300 — the list was unbounded (every order ever, each visit)
+      .lean();
     res.status(200).json({ success: true, count: orders.length, data: { orders } });
   } catch (error) { next(error); }
 };

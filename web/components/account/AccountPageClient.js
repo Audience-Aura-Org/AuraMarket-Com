@@ -722,7 +722,7 @@ export default function AccountPageClient() {
                       <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                     </div>
 
-                    <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
+                    <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                       <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                       
                       <div className="relative z-10 space-y-3 md:space-y-4">
@@ -930,7 +930,7 @@ export default function AccountPageClient() {
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10 space-y-4">
@@ -981,7 +981,7 @@ export default function AccountPageClient() {
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10 space-y-3 md:space-y-4">
@@ -1085,7 +1085,7 @@ export default function AccountPageClient() {
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 backdrop-blur-3xl p-3 md:p-4 space-y-3 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10">
@@ -1269,7 +1269,7 @@ export default function AccountPageClient() {
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10">
@@ -1388,7 +1388,7 @@ export default function AccountPageClient() {
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
                     
                     <div className="relative z-10">
@@ -1441,7 +1441,7 @@ export default function AccountPageClient() {
                     <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
                   </div>
 
-                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-5 shadow-xl">
+                  <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 backdrop-blur-3xl p-3 md:p-5 shadow-xl">
                     <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
 
                     <div className="relative z-10 space-y-5">
@@ -1834,7 +1834,7 @@ function InstallAppTab() {
         <div className="h-px flex-1 bg-gradient-to-r from-[var(--glass-border)] to-transparent" />
       </div>
 
-      <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[1.75rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
+      <div className="relative overflow-hidden glass-panel rounded-2xl md:rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 backdrop-blur-3xl p-3 md:p-4 shadow-xl">
         <div className="absolute -top-32 -right-32 size-64 bg-[var(--accent)]/5 rounded-full blur-[80px] pointer-events-none" />
         
         <div className="relative z-10 flex flex-col md:flex-row gap-8 items-start">

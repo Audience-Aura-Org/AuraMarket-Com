@@ -298,9 +298,9 @@ export default function LogisticsWalletPage() {
         </button>
       </header>
 
-      <div className="p-4 md:p-10 space-y-8 pb-32">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6 md:space-y-8 pb-32">
         {/* KPI Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           <StatCard label="Available"    value={fmt(balance)}       icon="account_balance_wallet" color="indigo"  sub="XAF Ready"         progress={availRatio}    footer={`${escrowRatioW}% held in escrow`} loading={loading} />
           <StatCard label="In Escrow"    value={fmt(escrow)}        icon="lock_clock"             color="amber"   sub="Pending Release"   progress={escrowRatioW}  footer="Pending delivery confirmation" loading={loading} />
           <StatCard label="Total Earned" value={fmt(totalEarned)}   icon="trending_up"            color="emerald" sub="Lifetime earnings"  progress={totalEarned > 0 ? 100 : 0} footer="All-time earnings" loading={loading} />

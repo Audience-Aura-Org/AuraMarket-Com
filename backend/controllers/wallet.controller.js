@@ -77,10 +77,29 @@ const getWalletBalance = async (req, res, next) => {
     // Lifetime totals, computed server-side (a page of history understates
     // them). Earned = completed payouts + escrow releases; refunds (money back
     // on a purchase) and deposits (top-ups) are not earnings.
-    const [earnedAgg, withdrawnAgg] = await Promise.all([
+    // One pass over the user's completed transactions:
+    //   earned    = payouts + escrow releases (sales income)
+    //   money_in  = refunds, payouts, escrow releases, top-ups not tied to an order
+    //   money_out = withdrawals, payments, checkout collections (deposits for orders)
+    const hasOrders = { $gt: [{ $size: { $ifNull: ['$order_ids', []] } }, 0] };
+    const sumIf = (cond) => ({ $sum: { $cond: [cond, '$amount', 0] } });
+    const [moneyAgg, withdrawnAgg] = await Promise.all([
       Transaction.aggregate([
-        { $match: { user_id: user._id, status: 'completed', type: { $in: ['payout', 'escrow_release'] } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } },
+        { $match: { user_id: user._id, status: 'completed' } },
+        {
+          $group: {
+            _id: null,
+            earned: sumIf({ $in: ['$type', ['payout', 'escrow_release']] }),
+            money_in: sumIf({ $or: [
+              { $in: ['$type', ['refund', 'payout', 'escrow_release']] },
+              { $and: [{ $eq: ['$type', 'deposit'] }, { $not: [hasOrders] }] },
+            ] }),
+            money_out: sumIf({ $or: [
+              { $in: ['$type', ['withdrawal', 'payment']] },
+              { $and: [{ $eq: ['$type', 'deposit'] }, hasOrders] },
+            ] }),
+          },
+        },
       ]),
       WithdrawalRequest.aggregate([
         { $match: { requested_by: user._id, status: 'completed' } },
@@ -94,8 +113,10 @@ const getWalletBalance = async (req, res, next) => {
         balance: user.wallet_balance,
         pending_escrow: pendingEscrow,
         totals: {
-          earned: Number(earnedAgg[0]?.total) || 0,
+          earned: Number(moneyAgg[0]?.earned) || 0,
           withdrawn: Number(withdrawnAgg[0]?.total) || 0,
+          money_in: Number(moneyAgg[0]?.money_in) || 0,
+          money_out: Number(moneyAgg[0]?.money_out) || 0,
         },
       },
     });

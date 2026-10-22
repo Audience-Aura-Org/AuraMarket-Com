@@ -93,6 +93,30 @@ describe('GET /wallet — lifetime totals', () => {
     const res = await request(app).get('/api/v1/wallet').set(asUser(user))
 
     expect(res.status).toBe(200)
-    expect(res.body.data.totals).toEqual({ earned: 65_000, withdrawn: 7_000 })
+    expect(res.body.data.totals).toMatchObject({ earned: 65_000, withdrawn: 7_000 })
+  })
+})
+
+describe('GET /wallet — customer money in / out (all time)', () => {
+  it('sums every completed credit and debit, not just the latest page', async () => {
+    const user = await createUser({ wallet_balance: 0 })
+    const tx = (type, amount, extra = {}) => ({
+      user_id: user._id, type, amount, status: 'completed', gateway: 'platform',
+      reference: `M-${type}-${amount}-${Math.random().toString(36).slice(2, 8)}`, description: type, ...extra,
+    })
+    await Transaction.insertMany(Array.from({ length: 60 }, () => tx('deposit', 1_000)))   // top-ups: in
+    await Transaction.insertMany([
+      tx('refund', 2_000),                                                                   // in
+      tx('deposit', 8_000, { order_ids: [new (require('mongoose').Types.ObjectId)()] }),     // checkout collection: out
+      tx('payment', 3_000),                                                                  // out
+      tx('withdrawal', 4_000),                                                               // out
+      tx('payment', 9_999, { status: 'failed' }),                                            // ignored
+    ])
+
+    const res = await request(app).get('/api/v1/wallet').set(asUser(user))
+
+    expect(res.status).toBe(200)
+    expect(res.body.data.totals.money_in).toBe(62_000)
+    expect(res.body.data.totals.money_out).toBe(15_000)
   })
 })
