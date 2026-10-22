@@ -1,12 +1,13 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import api from '@/services/api';
 import { ActingAccountContext } from '@/hooks/useAuth';
 import { useManagerMode } from '@/hooks/useManagerMode';
 import { getWorkspaceComponent } from '@/components/manager/workspaceRegistry';
+import { useActingAccount } from '@/components/manager/actingAccount';
 import { EmptyState, Skeleton } from '@/components/manager/ui';
 
 /**
@@ -24,8 +25,7 @@ export default function WorkspacePage() {
   const actAsId = useManagerMode((s) => s.actAsId);
   const pageSlug = Array.isArray(slug) && slug.length ? slug.join('/') : slug || 'dashboard';
 
-  const [account, setAccount] = useState(null);
-  const [walletBalance, setWalletBalanceState] = useState(null);
+  const [loadedAccount, setLoadedAccount] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,8 +42,7 @@ export default function WorkspacePage() {
       if (currentUserId.current !== userId) return { success: false, stale: true };
       const user = res.data?.data?.user;
       if (!user) throw new Error('Account not found in your assignments.');
-      setAccount(user);
-      setWalletBalanceState(Number.isFinite(Number(user.wallet_balance)) ? Number(user.wallet_balance) : null);
+      setLoadedAccount(user);
       setError(null);
       return { success: true, user };
     } catch (err) {
@@ -56,44 +55,15 @@ export default function WorkspacePage() {
   }, [userId]);
 
   useEffect(() => {
-    setAccount(null);
+    setLoadedAccount(null);
     setLoading(true);
     setError(null);
     loadSession();
   }, [loadSession]);
 
-  const acting = useMemo(() => {
-    if (!account) return null;
-    const setWalletBalance = (balance) => {
-      const n = Number(balance);
-      if (!Number.isFinite(n)) return;
-      setWalletBalanceState(n);
-      setAccount((u) => (u ? { ...u, wallet_balance: n } : u));
-    };
-    return {
-      user: account,
-      walletBalance,
-      updateUser: (data) => {
-        setAccount((u) => ({ ...u, ...data }));
-        if (Number.isFinite(Number(data?.wallet_balance))) setWalletBalanceState(Number(data.wallet_balance));
-      },
-      setWalletBalance,
-      refreshWalletBalance: async () => {
-        try {
-          const res = await api.get('/wallet', { skipClientCache: true, __skipRetry: true });
-          if (res.data?.success) {
-            const balance = Number(res.data.data?.balance ?? 0);
-            setWalletBalance(balance);
-            return { success: true, balance };
-          }
-        } catch (err) {
-          return { success: false, message: err.response?.data?.message || err.message };
-        }
-        return { success: false };
-      },
-      fetchMe: loadSession,
-    };
-  }, [account, walletBalance, loadSession]);
+  // Stable helpers: embedded pages depend on them (see useActingAccount).
+  const acting = useActingAccount({ account: loadedAccount, loadSession });
+  const account = acting?.user || null;
 
   const PageComponent = account ? getWorkspaceComponent(account.role, pageSlug) : null;
 
