@@ -6,6 +6,7 @@
  * and their specialized shop representation (Store).
  */
 
+const { EARNED_ORDER_MATCH, earnedRevenueExpr } = require('../utils/revenue');
 const Vendor = require('../models/Vendor.model');
 const Store = require('../models/Store.model');
 const KYC = require('../models/KYC.model');
@@ -739,14 +740,8 @@ const getVendorAnalytics = async (req, res, next) => {
         {
           $group: {
             _id: null,
-            totalRevenue: {
-              $sum: {
-                $cond: [
-                  { $and: [{ $not: { $in: ['$order_status', ['cancelled', 'refunded']] } }, { $in: ['$payment_status', ['paid', 'completed']] }] },
-                  '$total_amount', 0
-                ]
-              }
-            },
+            // Same earned-revenue rule as the sales chart below and every other dashboard.
+            totalRevenue: { $sum: earnedRevenueExpr },
             totalSales: { $sum: { $cond: [{ $in: ['$order_status', ['delivered', 'completed']] }, 1, 0] } },
             openOrders: { $sum: { $cond: [{ $not: { $in: ['$order_status', ['delivered', 'completed', 'cancelled', 'refunded']] } }, 1, 0] } },
             processingOrders: { $sum: { $cond: [{ $eq: ['$order_status', 'processing'] }, 1, 0] } },
@@ -778,12 +773,13 @@ const getVendorAnalytics = async (req, res, next) => {
           $match: {
             vendor_id: vendorId,
             createdAt: { $gte: sixMonthsAgo },
-            order_status: { $ne: 'cancelled' }
+            ...EARNED_ORDER_MATCH,
           }
         },
         {
           $group: {
-            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+            // Months as the vendor experiences them (Cameroon time), not UTC.
+            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt', timezone: 'Africa/Douala' } },
             revenue: { $sum: '$total_amount' },
             count: { $sum: 1 }
           }

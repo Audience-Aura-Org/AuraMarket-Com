@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/services/api';
+import { earnedRevenue } from '@/lib/revenue';
 import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -53,6 +54,8 @@ export default function VendorOrdersPage() {
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const updateUser = useAuthStore((s) => s.updateUser);
   const [orders, setOrders] = useState([]);
+  const [orderTotal, setOrderTotal] = useState(0);
+  const [serverStats, setServerStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
@@ -84,8 +87,17 @@ export default function VendorOrdersPage() {
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/vendors/orders');
-      if (res.data.success) setOrders(res.data.data.orders || []);
+      // /vendor (not the public /vendors catalogue path) so the list is never
+      // served stale from the catalogue cache. Totals come from server-wide stats.
+      const [res, analytics] = await Promise.all([
+        api.get('/vendor/orders', { params: { limit: 200 } }),
+        api.get('/vendor/analytics').catch(() => null),
+      ]);
+      if (res.data.success) {
+        setOrders(res.data.data.orders || []);
+        setOrderTotal(Number(res.data.total) || (res.data.data.orders || []).length);
+      }
+      if (analytics?.data?.success) setServerStats(analytics.data.data.stats || null);
     } catch (err) {
       if (err.response?.status === 404) {
         if (updateUser) updateUser({ onboarded: false });
@@ -158,8 +170,11 @@ export default function VendorOrdersPage() {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const currentOrders = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const totalRevenue = orders.filter((o) => o.payment_status !== 'failed').reduce((sum, o) => sum + (o.total_amount || 0), 0);
-  const pendingCount = orders.filter(o => ['placed','processing'].includes(o.order_status)).length;
+  // Server-wide figures (same earned-revenue rule as the dashboard); the
+  // loaded list is only a fallback and the source of "last 24h".
+  const allOrdersCount = Math.max(orderTotal, orders.length);
+  const totalRevenue = serverStats?.total_revenue ?? earnedRevenue(orders);
+  const pendingEscrow = Number(serverStats?.pending_escrow) || 0;
   const colorMap = {
     emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-600', bar: 'bg-emerald-500', badgeBg: 'bg-emerald-500/10', badgeText: 'text-emerald-600', glow: '#10b981', w: '70%' },
     primary: { bg: 'bg-[var(--accent)]/10', text: 'text-[var(--accent)]', bar: 'bg-[var(--accent)]', badgeBg: 'bg-[var(--accent)]/10', badgeText: 'text-[var(--accent)]', glow: 'var(--accent)', w: '55%' },
@@ -167,23 +182,21 @@ export default function VendorOrdersPage() {
     purple: { bg: 'bg-[var(--accent)]/10', text: 'text-[var(--accent)]', bar: '', badgeBg: '', badgeText: '', glow: 'var(--accent)', w: '60%' },
   };
 
-  const completedCount = orders.filter(o => ['delivered', 'completed'].includes(o.order_status)).length;
-  const recentRevenue = orders.filter(o => {
-    const d = new Date(o.createdAt);
-    const now = new Date();
-    return (now - d) < (24 * 60 * 60 * 1000); // last 24h
-  }).filter((o) => o.payment_status !== 'failed').reduce((sum, o) => sum + (o.total_amount || 0), 0);
+  const completedCount = serverStats?.total_sales ?? orders.filter(o => ['delivered', 'completed'].includes(o.order_status)).length;
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const recentRevenue = earnedRevenue(orders.filter((o) => new Date(o.createdAt).getTime() >= dayAgo));
+  const openOrdersCount = serverStats?.open_orders ?? orders.filter(o => !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status)).length;
+  const failedCount = orders.filter(o => o.payment_status === 'failed').length;
 
-  const openOrdersCount = orders.filter(o => o.payment_status !== 'failed' && !['delivered', 'completed', 'cancelled', 'refunded'].includes(o.order_status)).length;
-
-  const completionRate = orders.length > 0 ? Math.round((completedCount / orders.length) * 100) : 0;
-  const openRate       = orders.length > 0 ? Math.round((openOrdersCount / orders.length) * 100) : 0;
-  const pendingRate    = orders.length > 0 ? Math.round((pendingCount / orders.length) * 100) : 0;
+  const pctOf = (part, whole) => (whole > 0 ? Math.min(Math.round((part / whole) * 100), 100) : 0);
+  const completionRate = pctOf(completedCount, allOrdersCount);
+  const openRate       = pctOf(openOrdersCount, allOrdersCount);
+  const escrowRate     = pctOf(pendingEscrow, totalRevenue);
 
   const stats = [
     { label: 'Total Revenue',   value: `${totalRevenue.toLocaleString()} XAF`, icon: 'payments',       color: 'emerald', pct: `${completedCount} done`,  sub: `+${recentRevenue.toLocaleString()} recent`, progress: completionRate, footer: `${completedCount} orders complete` },
-    { label: 'Open Orders',     value: String(openOrdersCount),                  icon: 'shopping_bag',   color: 'primary', pct: `${orders.length} total`, sub: `${orders.filter(o => o.payment_status === 'failed').length} failed`,       progress: openRate,       footer: `${orders.length} orders total` },
-    { label: 'Pending Payouts', value: String(pendingCount),                     icon: 'account_balance', color: 'purple', pct: 'Held in Escrow',         sub: 'Pending Delivery',                            progress: pendingRate,    footer: 'Held in escrow' },
+    { label: 'Open Orders',     value: String(openOrdersCount),                  icon: 'shopping_bag',   color: 'primary', pct: `${allOrdersCount} total`, sub: `${failedCount} failed`,       progress: openRate,       footer: `${allOrdersCount} orders total` },
+    { label: 'Pending Payouts', value: `${pendingEscrow.toLocaleString()} XAF`,  icon: 'account_balance', color: 'purple', pct: 'Held in Escrow',         sub: 'Released on delivery',                        progress: escrowRate,     footer: 'Held in escrow' },
     { label: 'Completed Orders', value: String(completedCount),                  icon: 'verified',       color: 'blue',   pct: 'Fully Completed',         sub: 'Delivered and Settled',                       progress: completionRate, footer: `${completedCount} fulfilled` },
   ];
 

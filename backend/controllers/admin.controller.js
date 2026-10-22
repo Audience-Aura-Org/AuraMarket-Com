@@ -5,6 +5,7 @@
  * Includes layout mapping, user bans, and broad dispute settlements natively.
  */
 
+const { EARNED_ORDER_MATCH } = require('../utils/revenue');
 const Homepage = require('../models/Homepage.model');
 const Product = require('../models/Product.model');
 const Vendor = require('../models/Vendor.model');
@@ -123,7 +124,8 @@ const asMoney = (value) => {
 // Financial reporting must only include money that has actually settled. A
 // placed order can still be awaiting mobile-money approval, and a cancelled or
 // refunded order must never inflate an admin revenue card.
-const SETTLED_ORDER_MATCH = { payment_status: 'paid' };
+// Earned orders only — the one platform-wide revenue definition (utils/revenue).
+const SETTLED_ORDER_MATCH = EARNED_ORDER_MATCH;
 
 const getFeeBreakdown = (tx = {}) => {
   const metadata = tx.metadata || {};
@@ -1036,7 +1038,7 @@ const getAllVendors = async (req, res, next) => {
     let statsMap = {};
     if (vendorIds.length > 0) {
       const vendorOrderStats = await Order.aggregate([
-        { $match: { vendor_id: { $in: vendorIds }, payment_status: 'paid' } },
+        { $match: { vendor_id: { $in: vendorIds }, ...EARNED_ORDER_MATCH } },
         { $group: { _id: '$vendor_id', total_sales: { $sum: 1 }, total_revenue: { $sum: '$total_amount' } } },
       ]);
       vendorOrderStats.forEach((s) => {
@@ -1329,7 +1331,7 @@ const getAdminLogisticsFirms = async (req, res, next) => {
 const getLogisticsEarningsReport = async (req, res, next) => {
   try {
     const vendorTotals = await Order.aggregate([
-      { $match: scoped('Order', { payment_status: { $in: ['paid', 'pending'] }, order_status: { $ne: 'cancelled' } }, req.managerScope) },
+      { $match: scoped('Order', SETTLED_ORDER_MATCH, req.managerScope) },
       { $group: { _id: '$vendor_id', total_orders: { $sum: 1 }, gross_sales: { $sum: '$total_amount' } } },
       {
         $lookup: {
@@ -1576,7 +1578,7 @@ const getAdvancedAnalytics = async (req, res, next) => {
 
     // 7. Global Financial Integrity (Total platform flow)
     const totalRevenue = await Order.aggregate([
-      { $match: scoped('Order', { payment_status: 'paid' }, s) },
+      { $match: scoped('Order', SETTLED_ORDER_MATCH, s) },
       { $group: { _id: null, total: { $sum: '$total_amount' } } }
     ]);
 

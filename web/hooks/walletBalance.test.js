@@ -110,3 +110,12 @@ describe('useWalletBalance', () => {
     expect(result.current.walletBalance).toBe(4_200);
   });
 });
+
+describe('balance writes do not churn the user object', () => {
+  it('setWalletBalance keeps the same `user` reference, so pages keyed on user do not reload', () => {
+    const userBefore = useAuthStore.getState().user;
+    useAuthStore.getState().setWalletBalance(12_345);
+    expect(useAuthStore.getState().walletBalance).toBe(12_345);
+    expect(useAuthStore.getState().user).toBe(userBefore);
+  });
+});

@@ -891,3 +891,34 @@ describe('GET /orders/:id/invoice — PDF invoice generation', () => {
     expect(res.status).toBe(401)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /vendor/orders?food_status=… — kitchen board filter (server-side)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('GET /vendor/orders?food_status — kitchen board', () => {
+  it('returns only orders in the requested food statuses, however old', async () => {
+    const old = await seedOrder({ food_status: 'preparing', createdAt: new Date(Date.now() - 3 * 864e5) })
+    for (let i = 0; i < 55; i++) await seedOrder({})                    // newer retail orders
+    await seedOrder({ food_status: 'rider_arrived' })
+    await seedOrder({ food_status: 'delivered' })
+
+    const res = await request(app)
+      .get('/api/v1/vendor/orders?food_status=pending_acceptance,preparing,ready,rider_arrived,picked_up')
+      .set(authHeader(signToken(vendorUser)))
+
+    expect(res.status).toBe(200)
+    const statuses = res.body.data.orders.map((o) => o.food_status).sort()
+    expect(statuses).toEqual(['preparing', 'rider_arrived'])
+    expect(res.body.data.orders.some((o) => String(o._id) === String(old._id))).toBe(true)
+  })
+
+  it('ignores unknown food statuses instead of failing', async () => {
+    await seedOrder({ food_status: 'preparing' })
+    const res = await request(app)
+      .get('/api/v1/vendor/orders?food_status=bogus')
+      .set(authHeader(signToken(vendorUser)))
+    expect(res.status).toBe(200)
+    expect(res.body.data.orders).toHaveLength(0)
+  })
+})

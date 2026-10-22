@@ -848,9 +848,18 @@ const getVendorOrders = async (req, res, next) => {
     const limit = Math.min(200, parseInt(req.query.limit, 10) || 50);
     const skip  = (page - 1) * limit;
 
+    // ?food_status=a,b — the kitchen board asks for its active tickets only, so
+    // an older order still being prepared is never pushed off by newer ones.
+    const filter = { vendor_id: req.vendor._id };
+    if (req.query.food_status) {
+      const allowed = Order.schema.path('food_status').enumValues;
+      const wanted = String(req.query.food_status).split(',').map((v) => v.trim()).filter((v) => allowed.includes(v));
+      filter.food_status = { $in: wanted };
+    }
+
     const [orders, total] = await Promise.all([
-      Order.find({ vendor_id: req.vendor._id })
-        .select('order_status food_status payment_status total_amount createdAt customer_id products vendor_id shipment logistics_company_id shipping_method shipping_address special_instructions status_logs')
+      Order.find(filter)
+        .select('order_status food_status payment_status payment_method total_amount createdAt customer_id products vendor_id shipment logistics_company_id shipping_method shipping_address special_instructions status_logs')
         .populate('customer_id', 'name email phone avatar')
         .populate('products.product_id', 'name price images')
         .populate({
@@ -863,7 +872,7 @@ const getVendorOrders = async (req, res, next) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      Order.countDocuments({ vendor_id: req.vendor._id })
+      Order.countDocuments(filter)
     ]);
 
     res.status(200).json({

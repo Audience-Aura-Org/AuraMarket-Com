@@ -74,10 +74,11 @@ const baseAuthStore = create(
         const stamp = readStamp ?? nextBalanceStamp();
         if (stamp < appliedBalanceStamp) return;
         appliedBalanceStamp = stamp;
-        set((state) => ({
-          walletBalance: numericBalance,
-          user: state.user ? { ...state.user, wallet_balance: numericBalance } : state.user,
-        }));
+        // Only the balance changes. Rewriting `user` here re-ran every page
+        // effect keyed on user (dozens of dashboards) on each balance update —
+        // flickering cards and redundant API calls. Balances render from
+        // walletBalance; nothing reads user.wallet_balance for display.
+        set({ walletBalance: numericBalance });
         // Broadcast so useWalletBalance hook picks it up even if Zustand
         // subscription propagation is stalled by Next.js batching
         if (typeof window !== 'undefined') {

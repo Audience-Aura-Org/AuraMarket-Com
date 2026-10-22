@@ -88,6 +88,8 @@ function getNextFoodStatus(order) {
     pending_acceptance: 'preparing',
     preparing:          'ready',
     ready:              (vm || timedOut) ? 'picked_up' : null,
+    // Rider is at the counter: the restaurant hands the order over.
+    rider_arrived:      'picked_up',
     // Once vendor overrides a logistics order and marks picked_up, they finish delivery too
     picked_up:          (vm || order.shipping_method === 'logistics_partner') ? 'delivered' : null,
   })[order.food_status] ?? null;
@@ -98,6 +100,7 @@ function getActionLabel(order) {
   if (order.food_status === 'preparing')          return 'Mark Ready for Pickup';
   if (order.food_status === 'ready' && order.shipping_method === 'vendor_managed') return 'Rider Picked Up';
   if (order.food_status === 'ready' && isLogisticsTimedOut(order))                 return 'No Rider — Take Over';
+  if (order.food_status === 'rider_arrived') return 'Hand Over to Rider';
   if (order.food_status === 'picked_up') return 'Mark as Delivered';
   return null;
 }
@@ -249,6 +252,8 @@ function OrderCard({ order, onAction, onDecline, updating }) {
   );
 }
 
+const KITCHEN_ACTIVE_STATUSES = ['pending_acceptance', 'preparing', 'ready', 'rider_arrived', 'picked_up'];
+
 export default function KitchenDashboardPage() {
   const router = useRouter();
   const user = useAuthStore(s => s.user);
@@ -280,13 +285,15 @@ export default function KitchenDashboardPage() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const res = await api.get('/vendor/orders', { skipClientCache: true });
+      // Server-side filter: only active tickets, however old (a busy day can't
+      // push a still-cooking order off the newest page). rider_arrived stays on
+      // the board — that's when staff hand the order over.
+      const res = await api.get('/vendor/orders', {
+        params: { food_status: KITCHEN_ACTIVE_STATUSES.join(','), limit: 200 },
+        skipClientCache: true,
+      });
       if (res.data.success) {
-        const allOrders = res.data.data.orders || [];
-        const foodOrders = allOrders.filter(o =>
-          o.food_status &&
-          ['pending_acceptance', 'preparing', 'ready', 'picked_up'].includes(o.food_status)
-        );
+        const foodOrders = res.data.data.orders || [];
 
         // Sound alert when new orders arrive
         const pendingOrders = foodOrders.filter(o => o.food_status === 'pending_acceptance');
@@ -452,7 +459,7 @@ export default function KitchenDashboardPage() {
 
   const newOrders      = orders.filter(o => o.food_status === 'pending_acceptance');
   const cookingOrders  = orders.filter(o => o.food_status === 'preparing');
-  const readyOrders    = orders.filter(o => o.food_status === 'ready');
+  const readyOrders    = orders.filter(o => ['ready', 'rider_arrived'].includes(o.food_status));
   const pickedUpOrders = orders.filter(o => o.food_status === 'picked_up');
 
   const columns = [

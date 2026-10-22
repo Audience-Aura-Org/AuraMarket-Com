@@ -12,6 +12,7 @@
  *   sendInvitation, respondInvitation, getSettings, updateSettings
  */
 
+const { earnedRevenueExpr } = require('../utils/revenue');
 const mongoose = require('mongoose');
 const User              = require('../models/User.model');
 const Order             = require('../models/Order.model');
@@ -47,14 +48,11 @@ const parseDate = (v) => {
 
 // Order statuses that represent work waiting on the vendor.
 const NEW_ORDER_STATUSES = ['placed'];
-// Statuses excluded from revenue — the money never stayed with the vendor.
-const NON_REVENUE_STATUSES = ['cancelled', 'refund_pending', 'refunded'];
 // Dispute statuses that still need attention.
 const OPEN_DISPUTE_STATUSES = ['pending', 'investigating'];
 
-const revenueExpr = {
-  $cond: [{ $in: ['$order_status', NON_REVENUE_STATUSES] }, 0, '$total_amount'],
-};
+// Earned revenue — the one platform-wide definition (utils/revenue).
+const revenueExpr = earnedRevenueExpr;
 
 /** Build a name map for assigned users. */
 async function userMap(scope) {

@@ -62,6 +62,8 @@ const makeOrder = (customer, vendor, overrides = {}) =>
     shipping_fee:   0,
     total_amount:   1000,
     payment_method: 'wallet',
+    // Wallet orders are paid at checkout; unpaid orders never count as revenue.
+    payment_status: 'paid',
     ...overrides,
   })
 

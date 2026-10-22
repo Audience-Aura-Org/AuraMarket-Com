@@ -49,7 +49,9 @@ export default function VendorAnalyticsPage() {
   useEffect(() => {
     if (!hasHydrated || !user || user.role !== 'vendor') return;
     fetchAnalytics();
-  }, [hasHydrated, user, fetchAnalytics]);
+    // Keyed on identity, not the user object: profile edits must not refetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated, user?._id, user?.role, fetchAnalytics]);
 
   const handleDownloadReport = () => {
     const { stats, sales_history } = data || {};
@@ -115,17 +117,23 @@ export default function VendorAnalyticsPage() {
 
         {/* Micro-Stat Grid */}
         {(() => {
-          const totalSales    = stats?.total_sales || 0;
-          const totalRevenue  = stats?.total_revenue || 0;
+          const totalSales    = stats?.total_sales || 0;          // fulfilled orders
+          const openOrders    = stats?.open_orders || 0;
+          const allOrders     = totalSales + openOrders;
+          const totalRevenue  = stats?.total_revenue || 0;        // earned revenue (same as dashboard)
           const pendingEscrow = stats?.pending_escrow || 0;
           const totalProducts = stats?.total_products || 0;
-          const escrowRatio   = totalRevenue > 0 ? Math.min(Math.round((pendingEscrow / totalRevenue) * 100), 100) : 0;
+          const inStock       = stats?.in_stock_products || 0;
+          const lowStock      = stats?.low_stock_count || 0;
+          const pct = (part, whole) => (whole > 0 ? Math.min(Math.round((part / whole) * 100), 100) : 0);
+          const fulfilledPct  = pct(totalSales, allOrders);
+          const escrowRatio   = pct(pendingEscrow, totalRevenue);
           return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4 md:px-0">
-              <StatCard label={t('analytics.revenue', 'Revenue')}   value={fmt(totalRevenue)}       icon="payments"                color="emerald" progress={Math.min(totalSales, 100)}  footer={`${totalSales} orders fulfilled`} />
+              <StatCard label={t('analytics.revenue', 'Revenue')}   value={fmt(totalRevenue)}       icon="payments"                color="emerald" progress={fulfilledPct}  footer={`${totalSales} orders fulfilled`} />
               <StatCard label={t('analytics.escrow', 'Escrow')}     value={fmt(pendingEscrow)}      icon="account_balance_wallet"  color="amber"   progress={escrowRatio}                footer={`${fmt(pendingEscrow)} pending release`} />
-              <StatCard label={t('analytics.orders', 'Orders')}     value={String(totalSales)}      icon="shopping_bag"            color="blue"    progress={Math.min(totalSales, 100)}  footer={`${totalProducts} products active`} />
-              <StatCard label={t('analytics.inventory', 'Inventory')} value={String(totalProducts)} icon="category"                color="indigo"  progress={totalProducts > 0 ? 70 : 0} footer={`${totalProducts} listed`} />
+              <StatCard label={t('analytics.orders', 'Orders')}     value={String(allOrders)}       icon="shopping_bag"            color="blue"    progress={fulfilledPct}  footer={`${openOrders} open · ${totalSales} fulfilled`} />
+              <StatCard label={t('analytics.inventory', 'Inventory')} value={String(totalProducts)} icon="category"                color="indigo"  progress={pct(inStock, totalProducts)} footer={`${inStock} in stock${lowStock ? ` · ${lowStock} low` : ''}`} />
             </div>
           );
         })()}
@@ -136,7 +144,7 @@ export default function VendorAnalyticsPage() {
           {/* Revenue Velocity Chart */}
           <div className="lg:col-span-2 p-6 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)]">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">{t('analytics.revenueOverTime', 'Revenue Over Time (30D)')}</h3>
+              <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">{t('analytics.revenueOverTime6m', 'Revenue Over Time (6 months)')}</h3>
               <div className="flex items-center gap-4">
                  <div className="flex items-center gap-1.5">
                     <div className="size-1.5 rounded-full bg-[var(--accent)]" />

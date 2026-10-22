@@ -682,7 +682,7 @@ const watchProduct = async (req, res, next) => {
 const getVendorProducts = async (req, res, next) => {
   try {
     const [products, subStatus] = await Promise.all([
-      Product.find({ vendor_id: req.vendor._id, status: { $ne: 'archived' } }).sort('-createdAt'),
+      Product.find({ vendor_id: req.vendor._id, status: { $ne: 'archived' } }).sort('-createdAt').lean(),
       getSubscriptionStatus(req.user, 'vendor'),
     ]);
     res.status(200).json({ success: true, count: products.length, data: { products, subscription_active: subStatus.active } });

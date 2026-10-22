@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
+import { isEarnedOrder, earnedRevenue } from '@/lib/revenue';
 import Link from 'next/link';
 import api from '@/services/api';
 import { useRouter } from 'next/navigation';
@@ -40,10 +41,16 @@ const getMonthBucketKey = (date) => {
   return `${safeDate.getFullYear()}-${String(safeDate.getMonth() + 1).padStart(2, '0')}`;
 };
 
-const buildMonthlySalesSeries = (analyticsHistory = [], paidOrders = []) => {
+/**
+ * Six monthly buckets. The server's sales_history is authoritative (a month
+ * missing from it earned nothing); only when analytics failed entirely
+ * (history === null) do we estimate from the loaded orders.
+ */
+const buildMonthlySalesSeries = (analyticsHistory, earnedOrders = []) => {
   const historyMap = new Map();
+  const fromServer = Array.isArray(analyticsHistory);
 
-  analyticsHistory.forEach((entry) => {
+  (analyticsHistory || []).forEach((entry) => {
     const rawKey = entry?._id || entry?.month || entry?.label || entry?.key;
     if (!rawKey) return;
     const key = String(rawKey).slice(0, 7);
@@ -62,10 +69,11 @@ const buildMonthlySalesSeries = (analyticsHistory = [], paidOrders = []) => {
     date.setDate(1);
     date.setMonth(date.getMonth() - (5 - i));
     const key = getMonthBucketKey(date);
-    const fallbackRevenue = paidOrders
-      .filter((order) => getMonthBucketKey(order?.createdAt) === key)
-      .reduce((sum, order) => sum + Number(order?.total_amount || 0), 0);
-    const value = historyMap.has(key) ? historyMap.get(key) : fallbackRevenue;
+    const value = fromServer
+      ? (historyMap.get(key) ?? 0)
+      : earnedOrders
+        .filter((order) => getMonthBucketKey(order?.createdAt) === key)
+        .reduce((sum, order) => sum + Number(order?.total_amount || 0), 0);
 
     return {
       key,
@@ -80,7 +88,6 @@ const getOrderProductName = (order) => {
   return item?.name || item?.product_name || item?.product_id?.name || 'Product';
 };
 
-const isPaidOrder = (order) => ['paid', 'completed'].includes(order?.payment_status);
 const isCompletedOrder = (order) => ['delivered', 'completed'].includes(order?.order_status);
 const isOpenOrder = (order) => !['delivered', 'completed', 'cancelled', 'refunded'].includes(order?.order_status);
 
@@ -101,7 +108,7 @@ export default function VendorDashboard() {
   const startBalanceRead = useAuthStore((s) => s.startBalanceRead);
   const [pendingEscrow, setPendingEscrow] = useState(0);
   const [analyticsStats, setAnalyticsStats] = useState(null);
-  const [analyticsHistory, setAnalyticsHistory] = useState([]);
+  const [analyticsHistory, setAnalyticsHistory] = useState(null); // null = analytics unavailable
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -164,7 +171,7 @@ export default function VendorDashboard() {
       }
       if (analyticsRes?.data?.success) {
         setAnalyticsStats(analyticsData.stats || null);
-        setAnalyticsHistory(analyticsData.sales_history || []);
+        setAnalyticsHistory(Array.isArray(analyticsData.sales_history) ? analyticsData.sales_history : []);
         if (!ordersRes?.data?.success) setOrders(analyticsData.recent_orders || []);
         // Analytics responses may be client-cached; never take the balance
         // from them (the shared store keeps the live value).
@@ -200,10 +207,10 @@ export default function VendorDashboard() {
 
   const handleRefresh = () => load(false);
 
-  const paidOrders = orders.filter(isPaidOrder);
+  const earnedOrders = orders.filter(isEarnedOrder);
   const completedOrders = orders.filter(isCompletedOrder);
   const openOrders = orders.filter(isOpenOrder);
-  const totalSales = analyticsStats?.total_revenue ?? paidOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0);
+  const totalSales = analyticsStats?.total_revenue ?? earnedRevenue(earnedOrders);
   const totalProducts = analyticsStats?.total_products ?? 0;
   const inStockProducts = analyticsStats?.in_stock_products ?? 0;
   const outOfStockProducts = analyticsStats?.out_of_stock_products ?? 0;
@@ -240,7 +247,7 @@ export default function VendorDashboard() {
 
   if (!hasHydrated || !user) return null;
 
-    const monthlySales = buildMonthlySalesSeries(analyticsHistory, paidOrders);
+    const monthlySales = buildMonthlySalesSeries(analyticsHistory, earnedOrders);
     const hasMonthlySalesData = monthlySales.some((entry) => entry.value > 0);
     // Growth % vs previous month
     const currentMonthVal = monthlySales[5]?.value ?? 0;

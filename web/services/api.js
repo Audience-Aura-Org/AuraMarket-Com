@@ -95,6 +95,18 @@ const OFFLINE_CACHEABLE_ROUTES = [
   /^logistics\/dashboard(?:\/|$)/,
 ];
 
+// Live business data: dashboards must show it the moment it changes (a new
+// order, a payment, a stock edit). These are never served from the 45 s
+// client cache — only from the offline copy when the network is down.
+const LIVE_ROUTES = [
+  /^vendor\//,
+  /^logistics\//,
+  /^admin\//,
+  /^subscriptions\//,
+  /^notifications(?:\/|$)/,
+];
+const isLiveRoute = (url = '') => LIVE_ROUTES.some((route) => route.test(normalizeCacheUrl(url)));
+
 const getOfflineStorage = () => {
   if (typeof window === 'undefined') return null;
   try {
@@ -513,7 +525,7 @@ api.get = async (url, config = {}) => {
     }
 
     const key = getCacheKey(scopedConfig);
-    const cached = readOfflineCache(scopedConfig);
+    const cached = isLiveRoute(url) ? null : readOfflineCache(scopedConfig);
     if (cached?.data && Date.now() - Number(cached.cachedAt || 0) <= CLIENT_FAST_CACHE_TTL_MS) {
       return {
         data: cached.data,
