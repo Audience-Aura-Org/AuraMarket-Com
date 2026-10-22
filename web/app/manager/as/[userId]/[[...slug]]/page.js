@@ -109,7 +109,7 @@ export default function WorkspacePage() {
   }
 
   // Re-mount on account switch so no state leaks between accounts.
-  // .m-embedded restores the app's own zoom, surface and type for the page.
+  // .m-embedded restores the app's own surface and type for the page.
   return (
     <div className="m-embedded">
       <ActingAccountContext.Provider value={acting}>

@@ -39,18 +39,13 @@
   background-attachment: fixed;
   color: var(--m-text);
   font-family: var(--m-font-ui);
-  font-size: calc(13px * var(--aura-text-scale, 1));
   line-height: 1.5;
   text-transform: none;
   letter-spacing: normal;
 
-  /* The app shrinks the page with html zoom (0.8 phone / 0.7 desktop) and
-     compensates text per class. The manager UI opts out: undo the zoom so
-     px are real px, and size type with the m-fs-* scale below. */
-  zoom: 1.25;
-}
-@media (min-width: 1024px) {
-  .manager-ui { zoom: calc(1 / 0.7); }
+  /* Zoom: like every other route, the manager inherits the app's html zoom
+     (0.8 phone / 0.7 desktop). Type is sized by the m-fs-* scale below, whose
+     px values are zoom-compensated exactly like globals.css text-[Npx]. */
 }
 
 .dark .manager-ui {
@@ -64,18 +59,15 @@
 }
 
 /* Embedded account pages (vendor/logistics/customer) keep the app's own
-   zoom, surface and type so they look exactly as they do for their owner. */
+   surface and type (and, like the rest of the manager, the app's zoom) so
+   they look exactly as they do for their owner. */
 .manager-ui .m-embedded {
-  zoom: 0.8;
   min-height: 100%;
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-family: var(--aura-font-family, inherit);
   font-size: 16px;
   line-height: normal;
-}
-@media (min-width: 1024px) {
-  .manager-ui .m-embedded { zoom: 0.7; }
 }
 
 /*
@@ -90,24 +82,34 @@
   font-size: inherit;
 }
 
-/* ── Type scale (× the user's S/M/L/XL text preference) ─── */
-:is(html[data-font-size] body, html) .manager-ui .m-fs-10 { font-size: calc(10px * var(--aura-text-scale, 1)); }
-:is(html[data-font-size] body, html) .manager-ui .m-fs-11 { font-size: calc(11px * var(--aura-text-scale, 1)); }
+/* ── Type scale (× the user's S/M/L/XL text preference) ───
+   m-fs-N is the nominal size N; the px below are the app's zoom-compensated
+   values for text-[Npx] (globals.css), so manager text renders at the same
+   on-screen size as other routes: tablet/desktop values (0.7-compensated,
+   as globals.css applies them above 640px), then phone values (0.8 zoom). */
+.manager-ui { --m-fs-10: 13px; --m-fs-11: 14px; --m-fs-12: 15px; --m-fs-13: 15px; --m-fs-15: 17px; --m-fs-20: 26px; --m-fs-28: 37px; }
+@media (max-width: 640px) {
+  .manager-ui { --m-fs-10: 12px; --m-fs-11: 13px; --m-fs-12: 14px; --m-fs-13: 15px; --m-fs-15: 17px; --m-fs-20: 24px; --m-fs-28: 30px; }
+}
+.manager-ui { font-size: calc(var(--m-fs-13) * var(--aura-text-scale, 1)); }
+
+:is(html[data-font-size] body, html) .manager-ui .m-fs-10 { font-size: calc(var(--m-fs-10) * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-11 { font-size: calc(var(--m-fs-11) * var(--aura-text-scale, 1)); }
 :is(html[data-font-size] body, html) .manager-ui .m-fs-12,
-:is(html[data-font-size] body, html) .manager-ui .m-eyebrow { font-size: calc(12px * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-eyebrow { font-size: calc(var(--m-fs-12) * var(--aura-text-scale, 1)); }
 :is(html[data-font-size] body, html) .manager-ui .m-fs-13,
 :is(html[data-font-size] body, html) .manager-ui .m-input,
-:is(html[data-font-size] body, html) .manager-ui .m-btn { font-size: calc(13px * var(--aura-text-scale, 1)); }
-:is(html[data-font-size] body, html) .manager-ui .m-fs-15 { font-size: calc(15px * var(--aura-text-scale, 1)); }
-:is(html[data-font-size] body, html) .manager-ui .m-fs-20 { font-size: calc(20px * var(--aura-text-scale, 1)); }
-:is(html[data-font-size] body, html) .manager-ui .m-fs-28 { font-size: calc(28px * var(--aura-text-scale, 1)); }
-:is(html[data-font-size] body, html) .manager-ui .m-fs-20-28 { font-size: calc(20px * var(--aura-text-scale, 1)); }
-:is(html[data-font-size] body, html) .manager-ui .m-fs-13-15 { font-size: calc(13px * var(--aura-text-scale, 1)); }
-:is(html[data-font-size] body, html) .manager-ui .m-fs-15-13 { font-size: calc(15px * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-btn { font-size: calc(var(--m-fs-13) * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-15 { font-size: calc(var(--m-fs-15) * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-20 { font-size: calc(var(--m-fs-20) * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-28 { font-size: calc(var(--m-fs-28) * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-20-28 { font-size: calc(var(--m-fs-20) * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-13-15 { font-size: calc(var(--m-fs-13) * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-15-13 { font-size: calc(var(--m-fs-15) * var(--aura-text-scale, 1)); }
 @media (min-width: 768px) {
-  :is(html[data-font-size] body, html) .manager-ui .m-fs-20-28 { font-size: calc(28px * var(--aura-text-scale, 1)); }
-  :is(html[data-font-size] body, html) .manager-ui .m-fs-13-15 { font-size: calc(15px * var(--aura-text-scale, 1)); }
-  :is(html[data-font-size] body, html) .manager-ui .m-fs-15-13 { font-size: calc(13px * var(--aura-text-scale, 1)); }
+  :is(html[data-font-size] body, html) .manager-ui .m-fs-20-28 { font-size: calc(var(--m-fs-28) * var(--aura-text-scale, 1)); }
+  :is(html[data-font-size] body, html) .manager-ui .m-fs-13-15 { font-size: calc(var(--m-fs-15) * var(--aura-text-scale, 1)); }
+  :is(html[data-font-size] body, html) .manager-ui .m-fs-15-13 { font-size: calc(var(--m-fs-13) * var(--aura-text-scale, 1)); }
 }
 
 /* ── Surfaces ───────────────────────────────────────────── */
