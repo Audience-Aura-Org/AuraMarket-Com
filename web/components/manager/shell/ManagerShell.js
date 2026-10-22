@@ -5,6 +5,7 @@ import { useManagerMode } from '@/hooks/useManagerMode';
 import ManagerRail from './ManagerRail';
 import ManagerMobileBar from './ManagerMobileBar';
 import ManagerBottomTabs from './ManagerBottomTabs';
+import WorkingAsStrip from './WorkingAsStrip';
 import { workspaceAccountId } from './nav';
 
 /**
@@ -15,7 +16,9 @@ import { workspaceAccountId } from './nav';
 export default function ManagerShell({ children }) {
   const pathname = usePathname() || '';
   const switching = useManagerMode((s) => s.switching);
+  const accounts = useManagerMode((s) => s.accounts);
   const inWorkspace = Boolean(workspaceAccountId(pathname));
+  const account = accounts.find((item) => item.id === workspaceAccountId(pathname));
 
   return (
     <div className="manager-ui min-h-screen">
@@ -25,8 +28,9 @@ export default function ManagerShell({ children }) {
         </div>
       )}
       <ManagerRail />
-      <ManagerMobileBar />
-      <main className="md:pl-16 lg:pl-[232px] pt-[var(--manager-mobile-bar-height)] md:pt-0 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0 min-h-screen">
+      <ManagerMobileBar account={account} inWorkspace={inWorkspace} />
+      {inWorkspace && <WorkingAsStrip account={account} />}
+      <main className={`md:pl-16 lg:pl-[232px] ${inWorkspace ? 'pt-[calc(var(--manager-mobile-bar-height)_+_var(--manager-working-strip-height))]' : 'pt-[var(--manager-mobile-bar-height)]'} md:pt-0 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0 min-h-screen`}>
         {inWorkspace ? children : (
           <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8">{children}</div>
         )}

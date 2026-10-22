@@ -8,6 +8,7 @@
 
 .manager-ui {
   --manager-mobile-bar-height: calc(56px + env(safe-area-inset-top, 0px));
+  --manager-working-strip-height: 44px;
   --m-bg: var(--bg-secondary);
   --m-surface: color-mix(in srgb, var(--bg-primary) 70%, transparent);
   --m-surface-solid: var(--bg-primary);
@@ -338,10 +339,10 @@
    "Working as" strip (h-11 = 44px; on phones also below the 56px bar), and
    are solid on phones where there is no blur to hide content behind them. */
 .manager-ui .m-embedded .sticky {
-  top: calc(var(--manager-mobile-bar-height) + 44px) !important;
+  top: calc(var(--manager-mobile-bar-height) + var(--manager-working-strip-height)) !important;
 }
 @media (min-width: 768px) {
-  .manager-ui .m-embedded .sticky { top: 44px !important; }
+  .manager-ui .m-embedded .sticky { top: var(--manager-working-strip-height) !important; }
 }
 @media (max-width: 767px) {
   .manager-ui .m-embedded .sticky { background-color: var(--bg-primary) !important; }

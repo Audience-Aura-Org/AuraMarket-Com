@@ -7,10 +7,12 @@ import { TYPE_LABEL } from './nav';
  * Persistent reminder of whose account the manager is acting in.
  * Accent-tinted glass strip, like the vendor dashboard header.
  */
-export default function WorkingAsStrip({ account }) {
+export default function WorkingAsStrip({ account, mobile = false }) {
   return (
-    <div className="sticky top-[var(--manager-mobile-bar-height)] md:top-0 z-50 border-b border-[var(--m-border)] bg-[var(--m-surface-solid)] md:bg-[var(--m-surface-solid)]/90 md:backdrop-blur-2xl">
-      <div className="flex items-center gap-3 h-11 px-4 md:px-6">
+    <div className={mobile
+      ? 'h-11 border-t border-[var(--m-border)] bg-[var(--m-surface-solid)]'
+      : 'hidden md:sticky md:top-0 md:z-50 md:block border-b border-[var(--m-border)] bg-[var(--m-surface-solid)]/90 md:backdrop-blur-2xl'}>
+      <div className="flex items-center gap-3 h-full px-4 md:px-6">
         <span className="size-2 rounded-full bg-[var(--accent)] animate-pulse shrink-0" aria-hidden="true" />
         <p className="min-w-0 flex-1 truncate">
           <span className="m-muted">Working as </span>
