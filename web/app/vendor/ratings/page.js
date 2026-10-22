@@ -104,10 +104,10 @@ export default function VendorRatingsPage() {
             const ratingScore = Math.round((avgRating / 5) * 100);
             return (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-                <StatCard label="Active"    value={String(recentCount)}    icon="bolt"         color="fuchsia" sub="RECENT_FEED"   progress={reviews.length > 0 ? Math.round((recentCount / reviews.length) * 100) : 0} footer={`${avgRating.toFixed(1)} avg rating`} />
-                <StatCard label="Attention" value={String(lowCount)}       icon="warning"      color="rose"    sub="LOW_SCORES"   progress={reviews.length > 0 ? Math.round((lowCount / reviews.length) * 100) : 0}    footer={`${lowCount} need response`} />
-                <StatCard label="Resolved"  value={String(fiveStars)}      icon="check_circle" color="emerald" sub="TOP_TIER"     progress={ratingScore}                                                                   footer={`${fiveStars} five-star reviews`} />
-                <StatCard label="Closed"    value={String(reviews.length)} icon="inventory_2"  color="indigo"  sub="TOTAL_REVIEWS" progress={Math.min(reviews.length, 100)}                                               footer={`${reviews.length} total reviews`} />
+                <StatCard label="This week" value={String(recentCount)}    icon="bolt"         color="fuchsia" sub="Last 7 days"   progress={reviews.length > 0 ? Math.round((recentCount / reviews.length) * 100) : 0} footer={`${avgRating.toFixed(1)} avg rating`} />
+                <StatCard label="Attention" value={String(lowCount)}       icon="warning"      color="rose"    sub="3 stars or less"   progress={reviews.length > 0 ? Math.round((lowCount / reviews.length) * 100) : 0}    footer={`${lowCount} need response`} />
+                <StatCard label="Five-star" value={String(fiveStars)}      icon="check_circle" color="emerald" sub="Top rating"   progress={reviews.length > 0 ? Math.round((fiveStars / reviews.length) * 100) : 0}   footer={`${fiveStars} five-star reviews`} />
+                <StatCard label="Rating"    value={avgRating.toFixed(1)}   icon="inventory_2"  color="indigo"  sub="Average of 5" progress={ratingScore}                                                                   footer={`${reviews.length} total reviews`} />
               </div>
             );
           })()}

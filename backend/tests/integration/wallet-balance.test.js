@@ -68,3 +68,31 @@ describe('Withdrawal request response', () => {
     expect(wallet.body.data.balance).toBe(8_000)
   })
 })
+
+describe('GET /wallet — lifetime totals', () => {
+  it('earned = completed payouts + escrow releases (all time); withdrawn = completed withdrawals', async () => {
+    const user = await createUser({ wallet_balance: 0 })
+    const tx = (type, amount, status = 'completed') => ({
+      user_id: user._id, type, amount, status, gateway: 'platform',
+      reference: `T-${type}-${amount}-${Math.random().toString(36).slice(2, 8)}`, description: type,
+    })
+    // 60 payouts — more than any page of history — must all count.
+    await Transaction.insertMany(Array.from({ length: 60 }, () => tx('payout', 1_000)))
+    await Transaction.insertMany([
+      tx('escrow_release', 5_000),
+      tx('payout', 9_999, 'pending'),     // held, not earned yet
+      tx('refund', 4_000),                // money back on a purchase — not earnings
+      tx('deposit', 50_000),              // top-up — not earnings
+    ])
+    const wr = (status, amount) => ({
+      requested_by: user._id, role: 'user', amount, currency: 'XAF', status, withdrawal_method: 'momo',
+      recipient_details: { phone_number: '+237651000001', first_name: 'Ada', last_name: 'N', country: 'CM' },
+    })
+    await WithdrawalRequest.insertMany([wr('completed', 7_000), wr('pending', 3_000), wr('rejected', 2_000)])
+
+    const res = await request(app).get('/api/v1/wallet').set(asUser(user))
+
+    expect(res.status).toBe(200)
+    expect(res.body.data.totals).toEqual({ earned: 65_000, withdrawn: 7_000 })
+  })
+})

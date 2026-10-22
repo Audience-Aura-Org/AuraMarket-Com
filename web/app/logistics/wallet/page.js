@@ -89,6 +89,7 @@ export default function LogisticsWalletPage() {
   // Shared with the top nav: one balance everywhere.
   const balance = Number(storeWalletBalance ?? 0);
   const [escrow, setEscrow]           = useState(0);
+  const [lifetime, setLifetime]       = useState(null); // server-side { earned, withdrawn }
   const [transactions, setTxs]        = useState([]);
   const [escrowTxs, setEscrowTxs]     = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -131,6 +132,7 @@ export default function LogisticsWalletPage() {
         const nextBalance = balRes.value.data.data.balance || 0;
         setWalletBalance(nextBalance, { readStamp });
         setEscrow(balRes.value.data.data.pending_escrow || 0);
+        setLifetime(balRes.value.data.data.totals || null);
       }
       if (txRes.status === 'fulfilled' && txRes.value.data.success) setTxs(txRes.value.data.data.transactions || []);
       if (escrowRes.status === 'fulfilled' && escrowRes.value.data.success) setEscrowTxs(escrowRes.value.data.data.transactions || []);
@@ -219,21 +221,19 @@ export default function LogisticsWalletPage() {
     }
   };
 
-  // Total Earned = actual income from deliveries (payout, escrow_release, refund).
-  // Deposits are self-funded wallet top-ups, NOT earnings — excluded intentionally.
-  const totalEarned = transactions
-    .filter(t =>
-      t.status === 'completed' &&
-      (t.type === 'payout' || t.type === 'refund' || t.type === 'escrow_release')
-    )
+  // Lifetime totals come from the server (all history); the loaded page is
+  // only a fallback. Earned = payouts + escrow releases (not refunds/top-ups).
+  const pageEarned = transactions
+    .filter(t => t.status === 'completed' && (t.type === 'payout' || t.type === 'escrow_release'))
     .reduce((s, t) => s + t.amount, 0);
+  const totalEarned = lifetime?.earned ?? pageEarned;
   const totalOut = transactions
     .filter(t => t.type === 'withdrawal' && t.status === 'completed')
     .reduce((s, t) => s + t.amount, 0);
   const completedWithdrawn = withdrawalRequests
     .filter((wr) => ['completed', 'paid', 'successful'].includes(String(wr.status || '').toLowerCase()))
     .reduce((sum, wr) => sum + Number(wr.amount || 0), 0);
-  const withdrawnTotal = completedWithdrawn || totalOut;
+  const withdrawnTotal = lifetime?.withdrawn ?? (completedWithdrawn || totalOut);
 
   const totalFunds    = balance + escrow;
   const availRatio    = totalFunds > 0 ? Math.round((balance / totalFunds) * 100) : 0;
@@ -303,7 +303,7 @@ export default function LogisticsWalletPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4 md:px-0">
           <StatCard label="Available"    value={fmt(balance)}       icon="account_balance_wallet" color="indigo"  sub="XAF Ready"         progress={availRatio}    footer={`${escrowRatioW}% held in escrow`} loading={loading} />
           <StatCard label="In Escrow"    value={fmt(escrow)}        icon="lock_clock"             color="amber"   sub="Pending Release"   progress={escrowRatioW}  footer="Pending delivery confirmation" loading={loading} />
-          <StatCard label="Total Earned" value={fmt(totalEarned)}   icon="trending_up"            color="emerald" sub="Lifetime earnings"  progress={Math.min(withdrawRatio + availRatio, 100)} footer={`${fmt(totalEarned)} lifetime`} loading={loading} />
+          <StatCard label="Total Earned" value={fmt(totalEarned)}   icon="trending_up"            color="emerald" sub="Lifetime earnings"  progress={totalEarned > 0 ? 100 : 0} footer="All-time earnings" loading={loading} />
           <StatCard label="Withdrawn"    value={fmt(withdrawnTotal)} icon="arrow_outward"          color="primary" sub="Successful payouts" progress={withdrawRatio} footer={`${fmt(Math.max(totalEarned - withdrawnTotal, 0))} remaining`} loading={loading} />
         </div>
 

@@ -723,14 +723,35 @@ const getVendorAnalytics = async (req, res, next) => {
       // Aggregate product counters — no need to pull 200 full product docs
       Product.aggregate([
         { $match: { vendor_id: vendorId, status: { $ne: 'archived' } } },
+        // Same stock rule as the products page (web/lib/stock): variant
+        // products hold the sum of their variants (top-level stock is not kept
+        // in sync); meals have no stock — available while active.
+        {
+          $addFields: {
+            _isMeal: { $eq: ['$is_meal', true] },
+            _stock: {
+              $cond: [
+                { $and: [{ $eq: ['$has_variants', true] }, { $gt: [{ $size: { $ifNull: ['$sku_variants', []] } }, 0] }] },
+                { $sum: { $map: { input: '$sku_variants', as: 'v', in: { $ifNull: ['$$v.stock', 0] } } } },
+                { $ifNull: ['$stock', 0] },
+              ],
+            },
+          },
+        },
         {
           $group: {
             _id: null,
             totalProducts: { $sum: 1 },
             totalViews: { $sum: { $ifNull: ['$view_count', 0] } },
-            inStockProducts: { $sum: { $cond: [{ $gt: ['$stock', 0] }, 1, 0] } },
-            outOfStockProducts: { $sum: { $cond: [{ $lte: ['$stock', 0] }, 1, 0] } },
-            lowStockProducts: { $sum: { $cond: [{ $and: [{ $gt: ['$stock', 0] }, { $lte: ['$stock', 5] }] }, 1, 0] } },
+            inStockProducts: {
+              $sum: { $cond: [{ $or: [{ $and: ['$_isMeal', { $eq: ['$status', 'active'] }] }, { $and: [{ $not: ['$_isMeal'] }, { $gt: ['$_stock', 0] }] }] }, 1, 0] },
+            },
+            outOfStockProducts: {
+              $sum: { $cond: [{ $or: [{ $and: ['$_isMeal', { $ne: ['$status', 'active'] }] }, { $and: [{ $not: ['$_isMeal'] }, { $lte: ['$_stock', 0] }] }] }, 1, 0] },
+            },
+            lowStockProducts: {
+              $sum: { $cond: [{ $and: [{ $not: ['$_isMeal'] }, { $gt: ['$_stock', 0] }, { $lte: ['$_stock', 5] }] }, 1, 0] },
+            },
           }
         }
       ]),

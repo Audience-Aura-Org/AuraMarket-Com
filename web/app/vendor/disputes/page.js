@@ -107,7 +107,7 @@ export default function VendorDisputesPage() {
                 <StatCard label="Active"   value={String(activeCount)}    sub="Attention" icon="warning"      color="rose"   progress={activeRate}                     footer={`${activeCount} need attention`} />
                 <StatCard label="Resolved" value={String(resolvedCount)}  sub="Closed"    icon="verified_user" color="emerald" progress={resolveRate}                  footer={`${resolvedCount} cases closed`} />
                 <StatCard label="Rate"     value={`${resolveRate}%`}      sub="Yield"     icon="security"     color="indigo" progress={resolveRate}                    footer={`${resolveRate}% resolution rate`} />
-                <StatCard label="Total"    value={String(disputes.length)} sub="Cases"    icon="database"     color="blue"   progress={Math.min(disputes.length, 100)} footer={`${disputes.length} total cases`} />
+                <StatCard label="Total"    value={String(disputes.length)} sub="Cases"    icon="database"     color="blue"   footer={`${disputes.length} total cases`} />
               </div>
             );
           })()}

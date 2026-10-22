@@ -74,12 +74,30 @@ const getWalletBalance = async (req, res, next) => {
       }
     }
 
-    res.status(200).json({ 
-      success: true, 
-      data: { 
+    // Lifetime totals, computed server-side (a page of history understates
+    // them). Earned = completed payouts + escrow releases; refunds (money back
+    // on a purchase) and deposits (top-ups) are not earnings.
+    const [earnedAgg, withdrawnAgg] = await Promise.all([
+      Transaction.aggregate([
+        { $match: { user_id: user._id, status: 'completed', type: { $in: ['payout', 'escrow_release'] } } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]),
+      WithdrawalRequest.aggregate([
+        { $match: { requested_by: user._id, status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
         balance: user.wallet_balance,
-        pending_escrow: pendingEscrow
-      } 
+        pending_escrow: pendingEscrow,
+        totals: {
+          earned: Number(earnedAgg[0]?.total) || 0,
+          withdrawn: Number(withdrawnAgg[0]?.total) || 0,
+        },
+      },
     });
   } catch (error) {
     next(error);

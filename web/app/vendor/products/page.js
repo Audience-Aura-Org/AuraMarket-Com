@@ -11,6 +11,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import Pagination from '@/components/common/Pagination';
 import { useLanguage } from '@/context/LanguageContext';
 import StatCard from '@/components/layout/StatCard';
+import { stockLevel, isAvailable, effectiveStock } from '@/lib/stock';
 
 export default function VendorProductsPage() {
   const { t } = useLanguage();
@@ -69,9 +70,9 @@ export default function VendorProductsPage() {
       p.name?.toLowerCase().includes(query) ||
       p.category?.toLowerCase().includes(query)
     );
-    if (stockFilter === 'in_stock') list = list.filter((p) => p.stock > 5);
-    else if (stockFilter === 'low_stock') list = list.filter((p) => p.stock > 0 && p.stock <= 5);
-    else if (stockFilter === 'out_of_stock') list = list.filter((p) => p.stock <= 0);
+    if (stockFilter === 'in_stock') list = list.filter((p) => ['in', 'meal'].includes(stockLevel(p)));
+    else if (stockFilter === 'low_stock') list = list.filter((p) => stockLevel(p) === 'low');
+    else if (stockFilter === 'out_of_stock') list = list.filter((p) => stockLevel(p) === 'out');
     if (sortBy === 'price_asc') list = [...list].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
     else if (sortBy === 'price_desc') list = [...list].sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
     else if (sortBy === 'stock') list = [...list].sort((a, b) => (b.stock ?? 0) - (a.stock ?? 0));
@@ -83,21 +84,9 @@ export default function VendorProductsPage() {
   const currentProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   // Meals don't track stock — consider them "in stock" when status is active.
   // Variant products track stock per-variant; sum the variants for accurate counts.
-  const activeCount = products.filter((p) => {
-    if (p.is_meal || p.meal) return p.status === 'active';
-    if (p.has_variants && p.sku_variants?.length)
-      return p.sku_variants.some((v) => (v.stock || 0) > 0);
-    return (p.stock || 0) > 0;
-  }).length;
-
-  const lowStockCount = products.filter((p) => {
-    if (p.is_meal || p.meal) return false; // no stock concept for meals
-    if (p.has_variants && p.sku_variants?.length) {
-      const variantTotal = p.sku_variants.reduce((sum, v) => sum + (v.stock || 0), 0);
-      return variantTotal > 0 && variantTotal <= 5;
-    }
-    return (p.stock || 0) > 0 && (p.stock || 0) <= 5;
-  }).length;
+  // One stock rule (lib/stock) for these cards, the filter tabs and the badges.
+  const activeCount = products.filter(isAvailable).length;
+  const lowStockCount = products.filter((p) => stockLevel(p) === 'low').length;
 
   const onSaleCount = products.filter((p) => {
     // Top-level sale price
@@ -293,10 +282,12 @@ function getProductImageUrl(product) {
 
 function ManagementCard({ product, onDelete, t }) {
   const router = useRouter();
-  const isOutOfStock = product.stock <= 0;
-  const isLowStock = product.stock <= 5 && product.stock > 0;
-  const hasSale = product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price);
-  const discountPct = hasSale ? Math.round(((Number(product.compare_at_price) - Number(product.price)) / Number(product.compare_at_price)) * 100) : 0;
+  const level = stockLevel(product);
+  const isOutOfStock = level === 'out';
+  const isLowStock = level === 'low';
+  // Sales are sale_price < price (compare_at_price is deprecated and always null).
+  const hasSale = Number(product.sale_price) > 0 && Number(product.sale_price) < Number(product.price);
+  const discountPct = hasSale ? Math.round(((Number(product.price) - Number(product.sale_price)) / Number(product.price)) * 100) : 0;
   const status = isOutOfStock
     ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
     : isLowStock
@@ -353,15 +344,15 @@ function ManagementCard({ product, onDelete, t }) {
           <div className="flex flex-col">
             {hasSale ? (
               <>
-                <span className="text-[12px] font-bold text-[var(--accent)]">{Number(product.price).toLocaleString()} XAF</span>
-                <span className="text-[10px] font-medium text-[var(--text-secondary)] line-through">{product.compare_at_price?.toLocaleString()} XAF</span>
+                <span className="text-[12px] font-bold text-[var(--accent)]">{Number(product.sale_price).toLocaleString()} XAF</span>
+                <span className="text-[10px] font-medium text-[var(--text-secondary)] line-through">{Number(product.price).toLocaleString()} XAF</span>
               </>
             ) : (
               <span className="text-[12px] font-semibold">{product.price?.toLocaleString()} XAF</span>
             )}
           </div>
           <p className={`text-[11px] font-semibold ${isOutOfStock ? 'text-red-500' : isLowStock ? 'text-amber-500' : 'text-emerald-500'}`}>
-            {t('products.stock', 'Stock:')} {product.stock}
+            {product.is_meal ? t('products.onMenu', 'On menu') : <>{t('products.stock', 'Stock:')} {effectiveStock(product)}</>}
           </p>
         </div>
         <div className="flex items-center gap-3 text-[10px] font-medium text-[var(--text-secondary)]">
@@ -375,10 +366,12 @@ function ManagementCard({ product, onDelete, t }) {
 
 function ListRow({ product, onDelete, t }) {
   const router = useRouter();
-  const isOutOfStock = product.stock <= 0;
-  const isLowStock = product.stock <= 5 && product.stock > 0;
-  const hasSale = product.compare_at_price != null && Number(product.compare_at_price) > Number(product.price);
-  const discountPct = hasSale ? Math.round(((Number(product.compare_at_price) - Number(product.price)) / Number(product.compare_at_price)) * 100) : 0;
+  const level = stockLevel(product);
+  const isOutOfStock = level === 'out';
+  const isLowStock = level === 'low';
+  // Sales are sale_price < price (compare_at_price is deprecated and always null).
+  const hasSale = Number(product.sale_price) > 0 && Number(product.sale_price) < Number(product.price);
+  const discountPct = hasSale ? Math.round(((Number(product.price) - Number(product.sale_price)) / Number(product.price)) * 100) : 0;
   const status = isOutOfStock
     ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
     : isLowStock
@@ -411,8 +404,8 @@ function ListRow({ product, onDelete, t }) {
           <span className={status.color}>{status.label}</span>
           {hasSale ? (
             <span className="flex items-center gap-1">
-              <span className="font-semibold text-[var(--accent)]">{Number(product.price).toLocaleString()} XAF</span>
-              <span className="line-through">{product.compare_at_price?.toLocaleString()} XAF</span>
+              <span className="font-semibold text-[var(--accent)]">{Number(product.sale_price).toLocaleString()} XAF</span>
+              <span className="line-through">{Number(product.price).toLocaleString()} XAF</span>
             </span>
           ) : (
             <span>{product.price?.toLocaleString()} XAF</span>
