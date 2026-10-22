@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
+import { recheckTransaction, recheckWithdrawal } from '@/services/paymentProvider';
 import Pagination from '@/components/common/Pagination';
 import WithdrawModal from '@/components/wallet/WithdrawModal';
 import DepositModal from '@/components/wallet/DepositModal';
@@ -255,12 +256,13 @@ export default function VendorWalletPage() {
       if (tx.type === 'withdrawal') {
         const wdId = tx.metadata?.withdrawal_request_id;
         if (!wdId) { showToast('No withdrawal record linked.', 'error'); return; }
-        res = await api.get(`/withdrawals/mine/${wdId}/recheck`);
+        res = await recheckWithdrawal(wdId);
       } else {
-        res = await api.get(`/payments/${tx.gateway}/recheck/${tx.reference}`);
+        res = await recheckTransaction(tx.gateway, tx.reference);
       }
 
-      const { status, message, reason } = res.data;
+      // Never throws; a declined payment or unreachable server is in `status`.
+      const { status, message, reason } = res;
       if (status === 'SUCCESSFUL') {
         showToast(tx.type === 'withdrawal' ? 'Withdrawal confirmed!' : 'Payment confirmed! Your wallet has been credited.', 'success');
         setTransactions(prev => prev.map(t => t._id === tx._id ? { ...t, status: 'completed' } : t));

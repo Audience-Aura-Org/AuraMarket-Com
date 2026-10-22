@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
+import { recheckTransaction } from '@/services/paymentProvider';
 import socketService from '@/services/socket';
 import Pagination from '@/components/common/Pagination';
 import WithdrawModal from '@/components/wallet/WithdrawModal';
@@ -196,9 +197,8 @@ export default function LogisticsWalletPage() {
         showToast('This gateway is not supported for recheck.', 'error');
         return;
       }
-      const endpoint = `/payments/${tx.gateway}/recheck/${tx.reference}`;
-      const res = await api.get(endpoint);
-      const { status, message, reason } = res.data;
+      // Never throws; a declined payment or unreachable server is in `status`.
+      const { status, message, reason } = await recheckTransaction(tx.gateway, tx.reference);
       if (status === 'SUCCESSFUL') {
         showToast('Payment confirmed! Your wallet has been credited.', 'success');
         setTransactions(prev => prev.map(t => t._id === tx._id ? { ...t, status: 'completed' } : t));
@@ -210,7 +210,7 @@ export default function LogisticsWalletPage() {
         loadingRef.current = false;
         load(true);
       } else {
-        showToast('Still processing — your phone may still have a pending prompt.', 'info');
+        showToast(message || 'Still processing — your phone may still have a pending prompt.', 'info');
       }
     } catch {
       showToast('Could not reach server. Try again shortly.', 'error');

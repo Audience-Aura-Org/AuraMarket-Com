@@ -164,20 +164,35 @@ export const pollTransactionStatus = (gateway, reference, { onPending, onSuccess
 // ── Recheck ───────────────────────────────────────────────────────────────────
 
 /**
- * Manually re-poll a transaction for its latest status.
+ * Ask the server for a transaction's latest status.
+ * Resolves to { status: 'SUCCESSFUL' | 'FAILED' | 'PENDING', message, reason, data }.
+ * Never throws. The payment's outcome is read from the body even on an HTTP
+ * error (older servers answered a declined payment with 400), and a request
+ * that got no answer is PENDING (with unreachable: true) — never FAILED, which
+ * would tell the user a payment failed when we simply could not ask.
  */
-export const recheckTransaction = async (gateway, reference) => {
+const readRecheck = async (url) => {
   try {
-    const res = await api.get(`/payments/${gateway}/recheck/${reference}`);
-    return res.data;
+    const res = await api.get(url, { skipClientCache: true });
+    return { ...res.data, status: res.data?.status || 'PENDING' };
   } catch (err) {
-    const errData = err.response?.data;
+    const body = err.response?.data;
+    if (body?.status === 'SUCCESSFUL' || body?.status === 'FAILED') return body;
     return {
       success: false,
-      status: errData?.status || 'FAILED',
-      message: errData?.message || 'Failed to recheck payment status.',
-      reason: errData?.reason,
+      status: 'PENDING',
+      unreachable: !err.response,
+      message: body?.message || (err.response
+        ? 'Could not check the status right now. Please try again shortly.'
+        : 'Could not reach the server. Check your connection and try again.'),
     };
   }
 };
+
+export const recheckTransaction = (gateway, reference) =>
+  readRecheck(`/payments/${gateway}/recheck/${encodeURIComponent(reference)}`);
+
+/** Same contract for a withdrawal payout (user-facing endpoint). */
+export const recheckWithdrawal = (withdrawalId) =>
+  readRecheck(`/withdrawals/mine/${encodeURIComponent(withdrawalId)}/recheck`);
 

@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/hooks/useAuth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/services/api';
+import { recheckTransaction, recheckWithdrawal } from '@/services/paymentProvider';
 import Pagination from '@/components/common/Pagination';
 import StatCard from '@/components/layout/StatCard';
 import WithdrawModal from '@/components/wallet/WithdrawModal';
@@ -158,16 +159,12 @@ export default function WalletPage() {
           setTimeout(async () => {
             let anyChanged = false;
             for (const tx of pendingDeposits) {
-              try {
-                const r = await api.get(`/payments/${tx.gateway}/recheck/${tx.reference}`);
-                if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') anyChanged = true;
-              } catch { /* silent */ }
+              const r = await recheckTransaction(tx.gateway, tx.reference);
+              if (r.status === 'SUCCESSFUL' || r.status === 'FAILED') anyChanged = true;
             }
             for (const wd of pendingWithdrawals) {
-              try {
-                const r = await api.get(`/withdrawals/mine/${wd._id}/recheck`);
-                if (r.data?.status === 'SUCCESSFUL' || r.data?.status === 'FAILED') anyChanged = true;
-              } catch { /* silent */ }
+              const r = await recheckWithdrawal(wd._id);
+              if (r.status === 'SUCCESSFUL' || r.status === 'FAILED') anyChanged = true;
             }
             if (anyChanged) fetchWallet(true);
           }, 2000);
@@ -258,12 +255,13 @@ export default function WalletPage() {
         // Withdrawal transactions link to a WithdrawalRequest via metadata
         const wdId = tx.metadata?.withdrawal_request_id;
         if (!wdId) { showToast('No withdrawal record linked.', 'error'); return; }
-        res = await api.get(`/withdrawals/mine/${wdId}/recheck`);
+        res = await recheckWithdrawal(wdId);
       } else {
-        res = await api.get(`/payments/${tx.gateway}/recheck/${tx.reference}`);
+        res = await recheckTransaction(tx.gateway, tx.reference);
       }
 
-      const { status, message, reason } = res.data;
+      // Never throws; a declined payment or unreachable server is in `status`.
+      const { status, message, reason } = res;
       if (status === 'SUCCESSFUL') {
         showToast(tx.type === 'withdrawal' ? 'Withdrawal confirmed!' : 'Payment confirmed! Your wallet has been credited.', 'success');
         // Optimistic UI update so the user sees the change immediately

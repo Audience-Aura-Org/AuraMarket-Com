@@ -6,7 +6,7 @@ import {
   ShieldCheck, Loader2, X, CheckCircle2, AlertTriangle,
   XCircle, RotateCcw, Smartphone, ExternalLink,
 } from 'lucide-react';
-import { initiateCollection, initiateSmartCameroonCollection, pollTransactionStatus } from '@/services/paymentProvider';
+import { initiateCollection, initiateSmartCameroonCollection, pollTransactionStatus, recheckTransaction } from '@/services/paymentProvider';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 
@@ -119,16 +119,16 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
     setMessage('Verification window ended. Checking payment status one last time...');
     try {
       if (localRef) {
-        const r = await api.get(`/payments/${gw}/recheck/${localRef}`);
-        if (r.data?.status === 'SUCCESSFUL') {
+        const r = await recheckTransaction(gw, localRef);
+        if (r.status === 'SUCCESSFUL') {
           setStatus('success');
           setMessage('Payment confirmed! Your wallet has been credited.');
-          applyConfirmedBalance(r.data?.data);
+          applyConfirmedBalance(r.data);
           onSuccess?.();
           return;
-        } else if (r.data?.status === 'FAILED') {
+        } else if (r.status === 'FAILED') {
           setStatus('failed');
-          setReason(r.data?.reason || r.data?.message || 'Payment was declined.');
+          setReason(r.reason || r.message || 'Payment was declined.');
           return;
         }
       }
@@ -244,19 +244,20 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
     if (!ref) return;
     setRechecking(true);
     try {
-      const res = await api.get(`/payments/${gateway}/recheck/${ref}`);
-      const { status: s, message: msg, reason: r } = res.data;
+      const res = await recheckTransaction(gateway, ref);
+      const { status: s, message: msg, reason: r } = res;
       if (s === 'SUCCESSFUL') {
         setStatus('success');
         setMessage(msg || 'Payment confirmed! Your wallet has been credited.');
-        applyConfirmedBalance(res.data?.data);
+        applyConfirmedBalance(res.data);
         onSuccess?.();
       } else if (s === 'FAILED') {
         setStatus('failed');
         setReason(r || msg || 'Payment was declined.');
+      } else {
+        // Still pending (or the server could not be reached): say so instead of nothing.
+        setMessage(msg || 'Payment is still being processed. Approve the prompt on your phone, then check again.');
       }
-    } catch {
-      // noop
     } finally {
       setRechecking(false);
     }

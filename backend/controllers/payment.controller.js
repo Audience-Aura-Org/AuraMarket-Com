@@ -641,10 +641,13 @@ const payunitVerify = async (req, res) => {
  *          the transaction was prematurely marked failed by a transient polling result.
  * @access  Private
  */
+/** A user rechecks only their own transactions; admins may recheck any. */
+const recheckOwnerFilter = (req) => (req.user?.role === 'admin' ? {} : { user_id: req.user._id });
+
 const payunitRecheck = async (req, res) => {
   try {
     const { reference } = req.params;
-    const transaction = await Transaction.findOne({ reference, gateway: 'payunit' });
+    const transaction = await Transaction.findOne({ reference, gateway: 'payunit', ...recheckOwnerFilter(req) });
     if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
 
     // Already settled — nothing to do
@@ -686,8 +689,9 @@ const payunitRecheck = async (req, res) => {
         await transaction.save();
         if (transaction.order_ids?.length) await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
       }
-      return res.status(400).json({
-        success: false,
+      // The recheck itself succeeded; the payment's outcome is data, not an HTTP error.
+      return res.status(200).json({
+        success: true,
         status: 'FAILED',
         message: data?.message || 'PayUnit payment was declined.',
         reason: data?.message,
@@ -1092,6 +1096,7 @@ const eversendRecheck = async (req, res) => {
         { gateway_transaction_id: reference },
       ],
       gateway: 'eversend',
+      ...recheckOwnerFilter(req),
     });
 
     if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
@@ -1967,7 +1972,7 @@ const pawapayVerify = async (req, res) => {
 const pawapayRecheck = async (req, res) => {
   try {
     const { reference } = req.params;
-    const transaction = await Transaction.findOne({ reference, gateway: 'pawapay' });
+    const transaction = await Transaction.findOne({ reference, gateway: 'pawapay', ...recheckOwnerFilter(req) });
     if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
 
     // Already settled — nothing to do
@@ -2022,8 +2027,9 @@ const pawapayRecheck = async (req, res) => {
         await transaction.save();
         if (transaction.order_ids?.length) await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
       }
-      return res.status(400).json({
-        success: false,
+      // The recheck itself succeeded; the payment's outcome is data, not an HTTP error.
+      return res.status(200).json({
+        success: true,
         status: 'FAILED',
         message: result?.rejectionReason?.rejectionMessage || 'PawaPay payment was declined.',
         reason: result?.rejectionReason?.rejectionMessage,
