@@ -70,13 +70,13 @@ export default function AccountPanel({ account, open, onClose }) {
 
           <dl className="mt-4 grid grid-cols-3 gap-2">
             {[
-              ['Revenue 30d', formatMoney(account.revenue30d)],
-              ['Orders 30d', formatNumber(account.orders30d)],
-              ['Balance', formatMoney(account.balance)],
-            ].map(([label, value]) => (
-              <div key={label} className="m-card px-3 py-2.5">
-                <dt className="m-fs-11 m-muted">{label}</dt>
-                <dd className="m-num font-medium m-fs-15 mt-0.5">{value}</dd>
+              ['Revenue 30d', formatMoney(account.revenue30d), 'good'],
+              ['Orders 30d', formatNumber(account.orders30d), 'accent'],
+              ['Balance', formatMoney(account.balance), 'indigo'],
+            ].map(([label, value, tone]) => (
+              <div key={label} className={`m-card m-tint m-tone-${tone} !rounded-[1.25rem] px-3 py-3 overflow-hidden`}>
+                <dt className="relative m-fs-11 font-medium m-muted truncate">{label}</dt>
+                <dd className="relative m-num font-bold m-fs-15 mt-0.5 m-tone-text">{value}</dd>
               </div>
             ))}
           </dl>

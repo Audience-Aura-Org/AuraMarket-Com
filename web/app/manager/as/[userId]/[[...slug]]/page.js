@@ -76,9 +76,9 @@ export default function WorkspacePage() {
       <div className="mx-auto w-full max-w-[1240px] px-4 md:px-8 py-6 space-y-4" aria-busy="true">
         <Skeleton className="h-7 w-56" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-[16px]" />)}
+          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-[2rem]" />)}
         </div>
-        <Skeleton className="h-64 rounded-[16px]" />
+        <Skeleton className="h-64 rounded-[2rem]" />
       </div>
     );
   }

@@ -21,14 +21,14 @@ export default function ManagerShell({ children }) {
     <div className="manager-ui min-h-screen">
       {switching && (
         <div className="fixed inset-x-0 top-0 z-[80] h-0.5 overflow-hidden" role="progressbar" aria-label="Switching account">
-          <div className="h-full w-1/3 bg-[var(--m-text)] animate-[m-progress_1.1s_ease-in-out_infinite]" />
+          <div className="h-full w-1/3 bg-[var(--accent)] animate-[m-progress_1.1s_ease-in-out_infinite]" />
         </div>
       )}
       <ManagerRail />
       <ManagerMobileBar />
       <main className="md:pl-16 lg:pl-[232px] pt-[calc(56px+env(safe-area-inset-top,0px))] md:pt-0 pb-[calc(64px+env(safe-area-inset-bottom,0px))] md:pb-0 min-h-screen">
         {inWorkspace ? children : (
-          <div className="mx-auto w-full max-w-[1240px] px-4 md:px-8 py-5 md:py-8">{children}</div>
+          <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8">{children}</div>
         )}
       </main>
       <ManagerBottomTabs />

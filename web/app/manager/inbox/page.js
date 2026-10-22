@@ -17,7 +17,18 @@ const humanize = (s) => String(s || '').replace(/_/g, ' ');
 const ORDER_STATUSES = ['placed', 'processing', 'shipped', 'delivered', 'completed', 'cancelled', 'refund_pending', 'refunded'];
 const SHIPMENT_STATUSES = ['pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed', 'cancelled'];
 
-const accountCell = (r) => <span className="block truncate max-w-[220px]" title={r.account}>{r.account || '—'}</span>;
+const accountCell = (r) => (
+  <span className="flex items-center gap-2.5 min-w-0">
+    <span className="m-avatar !size-8 m-fs-12" aria-hidden="true">{(r.account || '?').trim().charAt(0).toUpperCase()}</span>
+    <span className="block truncate max-w-[220px] font-semibold" title={r.account}>{r.account || '—'}</span>
+  </span>
+);
+const STATUS_TONE = {
+  delivered: 'm-pill-good', completed: 'm-pill-good',
+  cancelled: 'm-pill-bad', refunded: 'm-pill-bad', failed: 'm-pill-bad', refund_pending: 'm-pill-warn',
+  placed: 'm-pill-warn', pending: 'm-pill-warn',
+};
+const statusCell = (r) => <span className={`m-pill m-fs-11 !py-0.5 capitalize ${STATUS_TONE[r.status] || 'm-muted'}`}>{humanize(r.status)}</span>;
 const ageCell = (r) => <span className={`m-num ${TONE.neutral}`}>{timeAgo(r.at)}</span>;
 const byDate = (r) => new Date(r.at).getTime();
 
@@ -28,7 +39,7 @@ const QUEUE_COLUMNS = [
     mobile: 'primary',
     render: (t) => (
       <span className="block min-w-0">
-        <span className="block truncate font-medium">{t.title}</span>
+        <span className="block truncate font-semibold">{t.title}</span>
         <span className="block m-fs-12 m-muted md:hidden truncate">{TASK_TYPE_LABEL[t.type]} · {t.account}</span>
       </span>
     ),
@@ -52,7 +63,7 @@ const RECENT = {
     statuses: ORDER_STATUSES,
     columns: [
       { key: 'account', header: 'Account', sortable: true, mobile: 'primary', render: accountCell },
-      { key: 'status', header: 'Status', sortable: true, mobile: 'secondary', render: (o) => <span className="capitalize m-muted">{humanize(o.status)}</span> },
+      { key: 'status', header: 'Status', sortable: true, mobile: 'secondary', render: statusCell },
       { key: 'total', header: 'Total', align: 'right', sortable: true, mobile: 'meta', render: (o) => `${formatMoney(o.total)} XAF` },
       { key: 'at', header: 'Placed', align: 'right', sortable: true, sortValue: byDate, mobile: 'hidden', render: ageCell },
     ],
@@ -63,7 +74,7 @@ const RECENT = {
     statuses: SHIPMENT_STATUSES,
     columns: [
       { key: 'account', header: 'Account', sortable: true, mobile: 'primary', render: accountCell },
-      { key: 'status', header: 'Status', sortable: true, mobile: 'secondary', render: (s) => <span className="capitalize m-muted">{humanize(s.status)}</span> },
+      { key: 'status', header: 'Status', sortable: true, mobile: 'secondary', render: statusCell },
       { key: 'at', header: 'Created', align: 'right', sortable: true, sortValue: byDate, mobile: 'meta', render: ageCell },
     ],
     empty: 'No deliveries in this view.',
@@ -76,7 +87,7 @@ const RECENT = {
         header: 'Message',
         mobile: 'primary',
         render: (m) => (
-          <span className={`block truncate max-w-[420px] ${m.unread ? 'font-medium' : 'm-muted'}`}>{m.preview || '(attachment)'}</span>
+          <span className={`block truncate max-w-[420px] ${m.unread ? 'font-semibold' : 'm-muted'}`}>{m.preview || '(attachment)'}</span>
         ),
       },
       { key: 'account', header: 'Account', sortable: true, mobile: 'secondary', render: accountCell },

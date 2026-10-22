@@ -45,7 +45,7 @@ function NoteComposer({ defaultAccount, onSaved }) {
   };
 
   return (
-    <form onSubmit={submit} className="m-card p-4 space-y-3">
+    <form onSubmit={submit} className="m-card p-5 md:p-6 space-y-3">
       <label className="sr-only" htmlFor="note-body">New note</label>
       <textarea
         id="note-body"
@@ -83,7 +83,7 @@ function NoteRow({ note, accountName, onToggle, onDelete }) {
         aria-label={note.done ? 'Mark as not done' : 'Mark as done'}
         aria-pressed={note.done}
         className={`mt-0.5 size-5 shrink-0 rounded-md border flex items-center justify-center ${
-          note.done ? 'bg-[var(--m-text)] border-transparent text-[var(--m-bg)]' : 'border-[var(--m-border-strong)]'
+          note.done ? 'bg-[var(--m-good)] border-transparent text-white' : 'border-[var(--m-border-strong)] hover:border-[var(--m-good)]'
         }`}
       >
         {note.done && <Check size={12} strokeWidth={2} />}

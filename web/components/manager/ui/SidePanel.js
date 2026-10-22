@@ -64,7 +64,7 @@ export default function SidePanel({ open, onClose, title, children, footer }) {
         <>
           <motion.div
             key="backdrop"
-            className="fixed inset-0 z-[60] bg-black/40"
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-[2px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -82,19 +82,19 @@ export default function SidePanel({ open, onClose, title, children, footer }) {
             exit={offscreen}
             transition={transition}
             className="fixed z-[61] flex flex-col bg-[var(--m-surface-solid)] border-[var(--m-border)]
-              inset-x-0 bottom-0 max-h-[88vh] rounded-t-[20px] border-t
-              lg:inset-y-0 lg:left-auto lg:right-0 lg:max-h-none lg:w-[440px] lg:rounded-none lg:border-t-0 lg:border-l
+              inset-x-0 bottom-0 max-h-[88vh] rounded-t-[2rem] border-t shadow-[0_-18px_45px_rgba(0,0,0,0.18)]
+              lg:inset-y-3 lg:left-auto lg:right-3 lg:max-h-none lg:w-[440px] lg:rounded-[2rem] lg:border
               pb-[env(safe-area-inset-bottom,0px)]"
           >
             <div className="lg:hidden mx-auto mt-2.5 h-1 w-10 rounded-full bg-[var(--m-border-strong)]" aria-hidden="true" />
-            <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+            <div className="flex items-center justify-between gap-3 px-6 pt-5 pb-3">
               <div className="min-w-0 m-headline m-fs-15 truncate">{title}</div>
-              <button type="button" onClick={onClose} className="m-btn !min-h-9 !px-2.5" aria-label="Close">
+              <button type="button" onClick={onClose} className="m-btn !min-h-9 !w-9 !px-0" aria-label="Close">
                 <X size={16} strokeWidth={1.5} />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto px-5 pb-5">{children}</div>
-            {footer && <div className="border-t border-[var(--m-border)] px-5 py-4">{footer}</div>}
+            <div className="flex-1 overflow-y-auto px-6 pb-6">{children}</div>
+            {footer && <div className="border-t border-[var(--m-border)] px-6 py-4">{footer}</div>}
           </motion.aside>
         </>
       )}

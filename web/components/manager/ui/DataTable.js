@@ -75,13 +75,13 @@ export default function DataTable({
                 key={col.key}
                 scope="col"
                 aria-sort={sort?.key === col.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined}
-                className={`${cellAlign(col)} px-4 py-2.5 m-fs-12 font-medium m-muted border-b border-[var(--m-border)] whitespace-nowrap ${col.className || ''}`}
+                className={`${cellAlign(col)} px-4 first:pl-6 last:pr-6 py-3 m-fs-11 font-semibold m-muted border-b border-[var(--m-border)] whitespace-nowrap ${col.className || ''}`}
               >
                 {col.sortable ? (
                   <button
                     type="button"
                     onClick={() => toggleSort(col)}
-                    className={`inline-flex items-center gap-1 hover:text-[var(--m-text)] transition-colors ${col.align === 'right' ? 'flex-row-reverse' : ''}`}
+                    className={`inline-flex items-center gap-1 hover:text-[var(--accent)] transition-colors ${col.align === 'right' ? 'flex-row-reverse' : ''}`}
                   >
                     {col.header}
                     {sort?.key === col.key &&
@@ -108,7 +108,7 @@ export default function DataTable({
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className={`${cellAlign(col)} px-4 py-3 border-b border-[var(--m-border)] ${col.align === 'right' ? 'm-num' : ''} ${col.className || ''}`}
+                  className={`${cellAlign(col)} px-4 first:pl-6 last:pr-6 py-3.5 border-b border-[var(--m-border)] ${col.align === 'right' ? 'm-num' : ''} ${col.className || ''}`}
                 >
                   {render(col, row)}
                 </td>
@@ -127,18 +127,18 @@ export default function DataTable({
               tabIndex={interactive ? 0 : undefined}
               onClick={interactive ? activate(row) : undefined}
               onKeyDown={interactive ? activate(row) : undefined}
-              className={`flex items-center gap-3 px-4 py-3 min-h-[56px] ${interactive ? 'm-row-interactive' : ''}`}
+              className={`flex items-center gap-3 px-4 py-3.5 min-h-[64px] ${interactive ? 'm-row-interactive' : ''}`}
             >
               <div className="min-w-0 flex-1">
                 {pick('primary').map((col) => (
-                  <div key={col.key} className="truncate font-medium">{render(col, row)}</div>
+                  <div key={col.key} className="truncate font-semibold">{render(col, row)}</div>
                 ))}
                 {pick('secondary').map((col) => (
                   <div key={col.key} className="truncate m-fs-12 m-muted">{render(col, row)}</div>
                 ))}
               </div>
               {pick('meta').map((col) => (
-                <div key={col.key} className="shrink-0 text-right m-num">{render(col, row)}</div>
+                <div key={col.key} className="shrink-0 text-right m-num font-semibold">{render(col, row)}</div>
               ))}
               {interactive && <ChevronRight size={16} strokeWidth={1.5} className="m-faint shrink-0" aria-hidden="true" />}
             </div>

@@ -133,7 +133,7 @@ export default function InvitationsPanel() {
         </>
       )}
 
-      <form onSubmit={send} className="m-card p-4 space-y-4" aria-label="Invite an account">
+      <form onSubmit={send} className="m-card p-5 md:p-6 space-y-4" aria-label="Invite an account">
         <h3 className="m-eyebrow">Invite an account</h3>
         <label className="block">
           <span className="block m-fs-12 m-muted mb-1.5">Account owner's email</span>

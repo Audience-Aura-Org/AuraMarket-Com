@@ -22,13 +22,13 @@ function Switch({ checked, onChange, label, disabled }) {
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={`relative h-6 w-10 shrink-0 rounded-full border transition-colors ${
-        checked ? 'bg-[var(--m-text)] border-transparent' : 'bg-[var(--m-surface)] border-[var(--m-border-strong)]'
+        checked ? 'bg-[var(--accent)] border-transparent' : 'bg-[var(--bg-secondary)] border-[var(--m-border)]'
       }`}
     >
       <span
         aria-hidden="true"
         className={`absolute top-0.5 size-[18px] rounded-full transition-transform ${
-          checked ? 'translate-x-[18px] bg-[var(--m-bg)]' : 'translate-x-0.5 bg-[var(--m-text-muted)]'
+          checked ? 'translate-x-[18px] bg-white shadow' : 'translate-x-0.5 bg-[var(--m-text-muted)]'
         }`}
       />
     </button>
@@ -65,14 +65,14 @@ export default function ManagerSettingsPage() {
         <ErrorState message={settings.error} onRetry={settings.refetch} />
       ) : (
         <>
-          <section aria-label="Profile" className="m-card px-4 py-4 flex items-center gap-4">
+          <section aria-label="Profile" className="m-card px-5 md:px-6 py-5 flex items-center gap-4">
             {values ? (
               <>
-                <span className="size-11 shrink-0 rounded-full border border-[var(--m-border-strong)] flex items-center justify-center m-headline m-fs-15">
+                <span className="m-avatar !size-12 !rounded-2xl m-fs-15">
                   {(values.name || 'M')[0].toUpperCase()}
                 </span>
                 <div className="min-w-0">
-                  <p className="font-medium truncate">{values.name}</p>
+                  <p className="font-semibold truncate">{values.name}</p>
                   <p className="m-muted truncate">{values.email} · Manager</p>
                 </div>
               </>
@@ -85,9 +85,9 @@ export default function ManagerSettingsPage() {
             <h2 id="notifications-title" className="m-headline m-fs-15">Notifications</h2>
             <div className="m-card m-divide">
               {TOGGLES.map((t) => (
-                <div key={t.key} className="flex items-center justify-between gap-4 px-4 py-4">
+                <div key={t.key} className="flex items-center justify-between gap-4 px-5 md:px-6 py-4">
                   <div className="min-w-0">
-                    <p className="font-medium">{t.label}</p>
+                    <p className="font-semibold">{t.label}</p>
                     <p className="m-muted">{t.desc}</p>
                   </div>
                   {values ? (

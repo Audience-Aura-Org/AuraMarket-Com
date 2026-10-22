@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+import { Search, CreditCard, ShoppingBag, ListChecks, Wallet } from 'lucide-react';
 import { useManagerMode } from '@/hooks/useManagerMode';
 import { useManagerQuery } from '@/hooks/useManagerQuery';
 import {
@@ -13,8 +13,15 @@ import {
 import AccountPanel from '@/components/manager/AccountPanel';
 import { briefingHeadline, sortAccounts } from '@/components/manager/briefing';
 import { TYPE_LABEL } from '@/components/manager/shell/nav';
+import { TrendPanel } from '@/components/manager/RevenueTrend';
 
 const TYPES = ['vendor', 'logistics', 'customer'];
+/** This period against the larger of the two: a full bar = matched or beat last period. */
+const periodRatio = (current, previous) => {
+  const top = Math.max(Number(current) || 0, Number(previous) || 0);
+  return top ? (Number(current) || 0) / top : 0;
+};
+
 const today = () =>
   new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 
@@ -26,10 +33,13 @@ const COLUMNS = [
     mobile: 'primary',
     render: (a) => (
       <span className="flex items-center gap-3 min-w-0">
-        <StatusDot status={a.health || 'neutral'} label={HEALTH_LABEL[a.health] || 'Status unknown'} />
+        <span className="m-avatar m-fs-13" aria-hidden="true">{(a.name || '?').trim().charAt(0).toUpperCase()}</span>
         <span className="min-w-0">
           <span className="block truncate font-medium max-w-[280px]" title={a.name}>{a.name}</span>
-          <span className="block m-fs-12 m-muted">{TYPE_LABEL[a.role] || a.role}</span>
+          <span className="flex items-center gap-1.5 m-fs-12 m-muted">
+            <StatusDot status={a.health || 'neutral'} label={HEALTH_LABEL[a.health] || 'Status unknown'} />
+            {TYPE_LABEL[a.role] || a.role}
+          </span>
         </span>
       </span>
     ),
@@ -67,7 +77,7 @@ const COLUMNS = [
       <Link
         href={`/manager/as/${a.id}/dashboard`}
         onClick={(e) => e.stopPropagation()}
-        className="m-muted hover:text-[var(--m-text)] font-medium"
+        className="m-link"
       >
         Open
       </Link>
@@ -103,6 +113,7 @@ export default function ManagerAccountsHome() {
   const totals = overview.data?.totals;
   const previous = overview.data?.previous;
   const urgent = accounts.filter((a) => a.health === 'urgent').length;
+  const funded = accounts.filter((a) => Number(a.balance) > 0).length;
   const selected = accounts.find((a) => a.id === selectedId) || null;
 
   return (
@@ -119,32 +130,47 @@ export default function ManagerAccountsHome() {
       ) : (
         <section aria-label="Totals" className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           {overview.loading || !totals ? (
-            [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[118px] rounded-[16px]" />)
+            [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[118px] rounded-[2rem]" />)
           ) : (
             <>
               <Scorecard
+                icon={CreditCard}
+                tone="good"
+                tag="Revenue"
                 label="Revenue · 30 days"
                 value={formatMoney(totals.revenue30d)}
                 unit="XAF"
+                progress={periodRatio(totals.revenue30d, previous?.revenue30d)}
                 delta={formatDelta(totals.revenue30d, previous?.revenue30d)}
                 hint="vs prior 30 days"
-                series={overview.data.trend?.map((d) => d.revenue)}
               />
               <Scorecard
+                icon={ShoppingBag}
+                tone="accent"
+                tag="Live"
                 label="Orders · 30 days"
                 value={formatNumber(totals.orders30d)}
+                progress={periodRatio(totals.orders30d, previous?.orders30d)}
                 delta={formatDelta(totals.orders30d, previous?.orders30d)}
                 hint="vs prior 30 days"
               />
               <Scorecard
+                icon={ListChecks}
+                tone={urgent ? 'bad' : 'indigo'}
+                tag={urgent ? `${urgent} overdue` : 'On track'}
                 label="Open tasks"
                 value={formatNumber(totals.tasks)}
+                progress={accounts.length ? urgent / accounts.length : 0}
                 hint={urgent ? `${urgent} ${urgent === 1 ? 'account' : 'accounts'} overdue` : 'Nothing overdue'}
               />
               <Scorecard
+                icon={Wallet}
+                tone="accent"
+                tag="Balance"
                 label="Total balance"
                 value={formatMoney(totals.balance)}
                 unit="XAF"
+                progress={accounts.length ? funded / accounts.length : 0}
                 hint={`across ${totals.accounts} ${totals.accounts === 1 ? 'account' : 'accounts'}`}
               />
             </>
@@ -152,8 +178,56 @@ export default function ManagerAccountsHome() {
         </section>
       )}
 
+      {!overview.error && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+          {overview.loading || !totals ? (
+            <>
+              <Skeleton className="lg:col-span-2 h-[320px] rounded-[2rem]" />
+              <Skeleton className="h-[320px] rounded-[2rem]" />
+            </>
+          ) : (
+            <>
+              <TrendPanel
+                className="lg:col-span-2"
+                title="Revenue growth"
+                subtitle="Daily revenue across your accounts · 30 days"
+                series={overview.data.trend}
+                delta={formatDelta(totals.revenue30d, previous?.revenue30d)}
+                deltaLabel="vs prior 30 days"
+              />
+              <section className="m-card p-5 md:p-6 flex flex-col" aria-label="Needs attention">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="m-headline m-fs-15">Needs attention</h2>
+                  <Link href="/manager/inbox" className="m-link m-fs-12">View all</Link>
+                </div>
+                {overview.data.attention?.length ? (
+                  <ul className="space-y-1 flex-1">
+                    {overview.data.attention.map((a) => (
+                      <li key={a.id}>
+                        <Link href={`/manager/as/${a.id}/dashboard`} className="m-row m-row-interactive flex items-center gap-3 px-2 py-2.5">
+                          <span className="m-avatar m-fs-13" aria-hidden="true">{(a.name || '?').trim().charAt(0).toUpperCase()}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate font-semibold m-fs-13">{a.name}</span>
+                            <span className="block m-fs-11 m-muted">{TYPE_LABEL[a.role] || a.role}</span>
+                          </span>
+                          <span className="m-num font-bold m-fs-13 shrink-0">{a.tasks} <span className="font-medium m-muted m-fs-11">{a.tasks === 1 ? 'task' : 'tasks'}</span></span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center rounded-[1.5rem] border border-dashed border-[var(--m-border)] p-6 text-center">
+                    <p className="m-fs-12 m-muted">All clear — no account has open tasks.</p>
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+        </div>
+      )}
+
       <section aria-label="Accounts" className="m-card overflow-hidden">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between px-4 py-3 border-b border-[var(--m-border)]">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between px-4 md:px-6 py-4 border-b border-[var(--m-border)]">
           <FilterTabs
             label="Account type"
             value={type}

@@ -114,10 +114,10 @@ export default function AccountPicker({ mode = 'navigate', value = null, onSelec
   const trigger = {
     rail: (
       <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="dialog" aria-expanded={open}
-        className="m-card w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:border-[var(--m-border-strong)] transition-colors">
+        className="m-card !rounded-[1.25rem] w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:border-[var(--m-border-strong)] transition-colors">
         <span className="min-w-0 flex-1">
-          <span className="block m-fs-11 m-muted">Working in</span>
-          <span className="block truncate font-medium">{label}</span>
+          <span className="block m-fs-11 font-medium m-muted">Working in</span>
+          <span className="block truncate font-semibold">{label}</span>
         </span>
         <ChevronsUpDown size={16} strokeWidth={1.5} className="m-muted shrink-0" />
       </button>
@@ -125,14 +125,14 @@ export default function AccountPicker({ mode = 'navigate', value = null, onSelec
     compact: (
       <button type="button" onClick={() => setOpen((o) => !o)} aria-label={`Switch account (current: ${label})`} title={label}
         aria-haspopup="dialog" aria-expanded={open}
-        className="m-card size-11 flex items-center justify-center font-medium hover:border-[var(--m-border-strong)]">
+        className="m-card !rounded-2xl size-11 flex items-center justify-center font-bold text-[var(--accent)] hover:border-[var(--m-border-strong)]">
         {current ? current.name?.[0]?.toUpperCase() : <LayoutGrid size={16} strokeWidth={1.5} />}
       </button>
     ),
     bar: (
       <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="dialog" aria-expanded={open}
         className="min-w-0 flex items-center gap-1.5 h-11 px-1 text-left">
-        <span className="truncate font-medium m-fs-15">{label}</span>
+        <span className="truncate font-semibold m-fs-15">{label}</span>
         <ChevronsUpDown size={16} strokeWidth={1.5} className="m-muted shrink-0" />
       </button>
     ),
@@ -156,7 +156,7 @@ export default function AccountPicker({ mode = 'navigate', value = null, onSelec
           aria-label="Switch account"
           onKeyDown={onListKey}
           className={`fixed inset-0 z-[70] flex flex-col bg-[var(--m-surface-solid)]
-            md:absolute md:inset-auto md:top-full md:mt-2 md:w-[360px] md:max-h-[480px] md:rounded-[var(--m-radius-card)] md:border md:border-[var(--m-border)] md:shadow-2xl
+            md:absolute md:inset-auto md:top-full md:mt-2 md:w-[360px] md:max-h-[480px] md:rounded-[1.5rem] md:border md:border-[var(--m-border)] md:shadow-[0_24px_60px_rgba(0,0,0,0.22)] md:overflow-hidden
             ${variant === 'compact' ? 'md:left-full md:top-0 md:mt-0 md:ml-2' : 'md:left-0'}`}
         >
           <div className="flex items-center gap-2 px-3 pt-[max(12px,env(safe-area-inset-top))] md:pt-3 pb-2 border-b border-[var(--m-border)]">
@@ -180,7 +180,7 @@ export default function AccountPicker({ mode = 'navigate', value = null, onSelec
             {groups.map((group) => (
               <div key={group.title || 'all-option'}>
                 {group.title && group.items.length > 0 && (
-                  <p className="px-4 pt-3 pb-1 m-fs-11 font-medium m-faint uppercase tracking-[0.08em]">{group.title}</p>
+                  <p className="px-4 pt-3 pb-1 m-fs-11 font-semibold m-muted">{group.title}</p>
                 )}
                 {group.items.map((account) => {
                   index += 1;
@@ -194,22 +194,25 @@ export default function AccountPicker({ mode = 'navigate', value = null, onSelec
                       aria-selected={selected}
                       onMouseEnter={() => setActive(i)}
                       onClick={() => choose(account)}
-                      className={`group mx-1.5 flex items-center gap-3 px-2.5 min-h-[48px] md:min-h-[40px] rounded-[10px] cursor-pointer ${
+                      className={`group mx-1.5 flex items-center gap-3 px-2.5 min-h-[56px] md:min-h-[48px] rounded-2xl cursor-pointer ${
                         active === i ? 'bg-[var(--m-surface-hover)]' : ''
                       }`}
                     >
                       {account.id ? (
-                        <StatusDot status={account.health || 'neutral'} label={HEALTH_LABEL[account.health] || 'Status unknown'} />
+                        <span className="m-avatar !size-8 m-fs-12" aria-hidden="true">{(account.name || '?').trim().charAt(0).toUpperCase()}</span>
                       ) : (
-                        <LayoutGrid size={14} strokeWidth={1.5} className="m-muted" aria-hidden="true" />
+                        <span className="m-icon-tile m-tone-indigo !size-8 !rounded-[0.875rem]" aria-hidden="true"><LayoutGrid size={14} strokeWidth={1.75} /></span>
                       )}
                       <span className="min-w-0 flex-1">
-                        <span className={`block truncate ${selected ? 'font-semibold' : ''}`} title={account.name}>{account.name}</span>
+                        <span className={`block truncate ${selected ? 'font-semibold text-[var(--accent)]' : 'font-medium'}`} title={account.name}>{account.name}</span>
                         {account.id && (
-                          <span className="block truncate m-fs-12 m-muted">{TYPE_LABEL[account.role] || account.role}</span>
+                          <span className="flex items-center gap-1.5 truncate m-fs-12 m-muted">
+                            <StatusDot status={account.health || 'neutral'} label={HEALTH_LABEL[account.health] || 'Status unknown'} />
+                            {TYPE_LABEL[account.role] || account.role}
+                          </span>
                         )}
                       </span>
-                      {account.tasks > 0 && <span className="m-num m-fs-12 m-muted">{account.tasks}</span>}
+                      {account.tasks > 0 && <span className="m-pill m-pill-warn !py-0 !px-2 m-num m-fs-11">{account.tasks}</span>}
                       {account.id && (
                         <button
                           type="button"
