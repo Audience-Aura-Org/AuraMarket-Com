@@ -104,7 +104,7 @@ export default function AdminAnalyticsPage() {
         </div>
       </div>
 
-      <div className="p-6 md:p-8 space-y-8 pb-32">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6 md:space-y-8 pb-32">
         
         {/* Metric Grid - High Density */}
         {(() => {
@@ -127,7 +127,7 @@ export default function AdminAnalyticsPage() {
         <div className="grid lg:grid-cols-3 gap-8">
           
           {/* Revenue Velocity (Sparkline Style) */}
-          <div className="lg:col-span-2 p-8 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)] relative overflow-hidden">
+          <div className="lg:col-span-2 p-8 rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] shadow-sm md:backdrop-blur-xl relative overflow-hidden">
              <div className="flex items-center justify-between mb-8 relative z-10">
                 <div>
                    <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Revenue Velocity (30D)</h3>
@@ -152,7 +152,7 @@ export default function AdminAnalyticsPage() {
           </div>
 
           {/* Market Share Distribution / Category Distribution */}
-          <div className="p-8 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)]">
+          <div className="p-5 md:p-8 rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] shadow-sm md:backdrop-blur-xl">
              <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40 mb-8">
                {activeTab === 'inventory' ? 'Category Density' : 'Node Distribution'}
              </h3>
@@ -188,7 +188,7 @@ export default function AdminAnalyticsPage() {
         </div>
 
         {/* Asset Performance Table */}
-        <div className="p-8 rounded-[2.5rem] bg-[var(--bg-secondary)]/20 border border-[var(--glass-border)]">
+        <div className="p-5 md:p-8 rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] shadow-sm md:backdrop-blur-xl">
            <div className="flex items-center justify-between mb-8">
               <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Asset Conversion Performance</h3>
               <Activity className="size-4 opacity-20" />

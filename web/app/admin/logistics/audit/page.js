@@ -166,7 +166,7 @@ export default function AdminLogisticsAuditPage() {
         </div>
       </header>
 
-      <div className="p-4 md:p-10 space-y-8 pb-32">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6 md:space-y-8 pb-32">
         {/* KPI Stats */}
         {(() => {
           return (

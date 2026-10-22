@@ -335,7 +335,7 @@ export default function AdminUsersPage() {
         </div>
       </header>
 
-      <div className="p-4 md:p-8 space-y-4 pb-32">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-4 pb-32">
         <div className="flex flex-col gap-3 rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/60 p-3 shadow-sm backdrop-blur-xl md:flex-row md:items-center md:justify-between">
           <div className="flex flex-1 items-center gap-2">
             <div className="relative group flex-1">

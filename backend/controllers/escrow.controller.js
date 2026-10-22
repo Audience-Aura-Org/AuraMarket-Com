@@ -839,13 +839,17 @@ const getEscrowLogs = async (req, res, next) => {
     const { status } = req.query;
     const query = scoped('Escrow', status && status !== 'all' ? { status } : {}, req.managerScope);
 
-    const logs = await Escrow.find(query)
-      .populate('buyer_id', 'name email avatar')
-      .populate('vendor_id', 'store_name')
-      .populate('order_id', 'createdAt')
-      .sort('-createdAt');
-
-    const stats = await Escrow.aggregate([
+    // Newest 500 for the list; the totals below aggregate every record, so
+    // the cap never changes the figures. Both run in parallel.
+    const [logs, stats] = await Promise.all([
+      Escrow.find(query)
+        .populate('buyer_id', 'name email avatar')
+        .populate('vendor_id', 'store_name')
+        .populate('order_id', 'createdAt')
+        .sort('-createdAt')
+        .limit(500)
+        .lean(),
+      Escrow.aggregate([
       { $match: scoped('Escrow', {}, req.managerScope) },
       {
         $group: {
@@ -854,6 +858,7 @@ const getEscrowLogs = async (req, res, next) => {
           count: { $sum: 1 }
         }
       }
+      ]),
     ]);
 
     res.status(200).json({

@@ -165,7 +165,7 @@ export default function AdminProductsPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 lg:p-10 space-y-6 lg:space-y-8 pb-32">
+        <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6 md:space-y-8 pb-32">
 
           {/* ── Stat Cards ─────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

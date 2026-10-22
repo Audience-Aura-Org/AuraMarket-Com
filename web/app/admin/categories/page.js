@@ -302,7 +302,7 @@ export default function AdminCategories() {
 
       {/* ── Content ─────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 lg:p-10 space-y-4 pb-32">
+        <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-4 pb-32">
 
           {/* Search */}
           <div className="relative">

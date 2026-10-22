@@ -45,7 +45,7 @@ export default function AdminLogisticsEarningsPage() {
   const totalShip = partners.reduce((acc, p) => acc + (p.total_shipping_value || 0), 0);
 
   return (
-    <div className="w-full p-4 lg:p-8 space-y-6">
+    <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6">
       <div className="space-y-8">
 
         {/* Header */}

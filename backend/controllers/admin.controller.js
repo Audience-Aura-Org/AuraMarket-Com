@@ -933,7 +933,7 @@ const getAllUsers = async (req, res, next) => {
       query.$or = [{ name: new RegExp(safeSearch, 'i') }, { email: new RegExp(safeSearch, 'i') }];
     }
     if (status) query.verification_status = status;
-    const users = await User.find(scoped('User', query, req.managerScope)).select('-password').sort('-createdAt').limit(500);
+    const users = await User.find(scoped('User', query, req.managerScope)).select('-password').sort('-createdAt').limit(500).lean();
 
     // Attach active manager assignment info per user
     const userIds = users.map(u => u._id);
@@ -1156,7 +1156,7 @@ const getAllProducts = async (req, res, next) => {
     if (status) query.status = status;
     if (vendor) query.vendor_id = vendor;
     if (search) query.name = new RegExp(escapeRegExp(search), 'i');
-    const products = await Product.find(scoped('Product', query, req.managerScope)).populate('vendor_id', 'store_name').sort('-createdAt').limit(500);
+    const products = await Product.find(scoped('Product', query, req.managerScope)).populate('vendor_id', 'store_name').sort('-createdAt').limit(500).lean();
     res.status(200).json({ success: true, count: products.length, data: { products } });
   } catch (error) {
     next(error);

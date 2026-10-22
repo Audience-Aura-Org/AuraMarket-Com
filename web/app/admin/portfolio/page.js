@@ -100,7 +100,7 @@ export default function ManagerPortfolioPage() {
         </div>
       </div>
 
-      <div className="p-4 md:p-8 space-y-8 font-sans">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6 md:space-y-8 font-sans">
         {/* KPI Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard

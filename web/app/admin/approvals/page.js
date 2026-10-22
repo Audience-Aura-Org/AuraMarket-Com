@@ -155,7 +155,7 @@ export default function AdminApprovals() {
         </div>
       </header>
 
-      <div className="p-10 space-y-8 pb-40">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6 md:space-y-8 pb-40">
          {/* Live Stats */}
          {(() => {
            const approved  = vendors.filter(v => v.status === 'approved').length;

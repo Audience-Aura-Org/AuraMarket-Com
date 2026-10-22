@@ -317,7 +317,7 @@ export default function AdminManagersPage() {
         </div>
       </header>
 
-      <div className="p-4 md:p-8 space-y-4 pb-32">
+      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-4 pb-32">
         {/* Search */}
         <div className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-30 group-focus-within:text-sky-500 transition-all" />

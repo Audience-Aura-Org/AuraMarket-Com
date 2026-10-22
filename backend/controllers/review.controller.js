@@ -106,7 +106,9 @@ const getAllReviews = async (req, res, next) => {
     const reviews = await Review.find()
       .populate('user_id', 'name email avatar')
       .populate('product_id', 'name images vendor_id')
-      .sort('-createdAt');
+      .sort('-createdAt')
+      .limit(500) // newest 500 — the list was unbounded
+      .lean();
 
     res.status(200).json({ success: true, count: reviews.length, data: { reviews } });
   } catch (error) {
