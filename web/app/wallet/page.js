@@ -462,7 +462,7 @@ export default function WalletPage() {
                   <div className="py-20 flex justify-center opacity-20"><Loader2 className="animate-spin" /></div>
                 ) : transactions.length === 0 ? (
                   <div className="py-20 text-center border border-dashed border-[var(--glass-border)] rounded-[2rem] opacity-30">
-                    {t('wallet.noRecords', 'No transaction records found')}
+                    {t('wallet.noRecords', 'No {type} records found', { type: tab === 'withdrawals' ? 'withdrawal' : 'transaction' })}
                   </div>
                 ) : currentItems.map((tx, i) => {
                   const config = TX_ICONS[tx.type] || TX_ICONS.payment;

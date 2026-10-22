@@ -87,7 +87,9 @@ export default function LogisticsDashboard() {
       }
 
       if (subRes?.data?.success) {
-        setSubscription({ subscribed: subRes.data.data?.subscribed ?? false });
+        const subData = subRes.data.data || {};
+        // Only a definite "required and not subscribed" shows the banner.
+        setSubscription({ subscribed: subData.required === false ? true : (subData.subscribed ?? false) });
       }
     } catch (err) {
       console.error("Failed to fetch logistics dashboard:", err);
@@ -145,7 +147,7 @@ export default function LogisticsDashboard() {
                 </span>
                 <span className="hidden text-[var(--text-secondary)] opacity-20 sm:inline">·</span>
                 <span className="hidden sm:inline text-[10px] font-medium text-[var(--text-secondary)] opacity-40 font-[Poppins]">
-                  {user.name?.replace(/\s/g, '_') || 'Partner'}
+                  {user.name || 'Partner'}
                 </span>
               </div>
             </div>
@@ -169,7 +171,7 @@ export default function LogisticsDashboard() {
                 })}
               </p>
               <p className="truncate text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 font-[Poppins]">
-                {user.name?.replace(/\s/g, '_') || 'Partner'}
+                {user.name || 'Partner'}
               </p>
             </div>
           </div>

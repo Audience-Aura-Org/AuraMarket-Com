@@ -42,22 +42,35 @@ const LOG_RAIL_STYLES = {
   indigo: 'bg-indigo-500/30 group-hover:bg-indigo-500'
 };
 
+const timeAgo = (date) => {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(date).getTime()) / 60000));
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1440) return `${Math.round(mins / 60)}h ago`;
+  return `${Math.round(mins / 1440)}d ago`;
+};
+
 export default function AdminDashboard() {
   const { t } = useLanguage();
   const { user, hasHydrated } = useAuthStore();
   const [stats, setStats] = useState({});      // default {} so fmt() shows 0 immediately
   const [loading, setLoading] = useState(true);
   const [subStats, setSubStats] = useState({ revenue: null, total: 0, active: 0 });
+  const [recentEvents, setRecentEvents] = useState(null); // latest audit-log entries
+  const [updatedAt, setUpdatedAt] = useState(null);
   const earnings = stats?.admin_earnings || {};
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
     try {
       // allSettled: a failing subscriptions call must not blank the KPI cards.
-      const [analyticsResult, subResult] = await Promise.allSettled([
+      const [analyticsResult, subResult, auditResult] = await Promise.allSettled([
         api.get('/admin/analytics'),
         api.get('/subscriptions/admin/overview', { skipClientCache: true }),
+        api.get('/admin/audit', { params: { limit: 3 } }),
       ]);
+      if (auditResult.status === 'fulfilled') setRecentEvents(auditResult.value.data?.data?.logs || auditResult.value.data?.logs || []);
+      setUpdatedAt(new Date());
       const analyticsRes = analyticsResult.status === 'fulfilled' ? analyticsResult.value : null;
       if (analyticsRes?.data?.success) setStats(analyticsRes.data.data.stats || {});
       const subData = (subResult.status === 'fulfilled' ? subResult.value.data?.data : null) || {};
@@ -93,10 +106,14 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 md:gap-3">
-               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
-                  <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[10px] font-semibold text-emerald-500 font-[Poppins]">{t('admin.systemsNominal', 'Systems Nominal')}</span>
-               </div>
+               {updatedAt && (
+                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/5 border border-emerald-500/10">
+                    <div className="size-1.5 rounded-full bg-emerald-500" />
+                    <span className="text-[10px] font-semibold text-emerald-500 font-[Poppins]">
+                      {t('admin.updated', 'Updated')} {updatedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                 </div>
+               )}
                <button onClick={fetchStats} className="size-10 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] flex items-center justify-center hover:text-[var(--accent)] hover:border-[var(--accent)]/30 transition-all active:scale-95">
                   <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
                </button>
@@ -203,10 +220,10 @@ export default function AdminDashboard() {
                 </div>
                 <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 divide-y divide-[var(--glass-border)] overflow-hidden">
                   {[
-                    { title: 'Volume', desc: 'Settled marketplace sales', count: `${fmt(stats?.revenue || 0)} XAF`, icon: Activity, color: 'blue', signal: 'Paid', href: '/admin/analytics' },
+                    { title: 'Volume', desc: 'Earned marketplace sales', count: `${fmt(stats?.revenue || 0)} XAF`, icon: Activity, color: 'blue', signal: 'Earned', href: '/admin/analytics' },
                     { title: 'KYC Queue', desc: stats?.pending_kyc_details?.length ? stats.pending_kyc_details.map(k => k.store_name || k.user_name).join(', ') : 'Pending review', count: fmt(stats?.pending_vendors || 0), icon: ShieldAlert, color: 'rose', signal: 'Review', href: '/admin/approvals' },
                     { title: 'Escrow', desc: 'Protected funds', count: `${fmt(stats?.escrow_vault || 0)} XAF`, icon: ShieldCheck, color: 'emerald', signal: 'Vault', href: '/admin/escrow' },
-                    { title: 'Uptime', desc: 'API health', count: '99.98%', icon: Zap, color: 'amber', signal: 'Stable', href: '/admin/logs' },
+                    { title: 'Active orders', desc: 'Placed, processing or shipped', count: fmt(stats?.active_orders || 0), icon: Zap, color: 'amber', signal: 'In progress', href: '/admin/orders' },
                   ].map((item, i) => {
                     const colorClass = COLOR_BOX_STYLES[item.color] || COLOR_BOX_STYLES.blue;
                     const textColor = colorClass.split(' ')[0];
@@ -257,15 +274,19 @@ export default function AdminDashboard() {
                   <Link href="/admin/logs" className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight hover:underline">View All</Link>
                 </div>
                 <div className="space-y-6">
-                   {[
-                     { title: 'Status Normal', desc: 'All platform nodes synchronized', time: 'JUST NOW', color: 'emerald' },
-                     { title: 'Logistics Update', desc: 'Routing table calibrated', time: '2H AGO', color: 'blue' },
-                     { title: 'Security Scan', desc: 'No intrusive signatures found', time: '5H AGO', color: 'indigo' },
-                   ].map((log, i) => (
+                   {recentEvents && recentEvents.length === 0 && (
+                     <p className="text-[11px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-60">No admin activity recorded yet.</p>
+                   )}
+                   {(recentEvents || []).map((e, i) => ({
+                     title: String(e.action || 'event').replace(/_/g, ' '),
+                     desc: [e.user_id?.name, e.target_type].filter(Boolean).join(' · ') || 'System',
+                     time: e.createdAt ? timeAgo(e.createdAt) : '',
+                     color: ['emerald', 'blue', 'indigo'][i % 3],
+                   })).map((log, i) => (
                      <div key={i} className="flex gap-4 group">
                         <div className={`w-1 rounded-full transition-all ${LOG_RAIL_STYLES[log.color] || LOG_RAIL_STYLES.blue}`} />
                         <div>
-                          <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight">{log.title}</p>
+                          <p className="text-[11px] lg:text-[12px] font-semibold tracking-tight capitalize">{log.title}</p>
                           <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 mt-0.5">{log.desc}</p>
                           <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-20 mt-2 block tracking-tight">{log.time}</span>
                         </div>
