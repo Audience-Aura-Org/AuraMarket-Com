@@ -118,10 +118,10 @@ export default function AdminAnalyticsPage() {
           const escrowPct = rev > 0 ? Math.min(Math.round((escrow / rev) * 100), 100) : 0;
           return (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard label="Global Flow" value={`XAF ${fmt(rev)}`} sub="Settled sales volume" icon="payments" color="emerald" progress={100} footer="Paid orders only" />
+              <StatCard label="Global Flow" value={`XAF ${fmt(rev)}`} sub="Settled sales volume" icon="payments" color="emerald" footer="Earned orders only" />
               <StatCard label="Escrow Pool" value={`XAF ${fmt(escrow)}`} sub="Held / disputed custody" icon="lock_clock" color="amber" progress={escrowPct} footer={`${escrowPct}% of settled sales`} />
-              <StatCard label="Entity Count" value={fmt(users)} sub="Registered Items" icon="groups" color="blue" progress={Math.min(Math.round(users / 10), 100)} footer={`${fmt(users)} accounts`} />
-              <StatCard label="Merchant Base" value={fmt(vendors)} sub="Registered Stores" icon="store" color="purple" progress={Math.min(vendors * 2, 100)} footer={`${fmt(vendors)} merchants`} />
+              <StatCard label="Entity Count" value={fmt(users)} sub="Registered Items" icon="groups" color="blue" footer={`${fmt(users)} accounts`} />
+              <StatCard label="Merchant Base" value={fmt(vendors)} sub="Registered Stores" icon="store" color="purple" footer={`${fmt(vendors)} merchants`} />
             </div>
           );
         })()}

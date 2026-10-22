@@ -58,12 +58,12 @@ export default function LogisticsNodesPage() {
     try {
       const [profileRes, zonesRes, walletRes] = await Promise.all([
         api.get("/logistics/profile"),
-        api.get("/logistics/zones"),
-        api.get("/wallet"),
+        api.get("/logistics/zones").catch(() => ({ data: {} })), // secondary: never blank the page
+        api.get("/wallet").catch(() => ({ data: {} })), // secondary: never blank the page
       ]);
       if (profileRes.data.success) setFirm(profileRes.data.data.firm);
-      if (zonesRes.data.success) setZones(zonesRes.data.data.zones || []);
-      if (walletRes.data.success) {
+      if (zonesRes.data?.success) setZones(zonesRes.data.data.zones || []);
+      if (walletRes.data?.success) {
         setBalance(walletRes.data.data?.balance ?? 0);
       }
     } catch (err) {

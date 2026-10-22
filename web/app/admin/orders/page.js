@@ -318,7 +318,7 @@ export default function AdminOrdersPage() {
               <StatCard label="Active orders" value={stats ? activeOrders : '…'} icon={ShoppingBag} color="primary" sub="In progress" progress={activePct} footer={`${activePct}% of total`} />
               <StatCard label="Attention" value={stats ? attentionOrders : '…'} icon={Zap} color="amber" sub="Needs review" progress={attentionPct} footer={attentionOrders > 0 ? `${attentionOrders} flagged` : 'All clear'} />
               <StatCard label="Resolved" value={stats ? resolvedOrders : '…'} icon={ShieldCheck} color="emerald" sub="Cycle complete" progress={resolvedPct} footer={`${resolvedPct}% resolved`} />
-              <StatCard label="Closed" value={stats ? allOrders : '…'} icon={Database} color="indigo" sub="Archive total" progress={100} footer="All-time orders" />
+              <StatCard label="Closed" value={stats ? allOrders : '…'} icon={Database} color="indigo" sub="Archive total" footer="All-time orders" />
             </div>
           );
         })()}

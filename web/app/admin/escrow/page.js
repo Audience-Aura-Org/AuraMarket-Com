@@ -114,8 +114,8 @@ export default function AdminEscrow() {
     try {
       const [escrowRes, analyticsRes, settingsRes] = await Promise.all([
         api.get('/admin/escrow/logs'),
-        api.get('/admin/analytics'),
-        api.get('/admin/settings', { skipClientCache: true, params: { t: Date.now() } })
+        api.get('/admin/analytics').catch(() => ({ data: {} })), // secondary: never blank the page
+        api.get('/admin/settings', { skipClientCache: true, params: { t: Date.now() } }).catch(() => ({ data: {} })), // secondary: never blank the page
       ]);
 
       if (escrowRes.data?.success) {
@@ -347,7 +347,7 @@ export default function AdminEscrow() {
               <StatCard label="Locked" value={`${fmt(custodyTotal)} XAF`} sub="Active Custody" icon={Database} color="blue" progress={lockPct} footer={`${lockPct}% of vault`} />
               <StatCard label="Released" value={`${fmt(releasedTotal)} XAF`} sub="Settled Capital" icon={CheckCircle2} color="emerald" progress={relPct} footer={`${relPct}% settled`} />
               <StatCard label="Disputed" value={`${fmt(disputedTotal)} XAF`} sub="Contested Funds" icon={AlertCircle} color="rose" progress={disPct} footer={`${disPct}% contested`} />
-              <StatCard label="Admin Earn" value={loading ? '…' : `${fmt(adminEarn)} XAF`} sub="Platform commissions" icon={Globe} color="indigo" progress={100} footer="Platform revenue" />
+              <StatCard label="Admin Earn" value={loading ? '…' : `${fmt(adminEarn)} XAF`} sub="Platform commissions" icon={Globe} color="indigo" footer="Platform revenue" />
             </div>
           );
         })()}

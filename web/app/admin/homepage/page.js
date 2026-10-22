@@ -358,10 +358,10 @@ export default function AdminHomepagePage() {
             const schedPct = stats.total > 0 ? Math.round((stats.scheduled / stats.total) * 100) : 0;
             return (
               <>
-                <StatCard label="Sections" value={stats.total} icon={Layers} color="primary" sub="Total sections" progress={100} footer={`${stats.total} section nodes`} />
+                <StatCard label="Sections" value={stats.total} icon={Layers} color="primary" sub="Total sections" footer={`${stats.total} section nodes`} />
                 <StatCard label="Live" value={stats.live} icon={CheckCircle2} color="emerald" sub="Active & visible" progress={livePct} footer={`${livePct}% live`} />
                 <StatCard label="Scheduled" value={stats.scheduled} icon={Activity} color="blue" sub="With start date" progress={schedPct} footer={`${schedPct}% scheduled`} />
-                <StatCard label="Items" value={stats.items} icon={Package} color="amber" sub="Total content items" progress={Math.min(stats.items * 2, 100)} footer="Across all sections" />
+                <StatCard label="Items" value={stats.items} icon={Package} color="amber" sub="Total content items" footer="Across all sections" />
               </>
             );
           })()}

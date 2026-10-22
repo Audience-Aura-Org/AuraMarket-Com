@@ -53,12 +53,14 @@ export default function AdminDashboard() {
   const fetchStats = useCallback(async () => {
     setLoading(true);
     try {
-      const [analyticsRes, subRes] = await Promise.all([
+      // allSettled: a failing subscriptions call must not blank the KPI cards.
+      const [analyticsResult, subResult] = await Promise.allSettled([
         api.get('/admin/analytics'),
         api.get('/subscriptions/admin/overview', { skipClientCache: true }),
       ]);
-      setStats(analyticsRes.data.success ? analyticsRes.data.data.stats : {});
-      const subData = subRes.data?.data || {};
+      const analyticsRes = analyticsResult.status === 'fulfilled' ? analyticsResult.value : null;
+      if (analyticsRes?.data?.success) setStats(analyticsRes.data.data.stats || {});
+      const subData = (subResult.status === 'fulfilled' ? subResult.value.data?.data : null) || {};
       const subs = subData.subscriptions || [];
       const active = subs.filter(s => s.status === 'active').length;
       const rev = subData.stats?.revenue ?? subs.reduce((sum, s) => sum + Number(s.amount_paid || 0), 0);
@@ -107,15 +109,16 @@ export default function AdminDashboard() {
         
         {/* KPI Row */}
         {(() => {
-          const userPct   = Math.min(Math.round((stats?.users || 0) / 10), 100);
-          const vendorPct = Math.min((stats?.pending_vendors || 0) * 10, 100);
-          const prodPct   = Math.min((stats?.pending_products || 0) * 5, 100);
+          const ratio     = (part, whole) => (whole > 0 ? Math.min(Math.round((part / whole) * 100), 100) : 0);
+          const userPct   = ratio(stats?.active_users_24h || 0, stats?.users || 0);   // active in the last 24h
+          const vendorPct = ratio(stats?.pending_vendors || 0, stats?.vendors || 0);  // share awaiting KYC
+          const prodPct   = ratio(stats?.pending_products || 0, stats?.products || 0); // share awaiting approval
           return (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard label={t('admin.actives', 'Actives')} value={fmt(stats?.users)} sub={t('admin.registeredAccounts', 'Registered Accounts')} icon={Users} color="blue" href="/admin/users" progress={userPct} footer={`${fmt(stats?.users || 0)} total accounts`} />
+              <StatCard label={t('admin.actives', 'Actives')} value={fmt(stats?.users)} sub={t('admin.registeredAccounts', 'Registered Accounts')} icon={Users} color="blue" href="/admin/users" progress={userPct} footer={`${fmt(stats?.active_users_24h || 0)} active in 24h`} />
               <StatCard label={t('admin.merchantQueue', 'Merchant Queue')} value={fmt(stats?.pending_vendors)} sub={t('admin.awaitingKyc', 'Awaiting KYC')} icon={Store} color="amber" href="/admin/approvals" progress={vendorPct} footer={stats?.pending_kyc_details?.length ? stats.pending_kyc_details.map(k => k.store_name || k.user_name).join(', ') : 'No pending reviews'} />
               <StatCard label={t('admin.assetPipeline', 'Asset Pipeline')} value={fmt(stats?.pending_products)} sub={t('admin.pendingApproval', 'Pending Approval')} icon={Package} color="primary" href="/admin/products" progress={prodPct} footer="Pending approval" />
-              <StatCard label={t('admin.globalVolume', 'Global Volume')} value={`${fmt(stats?.revenue)} XAF`} sub={t('admin.grossRevenue', 'Settled Sales Volume')} icon={TrendingUp} color="emerald" href="/admin/analytics" progress={100} footer="Paid orders only" />
+              <StatCard label={t('admin.globalVolume', 'Global Volume')} value={`${fmt(stats?.revenue)} XAF`} sub={t('admin.grossRevenue', 'Settled Sales Volume')} icon={TrendingUp} color="emerald" href="/admin/analytics" footer="Earned orders only" />
             </div>
           );
         })()}

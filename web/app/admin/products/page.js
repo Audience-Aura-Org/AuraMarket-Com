@@ -169,7 +169,7 @@ export default function AdminProductsPage() {
 
           {/* ── Stat Cards ─────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard label="Total Assets"    value={fmt(total)}     sub="All Listed Products"   icon={LayoutGrid}  color="blue"    progress={100}            footer={`${fmt(total)} products in pool`} />
+            <StatCard label="Total Assets"    value={fmt(total)}     sub="All Listed Products"   icon={LayoutGrid}  color="blue"    footer={`${fmt(total)} products in pool`} />
             <StatCard label="Active Listings" value={fmt(active)}    sub="Live on Marketplace"   icon={Package}     color="emerald" progress={pct(active)}    footer={`${pct(active)}% of total`} />
             <StatCard label="Pending Review"  value={fmt(pending)}   sub="Awaiting Approval"     icon={Star}        color="amber"   progress={pct(pending)}   footer="Pending approval" />
             <StatCard label="Suspended"       value={fmt(suspended)} sub="Flagged / Deactivated" icon={ShieldAlert} color="rose"    progress={pct(suspended)} footer={`${pct(suspended)}% of total`} />

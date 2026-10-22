@@ -85,8 +85,8 @@ export default function AdminLogisticsEarningsPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard label="Marketplace Volume" value={`${totalRev.toLocaleString()} XAF`} icon="storefront" color="emerald" sub="Gross merchant sales" progress={vendorPct} footer={`${vendors.length} active merchants`} />
               <StatCard label="Logistics Burn" value={`${totalShip.toLocaleString()} XAF`} icon="local_shipping" color="indigo" sub="Total shipping value" progress={logisticsPct} footer={`${logisticsPct}% of revenue`} />
-              <StatCard label="Active Merchants" value={String(vendors.length)} icon="store" color="amber" sub="Vendors with sales" progress={vendors.length > 0 ? Math.min(vendors.length * 5, 100) : 0} footer="Generating revenue" />
-              <StatCard label="Partner Firms" value={String(partners.length)} icon="hub" color="primary" sub="Logistics carriers" progress={partners.length > 0 ? Math.min(partners.length * 10, 100) : 0} footer="Active carriers" />
+              <StatCard label="Active Merchants" value={String(vendors.length)} icon="store" color="amber" sub="Vendors with sales" footer="Generating revenue" />
+              <StatCard label="Partner Firms" value={String(partners.length)} icon="hub" color="primary" sub="Logistics carriers" footer="Active carriers" />
             </div>
           );
         })()}

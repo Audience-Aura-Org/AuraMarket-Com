@@ -99,12 +99,16 @@ export default function AdminAuditLogs() {
          {(() => {
            const highPriority = logs.filter(l => l.action.includes('ban')).length;
            const highPct      = logs.length > 0 ? Math.round((highPriority / logs.length) * 100) : 0;
+           const eventTypes   = new Set(logs.map(l => l.action).filter(Boolean)).size;
+           const latestAt     = logs.reduce((max, l) => Math.max(max, new Date(l.createdAt || 0).getTime() || 0), 0);
+           const sinceLatest  = latestAt ? Math.max(0, Math.round((Date.now() - latestAt) / 60000)) : null;
+           const latestLabel  = sinceLatest == null ? '—' : sinceLatest < 60 ? `${sinceLatest}m ago` : sinceLatest < 1440 ? `${Math.round(sinceLatest / 60)}h ago` : `${Math.round(sinceLatest / 1440)}d ago`;
            return (
              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-               <StatCard label="Total Events" value={logs.length} icon={Database} color="primary" sub="Registry" progress={Math.min(logs.length, 100)} footer={`${logs.length} log entries`} />
+               <StatCard label="Total Events" value={logs.length} icon={Database} color="primary" sub="Registry" footer={`${logs.length} log entries`} />
                <StatCard label="High Priority" value={highPriority} icon={AlertTriangle} color="rose" sub="Critical" progress={highPct} footer={`${highPct}% flagged`} />
-               <StatCard label="Items Tracked" value="7 Active" icon={Fingerprint} color="indigo" sub="Identity" progress={70} footer="Active monitors" />
-               <StatCard label="Feed Uptime" value="99.99%" icon={Activity} color="emerald" sub="Health" progress={100} footer="Stream online" />
+               <StatCard label="Event Types" value={eventTypes} icon={Fingerprint} color="indigo" sub="Distinct actions" footer="In the loaded log" />
+               <StatCard label="Latest Event" value={latestLabel} icon={Activity} color="emerald" sub="Most recent entry" footer={latestAt ? new Date(latestAt).toLocaleString() : 'No events yet'} />
              </div>
            );
          })()}

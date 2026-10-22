@@ -199,7 +199,7 @@ export default function AdminLogistics() {
                 <>
                   <StatCard label="Active Transit" value={String(activeCount)} icon="local_shipping" color="primary" sub="In-flight shipments" progress={Math.min(Math.round((activeCount / total) * 100), 100)} footer={`${total} total shipments`} />
                   <StatCard label="Flow Success" value={`${successPct}%`} icon="verified" color="emerald" sub="Delivery rate" progress={successPct} footer="Successful fulfillment" />
-                  <StatCard label="Partner Nodes" value={String(firms.length)} icon="hub" color="indigo" sub="Active logistics firms" progress={firms.length > 0 ? Math.min(firms.length * 10, 100) : 0} footer="Carrier network" />
+                  <StatCard label="Partner Nodes" value={String(firms.length)} icon="hub" color="indigo" sub="Active logistics firms" footer="Carrier network" />
                   <StatCard label="Alert Items" value={String(failedCount)} icon="warning" color="rose" sub="Failed shipments" progress={failedCount > 0 ? Math.min(Math.round((failedCount / total) * 100), 100) : 0} footer={failedCount === 0 ? 'All clear' : `${failedCount} need attention`} />
                 </>
               );

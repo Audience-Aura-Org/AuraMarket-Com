@@ -275,10 +275,10 @@ export default function AdminVendorsPage() {
            const totalSales = vendors.reduce((sum, v) => sum + (v.total_sales || 0), 0);
            return (
              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-               <StatCard label="Total Merchants" value={totalCount} icon="storefront" color="fuchsia" sub="REGISTRY" progress={Math.min(totalCount * 2, 100)} footer={`${totalCount} in registry`} />
+               <StatCard label="Total Merchants" value={totalCount} icon="storefront" color="fuchsia" sub="REGISTRY" footer={`${totalCount} in registry`} />
                <StatCard label="Verified" value={verified} icon="verified_user" color="emerald" sub="TRUST" progress={verifyPct} footer={`${verifyPct}% verified`} />
                <StatCard label="Avg Rating" value={avgRating} icon="star" color="amber" sub="SCORE" progress={ratingPct} footer="Quality score" />
-               <StatCard label="Total Sales" value={fmt(totalSales)} icon="trending_up" color="indigo" sub="ORDERS" progress={Math.min(totalSales, 100)} footer={`${fmt(totalSales)} paid orders`} />
+               <StatCard label="Total Sales" value={fmt(totalSales)} icon="trending_up" color="indigo" sub="ORDERS" footer={`${fmt(totalSales)} earned orders`} />
              </div>
            );
          })()}

@@ -160,14 +160,16 @@ export default function AdminApprovals() {
          {(() => {
            const approved  = vendors.filter(v => v.status === 'approved').length;
            const pending   = vendors.filter(v => v.status === 'pending').length;
+           const rejected  = vendors.filter(v => v.status === 'rejected').length;
+           const rejectPct = vendors.length > 0 ? Math.round((rejected / vendors.length) * 100) : 0;
            const approvePct = vendors.length > 0 ? Math.round((approved / vendors.length) * 100) : 0;
            const pendingPct = vendors.length > 0 ? Math.round((pending  / vendors.length) * 100) : 0;
            return (
              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                <StatCard label={kycStatusFilter === 'all' ? 'Verification Records' : `${kycStatusFilter} Verifications`} value={vendors.length} icon={Building2} color="primary" sub="KYC queue" progress={approvePct} footer={`${approvePct}% approved`} />
-               <StatCard label="Pending Assets" value={products.length} icon={Package} color="indigo" sub="Product gate" progress={Math.min(products.length * 5, 100)} footer={`${products.length} awaiting review`} />
+               <StatCard label="Pending Assets" value={products.length} icon={Package} color="indigo" sub="Product gate" footer={`${products.length} awaiting review`} />
                <StatCard label="Pending KYC" value={pending} icon={Clock} color="amber" sub="Awaiting review" progress={pendingPct} footer={`${pendingPct}% pending`} />
-               <StatCard label="Risk Profile" value="Minimal" icon={AlertCircle} color="emerald" sub="Safety index" progress={95} footer="System secure" />
+               <StatCard label="Rejected" value={rejected} icon={AlertCircle} color="rose" sub="KYC declined" progress={rejectPct} footer={`${rejectPct}% of applications`} />
              </div>
            );
          })()}

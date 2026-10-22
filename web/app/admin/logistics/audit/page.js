@@ -59,7 +59,7 @@ export default function AdminLogisticsAuditPage() {
 
       const [shipRes, firmRes] = await Promise.all([
         api.get(`/admin/logistics/shipments?${params}`),
-        api.get('/admin/logistics/firms')
+        api.get('/admin/logistics/firms').catch(() => ({ data: {} })), // secondary: never blank the page
       ]);
 
       if (shipRes.data?.success) {
@@ -171,10 +171,10 @@ export default function AdminLogisticsAuditPage() {
         {(() => {
           return (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard label="Total Shipments" value={totalCount} icon={Package} color="primary" sub="Audit period" progress={Math.min(totalCount, 100)} footer={`${totalCount} tracked`} />
+              <StatCard label="Total Shipments" value={totalCount} icon={Package} color="primary" sub="Audit period" footer={`${totalCount} tracked`} />
               <StatCard label="Delivered" value={`${onTimeRate}%`} icon={TrendingUp} color="emerald" sub="Success rate" progress={onTimeRate} footer={`${deliveredCount} delivered`} />
               <StatCard label="Failed/Cancelled" value={failedCount} icon={AlertTriangle} color="rose" sub="Issues" progress={totalCount > 0 ? Math.round((failedCount / totalCount) * 100) : 0} footer={`${failedCount} issue${failedCount !== 1 ? 's' : ''}`} />
-              <StatCard label="Active Firms" value={firms.length} icon={Truck} color="indigo" sub="Logistics partners" progress={Math.min(firms.length * 15, 100)} footer={`${firms.length} providers`} />
+              <StatCard label="Active Firms" value={firms.length} icon={Truck} color="indigo" sub="Logistics partners" footer={`${firms.length} providers`} />
             </div>
           );
         })()}

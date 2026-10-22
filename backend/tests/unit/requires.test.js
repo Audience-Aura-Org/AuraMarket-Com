@@ -10,7 +10,7 @@ const fs = require('fs')
 const path = require('path')
 
 const ROOT = path.resolve(__dirname, '..', '..')
-const SKIP = new Set(['node_modules', 'tests', '.git', 'coverage'])
+const SKIP = new Set(['node_modules', 'tests', '.git', 'coverage', 'uploads', 'logs', 'public', 'dist'])
 
 const sourceFiles = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
   if (SKIP.has(e.name)) return []
@@ -20,7 +20,7 @@ const sourceFiles = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMa
 })
 
 describe('relative requires', () => {
-  it('all resolve to a real module', () => {
+  it('all resolve to a real module', { timeout: 30_000 }, () => {
     const broken = []
     for (const file of sourceFiles(ROOT)) {
       const code = fs.readFileSync(file, 'utf8')

@@ -276,8 +276,14 @@ export default function AdminDisputes() {
       <div className="p-4 md:p-10 space-y-8 pb-32">
          {/* Live Intelligence Stats */}
          {(() => {
-           const active     = disputes.filter(d => d.status !== 'resolved').length;
+           const active     = disputes.filter(d => ['pending', 'investigating'].includes(d.status)).length;
+           const investigating = disputes.filter(d => d.status === 'investigating').length;
            const resolved   = disputes.filter(d => d.status === 'resolved').length;
+           const resolvedTimes = disputes
+             .filter(d => d.status === 'resolved' && d.resolved_at && d.createdAt)
+             .map(d => (new Date(d.resolved_at) - new Date(d.createdAt)) / 864e5)
+             .filter(n => Number.isFinite(n) && n >= 0);
+           const avgDays = resolvedTimes.length ? resolvedTimes.reduce((s, n) => s + n, 0) / resolvedTimes.length : null;
            const total      = disputes.length || 1;
            const resolvePct = Math.round((resolved / total) * 100);
            const activePct  = Math.round((active   / total) * 100);
@@ -285,8 +291,8 @@ export default function AdminDisputes() {
              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                <StatCard label="Active Disputes" value={active} icon={AlertCircle} color="primary" sub="Open cases" progress={activePct} footer={`${activePct}% of total`} />
                <StatCard label="Settled Cases" value={resolved} icon={CheckCircle2} color="emerald" sub="Resolved" progress={resolvePct} footer={`${resolvePct}% resolution rate`} />
-               <StatCard label="Avg Latency" value="2.4 Days" icon={Clock} color="indigo" sub="Resolution time" progress={75} footer="Within target" />
-               <StatCard label="System Health" value="High" icon={ShieldCheck} color="amber" sub="Integrity" progress={95} footer="Arbitration online" />
+               <StatCard label="Avg Resolution" value={avgDays == null ? '—' : `${avgDays.toFixed(1)} days`} icon={Clock} color="indigo" sub="Opened → resolved" footer={`${resolvedTimes.length} resolved with timing`} />
+               <StatCard label="Investigating" value={investigating} icon={ShieldCheck} color="amber" sub="Under review" progress={active ? Math.round((investigating / active) * 100) : 0} footer={`${investigating} of ${active} open cases`} />
              </div>
            );
          })()}
