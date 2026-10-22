@@ -323,6 +323,73 @@ const getFirmShipments = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────
+// @route   GET /api/logistics/analytics
+// @desc    Firm-wide shipment figures over ALL shipments (one aggregation):
+//          totals by status, a zero-filled 30-day daily series (Cameroon
+//          time) and the top delivery regions.
+// ─────────────────────────────────────────────
+const ACTIVE_SHIPMENT_STATUSES = ['assigned', 'picked_up', 'in_transit', 'out_for_delivery'];
+const ANALYTICS_TZ = 'Africa/Douala';
+
+const getFirmAnalytics = async (req, res, next) => {
+  try {
+    const firm = await LogisticsCompany.findOne({ user_id: req.user._id }).select('_id').lean();
+    if (!firm) return res.status(404).json({ success: false, message: 'Logistics profile not found.' });
+
+    const since = new Date(Date.now() - 30 * 864e5);
+    const [agg] = await Shipment.aggregate([
+      { $match: { logistics_id: firm._id } },
+      {
+        $facet: {
+          byStatus: [{ $group: { _id: '$status', n: { $sum: 1 } } }],
+          daily: [
+            { $match: { createdAt: { $gte: since } } },
+            { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: ANALYTICS_TZ } }, n: { $sum: 1 } } },
+          ],
+          regions: [
+            { $group: { _id: { $ifNull: ['$delivery_address.region', 'Other'] }, n: { $sum: 1 } } },
+            { $sort: { n: -1 } },
+            { $limit: 4 },
+          ],
+        },
+      },
+    ]);
+
+    const by = Object.fromEntries((agg?.byStatus || []).map((r) => [r._id, r.n]));
+    const totals = {
+      total: Object.values(by).reduce((a, b) => a + b, 0),
+      delivered: by.delivered || 0,
+      active: ACTIVE_SHIPMENT_STATUSES.reduce((sum, st) => sum + (by[st] || 0), 0),
+      pending: by.pending || 0,
+      failed: by.failed || 0,
+      cancelled: by.cancelled || 0,
+    };
+    const finished = totals.delivered + totals.failed + totals.cancelled;
+
+    // Zero-filled day keys in Cameroon time, oldest first.
+    const dayKey = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: ANALYTICS_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+    const counts = Object.fromEntries((agg?.daily || []).map((r) => [r._id, r.n]));
+    const daily = Array.from({ length: 30 }, (_, i) => {
+      const key = dayKey(new Date(Date.now() - (29 - i) * 864e5));
+      return { date: key, count: counts[key] || 0 };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totals,
+        // delivered ÷ finished; null (not 100%) when nothing has finished yet
+        delivery_rate: finished > 0 ? totals.delivered / finished : null,
+        daily,
+        regions: (agg?.regions || []).map((r) => ({ name: r._id, count: r.n })),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ─────────────────────────────────────────────
 // @route   GET /api/logistics/shipments/:id
 // @desc    Firm (or admin) loads one assigned shipment for detail / deep links
 // ─────────────────────────────────────────────
@@ -1008,6 +1075,7 @@ const updatePricing = async (req, res, next) => {
 };
 
 module.exports = {
+  getFirmAnalytics,
   onboardLogistics,
   getFirmShipments,
   getFirmShipmentById,

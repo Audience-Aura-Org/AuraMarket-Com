@@ -251,7 +251,7 @@ export default function LogisticsManifestsPage() {
           ) : null}
         </div>
       ) : (
-        <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+        <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-4 py-5 sm:space-y-8 md:px-8 md:py-8">
 
           {/* ── KPI cards — same StatCard grid as dashboard ── */}
           {(() => {
@@ -279,7 +279,7 @@ export default function LogisticsManifestsPage() {
           />
 
           {/* ── Shipment ledger ── */}
-          <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-3 sm:p-4 md:p-8">
+          <section className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 shadow-sm md:backdrop-blur-xl p-3 sm:p-4 md:p-8">
             <div className="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-end md:justify-between">
               <div className="flex items-center gap-2 md:gap-3">
                 <Cuboid className="size-5 shrink-0 text-[var(--accent)]" strokeWidth={1.4} />

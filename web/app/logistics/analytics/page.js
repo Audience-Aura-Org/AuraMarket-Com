@@ -23,7 +23,8 @@ export const dynamic = 'force-dynamic';
 export default function LogisticsAnalyticsPage() {
   const user = useAuthStore((s) => s.user);
   const [loading, setLoading] = useState(true);
-  const [shipments, setShipments] = useState([]);
+  // Firm-wide figures computed server-side over ALL shipments (GET /logistics/analytics).
+  const [analytics, setAnalytics] = useState(null);
   const [range, setRange] = useState('30');
   const [hoveredBlock, setHoveredBlock] = useState(null);
   const [rebalancing, setRebalancing] = useState(false);
@@ -33,10 +34,8 @@ export default function LogisticsAnalyticsPage() {
 
     const fetchData = async () => {
       try {
-        const res = await api.get('/logistics/shipments');
-        if (res.data.success) {
-          setShipments(res.data.data?.shipments || res.data.shipments || []);
-        }
+        const res = await api.get('/logistics/analytics');
+        if (res.data.success) setAnalytics(res.data.data);
       } catch (err) {
         console.error('Logistics Analytics fetch error:', err);
       } finally {
@@ -58,64 +57,45 @@ export default function LogisticsAnalyticsPage() {
     }
   };
 
-  // Pre-bucket shipments by date for O(n) histogram
-  const shipmentDateMap = useMemo(() => {
-    const m = {};
-    shipments.forEach((s) => {
-      const k = (s.createdAt || s.created_at)?.slice(0, 10);
-      if (k) m[k] = (m[k] || 0) + 1;
-    });
-    return m;
-  }, [shipments]);
-
-  // Transform shipment data into shipment flux (Histogram)
+  // 30-day series (server zero-fills, Cameroon time).
   const histogramData = useMemo(() => {
-    const now = new Date();
-    const data = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
-      const count = shipmentDateMap[key] || 0;
-      data.push({
-        date: d,
-        count,
-        label: d.toLocaleDateString([], { month: 'short', day: 'numeric' }),
-        intensity: Math.min(count * 20, 100),
-      });
-    }
-    return data;
-  }, [shipmentDateMap]);
-
-  // Compute regional stats from real shipment data
-  const regionStats = useMemo(() => {
-    const counts = {};
-    shipments.forEach((s) => {
-      const r = s.delivery_address?.region || s.destination_region || 'Other';
-      counts[r] = (counts[r] || 0) + 1;
+    const daily = analytics?.daily || [];
+    const max = Math.max(1, ...daily.map((d) => d.count));
+    return daily.map((d) => {
+      const date = new Date(`${d.date}T12:00:00`);
+      return {
+        date,
+        count: d.count,
+        label: date.toLocaleDateString([], { month: 'short', day: 'numeric' }),
+        intensity: Math.round((d.count / max) * 100), // relative to the busiest day
+      };
     });
-    const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+  }, [analytics]);
+
+  const regionStats = useMemo(() => {
+    const regions = analytics?.regions || [];
+    const total = analytics?.totals?.total || 0;
     const COLORS = ['bg-emerald-500', 'bg-[var(--accent)]', 'bg-indigo-500', 'bg-rose-500'];
-    return Object.entries(counts)
-      .map(([name, n]) => ({ name, pct: Math.round((n / total) * 100) }))
-      .sort((a, b) => b.pct - a.pct)
-      .slice(0, 4)
-      .map((r, i) => ({ ...r, color: COLORS[i] || 'bg-gray-500' }));
-  }, [shipments]);
+    return regions.map((r, i) => ({
+      name: r.name,
+      pct: total ? Math.round((r.count / total) * 100) : 0,
+      color: COLORS[i] || 'bg-gray-500',
+    }));
+  }, [analytics]);
 
-  // Stats
-  const activeShipments = shipments.filter(s => ['assigned', 'picked_up', 'in_transit', 'out_for_delivery', 'at_source', 'arrived_at_destination'].includes(s.status)).length;
-  const totalDelivered = shipments.filter(s => s.status === 'delivered').length;
-  const deliverySuccess = shipments.length > 0 
-    ? Math.round((totalDelivered / shipments.length) * 100) 
-    : 100;
-  const pendingPickup = shipments.filter(s => s.status === 'pending').length;
-  const networkStatus = deliverySuccess > 90 ? 'Optimal' : deliverySuccess > 70 ? 'Stable' : 'Degraded';
+  const totals = analytics?.totals || { total: 0, delivered: 0, active: 0, pending: 0 };
+  const activeShipments = totals.active;
+  const totalDelivered = totals.delivered;
+  const pendingPickup = totals.pending;
+  // delivered ÷ finished; null until something has finished (never a fake 100%)
+  const deliverySuccess = analytics?.delivery_rate == null ? null : Math.round(analytics.delivery_rate * 100);
+  const networkStatus = deliverySuccess == null ? 'No data yet'
+    : deliverySuccess > 90 ? 'Optimal' : deliverySuccess > 70 ? 'Stable' : 'Degraded';
 
-  // Calculate Efficiency Trend (Delivered last 7 days vs previous 7)
+  // Shipments created in the last 7 days vs the 7 before.
   const histogramEfficiency = histogramData.slice(-7).reduce((acc, d) => acc + d.count, 0);
   const prevEfficiency = histogramData.slice(-14, -7).reduce((acc, d) => acc + d.count, 0);
-  const efficiencyTrend = prevEfficiency > 0 
+  const efficiencyTrend = prevEfficiency > 0
     ? ((histogramEfficiency - prevEfficiency) / prevEfficiency * 100).toFixed(1)
     : '0.0';
 
@@ -150,7 +130,7 @@ export default function LogisticsAnalyticsPage() {
         }
       />
 
-      <div className="w-full space-y-6 px-3 py-5 sm:space-y-8 sm:px-4 sm:py-6 md:p-8">
+      <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-5 sm:space-y-8 md:px-8 md:py-8">
 
         {/* Navigation shortcuts */}
         <LogisticsShortcutsRow
@@ -221,7 +201,7 @@ export default function LogisticsAnalyticsPage() {
         {/* Intelligence Stats Grid */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
           {[
-            { label: 'Network Health', value: networkStatus, sub: `${deliverySuccess}% Success`, icon: Shield, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+            { label: 'Network Health', value: networkStatus, sub: deliverySuccess == null ? 'Nothing delivered yet' : `${deliverySuccess}% success`, icon: Shield, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
             { label: 'Active Manifests', value: activeShipments, sub: 'In pipeline', icon: Activity, color: 'text-blue-500', bg: 'bg-blue-500/10' },
             { label: 'Inbound Load', value: pendingPickup, sub: 'Awaiting intake', icon: Truck, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
             { label: 'Efficiency Yield', value: `${efficiencyTrend}%`, sub: 'vs last window', icon: TrendingUp, color: 'text-amber-500', bg: 'bg-amber-500/10' }

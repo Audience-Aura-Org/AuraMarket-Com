@@ -176,7 +176,7 @@ export default function LogisticsMessagesHubPage() {
         }
       />
 
-      <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-4 py-5 sm:space-y-8 md:px-8 md:py-8">
         {(() => {
           const totalInbox = inboxCount || 1;
           const unreadPct = Math.min(Math.round((unreadMessages / totalInbox) * 100), 100);
@@ -241,7 +241,7 @@ export default function LogisticsMessagesHubPage() {
 
         {/* Shipment Messages Tab */}
         {tab === 'shipment' && (
-          <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 overflow-hidden">
+          <section className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 shadow-sm md:backdrop-blur-xl overflow-hidden">
             {activeThread ? (
               /* ── Active Thread View ── */
               <div className="flex flex-col" style={{ minHeight: '400px' }}>
@@ -375,7 +375,7 @@ export default function LogisticsMessagesHubPage() {
 
         {/* Order Messages Tab */}
         {tab === 'order' && (
-          <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 overflow-hidden">
+          <section className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 shadow-sm md:backdrop-blur-xl overflow-hidden">
             {activeOrderThread ? (
               <div className="flex flex-col" style={{ minHeight: '400px' }}>
                 <div className="flex items-center gap-3 p-4 border-b border-[var(--glass-border)]/30">
@@ -512,7 +512,7 @@ export default function LogisticsMessagesHubPage() {
 
         {/* Chat Tab */}
         {tab === 'chat' && (
-          <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-4 sm:p-6 md:p-10">
+          <section className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 shadow-sm md:backdrop-blur-xl p-4 sm:p-6 md:p-10">
             <h2 className="text-sm font-bold tracking-tight md:text-base">Open messaging</h2>
             <p className="mt-2 max-w-xl text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-85 md:text-[12px]">
               Use the same chat overlay as the rest of Auradime. Your session stays inside the logistics workspace so you can jump back to manifests or tracking anytime.

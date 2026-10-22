@@ -153,7 +153,7 @@ export default function LogisticsNodesPage() {
         }
       />
 
-      <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-4 py-5 sm:space-y-8 md:px-8 md:py-8">
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
           <StatCard label="Wallet" value={`${balance.toLocaleString()} XAF`} sub="Settlement balance" icon="account_balance_wallet" color="purple" href="/logistics/wallet" footer="Tap to manage funds" />
@@ -225,7 +225,7 @@ export default function LogisticsNodesPage() {
         </div>
 
         {/* ── Vendor Shipments Section ── */}
-        <section className="overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+        <section className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 shadow-sm md:backdrop-blur-xl">
           <div className="flex flex-col gap-3 border-b border-[var(--glass-border)] px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6">
             <div className="flex items-center gap-3">
               <div className="size-8 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center">
@@ -331,7 +331,7 @@ export default function LogisticsNodesPage() {
         </section>
 
         {/* ── Zone Registry ── */}
-        <section className="overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+        <section className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 shadow-sm md:backdrop-blur-xl">
           <div className="flex flex-col gap-1 border-b border-[var(--glass-border)] px-4 py-4 md:flex-row md:items-center md:justify-between md:px-8">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)]">
               Towns & quartiers

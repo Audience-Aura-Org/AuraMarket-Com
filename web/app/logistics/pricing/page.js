@@ -193,7 +193,7 @@ export default function LogisticsPricingPage() {
         }
       />
 
-      <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-4 py-5 sm:space-y-8 md:px-8 md:py-8">
         {(() => {
           const coveragePct = quartierNetworkCount > 0 ? Math.round((profile.quartier_prices.length / quartierNetworkCount) * 100) : 0;
           return (

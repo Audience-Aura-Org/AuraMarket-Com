@@ -669,7 +669,7 @@ function TrackingContent() {
         }
       />
 
-      <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-4 py-5 sm:space-y-8 md:px-8 md:py-8">
         {(() => {
           const totalShipments = counts.active + counts.pending + counts.delivered || 1;
           const activePct  = Math.round((counts.active / totalShipments) * 100);
@@ -720,7 +720,7 @@ function TrackingContent() {
           </select>
         </div>
 
-        <section className="overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10">
+        <section className="overflow-hidden rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 shadow-sm md:backdrop-blur-xl">
           <div className="border-b border-[var(--glass-border)] px-4 py-4 md:px-8">
             <p className="font-mono text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">
               {total} log{total === 1 ? "" : "s"} · page {page}/{pages || 1}

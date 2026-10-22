@@ -45,9 +45,10 @@ export default function LogisticsDashboard() {
     active: 0,
     delivered: 0,
   });
-  const [subscription, setSubscription] = useState({
-    subscribed: false,
-  });
+  // null = not known yet (or the check failed): never show the
+  // "subscription required" banner on a loading flash or a network hiccup.
+  const [subscription, setSubscription] = useState({ subscribed: null });
+  const [lifetimeEarned, setLifetimeEarned] = useState(null);
   const [shipmentType, setShipmentType] = useState('all'); // all, marketplace, p2p
 
   const fetchDashboard = useCallback(async (isBackground = false) => {
@@ -62,10 +63,14 @@ export default function LogisticsDashboard() {
       if (shipmentType !== 'all') {
         params.type = shipmentType;
       }
-      const [shipRes, subRes] = await Promise.all([
+      const [shipRes, subRes, walletRes] = await Promise.all([
         api.get("/logistics/shipments/firm", { params }),
         api.get("/subscriptions/me", { params: { role: "logistics" }, skipClientCache: true, silent: true }).catch(() => null),
+        api.get("/wallet", { skipClientCache: true }).catch(() => null),
       ]);
+      // Lifetime earnings from the server (same figure as the wallet page),
+      // not a sum over the current filtered page of shipments.
+      if (walletRes?.data?.success) setLifetimeEarned(Number(walletRes.data.data?.totals?.earned) || 0);
 
       if (shipRes.data.success) {
         const payload = shipRes.data.data?.shipments ?? shipRes.data.shipments ?? [];
@@ -82,10 +87,7 @@ export default function LogisticsDashboard() {
       }
 
       if (subRes?.data?.success) {
-        const subData = subRes.data.data;
-        setSubscription({ subscribed: subData.subscribed ?? false });
-      } else {
-        setSubscription({ subscribed: false });
+        setSubscription({ subscribed: subRes.data.data?.subscribed ?? false });
       }
     } catch (err) {
       console.error("Failed to fetch logistics dashboard:", err);
@@ -136,9 +138,9 @@ export default function LogisticsDashboard() {
               </h1>
               <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
-                  <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 font-[Poppins]">
-                    Network nominal
+                  <span className={`size-1.5 rounded-full ${counts.pending > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+                  <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-70 font-[Poppins]">
+                    {counts.active} in transit · {counts.pending} awaiting pickup
                   </span>
                 </span>
                 <span className="hidden text-[var(--text-secondary)] opacity-20 sm:inline">·</span>
@@ -174,9 +176,9 @@ export default function LogisticsDashboard() {
         </div>
       </header>
 
-      <div className="w-full min-w-0 space-y-6 px-3 py-5 sm:space-y-8 sm:px-5 sm:py-6 md:px-8 md:py-8">
+      <div className="mx-auto w-full min-w-0 max-w-[1600px] space-y-6 px-4 py-5 sm:space-y-8 md:px-8 md:py-8">
         {/* Subscription required banner */}
-        {!subscription.subscribed && (
+        {subscription.subscribed === false && (
           <div className="relative overflow-hidden rounded-[2rem] border border-amber-500/20 bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-amber-500/5 p-5 md:p-6 shadow-md shadow-amber-500/5 flex flex-col md:flex-row items-center md:items-center justify-between gap-4">
             <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
             <div className="flex items-center gap-4 relative z-10">
@@ -206,20 +208,14 @@ export default function LogisticsDashboard() {
           const pendingPct = Math.round((counts.pending   / totalShipments) * 100);
           const delivPct   = Math.round((counts.delivered / totalShipments) * 100);
 
-          // Calculate total earnings from delivered shipments
-          const totalEarnings = shipments.reduce((sum, s) => {
-            if (s.status === 'delivered' && typeof s.price === 'number') {
-              return sum + s.price;
-            }
-            return sum;
-          }, 0);
+          const totalEarnings = lifetimeEarned ?? 0;
 
           return (
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
               <StatCard label="Wallet" value={`${walletBalance.toLocaleString()} XAF`} sub="Available balance" icon="account_balance_wallet" color="purple" href="/logistics/wallet" footer="Tap to manage funds" />
               <StatCard label="In transit" value={String(counts.active)} sub="Pickup → delivery" icon="local_shipping" color="indigo" progress={activePct} footer={`${activePct}% of workload`} />
               <StatCard label="Awaiting pickup" value={String(counts.pending)} sub="New assignments" icon="schedule" color="amber" progress={pendingPct} footer={`${pendingPct}% of workload`} />
-              <StatCard label="Earnings" value={`${totalEarnings.toLocaleString()} XAF`} sub="Completed deliveries" icon="verified" color="emerald" footer={`${counts.delivered} delivered`} />
+              <StatCard label="Earnings" value={`${totalEarnings.toLocaleString()} XAF`} sub="All-time earnings" icon="verified" color="emerald" loading={lifetimeEarned == null} footer={`${counts.delivered} delivered`} />
             </div>
           );
         })()}
@@ -249,7 +245,7 @@ export default function LogisticsDashboard() {
         />
 
         {/* Shipment stream */}
-        <section className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-3 sm:p-4 md:p-8">
+        <section className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-4 shadow-sm md:p-8 md:backdrop-blur-xl">
           <div className="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-end md:justify-between">
             <div className="flex items-center gap-2 md:gap-3">
               <Activity className="size-5 shrink-0 text-[var(--accent)]" />
