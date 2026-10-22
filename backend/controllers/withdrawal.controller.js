@@ -25,6 +25,7 @@ const { sendNotification } = require('../utils/notifier');
 const { debitBalance, creditBalance } = require('../services/wallet.service');
 const { scoped, assertInScope, assertAccessLevel } = require('../utils/scopeFilter');
 const crypto = require('crypto');
+const { RETRY_TXN, shouldRetryTxn, withTxnRetry } = require('../utils/txnRetry');
 
 // ── Restaurant withdrawal gate thresholds ────────────────────────────────────
 // Configurable via PlatformSettings; these are the hardcoded fallbacks.
@@ -168,20 +169,7 @@ const buildRequesterProfiles = async (withdrawals) => {
 // A transaction aborted with TransientTransactionError (e.g. a WriteConflict
 // with a concurrent credit on the same user) was fully rolled back, so the
 // whole attempt is safe to re-run. Commit-uncertain errors are NOT retried.
-const MAX_WITHDRAWAL_ATTEMPTS = 3;
-const RETRY_WITHDRAWAL = Symbol('retry-withdrawal');
-const isTransientTxnError = (err) =>
-  Boolean(err?.hasErrorLabel?.('TransientTransactionError') || err?.errorLabelSet?.has?.('TransientTransactionError'));
-
-const submitWithdrawal = async (req, res) => {
-  for (let attempt = 1; attempt <= MAX_WITHDRAWAL_ATTEMPTS; attempt += 1) {
-    const outcome = await submitWithdrawalAttempt(req, res, attempt === MAX_WITHDRAWAL_ATTEMPTS);
-    if (outcome !== RETRY_WITHDRAWAL) return outcome;
-  }
-  return undefined;
-};
-
-const submitWithdrawalAttempt = async (req, res, isLastAttempt) => {
+const submitWithdrawalAttempt = async (req, res, _next, isLastAttempt) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -310,7 +298,7 @@ const submitWithdrawalAttempt = async (req, res, isLastAttempt) => {
 
     // ── Atomic balance deduction (prevents double-spend on concurrent requests)
     const debitResult = await debitBalance(userId, amount, session);
-    if (!debitResult) throw new Error('Insufficient wallet balance.');
+    if (!debitResult) throw Object.assign(new Error('Insufficient wallet balance.'), { statusCode: 400 });
 
     // ── Create request
     const [withdrawalRequest] = await WithdrawalRequest.create([{
@@ -403,14 +391,15 @@ const submitWithdrawalAttempt = async (req, res, isLastAttempt) => {
   } catch (err) {
     await session.abortTransaction().catch(() => {});
     session.endSession();
-    if (isTransientTxnError(err) && !isLastAttempt && !res.headersSent) {
-      console.warn('[submitWithdrawal] transient transaction error, retrying:', err.codeName || err.message);
-      return RETRY_WITHDRAWAL;
-    }
+    if (shouldRetryTxn(err, res, isLastAttempt)) return RETRY_TXN;
+    // Lost a race with a concurrent debit: the balance check above passed, the atomic debit did not.
+    if (err.statusCode === 400) return res.status(400).json({ success: false, message: err.message });
     console.error('[submitWithdrawal]', err);
     return res.status(500).json({ success: false, message: 'Server error. Please try again.' });
   }
 };
+
+const submitWithdrawal = withTxnRetry(submitWithdrawalAttempt, 'submitWithdrawal');
 
 // ── 2. GET MY WITHDRAWALS ─────────────────────────────────────────────────────
 const getMyWithdrawals = async (req, res) => {

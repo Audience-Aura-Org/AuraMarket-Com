@@ -128,16 +128,17 @@ describe('POST /tracking — product metric increments', () => {
     expect(updated.wishlist_count).toBe(1)
   })
 
-  it('increments purchase_count on a "purchase" action', async () => {
+  it('rejects a client-reported "purchase" — only real orders move purchase_count', async () => {
     const user = await createUser()
 
-    await request(app)
+    const res = await request(app)
       .post('/api/v1/track')
       .set(authHeader(signToken(user)))
       .send({ action_type: 'purchase', product_id: productId })
 
+    expect(res.status).toBe(400)
     const updated = await Product.findById(productId)
-    expect(updated.purchase_count).toBe(1)
+    expect(updated.purchase_count || 0).toBe(0)
   })
 
   it('does not change product metrics for a "search" action (no product_id)', async () => {

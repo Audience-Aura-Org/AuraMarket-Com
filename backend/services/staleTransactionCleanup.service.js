@@ -124,7 +124,7 @@ const settleDeposit = async (txn, app, gateway) => {
 
     // Notify user in real time — include live balance so TopNav updates instantly (no API roundtrip)
     try {
-      const { emitWalletUpdate } = require('../../utils/walletSocket');
+      const { emitWalletUpdate } = require('../utils/walletSocket');
       await emitWalletUpdate(app?.get?.('io'), claimed.user_id, { type: 'deposit', reference: claimed._id });
     } catch (_) { /* non-critical */ }
     return true;
@@ -326,7 +326,7 @@ const runCleanup = async (app) => {
           // Notify user in real time (post-commit, non-critical)
           if (updated?.balance_deducted) {
             try {
-              const { emitWalletUpdate } = require('../../utils/walletSocket');
+              const { emitWalletUpdate } = require('../utils/walletSocket');
               await emitWalletUpdate(app?.get?.('io'), updated.requested_by, { type: 'withdrawal_reversal', reference: wr._id });
             } catch (_) { /* non-critical */ }
           }

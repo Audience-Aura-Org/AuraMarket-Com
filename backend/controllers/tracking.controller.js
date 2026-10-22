@@ -16,7 +16,9 @@ const trackAction = async (req, res, next) => {
     } = req.body;
 
     const user_id = req.user ? req.user._id : null;
-    const permittedActions = new Set(['view', 'wishlist', 'cart_add']);
+    // 'purchase' is excluded: order placement increments purchase_count server-side,
+    // and this endpoint is public. 'search' feeds recommendations and touches no counters.
+    const permittedActions = new Set(['view', 'search', 'wishlist', 'cart_add']);
     if (!permittedActions.has(action_type)) {
       return res.status(400).json({ success: false, message: 'Unsupported tracking action.' });
     }
@@ -26,7 +28,7 @@ const trackAction = async (req, res, next) => {
       user_id: user_id || '000000000000000000000000', // anonymous if null
       product_id,
       action_type,
-      search_query,
+      search_query: typeof search_query === 'string' ? search_query.slice(0, 200) : undefined,
       category,
       vendor_id,
       metadata

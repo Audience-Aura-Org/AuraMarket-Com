@@ -77,6 +77,13 @@ const OrderSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    // Client-generated Idempotency-Key of the checkout that created this order.
+    // A resubmitted checkout with the same key returns these orders instead of
+    // placing (and charging) a second batch.
+    checkout_key: {
+      type: String,
+      default: undefined,
+    },
     payment_method: {
       type: String,
       enum: ['wallet', 'escrow', 'direct_card', 'pay_on_delivery', 'eversend', 'payunit', 'pawapay'],
@@ -330,6 +337,11 @@ OrderSchema.pre('validate', function normalizeLegacyPaymentMethod() {
 
 // Optional: Indexing primarily used queries
 OrderSchema.index({ customer_id: 1, createdAt: -1 });
+// One order per vendor per checkout attempt — concurrent resubmits collide here.
+OrderSchema.index(
+  { customer_id: 1, checkout_key: 1, vendor_id: 1 },
+  { unique: true, partialFilterExpression: { checkout_key: { $type: 'string' } } }
+);
 OrderSchema.index({ vendor_id: 1, order_status: 1 });
 OrderSchema.index({ vendor_id: 1, createdAt: -1 });
 OrderSchema.index({ vendor_id: 1, payment_status: 1, createdAt: -1 });

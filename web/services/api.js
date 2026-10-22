@@ -334,6 +334,11 @@ api.interceptors.request.use(async (config) => {
 const shouldRetry = (error) => {
   if (!error || !error.config) return false;
   if (error.config.__skipRetry) return false;
+  // Only re-send requests that are safe to repeat. A POST/PATCH/DELETE that lost
+  // its response may already have been applied (order placed, wallet debited);
+  // re-sending it risks a duplicate charge. Callers can opt in with __retryUnsafe.
+  const method = (error.config.method || 'get').toLowerCase();
+  if (!['get', 'head', 'options'].includes(method) && !error.config.__retryUnsafe) return false;
   const status = error.response?.status;
   // Do not retry 429s: retrying a rate-limited request only deepens the lockout.
   return status !== 429 && !error.response;

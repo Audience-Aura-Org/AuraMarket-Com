@@ -391,7 +391,7 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
         const vendorGotTransitFee = order.shipping_method === 'intercity_agency' && !order.transit_fee_waived && order.transit_fee > 0;
         if (vendor && (vendorGotDirectPayout || vendorGotTransitFee)) {
           try {
-            const { emitWalletUpdate } = require('../../../utils/walletSocket');
+            const { emitWalletUpdate } = require('../../utils/walletSocket');
             const vendorUserId = vendor.user_id?._id || vendor.user_id;
             await emitWalletUpdate(app?.get?.('io'), vendorUserId, { type: 'payout', reference: order._id });
           } catch (_) { /* non-critical */ }
@@ -575,7 +575,7 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
           const vendorGotTransitFee = order.shipping_method === 'intercity_agency' && !order.transit_fee_waived && order.transit_fee > 0;
           if (vendor && (vendorGotDirectPayout || vendorGotTransitFee)) {
             try {
-              const { emitWalletUpdate } = require('../../../utils/walletSocket');
+              const { emitWalletUpdate } = require('../../utils/walletSocket');
               const vendorUserId = vendor.user_id?._id || vendor.user_id;
               await emitWalletUpdate(app?.get?.('io'), vendorUserId, { type: 'payout', reference: order._id });
             } catch (_) { /* non-critical */ }
@@ -655,8 +655,7 @@ const clawbackFoodRefund = async (order, refundAmount, session, reason = 'Food o
     // Return pre-committed platform fee from platform_wallet_balance
     const feeBreakdown = pendingPayout.metadata?.platform_fee_breakdown;
     if (feeBreakdown?.platform_fee > 0) {
-      const PlatformSettings = require('../models/PlatformSettings.model');
-      const ps = await PlatformSettings.getSettings();
+      const ps = await PlatformSettings.getSettings(session);
       ps.platform_wallet_balance = (ps.platform_wallet_balance || 0) - feeBreakdown.platform_fee;
       await ps.save({ session });
     }
@@ -678,16 +677,14 @@ const clawbackFoodRefund = async (order, refundAmount, session, reason = 'Food o
       ? Math.min(totalPaidToVendor, refundAmount)
       : refundAmount; // fallback: if no txn found, debit full amount (legacy orders)
 
-    await Promise.all([
-      debitBalance(vendorRecord.user_id, vendorDebit, session, { allowNegative: true }),
-      creditBalance(order.customer_id, refundAmount, session),
-    ]);
+    // Sequential: a transaction session cannot run operations in parallel.
+    await debitBalance(vendorRecord.user_id, vendorDebit, session, { allowNegative: true });
+    await creditBalance(order.customer_id, refundAmount, session);
 
     // Return platform commission + shipping from platform_wallet_balance
     if (payoutTxns.length > 0 && vendorDebit < refundAmount) {
       const platformGiveBack = refundAmount - vendorDebit;
-      const PlatformSettings = require('../models/PlatformSettings.model');
-      const ps = await PlatformSettings.getSettings();
+      const ps = await PlatformSettings.getSettings(session);
       ps.platform_wallet_balance = (ps.platform_wallet_balance || 0) - platformGiveBack;
       await ps.save({ session });
     }

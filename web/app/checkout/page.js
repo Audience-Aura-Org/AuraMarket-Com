@@ -57,6 +57,10 @@ const mergeCheckoutItems = (items = []) => {
 
 const VENDOR_MANAGED_LOGISTICS_ID = 'vendor_managed';
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
+const newCheckoutKey = () => (
+  globalThis.crypto?.randomUUID?.() ||
+  `chk-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
+);
 const isMobileMoneyPayment = (method) => ['payunit', 'eversend', 'pawapay'].includes(method);
 const normalizeZoneName = (value) => String(value || '').trim();
 const getZoneName = (zone) => {
@@ -137,6 +141,7 @@ function CheckoutContent() {
   const deliveryQuartierTouchedRef = useRef(false);
   const profileHydratedRef = useRef(false);
   const checkoutInFlightRef = useRef(false);
+  const checkoutKeyRef = useRef(null); // { fingerprint, key } of an unanswered checkout
 
   const handleQuartierChange = (zone) => {
     const normalized = getZoneName({ name: zone });
@@ -614,7 +619,24 @@ function CheckoutContent() {
             }));
          }
 
-         const splitRes = await api.post('/orders/cart-split', orderPayload);
+         // Same Idempotency-Key for a resubmit of this exact checkout whose
+         // response never arrived: the server returns the orders it already
+         // placed instead of placing (and charging) them twice.
+         const fingerprint = JSON.stringify(orderPayload);
+         if (checkoutKeyRef.current?.fingerprint !== fingerprint) {
+            checkoutKeyRef.current = { fingerprint, key: newCheckoutKey() };
+         }
+         let splitRes;
+         try {
+            splitRes = await api.post('/orders/cart-split', orderPayload, {
+               headers: { 'Idempotency-Key': checkoutKeyRef.current.key },
+            });
+            checkoutKeyRef.current = null;
+         } catch (splitErr) {
+            // A definite answer from the server: the next submit is a new checkout.
+            if (splitErr?.response) checkoutKeyRef.current = null;
+            throw splitErr;
+         }
 
         if (splitRes.data.success) {
             finalOrderIds = splitRes.data.data.orderIds;

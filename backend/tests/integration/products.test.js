@@ -142,7 +142,9 @@ describe('GET /products — public list', () => {
       category_id: restaurantCat._id,
       images:      [],
       status:      'active',
-      // truthy meal object → excluded by GET /products filter { meal: null }
+      // is_meal is the authoritative discriminator (migration 15 backfilled it);
+      // GET /products filters { is_meal: { $ne: true } }.
+      is_meal:     true,
       meal:        { booking_options: [{ type: 'delivery' }] },
       createdAt:   new Date(),
       updatedAt:   new Date(),

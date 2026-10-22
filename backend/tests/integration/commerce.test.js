@@ -192,7 +192,7 @@ describe('Order creation — guard rails', () => {
       .set(authHeader(signToken(customer)))
       .send(podPayload({ products: [{ product_id: product._id.toString(), quantity: 9999 }] }))
 
-    expect([400, 500].includes(res.status)).toBe(true)  // error — not 201
+    expect(res.status).toBe(409)  // stock conflict — a client error, never a 500
     expect(res.body.success).toBe(false)
   })
 })

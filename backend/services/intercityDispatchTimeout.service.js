@@ -149,7 +149,7 @@ async function runIntercityDispatchTimeout(app) {
           }
           // Push real-time balance update to buyer — include live balance so TopNav updates instantly
           try {
-            const { emitWalletUpdate } = require('../../utils/walletSocket');
+            const { emitWalletUpdate } = require('../utils/walletSocket');
             await emitWalletUpdate(app?.get?.('io'), buyerUser._id, { type: 'refund', reference: order._id });
           } catch (_) { /* non-critical */ }
         });

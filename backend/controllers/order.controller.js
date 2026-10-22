@@ -40,6 +40,10 @@ const { markEscrowDelivered } = require('./escrow.controller');
 const { toXAF, assertOrderTotal } = require('../utils/platformFees');
 const { getMobileMoneyCollectionFee, isMobileMoneyGateway } = require('../utils/mobileMoneyFees');
 const { hasRole } = require('../utils/roles');
+const { RETRY_TXN, shouldRetryTxn, withTxnRetry } = require('../utils/txnRetry');
+
+/** A checkout/refund rule the client broke: reaches the error handler as a 4xx, not a 500. */
+const checkoutRejection = (statusCode, message) => Object.assign(new Error(message), { statusCode });
 
 const normalizeNullableAmount = (value) => {
   if (value === undefined || value === null || value === '') return null;
@@ -52,7 +56,7 @@ const assertMinimumOrderAmount = async (vendorId, subtotal, session) => {
   const minimum = normalizeNullableAmount(store?.minimum_order_amount);
   if (minimum !== null && Number(subtotal || 0) < minimum) {
     const vendor = await Vendor.findById(vendorId).select('store_name').session(session);
-    throw new Error(`Your order from ${vendor?.store_name || 'this store'} must be at least ${minimum.toLocaleString()} XAF. Please add more items from this store or remove their products to continue.`);
+    throw checkoutRejection(400, `Your order from ${vendor?.store_name || 'this store'} must be at least ${minimum.toLocaleString()} XAF. Please add more items from this store or remove their products to continue.`);
   }
 };
 const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -88,10 +92,10 @@ const resolveOrderLine = (product, item) => {
   if (product.has_variants) {
     const variantMatch = findSelectedVariant(product, item.variant);
     if (!variantMatch) {
-      throw new Error(`Please select a valid variant for ${product.name}.`);
+      throw checkoutRejection(400, `Please select a valid variant for ${product.name}.`);
     }
     if (variantMatch.stock < quantity) {
-      throw new Error(`Insufficient stock for ${product.name} (${variantLabel(item.variant)}). Available: ${variantMatch.stock}`);
+      throw checkoutRejection(409, `Insufficient stock for ${product.name} (${variantLabel(item.variant)}). Available: ${variantMatch.stock}`);
     }
     const variantRegularPrice = Number(variantMatch.price || regularPrice);
     const variantSalePrice = variantMatch.sale_price !== undefined && variantMatch.sale_price !== null 
@@ -121,7 +125,7 @@ const resolveOrderLine = (product, item) => {
     }
     
     if (product.stock < quantity) {
-      throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}`);
+      throw checkoutRejection(409, `Insufficient stock for ${product.name}. Available: ${product.stock}`);
     }
   }
 
@@ -162,7 +166,7 @@ const restoreOrderInventory = async (order, session) => {
 // @desc    Create a new order
 // @access  Private (Role: customer)
 // ─────────────────────────────────────────────
-const createOrder = async (req, res, next) => {
+const createOrderAttempt = async (req, res, next, isLastAttempt) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -212,21 +216,22 @@ const createOrder = async (req, res, next) => {
     // 2. Calculate Subtotal & Verify Stock atomically
     let subtotal = 0;
     const validatedProducts = [];
+    const lowStockAlerts = [];
     const itemParcelClasses = []; // for intercity oversize check
     let mealAvailableDate = null; // preorder date from meal.available_date (if future)
 
     for (const item of products) {
       const quantity = Number(item.quantity) || 1;
-      if (quantity < 1) throw new Error(`Invalid quantity for product ${item.product_id}.`);
+      if (quantity < 1) throw checkoutRejection(400, `Invalid quantity for product ${item.product_id}.`);
 
       // Meals are made to order, so stock is not their availability control.
       // Retail stock remains atomically guarded to prevent overselling.
       const mealCandidate = await Product.findById(item.product_id).session(session);
       if (!mealCandidate || mealCandidate.status !== 'active') {
-        throw new Error(`Product ${item.product_id} is unavailable.`);
+        throw checkoutRejection(400, `Product ${item.product_id} is unavailable.`);
       }
       if (mealCandidate.is_meal === true && mealCandidate.meal?.is_available_today === false) {
-        throw new Error(`"${mealCandidate.name}" is not available today.`);
+        throw checkoutRejection(400, `"${mealCandidate.name}" is not available today.`);
       }
 
       let product;
@@ -277,9 +282,9 @@ const createOrder = async (req, res, next) => {
         // Either product is unavailable or stock is insufficient
         const exists = await Product.findById(item.product_id).select('name stock status').session(session).lean();
         if (!exists || exists.status !== 'active') {
-          throw new Error(`Product ${item.product_id} is unavailable.`);
+          throw checkoutRejection(400, `Product ${item.product_id} is unavailable.`);
         }
-        throw new Error(`Insufficient stock for "${exists.name}" (requested ${quantity}, available ${exists.stock}).`);
+        throw checkoutRejection(409, `Insufficient stock for "${exists.name}" (requested ${quantity}, available ${exists.stock}).`);
       }
 
       product.markModified('sku_variants');
@@ -287,17 +292,9 @@ const createOrder = async (req, res, next) => {
 
       const { quantity: _q, itemPrice, regularPrice, salePrice, compare_at_price, itemImage } = resolveOrderLine(product, item);
 
-      // Low stock alert (in-app only) — suppressed for meal products
+      // Low stock alert (in-app only) — suppressed for meal products; sent after commit
       if (product.is_meal !== true && product.stock < 5) {
-        setImmediate(async () => {
-          try {
-            await sendNotification(req.app, vendor.user_id, {
-              title: 'Low Stock Alert',
-              message: `Your product "${product.name}" is running low on stock (${product.stock} items left).`,
-              type: 'system_alert',
-            });
-          } catch (_) {}
-        });
+        lowStockAlerts.push({ name: product.name, stock: product.stock });
       }
 
       validatedProducts.push({
@@ -347,7 +344,7 @@ const createOrder = async (req, res, next) => {
           { session, returnDocument: "after" },
         );
         if (!updatedCoupon) {
-          throw new Error('Coupon has reached its maximum usage limit.');
+          throw checkoutRejection(409, 'Coupon has reached its maximum usage limit.');
         }
       }
     }
@@ -444,7 +441,7 @@ const createOrder = async (req, res, next) => {
       const firms = await logisticsService.getCompatibleFirms(deliveryZone, [vendor_id], firmFilterOptions);
       const isCompatible = firms.some(f => f._id.toString() === logistics_company_id);
       if (!isCompatible) {
-        throw new Error('Selected logistics company does not support this delivery route.');
+        throw checkoutRejection(400, 'Selected logistics company does not support this delivery route.');
       }
 
       const fees = await logisticsService.calculateShipmentFees([vendor_id], deliveryZone, logistics_company_id);
@@ -481,7 +478,7 @@ const createOrder = async (req, res, next) => {
           origin_unknown:   'Vendor location could not be resolved for intercity shipping.',
           dest_unknown:     'Your delivery location could not be resolved for intercity shipping.',
         };
-        throw new Error(MSG[intercityResult.blocked_reason] || 'Intercity shipping is unavailable for this order.');
+        throw checkoutRejection(400, MSG[intercityResult.blocked_reason] || 'Intercity shipping is unavailable for this order.');
       }
 
       // Exposure cap: max 3 concurrent advanced intercity orders per vendor.
@@ -495,7 +492,7 @@ const createOrder = async (req, res, next) => {
           payment_status:  'paid',
         }).session(session);
         if (activeAdvances >= INTERCITY_ADVANCE_CAP) {
-          throw new Error(`This vendor has reached the maximum of ${INTERCITY_ADVANCE_CAP} concurrent intercity shipments. Please wait for existing orders to be delivered before placing another.`);
+          throw checkoutRejection(409, `This vendor has reached the maximum of ${INTERCITY_ADVANCE_CAP} concurrent intercity shipments. Please wait for existing orders to be delivered before placing another.`);
         }
       }
 
@@ -576,7 +573,7 @@ const createOrder = async (req, res, next) => {
     if (isFoodOrder && payment_method === 'wallet') {
       const buyer = await debitBalance(req.user._id, total_amount, session);
       if (!buyer) {
-        throw new Error('Insufficient wallet balance to place this food order.');
+        throw checkoutRejection(400, 'Insufficient wallet balance to place this food order.');
       }
 
       await Transaction.create([{
@@ -619,6 +616,14 @@ const createOrder = async (req, res, next) => {
 
     await session.commitTransaction();
     session.endSession();
+
+    for (const alert of lowStockAlerts) {
+      sendNotification(req.app, vendor.user_id, {
+        title: 'Low Stock Alert',
+        message: `Your product "${alert.name}" is running low on stock (${alert.stock} items left).`,
+        type: 'system_alert',
+      }).catch(() => {});
+    }
 
     // 7. Background Notifications (non-blocking)
     if (payment_method === 'pay_on_delivery' || (isFoodOrder && payment_method === 'wallet')) {
@@ -706,9 +711,11 @@ const createOrder = async (req, res, next) => {
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
     session.endSession();
+    if (shouldRetryTxn(error, res, isLastAttempt)) return RETRY_TXN;
     next(error);
   }
 };
+const createOrder = withTxnRetry(createOrderAttempt, 'createOrder');
 
 // ... Rest of the controllers (Customer/Vendor pulls, Invoice, Status update, Refund logic)
 
@@ -1353,7 +1360,7 @@ const approveRefund = async (req, res, next) => {
   session.startTransaction();
   try {
     const order = await Order.findById(req.params.id).session(session);
-    if (!order) throw new Error('Order not found.');
+    if (!order) throw checkoutRejection(404, 'Order not found.');
 
     // Seller guard: only the vendor who sold this order can approve refunds
     if (req.vendor && order.vendor_id?.toString() !== req.vendor._id?.toString()) {
@@ -1448,7 +1455,27 @@ const getInvoice = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-const createOrdersFromCart = async (req, res, next) => {
+/** Idempotency-Key header, if well-formed (client-generated, opaque). */
+const readCheckoutKey = (req) => {
+  const key = req.get('Idempotency-Key');
+  return typeof key === 'string' && /^[A-Za-z0-9_-]{8,100}$/.test(key) ? key : null;
+};
+
+/** Orders an earlier submit of this checkout already placed, or null. */
+const findCheckoutReplay = async (customerId, checkoutKey) => {
+  if (!checkoutKey) return null;
+  const existing = await Order.find({ customer_id: customerId, checkout_key: checkoutKey })
+    .select('_id').sort({ createdAt: 1 }).lean();
+  return existing.length ? existing.map((o) => o._id) : null;
+};
+
+const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
+  const checkoutKey = readCheckoutKey(req);
+  const replayedIds = await findCheckoutReplay(req.user._id, checkoutKey);
+  if (replayedIds) {
+    return res.status(201).json({ success: true, data: { orderIds: replayedIds, replayed: true } });
+  }
+
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -1460,12 +1487,12 @@ const createOrdersFromCart = async (req, res, next) => {
        // Manual population of product info for each passed item
        for (const item of req.body.items) {
           const product = await Product.findById(item.product_id).session(session);
-          if (!product) throw new Error(`Product ${item.product_id} not found.`);
+          if (!product) throw checkoutRejection(404, `Product ${item.product_id} not found.`);
           itemsForProcessing.push({ ...item, product });
        }
     } else {
        const cart = await Cart.findOne({ user_id: req.user._id }).populate('items.product').session(session);
-       if (!cart || cart.items.length === 0) throw new Error('Cart is empty.');
+       if (!cart || cart.items.length === 0) throw checkoutRejection(400, 'Cart is empty.');
        itemsForProcessing = cart.items;
     }
 
@@ -1536,11 +1563,11 @@ const createOrdersFromCart = async (req, res, next) => {
       itemsForProcessing.every(it => !!(it.product?.is_meal));
 
     if (!allFoodPickupOrDineIn && !deliveryZone) {
-       throw new Error('A delivery zone must be selected.');
+       throw checkoutRejection(400, 'A delivery zone must be selected.');
     }
 
     if (!allFoodPickupOrDineIn && normalizedShippingMethod === 'logistics_partner' && !logistics_company_id) {
-       throw new Error('Select a logistics partner or choose vendor-managed delivery.');
+       throw checkoutRejection(400, 'Select a logistics partner or choose vendor-managed delivery.');
     }
 
     // ── Step 6: Food cart revalidation ───────────────────────────────────────────
@@ -1586,7 +1613,7 @@ const createOrdersFromCart = async (req, res, next) => {
       const isFoodOrderCart = cartVendor?.vendor_type === 'restaurant';
 
       if (isFoodOrderCart && payment_method === 'escrow') {
-        throw new Error('Escrow is not available for meal orders. Use Aura Wallet or mobile money checkout.');
+        throw checkoutRejection(400, 'Escrow is not available for meal orders. Use Aura Wallet or mobile money checkout.');
       }
 
       // Step 5b — new-restaurant hold detection (per vendor in cart)
@@ -1633,24 +1660,24 @@ const createOrdersFromCart = async (req, res, next) => {
         // Re-fetch product within the session so stock is current (prevents negative stock on concurrent orders)
         const p = await Product.findById(it.product._id).session(session);
         if (!p || p.status !== 'active') {
-          throw new Error('A product in your cart is no longer available. Please refresh your cart and try again.');
+          throw checkoutRejection(400, 'A product in your cart is no longer available. Please refresh your cart and try again.');
         }
         const quantity = Number(it.quantity || 1);
         if (p.is_meal === true) {
           if (p.meal?.is_available_today === false) {
-            throw new Error(`"${p.name}" is not available today.`);
+            throw checkoutRejection(400, `"${p.name}" is not available today.`);
           }
           p.purchase_count = (p.purchase_count || 0) + quantity;
         } else if (p.has_variants) {
           const vMatch = findSelectedVariant(p, it.variant);
-          if (!vMatch) throw new Error(`Please select a valid variant for ${p.name}.`);
+          if (!vMatch) throw checkoutRejection(400, `Please select a valid variant for ${p.name}.`);
           if (vMatch.stock < quantity) {
-            throw new Error(`Insufficient stock for ${p.name} (${variantLabel(it.variant)}). Available: ${vMatch.stock}`);
+            throw checkoutRejection(409, `Insufficient stock for ${p.name} (${variantLabel(it.variant)}). Available: ${vMatch.stock}`);
           }
           vMatch.stock -= quantity;
           p.markModified('sku_variants');
         } else if (p.stock < quantity) {
-          throw new Error(`Insufficient stock for ${p.name}. Available: ${p.stock}`);
+          throw checkoutRejection(409, `Insufficient stock for ${p.name}. Available: ${p.stock}`);
         }
         if (p.is_meal !== true) {
           p.stock -= quantity;
@@ -1679,7 +1706,7 @@ const createOrdersFromCart = async (req, res, next) => {
           const compatibleFirms = await logisticsService.getCompatibleFirms(deliveryZone, [vendorId], cartFirmOptions);
           const isCompatible = compatibleFirms.some(f => f._id.toString() === logistics_company_id.toString());
           if (!isCompatible) {
-            throw new Error('The selected logistics company does not support this delivery route. Please return to checkout and choose another carrier.');
+            throw checkoutRejection(400, 'The selected logistics company does not support this delivery route. Please return to checkout and choose another carrier.');
           }
           const fees = await logisticsService.calculateShipmentFees([vendorId], deliveryZone, logistics_company_id);
           shippingFee = fees.totalFee;
@@ -1690,7 +1717,7 @@ const createOrdersFromCart = async (req, res, next) => {
       let cartIntercityFields = {};
       if (normalizedShippingMethod === 'intercity_agency') {
         if (!isIntercityEnabled()) {
-          throw new Error('Intercity shipping is not currently available.');
+          throw checkoutRejection(400, 'Intercity shipping is not currently available.');
         }
         const [cartVendorDoc, cartVendorStore] = await Promise.all([
           Vendor.findById(vendorId).select('pickup_address').lean().session(session),
@@ -1713,7 +1740,7 @@ const createOrdersFromCart = async (req, res, next) => {
             origin_unknown:   'Vendor location could not be resolved for intercity shipping.',
             dest_unknown:     'Your delivery location could not be resolved for intercity shipping.',
           };
-          throw new Error(MSG[cartIntercityResult.blocked_reason] || 'Intercity shipping is unavailable for this order.');
+          throw checkoutRejection(400, MSG[cartIntercityResult.blocked_reason] || 'Intercity shipping is unavailable for this order.');
         }
 
         // Exposure cap: max 3 concurrent advanced intercity orders per vendor.
@@ -1726,7 +1753,7 @@ const createOrdersFromCart = async (req, res, next) => {
             payment_status:  'paid',
           }).session(session);
           if (activeAdvances >= INTERCITY_ADVANCE_CAP) {
-            throw new Error(`This vendor has reached the maximum of ${INTERCITY_ADVANCE_CAP} concurrent intercity shipments. Please wait for existing orders to be delivered before placing another.`);
+            throw checkoutRejection(409, `This vendor has reached the maximum of ${INTERCITY_ADVANCE_CAP} concurrent intercity shipments. Please wait for existing orders to be delivered before placing another.`);
           }
         }
 
@@ -1766,6 +1793,7 @@ const createOrdersFromCart = async (req, res, next) => {
         delivery_description,
         payment_status: 'pending',
         order_status: 'placed',
+        checkout_key: checkoutKey || undefined,
         escrow_enabled: isFoodOrderCart ? false : (escrow_enabled !== undefined ? escrow_enabled : false),
         // Intercity fields (empty spread for non-intercity)
         ...cartIntercityFields,
@@ -1797,7 +1825,7 @@ const createOrdersFromCart = async (req, res, next) => {
       if (isFoodOrderCart && payment_method === 'wallet') {
         const buyer = await debitBalance(req.user._id, orderTotal, session);
         if (!buyer) {
-          throw new Error('Insufficient wallet balance to place this food order.');
+          throw checkoutRejection(400, 'Insufficient wallet balance to place this food order.');
         }
 
         await Transaction.create([{
@@ -1930,9 +1958,16 @@ const createOrdersFromCart = async (req, res, next) => {
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
     session.endSession();
+    if (shouldRetryTxn(error, res, isLastAttempt)) return RETRY_TXN;
+    // A concurrent submit of the same checkout committed first: hand back its orders.
+    if (error?.code === 11000 && checkoutKey && !res.headersSent) {
+      const ids = await findCheckoutReplay(req.user._id, checkoutKey).catch(() => null);
+      if (ids) return res.status(201).json({ success: true, data: { orderIds: ids, replayed: true } });
+    }
     next(error);
   }
 };
+const createOrdersFromCart = withTxnRetry(createOrdersFromCartAttempt, 'createOrdersFromCart');
 
 // ─────────────────────────────────────────────
 // @route   PATCH /api/orders/:id/food-status

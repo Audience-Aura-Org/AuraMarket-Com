@@ -179,6 +179,120 @@ describe('POST /orders/cart-split — multi-vendor checkout (Buy Now path)', () 
     expect(await Order.countDocuments({ customer_id: customer._id })).toBe(0)
   })
 
+  it('rejects a quantity above stock with 409, not a 500', async () => {
+    const res = await request(app)
+      .post('/api/v1/orders/cart-split')
+      .set(authHeader(signToken(customer)))
+      .send({
+        items: [{ product_id: product._id.toString(), quantity: 51 }],
+        payment_method: 'wallet',
+        shipping_method: 'vendor_managed',
+        shipping_address: shippingAddress(),
+      })
+
+    expect(res.status).toBe(409)
+    expect(res.body.message).toMatch(/insufficient stock/i)
+    expect((await User.findById(customer._id)).wallet_balance).toBe(100_000)
+    expect(await Order.countDocuments({ customer_id: customer._id })).toBe(0)
+  })
+
+  it('single-order checkout also rejects a quantity above stock with 409', async () => {
+    const res = await request(app)
+      .post('/api/v1/orders')
+      .set(authHeader(signToken(customer)))
+      .send({
+        vendor_id: vendorDoc._id.toString(),
+        products: [{ product_id: product._id.toString(), quantity: 51 }],
+        payment_method: 'pay_on_delivery',
+        shipping_method: 'vendor_managed',
+        shipping_address: shippingAddress(),
+      })
+
+    expect(res.status).toBe(409)
+    expect(res.body.message).toMatch(/insufficient stock/i)
+  })
+
+  it('retries a transient write conflict instead of failing the checkout', async () => {
+    const realCreate = Order.create.bind(Order)
+    let calls = 0
+    const spy = vi.spyOn(Order, 'create').mockImplementation(async (...args) => {
+      calls += 1
+      if (calls === 1) {
+        // What MongoDB raises when a concurrent checkout touched the same stock.
+        const err = new mongoose.mongo.MongoServerError({ message: 'WriteConflict', code: 112, codeName: 'WriteConflict' })
+        err.addErrorLabel('TransientTransactionError')
+        throw err
+      }
+      return realCreate(...args)
+    })
+
+    try {
+      const res = await request(app)
+        .post('/api/v1/orders/cart-split')
+        .set(authHeader(signToken(customer)))
+        .send({
+          items: [{ product_id: product._id.toString(), quantity: 2 }],
+          payment_method: 'wallet',
+          shipping_method: 'vendor_managed',
+          shipping_address: shippingAddress(),
+        })
+
+      expect(res.status).toBe(201)
+      expect(calls).toBe(2)
+      // Exactly one order and one debit — the aborted attempt left nothing behind.
+      expect(await Order.countDocuments({ customer_id: customer._id })).toBe(1)
+      expect((await Product.findById(product._id)).stock).toBe(48)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
+  it('replays a resubmitted checkout (same Idempotency-Key) without a second order or debit', async () => {
+    const send = () => request(app)
+      .post('/api/v1/orders/cart-split')
+      .set(authHeader(signToken(customer)))
+      .set('Idempotency-Key', 'chk-test-0001-abcdef')
+      .send({
+        items: [{ product_id: product._id.toString(), quantity: 1 }],
+        payment_method: 'wallet',
+        shipping_method: 'vendor_managed',
+        shipping_address: shippingAddress(),
+      })
+
+    const first = await send()
+    expect(first.status).toBe(201)
+    const pay = await request(app)
+      .post(`/api/v1/orders/${first.body.data.orderIds[0]}/pay-direct`)
+      .set(authHeader(signToken(customer)))
+    expect(pay.status).toBe(200)
+
+    // The client never saw the response (timeout) and taps "Place order" again.
+    const second = await send()
+    expect(second.status).toBe(201)
+    expect(second.body.data.orderIds).toEqual(first.body.data.orderIds)
+    expect(second.body.data.replayed).toBe(true)
+    expect(await Order.countDocuments({ customer_id: customer._id })).toBe(1)
+    expect((await Product.findById(product._id)).stock).toBe(49)
+    expect((await User.findById(customer._id)).wallet_balance).toBe(95_000)
+  })
+
+  it('a different Idempotency-Key places a new order', async () => {
+    const send = (key) => request(app)
+      .post('/api/v1/orders/cart-split')
+      .set(authHeader(signToken(customer)))
+      .set('Idempotency-Key', key)
+      .send({
+        items: [{ product_id: product._id.toString(), quantity: 1 }],
+        payment_method: 'pay_on_delivery',
+        shipping_method: 'vendor_managed',
+        shipping_address: shippingAddress(),
+      })
+
+    expect((await send('chk-test-0002-aaaaaa')).status).toBe(201)
+    expect((await send('chk-test-0003-bbbbbb')).status).toBe(201)
+    expect(await Order.countDocuments({ customer_id: customer._id })).toBe(2)
+  })
+
   it('vendor cannot buy from their own store via cart-split', async () => {
     // vendorUser is both the seller and buyer — cart-split should strip own items → empty → 400
     const res = await request(app)
@@ -229,8 +343,24 @@ describe('POST /orders/:id/pay-direct — wallet direct payment', () => {
     expect(res.body.success).toBe(false)
   })
 
-  it('rejects when order is already paid', async () => {
+  // Already-paid wallet orders (e.g. food orders debited at creation) answer
+  // 200 so checkout can advance — but must never debit a second time.
+  it('is idempotent for an already-paid wallet order: no second debit', async () => {
     const order = await seedOrder({ payment_status: 'paid', order_status: 'processing' })
+    const before = (await User.findById(customer._id)).wallet_balance
+
+    const res = await request(app)
+      .post(`/api/v1/orders/${order._id}/pay-direct`)
+      .set(authHeader(signToken(customer)))
+
+    expect(res.status).toBe(200)
+    expect(res.body.message).toMatch(/already completed/i)
+    expect((await User.findById(customer._id)).wallet_balance).toBe(before)
+  })
+
+  it('rejects when an order was already paid by another method', async () => {
+    const order = await seedOrder({ payment_status: 'paid', order_status: 'processing', payment_method: 'pawapay' })
+    const before = (await User.findById(customer._id)).wallet_balance
 
     const res = await request(app)
       .post(`/api/v1/orders/${order._id}/pay-direct`)
@@ -238,6 +368,7 @@ describe('POST /orders/:id/pay-direct — wallet direct payment', () => {
 
     expect(res.status).toBe(400)
     expect(res.body.success).toBe(false)
+    expect((await User.findById(customer._id)).wallet_balance).toBe(before)
   })
 
   it('rejects when a different user tries to pay', async () => {

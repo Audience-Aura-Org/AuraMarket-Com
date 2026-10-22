@@ -10,7 +10,7 @@ const Escrow = require('../../models/Escrow.model')
 const buildEscrow = (ids, overrides = {}) => ({
   order_id:   ids.orderId,
   vendor_id:  ids.vendorId,
-  customer_id: ids.customerId,
+  buyer_id:   ids.customerId,
   amount:     faker.number.int({ min: 500, max: 50_000 }),
   status:     'held',
   ...overrides,

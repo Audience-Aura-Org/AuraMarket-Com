@@ -91,9 +91,12 @@ describe('GET /admin/analytics/advanced — financial custody', () => {
       payment_status: 'pending',
       order_status: 'placed',
     })
-    await createEscrow(ids, { amount: 2_000, status: 'held' })
-    await createEscrow(ids, { amount: 1_000, status: 'disputed' })
-    await createEscrow(ids, { amount: 4_000, status: 'released' })
+    // One escrow per order (order_id is unique on Escrow).
+    const escrowFor = (overrides) =>
+      createEscrow({ ...ids, orderId: new mongoose.Types.ObjectId() }, overrides)
+    await escrowFor({ amount: 2_000, status: 'held' })
+    await escrowFor({ amount: 1_000, status: 'disputed' })
+    await escrowFor({ amount: 4_000, status: 'released' })
 
     const res = await request(app)
       .get('/api/v1/admin/analytics/advanced')
@@ -529,16 +532,14 @@ describe('GET /admin/analytics — platform analytics', () => {
     expect(res.body.data.stats.revenue).toBe(5_000)
   })
 
-  it('returns zero platform revenue for an unassigned manager', async () => {
+  it('denies a manager — managers work through delegation, not admin analytics', async () => {
     const manager = await createUser({ role: 'manager', previous_role: 'customer' })
 
     const res = await request(app)
       .get('/api/v1/admin/analytics')
       .set(authHeader(signToken(manager)))
 
-    expect(res.status).toBe(200)
-    expect(res.body.data.stats.admin_earnings).toBeNull()
-    expect(res.body.data.stats.admin_revenue).toBe(0)
+    expect(res.status).toBe(403)
   })
 
   it('returns 403 for a regular user', async () => {
