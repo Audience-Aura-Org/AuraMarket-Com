@@ -165,7 +165,23 @@ const buildRequesterProfiles = async (withdrawals) => {
 // ── 1. SUBMIT WITHDRAWAL REQUEST ─────────────────────────────────────────────
 // @route  POST /api/withdrawals
 // @access Private (user/vendor)
+// A transaction aborted with TransientTransactionError (e.g. a WriteConflict
+// with a concurrent credit on the same user) was fully rolled back, so the
+// whole attempt is safe to re-run. Commit-uncertain errors are NOT retried.
+const MAX_WITHDRAWAL_ATTEMPTS = 3;
+const RETRY_WITHDRAWAL = Symbol('retry-withdrawal');
+const isTransientTxnError = (err) =>
+  Boolean(err?.hasErrorLabel?.('TransientTransactionError') || err?.errorLabelSet?.has?.('TransientTransactionError'));
+
 const submitWithdrawal = async (req, res) => {
+  for (let attempt = 1; attempt <= MAX_WITHDRAWAL_ATTEMPTS; attempt += 1) {
+    const outcome = await submitWithdrawalAttempt(req, res, attempt === MAX_WITHDRAWAL_ATTEMPTS);
+    if (outcome !== RETRY_WITHDRAWAL) return outcome;
+  }
+  return undefined;
+};
+
+const submitWithdrawalAttempt = async (req, res, isLastAttempt) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -385,8 +401,12 @@ const submitWithdrawal = async (req, res) => {
       data: { withdrawal: withdrawalRequest, balance: Number(debitResult.wallet_balance) },
     });
   } catch (err) {
-    await session.abortTransaction();
+    await session.abortTransaction().catch(() => {});
     session.endSession();
+    if (isTransientTxnError(err) && !isLastAttempt && !res.headersSent) {
+      console.warn('[submitWithdrawal] transient transaction error, retrying:', err.codeName || err.message);
+      return RETRY_WITHDRAWAL;
+    }
     console.error('[submitWithdrawal]', err);
     return res.status(500).json({ success: false, message: 'Server error. Please try again.' });
   }

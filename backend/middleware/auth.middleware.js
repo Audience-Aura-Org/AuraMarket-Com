@@ -238,4 +238,4 @@ const loadVendorOptional = async (req, res, next) => {
   }
 };
 
-module.exports = { protect, restrictTo, protectOptional, loadVendor, loadVendorOptional, resolveUserFromToken };
+module.exports = { protect, restrictTo, protectOptional, loadVendor, loadVendorOptional, resolveUserFromToken, getRequestToken };
