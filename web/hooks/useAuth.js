@@ -6,6 +6,7 @@ import socketService from '../services/socket';
 import { clearStoredAuthToken, setStoredAuthToken, getStoredAuthToken } from '../services/authStorage';
 import { unsubscribeCurrentPushEndpoint } from '../lib/pwa-helper';
 import { unregisterNativeAndroidPushToken } from '../lib/native-push';
+import { isSessionEnded } from '../lib/session';
 
 let fetchMeInFlight = null;
 let lastFetchMeFailureAt = 0;
@@ -26,20 +27,9 @@ const clearClientOnlyState = async () => {
   sessionStorage.removeItem('aura-act-as');
 };
 
-const isTerminalSessionError = (err) => {
-  const status = err?.response?.status;
-  const message = String(err?.response?.data?.message || err?.message || '').toLowerCase();
-  if (status === 401) {
-    return (
-      message.includes('user belonging to this token no longer exists') ||
-      message.includes('session is no longer valid') ||
-      message.includes('jwt expired') ||
-      message.includes('invalid token')
-    );
-  }
-
-  return status === 403 && message.includes('deactivated');
-};
+// One rule (lib/session) for "the server says you are not signed in":
+// missing / invalid / expired / revoked token, deleted or deactivated user.
+const isTerminalSessionError = isSessionEnded;
 
 // Monotonic ordering for wallet balance writes (see setWalletBalance).
 let balanceClock = 0;
@@ -370,12 +360,40 @@ const baseAuthStore = create(
         walletBalance: state.walletBalance,
         isAuthenticated: state.isAuthenticated,
       }),
+      // Mark hydrated only after checking the token, so no page ever renders
+      // a saved "signed in" state that has no token behind it.
       onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated?.(true);
+        reconcileHydratedSession().finally(() => state?.setHasHydrated?.(true));
       },
     }
   )
 );
+
+/**
+ * A session exists only while a token exists. Run after the persisted state
+ * loads: a saved "signed in" user with no token anywhere is signed out (it
+ * could never make an authenticated request — the "logged in without a
+ * token" bug); a token kept in the saved state but missing from its main
+ * slot is restored there instead of logging the user out.
+ */
+export async function reconcileHydratedSession() {
+  const state = baseAuthStore.getState();
+  if (!state.isAuthenticated && !state.user) return;
+  let stored = null;
+  try { stored = await getStoredAuthToken(); } catch (_) {}
+  if (stored) {
+    if (state.token !== stored) baseAuthStore.setState({ token: stored });
+    return;
+  }
+  if (state.token) {
+    await setStoredAuthToken(state.token).catch(() => {});
+    return;
+  }
+  baseAuthStore.setState({
+    user: null, token: null, isAuthenticated: false, walletBalance: null, followedVendorIds: [],
+  });
+  try { localStorage.removeItem('aura-auth-storage'); } catch (_) {}
+}
 
 /**
  * Manager workspace identity overlay.

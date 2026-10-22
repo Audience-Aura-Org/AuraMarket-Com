@@ -1,6 +1,18 @@
 import axios from 'axios';
 import { Capacitor } from '@capacitor/core';
 import { clearStoredAuthToken, getStoredAuthToken } from './authStorage';
+import { isSessionEndedResponse } from '../lib/session';
+
+/** The persisted auth state (token + whether the app believes it is signed in). */
+const readSavedSession = () => {
+  if (typeof window === 'undefined') return {};
+  try {
+    return JSON.parse(window.localStorage.getItem('aura-auth-storage') || 'null')?.state || {};
+  } catch {
+    return {};
+  }
+};
+const usableToken = (t) => (t && t !== 'undefined' && t !== 'null' ? t : null);
 
 const stripApiPath = (url = '') => url.replace(/\/api(\/v1)?\/?$/, '').replace(/\/$/, '');
 const PRODUCTION_API_URL = 'https://api.auradime.com/api/v1';
@@ -303,9 +315,11 @@ api.interceptors.request.use(async (config) => {
     config.headers['Accept-Language'] = language;
     config.headers['X-Aura-Language'] = language;
 
-    const token = await getStoredAuthToken();
-    
-    if (token && token !== 'undefined' && token !== 'null' && token !== '') {
+    // Main token slot first; the saved session's copy covers the moment at
+    // startup before a missing main slot is restored (see useAuth reconcile).
+    const token = usableToken(await getStoredAuthToken()) || usableToken(readSavedSession().token);
+
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -358,17 +372,9 @@ const shouldRetry = (error) => {
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
-const isInvalidStoredSession = (status, message = '') => {
-  const normalized = String(message).toLowerCase();
-  if (status === 401) {
-    return normalized.includes('user belonging to this token no longer exists') ||
-      normalized.includes('session is no longer valid') ||
-      normalized.includes('jwt expired') ||
-      normalized.includes('invalid token');
-  }
-
-  return status === 403 && normalized.includes('deactivated');
-};
+// One rule (lib/session): missing / invalid / expired / revoked token,
+// deleted or deactivated user. Wrong-password 401s are not included.
+const isInvalidStoredSession = isSessionEndedResponse;
 
 let lastInvalidSessionNoticeAt = 0;
 const notifyInvalidStoredSession = async (message) => {
@@ -377,12 +383,13 @@ const notifyInvalidStoredSession = async (message) => {
   // 15s debounce — prevents rapid repeated logout triggers
   if (now - lastInvalidSessionNoticeAt < 15000) return;
 
-  // Only log out if the user has an active stored token.
-  // This prevents 401s from unauthenticated requests (before Zustand
-  // hydrates, guest routes, or pre-login API probes) from triggering
-  // a spurious logout → login loop.
+  // Act only when the app believes someone is signed in: a stored token, or a
+  // saved "signed in" state. Guests' 401s (public pages, pre-login probes)
+  // never trigger a logout. A saved session whose token is gone is exactly
+  // the "logged in without a token" case, so it IS ended here.
   const storedToken = await getStoredAuthToken().catch(() => null);
-  if (!storedToken) return;
+  const saved = readSavedSession();
+  if (!storedToken && !saved.isAuthenticated && !saved.user) return;
 
   lastInvalidSessionNoticeAt = now;
   try {
