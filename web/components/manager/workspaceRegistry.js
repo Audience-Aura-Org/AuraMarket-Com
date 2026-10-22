@@ -1,6 +1,21 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import { Skeleton } from '@/components/manager/ui';
+
+/** Shown while an embedded page's code downloads (slow networks, first visit). */
+function PageLoading() {
+  return (
+    <div className="mx-auto w-full max-w-[1240px] px-4 md:px-8 py-6 space-y-4" aria-busy="true" aria-label="Loading page">
+      <Skeleton className="h-7 w-56" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-[2rem]" />)}
+      </div>
+      <Skeleton className="h-64 rounded-[2rem]" />
+    </div>
+  );
+}
+const PAGE_OPTIONS = { ssr: false, loading: PageLoading };
 
 /**
  * Workspace Registry
@@ -16,33 +31,33 @@ import dynamic from 'next/dynamic';
 // link inside an embedded page maps 1:1 onto /manager/as/{id}/{key}.
 const COMPONENTS = {
   vendor: {
-    dashboard:       dynamic(() => import('@/app/vendor/dashboard/page'), { ssr: false }),
-    products:        dynamic(() => import('@/app/vendor/products/page'), { ssr: false }),
-    'products/add':  dynamic(() => import('@/app/vendor/products/add/page'), { ssr: false }),
-    'products/edit': dynamic(() => import('@/app/vendor/products/edit/page'), { ssr: false }),
-    meals:           dynamic(() => import('@/app/vendor/meals/page'), { ssr: false }),
-    'meals/add':     dynamic(() => import('@/app/vendor/meals/add/page'), { ssr: false }),
-    kitchen:         dynamic(() => import('@/app/vendor/kitchen/page'), { ssr: false }),
-    stories:         dynamic(() => import('@/app/vendor/stories/page'), { ssr: false }),
-    orders:          dynamic(() => import('@/app/vendor/orders/page'), { ssr: false }),
-    wallet:          dynamic(() => import('@/app/vendor/wallet/page'), { ssr: false }),
-    analytics:       dynamic(() => import('@/app/vendor/analytics/page'), { ssr: false }),
-    ratings:         dynamic(() => import('@/app/vendor/ratings/page'), { ssr: false }),
-    disputes:        dynamic(() => import('@/app/vendor/disputes/page'), { ssr: false }),
+    dashboard:       dynamic(() => import('@/app/vendor/dashboard/page'), PAGE_OPTIONS),
+    products:        dynamic(() => import('@/app/vendor/products/page'), PAGE_OPTIONS),
+    'products/add':  dynamic(() => import('@/app/vendor/products/add/page'), PAGE_OPTIONS),
+    'products/edit': dynamic(() => import('@/app/vendor/products/edit/page'), PAGE_OPTIONS),
+    meals:           dynamic(() => import('@/app/vendor/meals/page'), PAGE_OPTIONS),
+    'meals/add':     dynamic(() => import('@/app/vendor/meals/add/page'), PAGE_OPTIONS),
+    kitchen:         dynamic(() => import('@/app/vendor/kitchen/page'), PAGE_OPTIONS),
+    stories:         dynamic(() => import('@/app/vendor/stories/page'), PAGE_OPTIONS),
+    orders:          dynamic(() => import('@/app/vendor/orders/page'), PAGE_OPTIONS),
+    wallet:          dynamic(() => import('@/app/vendor/wallet/page'), PAGE_OPTIONS),
+    analytics:       dynamic(() => import('@/app/vendor/analytics/page'), PAGE_OPTIONS),
+    ratings:         dynamic(() => import('@/app/vendor/ratings/page'), PAGE_OPTIONS),
+    disputes:        dynamic(() => import('@/app/vendor/disputes/page'), PAGE_OPTIONS),
   },
   logistics: {
-    dashboard: dynamic(() => import('@/app/logistics/dashboard/page'), { ssr: false }),
-    manifests: dynamic(() => import('@/app/logistics/manifests/page'), { ssr: false }),
-    pricing:   dynamic(() => import('@/app/logistics/pricing/page'), { ssr: false }),
-    tracking:  dynamic(() => import('@/app/logistics/tracking/page'), { ssr: false }),
-    wallet:    dynamic(() => import('@/app/logistics/wallet/page'), { ssr: false }),
-    messages:  dynamic(() => import('@/app/logistics/messages/page'), { ssr: false }),
-    analytics: dynamic(() => import('@/app/logistics/analytics/page'), { ssr: false }),
-    nodes:     dynamic(() => import('@/app/logistics/nodes/page'), { ssr: false }),
+    dashboard: dynamic(() => import('@/app/logistics/dashboard/page'), PAGE_OPTIONS),
+    manifests: dynamic(() => import('@/app/logistics/manifests/page'), PAGE_OPTIONS),
+    pricing:   dynamic(() => import('@/app/logistics/pricing/page'), PAGE_OPTIONS),
+    tracking:  dynamic(() => import('@/app/logistics/tracking/page'), PAGE_OPTIONS),
+    wallet:    dynamic(() => import('@/app/logistics/wallet/page'), PAGE_OPTIONS),
+    messages:  dynamic(() => import('@/app/logistics/messages/page'), PAGE_OPTIONS),
+    analytics: dynamic(() => import('@/app/logistics/analytics/page'), PAGE_OPTIONS),
+    nodes:     dynamic(() => import('@/app/logistics/nodes/page'), PAGE_OPTIONS),
   },
   customer: {
-    dashboard: dynamic(() => import('@/app/profile/page'), { ssr: false }),
-    profile:   dynamic(() => import('@/app/profile/page'), { ssr: false }),
+    dashboard: dynamic(() => import('@/app/profile/page'), PAGE_OPTIONS),
+    profile:   dynamic(() => import('@/app/profile/page'), PAGE_OPTIONS),
   },
 };
 
