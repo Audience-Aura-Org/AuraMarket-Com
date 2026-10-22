@@ -7,15 +7,7 @@ import Link from 'next/link';
 import api from '@/services/api';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
+import TrendChart from '@/components/kit/TrendChart';
 import {
   ArrowRight,
   BarChart3,
@@ -248,7 +240,6 @@ export default function VendorDashboard() {
   if (!hasHydrated || !user) return null;
 
     const monthlySales = buildMonthlySalesSeries(analyticsHistory, earnedOrders);
-    const hasMonthlySalesData = monthlySales.some((entry) => entry.value > 0);
     // Growth % vs previous month
     const currentMonthVal = monthlySales[5]?.value ?? 0;
     const prevMonthVal = monthlySales[4]?.value ?? 0;
@@ -541,58 +532,16 @@ export default function VendorDashboard() {
                   </div>
                 </div>
               </div>
-              <div className="h-48 w-full">
-                {hasMonthlySalesData ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={monthlySales} margin={{ top: 18, right: 8, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="dashboardRevenueFill" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.32} />
-                          <stop offset="95%" stopColor="var(--accent)" stopOpacity={0.02} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid vertical={false} stroke="rgba(148, 163, 184, 0.12)" />
-                      <XAxis
-                        dataKey="month"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--text-secondary)', opacity: 0.65 }}
-                      />
-                      <YAxis hide />
-                      <Tooltip
-                        cursor={{ stroke: 'rgba(255, 255, 255, 0.08)' }}
-                        contentStyle={{
-                          backgroundColor: 'var(--bg-primary)',
-                          border: '1px solid var(--glass-border)',
-                          borderRadius: '14px',
-                          boxShadow: '0 18px 45px rgba(0, 0, 0, 0.18)',
-                        }}
-                        formatter={(value) => [`${Number(value).toLocaleString()} XAF`, 'Revenue']}
-                        labelFormatter={(label) => `${label}`}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="var(--accent)"
-                        strokeWidth={3}
-                        fill="url(#dashboardRevenueFill)"
-                        activeDot={{ r: 5, fill: 'var(--accent)', stroke: '#fff', strokeWidth: 2 }}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-full items-center justify-center rounded-[1.5rem] border border-dashed border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 text-center">
-                    <div className="space-y-1">
-                      <p className="text-xs font-bold text-[var(--text-primary)] tracking-tight">
-                        {t('dashboard.noSalesData', 'No sales data yet')}
-                      </p>
-                      <p className="text-[10px] font-medium text-[var(--text-secondary)] opacity-60">
-                        {t('dashboard.graphWillUpdate', 'The chart updates automatically when paid orders come in.')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Lazy chart: recharts downloads after the cards have painted. */}
+              <TrendChart
+                data={monthlySales}
+                xKey="month"
+                yKey="value"
+                height="h-48"
+                seriesLabel="XAF"
+                emptyTitle={t('dashboard.noSalesData', 'No sales data yet')}
+                emptyHint={t('dashboard.graphWillUpdate', 'The chart updates automatically when paid orders come in.')}
+              />
             </div>
             {/* Recent Orders */}
             <div className="glass-panel rounded-[2rem] p-6 flex flex-col border border-[var(--glass-border)] bg-[var(--bg-primary)]/50">

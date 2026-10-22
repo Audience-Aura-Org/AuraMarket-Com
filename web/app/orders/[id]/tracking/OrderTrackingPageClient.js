@@ -103,7 +103,7 @@ export default function OrderTrackingPageClient() {
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-24">
       {/* Mobile Header */}
-      <div className="sticky top-0 z-50 bg-white/70 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-gray-100">
+      <div className="sticky top-0 z-50 bg-[var(--bg-primary)]/95 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-[var(--glass-border)]">
         <button onClick={() => router.back()} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>

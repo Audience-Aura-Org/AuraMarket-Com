@@ -815,3 +815,35 @@ html[data-font-size] h4 { font-size: calc(1.25rem * var(--aura-text-scale, 1)); 
 @media (max-width: 640px) {
   html[data-font-size="md"] { --aura-text-scale: 0.8; }
 }
+/* ── Performance: no backdrop blur on phones ─────────────────────────
+   backdrop-filter is re-rendered on every scroll frame; on low/mid-range
+   Android GPUs it is the main cause of janky scrolling. Phone-sized screens
+   (and users who ask for reduced transparency) get the same translucent
+   surfaces without the blur — fixed bars are already 80–95% opaque.
+   Desktop keeps the glass effect. */
+@media (max-width: 767px), (prefers-reduced-transparency: reduce) {
+  *,
+  *::before,
+  *::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* ── Performance: cheap glows ─────────────────────────────────────────
+   Decorative glow blobs used filter: blur(80–180px) — the most expensive
+   filter there is (cost grows with radius), several on fixed elements that
+   repaint while scrolling. A radial fade mask draws the same soft glow for a
+   fraction of the cost. Only the large decorative radii are matched. */
+:is(
+  [class^="blur-[80px]"], [class*=" blur-[80px]"],
+  [class^="blur-[100px]"], [class*=" blur-[100px]"],
+  [class^="blur-[120px]"], [class*=" blur-[120px]"],
+  [class^="blur-[140px]"], [class*=" blur-[140px]"],
+  [class^="blur-[150px]"], [class*=" blur-[150px]"],
+  [class^="blur-[180px]"], [class*=" blur-[180px]"]
+) {
+  filter: none !important;
+  -webkit-mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 100%);
+}

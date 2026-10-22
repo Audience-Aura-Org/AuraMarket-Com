@@ -66,7 +66,7 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'prima
   const c = colorMap[color] || colorMap.primary;
 
   const content = (
-    <div className="relative overflow-hidden glass-panel p-4 md:p-5 rounded-2xl md:rounded-[2rem] hover:-translate-y-1 transition-all duration-500 bg-[var(--bg-primary)]/70 backdrop-blur-xl border border-[var(--glass-border)] shadow-sm hover:shadow-xl group h-full flex flex-col gap-3">
+    <div className="relative overflow-hidden glass-panel p-4 md:p-5 rounded-2xl md:rounded-[2rem] md:hover:-translate-y-1 transition-[transform,box-shadow] duration-200 bg-[var(--bg-primary)]/70 md:backdrop-blur-xl border border-[var(--glass-border)] shadow-sm hover:shadow-xl group h-full flex flex-col gap-3">
 
       {/* Gradient overlay — matches dashboard cards */}
       <div
