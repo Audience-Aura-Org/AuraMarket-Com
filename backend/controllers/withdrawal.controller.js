@@ -381,7 +381,8 @@ const submitWithdrawal = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: `Your withdrawal request of ${amount.toLocaleString()} ${currency} has been submitted and is pending admin approval.`,
-      data: { withdrawal: withdrawalRequest },
+      // Committed post-debit balance: the client applies it immediately.
+      data: { withdrawal: withdrawalRequest, balance: Number(debitResult.wallet_balance) },
     });
   } catch (err) {
     await session.abortTransaction();

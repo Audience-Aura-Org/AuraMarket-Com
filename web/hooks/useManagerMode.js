@@ -19,6 +19,7 @@ import api from '../services/api';
 
 let accountsInFlight = null;
 let badgeRefreshTimer = null;
+let switchingTimer = null;
 
 /** Read actAsId from sessionStorage (tab-scoped). */
 const readActAsId = () => {
@@ -129,8 +130,12 @@ export const useManagerMode = create(
         set({ actAsId: null, switching: false });
       },
 
-      /** Set switching state (progress bar). */
-      setSwitching: (v) => set({ switching: !!v }),
+      /** Set switching state (progress bar). Auto-clears if a navigation never lands. */
+      setSwitching: (v) => {
+        clearTimeout(switchingTimer);
+        if (v) switchingTimer = setTimeout(() => set({ switching: false }), 8000);
+        set({ switching: !!v });
+      },
 
       /**
        * Toggle starred status for an account.

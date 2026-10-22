@@ -5,11 +5,20 @@ import { UserCog, Shield, X, Loader2, CheckCircle, XCircle, Clock } from "lucide
 import api from "@/services/api";
 import { toast } from "react-hot-toast";
 
-const LEVEL_LABELS = {
-  read_only: "View Only",
-  standard: "Standard",
-  full: "Full Access",
+const PERMISSION_LABELS = {
+  products: "Products",
+  orders: "Orders",
+  messages: "Messages",
+  money: "Money",
+  profile: "Profile",
 };
+
+/** e.g. "Products, Orders, Messages" — what the manager may do on this account. */
+const describePermissions = (permissions = {}) =>
+  Object.keys(PERMISSION_LABELS)
+    .filter((k) => permissions?.[k])
+    .map((k) => PERMISSION_LABELS[k])
+    .join(", ") || "View only";
 
 const STATUS_STYLES = {
   active: { icon: CheckCircle, color: "text-emerald-500 bg-emerald-500/10", label: "Active" },
@@ -32,7 +41,8 @@ export default function MyManagersTab() {
     try {
       const res = await api.get("/admin/my-managers");
       if (res.data?.success) {
-        setManagers(res.data.data?.managers || []);
+        const data = res.data.data;
+        setManagers(Array.isArray(data) ? data : data?.managers || []);
       }
     } catch (err) {
       if (err.response?.status !== 404) {
@@ -145,9 +155,25 @@ export default function MyManagersTab() {
                         <div className="flex-1 min-w-0">
                           <p className="text-[12px] font-semibold truncate">{name}</p>
                           <p className="text-[10px] text-[var(--text-secondary)] opacity-50 truncate">
-                            {manager.email} — {LEVEL_LABELS[assignment.access_level] || "Standard"} access
+                            {manager.email} — {describePermissions(assignment.permissions)}
                           </p>
                         </div>
+                        {assignment.initiated_by === "user" ? (
+                          // You invited this manager — waiting on them; you can withdraw it.
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full text-amber-500 bg-amber-500/10">
+                              Awaiting manager
+                            </span>
+                            <button
+                              onClick={() => handleRevoke(assignment._id, name)}
+                              disabled={isLoading}
+                              className="h-8 px-3 rounded-lg bg-red-500/10 text-red-500 text-[10px] font-bold tracking-tight hover:bg-red-500 hover:text-white transition-all disabled:opacity-50 flex items-center gap-1"
+                            >
+                              {isLoading ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleRespond(assignment._id, true)}
@@ -166,6 +192,7 @@ export default function MyManagersTab() {
                             Decline
                           </button>
                         </div>
+                        )}
                       </div>
                     );
                   })}
@@ -200,7 +227,7 @@ export default function MyManagersTab() {
                           </p>
                         </div>
                         <span className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full text-blue-500 bg-blue-500/10">
-                          {LEVEL_LABELS[assignment.access_level] || "Standard"}
+                          {describePermissions(assignment.permissions)}
                         </span>
                         <button
                           onClick={() => handleRevoke(assignment._id, name)}

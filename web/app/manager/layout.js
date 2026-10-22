@@ -1,16 +1,18 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePathname } from 'next/navigation';
-import DashboardLayout from '@/components/layout/DashboardLayout';
+import { usePathname, useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
+import ManagerShell from '@/components/manager/shell/ManagerShell';
 import { useManagerMode } from '@/hooks/useManagerMode';
+import '@/styles/manager.css';
 
 export default function ManagerLayout({ children }) {
   const pathname = usePathname();
+  const router = useRouter();
   const loadAccounts = useManagerMode((s) => s.loadAccounts);
   const clearActAs = useManagerMode((s) => s.clearActAs);
   const actAsId = useManagerMode((s) => s.actAsId);
-  const switching = useManagerMode((s) => s.switching);
   const startBadgePolling = useManagerMode((s) => s.startBadgePolling);
   const stopBadgePolling = useManagerMode((s) => s.stopBadgePolling);
 
@@ -26,9 +28,9 @@ export default function ManagerLayout({ children }) {
   }, [startBadgePolling, stopBadgePolling]);
 
   // Clear actAsId when navigating to a manager-space route
-  // (e.g. /manager, /manager/accounts — but NOT /manager/as/...)
-  // Don't clear when navigating to non-manager routes (e.g. /vendor/dashboard)
-  // because the workspace redirect sends the manager there with actAsId active.
+  // (e.g. /manager, /manager/accounts — but NOT /manager/as/...).
+  // Routes outside /manager are handled by OnboardingWatcher, which maps
+  // /vendor/* and /logistics/* back into the workspace.
   useEffect(() => {
     if (actAsId && pathname?.startsWith('/manager') && !pathname.startsWith('/manager/as/')) {
       clearActAs();
@@ -48,6 +50,22 @@ export default function ManagerLayout({ children }) {
     }
   }, [actAsId, pathname]);
 
+  // Access to the open account was revoked/expired mid-session: leave the
+  // workspace instead of leaving the manager on a page full of errors.
+  useEffect(() => {
+    const handler = (e) => {
+      const id = e.detail?.accountId;
+      const mode = useManagerMode.getState();
+      if (!id || mode.actAsId !== id) return;
+      mode.removeAccount(id);
+      mode.loadAccounts({ force: true });
+      toast.error('Your access to this account has ended.');
+      router.replace('/manager/accounts');
+    };
+    window.addEventListener('aura:workspace-access-lost', handler);
+    return () => window.removeEventListener('aura:workspace-access-lost', handler);
+  }, [router]);
+
   // Refetch accounts on window focus (picks up newly assigned accounts)
   useEffect(() => {
     const handler = () => {
@@ -57,31 +75,5 @@ export default function ManagerLayout({ children }) {
     return () => window.removeEventListener('focus', handler);
   }, []);
 
-  return (
-    <DashboardLayout role="manager">
-      {/* Switching progress bar */}
-      {switching && (
-        <div className="fixed top-0 left-0 right-0 z-[999] h-0.5">
-          <div className="h-full bg-blue-500 animate-progress-bar rounded-r-full" />
-        </div>
-      )}
-      {children}
-      <style jsx global>{`
-        @keyframes progress-bar {
-          0% { width: 0%; }
-          30% { width: 60%; }
-          60% { width: 85%; }
-          100% { width: 98%; }
-        }
-        .animate-progress-bar {
-          animation: progress-bar 2s ease-out forwards;
-        }
-        /* Make star toggle visible on touch devices */
-        @media (hover: none) {
-          .touch-device\\:opacity-100 { opacity: 1 !important; }
-          .group:hover .group-hover\\:opacity-100 { opacity: 1 !important; }
-        }
-      `}</style>
-    </DashboardLayout>
-  );
+  return <ManagerShell>{children}</ManagerShell>;
 }

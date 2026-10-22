@@ -15,6 +15,7 @@ import {
   Globe, ArrowRight, ArrowLeft, Wallet, AlertCircle, Loader2
 } from 'lucide-react';
 import api from '@/services/api';
+import { useAuthStore } from '@/hooks/useAuth';
 
 const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
 
@@ -30,6 +31,7 @@ const COUNTRIES = [
 ];
 
 export default function WithdrawModal({ balance, onClose, onSuccess }) {
+  const setWalletBalance = useAuthStore((state) => state.setWalletBalance);
   const [step, setStep]     = useState(1); // 1=amount, 2=method, 3=details, 4=review
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState(null);
@@ -117,7 +119,12 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
         localStorage.setItem('aura_withdrawal_form', JSON.stringify(toSave));
       }
 
-      window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
+      // The server returns the committed post-debit balance: apply it now so
+      // the top nav and every wallet view update instantly. Older servers
+      // without it fall back to a refetch.
+      const committed = Number(res.data?.data?.balance);
+      if (Number.isFinite(committed)) setWalletBalance(committed);
+      else window.dispatchEvent(new CustomEvent('aura:wallet-updated'));
       setDone(true);
       if (onSuccess) onSuccess(res.data);
     } catch (e) {

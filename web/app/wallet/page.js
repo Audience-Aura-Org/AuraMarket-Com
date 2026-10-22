@@ -83,12 +83,13 @@ function ReceiptModal({ tx, onClose }) {
 }
 
 export default function WalletPage() {
-  const { user, hasHydrated, authChecked, fetchMe, setWalletBalance } = useAuthStore();
+  const { user, hasHydrated, authChecked, fetchMe, setWalletBalance, startBalanceRead, walletBalance: storeWalletBalance } = useAuthStore();
   const { t } = useLanguage();
   const router = useRouter();
 
   const [mounted,            setMounted]           = useState(false);
-  const [balance,            setBalance]           = useState(0);
+  // Shared with the top nav: one balance everywhere.
+  const balance = Number(storeWalletBalance ?? 0);
   const [pendingBalance,     setPendingBalance]    = useState(0);
   const [transactions,       setTransactions]      = useState([]);
   const [withdrawalRequests, setWithdrawalRequests]= useState([]);
@@ -120,6 +121,8 @@ export default function WalletPage() {
     if (silent) setRefreshing(true);
     else setLoading(true);
     try {
+      // Stamp before reading: a balance pushed while this request is in flight wins.
+      const readStamp = startBalanceRead?.();
       const [balRes, txRes, wdRes] = await Promise.allSettled([
         api.get('/wallet', { skipClientCache: true }),
         api.get('/wallet/transactions'),
@@ -127,12 +130,8 @@ export default function WalletPage() {
       ]);
       if (balRes.status === 'fulfilled' && balRes.value.data.success) {
         const nextBalance = balRes.value.data.data.balance || 0;
-        setBalance(nextBalance);
-        setWalletBalance(nextBalance);
+        setWalletBalance(nextBalance, { readStamp });
         setPendingBalance(balRes.value.data.data.pending_escrow || 0);
-        // Broadcast to TopNav so it updates instantly even if the socket event
-        // was missed (disconnect, race condition, etc.)
-        window.dispatchEvent(new CustomEvent('aura:wallet-updated', { detail: { balance: nextBalance } }));
       }
       if (txRes.status === 'fulfilled' && txRes.value.data.success) {
         const txList = txRes.value.data.data.transactions || [];

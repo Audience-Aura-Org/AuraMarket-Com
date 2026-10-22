@@ -125,6 +125,19 @@ router.get('/homepage', getHomepageLayout); // App boot sequence
 router.use(protect);
 
 // ════════════════════════════════════════════════════════════════════
+// GROUP 0: USER-FACING (any authenticated user)
+// View/manage managers assigned to the current user's account.
+// Invite responses are also handled here.
+// Registered BEFORE the admin groups: their pathless restrictTo('admin')
+// middleware would otherwise reject every non-admin /admin/* request.
+// ════════════════════════════════════════════════════════════════════
+router.get('/my-managers',                                getMyManagers);
+router.post('/my-managers/invite',                        inviteManager);
+router.patch('/my-managers/:assignmentId/permissions',    updateMyManagerPermissions);
+router.post('/my-managers/:assignmentId/revoke',          revokeMyManager);
+router.post('/invites/:assignmentId/respond',             respondToInvite);
+
+// ════════════════════════════════════════════════════════════════════
 // GROUP 1: ADMIN ACCESS
 // Day-to-day operational routes. Managers now use /manager/* routes.
 // ════════════════════════════════════════════════════════════════════
@@ -291,16 +304,5 @@ assignments.post('/assignments/transfer',             transferAccounts);
 assignments.patch('/assignments/:assignmentId/permissions', adminUpdatePermissions);
 
 router.use(assignments);
-
-// ════════════════════════════════════════════════════════════════════
-// GROUP 5: USER-FACING (any authenticated user)
-// View/manage managers assigned to the current user's account.
-// Invite responses are also handled here.
-// ════════════════════════════════════════════════════════════════════
-router.get('/my-managers',                                getMyManagers);
-router.post('/my-managers/invite',                        inviteManager);
-router.patch('/my-managers/:assignmentId/permissions',    updateMyManagerPermissions);
-router.post('/my-managers/:assignmentId/revoke',          revokeMyManager);
-router.post('/invites/:assignmentId/respond',             respondToInvite);
 
 module.exports = router;

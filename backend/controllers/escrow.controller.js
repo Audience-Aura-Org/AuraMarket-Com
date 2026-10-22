@@ -286,7 +286,7 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   escrow.status = 'released';
   escrow.release_date = new Date();
   escrow.auto_released = !!req.autoRelease;
-  escrow.released_by = req.autoRelease ? 'auto' : (['admin', 'manager'].includes(req.user?.role) ? 'admin' : 'customer');
+  escrow.released_by = req.autoRelease ? 'auto' : (req.user?.role === 'admin' ? 'admin' : 'customer');
   await escrow.save({ session });
 
   order.order_status = 'completed';
@@ -385,7 +385,7 @@ const releaseFunds = async (req, res, next) => {
     const paymentIsSettled = order.payment_status === 'paid' || order.payment_method === 'pay_on_delivery';
 
     // ── CASE: Admin Override ────────────────────────────────────────────────
-    if (['admin', 'manager'].includes(req.user.role)) {
+    if (req.user.role === 'admin') {
       if (escrow && order.payment_status !== 'paid') {
         throw new Error('Escrow cannot be released because this order payment is not paid.');
       }
@@ -715,7 +715,7 @@ const refundFunds = async (req, res, next) => {
     // 4. Break down Escrow model
     escrow.status = 'refunded';
     escrow.refund_reason = reason || 'Vendor cancellation / Admin dispute resolution';
-    escrow.released_by = ['admin', 'manager'].includes(req.user?.role) ? 'admin' : 'customer';
+    escrow.released_by = req.user?.role === 'admin' ? 'admin' : 'customer';
     await escrow.save({ session });
 
     // 4. Conclude Order cleanly
@@ -785,7 +785,7 @@ const denyEscrow = async (req, res, next) => {
     const vendorRecord = await Vendor.findOne({ user_id: req.user._id }).session(session);
     const isVendor = vendorRecord && escrow.vendor_id.toString() === vendorRecord._id.toString();
 
-    if (!isBuyer && !isVendor && !['admin', 'manager'].includes(req.user.role)) {
+    if (!isBuyer && !isVendor && req.user.role !== 'admin') {
       throw new Error('Not authorized to contest this escrow.');
     }
 

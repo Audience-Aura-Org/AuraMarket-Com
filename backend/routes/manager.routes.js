@@ -28,12 +28,14 @@ const router  = express.Router();
 const {
   getOverview,
   getAccounts,
+  getAccountSession,
   getTasks,
   getOrders,
   getShipments,
   getMessages,
   getMoney,
   getReports,
+  getReportSeries,
   listNotes,
   createNote,
   updateNote,
@@ -55,12 +57,14 @@ router.use(protect, restrictTo('manager'), loadManagerScope);
 // ── Manager Space ────────────────────────────
 router.get('/overview',   getOverview);
 router.get('/accounts',   getAccounts);
+router.get('/accounts/:id/session', getAccountSession);
 router.get('/tasks',      getTasks);
 router.get('/orders',     getOrders);
 router.get('/shipments',  getShipments);
 router.get('/messages',   getMessages);
 router.get('/money',      getMoney);
 router.get('/reports',    getReports);
+router.get('/reports/series', getReportSeries);
 
 // Notes & Reminders
 router.get('/notes',          listNotes);

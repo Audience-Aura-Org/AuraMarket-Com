@@ -20,7 +20,6 @@ const {
   getWalletBalance,
   getTransactionHistory,
   initiateDeposit,
-  requestWithdrawal,
   processWithdrawal,
   getAllWithdrawals,
   payOrderWithWallet,
@@ -29,25 +28,30 @@ const {
 } = require('../controllers/wallet.controller');
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
-const { actAs } = require('../middleware/delegate.middleware');
 const { loadManagerScope } = require('../middleware/managerScope.middleware');
+const { walletWriteLimiter } = require('../middleware/rateLimiter');
 
 // All Wallet routes require authentication
-// actAs lets managers work as a user via X-Act-As header
 router.use(protect);
-router.use(actAs);
 
 // ── General Customer / Vendor ─────────────────
 router.get('/', getWalletBalance);
 router.get('/transactions', getTransactionHistory);
 router.get('/escrow', restrictTo('vendor', 'logistics'), getEscrowTransactions);
-router.post('/deposit', initiateDeposit);
-router.post('/withdraw', requestWithdrawal);
-router.post('/pay-order', payOrderWithWallet); // Direct Wallet Payment checkout
+router.post('/deposit', walletWriteLimiter, initiateDeposit);
+// Retired: it debited the balance but created no WithdrawalRequest, so the
+// payout never reached the admin queue (/withdrawals/admin). Withdrawals go
+// through POST /withdrawals. Kept as 410 so old clients fail without moving money.
+router.post('/withdraw', walletWriteLimiter, (req, res) => res.status(410).json({
+  success: false,
+  code: 'ENDPOINT_RETIRED',
+  message: 'Withdrawals are submitted at POST /api/v1/withdrawals. Please update the app.',
+}));
+router.post('/pay-order', walletWriteLimiter, payOrderWithWallet); // Direct Wallet Payment checkout
 
 // ── Admin + Manager Tools ────────────────────
 const adminWallet = express.Router();
-adminWallet.use(restrictTo('admin', 'manager'), loadManagerScope);
+adminWallet.use(restrictTo('admin'), loadManagerScope);
 adminWallet.get('/stats', getPlatformFinancialStats);
 adminWallet.get('/withdrawals', getAllWithdrawals);
 adminWallet.patch('/withdrawals/:id', processWithdrawal);

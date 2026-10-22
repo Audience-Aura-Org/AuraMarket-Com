@@ -9,9 +9,6 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useChat } from '@/context/ChatContext';
 import { useLanguage } from '@/context/LanguageContext';
 import api from '@/services/api';
-import AccountSwitcher from '@/components/manager/AccountSwitcher';
-import { useManagerMode } from '@/hooks/useManagerMode';
-import { getWorkspaceNav } from '@/components/manager/workspaceRegistry';
 
 const VENDOR_NAV = [
   { icon: 'home',                     label: 'Marketplace',      href: '/shop' },
@@ -92,18 +89,11 @@ const LOGISTICS_NAV = [
 
 const MANAGER_NAV = [
   { icon: 'home',                     label: 'Marketplace',    href: '/shop' },
-  { icon: 'hub',                      label: 'Overview',       href: '/manager' },
-  { icon: 'people',                   label: 'Accounts',       href: '/manager/accounts' },
-  { icon: 'task_alt',                 label: 'Task Inbox',     href: '/manager/tasks' },
-  { icon: 'receipt_long',             label: 'Orders',         href: '/manager/orders' },
-  { icon: 'local_shipping',           label: 'Shipments',      href: '/manager/shipments' },
-  { icon: 'chat',                     label: 'Messages',       href: '/manager/messages',  badge: 'messages' },
-  { icon: 'account_balance_wallet',   label: 'Money',          href: '/manager/money' },
-  { icon: 'monitoring',               label: 'Reports',        href: '/manager/reports' },
-  { icon: 'sticky_note_2',            label: 'Notes',          href: '/manager/notes' },
-  { icon: 'history',                  label: 'Activity',       href: '/manager/activity' },
-  { icon: 'mail',                     label: 'Invitations',    href: '/manager/invitations' },
-  { icon: 'settings',                 label: 'Settings',       href: '/manager/settings' },
+  { icon: 'grid_view',                label: 'Accounts',         href: '/manager' },
+  { icon: 'inbox',                    label: 'Inbox',            href: '/manager/inbox' },
+  { icon: 'monitoring',               label: 'Performance',      href: '/manager/performance' },
+  { icon: 'edit_note',                label: 'Notes & Activity', href: '/manager/journal' },
+  { icon: 'settings',                 label: 'Settings',         href: '/manager/settings' },
 ];
 
 const ROLE_CONFIG = {
@@ -159,26 +149,10 @@ export default function RoleSidebar({ role: roleProp, isOpen, onClose }) {
   const { unreadCount, unreadMessages } = useNotifications();
   const { openChat, isOpen: chatOverlayOpen } = useChat();
 
-  // Manager workspace mode: when actAsId is set, the manager may be
-  // on a vendor/logistics page. Override role to 'manager' so the
-  // sidebar shows manager nav with account switcher instead of the
-  // target role's nav.
-  const actAsId = useManagerMode((s) => s.actAsId);
-  const managerAccounts = useManagerMode((s) => s.accounts);
-  const isManagerActing = user?.role === 'manager' && !!actAsId;
-  const role = isManagerActing ? 'manager' : roleProp;
+  // Managers have their own shell (components/manager/shell); this sidebar
+  // only shows them the section links on shared dashboard pages.
+  const role = roleProp;
   const config = ROLE_CONFIG[role] || ROLE_CONFIG.customer;
-
-  const actAsAccount = isManagerActing
-    ? managerAccounts.find((a) => a.id === actAsId)
-    : null;
-  const workspaceNav = actAsAccount
-    ? getWorkspaceNav(actAsAccount.role).map((item) => ({
-        icon: item.icon,
-        label: item.label,
-        href: `/manager/as/${actAsId}/${item.slug}`,
-      }))
-    : null;
 
   // Detect restaurant vendors to show Kitchen / Meals links
   const [isRestaurantVendor, setIsRestaurantVendor] = useState(false);
@@ -263,9 +237,6 @@ export default function RoleSidebar({ role: roleProp, isOpen, onClose }) {
           </Link>
         </div>
 
-        {/* Account Switcher for Managers */}
-        {role === 'manager' && <AccountSwitcher />}
-
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto no-scrollbar">
 
           {/* Restaurant section — pinned at the top for restaurant vendors */}
@@ -303,32 +274,10 @@ export default function RoleSidebar({ role: roleProp, isOpen, onClose }) {
             </>
           )}
 
-          {/* Workspace mode header — show who the manager is acting as */}
-          {role === 'manager' && workspaceNav && actAsAccount && (
-            <>
-              <div className="px-4 pb-2">
-                <div className="px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400 mb-1">Workspace</p>
-                  <p className="text-[12px] font-semibold text-[var(--text-primary)] truncate">{actAsAccount.name}</p>
-                  <p className="text-[10px] text-amber-400/70 capitalize">{actAsAccount.role}</p>
-                </div>
-              </div>
-              <Link
-                href="/manager"
-                onClick={() => { if (window.innerWidth < 1024) onClose(); }}
-                className="mx-4 mb-2 flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-semibold text-blue-400 hover:bg-blue-500/10 transition-colors"
-              >
-                <span className="material-symbols-outlined text-base">arrow_back</span>
-                Back to Manager Hub
-              </Link>
-              <div className="mx-4 border-b border-[var(--glass-border)] mb-2" />
-            </>
-          )}
-
           {/* Main Navigation
               For restaurant vendors, drop generic "Products" — My Meals covers it.
               Normal retail/digital vendors keep the full VENDOR_NAV unchanged. */}
-          {[...(workspaceNav || (isRestaurantVendor ? config.nav.filter(i => i.label !== 'Products') : config.nav)), ...(workspaceNav ? [] : ACCOUNT_NAV)].map(item => {
+          {[...(isRestaurantVendor ? config.nav.filter(i => i.label !== 'Products') : config.nav), ...ACCOUNT_NAV].map(item => {
             const itemPath = item.href.split('?')[0];
             
             // Re-evaluating isActive more simply for the profile tabs

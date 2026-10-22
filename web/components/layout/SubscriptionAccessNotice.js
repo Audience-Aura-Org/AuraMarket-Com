@@ -45,7 +45,7 @@ export default function SubscriptionAccessNotice({ disabled = false }) {
       return;
     }
     let cancelled = false;
-    api.get('/subscriptions/me', { params: { role: user.role }, skipClientCache: true, silent: true })
+    api.get('/subscriptions/me', { params: { role: user.role }, skipClientCache: true, silent: true, __noActAs: true })
       .then((res) => { if (!cancelled) setSubNotice(res.data?.data || null); })
       .catch(() => { if (!cancelled) setSubNotice(null); });
     return () => { cancelled = true; };

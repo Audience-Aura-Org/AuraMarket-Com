@@ -30,13 +30,10 @@ const {
 } = require('../controllers/order.controller');
 
 const { protect, restrictTo, loadVendor } = require('../middleware/auth.middleware');
-const { actAs } = require('../middleware/delegate.middleware');
 const { requireActiveSubscription } = require('../middleware/subscription.middleware');
 
 // All order routes require authentication
-// actAs lets managers work as a user via X-Act-As header
 router.use(protect);
-router.use(actAs);
 
 // ── Buyer Routes (customer + vendor + logistics can all purchase) ──────────
 // Vendors can buy from OTHER stores; logistics agents can shop for personal use.
@@ -50,12 +47,12 @@ router.post('/:id/pay-direct', restrictTo('customer', 'vendor', 'logistics'), pa
 
 // ── Vendor Seller Routes ───────────────────────────────────────────────────
 router.get('/vendor-orders', restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, getVendorOrders);
-router.patch('/:id/status', restrictTo('vendor', 'admin', 'manager'), requireActiveSubscription(), loadVendor, updateOrderStatus);
+router.patch('/:id/status', restrictTo('vendor', 'admin'), requireActiveSubscription(), loadVendor, updateOrderStatus);
 router.patch('/:id/approve-refund', restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, approveRefund);
 
 // ── Food / Kitchen Routes ──────────────────────────────────────────────────
 // Vendor (restaurant) advances kitchen status; logistics advances pickup/delivery.
-router.patch('/:id/food-status', restrictTo('vendor', 'logistics', 'admin', 'manager'), updateFoodStatus);
+router.patch('/:id/food-status', restrictTo('vendor', 'logistics', 'admin'), updateFoodStatus);
 // Reorder: buyer recreates cart from a previous food order (Step 13b)
 router.post('/:id/reorder', restrictTo('customer', 'vendor', 'logistics'), reorder);
 
@@ -63,9 +60,9 @@ router.post('/:id/reorder', restrictTo('customer', 'vendor', 'logistics'), reord
 // Vendor dispatches parcel to intercity agency
 router.patch('/:id/transit/dispatch', restrictTo('vendor'), requireActiveSubscription('vendor'), loadVendor, dispatchIntercityParcel);
 // Admin marks parcel arrived at destination pickup point
-router.patch('/:id/transit/arrive', restrictTo('admin', 'manager'), markIntercityArrived);
+router.patch('/:id/transit/arrive', restrictTo('admin'), markIntercityArrived);
 // Buyer (or admin) confirms parcel collection — triggers escrow release
-router.patch('/:id/transit/collect', restrictTo('customer', 'admin', 'manager'), markIntercityCollected);
+router.patch('/:id/transit/collect', restrictTo('customer', 'admin'), markIntercityCollected);
 
 // ── Shared Endpoints ───────────────────────────────────────────────────────
 // Accessible by any authenticated party viewing their order/invoice

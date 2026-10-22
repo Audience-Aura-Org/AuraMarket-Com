@@ -899,7 +899,7 @@ const getOrderById = async (req, res, next) => {
     const requestorId  = req.user._id.toString();
     const isCustomer   = order.customer_id?._id?.toString() === requestorId;
     const isVendor     = order.vendor_id?.user_id?._id?.toString() === requestorId;
-    const isPrivileged = ['admin', 'manager', 'logistics'].includes(req.user.role);
+    const isPrivileged = ['admin', 'logistics'].includes(req.user.role);
 
     if (!isCustomer && !isVendor && !isPrivileged) {
       return res.status(403).json({ success: false, message: 'Access denied. You are not a party to this order.' });
@@ -1972,7 +1972,7 @@ const updateFoodStatus = async (req, res, next) => {
     }
 
     // Resolve the caller's role and ownership
-    const isAdmin = ['admin', 'manager'].includes(req.user.role);
+    const isAdmin = req.user.role === 'admin';
     let isRestaurantVendor = false;
     let isLogistics = hasRole(req.user, 'logistics');
 
@@ -2436,7 +2436,7 @@ const markIntercityCollected = async (req, res, next) => {
 
     // Only buyer or admin may confirm collection
     if (
-      !['admin', 'manager'].includes(req.user.role) &&
+      req.user.role !== 'admin' &&
       order.customer_id.toString() !== req.user._id.toString()
     ) {
       await session.abortTransaction(); session.endSession();

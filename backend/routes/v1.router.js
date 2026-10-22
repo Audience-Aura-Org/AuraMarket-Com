@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { strictLimiter, publicLimiter } = require('../middleware/rateLimiter');
 const { cacheResponse } = require('../middleware/cache.middleware');
+const { actAs } = require('../middleware/delegate.middleware');
 
 // Import all routes
 const authRoutes = require('./auth.routes');
@@ -43,6 +44,10 @@ const reservationRoutes = require('./reservation.routes');
 const p2pRoutes = require('./p2p.routes');
 const messagesRoutes = require('./messages.routes');
 
+// Manager workspace delegation (X-Act-As). Runs before every feature router
+// so each one sees the target account; no-op without the header.
+router.use(actAs);
+
 // Mount routes
 router.use('/auth', strictLimiter, authRoutes);
 router.use('/cart', cartRoutes);
@@ -50,7 +55,9 @@ router.use('/vendors', publicLimiter, cacheResponse({ ttlSeconds: 45 }), vendorR
 router.use('/vendor', vendorRoutes); 
 router.use('/products', publicLimiter, cacheResponse({ ttlSeconds: 45 }), productRoutes);
 router.use('/orders', orderRoutes);
-router.use('/wallet', strictLimiter, walletRoutes);
+// Wallet reads use the general API limiter; money-moving writes have a
+// per-user limiter inside wallet.routes (walletWriteLimiter).
+router.use('/wallet', walletRoutes);
 router.use('/escrow', escrowRoutes);
 router.use('/chat', chatRoutes);
 router.use('/logistics', logisticsRoutes);

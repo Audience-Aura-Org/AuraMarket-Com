@@ -16,8 +16,8 @@
 const express = require('express');
 const router = express.Router();
 const { protect, restrictTo } = require('../middleware/auth.middleware');
-const { actAs } = require('../middleware/delegate.middleware');
 const { loadManagerScope } = require('../middleware/managerScope.middleware');
+const { walletWriteLimiter } = require('../middleware/rateLimiter');
 
 const {
   submitWithdrawal,
@@ -31,16 +31,14 @@ const {
 } = require('../controllers/withdrawal.controller');
 
 // ── All authenticated users ───────────────────
-// actAs lets managers work as a user via X-Act-As header
 router.use(protect);
-router.use(actAs);
-router.post('/', submitWithdrawal);
+router.post('/', walletWriteLimiter, submitWithdrawal);
 router.get('/mine', getMyWithdrawals);
 router.get('/mine/:id/recheck', userRecheckWithdrawal);
 
 // ── Admin + Manager ──────────────────────────
 const adminWithdrawals = express.Router();
-adminWithdrawals.use(restrictTo('admin', 'manager'), loadManagerScope);
+adminWithdrawals.use(restrictTo('admin'), loadManagerScope);
 adminWithdrawals.get('/', adminGetAllWithdrawals);
 adminWithdrawals.post('/:id/approve', adminApproveWithdrawal);
 adminWithdrawals.post('/:id/reject',  adminRejectWithdrawal);

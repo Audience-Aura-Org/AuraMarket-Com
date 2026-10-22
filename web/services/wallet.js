@@ -17,11 +17,8 @@ export const walletService = {
     return res.data;
   },
 
-  // POST /api/wallet/withdraw — { amount, method, details }
-  requestWithdrawal: async (amount, method, details = {}) => {
-    const res = await api.post('/wallet/withdraw', { amount, method, details });
-    return res.data;
-  },
+  // Withdrawals: POST /withdrawals (see components/wallet/WithdrawModal).
+  // The old POST /wallet/withdraw is retired (it bypassed the admin queue).
 
   // POST /api/wallet/deposit — simulated
   simulateDeposit: async (amount) => {

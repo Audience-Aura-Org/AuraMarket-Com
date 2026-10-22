@@ -150,6 +150,7 @@ const createCorsOptions = () => {
       'Accept',
       'Accept-Language',
       'X-Aura-Language',
+      'X-Act-As',
       'Origin',
     ],
     exposedHeaders: ['Content-Length', 'X-Auradime-Cache'],

@@ -473,13 +473,14 @@ export default function SocketProvider({ children }) {
         return;
       }
 
-      if (Number.isFinite(Number(metadataBalance))) {
+      const hasBalance = Number.isFinite(Number(metadataBalance));
+      if (hasBalance) {
         setWalletBalance(Number(metadataBalance));
       }
       // Refresh balance and page data on financial notifications
       const FINANCIAL_TYPES = ['payment', 'payment_received', 'wallet_update', 'deposit', 'withdrawal', 'payout', 'refund', 'order_status', 'p2p_status'];
       if (FINANCIAL_TYPES.includes(type)) {
-        refreshWalletBalance?.();
+        if (!hasBalance) refreshWalletBalance?.();
         // Let page-level components know they should re-fetch (e.g. transaction lists)
         window.dispatchEvent(new CustomEvent('aura:financial-update', { detail: { type, notif } }));
       }
@@ -522,10 +523,13 @@ export default function SocketProvider({ children }) {
     };
 
     const handleWalletCredited = (data) => {
+      // The server emits the committed balance after its transaction; apply it
+      // directly. Only fetch when the event did not carry one.
       if (Number.isFinite(Number(data?.balance))) {
         setWalletBalance(Number(data.balance));
+      } else {
+        refreshWalletBalance?.();
       }
-      refreshWalletBalance?.();
       // Signal page-level data refresh (transaction lists, order status, etc.)
       window.dispatchEvent(new CustomEvent('aura:financial-update', { detail: { type: 'wallet', data } }));
     };

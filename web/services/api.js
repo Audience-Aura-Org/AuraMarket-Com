@@ -165,7 +165,11 @@ const getAuthCacheScope = (config) => {
     config?.headers?.Authorization ||
     config?.headers?.authorization ||
     '';
-  return authHeader ? `auth:${hashCacheScope(authHeader)}` : 'public';
+  // A manager acting for an account must never share cache entries with
+  // their own session or with another managed account.
+  const actAs = config?.headers?.['X-Act-As'];
+  const scope = authHeader ? `auth:${hashCacheScope(authHeader)}` : 'public';
+  return actAs ? `${scope}:as:${actAs}` : scope;
 };
 
 const getCacheKey = (config) => {
@@ -241,6 +245,34 @@ const normalizeAssetUrls = (value) => {
   return value;
 };
 
+// First URL segments that address the managed account's own resources.
+// Requests to anything else (auth, manager, admin, notifications, push,
+// cart, catalogue, …) are always made as the signed-in user.
+const ACT_AS_PREFIXES = new Set([
+  'vendor', 'vendors', 'products', 'orders', 'wallet', 'withdrawals', 'escrow',
+  'logistics', 'messages', 'chat', 'disputes', 'statuses', 'status',
+  'subscriptions', 'payments', 'reviews', 'coupons', 'restaurant',
+  'reservations', 'p2p', 'addresses', 'users',
+]);
+
+/** The managed account this request should run as, or null. */
+const actAsIdFor = (config) => {
+  if (typeof window === 'undefined' || config?.__noActAs) return null;
+  const firstSegment = String(config?.url || '').replace(/^\/+/, '').split(/[/?]/)[0];
+  if (!ACT_AS_PREFIXES.has(firstSegment)) return null;
+  try {
+    let actAsId = null;
+    try {
+      const mod = require('../hooks/useManagerMode');
+      actAsId = mod?.useManagerMode?.getState?.()?.actAsId;
+    } catch {}
+    // Fallback: sessionStorage (tab-scoped, set by useManagerMode)
+    return actAsId || sessionStorage.getItem('aura-act-as') || null;
+  } catch {
+    return null;
+  }
+};
+
 // Interceptor to attach JWT token and normalize URLs
 api.interceptors.request.use(async (config) => {
   // Normalize URL to ensure it doesn't conflict with baseURL
@@ -249,25 +281,10 @@ api.interceptors.request.use(async (config) => {
   }
 
   // Manager workspace: inject X-Act-As header when acting as a user.
-  // Read from Zustand store first, fall back to sessionStorage (survives page reload).
-  if (typeof window !== 'undefined') {
-    try {
-      let actAsId = null;
-      try {
-        const mod = require('../hooks/useManagerMode');
-        actAsId = mod?.useManagerMode?.getState?.()?.actAsId;
-      } catch {}
-      // Fallback: sessionStorage (tab-scoped, set by useManagerMode)
-      if (!actAsId) {
-        actAsId = sessionStorage.getItem('aura-act-as') || null;
-      }
-      if (actAsId) {
-        config.headers['X-Act-As'] = actAsId;
-      }
-    } catch (_) {
-      // no-op
-    }
-  }
+  // Only account-resource APIs run as the managed account; the manager's own
+  // session (auth, notifications, manager space, …) never does.
+  const actAsId = actAsIdFor(config);
+  if (actAsId) config.headers['X-Act-As'] = actAsId;
 
   if (typeof window !== 'undefined') {
     const language = window.localStorage.getItem('aura_language') || 'en';
@@ -411,6 +428,14 @@ api.interceptors.response.use(
         if (isInvalidStoredSession(status, message)) {
           await notifyInvalidStoredSession(message);
         }
+        // Manager lost access to the account it is working in (revoked,
+        // expired, or account deactivated) — let the manager layout recover.
+        const actAsHeader = config.headers?.['X-Act-As'];
+        if (status === 404 && actAsHeader && error.response.data?.code === 'ASSIGNMENT_NOT_FOUND' && typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('aura:workspace-access-lost', {
+            detail: { accountId: actAsHeader },
+          }));
+        }
         if (status === 402 && error.response.data?.code === 'SUBSCRIPTION_REQUIRED' && typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('aura:subscription-required', {
             detail: error.response.data,
@@ -473,6 +498,13 @@ api.get = async (url, config = {}) => {
           },
         };
       }
+      const actAsId = actAsIdFor(normalizedConfig);
+      if (actAsId) {
+        scopedConfig = {
+          ...scopedConfig,
+          headers: { ...(scopedConfig.headers || {}), 'X-Act-As': actAsId },
+        };
+      }
     }
 
     const key = getCacheKey(scopedConfig);
@@ -523,6 +555,13 @@ export const getCachedData = (url, params = {}) => {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+    };
+  }
+  const actAsId = actAsIdFor(normalizedConfig);
+  if (actAsId) {
+    scopedConfig = {
+      ...scopedConfig,
+      headers: { ...(scopedConfig.headers || {}), 'X-Act-As': actAsId },
     };
   }
 

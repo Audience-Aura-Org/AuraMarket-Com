@@ -82,10 +82,11 @@ function ReceiptModal({ tx, onClose }) {
 }
 
 export default function LogisticsWalletPage() {
-  const { user, hasHydrated, setWalletBalance, walletBalance: storeWalletBalance } = useAuthStore();
+  const { user, hasHydrated, setWalletBalance, startBalanceRead, walletBalance: storeWalletBalance } = useAuthStore();
   const router = useRouter();
 
-  const [balance, setBalance]         = useState(0);
+  // Shared with the top nav: one balance everywhere.
+  const balance = Number(storeWalletBalance ?? 0);
   const [escrow, setEscrow]           = useState(0);
   const [transactions, setTxs]        = useState([]);
   const [escrowTxs, setEscrowTxs]     = useState([]);
@@ -117,6 +118,8 @@ export default function LogisticsWalletPage() {
     if (silent) setRefreshing(true);
     else setLoading(true);
     try {
+      // Stamp before reading: a balance pushed while this request is in flight wins.
+      const readStamp = startBalanceRead?.();
       const [balRes, txRes, escrowRes, wdRes] = await Promise.allSettled([
         api.get('/wallet'),
         api.get('/wallet/transactions?limit=50'),
@@ -125,8 +128,7 @@ export default function LogisticsWalletPage() {
       ]);
       if (balRes.status === 'fulfilled' && balRes.value.data.success) {
         const nextBalance = balRes.value.data.data.balance || 0;
-        setBalance(nextBalance);
-        setWalletBalance(nextBalance);
+        setWalletBalance(nextBalance, { readStamp });
         setEscrow(balRes.value.data.data.pending_escrow || 0);
       }
       if (txRes.status === 'fulfilled' && txRes.value.data.success) setTxs(txRes.value.data.data.transactions || []);

@@ -63,13 +63,15 @@ const validateCoupon = async (req, res, next) => {
 // @access  Private
 const createCoupon = async (req, res, next) => {
   try {
-    if (!['admin', 'manager', 'vendor'].includes(req.user.role)) {
+    const { hasRole } = require('../utils/roles');
+    const isVendorUser = hasRole(req.user, 'vendor');
+    // Only admins create platform-wide coupons; vendors (incl. managers who
+    // were vendors) create coupons bound to their own store.
+    if (req.user.role !== 'admin' && !isVendorUser) {
       return res.status(403).json({ success: false, message: 'Not authorized.' });
     }
 
     const couponData = { ...req.body };
-    const { hasRole } = require('../utils/roles');
-    const isVendorUser = hasRole(req.user, 'vendor');
     if (isVendorUser) {
       // Find the vendor linked to this user
       const Vendor = require('../models/Vendor.model');

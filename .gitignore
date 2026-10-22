@@ -26,3 +26,6 @@ Thumbs.db
 
 # Legacy nested workspace ignore
 /aura-market/web/.next/
+
+# Brainstorming / plan-execution scratch (design mockups, ledgers)
+.superpowers/

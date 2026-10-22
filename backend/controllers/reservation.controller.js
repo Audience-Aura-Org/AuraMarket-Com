@@ -207,7 +207,7 @@ const updateReservationStatus = async (req, res, next) => {
     if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found.' });
 
     // Auth check — must be the restaurant vendor or admin
-    const isAdmin = ['admin', 'manager'].includes(req.user.role);
+    const isAdmin = req.user.role === 'admin';
     if (!isAdmin) {
       const callerVendor = await Vendor.findOne({ user_id: req.user._id }).select('_id').lean();
       if (!callerVendor || callerVendor._id.toString() !== reservation.vendor_id.toString()) {
@@ -266,7 +266,7 @@ const cancelReservation = async (req, res, next) => {
     const reservation = await Reservation.findById(req.params.id);
     if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found.' });
 
-    const isAdmin   = ['admin', 'manager'].includes(req.user.role);
+    const isAdmin   = req.user.role === 'admin';
     const isBuyer   = reservation.customer_id.toString() === req.user._id.toString();
     const callerVendor = hasRole(req.user, 'vendor')
       ? await Vendor.findOne({ user_id: req.user._id }).select('_id').lean()

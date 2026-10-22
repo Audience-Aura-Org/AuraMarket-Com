@@ -2785,7 +2785,7 @@ const promoteToManager = async (req, res, next) => {
       if (vendor) {
         const pendingOrders = await Order.countDocuments({
           vendor_id: vendor._id,
-          status: { $in: ['pending', 'processing', 'confirmed', 'preparing', 'ready'] },
+          order_status: { $in: ['placed', 'processing', 'shipped'] },
         });
         const heldEscrow = await Escrow.countDocuments({
           vendor_id: vendor._id,
@@ -2798,13 +2798,12 @@ const promoteToManager = async (req, res, next) => {
 
     // Check for active logistics operations
     if (previousRole === 'logistics') {
-      const LogisticsFirm = require('../models/LogisticsFirm.model');
-      const firm = await LogisticsFirm.findOne({ user_id: user._id }).select('_id company_name').lean();
+      const firm = await LogisticsCompany.findOne({ user_id: user._id }).select('_id company_name').lean();
       if (firm) {
         const Shipment = require('../models/Shipment.model');
         const activeShipments = await Shipment.countDocuments({
-          logistics_firm_id: firm._id,
-          status: { $in: ['pending', 'picked_up', 'in_transit', 'out_for_delivery'] },
+          logistics_id: firm._id,
+          status: { $in: ['pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery'] },
         });
         if (activeShipments > 0) warnings.push(`${activeShipments} active shipment(s) under "${firm.company_name}"`);
       }
@@ -2834,6 +2833,9 @@ const promoteToManager = async (req, res, next) => {
     if (!updated) {
       return res.status(409).json({ success: false, message: 'Role was changed by another request. Please retry.' });
     }
+
+    // A manager cannot itself be a managed account — end those links.
+    await ManagerAssignment.deleteMany({ user_id: user._id });
 
     await recordAudit({
       actorId: req.user._id,

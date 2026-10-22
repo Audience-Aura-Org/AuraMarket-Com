@@ -95,7 +95,10 @@ export default function VendorDashboard() {
   // (putting user there would recreate load on every updateUser call → reload loop)
   const userRef = useRef(user);
   useEffect(() => { userRef.current = user; }, [user]);
-  const [walletBalance, setWalletBalance] = useState(0);
+  // Shared with the top nav: one balance everywhere (ordered writes in the store).
+  const walletBalance = Number(useAuthStore((s) => s.walletBalance) ?? 0);
+  const setStoreBalance = useAuthStore((s) => s.setWalletBalance);
+  const startBalanceRead = useAuthStore((s) => s.startBalanceRead);
   const [pendingEscrow, setPendingEscrow] = useState(0);
   const [analyticsStats, setAnalyticsStats] = useState(null);
   const [analyticsHistory, setAnalyticsHistory] = useState([]);
@@ -128,6 +131,7 @@ export default function VendorDashboard() {
         }
       };
 
+      const readStamp = startBalanceRead?.();
       const [ordersResult, walletResult, analyticsResult, subscriptionResult, signalResult] = await Promise.allSettled([
         safeGet('/vendor/orders'),
         safeGet('/wallet'),
@@ -155,15 +159,16 @@ export default function VendorDashboard() {
 
       if (ordersRes?.data?.success) setOrders(ordersData.orders || analyticsData.recent_orders || []);
       if (walletRes?.data?.success) {
-        setWalletBalance(walletData.balance ?? analyticsData.stats?.wallet_balance ?? 0);
+        setStoreBalance(walletData.balance ?? 0, { readStamp });
         setPendingEscrow(walletData.pending_escrow ?? analyticsData.stats?.pending_escrow ?? 0);
       }
       if (analyticsRes?.data?.success) {
         setAnalyticsStats(analyticsData.stats || null);
         setAnalyticsHistory(analyticsData.sales_history || []);
         if (!ordersRes?.data?.success) setOrders(analyticsData.recent_orders || []);
+        // Analytics responses may be client-cached; never take the balance
+        // from them (the shared store keeps the live value).
         if (!walletRes?.data?.success) {
-          setWalletBalance(analyticsData.stats?.wallet_balance ?? 0);
           setPendingEscrow(analyticsData.stats?.pending_escrow ?? 0);
         }
       }

@@ -72,7 +72,19 @@ export async function registerPWA() {
 
     if (!window.__auraSwControllerReloadBound) {
       window.__auraSwControllerReloadBound = true;
+      // Reload only when an UPDATED worker replaces one that was already
+      // controlling this page. On a first visit clients.claim() also fires
+      // controllerchange; reloading then threw away whatever the user was
+      // doing (a navigation, a form, a deposit/withdrawal in progress).
+      let hadController = Boolean(navigator.serviceWorker.controller);
+      let reloading = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController) {
+          hadController = true;
+          return;
+        }
+        if (reloading) return;
+        reloading = true;
         window.location.reload();
       });
     }

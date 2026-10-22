@@ -72,12 +72,27 @@ export default function OnboardingWatcher() {
     // 4. Role specific strictness (Security)
     // Ensure users are on the correct dashboard for their role.
     // Managers with an active act-as session may access vendor/logistics routes.
-    const isManagerActing = role === 'manager' && (() => {
+    const managerMode = role === 'manager' ? (() => {
       try {
-        const mod = require('@/hooks/useManagerMode');
-        return !!mod?.useManagerMode?.getState?.()?.actAsId;
-      } catch { return false; }
-    })();
+        return require('@/hooks/useManagerMode')?.useManagerMode?.getState?.() || null;
+      } catch { return null; }
+    })() : null;
+    const actAsId = managerMode?.actAsId || null;
+    const isManagerActing = !!actAsId;
+
+    if (isManagerActing) {
+      // Links inside embedded account pages point at /vendor/* or /logistics/*;
+      // keep the manager inside the workspace for that account.
+      const accountPage = pathname.match(/^\/(?:vendor|logistics)(?:\/(.*))?$/);
+      if (accountPage) {
+        const sub = accountPage[1] || 'dashboard';
+        const search = typeof window !== 'undefined' ? window.location.search : '';
+        router.replace(`/manager/as/${actAsId}/${sub}${search}`);
+        return;
+      }
+      // Anywhere else outside the workspace ends the act-as session.
+      if (!pathname.startsWith('/manager')) managerMode.clearActAs();
+    }
 
     if (pathname.startsWith('/vendor') && role !== 'vendor' && !isManagerActing) {
       console.warn('[Watcher] Access Denied: Not a vendor', role);

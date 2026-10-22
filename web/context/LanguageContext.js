@@ -2,6 +2,10 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
+import {
+  translateTextNode as translateNodeText,
+  translateAttributes as translateElementAttributes,
+} from '@/lib/autoTranslate';
 
 export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English' },
@@ -2541,26 +2545,6 @@ const AUTO_ATTRIBUTE_TRANSLATIONS_FR = {
   'Show password': 'Afficher le mot de passe',
 };
 
-const shouldTranslateNodeParent = (parent) => {
-  if (!parent || parent.nodeType !== 1) return false;
-  const tag = parent.tagName?.toLowerCase();
-  if (['script', 'style', 'textarea', 'code', 'pre', 'noscript'].includes(tag)) return false;
-  return !parent.closest('[translate="no"], .notranslate, [data-no-translate], [data-aura-no-translate]');
-};
-
-const shouldTranslateElement = (element) => {
-  if (!element || element.nodeType !== 1) return false;
-  const tag = element.tagName?.toLowerCase();
-  if (['script', 'style', 'code', 'pre', 'noscript'].includes(tag)) return false;
-  return !element.closest('[translate="no"], .notranslate, [data-no-translate], [data-aura-no-translate]');
-};
-
-const preserveOuterSpacing = (text, translated) => {
-  const leading = text.match(/^\s*/)?.[0] || '';
-  const trailing = text.match(/\s*$/)?.[0] || '';
-  return `${leading}${translated}${trailing}`;
-};
-
 const normalizeLanguage = (value) =>
   SUPPORTED_LANGUAGES.some((language) => language.code === value) ? value : 'en';
 
@@ -2623,42 +2607,8 @@ export function LanguageProvider({ children }) {
     const attributeMap = language === 'fr' ? AUTO_ATTRIBUTE_TRANSLATIONS_FR : null;
     let frame = null;
 
-    const translateTextNode = (node) => {
-      if (!shouldTranslateNodeParent(node.parentElement)) return;
-      const original = node.__auraOriginalText || node.nodeValue;
-      if (!node.__auraOriginalText) node.__auraOriginalText = original;
-
-      if (!textMap) {
-        if (node.nodeValue !== original) node.nodeValue = original;
-        return;
-      }
-
-      const key = String(original || '').trim();
-      const translated = textMap[key];
-      if (translated) node.nodeValue = preserveOuterSpacing(original, translated);
-    };
-
-    const translateAttributes = (element) => {
-      if (!element || element.nodeType !== 1) return;
-      if (!shouldTranslateElement(element)) return;
-
-      ['placeholder', 'title', 'aria-label'].forEach((attribute) => {
-        if (!element.hasAttribute(attribute)) return;
-        const originalAttribute = `data-aura-original-${attribute}`;
-        const original = element.getAttribute(originalAttribute) || element.getAttribute(attribute);
-        if (!element.hasAttribute(originalAttribute)) {
-          element.setAttribute(originalAttribute, original);
-        }
-
-        if (!attributeMap) {
-          if (element.getAttribute(attribute) !== original) element.setAttribute(attribute, original);
-          return;
-        }
-
-        const translated = attributeMap[String(original || '').trim()];
-        if (translated) element.setAttribute(attribute, translated);
-      });
-    };
+    const translateTextNode = (node) => translateNodeText(node, textMap);
+    const translateAttributes = (element) => translateElementAttributes(element, attributeMap);
 
     const scan = (root = document.body) => {
       if (!root) return;

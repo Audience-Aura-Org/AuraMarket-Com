@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../services/api';
@@ -20,6 +21,9 @@ const clearClientOnlyState = async () => {
   await clearStoredAuthToken();
   localStorage.removeItem('aura-auth-storage');
   sessionStorage.removeItem('onboarding_skipped');
+  // End any manager workspace session so it can't follow the next login.
+  try { require('./useManagerMode').useManagerMode.getState().reset(); } catch {}
+  sessionStorage.removeItem('aura-act-as');
 };
 
 const isTerminalSessionError = (err) => {
@@ -37,7 +41,12 @@ const isTerminalSessionError = (err) => {
   return status === 403 && message.includes('deactivated');
 };
 
-export const useAuthStore = create(
+// Monotonic ordering for wallet balance writes (see setWalletBalance).
+let balanceClock = 0;
+let appliedBalanceStamp = 0;
+const nextBalanceStamp = () => ++balanceClock;
+
+const baseAuthStore = create(
   persist(
     (set, get) => ({
       user: null,
@@ -53,9 +62,18 @@ export const useAuthStore = create(
       setHasHydrated: (value) => set({ hasHydrated: value }),
       setRememberedEmail: (email) => set({ rememberedEmail: email }),
       resetLoading: () => set({ loading: false, error: null }),
-      setWalletBalance: (balance) => {
+      /**
+       * Apply a balance. Pushes (socket events, money-moving responses) are
+       * stamped now; reads pass the stamp taken when their request started
+       * (startBalanceRead). A write never replaces a newer one, so a slow
+       * GET /wallet cannot put a pre-transaction balance back on screen.
+       */
+      setWalletBalance: (balance, { readStamp } = {}) => {
         const numericBalance = Number(balance);
         if (!Number.isFinite(numericBalance)) return;
+        const stamp = readStamp ?? nextBalanceStamp();
+        if (stamp < appliedBalanceStamp) return;
+        appliedBalanceStamp = stamp;
         set((state) => ({
           walletBalance: numericBalance,
           user: state.user ? { ...state.user, wallet_balance: numericBalance } : state.user,
@@ -66,19 +84,24 @@ export const useAuthStore = create(
           try { window.dispatchEvent(new CustomEvent('aura:wallet-updated', { detail: { balance: numericBalance } })); } catch (_) {}
         }
       },
+      /** Stamp for a balance read that is about to start (see setWalletBalance). */
+      startBalanceRead: () => nextBalanceStamp(),
       refreshWalletBalance: async () => {
         if (!get().isAuthenticated && !get().user?._id) return { success: false };
+        const readStamp = nextBalanceStamp();
         try {
           const res = await api.get('/wallet', {
             timeout: 12000,
             __skipRetry: true,
             // A balance is financial state, never a 45-second client-cache value.
             skipClientCache: true,
+            // Always the signed-in user's own wallet, even inside a manager workspace.
+            __noActAs: true,
           });
           if (res.data?.success) {
             const balance = Number(res.data.data?.balance ?? 0);
-            get().setWalletBalance(balance);
-            return { success: true, balance };
+            get().setWalletBalance(balance, { readStamp });
+            return { success: true, balance: get().walletBalance };
           }
         } catch (err) {
           return { success: false, message: err.response?.data?.message || err.message };
@@ -183,12 +206,22 @@ export const useAuthStore = create(
 
         set({ loading: true });
         fetchMeInFlight = (async () => {
+          const readStamp = nextBalanceStamp();
           const res = await api.get('/auth/me', {
             timeout: 12000,
             __skipRetry: true,
+            __noActAs: true,
           });
-          const user = res.data.data?.user;
-          if (!user) throw new Error('No user returned');
+          const fetchedUser = res.data.data?.user;
+          if (!fetchedUser) throw new Error('No user returned');
+          // The profile carries wallet_balance; apply it only if no newer
+          // balance arrived while /auth/me was in flight.
+          const freshBalance = Number(fetchedUser.wallet_balance);
+          const balanceIsCurrent = Number.isFinite(freshBalance) && readStamp >= appliedBalanceStamp;
+          if (balanceIsCurrent) appliedBalanceStamp = readStamp;
+          const user = balanceIsCurrent || get().walletBalance === null
+            ? fetchedUser
+            : { ...fetchedUser, wallet_balance: get().walletBalance };
           // Restore token into Zustand state if it was cleared (e.g. on native after cold start).
           // This ensures SocketProvider's `token` dependency fires and the socket can connect.
           const existingToken = get().token;
@@ -200,7 +233,7 @@ export const useAuthStore = create(
           }
           set({
             user,
-            walletBalance: Number.isFinite(Number(user.wallet_balance)) ? Number(user.wallet_balance) : get().walletBalance,
+            walletBalance: balanceIsCurrent ? freshBalance : get().walletBalance,
             isAuthenticated: true,
             authChecked: true,
             loading: false,
@@ -288,19 +321,16 @@ export const useAuthStore = create(
       },
 
       updateUser: (data) => {
-        const nextBalance = Number.isFinite(Number(data?.wallet_balance))
-          ? Number(data.wallet_balance)
-          : get().walletBalance;
-        set((state) => ({
-          user: { ...state.user, ...data },
-          walletBalance: nextBalance,
-        }));
+        const { wallet_balance: balance, ...rest } = data || {};
+        set((state) => ({ user: { ...state.user, ...rest } }));
+        // Balances always go through the ordered path.
+        if (Number.isFinite(Number(balance))) get().setWalletBalance(Number(balance));
       },
 
       fetchFollowedVendors: async () => {
         if (!get().isAuthenticated) return;
         try {
-          const res = await api.get('/users/followed-vendors');
+          const res = await api.get('/users/followed-vendors', { __noActAs: true });
           if (res.data.success) {
             const ids = (res.data.data.follows || [])
               .map((f) => f.vendor_id?._id || f.vendor_id)
@@ -345,3 +375,50 @@ export const useAuthStore = create(
     }
   )
 );
+
+/**
+ * Manager workspace identity overlay.
+ *
+ * Inside /manager/as/[userId], the workspace page provides the managed
+ * account here. Every component below it that reads useAuthStore() sees
+ * that account as `user` (plus account-scoped wallet/update helpers),
+ * while the manager's own persisted session stays untouched and the
+ * chrome outside the workspace keeps showing the manager.
+ *
+ * Value shape: { user, walletBalance, updateUser, setWalletBalance,
+ *                refreshWalletBalance, fetchMe } — must be memoised.
+ */
+export const ActingAccountContext = createContext(null);
+
+const overlayCache = new WeakMap();
+
+const overlayState = (state, acting) => {
+  const hit = overlayCache.get(acting);
+  if (hit && hit.state === state) return hit.result;
+  const result = {
+    ...state,
+    user: acting.user,
+    walletBalance: acting.walletBalance,
+    isAuthenticated: true,
+    updateUser: acting.updateUser,
+    setWalletBalance: acting.setWalletBalance,
+    refreshWalletBalance: acting.refreshWalletBalance,
+    fetchMe: acting.fetchMe,
+  };
+  overlayCache.set(acting, { state, result });
+  return result;
+};
+
+export function useAuthStore(selector) {
+  const acting = useContext(ActingAccountContext);
+  return baseAuthStore((state) => {
+    const view = acting ? overlayState(state, acting) : state;
+    return selector ? selector(view) : view;
+  });
+}
+
+// Imperative access always targets the signed-in user's own session.
+useAuthStore.getState = baseAuthStore.getState;
+useAuthStore.setState = baseAuthStore.setState;
+useAuthStore.subscribe = baseAuthStore.subscribe;
+useAuthStore.persist = baseAuthStore.persist;

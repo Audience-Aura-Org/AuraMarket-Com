@@ -74,6 +74,12 @@ const UserSchema = new mongoose.Schema(
       enum: ['customer', 'vendor', 'logistics'],
       default: null,
     },
+    // Manager workspace notification preferences (only used when role = manager)
+    manager_settings: {
+      notify_email: { type: Boolean, default: true },
+      notify_push:  { type: Boolean, default: true },
+      daily_digest: { type: Boolean, default: false },
+    },
 
     // ── Wallet ───────────────────────────────────
     wallet_balance: {

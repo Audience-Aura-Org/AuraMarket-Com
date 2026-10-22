@@ -115,8 +115,11 @@ describe('GET /wallet — balance', () => {
 // 2. POST /wallet/withdraw — withdrawal requests
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('POST /wallet/withdraw — happy path', () => {
-  it('deducts balance and creates a pending withdrawal transaction', async () => {
+describe('POST /wallet/withdraw — retired', () => {
+  // It debited the balance without creating a WithdrawalRequest, so the payout
+  // never reached the admin queue. Withdrawals go through POST /withdrawals
+  // (validation covered in withdrawal.test.js).
+  it('returns 410 and does not touch the balance', async () => {
     const user = await createUser({ wallet_balance: 20_000 })
 
     const res = await request(app)
@@ -124,69 +127,10 @@ describe('POST /wallet/withdraw — happy path', () => {
       .set(authHeader(signToken(user)))
       .send({ amount: 5_000, method: 'mtn', details: { account_number: '677000001' } })
 
-    expect(res.status).toBe(201)
-    expect(res.body.success).toBe(true)
-    expect(res.body.data.remaining_balance).toBe(15_000)
-
-    // Withdrawal transaction persisted
-    const txn = await Transaction.findOne({ user_id: user._id, type: 'withdrawal' })
-    expect(txn).not.toBeNull()
-    expect(txn.amount).toBe(5_000)
-    expect(txn.status).toBe('pending')
-
-    // Wallet debited atomically
-    const fresh = await User.findById(user._id)
-    expect(fresh.wallet_balance).toBe(15_000)
-  })
-})
-
-describe('POST /wallet/withdraw — guard rails', () => {
-  it('rejects amount below 500 XAF', async () => {
-    const user = await createUser({ wallet_balance: 10_000 })
-
-    const res = await request(app)
-      .post('/api/v1/wallet/withdraw')
-      .set(authHeader(signToken(user)))
-      .send({ amount: 200, method: 'mtn', details: { account_number: '677000001' } })
-
-    expect(res.status).toBe(400)
-    expect(res.body.message).toMatch(/500/)
-  })
-
-  it('rejects when wallet balance is insufficient', async () => {
-    const user = await createUser({ wallet_balance: 300 })
-
-    const res = await request(app)
-      .post('/api/v1/wallet/withdraw')
-      .set(authHeader(signToken(user)))
-      .send({ amount: 1_000, method: 'orange', details: { account_number: '699000002' } })
-
-    expect(res.status).toBe(400)
-    expect(res.body.message).toMatch(/Insufficient/i)
-  })
-
-  it('rejects an unsupported withdrawal method', async () => {
-    const user = await createUser({ wallet_balance: 10_000 })
-
-    const res = await request(app)
-      .post('/api/v1/wallet/withdraw')
-      .set(authHeader(signToken(user)))
-      .send({ amount: 1_000, method: 'paypal', details: { account_number: '677000001' } })
-
-    expect(res.status).toBe(400)
-    expect(res.body.message).toMatch(/Invalid withdrawal method/i)
-  })
-
-  it('rejects when account_number is missing from details', async () => {
-    const user = await createUser({ wallet_balance: 10_000 })
-
-    const res = await request(app)
-      .post('/api/v1/wallet/withdraw')
-      .set(authHeader(signToken(user)))
-      .send({ amount: 1_000, method: 'mtn', details: {} })
-
-    expect(res.status).toBe(400)
-    expect(res.body.message).toMatch(/Phone number is required/i)
+    expect(res.status).toBe(410)
+    expect(res.body.code).toBe('ENDPOINT_RETIRED')
+    expect((await User.findById(user._id)).wallet_balance).toBe(20_000)
+    expect(await Transaction.countDocuments({ user_id: user._id, type: 'withdrawal' })).toBe(0)
   })
 })
 
@@ -314,14 +258,14 @@ describe('PATCH /wallet/admin/withdrawals/:id', () => {
     const admin = await createAdmin()
     const user  = await createUser({ wallet_balance: 20_000 })
 
-    // Submit withdrawal: balance 20 000 → 15 000
-    const withdrawRes = await request(app)
-      .post('/api/v1/wallet/withdraw')
-      .set(authHeader(signToken(user)))
-      .send({ amount: 5_000, method: 'mtn', details: { account_number: '677000001' } })
-
-    expect(withdrawRes.status).toBe(201)
-    const txnId = withdrawRes.body.data.transaction._id
+    // A legacy pending withdrawal (created before /wallet/withdraw was retired):
+    // balance already debited 20 000 → 15 000.
+    await User.updateOne({ _id: user._id }, { wallet_balance: 15_000 })
+    const legacy = await Transaction.create({
+      user_id: user._id, type: 'withdrawal', amount: 5_000, status: 'pending',
+      reference: `LEGACY-${Date.now()}`, description: 'Withdrawal to MTN MoMo',
+    })
+    const txnId = legacy._id.toString()
 
     // Admin rejects: balance 15 000 → 20 000
     const rejectRes = await request(app)

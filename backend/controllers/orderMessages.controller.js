@@ -30,7 +30,7 @@ const getOrderMessages = async (req, res) => {
     const userId = user._id.toString();
     const isCustomer = order.customer_id?.toString() === userId;
     const isVendor = order.vendor_id?.user_id?.toString() === userId;
-    const isAdmin = ['admin', 'manager'].includes(user.role);
+    const isAdmin = user.role === 'admin';
 
     // Check if logistics
     let isLogistics = false;
@@ -80,7 +80,7 @@ const sendOrderMessage = async (req, res) => {
     const userId = user._id.toString();
     const isCustomer = order.customer_id?.toString() === userId;
     const isVendor = order.vendor_id?.user_id?.toString() === userId;
-    const isAdmin = ['admin', 'manager'].includes(user.role);
+    const isAdmin = user.role === 'admin';
 
     let senderRole = null;
     if (isCustomer) senderRole = 'buyer';
@@ -151,7 +151,7 @@ const getMyOrderThreads = async (req, res) => {
 
     // Find orders where user is a party
     let orderQuery;
-    if (['admin', 'manager'].includes(user.role)) {
+    if (user.role === 'admin') {
       // Admin/Manager sees all
       orderQuery = {};
     } else if (user.role === 'logistics') {

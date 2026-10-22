@@ -187,7 +187,11 @@ exports.assignUsersToManager = async (req, res, next) => {
 exports.unassignUsersFromManager = async (req, res, next) => {
   try {
     const { managerId } = req.params;
-    const ids = (req.body.userIds || []).filter(isId).slice(0, MAX_IDS);
+    if (!isId(managerId))
+      return res.status(404).json({ success: false, message: 'Manager not found.' });
+    const ids = (Array.isArray(req.body.userIds) ? req.body.userIds : [])
+      .filter(isId)
+      .slice(0, MAX_IDS);
 
     // Delete assignments entirely to avoid stale documents.
     const r = await ManagerAssignment.deleteMany({
@@ -223,7 +227,12 @@ exports.transferAccounts = async (req, res, next) => {
   try {
     const { fromManagerId, toManagerId, userIds } = req.body;
 
-    if (fromManagerId === toManagerId)
+    if (!isId(fromManagerId) || !isId(toManagerId))
+      return res
+        .status(400)
+        .json({ success: false, message: 'Provide valid fromManagerId and toManagerId.' });
+
+    if (String(fromManagerId) === String(toManagerId))
       return res
         .status(400)
         .json({ success: false, message: 'Source and target are the same manager.' });
@@ -241,6 +250,8 @@ exports.transferAccounts = async (req, res, next) => {
       filter.user_id = { $in: userIds.filter(isId) };
 
     const links = await ManagerAssignment.find(filter).lean();
+    if (!links.length)
+      return res.json({ success: true, data: { transferred: 0 } });
 
     const session = await mongoose.startSession();
     try {
@@ -272,6 +283,7 @@ exports.transferAccounts = async (req, res, next) => {
               status: 'active',
               initiated_by: 'admin',
               assigned_by: req.user._id,
+              expires_at: l.expires_at || null,
             }],
             { session }
           );
@@ -389,6 +401,11 @@ exports.getMyManagers = async (req, res, next) => {
  */
 exports.inviteManager = async (req, res, next) => {
   try {
+    if (['admin', 'manager'].includes(req.user.role))
+      return res
+        .status(403)
+        .json({ success: false, message: 'Admin and manager accounts cannot be managed.' });
+
     const email = String(req.body.email || '').toLowerCase().trim();
     if (!email)
       return res

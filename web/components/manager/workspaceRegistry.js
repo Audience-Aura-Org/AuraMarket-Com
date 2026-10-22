@@ -12,15 +12,23 @@ import dynamic from 'next/dynamic';
  * the target user.
  */
 
+// Keys are the path below /vendor or /logistics (e.g. 'products/edit'), so a
+// link inside an embedded page maps 1:1 onto /manager/as/{id}/{key}.
 const COMPONENTS = {
   vendor: {
-    dashboard: dynamic(() => import('@/app/vendor/dashboard/page'), { ssr: false }),
-    products:  dynamic(() => import('@/app/vendor/products/page'), { ssr: false }),
-    orders:    dynamic(() => import('@/app/vendor/orders/page'), { ssr: false }),
-    wallet:    dynamic(() => import('@/app/vendor/wallet/page'), { ssr: false }),
-    analytics: dynamic(() => import('@/app/vendor/analytics/page'), { ssr: false }),
-    ratings:   dynamic(() => import('@/app/vendor/ratings/page'), { ssr: false }),
-    disputes:  dynamic(() => import('@/app/vendor/disputes/page'), { ssr: false }),
+    dashboard:       dynamic(() => import('@/app/vendor/dashboard/page'), { ssr: false }),
+    products:        dynamic(() => import('@/app/vendor/products/page'), { ssr: false }),
+    'products/add':  dynamic(() => import('@/app/vendor/products/add/page'), { ssr: false }),
+    'products/edit': dynamic(() => import('@/app/vendor/products/edit/page'), { ssr: false }),
+    meals:           dynamic(() => import('@/app/vendor/meals/page'), { ssr: false }),
+    'meals/add':     dynamic(() => import('@/app/vendor/meals/add/page'), { ssr: false }),
+    kitchen:         dynamic(() => import('@/app/vendor/kitchen/page'), { ssr: false }),
+    stories:         dynamic(() => import('@/app/vendor/stories/page'), { ssr: false }),
+    orders:          dynamic(() => import('@/app/vendor/orders/page'), { ssr: false }),
+    wallet:          dynamic(() => import('@/app/vendor/wallet/page'), { ssr: false }),
+    analytics:       dynamic(() => import('@/app/vendor/analytics/page'), { ssr: false }),
+    ratings:         dynamic(() => import('@/app/vendor/ratings/page'), { ssr: false }),
+    disputes:        dynamic(() => import('@/app/vendor/disputes/page'), { ssr: false }),
   },
   logistics: {
     dashboard: dynamic(() => import('@/app/logistics/dashboard/page'), { ssr: false }),
@@ -29,6 +37,8 @@ const COMPONENTS = {
     tracking:  dynamic(() => import('@/app/logistics/tracking/page'), { ssr: false }),
     wallet:    dynamic(() => import('@/app/logistics/wallet/page'), { ssr: false }),
     messages:  dynamic(() => import('@/app/logistics/messages/page'), { ssr: false }),
+    analytics: dynamic(() => import('@/app/logistics/analytics/page'), { ssr: false }),
+    nodes:     dynamic(() => import('@/app/logistics/nodes/page'), { ssr: false }),
   },
   customer: {
     dashboard: dynamic(() => import('@/app/profile/page'), { ssr: false }),
@@ -43,35 +53,9 @@ const COMPONENTS = {
 export function getWorkspaceComponent(role, slug = 'dashboard') {
   const roleMap = COMPONENTS[role];
   if (!roleMap) return null;
-  return roleMap[slug] || roleMap.dashboard || null;
+  const section = String(slug).split('/')[0];
+  return roleMap[slug] || roleMap[section] || roleMap.dashboard || null;
 }
 
-/**
- * Get the list of available workspace pages for a role.
- * Used to render the workspace navigation.
- */
-export function getWorkspaceNav(role) {
-  const navs = {
-    vendor: [
-      { slug: 'dashboard',  label: 'Dashboard',  icon: 'dashboard' },
-      { slug: 'products',   label: 'Products',   icon: 'inventory_2' },
-      { slug: 'orders',     label: 'Orders',     icon: 'shopping_cart' },
-      { slug: 'wallet',     label: 'Wallet',     icon: 'account_balance_wallet' },
-      { slug: 'analytics',  label: 'Analytics',  icon: 'analytics' },
-      { slug: 'ratings',    label: 'Ratings',    icon: 'star_rate' },
-      { slug: 'disputes',   label: 'Disputes',   icon: 'gavel' },
-    ],
-    logistics: [
-      { slug: 'dashboard',  label: 'Dashboard',  icon: 'dashboard_customize' },
-      { slug: 'manifests',  label: 'Manifests',  icon: 'list_alt' },
-      { slug: 'pricing',    label: 'Pricing',    icon: 'payments' },
-      { slug: 'tracking',   label: 'Tracking',   icon: 'location_on' },
-      { slug: 'wallet',     label: 'Wallet',     icon: 'account_balance_wallet' },
-      { slug: 'messages',   label: 'Messages',   icon: 'chat' },
-    ],
-    customer: [
-      { slug: 'dashboard',  label: 'Dashboard',  icon: 'account_circle' },
-    ],
-  };
-  return navs[role] || [];
-}
+/** Workspace page navigation lives in workspaceNav.js (pure, testable). */
+export { getWorkspaceNav } from './workspaceNav';

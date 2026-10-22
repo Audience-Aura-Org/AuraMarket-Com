@@ -23,7 +23,7 @@ export function NotificationProvider({ children }) {
 
     const [notificationsResult, chatsResult] = await Promise.allSettled([
       api.get('/notifications'),
-      api.get('/chat'),
+      api.get('/chat', { __noActAs: true }),
     ]);
 
     if (notificationsResult.status === 'fulfilled' && notificationsResult.value.data?.success) {

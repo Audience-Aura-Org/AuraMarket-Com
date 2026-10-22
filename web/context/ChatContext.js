@@ -800,7 +800,7 @@ export function ChatProvider({ children }) {
     lastInboxSyncAtRef.current = now;
     syncInFlightRef.current = true;
     try {
-      const res = await api.get('/chat');
+      const res = await api.get('/chat', { __noActAs: true });
       if (res.data?.success) {
         dispatch({ type: 'UPSERT_CONVERSATIONS', conversations: res.data.data?.activeChats || [] });
       }

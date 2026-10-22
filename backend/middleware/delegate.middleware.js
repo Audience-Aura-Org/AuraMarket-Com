@@ -8,19 +8,22 @@
  *     Loads all active, non-expired assignments and resolves vendor/logistics
  *     IDs onto req.scope.
  *
- *  2. actAs — For vendor/logistics/order/wallet/chat routers.
- *     Reads X-Act-As header; when present and the caller is a manager,
- *     swaps req.user to the target user so existing controllers work unchanged.
- *     Logs write operations to ActivityLog and notifies account owner for
- *     money-category actions.
+ *  2. actAs — Mounted once at the top of the v1 router (before every
+ *     feature router). Reads the X-Act-As header; when present and the
+ *     caller is a manager, swaps req.user to the target user so existing
+ *     controllers work unchanged (protect/protectOptional keep the swapped
+ *     identity). Logs write operations to ActivityLog and notifies the
+ *     account owner for money-category actions.
  */
 
+const mongoose          = require('mongoose');
 const ManagerAssignment = require('../models/ManagerAssignment.model');
 const ActivityLog       = require('../models/ActivityLog.model');
 const User              = require('../models/User.model');
 const Vendor            = require('../models/Vendor.model');
 const LogisticsCompany  = require('../models/LogisticsCompany.model');
 const Notification      = require('../models/Notification.model');
+const { resolveUserFromToken } = require('./auth.middleware');
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -31,34 +34,63 @@ const activeFilter = (extra = {}) => ({
   ...extra,
 });
 
-// ── URL → Permission Category Mapping ──────────────────────────────
+/** Roles that can never be managed (or acted as). */
+const UNMANAGEABLE_ROLES = ['admin', 'manager'];
 
-const CATEGORIES = [
-  [/\/(products?|inventory)(\/|$)/,                          'products'],
-  [/\/(orders?|shipments?|deliver(y|ies)|requests?)(\/|$)/,  'orders'],
-  [/\/(messages?|disputes?|chat)(\/|$)/,                     'messages'],
-  [/\/(wallet|withdraw\w*|bank|payouts?|escrow)(\/|$)/,      'money'],
-  [/\/(profile|kyc|settings)(\/|$)/,                         'profile'],
-];
+// ── URL → Permission Category Mapping ──────────────────────────────
+// The category is decided by the FIRST path segment that maps to one,
+// so /messages/order/:id is "messages" and /vendor/products is "products".
+
+const SEGMENT_CATEGORY = {
+  products: 'products', product: 'products', inventory: 'products',
+  statuses: 'products', status: 'products',
+
+  orders: 'orders', order: 'orders', 'order-threads': 'orders',
+  shipments: 'orders', shipment: 'orders', 'shipment-threads': 'orders',
+  deliveries: 'orders', delivery: 'orders', manifests: 'orders',
+  reservations: 'orders', p2p: 'orders',
+
+  messages: 'messages', message: 'messages', chat: 'messages',
+  disputes: 'messages', dispute: 'messages',
+
+  wallet: 'money', withdrawals: 'money', withdrawal: 'money',
+  escrow: 'money', payments: 'money', payouts: 'money', bank: 'money',
+
+  profile: 'profile', kyc: 'profile', settings: 'profile',
+  store: 'profile', 'store-settings': 'profile', media: 'profile',
+  pricing: 'profile', zones: 'profile', restaurant: 'profile',
+  addresses: 'profile',
+};
+
+/** Strip the /api or /api/v1 mount prefix and the query string. */
+const normalizePath = (originalUrl = '') =>
+  originalUrl.split('?')[0].replace(/^\/api(\/v1)?(?=\/|$)/, '') || '/';
+
+const categoryFor = (path) => {
+  for (const segment of path.split('/')) {
+    const category = SEGMENT_CATEGORY[segment.toLowerCase()];
+    if (category) return category;
+  }
+  return null;
+};
 
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 // ── Deny List: Sensitive Paths ──────────────────────────────────────
 // These paths must NEVER be accessible via act-as, even with the right
-// permission category. They change credentials, delete accounts, or
-// alter authentication state.
+// permission category. They change credentials, delete accounts, alter
+// authentication state, or would bind the manager's device to the user.
 
 const DENY_PATTERNS = [
-  /\/auth\/delete-account/,
-  /\/security\/2fa/,
-  /\/security\/change-password/,
-  /\/security\/sessions/,
-  /\/auth\/logout/,
-  /\/users\/change-email/,
-  /\/users\/change-password/,
-  /\/push\/subscribe/,
-  /\/push\/unsubscribe/,
+  /^\/admin(\/|$)/,
+  /^\/auth\/(delete-account|logout|change-password)/,
+  /^\/security(\/|$)/,
+  /^\/push(\/|$)/,
+  /^\/users\/change-(email|password)/,
 ];
+
+/** The manager's own space never runs as another account. */
+const MANAGER_SPACE = /^\/manager(\/|$)/;
 
 // ═══════════════════════════════════════════════════════════════════
 // 1.  loadManagerScope — Manager Space (cross-account overview)
@@ -78,11 +110,24 @@ const DENY_PATTERNS = [
  */
 async function loadManagerScope(req, res, next) {
   try {
-    const links = await ManagerAssignment.find(
+    const allLinks = await ManagerAssignment.find(
       activeFilter({ manager_id: req.user._id })
     )
       .select('user_id permissions expires_at')
       .lean();
+
+    // Drop accounts that were deleted, deactivated, or promoted to an
+    // unmanageable role since the assignment was made.
+    const manageable = await User.find(
+      {
+        _id: { $in: allLinks.map((l) => l.user_id) },
+        role: { $nin: UNMANAGEABLE_ROLES },
+        is_active: { $ne: false },
+      },
+      '_id'
+    ).lean();
+    const manageableIds = new Set(manageable.map((u) => String(u._id)));
+    const links = allLinks.filter((l) => manageableIds.has(String(l.user_id)));
 
     const userIds = links.map((l) => l.user_id);
 
@@ -114,34 +159,30 @@ async function loadManagerScope(req, res, next) {
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Insert between `protect` and `restrictTo` on vendor / logistics /
- * order / wallet / withdrawal / dispute / chat routers.
+ * Mounted at the top of the v1 router, before every feature router.
+ * Authenticates the caller itself (feature routers run `protect` later,
+ * which keeps the swapped identity).
  *
- * When the manager sends `X-Act-As: <userId>`:
+ * When a manager sends `X-Act-As: <userId>`:
  *   - Validates assignment, permissions, and deny list
  *   - Swaps `req.user` to the target user
  *   - Saves original manager as `req.actor`
  *   - Logs non-GET operations on response finish
  *   - Notifies account owner for money-category actions
  *
- * If X-Act-As is absent or the caller isn't a manager, acts as a no-op.
+ * No-op when the header is absent, the request targets the manager's own
+ * space, or the caller is not an authenticated manager.
  */
 async function actAs(req, res, next) {
   const targetId = req.headers['x-act-as'];
+  if (!targetId || req.actingAs) return next();
 
-  // No-op: header absent or caller isn't a manager
-  if (!targetId || req.user.role !== 'manager') return next();
+  const url = normalizePath(req.originalUrl);
+  if (MANAGER_SPACE.test(url)) return next();
 
   try {
-    const url = req.originalUrl.split('?')[0];
-
-    // Block manager/admin namespaces
-    if (/^\/api\/(admin|manager)(\/|$)/.test(url)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not available when working for an account.',
-      });
-    }
+    const manager = req.user || (await resolveUserFromToken(req));
+    if (!manager || manager.role !== 'manager') return next();
 
     // Check deny list — sensitive actions are never delegatable
     if (DENY_PATTERNS.some((re) => re.test(url))) {
@@ -152,20 +193,22 @@ async function actAs(req, res, next) {
     }
 
     // Find active assignment for this manager → target
-    const link = await ManagerAssignment.findOne(
-      activeFilter({ manager_id: req.user._id, user_id: targetId })
-    ).lean();
+    const link = mongoose.Types.ObjectId.isValid(targetId)
+      ? await ManagerAssignment.findOne(
+          activeFilter({ manager_id: manager._id, user_id: targetId })
+        ).lean()
+      : null;
 
     if (!link) {
       return res.status(404).json({
         success: false,
+        code: 'ASSIGNMENT_NOT_FOUND',
         message: 'No active assignment found for this account.',
       });
     }
 
     // Determine category from URL and enforce permissions
-    const match = CATEGORIES.find(([re]) => re.test(url));
-    const category = match ? match[1] : null;
+    const category = categoryFor(url);
     const isRead = READ_METHODS.has(req.method);
 
     if (category && !link.permissions?.[category]) {
@@ -183,17 +226,18 @@ async function actAs(req, res, next) {
       });
     }
 
-    // Load the target user — must exist and not be admin/manager
-    const target = await User.findById(targetId);
-    if (!target || ['admin', 'manager'].includes(target.role)) {
+    // Load the target user — must exist, be active, and not be admin/manager
+    const target = await User.findById(targetId).select('-password');
+    if (!target || target.is_active === false || UNMANAGEABLE_ROLES.includes(target.role)) {
       return res.status(404).json({
         success: false,
+        code: 'ASSIGNMENT_NOT_FOUND',
         message: 'Target account not found.',
       });
     }
 
     // ── Swap identity ──────────────────────────────────────────────
-    req.actor    = req.user;   // original manager (controllers can read req.actor._id)
+    req.actor    = manager;    // original manager (controllers can read req.actor._id)
     req.user     = target;     // downstream sees the target user
     req.actingAs = {
       assignmentId: link._id,
@@ -223,7 +267,7 @@ async function actAs(req, res, next) {
           Notification.create({
             recipient: target._id,
             title:     'Manager action on your account',
-            message:   `Your manager performed a financial action (${req.method} ${url.replace(/^\/api\/v1/, '')}).`,
+            message:   `Your manager performed a financial action (${req.method} ${url}).`,
             type:      'security',
             metadata:  { target_id: req.actor._id },
           }).catch(() => {});
@@ -239,4 +283,4 @@ async function actAs(req, res, next) {
 
 // ── Exports ──────────────────────────────────────────────────────────
 
-module.exports = { loadManagerScope, actAs, activeFilter };
+module.exports = { loadManagerScope, actAs, activeFilter, categoryFor, normalizePath, UNMANAGEABLE_ROLES };

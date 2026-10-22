@@ -26,9 +26,12 @@ async function loadManagerScope(req, res, next) {
     }
 
     // Fetch active assignments for this manager
+    // Admin routes are admin-only today; a manager reaching here gets a
+    // scope with no access levels (hasLevel → false), i.e. read-only at most.
     const assignments = await ManagerAssignment.find({
       manager_id: req.user._id,
       status: 'active',
+      $or: [{ expires_at: null }, { expires_at: { $gt: new Date() } }],
     }).lean();
 
     const userIds = assignments.map(a => a.user_id);

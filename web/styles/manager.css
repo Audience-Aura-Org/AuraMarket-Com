@@ -1,0 +1,243 @@
+/*
+ * Manager workspace design tokens.
+ * Scoped to .manager-ui so nothing outside /manager changes.
+ * Look: glass surfaces + briefing type; analysis: dense tables, tabular
+ * numbers, colour reserved for status.
+ */
+
+.manager-ui {
+  --m-bg: #f4f5f7;
+  --m-surface: #ffffff;
+  --m-surface-solid: #ffffff;
+  --m-surface-hover: rgba(15, 23, 42, 0.045);
+  --m-border: rgba(15, 23, 42, 0.08);
+  --m-border-strong: rgba(15, 23, 42, 0.14);
+  --m-text: #0f172a;
+  --m-text-muted: #64748b;
+  --m-text-faint: #94a3b8;
+  --m-good: #1a7f37;
+  --m-warn: #b25e09;
+  --m-bad: #cf222e;
+  --m-good-soft: rgba(26, 127, 55, 0.1);
+  --m-warn-soft: rgba(178, 94, 9, 0.1);
+  --m-bad-soft: rgba(207, 34, 46, 0.1);
+  --m-brand: var(--accent);
+  --m-highlight: transparent;
+  --m-radius-card: 16px;
+  --m-radius-row: 12px;
+  --m-font-ui: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --m-font-head: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  background: var(--m-bg);
+  color: var(--m-text);
+  font-family: var(--m-font-ui);
+  font-size: calc(13px * var(--aura-text-scale, 1));
+  line-height: 1.5;
+  text-transform: none;
+  letter-spacing: normal;
+
+  /* The app shrinks the page with html zoom (0.8 phone / 0.7 desktop) and
+     compensates text per class. The manager UI opts out: undo the zoom so
+     px are real px, and size type with the m-fs-* scale below. */
+  zoom: 1.25;
+}
+@media (min-width: 1024px) {
+  .manager-ui { zoom: calc(1 / 0.7); }
+}
+
+/* Embedded account pages (vendor/logistics/customer) keep the app's own
+   zoom, surface and type so they look exactly as they do for their owner. */
+.manager-ui .m-embedded {
+  zoom: 0.8;
+  min-height: 100%;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--aura-font-family, inherit);
+  font-size: 16px;
+  line-height: normal;
+}
+@media (min-width: 1024px) {
+  .manager-ui .m-embedded { zoom: 0.7; }
+}
+
+/*
+ * Font sizes. The app's global rules (html[data-font-size] …, specificity
+ * 0,2,2) resize untagged elements and any class containing "text-".
+ * Every manager font-size rule uses the prefix
+ *   :is(html[data-font-size] body, html) .manager-ui   → 0,2,2 + own part
+ * so the neutraliser and the scale share one specificity and source order
+ * (scale after neutraliser) decides. Embedded pages are excluded.
+ */
+:is(html[data-font-size] body, html) .manager-ui :where(p, span, a, li, label, td, th, dt, dd, button, input, textarea, select, div, h1, h2, h3, h4):not(.m-embedded *) {
+  font-size: inherit;
+}
+
+/* ── Type scale (× the user's S/M/L/XL text preference) ─── */
+:is(html[data-font-size] body, html) .manager-ui .m-fs-10 { font-size: calc(10px * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-11 { font-size: calc(11px * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-12,
+:is(html[data-font-size] body, html) .manager-ui .m-eyebrow { font-size: calc(12px * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-13,
+:is(html[data-font-size] body, html) .manager-ui .m-input,
+:is(html[data-font-size] body, html) .manager-ui .m-btn { font-size: calc(13px * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-15 { font-size: calc(15px * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-20 { font-size: calc(20px * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-28 { font-size: calc(28px * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-20-28 { font-size: calc(20px * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-13-15 { font-size: calc(13px * var(--aura-text-scale, 1)); }
+:is(html[data-font-size] body, html) .manager-ui .m-fs-15-13 { font-size: calc(15px * var(--aura-text-scale, 1)); }
+@media (min-width: 768px) {
+  :is(html[data-font-size] body, html) .manager-ui .m-fs-20-28 { font-size: calc(28px * var(--aura-text-scale, 1)); }
+  :is(html[data-font-size] body, html) .manager-ui .m-fs-13-15 { font-size: calc(15px * var(--aura-text-scale, 1)); }
+  :is(html[data-font-size] body, html) .manager-ui .m-fs-15-13 { font-size: calc(13px * var(--aura-text-scale, 1)); }
+}
+
+.dark .manager-ui {
+  --m-bg: #0b0d14;
+  --m-surface: rgba(255, 255, 255, 0.04);
+  --m-surface-solid: #11141d;
+  --m-surface-hover: rgba(255, 255, 255, 0.065);
+  --m-border: rgba(255, 255, 255, 0.07);
+  --m-border-strong: rgba(255, 255, 255, 0.13);
+  --m-text: #eef0f6;
+  --m-text-muted: #8790a8;
+  --m-text-faint: #5d6478;
+  --m-good: #3fb950;
+  --m-warn: #d29922;
+  --m-bad: #f85149;
+  --m-good-soft: rgba(63, 185, 80, 0.12);
+  --m-warn-soft: rgba(210, 153, 34, 0.12);
+  --m-bad-soft: rgba(248, 81, 73, 0.12);
+  --m-highlight: rgba(255, 255, 255, 0.05);
+
+  background: radial-gradient(1200px 600px at 20% -10%, rgba(124, 156, 255, 0.06), transparent 60%), var(--m-bg);
+}
+
+/* ── Surfaces ───────────────────────────────────────────── */
+.manager-ui .m-card {
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-card);
+  box-shadow: inset 0 1px 0 var(--m-highlight);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.manager-ui .m-row {
+  border-radius: var(--m-radius-row);
+  transition: background-color 120ms ease;
+}
+.manager-ui .m-row-interactive:hover {
+  background: var(--m-surface-hover);
+  cursor: pointer;
+}
+
+.manager-ui .m-divide > * + * {
+  border-top: 1px solid var(--m-border);
+}
+
+/* ── Type ───────────────────────────────────────────────── */
+.manager-ui .m-headline {
+  font-family: var(--m-font-head);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.manager-ui .m-eyebrow {
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--m-text-muted);
+}
+.manager-ui .m-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+.manager-ui .m-muted { color: var(--m-text-muted); }
+.manager-ui .m-faint { color: var(--m-text-faint); }
+.manager-ui .m-good { color: var(--m-good); }
+.manager-ui .m-warn { color: var(--m-warn); }
+.manager-ui .m-bad { color: var(--m-bad); }
+
+/* ── Controls ───────────────────────────────────────────── */
+.manager-ui .m-input {
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--m-radius-row);
+  border: 1px solid var(--m-border);
+  background: var(--m-surface);
+  color: var(--m-text);
+  outline: none;
+  transition: border-color 120ms ease;
+}
+.manager-ui .m-input::placeholder { color: var(--m-text-faint); }
+.manager-ui .m-input:focus { border-color: var(--m-border-strong); }
+
+.manager-ui .m-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-weight: 500;
+  border: 1px solid var(--m-border);
+  background: var(--m-surface);
+  color: var(--m-text);
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.manager-ui .m-btn:hover { background: var(--m-surface-hover); border-color: var(--m-border-strong); }
+.manager-ui .m-btn:disabled { opacity: 0.5; pointer-events: none; }
+.manager-ui .m-btn-primary {
+  background: var(--m-text);
+  color: var(--m-bg);
+  border-color: transparent;
+}
+.manager-ui .m-btn-primary:hover { background: var(--m-text); opacity: 0.9; }
+
+/* Focus is the one place the brand colour appears. Text fields show focus
+   through their border instead (a ring around typing feels heavy). */
+.manager-ui :focus-visible,
+.manager-ui label:has(> input.sr-only:focus-visible) {
+  outline: 2px solid var(--m-brand);
+  outline-offset: 2px;
+}
+.manager-ui :is(textarea, select, input:not([type="checkbox"], [type="radio"])):focus-visible {
+  outline: none;
+}
+
+/* ── Status ─────────────────────────────────────────────── */
+.manager-ui .m-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+.manager-ui .m-dot-urgent { background: var(--m-bad); box-shadow: 0 0 0 3px var(--m-bad-soft); }
+.manager-ui .m-dot-attention { background: var(--m-warn); box-shadow: 0 0 0 3px var(--m-warn-soft); }
+.manager-ui .m-dot-ok { background: var(--m-good); }
+.manager-ui .m-dot-neutral { background: var(--m-text-faint); }
+
+/* ── Loading ────────────────────────────────────────────── */
+.manager-ui .m-skeleton {
+  background: linear-gradient(90deg, var(--m-surface) 0%, var(--m-surface-hover) 50%, var(--m-surface) 100%);
+  background-size: 200% 100%;
+  border-radius: 8px;
+  animation: m-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes m-shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+.manager-ui .m-scroll-x {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .manager-ui .m-skeleton { animation: none; }
+  .manager-ui * { transition: none !important; }
+}

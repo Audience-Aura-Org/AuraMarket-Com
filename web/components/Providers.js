@@ -7,7 +7,6 @@ import { LanguageProvider } from '@/context/LanguageContext';
 import { UploadQueueProvider } from '@/context/UploadQueueContext';
 import SocketProvider from '@/components/SocketProvider';
 import OnboardingWatcher from '@/components/layout/OnboardingWatcher';
-import WorkspaceFloatingBar from '@/components/manager/WorkspaceFloatingBar';
 import TopNav from '@/components/layout/TopNav';
 import SubscriptionAccessNotice from '@/components/layout/SubscriptionAccessNotice';
 import { ChatProvider } from '@/context/ChatContext';
@@ -39,7 +38,10 @@ export default function Providers({ children }) {
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
   const normalizedPath = pathname?.replace(/\/+$/, '') || '/';
-  const isDashboardRoute = normalizedPath.startsWith('/admin') ||
+  // The manager workspace brings its own shell (rail, header, bottom tabs).
+  const isManagerRoute = normalizedPath.startsWith('/manager');
+  const isDashboardRoute = isManagerRoute ||
+                          normalizedPath.startsWith('/admin') ||
                           normalizedPath.startsWith('/vendor') ||
                           normalizedPath.startsWith('/logistics') ||
                           normalizedPath === '/subscribe';
@@ -132,13 +134,11 @@ export default function Providers({ children }) {
 
           {/* Onboarding gate — lightweight, needed on every route */}
           <OnboardingWatcher />
-          {/* Manager workspace floating bar — shows when acting as another user */}
-          <WorkspaceFloatingBar />
           {/* Dashboard routes render their own sidebar-aware mobile header. */}
           {!isImmersiveChat && !isDashboardRoute && !isAuthRoute && <TopNav />}
 
           <div className="flex w-full items-stretch flex-1 relative">
-            <main className={`flex-1 flex flex-col min-w-0${(!isAuthRoute && !isImmersiveChat) ? ' pb-[calc(68px+env(safe-area-inset-bottom,0px))] sm:pb-24' : ''}`}>
+            <main className={`flex-1 flex flex-col min-w-0${(!isAuthRoute && !isImmersiveChat && !isManagerRoute) ? ' pb-[calc(68px+env(safe-area-inset-bottom,0px))] sm:pb-24' : ''}`}>
               {!isDashboardRoute && <SubscriptionAccessNotice />}
               <div className="flex-1 flex flex-col">
                 {children}</div>
@@ -148,7 +148,7 @@ export default function Providers({ children }) {
             {!isDashboardRoute && !isAuthRoute && !isImmersiveChat && <CartSidebar />}
           </div>
 
-          {!isAuthRoute && !isImmersiveChat && <BottomNav />}
+          {!isAuthRoute && !isImmersiveChat && !isManagerRoute && <BottomNav />}
 
           {/* Floating upload progress ring — persists across navigation */}
           <FloatingUploadBadge />

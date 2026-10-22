@@ -25,20 +25,42 @@ const ManagerNote       = require('../models/ManagerNote.model');
 const ActivityLog       = require('../models/ActivityLog.model');
 const Notification      = require('../models/Notification.model');
 
-const { DEFAULT_PERMISSIONS } = ManagerAssignment;
+const { PERMISSIONS, DEFAULT_PERMISSIONS } = ManagerAssignment;
 
 // ── Helpers ────────────────────────────────────────────────────────
 
 const ok = (res, data) => res.json({ success: true, data });
+const fail = (res, status, message) =>
+  res.status(status).json({ success: false, message });
+
+const isId = (v) => mongoose.Types.ObjectId.isValid(v);
 
 const inScope = (scope, id) =>
   scope.userIds.some((u) => String(u) === String(id));
+
+/** Parse an optional date; returns undefined when absent, null when invalid. */
+const parseDate = (v) => {
+  if (v === undefined || v === null || v === '') return undefined;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+// Order statuses that represent work waiting on the vendor.
+const NEW_ORDER_STATUSES = ['placed'];
+// Statuses excluded from revenue — the money never stayed with the vendor.
+const NON_REVENUE_STATUSES = ['cancelled', 'refund_pending', 'refunded'];
+// Dispute statuses that still need attention.
+const OPEN_DISPUTE_STATUSES = ['pending', 'investigating'];
+
+const revenueExpr = {
+  $cond: [{ $in: ['$order_status', NON_REVENUE_STATUSES] }, 0, '$total_amount'],
+};
 
 /** Build a name map for assigned users. */
 async function userMap(scope) {
   const users = await User.find(
     { _id: { $in: scope.userIds } },
-    'name email role'
+    'name email role avatar wallet_balance'
   ).lean();
   return new Map(users.map((u) => [String(u._id), u]));
 }
@@ -54,9 +76,9 @@ async function collectTasks(scope, limit = 200) {
   const U = scope.userIds;
 
   const [orders, shipments, messages, kyc, disputes] = await Promise.all([
-    // Pending orders for managed vendors
+    // New orders waiting for managed vendors to accept
     Order.find({
-      order_status: 'pending',
+      order_status: { $in: NEW_ORDER_STATUSES },
       vendor_id: { $in: scope.vendorIds },
     })
       .sort({ createdAt: 1 })
@@ -92,7 +114,7 @@ async function collectTasks(scope, limit = 200) {
 
     // Open disputes where managed user is the initiator
     Dispute.find({
-      status: 'open',
+      status: { $in: OPEN_DISPUTE_STATUSES },
       initiator_id: { $in: U },
     })
       .sort({ createdAt: 1 })
@@ -125,21 +147,88 @@ async function collectTasks(scope, limit = 200) {
         scope.logisticsUser[String(x.logistics_id)],
         x,
         'Delivery waiting',
-        'deliveries'
+        'manifests'
       )
     ),
     ...messages.map((x) =>
       task('message', x.receiver_id, x, 'Unread message', 'messages')
     ),
     ...kyc.map((x) =>
-      task('kyc', x.user_id, x, 'KYC needs fixing', 'profile')
+      task('kyc', x.user_id, x, 'KYC needs fixing', 'dashboard')
     ),
     ...disputes.map((x) =>
-      task('dispute', x.initiator_id, x, 'Open dispute', 'messages')
+      task('dispute', x.initiator_id, x, 'Open dispute', 'disputes')
     ),
   ]
     .filter((i) => i.userId && i.userId !== 'undefined')
     .sort((a, b) => new Date(a.at) - new Date(b.at));
+}
+
+// Shipment statuses that earned the logistics account nothing.
+const NON_REVENUE_SHIPMENT_STATUSES = ['cancelled', 'failed'];
+const URGENT_TASK_AGE_MS = 864e5; // 24h
+
+/**
+ * Per-account 30-day revenue/orders and pending withdrawals.
+ * Vendors earn from orders, logistics accounts from shipments.
+ * One aggregate per collection, mapped back to user ids.
+ */
+async function accountMetrics(scope) {
+  const since = new Date(Date.now() - 30 * 864e5);
+  const [orders, shipments, withdrawals] = await Promise.all([
+    Order.aggregate([
+      { $match: { vendor_id: { $in: scope.vendorIds }, createdAt: { $gte: since } } },
+      { $group: { _id: '$vendor_id', orders: { $sum: 1 }, revenue: { $sum: revenueExpr } } },
+    ]),
+    Shipment.aggregate([
+      { $match: { logistics_id: { $in: scope.logisticsIds }, createdAt: { $gte: since } } },
+      {
+        $group: {
+          _id: '$logistics_id',
+          orders: { $sum: 1 },
+          revenue: {
+            $sum: {
+              $cond: [{ $in: ['$status', NON_REVENUE_SHIPMENT_STATUSES] }, 0, { $ifNull: ['$price', 0] }],
+            },
+          },
+        },
+      },
+    ]),
+    WithdrawalRequest.aggregate([
+      { $match: { requested_by: { $in: scope.userIds }, status: 'pending' } },
+      { $group: { _id: '$requested_by', n: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const metrics = new Map();
+  const add = (uid, fields) => {
+    if (!uid) return;
+    const m = metrics.get(uid) || { revenue30d: 0, orders30d: 0, pendingWithdrawals: 0 };
+    metrics.set(uid, {
+      revenue30d: m.revenue30d + (fields.revenue30d || 0),
+      orders30d: m.orders30d + (fields.orders30d || 0),
+      pendingWithdrawals: m.pendingWithdrawals + (fields.pendingWithdrawals || 0),
+    });
+  };
+  orders.forEach((r) =>
+    add(scope.vendorUser[String(r._id)], { revenue30d: r.revenue, orders30d: r.orders })
+  );
+  shipments.forEach((r) =>
+    add(scope.logisticsUser[String(r._id)], { revenue30d: r.revenue, orders30d: r.orders })
+  );
+  withdrawals.forEach((r) => add(String(r._id), { pendingWithdrawals: r.n }));
+  return metrics;
+}
+
+/** Account health from open tasks: urgent (dispute or >24h old), attention (any), else ok. */
+function accountHealth(tasks, now = Date.now()) {
+  const health = new Map();
+  for (const t of tasks) {
+    const urgent = t.type === 'dispute' || now - new Date(t.at).getTime() > URGENT_TASK_AGE_MS;
+    if (urgent) health.set(t.userId, 'urgent');
+    else if (health.get(t.userId) !== 'urgent') health.set(t.userId, 'attention');
+  }
+  return health;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -151,24 +240,21 @@ exports.getOverview = async (req, res, next) => {
     const { scope } = req;
     const um = await userMap(scope);
     const tasks = await collectTasks(scope, 100);
-    const since = new Date(Date.now() - 30 * 864e5);
+    const now = new Date();
+    const since = new Date(now - 30 * 864e5);
+    const prevSince = new Date(now - 60 * 864e5);
+    const trendFrom = new Date(now - 29 * 864e5);
 
-    const [rev, wallets] = await Promise.all([
+    const periodTotals = (from, to) =>
       Order.aggregate([
-        {
-          $match: {
-            vendor_id: { $in: scope.vendorIds },
-            createdAt: { $gte: since },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            revenue: { $sum: '$total_amount' },
-          },
-        },
-      ]),
+        { $match: { vendor_id: { $in: scope.vendorIds }, createdAt: { $gte: from, $lt: to } } },
+        { $group: { _id: null, orders: { $sum: 1 }, revenue: { $sum: revenueExpr } } },
+      ]);
+
+    const [rev, prev, trend, wallets] = await Promise.all([
+      periodTotals(since, new Date(now.getTime() + 1)),
+      periodTotals(prevSince, since),
+      dailyRevenue(scope.vendorIds, trendFrom, now),
       // Wallet balance is on User model, not a separate Wallet collection
       User.aggregate([
         { $match: { _id: { $in: scope.userIds } } },
@@ -196,6 +282,11 @@ exports.getOverview = async (req, res, next) => {
         revenue30d: rev[0]?.revenue || 0,
         balance: wallets[0]?.balance || 0,
       },
+      previous: {
+        orders30d: prev[0]?.orders || 0,
+        revenue30d: prev[0]?.revenue || 0,
+      },
+      trend: trend.map(({ date, revenue }) => ({ date, revenue })),
       byType,
       attention: Object.entries(perAccount)
         .sort((a, b) => b[1] - a[1])
@@ -232,28 +323,73 @@ exports.getAccounts = async (req, res, next) => {
     );
 
     // Last activity per account
-    const lastAct = await ActivityLog.aggregate([
-      { $match: { manager_id: req.user._id } },
-      { $group: { _id: '$user_id', last: { $max: '$createdAt' } } },
+    const [lastAct, metrics] = await Promise.all([
+      ActivityLog.aggregate([
+        { $match: { manager_id: req.user._id } },
+        { $group: { _id: '$user_id', last: { $max: '$createdAt' } } },
+      ]),
+      accountMetrics(scope),
     ]);
     const la = new Map(lastAct.map((a) => [String(a._id), a.last]));
+    const health = accountHealth(tasks);
 
     ok(
       res,
       scope.links.map((l) => {
-        const u = nm(um, l.user_id);
+        const uid = String(l.user_id);
+        const u = nm(um, uid);
+        const m = metrics.get(uid) || {};
         return {
-          id: String(l.user_id),
+          id: uid,
           name: u.name,
           email: u.email,
           role: u.role,
+          avatar: u.avatar || null,
           permissions: l.permissions,
           expires_at: l.expires_at,
-          tasks: count[String(l.user_id)] || 0,
-          last_activity: la.get(String(l.user_id)) || null,
+          tasks: count[uid] || 0,
+          last_activity: la.get(uid) || null,
+          revenue30d: m.revenue30d || 0,
+          orders30d: m.orders30d || 0,
+          balance: u.wallet_balance || 0,
+          pendingWithdrawals: m.pendingWithdrawals || 0,
+          health: health.get(uid) || 'ok',
         };
       })
     );
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  Account Session — the managed user's profile for the workspace
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * GET /manager/accounts/:id/session
+ * Returns the assigned user's profile in the same shape as /auth/me so the
+ * embedded vendor/logistics/customer pages can render as that account.
+ */
+exports.getAccountSession = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!isId(id) || !inScope(req.scope, id))
+      return fail(res, 404, 'Account not found.');
+
+    const user = await User.findById(id)
+      .select('-password -token_version -manager_settings')
+      .lean();
+    if (!user) return fail(res, 404, 'Account not found.');
+
+    user.kyc = await KYC.findOne({ user_id: user._id })
+      .sort('-updatedAt')
+      .lean();
+
+    ok(res, {
+      user,
+      permissions: req.scope.perms[String(id)] || {},
+    });
   } catch (err) {
     next(err);
   }
@@ -292,7 +428,7 @@ exports.getOrders = async (req, res, next) => {
   try {
     const um = await userMap(req.scope);
     const filter = { vendor_id: { $in: req.scope.vendorIds } };
-    if (req.query.status) filter.order_status = req.query.status;
+    if (req.query.status) filter.order_status = String(req.query.status);
     if (req.query.account) {
       const vids = req.scope.vendorIds.filter(
         (v) => req.scope.vendorUser[String(v)] === req.query.account
@@ -329,7 +465,14 @@ exports.getShipments = async (req, res, next) => {
   try {
     const um = await userMap(req.scope);
     const filter = { logistics_id: { $in: req.scope.logisticsIds } };
-    if (req.query.status) filter.status = req.query.status;
+    if (req.query.status) filter.status = String(req.query.status);
+    if (req.query.account) {
+      filter.logistics_id = {
+        $in: req.scope.logisticsIds.filter(
+          (l) => req.scope.logisticsUser[String(l)] === String(req.query.account)
+        ),
+      };
+    }
 
     const rows = await Shipment.find(filter)
       .sort({ createdAt: -1 })
@@ -358,8 +501,16 @@ exports.getShipments = async (req, res, next) => {
 exports.getMessages = async (req, res, next) => {
   try {
     const um = await userMap(req.scope);
-    const filter = { receiver_id: { $in: req.scope.userIds } };
+    const filter = {
+      receiver_id: { $in: req.scope.userIds },
+      deleted_everyone: { $ne: true },
+    };
     if (req.query.unread === 'true') filter.read_status = false;
+    if (req.query.account) {
+      if (!isId(req.query.account) || !inScope(req.scope, req.query.account))
+        return ok(res, []);
+      filter.receiver_id = req.query.account;
+    }
 
     const rows = await Message.find(filter)
       .sort({ createdAt: -1 })
@@ -441,23 +592,77 @@ exports.getMoney = async (req, res, next) => {
 //  Reports — Revenue/order metrics with date filtering
 // ═══════════════════════════════════════════════════════════════════
 
+const MAX_RANGE_DAYS = 366;
+
+/** Parse ?from&to (default: last 30 days). Returns { from, to } or { error }. */
+function parseRange(query) {
+  const fromQ = parseDate(query.from);
+  const toQ = parseDate(query.to);
+  if (fromQ === null || toQ === null) return { error: 'Invalid date range.' };
+  const from = fromQ || new Date(Date.now() - 30 * 864e5);
+  const to = toQ || new Date();
+  // A bare date for "to" means the whole day.
+  if (toQ && /^\d{4}-\d{2}-\d{2}$/.test(String(query.to)))
+    to.setUTCHours(23, 59, 59, 999);
+  if (from > to) return { error: '"from" must be before "to".' };
+  if (to - from > MAX_RANGE_DAYS * 864e5)
+    return { error: `Date range cannot exceed ${MAX_RANGE_DAYS} days.` };
+  return { from, to };
+}
+
+/** Vendor ids for the report, optionally narrowed to one account; null when out of scope. */
+function reportVendorIds(scope, account) {
+  if (!account) return scope.vendorIds;
+  if (!inScope(scope, account)) return null;
+  return scope.vendorIds.filter((v) => scope.vendorUser[String(v)] === String(account));
+}
+
+const utcDay = (d) => d.toISOString().slice(0, 10);
+
+/** Daily revenue/orders per UTC day from `from` to `to`, zero-filled. */
+async function dailyRevenue(vendorIds, from, to) {
+  const rows = await Order.aggregate([
+    { $match: { vendor_id: { $in: vendorIds }, createdAt: { $gte: from, $lte: to } } },
+    {
+      $group: {
+        _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt', timezone: 'UTC' } },
+        revenue: { $sum: revenueExpr },
+        orders: { $sum: 1 },
+      },
+    },
+  ]);
+  const byDay = new Map(rows.map((r) => [r._id, r]));
+  const out = [];
+  const day = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
+  for (; day <= to; day.setUTCDate(day.getUTCDate() + 1)) {
+    const key = utcDay(day);
+    out.push({ date: key, revenue: byDay.get(key)?.revenue || 0, orders: byDay.get(key)?.orders || 0 });
+  }
+  return out;
+}
+
+exports.getReportSeries = async (req, res, next) => {
+  try {
+    const range = parseRange(req.query);
+    if (range.error) return fail(res, 400, range.error);
+    const vendorIds = reportVendorIds(req.scope, req.query.account);
+    if (!vendorIds) return fail(res, 404, 'Not found');
+    ok(res, await dailyRevenue(vendorIds, range.from, range.to));
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.getReports = async (req, res, next) => {
   try {
-    const from = req.query.from
-      ? new Date(req.query.from)
-      : new Date(Date.now() - 30 * 864e5);
-    const to = req.query.to ? new Date(req.query.to) : new Date();
+    const range = parseRange(req.query);
+    if (range.error) return fail(res, 400, range.error);
+    const { from, to } = range;
     const { scope } = req;
     const um = await userMap(scope);
 
-    let vendorIds = scope.vendorIds;
-    if (req.query.account) {
-      if (!inScope(scope, req.query.account))
-        return res.status(404).json({ success: false, message: 'Not found' });
-      vendorIds = vendorIds.filter(
-        (v) => scope.vendorUser[String(v)] === req.query.account
-      );
-    }
+    const vendorIds = reportVendorIds(scope, req.query.account);
+    if (!vendorIds) return fail(res, 404, 'Not found');
 
     const rows = await Order.aggregate([
       {
@@ -470,9 +675,11 @@ exports.getReports = async (req, res, next) => {
         $group: {
           _id: '$vendor_id',
           orders: { $sum: 1 },
-          revenue: { $sum: '$total_amount' },
+          revenue: { $sum: revenueExpr },
           delivered: {
-            $sum: { $cond: [{ $eq: ['$order_status', 'delivered'] }, 1, 0] },
+            $sum: {
+              $cond: [{ $in: ['$order_status', ['delivered', 'completed']] }, 1, 0],
+            },
           },
           cancelled: {
             $sum: { $cond: [{ $eq: ['$order_status', 'cancelled'] }, 1, 0] },
@@ -492,6 +699,8 @@ exports.getReports = async (req, res, next) => {
           revenue: r.revenue,
           delivered: r.delivered,
           cancelled: r.cancelled,
+          deliveredRate: r.orders ? r.delivered / r.orders : 0,
+          cancelledRate: r.orders ? r.cancelled / r.orders : 0,
         };
       })
     );
@@ -507,7 +716,10 @@ exports.getReports = async (req, res, next) => {
 exports.listNotes = async (req, res, next) => {
   try {
     const f = { manager_id: req.user._id };
-    if (req.query.account) f.user_id = req.query.account;
+    if (req.query.account) {
+      if (!isId(req.query.account)) return ok(res, []);
+      f.user_id = req.query.account;
+    }
 
     const notes = await ManagerNote.find(f)
       .sort({ done: 1, remind_at: 1, createdAt: -1 })
@@ -522,21 +734,21 @@ exports.listNotes = async (req, res, next) => {
 
 exports.createNote = async (req, res, next) => {
   try {
-    const { user_id = null, body, remind_at = null } = req.body;
-    if (!body?.trim())
-      return res
-        .status(400)
-        .json({ success: false, message: 'Note body is required.' });
-    if (user_id && !inScope(req.scope, user_id))
-      return res
-        .status(404)
-        .json({ success: false, message: 'Account not found.' });
+    const { user_id = null, body } = req.body;
+    const text = typeof body === 'string' ? body.trim() : '';
+    if (!text) return fail(res, 400, 'Note body is required.');
+    if (text.length > 2000)
+      return fail(res, 400, 'Note is too long (max 2000 characters).');
+    if (user_id && (!isId(user_id) || !inScope(req.scope, user_id)))
+      return fail(res, 404, 'Account not found.');
+    const remind_at = parseDate(req.body.remind_at);
+    if (remind_at === null) return fail(res, 400, 'Invalid reminder date.');
 
     const note = await ManagerNote.create({
       manager_id: req.user._id,
-      user_id,
-      body: body.trim(),
-      remind_at,
+      user_id: user_id || null,
+      body: text,
+      remind_at: remind_at || null,
     });
     ok(res, note);
   } catch (err) {
@@ -546,10 +758,22 @@ exports.createNote = async (req, res, next) => {
 
 exports.updateNote = async (req, res, next) => {
   try {
+    if (!isId(req.params.id)) return fail(res, 404, 'Note not found.');
+
     const update = {};
-    if (req.body.body) update.body = req.body.body;
+    if ('body' in req.body) {
+      const text = typeof req.body.body === 'string' ? req.body.body.trim() : '';
+      if (!text) return fail(res, 400, 'Note body is required.');
+      if (text.length > 2000)
+        return fail(res, 400, 'Note is too long (max 2000 characters).');
+      update.body = text;
+    }
     if ('done' in req.body) update.done = !!req.body.done;
-    if ('remind_at' in req.body) update.remind_at = req.body.remind_at;
+    if ('remind_at' in req.body) {
+      const remind_at = parseDate(req.body.remind_at);
+      if (remind_at === null) return fail(res, 400, 'Invalid reminder date.');
+      update.remind_at = remind_at || null;
+    }
 
     const note = await ManagerNote.findOneAndUpdate(
       { _id: req.params.id, manager_id: req.user._id },
@@ -569,6 +793,7 @@ exports.updateNote = async (req, res, next) => {
 
 exports.deleteNote = async (req, res, next) => {
   try {
+    if (!isId(req.params.id)) return fail(res, 404, 'Note not found.');
     await ManagerNote.deleteOne({
       _id: req.params.id,
       manager_id: req.user._id,
@@ -586,8 +811,11 @@ exports.deleteNote = async (req, res, next) => {
 exports.getActivity = async (req, res, next) => {
   try {
     const f = { manager_id: req.user._id };
-    if (req.query.account) f.user_id = req.query.account;
-    if (req.query.category) f.category = req.query.category;
+    if (req.query.account) {
+      if (!isId(req.query.account)) return ok(res, []);
+      f.user_id = req.query.account;
+    }
+    if (req.query.category) f.category = String(req.query.category);
 
     const um = await userMap(req.scope);
     const rows = await ActivityLog.find(f)
@@ -626,7 +854,21 @@ exports.getInvitations = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    ok(res, rows);
+    ok(
+      res,
+      rows.map((r) => ({
+        id: String(r._id),
+        // incoming = the account owner asked this manager to manage them
+        direction: r.initiated_by === 'user' ? 'incoming' : 'outgoing',
+        userId: r.user_id?._id ? String(r.user_id._id) : null,
+        email: r.user_id?.email || null,
+        from: r.user_id?.name || null,
+        role: r.user_id?.role || null,
+        status: r.status,
+        permissions: r.permissions,
+        at: r.createdAt,
+      }))
+    );
   } catch (err) {
     next(err);
   }
@@ -654,7 +896,14 @@ exports.sendInvitation = async (req, res, next) => {
       await ManagerAssignment.create({
         manager_id: req.user._id,
         user_id: u._id,
-        permissions: { ...DEFAULT_PERMISSIONS, ...(req.body.permissions || {}) },
+        permissions: Object.fromEntries(
+          PERMISSIONS.map((k) => [
+            k,
+            typeof req.body.permissions?.[k] === 'boolean'
+              ? req.body.permissions[k]
+              : DEFAULT_PERMISSIONS[k],
+          ])
+        ),
         status: 'pending',
         initiated_by: 'manager',
       });
@@ -721,14 +970,13 @@ exports.respondInvitation = async (req, res, next) => {
 
 exports.getSettings = async (req, res, next) => {
   try {
+    const s = req.user.manager_settings || {};
     ok(res, {
       name: req.user.name,
       email: req.user.email,
-      ...(req.user.manager_settings || {
-        notify_email: true,
-        notify_push: true,
-        daily_digest: false,
-      }),
+      notify_email: s.notify_email !== false,
+      notify_push: s.notify_push !== false,
+      daily_digest: s.daily_digest === true,
     });
   } catch (err) {
     next(err);
@@ -737,19 +985,14 @@ exports.getSettings = async (req, res, next) => {
 
 exports.updateSettings = async (req, res, next) => {
   try {
-    const { notify_email, notify_push, daily_digest } = req.body;
-    await User.updateOne(
-      { _id: req.user._id },
-      {
-        $set: {
-          manager_settings: {
-            notify_email: !!notify_email,
-            notify_push: !!notify_push,
-            daily_digest: !!daily_digest,
-          },
-        },
-      }
-    );
+    // Partial update: only booleans that were sent are changed.
+    const $set = {};
+    for (const key of ['notify_email', 'notify_push', 'daily_digest']) {
+      if (typeof req.body[key] === 'boolean')
+        $set[`manager_settings.${key}`] = req.body[key];
+    }
+    if (Object.keys($set).length)
+      await User.updateOne({ _id: req.user._id }, { $set });
     ok(res, true);
   } catch (err) {
     next(err);

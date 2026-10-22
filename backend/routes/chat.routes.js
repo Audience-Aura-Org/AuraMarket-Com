@@ -9,16 +9,13 @@ const router = express.Router();
 const { getConversation, getUserInbox, sendMessage, markAsRead, getAllMessagesAdmin, getSystemWideInbox, deleteMessage } = require('../controllers/chat.controller');
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
-const { actAs } = require('../middleware/delegate.middleware');
 
 // All chat routes require authentication (Any user role can chat)
-// actAs lets managers work as a user via X-Act-As header
 router.use(protect);
-router.use(actAs);
 
 // ── Admin-only Routes ──────────────────────────
-router.get('/admin/all', restrictTo('admin', 'manager'), getAllMessagesAdmin);
-router.get('/admin/inbox', restrictTo('admin', 'manager'), getSystemWideInbox);
+router.get('/admin/all', restrictTo('admin'), getAllMessagesAdmin);
+router.get('/admin/inbox', restrictTo('admin'), getSystemWideInbox);
 
 // ── Operations ──────────────────────────────
 router.get('/', getUserInbox);                 // List of all active distinct conversations

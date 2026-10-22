@@ -22,7 +22,6 @@ const {
 
 
 const { protect, restrictTo } = require('../middleware/auth.middleware');
-const { actAs } = require('../middleware/delegate.middleware');
 
 // ── Public Discovery ──────────────────────────
 router.get('/', getPublicLogisticsFirms);
@@ -30,7 +29,6 @@ router.get('/zones', getZones);
 router.get('/compatible-firms', getSearchCompatibleFirms);
 
 router.use(protect);
-router.use(actAs);
 
 // ── Shared / Smart Routing ────────────────────
 router.get('/shipments', (req, res, next) => {

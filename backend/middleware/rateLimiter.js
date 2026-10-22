@@ -89,9 +89,30 @@ const videoUploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * Wallet write limiter — per authenticated user, for money-moving requests
+ * (deposits, withdrawals, wallet payments). Must run after `protect`.
+ * Balance/history reads are deliberately NOT here: every open tab polls the
+ * balance, and many users share one IP behind mobile carrier NAT.
+ */
+const walletWriteLimiter = rateLimit({
+  store: redisStore('auradime:rl:wallet-write:'),
+  passOnStoreError: true,
+  windowMs: intEnv('WALLET_WRITE_RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000),
+  max: intEnv('WALLET_WRITE_RATE_LIMIT_MAX', 30),
+  keyGenerator: (req) => req.user?._id?.toString() || ipKeyGenerator(req),
+  message: {
+    success: false,
+    message: 'Too many wallet requests. Please wait a few minutes and try again.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   apiLimiter,
   strictLimiter,
   publicLimiter,
+  walletWriteLimiter,
   videoUploadLimiter,
 };

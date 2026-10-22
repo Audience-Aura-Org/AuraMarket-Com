@@ -54,10 +54,47 @@ const shouldRestrictForVerification = (user) => (
   !['admin', 'manager'].includes(user.role) && ['held', 'pending', 'rejected'].includes(user.verification_status)
 );
 
+const rejectUnverifiedWrite = (req, res) => {
+  if (shouldRestrictForVerification(req.user) && !isVerificationWriteAllowed(req)) {
+    res.status(423).json({
+      success: false,
+      code: 'VERIFICATION_REQUIRED',
+      message: 'Verification is required before this action can be completed.',
+      redirect: '/profile?tab=kyc',
+    });
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Resolve the caller from the request token without sending a response.
+ * Returns the active user with a valid session, or null.
+ */
+const resolveUserFromToken = async (req) => {
+  const token = getRequestToken(req);
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.id).select('-password +token_version');
+    if (!user || !user.is_active || !isTokenVersionValid(decoded, user)) return null;
+    return user;
+  } catch {
+    return null;
+  }
+};
+
 // ─────────────────────────────────────────────
 // protect — Verify JWT and attach user to req
 // ─────────────────────────────────────────────
 const protect = async (req, res, next) => {
+  // A manager act-as session (delegate.middleware → actAs) has already
+  // authenticated the manager and swapped req.user to the target account.
+  if (req.actingAs && req.user) {
+    if (rejectUnverifiedWrite(req, res)) return;
+    return next();
+  }
+
   try {
     let token;
 
@@ -98,17 +135,9 @@ const protect = async (req, res, next) => {
       });
     }
 
-    if (shouldRestrictForVerification(user) && !isVerificationWriteAllowed(req)) {
-      return res.status(423).json({
-        success: false,
-        code: 'VERIFICATION_REQUIRED',
-        message: 'Verification is required before this action can be completed.',
-        redirect: '/profile?tab=kyc',
-      });
-    }
-
     // 4. Attach user to request object
     req.user = user;
+    if (rejectUnverifiedWrite(req, res)) return;
     next();
   } catch (error) {
     next(error); // Passed to global errorHandler
@@ -141,6 +170,7 @@ const restrictTo = (...roles) => {
 // protectOptional — Only attach user if token exists
 // ─────────────────────────────────────────────
 const protectOptional = async (req, res, next) => {
+  if (req.actingAs && req.user) return next();
   try {
     let token;
     token = getRequestToken(req);
@@ -208,4 +238,4 @@ const loadVendorOptional = async (req, res, next) => {
   }
 };
 
-module.exports = { protect, restrictTo, protectOptional, loadVendor, loadVendorOptional };
+module.exports = { protect, restrictTo, protectOptional, loadVendor, loadVendorOptional, resolveUserFromToken };

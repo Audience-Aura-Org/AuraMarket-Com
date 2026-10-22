@@ -109,6 +109,10 @@ export default function AdminManagersPage() {
       return;
     }
     setExpanded(managerId);
+    loadAssignments(managerId);
+  };
+
+  const loadAssignments = async (managerId) => {
     setAssignLoading(true);
     try {
       const res = await api.get(`/admin/managers/${managerId}/assignments`);
@@ -229,7 +233,7 @@ export default function AdminManagersPage() {
         if (rejected > 0) toast.error(`${rejected} could not be assigned`);
         setAssignModal(false);
         // Refresh the expanded panel if we're looking at this manager
-        if (expanded === assignManagerId) toggleExpand(assignManagerId);
+        if (expanded === assignManagerId) loadAssignments(assignManagerId);
         fetchManagers(); // refresh counts
       }
     } catch (err) {

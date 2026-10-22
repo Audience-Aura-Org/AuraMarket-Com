@@ -39,7 +39,6 @@ const {
 } = require('../controllers/review.controller');
 
 const { protect, restrictTo, loadVendor } = require('../middleware/auth.middleware');
-const { actAs } = require('../middleware/delegate.middleware');
 const { requireActiveSubscription } = require('../middleware/subscription.middleware');
 
 // ── Public Routes ─────────────────────────────
@@ -53,9 +52,7 @@ router.post('/:id/follow', protect, followVendor);
 router.delete('/:id/follow', protect, unfollowVendor);
 
 // ── Private Vendor-only Routes ────────────────
-// actAs lets managers work as a vendor user via X-Act-As header
 router.use(protect);
-router.use(actAs);
 router.use(restrictTo('vendor'));
 
 // Onboarding must happen BEFORE loadVendor check
