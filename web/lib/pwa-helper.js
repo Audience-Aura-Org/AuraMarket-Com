@@ -176,7 +176,7 @@ export async function subscribeToPush({ promptIfNeeded = true } = {}) {
     if (res.data?.success) {
       console.log('✅ Push subscription synchronized with Aura Matrix.');
     }
-    return { success: true, subscription };
+    return { success: Boolean(res.data?.success), subscription };
   } catch (err) {
 
     // 2. Handle VAPID mismatch, expired or invalid subscription errors
@@ -188,9 +188,11 @@ export async function subscribeToPush({ promptIfNeeded = true } = {}) {
         const oldSub = await reg.pushManager.getSubscription();
         if (oldSub) await oldSub.unsubscribe();
 
-        // 2. Purge ALL stale subscriptions from the backend DB for this user
-        await api.delete('/push/purge-all').catch(() => { });
-        console.log('[PWA] Backend subscriptions purged — creating fresh registration...');
+        // Repair this device only; other devices must retain background delivery.
+        if (oldSub?.endpoint) await api.delete('/push/unsubscribe', {
+          data: { endpoint: oldSub.endpoint },
+        }).catch(() => {});
+        console.log('[PWA] Device subscription repaired — creating fresh registration...');
 
         // 3. Re-subscribe with correct VAPID key (one retry only)
         const reg2 = await navigator.serviceWorker.ready;

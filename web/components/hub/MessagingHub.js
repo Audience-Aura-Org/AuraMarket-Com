@@ -1593,7 +1593,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       // causing a spurious re-render / navigation of the page behind the chat.
       // replaceState silently replaces the current history entry with no event fired.
       if (window.history.state?.chatInterceptor) {
-        window.history.replaceState({}, '', window.location.href);
+        window.history.replaceState({ ...window.history.state, chatInterceptor: false }, '', window.location.href);
       }
     }
     onClose?.();
@@ -1617,7 +1617,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     if (isOpen) {
       if (!hasPushedHistoryRef.current) {
         backViaButtonRef.current = false;
-        window.history.pushState({ chatInterceptor: true }, '');
+        window.history.pushState({ ...window.history.state, chatInterceptor: true }, '');
         hasPushedHistoryRef.current = true;
       }
     } else {
@@ -1625,7 +1625,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         hasPushedHistoryRef.current = false;
         // replaceState instead of history.back() — see dismissOverlay() comment.
         if (window.history.state?.chatInterceptor) {
-          window.history.replaceState({}, '', window.location.href);
+          window.history.replaceState({ ...window.history.state, chatInterceptor: false }, '', window.location.href);
         }
       }
     }
@@ -1866,7 +1866,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
               <div className="flex min-h-[54px] items-center gap-1.5 px-2 py-1.5 sm:min-h-[60px] sm:gap-2 sm:px-3 sm:py-2">
                 <button
                   type="button"
-                  onClick={() => setActiveConversation(null)}
+                  onClick={() => { if (fullPage) dismissOverlay(); else setActiveConversation(null); }}
                   className="flex size-10 shrink-0 items-center justify-center rounded-full text-[var(--nav-text)]/95 transition-colors hover:bg-white/10 active:bg-white/15"
                   aria-label="Back to chats"
                 >

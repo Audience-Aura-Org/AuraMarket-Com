@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, Suspense, useMemo, useState } from 'react';
+import { useEffect, Suspense, useMemo, useState, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import { toId, useChat } from '@/context/ChatContext';
@@ -48,6 +48,14 @@ function ChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [prefetchedPartner, setPrefetchedPartner] = useState(null);
+  const closingRef = useRef(false);
+  const seededPartnerRef = useRef(null);
+  const exitChat = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    closeChat();
+    router.replace(chatExitHref(user?.role));
+  }, [closeChat, router, user?.role]);
 
   const vendorId = searchParams.get('vendorId');
   const urlNotificationTitle = searchParams.get('notificationTitle');
@@ -97,7 +105,8 @@ function ChatContent() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    if (!vendorId) return;
+    if (!vendorId || closingRef.current || seededPartnerRef.current === vendorId) return;
+    seededPartnerRef.current = vendorId;
     setActiveConversation(vendorId, initialData || null, notificationTitle || undefined);
   }, [vendorId, initialData, notificationTitle, setActiveConversation]);
 
@@ -163,7 +172,7 @@ function ChatContent() {
         initialData={initialData}
         notificationTitle={notificationTitle}
         fullPage={true}
-        onClose={() => { closeChat(); router.replace(chatExitHref(user?.role)); }}
+        onClose={exitChat}
       />
     </div>
   );

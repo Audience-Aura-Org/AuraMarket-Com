@@ -59,8 +59,12 @@ export default function PWAInit() {
     syncInFlightRef.current = true;
     try {
       console.log('[PWAInit] Syncing push registration...');
-      const nativeResult = await registerNativeAndroidPush();
-      const result = await subscribeToPush({ promptIfNeeded });
+      // Start the browser permission request within the tap's activation window.
+      // Awaiting native detection first can make Safari reject the prompt.
+      const [result, nativeResult] = await Promise.all([
+        subscribeToPush({ promptIfNeeded }),
+        registerNativeAndroidPush(),
+      ]);
 
       if (nativeResult?.permission === 'denied' && !pushDeniedToastedRef.current) {
         pushDeniedToastedRef.current = true;

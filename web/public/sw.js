@@ -11,7 +11,7 @@
  *  Push notifications  → unchanged
  */
 
-const CACHE_NAME       = 'aura-cache-v14';
+const CACHE_NAME       = 'aura-cache-v15';
 const MEDIA_CACHE_NAME = 'aura-media-v2';   // bumped: evicts stale deleted-status media
 const API_CACHE_NAME   = 'aura-api-v2';     // bumped: evicts stale expired-status responses
 const VIDEO_CACHE_NAME = 'aura-video-v1';   // status video files (offline playback)
@@ -180,7 +180,7 @@ self.addEventListener('fetch', (event) => {
           return fetch(event.request).then((response) => {
             cache.put(event.request, response.clone());
             return response;
-          }).catch(() => undefined);
+          }).catch(() => clients.openWindow(urlToOpen));
         })
       )
     );
@@ -485,7 +485,7 @@ self.addEventListener('push', function (event) {
   };
 
   const showOrForward = async () => {
-    const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const windowClients = await clients.matchAll({ type: 'window', includeUncontrolled: true }).catch(() => []);
     const visibleClients = windowClients.filter((c) => c.visibilityState === 'visible');
 
     // Always forward push data to ALL open tabs — visible or background.
@@ -500,26 +500,9 @@ self.addEventListener('push', function (event) {
       try { client.postMessage({ type: 'push-received', payload: data }); } catch {}
     }
 
-    // WhatsApp-style: show OS notification unless the user is actively viewing
-    // this exact conversation.
-    //
-    // Chat messages  → suppress only when (visible tab) AND (active partner === sender).
-    //                  In every other case — app backgrounded, or open on a different
-    //                  screen, or open on a different chat — the notification fires.
-    // Non-chat alerts → keep the old behaviour: suppress when any tab is visible
-    //                   (the in-app toast handles it).
-    let suppress = false;
-    if (isChat) {
-      const senderId = data.tag
-        ? data.tag.replace(/^msg-/, '')
-        : (data.data?.sender_id || data.data?.senderId || '');
-      suppress = visibleClients.length > 0
-        && !!activeChatPartnerId
-        && !!senderId
-        && activeChatPartnerId.toString() === senderId.toString();
-    } else {
-      suppress = visibleClients.length > 0;
-    }
+    // Every Web Push must display a notification (Safari userVisibleOnly).
+    // Socket delivery handles foreground updates independently of this worker.
+    const suppress = false;
 
     if (!suppress) {
       try {
@@ -600,18 +583,11 @@ self.addEventListener('notificationclick', function (event) {
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {
         if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
-          try {
-            client.postMessage({
-              type:       'notification-click',
-              url:        urlToOpen,
-              payload:    notifData,
-              senderId:   senderId,
-              senderData: notifData.senderData || null,
-            });
-          } catch {}
+          // One navigation owner: sending a click event as well races React's
+          // router against a document navigation and can reopen a dismissed chat.
           return client.focus().then(() => {
             if ('navigate' in client) return client.navigate(urlToOpen);
-            return undefined;
+            return clients.openWindow(urlToOpen);
           }).catch(() => undefined);
         }
       }
