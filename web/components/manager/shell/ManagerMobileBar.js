@@ -1,14 +1,36 @@
 'use client';
 
 import Link from 'next/link';
+import { useLayoutEffect, useRef } from 'react';
 import { Store } from 'lucide-react';
 import AccountPicker from '@/components/manager/AccountPicker';
 import WorkingAsStrip from './WorkingAsStrip';
 
 /** Phone header: account picker + marketplace shortcut. */
 export default function ManagerMobileBar({ account, inWorkspace }) {
+  const headerRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const header = headerRef.current;
+    const shell = header?.closest('.manager-ui');
+    if (!header || !shell) return;
+    // Use layout pixels so the offset follows the app zoom and safe area.
+    const syncHeight = () => {
+      if (header.offsetHeight > 0) {
+        shell.style.setProperty('--manager-mobile-stack-height', `${header.offsetHeight}px`);
+      }
+    };
+    syncHeight();
+    const observer = new ResizeObserver(syncHeight);
+    observer.observe(header);
+    return () => {
+      observer.disconnect();
+      shell.style.removeProperty('--manager-mobile-stack-height');
+    };
+  }, [inWorkspace]);
+
   return (
-    <header className={`md:hidden fixed inset-x-0 top-0 z-[60] bg-[var(--m-surface-solid)] pt-[env(safe-area-inset-top,0px)] ${inWorkspace ? '' : 'border-b border-[var(--m-border)]'}`}>
+    <header ref={headerRef} className={`md:hidden fixed inset-x-0 top-0 z-[60] bg-[var(--m-surface-solid)] pt-[env(safe-area-inset-top,0px)] ${inWorkspace ? '' : 'border-b border-[var(--m-border)]'}`}>
       <div className="h-14 flex items-center justify-between gap-2 px-3">
         <div className="min-w-0 flex-1">
           <AccountPicker mode="navigate" variant="bar" />

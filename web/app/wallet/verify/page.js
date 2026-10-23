@@ -96,8 +96,9 @@ function VerifyContent() {
       setReason('Please return and use Aura Wallet or PayUnit.');
 
     } else {
-      // No gateway param — treat as successful redirect
-      setState('successful');
+      setState('failed');
+      setMessage('Payment verification is incomplete.');
+      setReason('No payment gateway was provided. Return to your wallet and recheck the payment.');
     }
 
     return () => {

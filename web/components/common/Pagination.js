@@ -14,11 +14,13 @@ export default function Pagination({ currentPage, totalPages, onPageChange, comp
     >
       <div className="flex gap-0.5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-0.5 shadow-sm sm:gap-1 sm:p-1">
         <PaginationButton
+          label="First page"
           icon={ChevronsLeft}
           onClick={() => onPageChange(1)}
           disabled={loading || safePage === 1}
         />
         <PaginationButton
+          label="Previous page"
           icon={ChevronLeft}
           onClick={() => onPageChange(safePage - 1)}
           disabled={loading || safePage === 1}
@@ -31,11 +33,13 @@ export default function Pagination({ currentPage, totalPages, onPageChange, comp
         </div>
 
         <PaginationButton
+          label="Next page"
           icon={ChevronRight}
           onClick={() => onPageChange(safePage + 1)}
           disabled={loading || safePage >= totalPages}
         />
         <PaginationButton
+          label="Last page"
           icon={ChevronsRight}
           onClick={() => onPageChange(totalPages)}
           disabled={loading || safePage >= totalPages}
@@ -45,10 +49,11 @@ export default function Pagination({ currentPage, totalPages, onPageChange, comp
   );
 }
 
-function PaginationButton({ icon: Icon, onClick, disabled }) {
+function PaginationButton({ icon: Icon, onClick, disabled, label }) {
   return (
     <button
       type="button"
+      aria-label={label}
       onClick={onClick}
       disabled={disabled}
       className={`flex size-9 items-center justify-center rounded-xl transition-all sm:size-10 ${disabled ? 'cursor-not-allowed text-[var(--text-secondary)] opacity-10' : 'border border-transparent text-[var(--text-primary)] shadow-sm hover:border-[var(--accent)]/30 hover:bg-[var(--accent)] hover:text-white active:scale-90'}`}

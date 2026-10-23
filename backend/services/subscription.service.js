@@ -503,7 +503,13 @@ const activateSubscription = async ({
     );
   }
 
-  return Array.isArray(created) ? created[0] : created;
+  const subscription = Array.isArray(created) ? created[0] : created;
+  await require('../utils/auditTrail').recordAudit({
+    actorId: activatedBy || userId, action: 'subscription_activated', targetType: 'UserSubscription', targetId: subscription._id,
+    after: { status: subscription.status, plan_id: plan._id, role, amount_paid: payload.amount_paid }, session,
+    meta: { source, reference: transaction?.reference, transaction_id: transaction?._id },
+  });
+  return subscription;
 };
 
 module.exports = {

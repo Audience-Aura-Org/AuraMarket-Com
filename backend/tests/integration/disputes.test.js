@@ -362,3 +362,56 @@ describe('PATCH /admin/disputes/:id/resolve', () => {
     expect(res.status).toBe(403)
   })
 })
+
+describe('dispute and settlement coordination', () => {
+  const paidOrder = () => createOrder(
+    { customerId: customer._id, vendorId: vendorDoc._id, productId: new mongoose.Types.ObjectId() },
+    { payment_method: 'escrow', payment_status: 'paid', order_status: 'delivered', subtotal: 3000, total_amount: 3000, shipping_fee: 0 },
+  )
+  const escrowFor = (order, status = 'held') => Escrow.create({ order_id: order._id, buyer_id: customer._id, vendor_id: vendorDoc._id, amount: 3000, status })
+  const disputeOrder = order => request(app).post('/api/v1/disputes').set(authHeader(signToken(customer))).send({ order_id: order._id, reason: 'faulty_item', description: 'Item arrived damaged.' })
+
+  it('rejects an escrow dispute after release without changing the order', async () => {
+    const order = await paidOrder()
+    await escrowFor(order, 'released')
+    const result = await disputeOrder(order)
+    expect(result.status).toBe(409)
+    expect(await Dispute.countDocuments({ order_id: order._id })).toBe(0)
+    expect((await Order.findById(order._id)).order_status).toBe('delivered')
+  })
+  it('claims escrow as disputed and permits an admin refund exactly once', async () => {
+    const admin = await createAdmin()
+    const order = await paidOrder()
+    await escrowFor(order)
+    const created = await disputeOrder(order)
+    expect(created.status).toBe(201)
+    expect((await Escrow.findOne({ order_id: order._id })).status).toBe('disputed')
+    const before = (await User.findById(customer._id)).wallet_balance
+    const path = '/api/v1/admin/disputes/' + created.body.data.dispute._id + '/resolve'
+    const resolved = await request(app).patch(path).set(authHeader(signToken(admin))).send({ resolution_type: 'full_refund' })
+    expect(resolved.status).toBe(200)
+    expect((await User.findById(customer._id)).wallet_balance).toBe(before + 3000)
+    const replay = await request(app).patch(path).set(authHeader(signToken(admin))).send({ resolution_type: 'full_refund' })
+    expect(replay.status).toBe(400)
+    expect((await User.findById(customer._id)).wallet_balance).toBe(before + 3000)
+  })
+  it('allows only one active dispute under concurrent duplicate requests', async () => {
+    const order = await paidOrder()
+    await escrowFor(order)
+    const responses = await Promise.all([disputeOrder(order), disputeOrder(order)])
+    expect(responses.filter(response => response.status === 201)).toHaveLength(1)
+    expect(await Dispute.countDocuments({ order_id: order._id })).toBe(1)
+  })
+  it('never leaves an active dispute after a competing escrow payout', async () => {
+    const order = await paidOrder()
+    await escrowFor(order)
+    await Promise.all([
+      disputeOrder(order),
+      request(app).post('/api/v1/escrow/release/' + order._id).set(authHeader(signToken(customer))),
+    ])
+    const escrow = await Escrow.findOne({ order_id: order._id })
+    const count = await Dispute.countDocuments({ order_id: order._id, status: 'pending' })
+    if (escrow.status === 'released') expect(count).toBe(0)
+    else { expect(escrow.status).toBe('disputed'); expect(count).toBe(1) }
+  })
+})

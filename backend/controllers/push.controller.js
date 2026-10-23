@@ -1,7 +1,6 @@
 const PushSubscription = require('../models/PushSubscription.model');
 const { VAPID_PUBLIC_KEY } = require('../config/env');
 
-const DEFAULT_VAPID_PUBLIC_KEY = 'BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ';
 const RESAVE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 /**
@@ -10,10 +9,11 @@ const RESAVE_INTERVAL_MS = 6 * 60 * 60 * 1000;
  * @access  Public
  */
 const getVapidPublicKey = async (_req, res) => {
+  if (!VAPID_PUBLIC_KEY) return res.status(503).json({ success: false, message: 'Web push is not configured.' });
   res.status(200).json({
     success: true,
     data: {
-      publicKey: VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY,
+      publicKey: VAPID_PUBLIC_KEY,
     },
   });
 };

@@ -1,0 +1,22 @@
+.card {
+  min-height: 218px;
+  background: color-mix(in srgb, var(--bg-primary) 70%, transparent);
+  border: 1px solid var(--glass-border);
+  border-radius: 2rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  font-family: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  transition: box-shadow 200ms ease, border-color 200ms ease;
+}
+.card:hover {
+  box-shadow: 0 18px 45px rgba(15, 23, 42, .08);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+/* Shared typography, including pages embedded in manager workspaces. */
+:is(html[data-font-size] body, html) .card .label { font-size: calc(12px * var(--aura-text-scale, 1)); line-height: 1.5; }
+:is(html[data-font-size] body, html) .card .small { font-size: calc(11px * var(--aura-text-scale, 1)); line-height: 1.5; }
+:is(html[data-font-size] body, html) .card .value { font-size: calc(30px * var(--aura-text-scale, 1)); font-weight: 700; letter-spacing: -.025em; line-height: 1.15; }
+@media (max-width: 640px) {
+  :is(html[data-font-size] body, html) .card .value { font-size: calc(26px * var(--aura-text-scale, 1)); }
+}

@@ -1,5 +1,7 @@
 "use client";
 
+import StatCard from '@/components/layout/StatCard';
+
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
@@ -85,23 +87,11 @@ export default function AdminP2PPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
-          <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">Total</p>
-          <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{stats.total}</p>
-        </div>
-        <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
-          <p className="text-[10px] font-bold text-yellow-500 uppercase tracking-wider">Pending</p>
-          <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{stats.pending}</p>
-        </div>
-        <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
-          <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Active</p>
-          <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{stats.active}</p>
-        </div>
-        <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4">
-          <p className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Delivered</p>
-          <p className="text-2xl font-bold text-[var(--text-primary)] mt-1">{stats.delivered}</p>
-        </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard label="Total" value={stats.total} icon={Package} color="indigo" />
+        <StatCard label="Pending" value={stats.pending} icon={Clock} color="amber" />
+        <StatCard label="Active" value={stats.active} icon={Truck} color="primary" />
+        <StatCard label="Delivered" value={stats.delivered} icon={CheckCircle2} color="emerald" />
       </div>
 
       {/* Filters */}

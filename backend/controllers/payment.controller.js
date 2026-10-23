@@ -22,6 +22,7 @@ const webhookHealth = require('../services/webhookHealthMonitor.service');
 const Shipment = require('../models/Shipment.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const { sendEmail } = require('../utils/emailService');
+const { recordAudit } = require('../utils/auditTrail');
 
 // -----------------------------------------------------------------------------
 // HELPERS
@@ -29,13 +30,13 @@ const { sendEmail } = require('../utils/emailService');
 
 const sanitizePhone = (phone, country = 'CM') => {
   if (!phone) return phone;
-  let cleaned = phone.replace(/[^\d+]/g, '');
+  let cleaned = String(phone).replace(/[^\d+]/g, '');
   if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
   if (!cleaned.startsWith('+')) {
     const prefixes = { 'CM': '237', 'KE': '254', 'UG': '256', 'RW': '250', 'GH': '233', 'NG': '234', 'CI': '225' };
     const prefix = prefixes[country] || '237';
     if (cleaned.startsWith('0')) cleaned = cleaned.slice(1);
-    cleaned = `+${prefix}${cleaned}`;
+    cleaned = cleaned.startsWith(prefix) ? `+${cleaned}` : `+${prefix}${cleaned}`;
   }
   return cleaned;
 };
@@ -52,7 +53,11 @@ const buildCheckoutKey = (orderIds = []) => {
   return ids.length ? ids.join(':') : null;
 };
 
-const getAuthoritativeCheckoutAmount = async (userId, orderIds = []) => {
+const getAuthoritativeCheckoutAmount = async (userId, orderIds = [], currency = 'XAF') => {
+  if (!Array.isArray(orderIds)) throw Object.assign(new Error('order_ids must be an array.'), { status: 400 });
+  if (orderIds.length && (normalizeOrderIds(orderIds).length !== orderIds.length || String(currency).toUpperCase() !== 'XAF')) {
+    throw Object.assign(new Error('Checkout requires valid order IDs and XAF currency.'), { status: 400 });
+  }
   const ids = normalizeOrderIds(orderIds);
   if (ids.length === 0) return null;
 
@@ -263,6 +268,7 @@ const settleOrdersInSession = async (userId, orderIds, app, externalSession = nu
 };
 
 const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, paymentGateway) => {
+  if (!['deposit', 'subscription'].includes(transaction.type) && !(transaction.type === 'payment' && (transaction.metadata?.type === 'p2p' || transaction.order_ids?.length > 0))) throw new Error('Only collection transactions can use payment settlement.');
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
@@ -271,7 +277,9 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
     // If the document is already 'completed' the update matches nothing and we bail.
     const claimed = await Transaction.findOneAndUpdate(
       { _id: transaction._id, status: { $ne: 'completed' } },
-      { $set: { status: 'completed', gateway_response: gatewayData } },
+      { $set: { status: 'completed', gateway_response: gatewayData,
+        ...(paymentGateway === 'eversend' && gatewayData?.transactionId && !transaction.gateway_transaction_id ? { gateway_transaction_id: gatewayData.transactionId } : {}),
+      } },
       { session, returnDocument: "after" }
     );
     if (!claimed) {
@@ -310,6 +318,9 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
       newWalletBalance = updatedUser?.wallet_balance;
     }
 
+    await recordAudit({ actorId: claimed.user_id, action: 'payment_settled', targetType: 'Transaction', targetId: claimed._id,
+      before: { status: transaction.status }, after: { status: 'completed', amount: claimed.amount }, session,
+      meta: { reference: claimed.reference, gateway: paymentGateway, order_ids: claimed.order_ids, collection_fee: claimed.metadata?.collection_fee || 0 } });
     await session.commitTransaction();
 
     // Post-commit side-effects
@@ -374,7 +385,8 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
       });
     }
   } catch (err) {
-    await session.abortTransaction();
+    if (session.inTransaction()) await session.abortTransaction();
+    await Transaction.updateOne({ _id: transaction._id, status: 'processing' }, { $set: { status: 'pending' } }).catch(() => {});
     throw err;
   } finally {
     session.endSession();
@@ -389,7 +401,7 @@ const payunitInitialize = async (req, res) => {
     // enters an Orange number (69x) would otherwise cause a hard payment failure at PayUnit.
     // Only fall back to client value when no phone is provided at all.
     const resolvedProvider = phone ? payunit.detectCmProvider(phone) : (provider || 'CM_MTNMOMO');
-    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
+    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids, currency);
     const netAmount = checkoutAmount ?? Number(amount || 0);
     const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'payunit', currency);
 
@@ -462,6 +474,31 @@ const payunitInitialize = async (req, res) => {
     //      phone_number   = local 9-digit format, e.g. 651188134 (not +237...)
     // -----------------------------------------------------------------------
 
+    await Transaction.create({
+      user_id: req.user._id,
+      type: order_ids?.length > 0 ? 'payment' : 'deposit',
+      amount: feeBreakdown.netAmount,
+      currency,
+      reference: transactionRef,
+      gateway_transaction_id: transactionRef,
+      status: 'pending',
+      gateway: 'payunit',
+      order_ids: order_ids || [],
+      description: order_ids?.length > 0
+        ? `Checkout payment for ${order_ids.length} order(s) via PayUnit (${currency})`
+        : `Wallet deposit via PayUnit (${currency})`,
+      gateway_response: null,
+      metadata: {
+        checkout_key: buildCheckoutKey(order_ids),
+        net_amount: feeBreakdown.netAmount,
+        collection_fee: feeBreakdown.collectionFee,
+        gross_amount: feeBreakdown.grossAmount,
+        provider: resolvedProvider,
+        phone: phone ? payunit.normalizePhoneIntl(phone, country) : null,
+
+      },
+    });
+
     // Step 1: Always initialize first.
     // Wrapped in its own try-catch so a 417/FAILED from /initialize returns a
     // clean 400 to the client rather than the raw 417 or a generic 500.
@@ -528,30 +565,11 @@ const payunitInitialize = async (req, res) => {
     }
 
     const gatewayData = direct?.data || init?.data || {};
-    await Transaction.create({
-      user_id: req.user._id,
-      type: order_ids?.length > 0 ? 'payment' : 'deposit',
-      amount: feeBreakdown.netAmount,
-      currency,
-      reference: transactionRef,
+    await Transaction.updateOne({ reference: transactionRef }, { $set: {
       gateway_transaction_id: gatewayData.transaction_id || transactionRef,
-      status: 'pending',
-      gateway: 'payunit',
-      order_ids: order_ids || [],
-      description: order_ids?.length > 0
-        ? `Checkout payment for ${order_ids.length} order(s) via PayUnit (${currency})`
-        : `Wallet deposit via PayUnit (${currency})`,
       gateway_response: { initialize: init?.raw || null, makepayment: direct?.raw || null },
-      metadata: {
-        checkout_key: buildCheckoutKey(order_ids),
-        net_amount: feeBreakdown.netAmount,
-        collection_fee: feeBreakdown.collectionFee,
-        gross_amount: feeBreakdown.grossAmount,
-        provider: resolvedProvider,
-        phone: phone ? payunit.normalizePhoneIntl(phone, country) : null,
-        ...(mobilePaymentTimedOut ? { timed_out: true } : {}),
-      },
-    });
+      ...(mobilePaymentTimedOut ? { 'metadata.timed_out': true } : {}),
+    } });
 
     const successMessage = mobilePaymentTimedOut
       ? 'PayUnit request timed out — payment may still be processing. Please check your phone or poll for status.'
@@ -810,8 +828,12 @@ const eversendInitialize = async (req, res) => {
   try {
     let { amount, currency, phone, country, order_ids, redirect_url: customRedirect } = req.body;
 
+    if (String(currency || '').toUpperCase() !== 'XAF') {
+      return res.status(400).json({ success: false, message: 'Aura Wallet collections must be in XAF. Currency conversion is not available for deposits.' });
+    }
+
     phone = sanitizePhone(phone, country);
-    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
+    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids, currency);
     const netAmount = checkoutAmount ?? Number(amount || 0);
     const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'eversend', currency || 'XAF');
     amount = feeBreakdown.grossAmount;
@@ -819,6 +841,11 @@ const eversendInitialize = async (req, res) => {
     if (!feeBreakdown.netAmount || feeBreakdown.netAmount <= 0) return res.status(400).json({ success: false, message: 'Invalid amount.' });
     if (!currency || !phone || !country) return res.status(400).json({ success: false, message: 'currency, phone, and country are required.' });
 
+    const pending = await Transaction.findOne({ user_id: req.user._id, gateway: 'eversend', status: 'pending',
+      amount: feeBreakdown.netAmount, currency, 'metadata.phone': phone, 'metadata.checkout_key': buildCheckoutKey(order_ids),
+      createdAt: { $gte: new Date(Date.now() - 15 * 60 * 1000) } }).sort({ createdAt: -1 });
+    if (pending) return res.status(200).json({ success: true, data: { reference: pending.reference,
+      transaction_id: pending.gateway_transaction_id, amount: pending.amount, pending_resume: true } });
     const user = req.user;
     const transactionRef = `AURA-${Date.now()}-${user._id}`;
     const redirectUrl = customRedirect || `${process.env.WEB_CLIENT_URL}/wallet/verify?gateway=eversend&ref=${transactionRef}`;
@@ -868,6 +895,23 @@ const eversendInitialize = async (req, res) => {
     const firstName = nameParts[0] || 'Aura';
     const lastName = nameParts.slice(1).join(' ') || 'User';
 
+    await Transaction.create({
+      user_id: user._id,
+      type: order_ids?.length > 0 ? 'payment' : 'deposit',
+      amount: feeBreakdown.netAmount, currency, reference: transactionRef,
+      gateway_transaction_id: null, status: 'pending', gateway: 'eversend',
+      order_ids: order_ids || [],
+      description: order_ids?.length > 0
+        ? `Checkout payment for ${order_ids.length} order(s) via Eversend (${currency})`
+        : `Wallet deposit via Eversend (${currency})`,
+      metadata: {
+        net_amount: feeBreakdown.netAmount,
+        collection_fee: feeBreakdown.collectionFee,
+        gross_amount: feeBreakdown.grossAmount,
+        phone, checkout_key: buildCheckoutKey(order_ids),
+      },
+    });
+
     const collectionOpts = { amount, currency, phone, country, firstName, lastName, email: user.email, redirectUrl, transactionRef };
 
     console.log('[Eversend] Initiating live collection:', { amount, currency, phone, country });
@@ -894,21 +938,7 @@ const eversendInitialize = async (req, res) => {
 
     console.log(`[Eversend] gatewayTxId=${gatewayTxId} checkoutUrl=${checkoutUrl}`);
 
-    await Transaction.create({
-      user_id: user._id,
-      type: order_ids?.length > 0 ? 'payment' : 'deposit',
-      amount: feeBreakdown.netAmount, currency, reference: transactionRef,
-      gateway_transaction_id: gatewayTxId, status: 'pending', gateway: 'eversend',
-      order_ids: order_ids || [],
-      description: order_ids?.length > 0
-        ? `Checkout payment for ${order_ids.length} order(s) via Eversend (${currency})`
-        : `Wallet deposit via Eversend (${currency})`,
-      metadata: {
-        net_amount: feeBreakdown.netAmount,
-        collection_fee: feeBreakdown.collectionFee,
-        gross_amount: feeBreakdown.grossAmount,
-      },
-    });
+    await Transaction.updateOne({ reference: transactionRef }, { $set: { gateway_transaction_id: gatewayTxId, gateway_response: result } });
 
     return res.status(200).json({
       success: true,
@@ -948,381 +978,59 @@ const eversendInitialize = async (req, res) => {
  *          Returns payment states: SUCCESSFUL | FAILED | PENDING | TIMEOUT
  * @access  Private
  */
-const eversendVerify = async (req, res) => {
+const verifyEversendCollection = async (req, res, force = false) => {
   try {
-    const { reference } = req.params;
-    const transaction = await Transaction.findOne({ reference, gateway: 'eversend' });
-
-    if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
-
-    // -- FAST PATH: DB already has the answer (webhook fired) -------------
-    if (transaction.status === 'completed') {
-      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment confirmed and wallet credited.' });
-    }
-    if (transaction.status === 'failed') {
-      return res.status(400).json({ success: false, status: 'FAILED', message: 'Payment was declined.', reason: transaction.gateway_response?.message || 'Declined by gateway.' });
-    }
-
-    // -- Sandbox: auto-succeed instantly ----------------------------------
-    if (transaction.metadata?.is_sandbox || transaction.gateway_transaction_id?.startsWith('SBX-')) {
-      const sbxSession = await mongoose.startSession();
-      sbxSession.startTransaction();
-      try {
-        const sandboxClaimed = await Transaction.findOneAndUpdate(
-          { _id: transaction._id, status: { $ne: 'completed' } },
-          { $set: { status: 'completed' } },
-          { session: sbxSession, returnDocument: "after" }
-        );
-        if (!sandboxClaimed) {
-          await sbxSession.abortTransaction();
-          sbxSession.endSession();
-          return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
-        }
-        if (isSubscriptionTransaction(sandboxClaimed)) {
-          await settleSubscriptionTransaction(sandboxClaimed, sbxSession, req.app);
-        } else {
-          await creditBalance(sandboxClaimed.user_id, sandboxClaimed.amount, sbxSession);
-        }
-        await sbxSession.commitTransaction();
-      } catch (err) { await sbxSession.abortTransaction(); throw err; }
-      finally { sbxSession.endSession(); }
-      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Sandbox payment confirmed.' });
-    }
-
-    // -- SLOW PATH: Webhook hasn't fired yet — wait 90s before querying Eversend
-    // Eversend can return SUCCESSFUL from their status API briefly before sending a
-    // failure webhook (MTN reversal, fraud hold, etc.). The previous 40s window was
-    // too short: it raced with Eversend's own state machine and caused ghost credits
-    // when the collection ultimately failed. 90s gives the webhook enough time to
-    // settle the transaction correctly before we fall back to active API polling.
-    const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
-    if (ageSeconds < 90) {
-      return res.status(200).json({ success: true, status: 'PENDING', message: 'Awaiting mobile money confirmation. Please approve the prompt on your phone.' });
-    }
-
-    // -- After 90s: actively query Eversend by reference ------------------
-    const settleTransaction = async (gatewayData, gatewayTxId) => {
-      const sess = await mongoose.startSession();
-      sess.startTransaction();
-      try {
-        // Atomic claim — prevents double-credit if webhook and verify fire simultaneously.
-        const updateFields = { status: 'completed', gateway_response: gatewayData };
-        if (gatewayTxId && !transaction.gateway_transaction_id) updateFields.gateway_transaction_id = gatewayTxId;
-        const claimed = await Transaction.findOneAndUpdate(
-          { _id: transaction._id, status: { $ne: 'completed' } },
-          { $set: updateFields },
-          { session: sess, returnDocument: "after" }
-        );
-        if (!claimed) {
-          await sess.abortTransaction();
-          return; // Already settled by concurrent request (webhook)
-        }
-        let evNewBalance;
-        if (isSubscriptionTransaction(claimed)) {
-          await settleSubscriptionTransaction(claimed, sess, req.app);
-        } else if (claimed.order_ids?.length > 0) {
-          await settleOrdersInSession(claimed.user_id, claimed.order_ids, req.app, sess, true, getWebUrl(req), 'eversend');
-        } else {
-          const evUpdated = await creditBalance(claimed.user_id, claimed.amount, sess);
-          evNewBalance = evUpdated?.wallet_balance;
-        }
-        await sess.commitTransaction();
-        // Push real-time notification — include new balance so frontend updates instantly
-        const io = req.app.get('io');
-        if (io) {
-          const evPayload = { amount: claimed.amount, reference, ...(evNewBalance !== undefined ? { balance: evNewBalance } : {}) };
-          io.to(claimed.user_id.toString()).emit('wallet:credited', evPayload);
-          io.to(`user:${claimed.user_id}`).emit('wallet:credited', evPayload);
-        }
-      } catch (e) { await sess.abortTransaction(); throw e; }
-      finally { sess.endSession(); }
-    };
-
-    // Try by transactionId first (fastest), then by ref as fallback
-    const lookupFn = transaction.gateway_transaction_id
-      ? () => eversend.getTransactionStatus(transaction.gateway_transaction_id)
-      : () => eversend.getCollectionByRef(transaction.reference);
-
-    let data, status, txId;
-    try {
-      const raw = await lookupFn();
-      data   = raw?.data || raw;
-      status = data?.status;
-      txId   = data?.transactionId || data?.id;
-      console.log(`[Eversend Verify] ref=${reference} age=${Math.round(ageSeconds)}s status=${status}`);
-    } catch (apiErr) {
-      console.warn(`[Eversend Verify] API error (${apiErr.response?.status}):`, apiErr.response?.data?.message || apiErr.message);
-      return res.status(200).json({ success: true, status: 'PENDING', message: 'Gateway temporarily unreachable. Please wait.' });
-    }
-
-    const s = (status || '').toUpperCase();
-    if (s === 'SUCCESSFUL' || s === 'COMPLETED') {
-      await settleTransaction(data, txId);
-      return res.status(200).json({
-        success: true,
-        status: 'SUCCESSFUL',
-        message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment verified and wallet credited.',
-        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
-      });
-    }
-    if (s === 'FAILED') {
-      transaction.status = 'failed';
-      transaction.gateway_response = data;
-      await transaction.save();
-      return res.status(400).json({ success: false, status: 'FAILED', message: `Payment declined: ${data?.message || 'Declined'}`, reason: data?.message, reference });
-    }
-
-    return res.status(200).json({ success: true, status: 'PENDING', message: 'Still processing. Please wait.' });
-  } catch (error) {
-    console.error('Eversend Verify Error:', error.response?.data || error.message);
-    return res.status(200).json({ success: true, status: 'PENDING', message: 'Verification temporarily unavailable. Please wait.' });
-  }
-};
-
-/**
- * @route   GET /api/payments/eversend/recheck/:reference
- * @desc    Manually re-poll Eversend for the latest transaction status.
- *          Used by "Recheck Payment" button on failed/timeout screens.
- * @access  Private
- */
-const eversendRecheck = async (req, res) => {
-  try {
-    const { reference } = req.params;
-
-    // Look up by our internal reference OR by Eversend's transactionRef field
+    const reference = req.params.reference;
     const transaction = await Transaction.findOne({
-      $or: [
-        { reference },
-        { gateway_transaction_id: reference },
-      ],
-      gateway: 'eversend',
-      ...recheckOwnerFilter(req),
+      gateway: 'eversend', type: { $in: ['deposit', 'subscription', 'payment'] },
+      $or: [{ reference }, { gateway_transaction_id: reference }], ...recheckOwnerFilter(req),
     });
-
     if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
-
-    // Already settled
-    if (transaction.status === 'completed') {
-      return res.status(200).json({ success: true, status: 'SUCCESSFUL', message: 'Payment has already been confirmed and your wallet was credited.', data: { balance_added: transaction.amount } });
+    const confirmed = () => res.status(200).json({ success: true, status: 'SUCCESSFUL',
+      message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed.',
+      data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
+    });
+    if (transaction.status === 'completed') return confirmed();
+    if (!force && transaction.status === 'failed') return res.status(400).json({ success: false, status: 'FAILED', message: 'Payment was declined.' });
+    const sandbox = transaction.metadata?.is_sandbox || transaction.gateway_transaction_id?.startsWith('SBX-');
+    if (!force && !sandbox && Date.now() - new Date(transaction.createdAt).getTime() < 90000) {
+      return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still processing. Please wait.' });
     }
-
-    // No gateway_transaction_id stored â€” try to find the transaction on Eversend
-    // by the reference WE sent them (transactionRef). This handles the case where
-    // Eversend collected the money but the webhook didn't fire (401 bug, now fixed).
-    if (!transaction.gateway_transaction_id) {
-      const isSandbox = transaction.metadata?.is_sandbox;
-      if (isSandbox) {
-        // Sandbox: auto-succeed
-        if (transaction.status !== 'completed') {
-          const sbxSess = await mongoose.startSession();
-          sbxSess.startTransaction();
-          try {
-            transaction.status = 'completed';
-            await transaction.save({ session: sbxSess });
-            if (isSubscriptionTransaction(transaction)) {
-              await settleSubscriptionTransaction(transaction, sbxSess, req.app);
-            } else {
-              await creditBalance(transaction.user_id, transaction.amount, sbxSess);
-            }
-            await sbxSess.commitTransaction();
-          } catch (err) { await sbxSess.abortTransaction(); throw err; }
-          finally { sbxSess.endSession(); }
-        }
-        return res.status(200).json({
-          success: true,
-          status: 'SUCCESSFUL',
-          message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Sandbox payment confirmed.',
-          data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
-        });
-      }
-
-      // Real transaction â€” ask Eversend by our reference
-      let collectionData;
+    let data;
+    if (sandbox) data = { status: 'SUCCESSFUL', sandbox: true };
+    else {
       try {
-        const collRes = await eversend.getCollectionByRef(transaction.reference);
-        collectionData = collRes?.data || collRes;
-        console.log(`[Eversend Recheck] Lookup by ref=${transaction.reference}:`, JSON.stringify(collectionData)?.slice(0, 200));
-      } catch (refErr) {
-        const errStatus = refErr.response?.status;
-        const errMsg = refErr.response?.data?.message || refErr.message;
-        console.error(`[Eversend Recheck] getCollectionByRef failed (${errStatus}):`, errMsg);
-
-        if ((errStatus === 401 || errStatus === 403) && (errMsg || '').toLowerCase().includes('origin')) {
-          return res.status(503).json({ success: false, message: 'Payment gateway is only accessible from the production server. Please check from the live site.' });
-        }
-        if (errStatus === 404) {
-          return res.status(200).json({ success: true, status: 'PENDING', message: 'Gateway has not recorded this transaction yet. If you approved the USSD prompt, please wait 1-2 minutes and try again.' });
-        }
-        return res.status(503).json({ success: false, message: 'Could not reach payment gateway. Please try again shortly.' });
-      }
-
-      // Parse status from the collection response
-      const colStatus = (collectionData?.status || collectionData?.data?.status || '').toUpperCase();
-      const colTxId   = collectionData?.transactionId || collectionData?.id || collectionData?.data?.transactionId;
-      console.log(`[Eversend Recheck] colStatus=${colStatus} colTxId=${colTxId}`);
-
-      if (colStatus === 'SUCCESSFUL' || colStatus === 'COMPLETED') {
-        if (transaction.status !== 'completed') {
-          const session = await mongoose.startSession();
-          session.startTransaction();
-          try {
-            transaction.status = 'completed';
-            if (colTxId) transaction.gateway_transaction_id = colTxId;
-            transaction.gateway_response = collectionData;
-            await transaction.save({ session });
-
-            const isCheckout = transaction.order_ids?.length > 0;
-            let erNewBalance;
-            if (isSubscriptionTransaction(transaction)) {
-              await settleSubscriptionTransaction(transaction, session, req.app);
-            } else if (isCheckout) {
-              await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, getWebUrl(req), 'eversend');
-            } else {
-              const erUpdated = await creditBalance(transaction.user_id, transaction.amount, session);
-              erNewBalance = erUpdated?.wallet_balance;
-            }
-            await session.commitTransaction();
-            // Emit balance to frontend for instant update (no GET /wallet needed)
-            if (erNewBalance !== undefined) {
-              const io = req.app.get('io');
-              if (io) {
-                const erPayload = { amount: transaction.amount, reference: transaction.reference, balance: erNewBalance };
-                io.to(transaction.user_id.toString()).emit('wallet:credited', erPayload);
-                io.to(`user:${transaction.user_id}`).emit('wallet:credited', erPayload);
-              }
-            }
-
-            setImmediate(() => {
-              sendNotification(req.app, transaction.user_id, {
-                title: '?? Wallet Credited',
-                message: `Your deposit of ${transaction.amount.toLocaleString()} XAF has been confirmed and added to your wallet.`,
-                type: 'wallet_update',
-                metadata: { link: '/wallet' },
-              }).catch(console.error);
-            });
-          } catch (err) {
-            await session.abortTransaction();
-            throw err;
-          } finally {
-            session.endSession();
-          }
-        }
-        return res.status(200).json({
-          success: true,
-          status: 'SUCCESSFUL',
-          message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed! Your wallet has been credited.',
-          data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
-        });
-      }
-
-      if (colStatus === 'FAILED' || colStatus === 'failed') {
-        transaction.status = 'failed';
-        transaction.gateway_response = collectionData;
-        await transaction.save();
-        return res.status(400).json({ success: false, status: 'FAILED', message: 'Payment was declined by the gateway.', reason: collectionData?.message || 'Declined' });
-      }
-
-      // PENDING or unknown â€” don't auto-fail, keep waiting
-      return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still being processed. Please check back in a moment.' });
-    }
-
-    let txStatus;
-    let result;
-
-    const isSandbox = transaction.metadata?.is_sandbox || (transaction.gateway_transaction_id?.startsWith('SBX-'));
-    if (isSandbox) {
-      txStatus = 'SUCCESSFUL';
-      result = { data: { status: 'SUCCESSFUL' } };
-    } else {
-      try {
-        result = await eversend.getTransactionStatus(transaction.gateway_transaction_id);
-        txStatus = (result?.data?.status || result?.status || '').toUpperCase(); // normalize: Eversend returns lowercase
-        console.log(`[Eversend Recheck] ref=${reference} gatewayId=${transaction.gateway_transaction_id} status=${txStatus}`);
-      } catch (apiErr) {
-        const errStatus = apiErr.response?.status;
-        const errData = apiErr.response?.data;
-        console.error(`[Eversend Recheck] Gateway API error (${errStatus}):`, errData || apiErr.message);
-
-        // 404 from Eversend = transaction ID not found on their end
-        if (errStatus === 404) {
-          return res.status(200).json({ success: true, status: 'PENDING', message: 'Gateway has not recorded this transaction yet. If you approved the USSD prompt, check back in 1-2 minutes.' });
-        }
-
-        // Auth errors â€” check if it's an IP whitelist rejection vs real auth failure
-        if (errStatus === 401 || errStatus === 403) {
-          const ipBlocked = (apiErr.response?.data?.message || '').toLowerCase().includes('origin');
-          if (ipBlocked) {
-            console.error('[Eversend Recheck] IP not whitelisted â€” must call from production server (13.61.104.192)');
-            return res.status(503).json({ success: false, message: 'Payment gateway is only accessible from the production server. Please check from the live site.' });
-          }
-          return res.status(500).json({ success: false, message: 'Payment gateway authentication failed. Please contact support.' });
-        }
-
-        return res.status(503).json({ success: false, message: 'Could not reach payment gateway. Please try again in a moment.' });
+        const raw = transaction.gateway_transaction_id
+          ? await eversend.getTransactionStatus(transaction.gateway_transaction_id)
+          : await eversend.getCollectionByRef(transaction.reference);
+        data = raw?.data || raw;
+      } catch (error) {
+        // Transport and provider lookup failures are not a confirmed decline.
+        return res.status(200).json({ success: true, status: 'PENDING', message: 'Gateway temporarily unreachable. Please try again.' });
       }
     }
-
-    if (txStatus === 'SUCCESSFUL') {
-      if (transaction.status !== 'completed') {
-        const session = await mongoose.startSession();
-        session.startTransaction();
-        try {
-          transaction.status = 'completed';
-          transaction.gateway_response = result.data;
-          await transaction.save({ session });
-
-          const isCheckout = transaction.order_ids?.length > 0;
-          if (isSubscriptionTransaction(transaction)) {
-            await settleSubscriptionTransaction(transaction, session, req.app);
-          } else if (isCheckout) {
-            await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, getWebUrl(req), 'eversend');
-          } else {
-            await creditBalance(transaction.user_id, transaction.amount, session);
-          }
-
-          await session.commitTransaction();
-
-          // Notify user
-          setImmediate(() => {
-            sendNotification(req.app, transaction.user_id, {
-              title: '?? Wallet Credited',
-              message: `Your deposit of ${transaction.amount.toLocaleString()} XAF has been confirmed and added to your wallet.`,
-              type: 'wallet_update',
-              metadata: { link: '/wallet' },
-            }).catch(console.error);
-          });
-
-        } catch (err) {
-          await session.abortTransaction();
-          throw err;
-        } finally {
-          session.endSession();
-        }
-      }
-      return res.status(200).json({
-        success: true,
-        status: 'SUCCESSFUL',
-        message: isSubscriptionTransaction(transaction) ? 'Subscription activated.' : 'Payment confirmed! Your wallet has been credited.',
-        data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
-      });
+    const status = String(data?.status || '').toUpperCase();
+    if (['SUCCESSFUL', 'COMPLETED', 'SUCCESS'].includes(status)) {
+      await settleGatewayTransaction(transaction, data, req.app, getWebUrl(req), 'eversend');
+      return confirmed();
     }
-
-    if (txStatus === 'FAILED') {
-      const reason = result?.data?.message || result?.message || 'Payment was declined by the gateway.';
-      transaction.status = 'failed';
-      transaction.gateway_response = result?.data || result;
-      await transaction.save();
-      return res.status(400).json({ success: false, status: 'FAILED', message: `Payment failed: ${reason}`, reason });
+    if (['FAILED', 'REJECTED', 'CANCELLED'].includes(status)) {
+      const failed = await Transaction.findOneAndUpdate(
+        { _id: transaction._id, status: { $ne: 'completed' } },
+        { $set: { status: 'failed', gateway_response: data } }, { returnDocument: 'after' },
+      );
+      if (!failed && (await Transaction.findById(transaction._id).select('status'))?.status === 'completed') return confirmed();
+      if (failed?.order_ids?.length) await markCheckoutOrdersFailed(failed.user_id, failed.order_ids);
+      return res.status(400).json({ success: false, status: 'FAILED', message: 'Payment was declined.', reason: data?.message || 'Declined by gateway.' });
     }
-
-    // Still PENDING
-    return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still being processed by the gateway. This usually takes 30-90 seconds.' });
-
+    return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still processing.' });
   } catch (error) {
-    console.error('Eversend Recheck Error:', error.response?.data || error.message);
-    res.status(500).json({ success: false, message: 'Failed to recheck payment status. Please try again.' });
+    console.error('[Eversend verification]', error.message);
+    return res.status(503).json({ success: false, status: 'PENDING', message: 'Verification is temporarily unavailable. Please retry.' });
   }
 };
+const eversendVerify = (req, res) => verifyEversendCollection(req, res, false);
+const eversendRecheck = (req, res) => verifyEversendCollection(req, res, true);
 
 /**
  * @route   POST /api/payments/eversend/webhook
@@ -1359,107 +1067,19 @@ const eversendWebhook = async (req, res) => {
       const transaction = await Transaction.findOneAndUpdate(
         {
           $or: [{ reference: data?.transactionRef }, { gateway_transaction_id: data?.transactionId }],
-          gateway: 'eversend',
+          gateway: 'eversend', type: { $in: ['deposit', 'subscription', 'payment'] },
           status: { $in: ['pending', 'failed'] },
         },
         { $set: { status: 'processing' } },
         { returnDocument: 'after' }
       );
       if (transaction) {
-        const isCheckout = transaction.order_ids?.length > 0;
-        const isSubscription = isSubscriptionTransaction(transaction);
-        let newWalletBalance;
-
-        if (isSubscription) {
-          const session = await mongoose.startSession();
-          session.startTransaction();
-          try {
-            await Transaction.findByIdAndUpdate(transaction._id,
-              { $set: { status: 'completed', gateway_response: data } }, { session });
-            await settleSubscriptionTransaction(transaction, session, req.app);
-            await session.commitTransaction();
-          } catch (err) {
-            await session.abortTransaction();
-            // Reset so Eversend webhook retries can re-process
-            await Transaction.findByIdAndUpdate(transaction._id, { $set: { status: 'pending' } }).catch(() => {});
-            console.error('Webhook Subscription Settlement Error:', err.message);
-          } finally { session.endSession(); }
-        } else if (isCheckout) {
-          const session = await mongoose.startSession();
-          session.startTransaction();
-          try {
-            await Transaction.findByIdAndUpdate(transaction._id,
-              { $set: { status: 'completed', gateway_response: data } }, { session });
-            await settleOrdersInSession(transaction.user_id, transaction.order_ids, req.app, session, true, '', 'eversend');
-            await session.commitTransaction();
-          } catch (err) {
-            await session.abortTransaction();
-            await Transaction.findByIdAndUpdate(transaction._id, { $set: { status: 'pending' } }).catch(() => {});
-            console.error('Webhook Settlement Error:', err.message);
-          } finally { session.endSession(); }
-        } else {
-          // Pure wallet top-up — wrap in session for atomicity
-          const session = await mongoose.startSession();
-          session.startTransaction();
-          try {
-            await Transaction.findByIdAndUpdate(transaction._id,
-              { $set: { status: 'completed', gateway_response: data } }, { session });
-            const updatedUser = await creditBalance(transaction.user_id, transaction.amount, session);
-            newWalletBalance = updatedUser?.wallet_balance;
-            await session.commitTransaction();
-          } catch (err) {
-            await session.abortTransaction();
-            await Transaction.findByIdAndUpdate(transaction._id, { $set: { status: 'pending' } }).catch(() => {});
-            console.error('Webhook Wallet Credit Error:', err.message);
-          } finally { session.endSession(); }
-        }
-
+        await settleGatewayTransaction(transaction, data, req.app, '', 'eversend');
         webhookHealth.record('webhookSettled', 'eversend');
-
-        // Deliver the committed balance to every active session. A pure wallet
-        // top-up is the only Eversend success that changes this user's balance.
-        const io = req.app.get('io');
-        if (io && !isSubscription && !isCheckout && Number.isFinite(Number(newWalletBalance))) {
-          const room = transaction.user_id.toString();
-          const payload = {
-            amount: transaction.amount,
-            reference: transaction.reference,
-            type: 'deposit',
-            balance: Number(newWalletBalance),
-          };
-          io.to(room).emit('wallet:credited', payload);
-          io.to(`user:${room}`).emit('wallet:credited', payload);
-        }
-
-        // In-app notification
-        setImmediate(async () => {
-          sendNotification(req.app, transaction.user_id, {
-            title: '?? Payment Confirmed',
-            message: `Your ${isSubscription ? 'subscription' : (isCheckout ? 'order' : 'deposit')} of ${transaction.amount.toLocaleString()} XAF has been confirmed.`,
-            type: 'wallet_update',
-            metadata: { link: isSubscription ? '/subscribe' : (isCheckout ? '/orders' : '/wallet') },
-          }).catch(console.error);
-          // Admin email for pure wallet top-ups only (checkout orders are notified in settle.service.js)
-          if (!isSubscription && !isCheckout) {
-            try {
-              const depositor = await User.findById(transaction.user_id).select('name email phone');
-              await notifyAdmins(req.app, {
-                title: 'New Wallet Deposit',
-                message: `${transaction.amount.toLocaleString()} XAF deposited via Eversend (ref: ${transaction.reference}).`,
-                type: 'system_alert',
-                metadata: {
-                  link: '/admin/transactions',
-                  customer: depositor?.name || 'Unknown',
-                  email: depositor?.email || '',
-                  phone: depositor?.phone || '',
-                },
-                sendEmail: true,
-              });
-            } catch (err) { console.error('[notifyAdmins Eversend deposit]', err.message); }
-          }
-        });
-
-        console.log(`? Eversend: ${isSubscription ? 'subscription activated' : (isCheckout ? 'orders settled' : 'wallet credited')} ${transaction.amount} XAF for user ${transaction.user_id}`);
+        setImmediate(() => sendNotification(req.app, transaction.user_id, {
+          title: 'Payment confirmed', message: `Your payment of ${transaction.amount.toLocaleString()} XAF has been confirmed.`,
+          type: 'payment_received', metadata: { link: isSubscriptionTransaction(transaction) ? '/subscribe' : transaction.metadata?.type === 'p2p' ? '/delivery' : transaction.order_ids?.length ? '/orders' : '/wallet' },
+        }).catch(console.error));
       }
     }
 
@@ -1766,7 +1386,7 @@ const pawapayInitialize = async (req, res) => {
       return res.status(400).json({ success: false, message: 'PawaPay currently supports XAF only.' });
     }
 
-    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
+    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids, currency);
     const netAmount = checkoutAmount ?? Number(amount || 0);
     const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'pawapay', currency);
 
@@ -1822,23 +1442,10 @@ const pawapayInitialize = async (req, res) => {
       amount: feeBreakdown.grossAmount,
       currency,
       orderIds: normalizeOrderIds(order_ids),
-      fields: { phone, provider: correspondent },
+      fields: { phone, provider: correspondent, feeBreakdown, checkoutKey },
       req,
     });
 
-    // Patch metadata with fee breakdown on the just-created transaction
-    await Transaction.findOneAndUpdate(
-      { reference: result.reference },
-      {
-        $set: {
-          amount: feeBreakdown.netAmount,
-          'metadata.net_amount': feeBreakdown.netAmount,
-          'metadata.collection_fee': feeBreakdown.collectionFee,
-          'metadata.gross_amount': feeBreakdown.grossAmount,
-          'metadata.checkout_key': checkoutKey,
-        },
-      }
-    );
 
     return res.status(200).json({
       success: true,
@@ -1855,7 +1462,7 @@ const pawapayInitialize = async (req, res) => {
   } catch (err) {
     console.error('[PawaPay Initialize]', err.response?.data || err.message);
     const detail = err.response?.data;
-    return res.status(err.response?.status || 500).json({
+    return res.status(err.status || err.response?.status || 500).json({
       success: false,
       message: detail?.message || err.message || 'PawaPay payment initialization failed.',
       detail,
@@ -2203,7 +1810,7 @@ const pawapayCheckoutInitialize = async (req, res) => {
       return res.status(400).json({ success: false, message: 'PawaPay currently supports XAF only.' });
     }
 
-    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids);
+    const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids, currency);
     const netAmount = checkoutAmount ?? Number(amount || 0);
     const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'pawapay', currency);
 
@@ -2254,15 +1861,6 @@ const pawapayCheckoutInitialize = async (req, res) => {
       });
     }
 
-    const result = await pawapay.createCheckout({
-      checkoutId,
-      amounts: [{ amount: feeBreakdown.grossAmount, currency }],
-      returnUrl,
-      description: normalizeOrderIds(order_ids).length > 0 ? 'Auradime order' : 'Auradime deposit',
-    });
-
-    const redirectUrl = result?.redirectUrl || result?.redirect_url || returnUrl;
-
     await Transaction.create({
       user_id: req.user._id,
       type: normalizeOrderIds(order_ids).length > 0 ? 'payment' : 'deposit',
@@ -2286,6 +1884,17 @@ const pawapayCheckoutInitialize = async (req, res) => {
       },
     });
 
+    const result = await pawapay.createCheckout({
+      checkoutId,
+      amounts: [{ amount: feeBreakdown.grossAmount, currency }],
+      returnUrl,
+      description: normalizeOrderIds(order_ids).length > 0 ? 'Auradime order' : 'Auradime deposit',
+    });
+
+    const redirectUrl = result?.redirectUrl || result?.redirect_url || returnUrl;
+
+
+
     return res.status(200).json({
       success: true,
       message: 'PawaPay checkout created. Redirect the user to checkout_url.',
@@ -2302,7 +1911,7 @@ const pawapayCheckoutInitialize = async (req, res) => {
   } catch (err) {
     console.error('[PawaPay Checkout Initialize]', err.response?.data || err.message);
     const detail = err.response?.data;
-    return res.status(err.response?.status || 500).json({
+    return res.status(err.status || err.response?.status || 500).json({
       success: false,
       message: detail?.message || err.message || 'PawaPay checkout initialization failed.',
       detail,
@@ -2415,5 +2024,6 @@ module.exports = {
   pawapayCheckoutWebhook,
   pawapayRefundWebhook,
   // Internal / admin sync
+  settleGatewayTransaction,
   settleOrdersInSession,
 };

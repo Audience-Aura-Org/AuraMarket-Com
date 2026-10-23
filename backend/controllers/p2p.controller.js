@@ -35,11 +35,11 @@ const genRef = (prefix) => `${prefix}-${Date.now()}-${crypto.randomBytes(3).toSt
  */
 const sanitizePhone = (phone, country = 'CM') => {
   if (!phone) return phone;
-  let cleaned = phone.replace(/[^\d+]/g, '');
+  let cleaned = String(phone).replace(/[^\d+]/g, '');
   if (cleaned.startsWith('00')) cleaned = '+' + cleaned.slice(2);
   if (!cleaned.startsWith('+')) {
     if (cleaned.startsWith('0')) cleaned = cleaned.slice(1);
-    cleaned = `+237${cleaned}`;
+    cleaned = cleaned.startsWith('237') ? `+${cleaned}` : `+237${cleaned}`;
   }
   return cleaned;
 };
@@ -78,21 +78,9 @@ const initiateP2PGatewayPayment = async ({ gateway, phone, amount, platformFee, 
       amount: feeBreakdown.grossAmount,
       currency,
       orderIds: [],
-      fields: { phone, provider: correspondent },
+      fields: { phone, provider: correspondent, feeBreakdown, paymentContext: sharedMeta },
       req,
     });
-    // Patch the auto-created Transaction with P2P shipment metadata
-    await Transaction.findOneAndUpdate(
-      { reference: result.reference },
-      {
-        $set: {
-          type: 'payment',
-          amount,
-          description: `P2P delivery payment — ${trackingCode}`,
-          metadata: { ...sharedMeta, depositId: result.transaction_id, correspondent, phone: pawapay.normalizePhone(phone) },
-        },
-      }
-    );
     return { gateway: 'pawapay', reference: result.reference, checkout_url: result.checkout_url, collection_fee: feeBreakdown.collectionFee, gross_amount: feeBreakdown.grossAmount };
   }
 
@@ -104,6 +92,12 @@ const initiateP2PGatewayPayment = async ({ gateway, phone, amount, platformFee, 
     const returnUrl = `${publicWebUrl}/wallet/verify?gateway=payunit&ref=${transactionRef}`;
     const notifyUrl = `${apiUrl}/api/v1/payments/payunit/webhook`;
 
+    await Transaction.create({
+      user_id: user._id, type: 'payment', amount, currency, reference: transactionRef,
+      gateway_transaction_id: transactionRef, status: 'pending', gateway: 'payunit',
+      description: 'P2P delivery payment - ' + trackingCode,
+      metadata: { ...sharedMeta, phone: payunit.normalizePhoneIntl(phone, 'CM') },
+    });
     const init = await payunit.initializePayment({ amount: feeBreakdown.grossAmount, currency, transactionId: transactionRef, returnUrl, notifyUrl, country: 'CM' });
 
     let direct = null;
@@ -121,15 +115,11 @@ const initiateP2PGatewayPayment = async ({ gateway, phone, amount, platformFee, 
     }
 
     const gatewayData = direct?.data || init?.data || {};
-    await Transaction.create({
-      user_id: user._id, type: 'payment', amount, currency,
-      reference: transactionRef,
+    await Transaction.updateOne({ reference: transactionRef }, { $set: {
       gateway_transaction_id: gatewayData.transaction_id || transactionRef,
-      status: 'pending', gateway: 'payunit',
-      description: `P2P delivery payment — ${trackingCode}`,
       gateway_response: { initialize: init?.raw || null, makepayment: direct?.raw || null },
-      metadata: { ...sharedMeta, provider: resolvedProvider, phone: payunit.normalizePhoneIntl(phone, 'CM') },
-    });
+      'metadata.provider': resolvedProvider,
+    } });
 
     return { gateway: 'payunit', reference: transactionRef, checkout_url: init?.data?.transaction_url || returnUrl, collection_fee: feeBreakdown.collectionFee, gross_amount: feeBreakdown.grossAmount };
   }
@@ -144,6 +134,12 @@ const initiateP2PGatewayPayment = async ({ gateway, phone, amount, platformFee, 
     const isSandbox = process.env.EVERSEND_SANDBOX_MODE === 'true';
     let gatewayTxId = null;
     let checkoutUrl = null;
+
+    await Transaction.create({
+      user_id: user._id, type: 'payment', amount, currency, reference: transactionRef,
+      status: 'pending', gateway: 'eversend', description: 'P2P delivery payment - ' + trackingCode,
+      metadata: { ...sharedMeta, ...(isSandbox ? { is_sandbox: true } : {}) },
+    });
 
     if (isSandbox) {
       gatewayTxId = `SBX-${Date.now()}`;
@@ -160,13 +156,7 @@ const initiateP2PGatewayPayment = async ({ gateway, phone, amount, platformFee, 
       checkoutUrl = rd?.checkoutUrl || rd?.checkout_url || rd?.paymentUrl || null;
     }
 
-    await Transaction.create({
-      user_id: user._id, type: 'payment', amount, currency,
-      reference: transactionRef, gateway_transaction_id: gatewayTxId,
-      status: 'pending', gateway: 'eversend',
-      description: `P2P delivery payment — ${trackingCode}`,
-      metadata: { ...sharedMeta, ...(isSandbox ? { is_sandbox: true } : {}) },
-    });
+    await Transaction.updateOne({ reference: transactionRef }, { $set: { gateway_transaction_id: gatewayTxId } });
 
     return { gateway: 'eversend', reference: transactionRef, checkout_url: checkoutUrl || redirectUrl, collection_fee: feeBreakdown.collectionFee, gross_amount: feeBreakdown.grossAmount };
   }
@@ -995,6 +985,7 @@ const lookupUser = async (req, res) => {
 };
 
 module.exports = {
+  initiateP2PGatewayPayment,
   getP2PQuote,
   createP2PShipment,
   getMyDeliveries,

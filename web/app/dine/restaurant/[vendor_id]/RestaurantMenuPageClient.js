@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   ArrowLeft, Star, Clock, Utensils, AlertTriangle, UserPlus, UserCheck, BadgeCheck
 } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { useFollow } from '@/hooks/useFollow';
@@ -69,7 +69,9 @@ function formatPrepTime(mins) {
 const ALL_KEY = '__all__';
 
 export default function RestaurantMenuPageClient() {
-  const { vendor_id } = useParams();
+  const params = useParams();
+  const query = useSearchParams();
+  const vendor_id = query.get('vendor_id') || params?.vendor_id;
   const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -81,9 +83,11 @@ export default function RestaurantMenuPageClient() {
   const { isFollowing, toggleFollow, loading: followLoading } = useFollow(followVendorId);
 
   const fetchMenu = useCallback(async () => {
+    setData(null);
+    if (!vendor_id || vendor_id === '__placeholder__') { setLoading(false); return; }
     setLoading(true);
     try {
-      const res = await api.get(`/dine/restaurant/${vendor_id}`);
+      const res = await api.get(`/dine/restaurant/${encodeURIComponent(vendor_id)}`);
       if (res.data.success) setData(res.data.data);
     } catch {
       toast.error('Could not load restaurant menu.');

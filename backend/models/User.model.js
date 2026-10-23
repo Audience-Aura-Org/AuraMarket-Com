@@ -75,6 +75,12 @@ const UserSchema = new mongoose.Schema(
       default: null,
     },
     // Manager workspace notification preferences (only used when role = manager)
+    notification_preferences: {
+      push_orders: { type: Boolean, default: true }, push_messages: { type: Boolean, default: true },
+      push_payments: { type: Boolean, default: true }, push_promos: { type: Boolean, default: false },
+      email_orders: { type: Boolean, default: true }, email_messages: { type: Boolean, default: false },
+      email_payments: { type: Boolean, default: true }, email_promos: { type: Boolean, default: false },
+    },
     manager_settings: {
       notify_email: { type: Boolean, default: true },
       notify_push:  { type: Boolean, default: true },

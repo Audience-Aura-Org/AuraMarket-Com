@@ -19,6 +19,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import StatCard from '@/components/layout/StatCard';
 import TrendChart from '@/components/kit/TrendChart';
+import { AdminFinancePage, AdminFinanceHeader, AdminFinanceBody, AdminContentTabs } from '@/components/admin/AdminFinanceLayout';
+import financeStyles from '@/components/admin/AdminFinance.module.css';
 
 function fmt(n) { return Number(n || 0).toLocaleString('fr-CM'); }
 
@@ -71,41 +73,9 @@ export default function AdminAnalyticsPage() {
     : platform_summary?.total_users || 0;
 
   return (
-    <div className="w-full min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)] font-display">
-      
-      {/* Surgical Header */}
-      <div className="px-6 py-6 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20">
-              <Layers className="size-5" />
-            </div>
-            <div>
-              <h1 className="text-lg  font-bold tracking-tight">Intelligence Matrix</h1>
-              <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">Global Platform Insight</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl p-0.5">
-              {['overview', 'revenue', 'inventory'].map(t => (
-                <button
-                  key={t} onClick={() => setActiveTab(t)}
-                  className={`px-4 py-1.5 rounded-lg text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-all ${activeTab === t ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
-            <button onClick={fetchAnalytics} className="size-9 rounded-xl border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all">
-              <RefreshCw className="size-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6 md:space-y-8 pb-32">
-        
+    <AdminFinancePage theme="analytics">
+      <AdminFinanceHeader icon={BarChart3} title="Financial analytics" description="Review platform revenue, inventory, and account activity." onRefresh={fetchAnalytics} loading={loading} />
+      <AdminFinanceBody>
         {/* Metric Grid - High Density */}
         {(() => {
           const rev      = payout_intel?.total_revenue || 0;
@@ -123,15 +93,16 @@ export default function AdminAnalyticsPage() {
           );
         })()}
 
+        <AdminContentTabs value={activeTab} onChange={setActiveTab} items={[{ id: 'overview', label: 'Overview', icon: Layers }, { id: 'revenue', label: 'Revenue', icon: TrendingUp }, { id: 'inventory', label: 'Inventory', icon: Package }]} />
         {/* Intelligence Matrix */}
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className={activeTab === 'overview' ? 'grid min-w-0 gap-5 lg:grid-cols-3' : 'grid min-w-0 gap-5'}>
           
           {/* Revenue Velocity (Sparkline Style) */}
-          <div className="lg:col-span-2 p-8 rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] shadow-sm md:backdrop-blur-xl relative overflow-hidden">
+          <div hidden={activeTab === 'inventory'} className={`${financeStyles.panel} relative p-5 md:p-6 ${activeTab === 'revenue' ? '' : 'lg:col-span-2'}`}>
              <div className="flex items-center justify-between mb-8 relative z-10">
                 <div>
-                   <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Revenue Velocity (30D)</h3>
-                   <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight mt-1">Real-Time Market Pulse</p>
+                   <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Revenue over the last 30 days</h3>
+                   <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] tracking-tight mt-1">Settled sales volume</p>
                 </div>
                 <TrendingUp className="size-5 text-[var(--accent)] opacity-20" />
              </div>
@@ -152,9 +123,9 @@ export default function AdminAnalyticsPage() {
           </div>
 
           {/* Market Share Distribution / Category Distribution */}
-          <div className="p-5 md:p-8 rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] shadow-sm md:backdrop-blur-xl">
+          <div hidden={activeTab === 'revenue'} className={`${financeStyles.panel} p-5 md:p-6`}>
              <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40 mb-8">
-               {activeTab === 'inventory' ? 'Category Density' : 'Node Distribution'}
+               {activeTab === 'inventory' ? 'Products by category' : 'Accounts by role'}
              </h3>
              <div className="space-y-6">
                 {distribution?.map((item, i) => (
@@ -188,9 +159,9 @@ export default function AdminAnalyticsPage() {
         </div>
 
         {/* Asset Performance Table */}
-        <div className="p-5 md:p-8 rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] shadow-sm md:backdrop-blur-xl">
+        <div hidden={activeTab === 'revenue'} className={`${financeStyles.panel} p-5 md:p-6`}>
            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Asset Conversion Performance</h3>
+              <h3 className="text-[11px] lg:text-[12px]  font-semibold tracking-tight opacity-40">Best-selling products</h3>
               <Activity className="size-4 opacity-20" />
            </div>
            
@@ -199,7 +170,7 @@ export default function AdminAnalyticsPage() {
                 <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30 transition-all group">
                     <div className="size-12 rounded-xl overflow-hidden bg-[var(--bg-secondary)] shrink-0 border border-[var(--glass-border)] flex items-center justify-center">
                        {p.images?.[0]?.url ? (
-                         <img src={p.images[0].url} className="size-full object-cover" />
+                         <img src={p.images[0].url} className="size-full object-cover" alt={p.name || 'Product'} />
                        ) : (
                          <div className="size-full bg-gradient-to-br from-[var(--bg-secondary)] to-[var(--accent)]/5 flex items-center justify-center text-[11px] lg:text-[12px]  font-semibold opacity-20 ">
                            {p.name?.charAt(0)}
@@ -219,7 +190,7 @@ export default function AdminAnalyticsPage() {
            </div>
         </div>
 
-      </div>
-    </div>
+      </AdminFinanceBody>
+    </AdminFinancePage>
   );
 }

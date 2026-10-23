@@ -1,5 +1,6 @@
 "use client";
 
+import { normalizeAppRoute as normalizeSafeAppRoute } from '@/lib/navigation';
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import socketService from '@/services/socket';
@@ -122,29 +123,7 @@ const showBrowserNotification = async ({ id, title, body, route, type, senderId,
   }
 };
 
-const normalizeAppRoute = (route) => {
-  if (!route) return null;
-  try {
-    const url = new URL(route, window.location.origin);
-    if (url.origin !== window.location.origin) return url.href;
-    let path = `${url.pathname}${url.search}${url.hash}`;
-    if (/^\/vendor\/orders\/[^/?#]+/.test(path)) {
-      const orderId = path.split('/')[3]?.split(/[?#]/)[0];
-      path = orderId ? `/vendor/orders?orderId=${encodeURIComponent(orderId)}` : '/vendor/orders';
-    }
-    if (/^\/logistics\/dashboard\?shipmentId=/.test(path)) {
-      path = path.replace('/logistics/dashboard', '/logistics/manifests');
-    }
-    if (/^\/logistics\/(shipments|tracking)\/[^/?#]+/.test(path)) {
-      const shipmentId = path.split('/')[3]?.split(/[?#]/)[0];
-      path = shipmentId ? `/logistics/manifests?shipmentId=${encodeURIComponent(shipmentId)}` : '/logistics/manifests';
-    }
-    if (path === '/logistics/dashboard' || path === '/logistics') return '/logistics/manifests';
-    return path;
-  } catch {
-    return route;
-  }
-};
+const normalizeAppRoute = route => normalizeSafeAppRoute(route, null);
 
 export default function SocketProvider({ children }) {
   const { user, logout, refreshWalletBalance, setWalletBalance, authChecked, hasHydrated, fetchMe, token } = useAuthStore();
@@ -583,6 +562,7 @@ export default function SocketProvider({ children }) {
       }
 
       if (msg.type === 'push-received') {
+        window.dispatchEvent(new CustomEvent('aura:push-received', { detail: msg.payload }));
         const payload = msg.payload || {};
         const pushSenderId = payload.sender_id || payload.senderId || payload.data?.senderId || payload.data?.sender_id;
         const text = payload.body || payload.message || 'New message received';

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import { restaurantHref } from '@/lib/restaurantRoutes';
 import { Star, Clock, MapPin, Zap, BadgeCheck } from 'lucide-react';
 import { useFollow } from '@/hooks/useFollow';
 
@@ -82,7 +83,7 @@ export default function RestaurantCard({ restaurant }) {
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm hover:shadow-xl hover:-translate-y-0.5 hover:border-orange-400/40 transition-all duration-300 font-[Poppins]">
-      <Link href={`/dine/restaurant/${vendor_id}`} className="block">
+      <Link href={restaurantHref(vendor_id)} className="block">
 
         {/* ── Wide landscape banner — distinct from square product images ── */}
         <div

@@ -6,7 +6,7 @@ import { ArrowLeft, Store } from 'lucide-react';
 import { useManagerMode } from '@/hooks/useManagerMode';
 import { useAuthStore } from '@/hooks/useAuth';
 import AccountPicker from '@/components/manager/AccountPicker';
-import { getWorkspaceNav } from '@/components/manager/workspaceNav';
+import { getWorkspaceNavGroups } from '@/components/manager/workspaceNav';
 import { MANAGER_SECTIONS, TYPE_LABEL, describePermissions, workspaceAccountId } from './nav';
 import { useMinWidth } from './useMinWidth';
 
@@ -32,7 +32,7 @@ function RailLink({ href, icon: Icon, label, active, count }) {
   );
 }
 
-/** Desktop rail (232px) / tablet icon strip (64px). Hidden on phones. */
+/** Desktop rail (272px) / tablet icon strip (64px). Hidden on phones. */
 export default function ManagerRail() {
   const pathname = usePathname() || '';
   const wide = useMinWidth(1024);
@@ -43,7 +43,7 @@ export default function ManagerRail() {
   const openTasks = accounts.reduce((n, a) => n + (a.tasks || 0), 0);
 
   return (
-    <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-16 lg:w-[232px] flex-col border-r border-[var(--m-border)] bg-[var(--m-surface-solid)]/80 backdrop-blur-2xl">
+    <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-16 lg:w-[272px] flex-col border-r border-[var(--m-border)] bg-[var(--m-surface-solid)]/80 backdrop-blur-2xl">
       <div className="px-3 pt-5 pb-4 lg:px-4">
         <Link href="/manager" className="flex items-center gap-2.5 md:justify-center lg:justify-start" aria-label="Manager home">
           <span className="size-9 shrink-0 rounded-xl bg-gradient-to-br from-[color-mix(in_srgb,var(--accent)_20%,transparent)] to-indigo-600/10 border border-[color-mix(in_srgb,var(--accent)_20%,transparent)] flex items-center justify-center">
@@ -71,18 +71,23 @@ export default function ManagerRail() {
                 <p className="m-fs-12 m-faint mt-1.5 leading-snug">{describePermissions(account.permissions)}</p>
               </div>
             )}
-            {getWorkspaceNav(account?.role).map((item) => {
-              const href = `/manager/as/${accountId}/${item.slug}`;
-              return (
-                <RailLink key={item.slug} href={href} icon={item.icon} label={item.label}
-                  active={pathname === href || pathname.startsWith(`${href}/`)} />
-              );
-            })}
+            {getWorkspaceNavGroups(account?.role).map(group => <div key={group.label} className="pt-3 first:pt-0" role="group" aria-label={group.label}>
+              <p className="hidden lg:block px-3 pb-2 m-fs-11 m-faint font-medium">{group.label}</p>
+              <div className="space-y-0.5">{group.items.map(item => {
+                const href = '/manager/as/' + accountId + '/' + item.slug;
+                return <RailLink key={item.slug} href={href} icon={item.icon} label={item.label} active={pathname === href || pathname.startsWith(href + '/')} />;
+              })}</div>
+            </div>)}
+
           </>
         ) : (
-          MANAGER_SECTIONS.map((s) => (
-            <RailLink key={s.key} href={s.href} icon={s.icon} label={s.label}
-              active={s.match(pathname)} count={s.key === 'inbox' ? openTasks : 0} />
+          [['Workspace', ['accounts', 'inbox']], ['Review & records', ['performance', 'journal']], ['Preferences', ['settings']]].map(([label, keys]) => (
+            <div key={label} role="group" aria-label={label} className="pt-3 first:pt-0">
+              <p className="hidden lg:block px-3 pb-2 m-fs-11 m-faint font-medium">{label}</p>
+              <div className="space-y-0.5">{MANAGER_SECTIONS.filter(section => keys.includes(section.key)).map(section => (
+                <RailLink key={section.key} href={section.href} icon={section.icon} label={section.label} active={section.match(pathname)} count={section.key === 'inbox' ? openTasks : 0} />
+              ))}</div>
+            </div>
           ))
         )}
       </nav>

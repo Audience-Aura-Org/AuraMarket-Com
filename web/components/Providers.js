@@ -13,7 +13,7 @@ import { ChatProvider } from '@/context/ChatContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import dynamic from 'next/dynamic';
 import SplashScreen from '@/components/layout/SplashScreen';
-import { useAuthStore } from '@/hooks/useAuth';
+import { useAuthStore, reconcileHydratedSession } from '@/hooks/useAuth';
 import { initFontSettings } from '@/utils/fontSettings';
 import { hasPendingPushIntent } from '@/lib/native-push';
 
@@ -58,6 +58,21 @@ export default function Providers({ children }) {
   const [showSplash, setShowSplash] = useState(
     !isImmediateRoute && !hasPendingPushIntent()
   );
+
+  useEffect(() => {
+    const check = () => { if (document.visibilityState === 'visible') void reconcileHydratedSession(); };
+    const storage = (event) => { if (event.key === 'aura_token' || event.key === null) check(); };
+    window.addEventListener('storage', storage);
+    window.addEventListener('focus', check);
+    document.addEventListener('visibilitychange', check);
+    const timer = window.setInterval(check, 15000);
+    return () => {
+      window.removeEventListener('storage', storage);
+      window.removeEventListener('focus', check);
+      document.removeEventListener('visibilitychange', check);
+      window.clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     initFontSettings();

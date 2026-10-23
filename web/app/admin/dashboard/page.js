@@ -151,26 +151,14 @@ export default function AdminDashboard() {
               {t('admin.viewLedger', 'View Ledger')}
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {[
               { title: t('admin.commission', 'Commission'), value: earnings.commission, desc: t('admin.productSaleFee', 'Product sale fee'), icon: TrendingUp, color: 'emerald' },
               { title: t('admin.escrowFees', 'Escrow Fees'), value: earnings.escrow, desc: t('admin.escrowProtectionFee', 'Escrow protection fee'), icon: ShieldCheck, color: 'blue' },
               { title: t('admin.collectionFees', 'Collection Fees'), value: earnings.collection, desc: t('admin.mobileMoneyCharges', 'Mobile money charges'), icon: Activity, color: 'amber' },
               { title: t('admin.subscriptions', 'Subscriptions'), value: subStats.revenue ?? earnings.subscription ?? 0, desc: `${subStats.active} active · ${subStats.total} total`, icon: Zap, color: 'indigo' },
             ].map((item) => (
-              <div key={item.title} className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-3">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className={`size-8 rounded-xl flex items-center justify-center border ${COLOR_BOX_STYLES[item.color] || COLOR_BOX_STYLES.blue}`}>
-                    <item.icon className="size-3.5" />
-                  </div>
-                  <span className="text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--text-secondary)] opacity-60">XAF</span>
-                </div>
-                <p className={`truncate text-sm font-bold tabular-nums transition-all ${loading ? 'animate-pulse text-[var(--text-secondary)] opacity-40' : ''}`}>
-                  {loading ? '——' : fmt(item.value)}
-                </p>
-                <p className="mt-1 text-[10px] font-bold text-[var(--text-primary)]">{item.title}</p>
-                <p className="text-[9px] font-semibold text-[var(--text-secondary)] opacity-55">{item.desc}</p>
-              </div>
+              <StatCard key={item.title} label={item.title} value={fmt(item.value)} unit="XAF" icon={item.icon} color={item.color} footer={item.desc} loading={loading} />
             ))}
           </div>
         </section>

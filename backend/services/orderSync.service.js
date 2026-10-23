@@ -122,7 +122,7 @@ function notifyOrderStatusChange(app, order, orderStatus, extra = {}) {
   const { sendNotification } = require('../utils/notifier');
   const shortId = order._id.toString().slice(-6).toUpperCase();
   const label = (orderStatus || 'updated').replace(/_/g, ' ');
-  const meta = { order_id: order._id, link: `/orders/${order._id}`, ...extra.metadata };
+  const meta = { target_id: order._id, link: `/orders/${order._id}`, ...extra.metadata };
   const roles = extra.roles || ['customer', 'vendor'];
 
   if (roles.includes('customer') && order.customer_id) {
@@ -141,11 +141,11 @@ function notifyOrderStatusChange(app, order, orderStatus, extra = {}) {
       .select('user_id')
       .then((vendor) => {
         if (!vendor?.user_id) return;
-        sendNotification(app, vendor.user_id, {
+        return sendNotification(app, vendor.user_id, {
           title: extra.vendorTitle || `Order #${shortId} — ${label}`,
           message: extra.vendorMessage || `Order status updated to ${label}.`,
           type: 'order_status',
-          metadata: { ...meta, link: '/vendor/orders' },
+          metadata: { ...meta, link: `/vendor/orders?orderId=${order._id}` },
           role: 'vendor',
         });
       })

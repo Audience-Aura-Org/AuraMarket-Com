@@ -6,7 +6,6 @@
  */
 import api from '@/services/api';
 
-const FALLBACK_VAPID_PUBLIC_KEY = "BPhRBNH4-gNAvZGDAELIrh-CS6_U4pAxfnVbLGnqjBBkekohWswpHk1leAH6It2wvc66fEo4IBunBrB-I6P5LPQ";
 const VAPID_KEY_STORAGE = 'aura_push_vapid_key';
 
 function isPushServiceUnavailable(err) {
@@ -36,10 +35,10 @@ async function getActiveVapidPublicKey() {
   try {
     const res = await api.get('/push/vapid-public-key');
     const key = res.data?.data?.publicKey || res.data?.publicKey;
-    return key || FALLBACK_VAPID_PUBLIC_KEY;
+    return key || null;
   } catch (err) {
-    console.warn('[PWA] Could not fetch backend VAPID key; using fallback.', err?.message || err);
-    return FALLBACK_VAPID_PUBLIC_KEY;
+    console.warn('[PWA] Could not fetch the active VAPID key; subscription deferred.', err?.message || err);
+    return null;
   }
 }
 
@@ -132,6 +131,7 @@ export async function subscribeToPush({ promptIfNeeded = true } = {}) {
 
     const registration = await navigator.serviceWorker.ready;
     const vapidPublicKey = await getActiveVapidPublicKey();
+    if (!vapidPublicKey) return null;
 
     // Detect VAPID key rotation: if the key changed since this subscription was created,
     // unsubscribe and start fresh so the push service can verify the new key.
@@ -195,6 +195,7 @@ export async function subscribeToPush({ promptIfNeeded = true } = {}) {
         // 3. Re-subscribe with correct VAPID key (one retry only)
         const reg2 = await navigator.serviceWorker.ready;
         const retryVapidPublicKey = await getActiveVapidPublicKey();
+        if (!retryVapidPublicKey) return null;
         const newSub = await reg2.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(retryVapidPublicKey)

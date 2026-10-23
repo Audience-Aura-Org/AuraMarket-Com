@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Loader2, DollarSign, TrendingUp, Truck,
   User, Calendar, ArrowUpRight, Search,
@@ -12,15 +12,16 @@ import api from "@/services/api";
 import { toast } from "react-hot-toast";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import StatCard from "@/components/layout/StatCard";
+import { AdminFinancePage, AdminFinanceHeader, AdminFinanceBody } from "@/components/admin/AdminFinanceLayout";
+import financeStyles from "@/components/admin/AdminFinance.module.css";
+import { earningsCsv } from "@/lib/financeCsv";
 
 export default function AdminLogisticsEarningsPage() {
   const [loading, setLoading] = useState(true);
   const [vendors, setVendors] = useState([]);
   const [partners, setPartners] = useState([]);
-  const [timeframe, setTimeframe] = useState('current'); // current, past
 
-  useEffect(() => {
-    const load = async () => {
+  const load = useCallback(async () => {
       setLoading(true);
       try {
         const res = await api.get("/admin/logistics/earnings");
@@ -33,9 +34,8 @@ export default function AdminLogisticsEarningsPage() {
       } finally {
         setLoading(false);
       }
-    };
-    load();
   }, []);
+  useEffect(() => { load(); }, [load]);
 
   if (loading) {
     return <LoadingSpinner fullScreen />;
@@ -44,39 +44,19 @@ export default function AdminLogisticsEarningsPage() {
   const totalRev = vendors.reduce((acc, v) => acc + (v.gross_sales || 0), 0);
   const totalShip = partners.reduce((acc, p) => acc + (p.total_shipping_value || 0), 0);
 
+  const exportReport = () => {
+    const blob = new Blob([earningsCsv(vendors, partners)], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = 'logistics-earnings.csv';
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   return (
-    <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6">
-      <div className="space-y-8">
-
-        {/* Header */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-[var(--glass-border)]">
-           <div className="flex items-center gap-4">
-              <div className="size-12 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center">
-                 <DollarSign className="size-6" />
-              </div>
-              <div className="space-y-0.5">
-                 <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Logistics <span className="text-[var(--accent)]">Earnings</span></h1>
-                 <p className="text-[11px] lg:text-[12px] font-semibold tracking-[0.2em] text-[var(--text-secondary)] opacity-40">Settlement report · {new Date().getFullYear()}</p>
-              </div>
-           </div>
-
-           <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="bg-[var(--bg-primary)] px-3 py-1.5 rounded-xl border border-[var(--glass-border)] flex items-center gap-2">
-                 <select 
-                   value={timeframe} 
-                   onChange={(e) => setTimeframe(e.target.value)}
-                   className="bg-transparent text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] outline-none"
-                 >
-                    <option value="current">Current Cycle</option>
-                    <option value="past">Archived Cycles</option>
-                 </select>
-              </div>
-              <button className="h-10 px-6 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] text-[11px] lg:text-[12px]  font-semibold tracking-tight flex items-center gap-3 hover:bg-[var(--accent)] hover:text-white transition-all">
-                 <Download className="size-3" /> Export CSV
-              </button>
-           </div>
-        </div>
-
+    <AdminFinancePage theme="earnings">
+      <AdminFinanceHeader icon={DollarSign} title="Earnings report" description="All-time merchant sales and logistics settlement totals." onRefresh={load} loading={loading}
+        actions={<button type="button" aria-label="Export CSV" onClick={exportReport} className={`${financeStyles.button} text-[11px]`}><Download className="size-4" /><span className="hidden sm:inline">Export CSV</span></button>} />
+      <AdminFinanceBody>
         {/* KPI Stats */}
         {(() => {
           const logisticsPct = totalRev > 0 ? Math.min(Math.round((totalShip / totalRev) * 100), 100) : 0;
@@ -92,12 +72,12 @@ export default function AdminLogisticsEarningsPage() {
         })()}
 
         {/* Dense Data Grid (Vendors & Partners Linked) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-2">
            
            {/* Vendor Matrix */}
-           <div className="space-y-4">
+           <div className={`${financeStyles.panel} p-5 md:p-6 space-y-5`}>
               <div className="flex items-center justify-between px-2">
-                 <h2 className="text-xs  font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Merchant Items</h2>
+                 <h2 className="text-xs  font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Merchant sales</h2>
                  <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--accent)] ">{vendors.length} Live</span>
               </div>
               <div className="space-y-2">
@@ -109,13 +89,13 @@ export default function AdminLogisticsEarningsPage() {
                           </div>
                           <div>
                              <h3 className="text-xs  font-bold text-[var(--text-primary)]  truncate w-32">{v.store_name || "Unknown Merchant"}</h3>
-                             <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">{v.total_orders || 0} Successful Transmissions</p>
+                             <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">{v.total_orders || 0} completed orders</p>
                           </div>
                        </div>
                        <div className="text-right">
                           <p className="text-xs  font-bold text-[var(--text-primary)] font-mono">{(v.gross_sales || 0).toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-20">XAF</span></p>
                           <div className="h-1 w-16 bg-white/5 rounded-full mt-1 overflow-hidden">
-                             <div className="h-full bg-[var(--accent)]" style={{ width: `${(v.gross_sales / totalRev) * 100}%` }} />
+                             <div className="h-full bg-[var(--accent)]" style={{ width: `${totalRev > 0 ? (v.gross_sales / totalRev) * 100 : 0}%` }} />
                           </div>
                        </div>
                     </div>
@@ -125,7 +105,7 @@ export default function AdminLogisticsEarningsPage() {
            </div>
 
            {/* Logistics Matrix */}
-           <div className="space-y-4">
+           <div className={`${financeStyles.panel} p-5 md:p-6 space-y-5`}>
               <div className="flex items-center justify-between px-2">
                  <h2 className="text-xs  font-bold  tracking-[0.3em] text-[var(--text-secondary)] opacity-40">Logistics Partners</h2>
                  <span className="text-[11px] lg:text-[12px]  font-semibold text-indigo-500 ">{partners.length} Active</span>
@@ -139,13 +119,13 @@ export default function AdminLogisticsEarningsPage() {
                           </div>
                           <div>
                              <h3 className="text-xs  font-bold text-[var(--text-primary)]  truncate w-32">{p.company_name || "Unknown Partner"}</h3>
-                             <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">{p.total_shipments || 0} Global Dispatches</p>
+                             <p className="text-[10px] lg:text-[12px] font-medium text-[var(--text-secondary)] opacity-40 tracking-tight">{p.total_shipments || 0} shipments</p>
                           </div>
                        </div>
                        <div className="text-right">
                           <p className="text-xs  font-bold text-[var(--text-primary)] font-mono">{(p.total_shipping_value || 0).toLocaleString()} <span className="text-[10px] lg:text-[12px] opacity-20">XAF</span></p>
                           <div className="h-1 w-16 bg-white/5 rounded-full mt-1 overflow-hidden">
-                             <div className="h-full bg-indigo-500" style={{ width: `${(p.total_shipping_value / totalShip) * 100}%` }} />
+                             <div className="h-full bg-indigo-500" style={{ width: `${totalShip > 0 ? (p.total_shipping_value / totalShip) * 100 : 0}%` }} />
                           </div>
                        </div>
                     </div>
@@ -155,15 +135,8 @@ export default function AdminLogisticsEarningsPage() {
            </div>
         </div>
 
-        {/* Global Registry Footer */}
-        <div className="pt-12 text-center opacity-30">
-           <p className="text-[11px] lg:text-[12px]  font-semibold tracking-[0.5em] text-[var(--text-secondary)] ">
-              Aura Fiscal Systems // Consolidated Earnings Hub v2.1.0
-           </p>
-        </div>
-
-      </div>
-    </div>
+      </AdminFinanceBody>
+    </AdminFinancePage>
   );
 }
 

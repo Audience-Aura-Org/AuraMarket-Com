@@ -1,326 +1,122 @@
 "use client";
-
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
-import {
-  Package, CreditCard, MessageCircle, Trash2, CheckCheck,
-  Sparkles, Store, Truck, ShoppingBag, Wallet2, Radio,
-} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Radio, CheckCheck, Check, Trash2, Search, RefreshCw, ArrowUpRight, Bell, Clock, Inbox } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { notificationService } from '@/services/notifications';
-import Pagination from '@/components/common/Pagination';
 import { normalizeAppRoute } from '@/lib/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import StatCard from '@/components/layout/StatCard';
+import Pagination from '@/components/common/Pagination';
+import styles from '@/components/layout/Workspace.module.css';
 
-// ── Type → visual config ─────────────────────────────────────────────────────
-const TYPE_CONFIG = {
-  order:            { label: 'SHOPPING HUB',  borderCls: 'border-l-blue-500',    iconBg: 'bg-blue-100 dark:bg-blue-500/15',    iconCls: 'text-blue-600 dark:text-blue-400',    Icon: ShoppingBag },
-  order_status:     { label: 'SHOPPING HUB',  borderCls: 'border-l-blue-500',    iconBg: 'bg-blue-100 dark:bg-blue-500/15',    iconCls: 'text-blue-600 dark:text-blue-400',    Icon: Package },
-  order_update:     { label: 'SHOPPING HUB',  borderCls: 'border-l-blue-500',    iconBg: 'bg-blue-100 dark:bg-blue-500/15',    iconCls: 'text-blue-600 dark:text-blue-400',    Icon: Package },
-  payment:          { label: 'WALLET',         borderCls: 'border-l-emerald-500', iconBg: 'bg-emerald-100 dark:bg-emerald-500/15', iconCls: 'text-emerald-600 dark:text-emerald-400', Icon: CreditCard },
-  payment_received: { label: 'WALLET',         borderCls: 'border-l-emerald-500', iconBg: 'bg-emerald-100 dark:bg-emerald-500/15', iconCls: 'text-emerald-600 dark:text-emerald-400', Icon: Wallet2 },
-  wallet_update:    { label: 'WALLET',         borderCls: 'border-l-emerald-500', iconBg: 'bg-emerald-100 dark:bg-emerald-500/15', iconCls: 'text-emerald-600 dark:text-emerald-400', Icon: Wallet2 },
-  chat:             { label: 'MESSAGES',       borderCls: 'border-l-[var(--accent)]', iconBg: 'bg-[var(--accent)]/10',          iconCls: 'text-[var(--accent)]',                Icon: MessageCircle },
-  chat_alert:       { label: 'MESSAGES',       borderCls: 'border-l-[var(--accent)]', iconBg: 'bg-[var(--accent)]/10',          iconCls: 'text-[var(--accent)]',                Icon: MessageCircle },
-  system:           { label: 'SYSTEM',         borderCls: 'border-l-amber-500',   iconBg: 'bg-amber-100 dark:bg-amber-500/15',   iconCls: 'text-amber-600 dark:text-amber-400',  Icon: Sparkles },
-  system_alert:     { label: 'SYSTEM',         borderCls: 'border-l-amber-500',   iconBg: 'bg-amber-100 dark:bg-amber-500/15',   iconCls: 'text-amber-600 dark:text-amber-400',  Icon: Sparkles },
-  vendor_update:    { label: 'STORE UPDATE',   borderCls: 'border-l-sky-500',     iconBg: 'bg-sky-100 dark:bg-sky-500/15',       iconCls: 'text-sky-600 dark:text-sky-400',      Icon: Store },
-  logistics:        { label: 'LOGISTICS',      borderCls: 'border-l-violet-500',  iconBg: 'bg-violet-100 dark:bg-violet-500/15', iconCls: 'text-violet-600 dark:text-violet-400', Icon: Truck },
-  message:          { label: 'MESSAGES',       borderCls: 'border-l-[var(--accent)]', iconBg: 'bg-[var(--accent)]/10',          iconCls: 'text-[var(--accent)]',                Icon: MessageCircle },
+const FILTERS = [['all', 'All signals'], ['orders', 'Orders'], ['payments', 'Payments'], ['messages', 'Messages'], ['logistics', 'Delivery'], ['system', 'Account & updates']];
+const roleDescription = {
+  customer: 'Your orders, payments and updates, together in one place.',
+  vendor: 'Keep up with orders, payouts and updates for your business.',
+  logistics: 'Stay on top of assignments, deliveries and payout updates.',
+  manager: 'Follow the updates and account activity sent to you.',
+  admin: 'Review the operational and account updates sent to you.',
 };
+const dateLabel = value => { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); };
 
-const DEFAULT_CONFIG = { label: 'NOTIFICATION', borderCls: 'border-l-[var(--glass-border)]', iconBg: 'bg-[var(--bg-secondary)]', iconCls: 'text-[var(--text-secondary)]', Icon: Sparkles };
-
-const getConfig = (type = '') => {
-  const key = Object.keys(TYPE_CONFIG).find(k => type === k || type?.includes(k));
-  return key ? TYPE_CONFIG[key] : DEFAULT_CONFIG;
-};
-
-// ── Filter tabs ───────────────────────────────────────────────────────────────
-const FILTERS = [
-  { id: 'all',    label: 'All' },
-  { id: 'orders', label: 'Orders',   match: (t) => ['order','order_status','order_update','payment','payment_received','wallet_update','logistics'].some(k => t?.includes(k)) },
-  { id: 'offers', label: 'Offers',   match: (t) => ['vendor_update','system','system_alert'].some(k => t?.includes(k)) },
-];
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function timeAgo(iso) {
-  const diff = (Date.now() - new Date(iso)) / 1000;
-  if (diff < 60)    return 'Just now';
-  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
-function groupNotifs(items) {
-  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-  const yesterdayStart = new Date(todayStart - 86_400_000);
-  const buckets = { Today: [], Yesterday: [], Earlier: [] };
-  for (const n of items) {
-    const t = new Date(n.createdAt);
-    if (t >= todayStart)          buckets.Today.push(n);
-    else if (t >= yesterdayStart) buckets.Yesterday.push(n);
-    else                          buckets.Earlier.push(n);
-  }
-  return Object.entries(buckets).filter(([, notifs]) => notifs.length > 0);
-}
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 export default function NotificationsPage() {
   const router = useRouter();
-  const user = useAuthStore(s => s.user);
+  const { user, hasHydrated } = useAuthStore();
+  const { unreadCount, markAllRead, refresh } = useNotifications();
   const [notifications, setNotifications] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const [category, setCategory] = useState('all');
+  const [unread, setUnread] = useState(false);
+  const [search, setSearch] = useState('');
+  const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 40;
-  const { markAllRead: clearBadge } = useNotifications();
+  const [busy, setBusy] = useState(null);
+  const [error, setError] = useState('');
+  const requestVersion = useRef(0);
+  const owner = useRef(user?._id);
+  owner.current = user?._id;
 
-  const fetchNotifications = useCallback(async () => {
+  useEffect(() => { if (hasHydrated && !user) router.replace('/login'); }, [hasHydrated, user, router]);
+  useEffect(() => { const timer = setTimeout(() => { setQuery(search.trim()); setPage(1); }, 250); return () => clearTimeout(timer); }, [search]);
+  useEffect(() => { setNotifications([]); setPage(1); }, [user?._id]);
+  const load = useCallback(async () => {
+    if (!user?._id) return;
+    const version = ++requestVersion.current;
+    setLoading(true); setError('');
     try {
-      const res = await api.get('/notifications');
-      if (res.data.success) setNotifications(res.data.data.notifications || []);
-    } catch {
-      setNotifications([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      const res = await api.get('/notifications', { params: { page, limit: 20, category, unread: String(unread), search: query }, skipClientCache: true, __noActAs: true });
+      if (version !== requestVersion.current || owner.current !== user._id) return;
+      const data = res.data.data;
+      setNotifications(data.notifications || []); setTotal(data.total || 0); setPages(data.pages || 1);
+      if (page > (data.pages || 1)) setPage(data.pages || 1);
+    } catch { if (version === requestVersion.current) setError('Signals could not be loaded. Please try again.'); }
+    finally { if (version === requestVersion.current) setLoading(false); }
+  }, [user?._id, page, category, unread, query]);
+  useEffect(() => { load(); return () => { requestVersion.current += 1; }; }, [load]);
+  useEffect(() => { window.addEventListener('aura:push-received', load); return () => window.removeEventListener('aura:push-received', load); }, [load]);
+  useEffect(() => notificationService.onPush(() => { load(); }), [load]);
 
-  useEffect(() => {
-    fetchNotifications();
-    clearBadge();
-    const unsubscribe = notificationService.onPush((notif) => {
-      if (!notif?._id) return;
-      setNotifications(prev => (
-        prev.some(existing => existing._id === notif._id) ? prev : [notif, ...prev]
-      ));
-    });
-    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
-  }, [fetchNotifications, clearBadge]);
-
-  const markRead = async (id) => {
-    try { await api.patch(`/notifications/${id}/read`); } catch { /* silent */ }
-    setNotifications(prev => prev.map(n => n._id === id ? { ...n, is_read: true } : n));
+  const act = async (action, id) => {
+    if (busy) return;
+    setBusy(id || 'all'); setError('');
+    try {
+      if (action === 'all') await markAllRead();
+      else if (action === 'delete') await api.delete(`/notifications/${id}`, { __noActAs: true });
+      else await api.patch(`/notifications/${id}/read`, undefined, { __noActAs: true });
+      await Promise.all([load(), refresh()]);
+      return true;
+    } catch { setError('The change could not be saved. Please try again.'); return false; }
+    finally { setBusy(null); }
+  };
+  const open = async notification => {
+    const link = normalizeAppRoute(notification.metadata?.link, null);
+    if (!link) return;
+    if (!notification.is_read && !await act('read', notification._id)) return;
+    router.push(link);
   };
 
-  const markAllRead = async () => {
-    try { await clearBadge(); } catch { /* silent */ }
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-  };
-
-  const deleteNotif = async (id) => {
-    try { await api.delete(`/notifications/${id}`); } catch { /* silent */ }
-    setNotifications(prev => prev.filter(n => n._id !== id));
-  };
-
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
-  const filtered = activeFilter === 'all'
-    ? notifications
-    : notifications.filter(n => {
-        const f = FILTERS.find(f => f.id === activeFilter);
-        return f?.match?.(n.type) ?? true;
-      });
-
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const current   = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const groups    = groupNotifs(current);
-
-  return (
-    <DashboardLayout role={user?.role || 'customer'} hideFooter>
-    <div className="transition-colors duration-300">
-
-      {/* ── Sticky header — mobile scrolls (MobileHeader is always on top),
-               desktop sticks below the fixed sidebar ──────────────────── */}
-      <div className="lg:sticky top-0 z-[60] bg-[var(--bg-primary)] border-b border-[var(--glass-border)]">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between px-4 pt-4 pb-3 sm:px-5 lg:px-8">
-            <div className="flex items-center gap-3">
-              {/* Signal icon */}
-              <div className="size-9 lg:size-10 rounded-xl bg-[var(--accent)]/10 flex items-center justify-center shrink-0">
-                <Radio className="size-[18px] lg:size-5 text-[var(--accent)]" />
-              </div>
-              <div>
-                <h1 className="text-[15px] lg:text-[17px] font-bold tracking-tight text-[var(--text-primary)] leading-none">
-                  Notifications
-                </h1>
-                {unreadCount > 0 && (
-                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
-                    {unreadCount} unread
-                  </p>
-                )}
+  return <DashboardLayout role={user?.role || 'customer'} hideFooter>
+    <div className={styles.page}><div className={styles.container}>
+      <header className={styles.header}>
+        <div className={styles.heading}><div className={styles.icon}><Radio size={22} /></div><div><h1 className={styles.title}>Signals</h1><p className={styles.subtitle}>{roleDescription[user?.role] || roleDescription.customer}</p></div></div>
+        <div className={styles.actions}>
+          <button type="button" className={styles.button} onClick={load} disabled={loading} aria-label="Refresh signals"><RefreshCw /> Refresh</button>
+          <button type="button" className={styles.button} onClick={() => act('all')} disabled={Boolean(busy) || unreadCount === 0}><CheckCheck /> Mark all read</button>
+        </div>
+      </header>
+      <div className={styles.stats}>
+        <StatCard label="Unread signals" value={unreadCount} icon={Bell} color="primary" sub="Waiting for your attention" progress={unreadCount > 0 ? 100 : 0} footer={unreadCount ? 'You have new updates' : 'All caught up'} />
+        <StatCard label="Matching signals" value={total} icon={Inbox} color="blue" sub="Across the selected filters" footer="20 records per page" />
+        <StatCard label="Current page" value={page + ' / ' + pages} icon={Clock} color="emerald" sub="Your personal activity feed" footer="Newest updates first" />
+      </div>
+      {error && <p role="alert" className={styles.error}>{error}</p>}
+      <section className={styles.panel} aria-label="Your signals" aria-busy={loading}>
+        <div className={styles.toolbar}>
+          <div className={styles.tabs}>{FILTERS.map(([id, label]) => <button key={id} type="button" className={styles.tab} aria-pressed={category === id} onClick={() => { setCategory(id); setPage(1); }}>{label}</button>)}</div>
+          <label className={styles.search}><Search /><input aria-label="Search signals" placeholder="Search signals" value={search} onChange={event => setSearch(event.target.value)} /></label>
+          <button type="button" className={styles.tab} aria-pressed={unread} onClick={() => { setUnread(!unread); setPage(1); }}>Unread only</button>
+        </div>
+        {loading ? <div className={styles.empty} role="status">Loading signals...</div> : !notifications.length ? <div className={styles.empty}><Radio size={30} /><h2>{error ? 'Signals unavailable' : 'You are up to date'}</h2><p>{error ? 'Use Refresh to try again.' : 'New updates will appear here. Try another filter to see more activity.'}</p></div> : <div>
+          {notifications.map(notification => <article key={notification._id} className={styles.signal} data-unread={!notification.is_read}>
+            <div className={styles.icon}><Bell size={19} /></div>
+            <div className={styles.signalBody}><div className={styles.signalTop}><h2 className={styles.signalTitle}>{notification.title}</h2><time className={styles.time} dateTime={notification.createdAt}>{dateLabel(notification.createdAt)}</time></div>
+              <p className={styles.message}>{notification.message}</p>
+              <div className={styles.actions}><span className={styles.category}>{!notification.is_read && <span className={styles.dot} aria-label="Unread" />}{String(notification.type || 'Update').replace(/_/g, ' ')}</span>
+                {normalizeAppRoute(notification.metadata?.link, null) && <button type="button" className={styles.button} onClick={() => open(notification)} disabled={Boolean(busy)}>View update <ArrowUpRight /></button>}
               </div>
             </div>
-
-            {unreadCount > 0 && (
-              <button
-                type="button"
-                onClick={markAllRead}
-                className="flex items-center gap-1.5 text-[var(--accent)] text-[12px] lg:text-[13px] font-semibold hover:opacity-75 transition-opacity"
-              >
-                <CheckCheck className="size-3.5" />
-                Mark all as read
-              </button>
-            )}
-          </div>
-
-          {/* Filter tabs */}
-          <div className="flex gap-2 px-4 pb-3 sm:px-5 lg:px-8">
-            {FILTERS.map(f => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => { setActiveFilter(f.id); setCurrentPage(1); }}
-                className={`h-8 px-4 rounded-full text-[12px] font-semibold transition-all ${
-                  activeFilter === f.id
-                    ? 'bg-[var(--accent)] text-white shadow-sm'
-                    : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] hover:border-[var(--accent)]/30'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Body ───────────────────────────────────────────────────────── */}
-      <main className="max-w-5xl mx-auto px-3 sm:px-5 lg:px-8 pt-4 lg:pt-6">
-
-        {/* Skeletons */}
-        {loading && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            {[...Array(8)].map((_, i) => (
-              <div key={i}
-                className="h-[78px] lg:h-[86px] rounded-2xl bg-[var(--bg-primary)] border border-[var(--glass-border)] animate-pulse"
-                style={{ animationDelay: `${i * 40}ms` }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Empty */}
-        {!loading && filtered.length === 0 && (
-          <div className="py-24 flex flex-col items-center text-center gap-4 animate-in fade-in duration-400">
-            <div className="size-20 rounded-3xl bg-[var(--bg-primary)] border border-[var(--glass-border)] flex items-center justify-center">
-              <Radio className="size-8 text-[var(--text-secondary)] opacity-20" />
-            </div>
-            <div>
-              <h3 className="text-[14px] font-bold text-[var(--text-primary)]">All caught up</h3>
-              <p className="text-[12px] text-[var(--text-secondary)] opacity-50 mt-1 max-w-[180px] mx-auto leading-relaxed">
-                No {activeFilter !== 'all' ? activeFilter : ''} notifications yet.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Groups */}
-        {!loading && filtered.length > 0 && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            {groups.map(([label, notifs]) => (
-              <section key={label}>
-                {/* Date label */}
-                <div className="flex items-center gap-2 mb-2.5 px-1">
-                  <span className="text-[10px] font-bold tracking-[0.14em] uppercase text-[var(--text-secondary)] opacity-40 shrink-0">
-                    {label}
-                  </span>
-                  <div className="flex-1 h-px bg-[var(--glass-border)]" />
-                </div>
-
-                {/* 1-col mobile → 2-col desktop */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                  {notifs.map(n => (
-                    <NotifCard
-                      key={n._id}
-                      n={n}
-                      onDelete={() => deleteNotif(n._id)}
-                      onNavigate={() => {
-                        if (!n.is_read) markRead(n._id);
-                        if (n.metadata?.link) router.push(normalizeAppRoute(n.metadata.link));
-                      }}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
-          <div className="mt-6">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={(p) => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              compact
-            />
-          </div>
-        )}
-      </main>
-    </div>
-    </DashboardLayout>
-  );
-}
-
-// ── Notification card ─────────────────────────────────────────────────────────
-function NotifCard({ n, onDelete, onNavigate }) {
-  const { Icon, iconBg, iconCls, borderCls, label } = getConfig(n.type);
-
-  return (
-    <div
-      onClick={onNavigate}
-      className={`relative group cursor-pointer bg-[var(--bg-primary)] rounded-2xl border-l-[3.5px] border border-[var(--glass-border)] overflow-hidden transition-all duration-200 hover:shadow-md active:scale-[0.99] ${borderCls} ${!n.is_read ? 'shadow-sm' : 'opacity-75'}`}
-    >
-      <div className="flex items-start gap-3 px-3.5 py-3 lg:px-4 lg:py-3.5">
-
-        {/* Icon with optional unread dot */}
-        <div className="relative shrink-0 mt-0.5">
-          <div className={`size-10 lg:size-11 rounded-xl flex items-center justify-center ${iconBg}`}>
-            <Icon className={`size-[18px] lg:size-5 ${iconCls}`} />
-          </div>
-          {!n.is_read && (
-            <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-orange-500 border-2 border-[var(--bg-primary)]" />
-          )}
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0 pr-7">
-          {/* Category + time */}
-          <div className="flex items-center justify-between gap-2 mb-0.5">
-            <span className={`text-[9.5px] font-bold tracking-[0.12em] uppercase ${iconCls} opacity-80`}>
-              {label}
-            </span>
-            <span className="text-[10px] text-[var(--text-secondary)] opacity-40 shrink-0">
-              {timeAgo(n.createdAt)}
-            </span>
-          </div>
-
-          {/* Title */}
-          <h3 className={`text-[12.5px] lg:text-[13px] font-bold leading-snug line-clamp-1 ${!n.is_read ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-            {n.title}
-          </h3>
-
-          {/* Message — 1 line mobile, 2 lines desktop */}
-          <p className="text-[11.5px] lg:text-[12px] text-[var(--text-secondary)] opacity-70 leading-relaxed line-clamp-1 lg:line-clamp-2 mt-0.5">
-            {n.message}
-          </p>
-        </div>
-      </div>
-
-      {/* Delete — always visible on mobile (touch), hover-only on desktop */}
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        className="absolute right-2.5 top-1/2 -translate-y-1/2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 size-7 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-all flex items-center justify-center"
-      >
-        <Trash2 className="size-3.5" />
-      </button>
-    </div>
-  );
+            <div className={styles.signalActions}>{!notification.is_read && <button type="button" className={styles.iconButton} onClick={() => act('read', notification._id)} disabled={Boolean(busy)} aria-label={'Mark ' + notification.title + ' as read'}><Check /></button>}<button type="button" className={styles.iconButton} onClick={() => act('delete', notification._id)} disabled={Boolean(busy)} aria-label={'Delete ' + notification.title}><Trash2 /></button></div>
+          </article>)}
+        </div>}
+        <Pagination compact currentPage={page} totalPages={pages} onPageChange={setPage} loading={loading} />
+      </section>
+    </div></div>
+  </DashboardLayout>;
 }

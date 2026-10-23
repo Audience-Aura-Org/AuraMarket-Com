@@ -338,10 +338,18 @@
    app shell (top-14 / lg:top-0). Inside the workspace they stick BELOW the
    "Working as" strip (h-11 = 44px; on phones also below the 56px bar), and
    are solid on phones where there is no blur to hide content behind them. */
+.manager-ui .m-shell-main {
+  padding-top: var(--manager-mobile-stack-height, var(--manager-mobile-bar-height));
+}
+.manager-ui .m-shell-workspace {
+  --manager-mobile-offset: var(--manager-mobile-stack-height, calc(var(--manager-mobile-bar-height) + var(--manager-working-strip-height)));
+  padding-top: var(--manager-mobile-offset);
+}
 .manager-ui .m-embedded .sticky {
-  top: calc(var(--manager-mobile-bar-height) + var(--manager-working-strip-height)) !important;
+  top: var(--manager-mobile-offset) !important;
 }
 @media (min-width: 768px) {
+  .manager-ui .m-shell-main { padding-top: 0; }
   .manager-ui .m-embedded .sticky { top: var(--manager-working-strip-height) !important; }
 }
 @media (max-width: 767px) {

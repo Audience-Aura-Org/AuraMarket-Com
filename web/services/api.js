@@ -315,9 +315,8 @@ api.interceptors.request.use(async (config) => {
     config.headers['Accept-Language'] = language;
     config.headers['X-Aura-Language'] = language;
 
-    // Main token slot first; the saved session's copy covers the moment at
-    // startup before a missing main slot is restored (see useAuth reconcile).
-    const token = usableToken(await getStoredAuthToken()) || usableToken(readSavedSession().token);
+    // The credential store is authoritative; cached UI cannot authorize requests.
+    const token = usableToken(await getStoredAuthToken());
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

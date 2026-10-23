@@ -232,6 +232,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   const [floatingMenu, setFloatingMenu] = useState(null);
   const [storyViewer, setStoryViewer] = useState({ statuses: null, storyId: null });
   const [mediaPreview, setMediaPreview] = useState(null);
+  const failedMediaRef = useRef(new Map());
   const [viewportHeight, setViewportHeight] = useState(() => stableChatViewport(getChatViewportMetrics()));
   const viewportHeightRef = useRef(viewportHeight);
   
@@ -1274,8 +1275,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
     // 1. Show image bubble immediately — exactly like WhatsApp.
     const sendStamp = Date.now();
-    const tempId = `opt-${sendStamp}-${Math.random().toString(36).slice(2)}`;
-    const clientId = `client-${sendStamp}-${Math.random().toString(36).slice(2)}`;
+    const tempId = mediaPreview.retryId || `opt-${sendStamp}-${Math.random().toString(36).slice(2)}`;
+    const clientId = mediaPreview.clientId || `client-${sendStamp}-${Math.random().toString(36).slice(2)}`;
     const optimisticImg = {
       _id: tempId,
       client_id: clientId,
@@ -1298,8 +1299,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     setUploading(true);
     let uploadedImageUrl = null;
     try {
-      const uploadRes = await uploadService.uploadSingle(file, 'general');
-      if (!uploadRes.success) throw new Error(uploadRes.message || 'Upload failed');
+      const uploadRes = await uploadService.uploadSingle(file, 'chat');
+      if (!uploadRes.success || !uploadRes.data?.url) throw new Error(uploadRes.message || 'Upload failed');
       uploadedImageUrl = uploadRes.data.url;
 
       const apiRes = await api.post('/chat', {
@@ -1310,16 +1311,18 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       }, { timeout: 12_000, __skipRetry: true });
       if (apiRes.data.success) {
         const realMsg = apiRes.data.data?.message || apiRes.data.message;
+        failedMediaRef.current.delete(tempId);
         reconcileOptimisticMessage(sendPartnerId, tempId, realMsg, clientId);
       }
     } catch (err) {
-      if (isNetworkError(err)) {
+      if (isNetworkError(err) && uploadedImageUrl) {
         // If upload finished but the message POST timed out, retain the durable
         // image URL. Retrying without it used to silently turn an image into a
         // text-only message.
         enqueueMsg({ partnerId: sendPartnerId, text: caption, imageUrl: uploadedImageUrl, clientId, tempId, productRef: null });
         markMessageQueued(sendPartnerId, tempId);
       } else {
+        failedMediaRef.current.set(tempId, { mode: 'compose', file, url: previewUrl || objectUrl, caption, retryId: tempId, clientId });
         markMessageFailed(sendPartnerId, tempId);
         toast.error('Failed to send image');
       }
@@ -1328,7 +1331,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     }
   };
 
-  const handleSend = async (customText = null, imageUrl = null) => {
+  const handleSend = async (customText = null, imageUrl = null, retryMessage = null) => {
     const fromComposer = customText === null;
     const imageUsesComposerText = Boolean(imageUrl && customText === '');
     const shouldClearComposer = fromComposer || imageUsesComposerText;
@@ -1352,8 +1355,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     setPendingSendCount(count => count + 1);
     const sendStamp = Date.now();
     const optimisticMsg = {
-      _id: `opt-${sendStamp}-${Math.random().toString(36).slice(2)}`,
-      client_id: `client-${sendStamp}-${Math.random().toString(36).slice(2)}`,
+      _id: retryMessage?._id || `opt-${sendStamp}-${Math.random().toString(36).slice(2)}`,
+      client_id: retryMessage?.client_id || `client-${sendStamp}-${Math.random().toString(36).slice(2)}`,
       text,
       image_url: imageUrl,
       product_reference: product ? {
@@ -2386,7 +2389,11 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                         {msg.status === 'failed' && (
                           <button
                             type="button"
-                            onClick={() => handleSend(msg.text)}
+                            onClick={() => {
+                              const media = failedMediaRef.current.get(msg._id);
+                              if (media) setMediaPreview(media);
+                              else handleSend(msg.text, msg.image_url || null, msg);
+                            }}
                             className="flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-semibold text-red-600 ring-1 ring-red-200 transition-colors active:bg-red-100"
                           >
                             <AlertCircle className="size-3.5 shrink-0" /> Retry send

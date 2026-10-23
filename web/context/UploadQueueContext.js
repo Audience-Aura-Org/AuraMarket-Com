@@ -51,10 +51,10 @@ export function UploadQueueProvider({ children }) {
 
     _setJobs((prev) => [...prev, job]);
 
-    taskFn({
+    Promise.resolve().then(() => taskFn({
       onProgress: (pct) => updateJob(id, { progress: Math.min(100, Math.max(0, pct)) }),
       onPhase: (phase) => updateJob(id, { phase }),
-    })
+    }))
       .then((result) => {
         updateJob(id, { status: 'done', progress: 100 });
         toast.success('Story posted! 🎉', {

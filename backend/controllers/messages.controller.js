@@ -9,6 +9,17 @@ const ShipmentMessage = require('../models/ShipmentMessage.model');
 const Shipment = require('../models/Shipment.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const { sendNotification } = require('../utils/notifier');
+const Vendor = require('../models/Vendor.model');
+
+const canAccessShipment = async (shipment, req) => {
+  const userId = String(req.user?._id || '');
+  if (req.user?.role === 'admin') return true;
+  if (userId && [shipment.booked_by, shipment.other_party?.user_id].some(id => id && String(id) === userId)) return true;
+  if (userId && shipment.logistics_id && await LogisticsCompany.exists({ _id: shipment.logistics_id, user_id: userId })) return true;
+  if (userId && shipment.vendor_id && await Vendor.exists({ _id: shipment.vendor_id, user_id: userId })) return true;
+  const code = req.query.code || req.body?.code;
+  return typeof code === 'string' && code.trim().length > 0 && code.trim().toUpperCase() === String(shipment.tracking_code).toUpperCase();
+};
 
 // ── GET MESSAGES FOR SHIPMENT ────────────────────────────────────────
 const getShipmentMessages = async (req, res) => {
@@ -22,6 +33,7 @@ const getShipmentMessages = async (req, res) => {
     }
 
     // Fetch messages
+    if (!await canAccessShipment(shipment, req)) return res.status(403).json({ success: false, message: 'Access denied.' });
     const messages = await ShipmentMessage.find({ shipment_id: shipmentId })
       .sort({ timestamp: 1 })
       .lean();
@@ -51,6 +63,7 @@ const sendShipmentMessage = async (req, res) => {
     }
 
     // Determine sender role and name
+    if (!await canAccessShipment(shipment, req)) return res.status(403).json({ success: false, message: 'Access denied.' });
     let senderName = 'Anonymous';
     let senderRole = 'shipper';
     let senderId = null;
@@ -115,7 +128,7 @@ const sendShipmentMessage = async (req, res) => {
       }).catch(err => console.error('[messages] notification error:', err.message));
     }
 
-    return res.json({ success: true, data: { message } });
+    return res.status(201).json({ success: true, data: { message } });
   } catch (err) {
     console.error('[messages] sendShipmentMessage error:', err.message);
     return res.status(500).json({ success: false, message: 'Failed to send message' });
@@ -252,6 +265,10 @@ const markShipmentThreadRead = async (req, res) => {
     const { shipmentId } = req.params;
     const userId = req.user?._id;
     if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
+
+    const shipment = await Shipment.findById(shipmentId);
+    if (!shipment) return res.status(404).json({ success: false, message: 'Shipment not found' });
+    if (!await canAccessShipment(shipment, req)) return res.status(403).json({ success: false, message: 'Access denied.' });
 
     await ShipmentMessage.updateMany(
       { shipment_id: shipmentId, read_by: { $ne: userId } },

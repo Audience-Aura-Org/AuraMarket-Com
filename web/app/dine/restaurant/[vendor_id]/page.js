@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import RestaurantMenuPageClient from './RestaurantMenuPageClient';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.auradime.com/api/v1';
@@ -45,5 +46,5 @@ export async function generateMetadata({ params }) {
 }
 
 export default function Page() {
-  return <RestaurantMenuPageClient />;
+  return <Suspense fallback={<div role="status">Loading restaurant...</div>}><RestaurantMenuPageClient /></Suspense>;
 }

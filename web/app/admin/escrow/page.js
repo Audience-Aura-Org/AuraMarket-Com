@@ -18,6 +18,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import Pagination from '@/components/common/Pagination';
 import StatCard from '@/components/layout/StatCard';
+import financeStyles from '@/components/admin/AdminFinance.module.css';
+import { AdminFinancePage, AdminFinanceHeader, AdminFinanceBody, AdminContentTabs, AdminFilterSearch, AdminFilterPills } from '@/components/admin/AdminFinanceLayout';
 
 const STAT_COLOR_STYLES = {
   amber: 'text-amber-500 bg-amber-500/5',
@@ -106,6 +108,7 @@ export default function AdminEscrow() {
   const [expandedId, setExpandedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [section, setSection] = useState('activity');
   const itemsPerPage = 10;
 
   const fetchEscrow = async () => {
@@ -268,74 +271,9 @@ export default function AdminEscrow() {
   if (!hasHydrated || !user || !['admin', 'manager'].includes(user.role)) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
-      {/* Header */}
-      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 lg:top-0 z-40 gap-4 md:gap-0">
-        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
-          <div className="flex items-center gap-4">
-            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
-               <ShieldCheck className="w-5 h-5 md:w-6 md:h-6" />
-            </div>
-            <div>
-              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Escrow <span className="text-[var(--accent)]">Vault</span></h2>
-              <div className="flex items-center gap-2 mt-0.5">
-                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-60">Live · Admin View</p>
-              </div>
-            </div>
-          </div>
-          <button onClick={fetchEscrow} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
-             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
-           <div className="relative flex-1 md:w-64 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] opacity-20 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
-              <input
-                type="text"
-                placeholder="Order ID, Customer, Store..."
-                className="w-full h-11 md:h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl pl-11 pr-4 text-[11px] font-semibold tracking-tight text-[var(--text-primary)] outline-none focus:border-[var(--accent)]/50 transition-all shadow-inner"
-                value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              />
-           </div>
-           <button onClick={fetchEscrow} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-           </button>
-        </div>
-      </header>
-
-      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6 md:space-y-8 pb-32">
-        {/* Filter Row */}
-        <div className="rounded-[1.5rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 p-3 md:p-4 backdrop-blur-xl">
-           <div className="mb-3 flex items-center gap-2 px-1 text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--text-secondary)] opacity-60">
-              <Filter className="size-3.5" />
-              Vault Filter
-           </div>
-           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {ESCROW_FILTERS.map(filter => (
-                 <button
-                   key={filter.id}
-                   type="button"
-                   onClick={() => { setStatusFilter(filter.id); setCurrentPage(1); }}
-                   className={`flex min-w-max items-center gap-2 rounded-2xl border px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.14em] transition-all ${
-                     statusFilter === filter.id
-                       ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-lg shadow-[var(--accent)]/20'
-                       : 'border-[var(--glass-border)] bg-[var(--bg-primary)]/45 text-[var(--text-secondary)] hover:border-[var(--accent)]/30 hover:text-[var(--text-primary)]'
-                   }`}
-                 >
-                   <span>{filter.label}</span>
-                   <span className={`rounded-full px-2 py-0.5 text-[9px] ${
-                     statusFilter === filter.id ? 'bg-white/20 text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                   }`}>
-                     {statusCounts[filter.id] || 0}
-                   </span>
-                 </button>
-              ))}
-           </div>
-        </div>
-
+    <AdminFinancePage theme="escrow">
+      <AdminFinanceHeader icon={ShieldCheck} title="Escrow & fees" description="Follow protected payments and manage platform fees." onRefresh={fetchEscrow} loading={loading} />
+      <AdminFinanceBody>
         {/* Stats */}
         {(() => {
           const total   = (custodyTotal + releasedTotal) || 1;
@@ -352,8 +290,11 @@ export default function AdminEscrow() {
           );
         })()}
 
-        {/* Commission Controls */}
-        <div className="rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-5 md:p-6 backdrop-blur-xl">
+
+        <AdminContentTabs value={section} onChange={setSection} items={[{ id: 'activity', label: 'Escrow activity', icon: Database }, { id: 'fees', label: 'Fee settings', icon: Settings2 }]} />
+        {section === 'fees' ? (
+        <>
+        <div className={`${financeStyles.panel} p-5 md:p-6`}>
            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
               <div className="flex items-center gap-3">
                  <div className="size-11 rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center border border-[var(--accent)]/20">
@@ -403,6 +344,7 @@ export default function AdminEscrow() {
                    </div>
                    <div className="grid grid-cols-[1fr_120px] gap-3">
                       <select
+                        aria-label={`${item.title} type`}
                         value={settings[item.typeField]}
                         onChange={e => handleSettingsChange(item.typeField, e.target.value)}
                         disabled={!['admin', 'manager'].includes(user?.role)}
@@ -415,6 +357,7 @@ export default function AdminEscrow() {
                         type="number"
                         min="0"
                         step="0.01"
+                        aria-label={`${item.title} value`}
                         value={settings[item.valueField]}
                         onChange={e => handleSettingsChange(item.valueField, e.target.value)}
                         disabled={!['admin', 'manager'].includes(user?.role)}
@@ -428,7 +371,7 @@ export default function AdminEscrow() {
            {/* Live Fee Preview */}
            <div className="mt-4 rounded-2xl bg-[var(--bg-primary)]/30 border border-[var(--glass-border)] p-4">
               <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-70 mb-3">Fee preview on a 10,000 XAF order</p>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                  {[
                    { label: 'Base',       value: `${fmt(feePreview.base)} XAF`,     color: 'text-[var(--text-primary)]' },
                    { label: 'Commission', value: `-${fmt(feePreview.commFee)} XAF`, color: 'text-rose-500' },
@@ -462,16 +405,23 @@ export default function AdminEscrow() {
            </div>
         </div>
 
+
+        </>
+        ) : <div className="space-y-5">
+          <div className={`${financeStyles.panel} ${financeStyles.filterArea} space-y-4`}>
+            <AdminFilterSearch value={searchQuery} onChange={(event) => { setSearchQuery(event.target.value); setCurrentPage(1); }} placeholder="Search order, customer, or store" />
+            <AdminFilterPills items={ESCROW_FILTERS.map((filter) => ({ ...filter, badge: statusCounts[filter.id] }))} value={statusFilter} onChange={(value) => { setStatusFilter(value); setCurrentPage(1); }} />
+          </div>
         {/* Escrow Ledger */}
-        <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">
-           <div className="p-6 md:p-8 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-secondary)]/20">
+        <div className={financeStyles.panel}>
+           <div className={financeStyles.panelHeader}>
               <h3 className="text-xs font-bold text-[var(--text-primary)] tracking-[0.2em] flex items-center gap-3 uppercase">
-                 <Database className="size-4 text-[var(--accent)]" /> Global Escrow Trace Ledger
+                 <Database className="size-4 text-[var(--accent)]" /> Escrow activity
               </h3>
               <p className="hidden md:block text-[10px] font-semibold text-[var(--text-secondary)] opacity-50">{filteredLogs.length} record{filteredLogs.length !== 1 ? 's' : ''} shown</p>
            </div>
 
-           <div className="p-4 md:p-8 space-y-4">
+           <div className={`${financeStyles.panelBody} space-y-4`}>
              {loading ? (
                 <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-30">
                    <Loader2 className="animate-spin size-10" />
@@ -494,6 +444,8 @@ export default function AdminEscrow() {
                        >
                           <div
                              className="p-5 md:p-6 flex flex-col md:flex-row md:items-center gap-6 cursor-pointer"
+                             role="button" tabIndex={0} aria-expanded={isExpanded}
+                             onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setExpandedId(isExpanded ? null : l._id); } }}
                              onClick={() => setExpandedId(isExpanded ? null : l._id)}
                           >
                              <div className={`size-12 md:size-14 rounded-2xl ${statusBg} ${statusColor} flex items-center justify-center shrink-0 border ${statusColor.replace('text-', 'border-')}/10 shadow-inner group-hover:scale-105 transition-transform duration-500`}>
@@ -678,7 +630,9 @@ export default function AdminEscrow() {
               />
            </div>
         </div>
-      </div>
-    </div>
+
+        </div>}
+      </AdminFinanceBody>
+    </AdminFinancePage>
   );
 }

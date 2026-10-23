@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import { restaurantHref } from '@/lib/restaurantRoutes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import {
@@ -22,7 +23,7 @@ const getVendorDescription = (vendor) => vendor?.description || vendor?.vendor_i
 const getStoreHref = (vendor) => {
   const vendorId = getVendorId(vendor);
   // Restaurants have their own dedicated menu page; all other vendors go to the store page.
-  if ((vendor?.vendor_type || vendor?.vendor_id?.vendor_type) === 'restaurant') return `/dine/restaurant/${vendorId}`;
+  if ((vendor?.vendor_type || vendor?.vendor_id?.vendor_type) === 'restaurant') return restaurantHref(vendorId);
   return `/stores?id=${encodeURIComponent(vendorId)}`;
 };
 

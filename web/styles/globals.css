@@ -872,3 +872,9 @@ html[data-font-size] h4 { font-size: calc(1.25rem * var(--aura-text-scale, 1)); 
     background-color: var(--m-surface-solid) !important;
   }
 }
+
+/* Match the manager rail's family, scaled size and medium link weight. */
+.aura-sidebar { font-family: "Poppins", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif; line-height: 1.5; letter-spacing: normal; }
+:is(html[data-font-size] body, html) .aura-sidebar nav :is(a, button) { font-family: inherit; font-size: calc(15px * var(--aura-text-scale, 1)); font-weight: 500; letter-spacing: normal; }
+:is(html[data-font-size] body, html) .aura-sidebar nav :is(a, button) > span:not(.material-symbols-outlined) { font-family: inherit; font-size: inherit; font-weight: inherit; letter-spacing: normal; }
+:is(html[data-font-size] body, html) .aura-sidebar nav [aria-current="page"] { font-weight: 600; }

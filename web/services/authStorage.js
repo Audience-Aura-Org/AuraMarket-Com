@@ -2,6 +2,11 @@ import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
 
 const TOKEN_KEY = 'aura_token';
+export const normalizeAuthToken = (value) => {
+  if (typeof value !== 'string') return null;
+  const token = value.trim();
+  return token && !['null', 'undefined'].includes(token.toLowerCase()) ? token : null;
+};
 
 export const isNativeAuthStorage = () => {
   return typeof window !== 'undefined' && Capacitor.isNativePlatform();
@@ -12,11 +17,11 @@ export const getStoredAuthToken = async () => {
 
   if (isNativeAuthStorage()) {
     const { value } = await Preferences.get({ key: TOKEN_KEY });
-    return value || null;
+    return normalizeAuthToken(value);
   }
 
   try {
-    return window.localStorage.getItem(TOKEN_KEY) || null;
+    return normalizeAuthToken(window.localStorage.getItem(TOKEN_KEY));
   } catch {
     return null;
   }
@@ -28,6 +33,7 @@ export const setStoredAuthToken = async (token) => {
     return;
   }
   
+  token = normalizeAuthToken(token);
   if (!token) {
     console.warn('[authStorage] setStoredAuthToken: token is null/undefined, skipping storage');
     return;

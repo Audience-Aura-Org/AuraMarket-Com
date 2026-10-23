@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/services/api';
+import FinanceEntry, { FinanceTable } from '@/components/admin/FinanceEntry';
 import { useAuthStore } from '@/hooks/useAuth';
 import {
   CreditCard, Clock, User, RotateCcw, ChevronDown,
@@ -19,6 +20,7 @@ import {
   getTransactionParty,
 } from '@/components/admin/FinanceRowDisplay';
 import StatCard from '@/components/layout/StatCard';
+import financeStyles from '@/components/admin/AdminFinance.module.css';
 import {
   AdminFinancePage,
   AdminFinanceHeader,
@@ -480,6 +482,7 @@ export default function AdminTransactionsPage() {
     try {
       const params = {
         page: currentPage,
+        limit: 20,
         status: statusFilter,
         type: typeFilter,
         search,
@@ -488,7 +491,7 @@ export default function AdminTransactionsPage() {
       const res = await api.get('/admin/transactions', { params });
       if (res.data?.success) {
         setTransactions(res.data.data.transactions || []);
-        setTotalPages(Math.max(1, Math.ceil((res.data.total || 0) / 50)));
+        setTotalPages(Math.max(1, Math.ceil((res.data.total || 0) / 20)));
       }
     } catch {
       toast.error('Failed to load transactions');
@@ -649,8 +652,8 @@ export default function AdminTransactionsPage() {
       <AdminFinanceHeader
         theme="transactions"
         icon={CreditCard}
-        title="Payment ledger"
-        description="Escrow, deposits, and platform revenue"
+        title="Transactions"
+        description="Trace payments, wallet movements, and platform revenue."
         badge={
           <>
             <span className="sm:hidden">{transactions.length}</span>
@@ -680,12 +683,12 @@ export default function AdminTransactionsPage() {
 
         <AdminListPanel
           theme="transactions"
-          variant="ledger"
+          variant="records"
           title="Ledger entries"
           countLabel={
             <>
               <span className="sm:hidden">Pg {currentPage}</span>
-              <span className="hidden sm:inline">Page {currentPage} · 50 per page</span>
+              <span className="hidden sm:inline">Page {currentPage} · 20 per page</span>
             </>
           }
           loading={loading}
@@ -693,9 +696,6 @@ export default function AdminTransactionsPage() {
           isEmpty={!loading && transactions.length === 0}
           emptyIcon={CreditCard}
           emptyMessage="No transactions match your filters."
-          listHeader={
-            <AdminLedgerTableHeader columns={['Transaction', 'Amount & date', 'Gateway', '']} />
-          }
           footer={
             !loading && transactions.length > 0 ? (
               <Pagination
@@ -719,6 +719,7 @@ export default function AdminTransactionsPage() {
                 <AdminFilterRow>
                   <AdminFilterSelect
                     theme="transactions"
+                    label="Transaction type"
                     value={typeFilter}
                     onChange={(e) => {
                       setTypeFilter(e.target.value);
@@ -734,6 +735,7 @@ export default function AdminTransactionsPage() {
                   </AdminFilterSelect>
                   <AdminFilterSelect
                     theme="transactions"
+                    label="Transaction gateway"
                     value={gatewayFilter}
                     onChange={(e) => {
                       setGatewayFilter(e.target.value);
@@ -772,6 +774,7 @@ export default function AdminTransactionsPage() {
             </>
           }
         >
+          <FinanceTable>
           {transactions.map((tx, idx) => {
             const status = STATUS_CONFIG[tx.status] || STATUS_CONFIG.pending;
             const type = TYPE_CONFIG[tx.type] || TYPE_CONFIG.payment;
@@ -783,113 +786,15 @@ export default function AdminTransactionsPage() {
             const moneyRoute = buildMoneyRoute(tx, linkedOrders);
 
             return (
-              <div
-                key={tx._id}
-                className={`transition ${
-                  isExpanded ? 'bg-indigo-500/[0.06]' : idx % 2 === 1 ? 'bg-[var(--bg-secondary)]/15' : ''
-                }`}
-              >
-                <button
-                  type="button"
-                  className="w-full text-left active:bg-[var(--bg-secondary)]/30"
-                  onClick={() => setExpandedId(isExpanded ? null : tx._id)}
-                >
-                  {/* Mobile: compact single-row card */}
-                  <div className="flex items-center gap-2.5 px-2.5 py-2.5 sm:hidden">
-                    <PartyAvatar
-                      src={party.logo}
-                      initial={party.initial}
-                      alt={party.name}
-                      badge={
-                        <GatewayBrand
-                          gateway={tx.gateway}
-                          className="ring-2 ring-[var(--bg-primary)]"
-                        />
-                      }
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-[11px] font-semibold capitalize">
-                          {tx.type?.replace(/_/g, ' ')}
-                        </span>
-                        <span
-                          className={`shrink-0 rounded-md px-1.5 py-0.5 text-[8px] font-semibold uppercase ${status.bg} ${status.color}`}
-                        >
-                          {status.label}
-                        </span>
-                      </div>
-                      <p className="mt-0.5 truncate font-mono text-[9px] text-indigo-600 dark:text-indigo-400">
-                        #{tx.reference?.slice(-8).toUpperCase()}
-                      </p>
-                      <p className="mt-0.5 truncate text-[9px] text-[var(--text-secondary)]">{party.name}</p>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <AmountDateColumn
-                        compact
-                        amount={tx.amount}
-                        currency={tx.currency || 'XAF'}
-                        createdAt={tx.createdAt}
-                        amountClassName="text-indigo-900 dark:text-indigo-200"
-                      />
-                      <ChevronDown
-                        className={`size-4 text-[var(--text-secondary)] transition ${isExpanded ? 'rotate-180 text-indigo-600' : ''}`}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Desktop: ledger grid */}
-                  <div className="hidden sm:grid sm:grid-cols-[minmax(0,1fr)_120px_110px_36px] sm:items-center sm:gap-3 sm:px-4 sm:py-2.5">
-                    <div className="flex min-w-0 items-start gap-2.5">
-                      <PartyAvatar
-                        src={party.logo}
-                        initial={party.initial}
-                        alt={party.name}
-                        badge={
-                          <GatewayBrand
-                            gateway={tx.gateway}
-                            className="ring-2 ring-[var(--bg-primary)]"
-                          />
-                        }
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-[12px] font-semibold capitalize">
-                            {tx.type?.replace(/_/g, ' ')}
-                          </span>
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase ${status.bg} ${status.color}`}
-                          >
-                            <TypeIcon className="size-3" />
-                            {status.label}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 font-mono text-[10px] text-indigo-600 dark:text-indigo-400">
-                          #{tx.reference?.slice(-10).toUpperCase()}
-                        </p>
-                        <p className="mt-0.5 line-clamp-1 text-[10px] text-[var(--text-secondary)]">
-                          {party.name} · {tx.description || '—'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <AmountDateColumn
-                      amount={tx.amount}
-                      currency={tx.currency || 'XAF'}
-                      createdAt={tx.createdAt}
-                      amountClassName="text-indigo-900 dark:text-indigo-200"
-                    />
-
-                    <div className="flex items-center justify-center">
-                      <GatewayBrand gateway={tx.gateway} size="md" />
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <ChevronDown
-                        className={`size-4 text-[var(--text-secondary)] transition ${isExpanded ? 'rotate-180 text-indigo-600' : ''}`}
-                      />
-                    </div>
-                  </div>
-                </button>
+                  <FinanceEntry key={tx._id} onOpen={() => setExpandedId(isExpanded ? null : tx._id)} controls={`transaction-details-${tx._id}`}
+                    icon={<TypeIcon />} title={party.name} description={tx.description || type.label || tx.type?.replace(/_/g, ' ')}
+                    reference={tx.reference ? '#' + tx.reference : 'No reference'}
+                    amount={fmt(tx.amount) + ' ' + (tx.currency || 'XAF')}
+                    date={new Date(tx.createdAt).toLocaleString()} status={status.label}
+                    tone={tx.status === 'completed' || tx.status === 'success' ? 'success' : tx.status === 'failed' ? 'danger' : 'pending'}
+                    expandable expanded={isExpanded}
+                    meta={<><span className="capitalize">{tx.type?.replace(/_/g, ' ') || 'Transaction'}</span><span>{formatGatewayName(tx.gateway)}</span>{linkedOrders.length > 0 && <span>{linkedOrders.length} linked order{linkedOrders.length === 1 ? '' : 's'}</span>}</>}
+                  >
 
                 <AnimatePresence>
                   {isExpanded && (
@@ -897,9 +802,10 @@ export default function AdminTransactionsPage() {
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden border-t border-indigo-500/15 bg-[var(--bg-primary)]/50"
+                      id={`transaction-details-${tx._id}`}
+                      className={`${financeStyles.details} overflow-hidden`}
                     >
-                      <div className="grid gap-2.5 p-2.5 lg:grid-cols-[1fr_1.15fr] sm:gap-3 sm:p-4">
+                      <div className="grid min-w-0 gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] sm:p-6">
                         <div className="space-y-3">
                           <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3 space-y-2">
                           <p className="flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 dark:text-indigo-400">
@@ -1028,9 +934,10 @@ export default function AdminTransactionsPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </FinanceEntry>
             );
           })}
+          </FinanceTable>
         </AdminListPanel>
       </AdminFinanceBody>
     </AdminFinancePage>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import { restaurantHref } from '@/lib/restaurantRoutes';
 import { useState } from 'react';
 import { Star, Plus, MessageSquare, Clock, ShoppingCart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -95,7 +96,7 @@ export default function DineMealCard({ meal, onSelect = null }) {
       {/* ── Top bar: restaurant avatar + name + follow (mirrors ProductCard) ── */}
       <div className="grid h-10 min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 sm:gap-2 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/50 p-2 backdrop-blur-md sm:p-2.5 md:p-3 overflow-hidden">
         <Link
-          href={`/dine/restaurant/${vendor_id}`}
+          href={restaurantHref(vendor_id)}
           className="flex min-w-0 items-center gap-1.5 overflow-hidden group/vendor"
           onClick={e => e.stopPropagation()}
         >
@@ -159,7 +160,7 @@ export default function DineMealCard({ meal, onSelect = null }) {
             )}
           </button>
         ) : (
-          <Link href={`/dine/restaurant/${vendor_id}`} className="block h-full w-full" onClick={e => e.stopPropagation()}>
+          <Link href={restaurantHref(vendor_id)} className="block h-full w-full" onClick={e => e.stopPropagation()}>
             {thumbnail_url ? (
               <img
                 src={thumbnail_url}

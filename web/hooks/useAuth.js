@@ -203,6 +203,11 @@ const baseAuthStore = create(
             __skipRetry: true,
             __noActAs: true,
           });
+          if (!(await getStoredAuthToken())) {
+            await reconcileHydratedSession();
+            set({ loading: false });
+            return { success: false };
+          }
           const fetchedUser = res.data.data?.user;
           if (!fetchedUser) throw new Error('No user returned');
           // The profile carries wallet_balance; apply it only if no newer
@@ -363,7 +368,10 @@ const baseAuthStore = create(
       // Mark hydrated only after checking the token, so no page ever renders
       // a saved "signed in" state that has no token behind it.
       onRehydrateStorage: () => (state) => {
-        reconcileHydratedSession().finally(() => state?.setHasHydrated?.(true));
+        // localStorage hydration can finish inside create(), before the store
+        // variable is assigned. Reconcile after module initialization completes.
+        Promise.resolve().then(() => reconcileHydratedSession())
+          .finally(() => state?.setHasHydrated?.(true));
       },
     }
   )
@@ -373,22 +381,21 @@ const baseAuthStore = create(
  * A session exists only while a token exists. Run after the persisted state
  * loads: a saved "signed in" user with no token anywhere is signed out (it
  * could never make an authenticated request — the "logged in without a
- * token" bug); a token kept in the saved state but missing from its main
- * slot is restored there instead of logging the user out.
+ * token" bug). Cached UI state must never recreate a removed credential.
  */
 export async function reconcileHydratedSession() {
   const state = baseAuthStore.getState();
   if (!state.isAuthenticated && !state.user) return;
   let stored = null;
   try { stored = await getStoredAuthToken(); } catch (_) {}
+  // A login or logout that completed during storage I/O owns the new state.
+  if (baseAuthStore.getState().token !== state.token || baseAuthStore.getState().user !== state.user) return;
   if (stored) {
     if (state.token !== stored) baseAuthStore.setState({ token: stored });
     return;
   }
-  if (state.token) {
-    await setStoredAuthToken(state.token).catch(() => {});
-    return;
-  }
+  socketService.disconnect();
+  try { require('./useManagerMode').useManagerMode.getState().reset(); } catch {}
   baseAuthStore.setState({
     user: null, token: null, isAuthenticated: false, walletBalance: null, followedVendorIds: [],
   });
@@ -412,6 +419,7 @@ export const ActingAccountContext = createContext(null);
 const overlayCache = new WeakMap();
 
 const overlayState = (state, acting) => {
+  if (!state.isAuthenticated || !state.token) return state;
   const hit = overlayCache.get(acting);
   if (hit && hit.state === state) return hit.result;
   const result = {

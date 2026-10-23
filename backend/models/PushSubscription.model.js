@@ -31,7 +31,7 @@ const PushSubscriptionSchema = new mongoose.Schema({
 
 // Ensure one subscription per device/endpoint for a user
 PushSubscriptionSchema.index({ user_id: 1, 'subscription.endpoint': 1 }, { unique: true });
-PushSubscriptionSchema.index({ user_id: 1, fcm_token: 1 }, { unique: true, sparse: true });
+PushSubscriptionSchema.index({ user_id: 1, fcm_token: 1 }, { name: 'push_android_user_token_unique', unique: true, partialFilterExpression: { fcm_token: { $type: 'string' } } });
 // Fast lookup when a browser endpoint moves from one signed-in account to another.
 PushSubscriptionSchema.index({ 'subscription.endpoint': 1 });
 PushSubscriptionSchema.index({ fcm_token: 1 }, { sparse: true });

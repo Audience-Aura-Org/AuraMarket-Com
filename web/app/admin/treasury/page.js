@@ -1,5 +1,8 @@
 "use client";
 
+import StatCard from '@/components/layout/StatCard';
+import financeStyles from '@/components/admin/AdminFinance.module.css';
+
 import { useState, useEffect, useCallback } from 'react';
 import {
   Landmark, Send, Loader2, CheckCircle2,
@@ -10,11 +13,13 @@ import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
+import FinanceEntry, { FinanceTable } from '@/components/admin/FinanceEntry';
 import Pagination from '@/components/common/Pagination';
 import {
   AdminFinancePage,
   AdminFinanceHeader,
   AdminFinanceBody,
+  AdminContentTabs,
   AdminFilterToolbar,
   AdminFilterSearch,
   AdminFilterSelect,
@@ -31,21 +36,22 @@ const STATUS_CFG = {
 function FieldInput({ label, children }) {
   return (
     <div>
-      <label className="text-[10px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1 block">
-        {label}
+      <label className="block text-[11px] font-medium text-[var(--text-secondary)]">
+        <span className="mb-2 block">{label}</span>
+        {children}
       </label>
-      {children}
     </div>
   );
 }
 
 const inputClass =
-  'w-full h-10 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[12px] outline-none focus:border-amber-500/45 transition-colors';
+  `${financeStyles.control} text-[12px]`;
 
 export default function AdminTreasuryPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuthStore();
 
+  const [view, setView] = useState('history');
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -140,6 +146,7 @@ export default function AdminTreasuryPage() {
         setForm(f => ({ ...f, phone: '', firstName: '', lastName: '', amount: '', note: '' }));
         fetchHistory();
         fetchBalances();
+        setView('history');
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Payout failed');
@@ -169,10 +176,10 @@ export default function AdminTreasuryPage() {
   if (!['admin', 'manager'].includes(user?.role)) return null;
 
   const kpis = [
-    { icon: CreditCard,    label: 'Gateway Balance',  value: xafBalance != null ? `${Number(xafBalance).toLocaleString()} XAF` : '---' },
-    { icon: Send,          label: 'Total Payouts',    value: stats?.total_count ?? 0 },
-    { icon: CheckCircle2,  label: 'Disbursed',        value: `${((stats?.completed_amount || 0) / 1000).toFixed(0)}k XAF` },
-    { icon: AlertTriangle, label: 'Failed',           value: stats?.failed ?? 0 },
+    { icon: CreditCard, label: 'Gateway balance', value: xafBalance != null ? Number(xafBalance).toLocaleString() + ' XAF' : '---', color: 'emerald', sub: 'Available for payouts', footer: 'XAF gateway wallet' },
+    { icon: Send, label: 'Total payouts', value: stats?.total_count ?? 0, color: 'indigo', sub: 'All payout requests', footer: 'Across payout gateways' },
+    { icon: CheckCircle2, label: 'Disbursed', value: Number(stats?.completed_amount || 0).toLocaleString() + ' XAF', color: 'amber', sub: 'Completed transfers', footer: 'Successfully paid out' },
+    { icon: AlertTriangle, label: 'Failed', value: stats?.failed ?? 0, color: 'primary', sub: 'Unsuccessful transfers', footer: 'Review payout history' },
   ];
 
   return (
@@ -181,41 +188,31 @@ export default function AdminTreasuryPage() {
         theme={THEME}
         icon={Landmark}
         title="Treasury"
-        description="Direct gateway payouts"
+        description="Send direct payouts and follow their progress across gateways."
+        actions={<button type="button" aria-label="New payout" className={`${financeStyles.primaryButton} text-[11px]`} onClick={() => setView('payout')}><Send className="size-4" /><span className="hidden sm:inline">New payout</span></button>}
         onRefresh={handleRefresh}
         loading={loading}
       />
 
       <AdminFinanceBody>
         {/* KPI Strip */}
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-          {kpis.map(({ icon: KIcon, label, value }) => (
-            <div
-              key={label}
-              className="flex items-center gap-2.5 rounded-xl border border-amber-500/15 bg-[var(--bg-primary)]/95 px-3 py-2.5"
-            >
-              <div className="size-8 shrink-0 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                <KIcon className="size-4 text-amber-600" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[9px] font-medium text-[var(--text-secondary)]">{label}</p>
-                <p className="text-[12px] font-bold tabular-nums truncate">{value}</p>
-              </div>
-            </div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {kpis.map(({ icon, label, value, color, sub, footer }) => (
+            <StatCard key={label} icon={icon} label={label} value={value} color={color} sub={sub} footer={footer} loading={loading} />
           ))}
         </div>
 
-        {/* 2-Column Layout: Form (left) + History (right) on desktop */}
-        <div className="grid gap-4 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start">
+        <AdminContentTabs value={view} onChange={setView} items={[{ id: 'history', label: 'Payout history', icon: Wallet }, { id: 'payout', label: 'New payout', icon: Send }]} />
+        <div className="space-y-5">
 
           {/* ── Left: Payout Form (sticky on desktop) ── */}
-          <section className="rounded-2xl border border-amber-500/10 bg-[var(--bg-primary)]/95 shadow-sm overflow-hidden lg:sticky lg:top-[85px]">
-            <div className="px-4 py-3 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/20">
+          <section hidden={view !== 'payout'} className={`${financeStyles.panel} mx-auto max-w-3xl`}>
+            <div className={financeStyles.panelHeader}>
               <p className="text-[12px] font-semibold flex items-center gap-2">
                 <Send className="size-4 text-amber-600" /> New Payout
               </p>
             </div>
-            <div className="p-4 space-y-3">
+            <div className={`${financeStyles.panelBody} space-y-5`}>
               {/* Gateway */}
               <div className="flex gap-2">
                 {['eversend', 'pawapay'].map(gw => (
@@ -288,9 +285,17 @@ export default function AdminTreasuryPage() {
           </section>
 
           {/* ── Right: Payout History ── */}
-          <section className="rounded-2xl border border-amber-500/10 bg-[var(--bg-primary)]/95 shadow-sm overflow-hidden">
+          <section hidden={view !== 'history'} className={financeStyles.panel}>
+            {/* Title bar */}
+            <div className={financeStyles.panelHeader}>
+              <h2 className="text-sm font-semibold">Payout History</h2>
+              <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
+                {historyTotal} total
+              </span>
+            </div>
+
             {/* Filters */}
-            <div className="space-y-2.5 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-2.5 sm:space-y-3 sm:p-4">
+            <div className={`${financeStyles.filterArea} space-y-3`}>
               <AdminFilterToolbar>
                 <AdminFilterSearch
                   theme={THEME}
@@ -298,13 +303,13 @@ export default function AdminTreasuryPage() {
                   onChange={e => { setSearch(e.target.value); setHistoryPage(1); }}
                   placeholder="Search reference..."
                 />
-                <AdminFilterSelect value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setHistoryPage(1); }}>
+                <AdminFilterSelect label="Payout status" value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setHistoryPage(1); }}>
                   <option value="all">All Status</option>
                   <option value="completed">Completed</option>
                   <option value="pending">Pending</option>
                   <option value="failed">Failed</option>
                 </AdminFilterSelect>
-                <AdminFilterSelect value={filterGateway} onChange={e => { setFilterGateway(e.target.value); setHistoryPage(1); }}>
+                <AdminFilterSelect label="Payout gateway" value={filterGateway} onChange={e => { setFilterGateway(e.target.value); setHistoryPage(1); }}>
                   <option value="all">All Gateways</option>
                   <option value="eversend">Eversend</option>
                   <option value="pawapay">PawaPay</option>
@@ -321,14 +326,6 @@ export default function AdminTreasuryPage() {
               </AdminFilterToolbar>
             </div>
 
-            {/* Title bar */}
-            <div className="flex items-center justify-between gap-2 border-b border-[var(--glass-border)] px-4 py-2.5">
-              <p className="text-[12px] font-semibold">Payout History</p>
-              <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
-                {historyTotal} total
-              </span>
-            </div>
-
             {/* List */}
             {loading ? (
               <div className="flex flex-col items-center justify-center gap-3 py-20">
@@ -341,41 +338,28 @@ export default function AdminTreasuryPage() {
                 <p className="text-sm font-medium text-[var(--text-secondary)]">No direct payouts yet.</p>
               </div>
             ) : (
-              <div className="divide-y divide-[var(--glass-border)]/50">
+              <FinanceTable>
                 {history.map(tx => {
                   const cfg = STATUS_CFG[tx.status] || STATUS_CFG.pending;
                   const StatusIcon = cfg.icon;
                   return (
-                    <div key={tx._id} className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg-secondary)]/20 transition-colors">
-                      <div className={`size-8 shrink-0 rounded-lg flex items-center justify-center ${cfg.bg} border`}>
-                        <StatusIcon className={`size-3.5 ${cfg.color}`} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <p className="text-[11px] font-semibold text-[var(--text-primary)] truncate">
-                            {tx.metadata?.recipient?.phone || 'N/A'} — {tx.metadata?.recipient?.firstName} {tx.metadata?.recipient?.lastName}
-                          </p>
-                          <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)] shrink-0">
-                            {tx.gateway}
-                          </span>
-                        </div>
-                        <p className="text-[9px] text-[var(--text-secondary)] opacity-50 truncate">
-                          {tx.reference} {tx.metadata?.note ? `| ${tx.metadata.note}` : ''} | {new Date(tx.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                      <p className="text-[12px] font-bold tabular-nums text-[var(--text-primary)] shrink-0">
-                        {(tx.amount || 0).toLocaleString()} {tx.currency || 'XAF'}
-                      </p>
-                    </div>
+                    <FinanceEntry key={tx._id}
+                      icon={<StatusIcon />} title={[tx.metadata?.recipient?.firstName, tx.metadata?.recipient?.lastName].filter(Boolean).join(' ') || 'Payout recipient'}
+                      description={tx.metadata?.recipient?.phone || 'No phone recorded'} reference={tx.reference}
+                      amount={(tx.amount || 0).toLocaleString() + ' ' + (tx.currency || 'XAF')}
+                      date={new Date(tx.createdAt).toLocaleString()} status={tx.status}
+                      tone={tx.status === 'completed' ? 'success' : tx.status === 'failed' ? 'danger' : 'pending'}
+                      meta={<><span className="capitalize">{tx.gateway || 'Manual payout'}</span>{tx.metadata?.note && <span>{tx.metadata.note}</span>}</>}
+                    />
                   );
                 })}
-              </div>
+              </FinanceTable>
             )}
 
             {/* Pagination */}
             {historyPages > 1 && !loading && (
               <div className="border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/15 px-2 py-2 sm:px-4 sm:py-3">
-                <Pagination page={historyPage} pages={historyPages} onPageChange={setHistoryPage} />
+                <Pagination currentPage={historyPage} totalPages={historyPages} onPageChange={setHistoryPage} />
               </div>
             )}
           </section>

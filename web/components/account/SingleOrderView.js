@@ -1,5 +1,7 @@
 "use client";
 
+import { orderParty } from '@/lib/orderParty';
+import { useManagerMode } from '@/hooks/useManagerMode';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -95,6 +97,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const orderMsgEndRef = useRef(null);
 
   const { user } = useAuthStore();
+  const actAsId = useManagerMode(state => state.actAsId);
   const { openChat } = useChat();
 
   const fetchOrderManifest = async () => {
@@ -518,7 +521,7 @@ export default function SingleOrderView({ orderId, onBack }) {
     .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   const shipmentStatusNorm = (shipment?.status || '').toLowerCase();
   const status = getStatusConfig(order.order_status, shipment?.status);
-  const isVendor = user?.role === 'vendor' || user?._id === order?.vendor_id?._id || user?._id === order?.vendor_id;
+  const { isVendor, isBuyer } = orderParty(order, user?.role === 'manager' && actAsId ? actAsId : user?._id);
   const isLogistics = user?.role === 'logistics';
   /** Match backend `orderUsesLogistics`: partner flag on order OR an actual logistics shipment ticket */
   const isLogisticsOrder = !!(
@@ -562,7 +565,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const isFoodOrder = !!order.food_status;
 
   const customerCanCancel =
-    !isVendor &&
+    isBuyer &&
     ['placed', 'processing'].includes(order.order_status) &&
     (
       order.payment_status === 'pending' ||
@@ -594,7 +597,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const logisticsUserId = logisticsUser?._id || logisticsUser;
   const carrierName = shipment?.logistics_id?.company_name || shipment?.logistics_company_id?.company_name || 'Carrier';
   const canMessageCarrier = (
-    !isVendor &&
+    isBuyer &&
     !isLogistics &&
     isLogisticsOrder &&
     !!shipment &&
@@ -622,7 +625,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   const vendorUserId = order.vendor_id?.user_id?._id || order.vendor_id?.user_id || null;
   const vendorStoreName = order.vendor_id?.store_name || order.vendor_id?.user_id?.branding?.store_name || order.vendor_id?.name || 'Vendor';
   const canMessageVendor =
-    !isVendor &&
+    isBuyer &&
     !!vendorUserId &&
     !['cancelled', 'refunded', 'failed'].includes(order.order_status);
   const openVendorChat = () => {
@@ -839,7 +842,7 @@ export default function SingleOrderView({ orderId, onBack }) {
             <Share2 className="size-3.5 opacity-70" />
             Share
           </button>
-          {!isVendor && ['completed', 'delivered', 'cancelled'].includes(order.order_status) && (
+          {isBuyer && ['completed', 'delivered', 'cancelled'].includes(order.order_status) && (
             <button
               type="button"
               onClick={handleReorder}
@@ -982,7 +985,7 @@ export default function SingleOrderView({ orderId, onBack }) {
               {statusUpdating === 'shipped' ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />} {isProtectedByGracePeriod ? 'Awaiting carrier' : 'Mark shipped'}
             </button>
           )}
-          {!isVendor && escrowCanRelease && (
+          {isBuyer && escrowCanRelease && (
             <button type="button" onClick={handleConfirmDelivery}
               className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-[11px] font-semibold text-white shadow-md shadow-emerald-500/25 transition active:opacity-90">
               <CheckCircle2 className="size-4" /> Release escrow
@@ -1144,7 +1147,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                       <span>Qty {item.quantity}</span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {order.order_status === 'completed' && !isVendor && (
+                      {order.order_status === 'completed' && isBuyer && (
                         <button
                           type="button"
                           onClick={() => openItemReview(item)}

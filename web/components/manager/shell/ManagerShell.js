@@ -30,7 +30,7 @@ export default function ManagerShell({ children }) {
       <ManagerRail />
       <ManagerMobileBar account={account} inWorkspace={inWorkspace} />
       {inWorkspace && <WorkingAsStrip account={account} />}
-      <main className={`md:pl-16 lg:pl-[232px] ${inWorkspace ? 'pt-[calc(var(--manager-mobile-bar-height)_+_var(--manager-working-strip-height))]' : 'pt-[var(--manager-mobile-bar-height)]'} md:pt-0 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0 min-h-screen`}>
+      <main className={`m-shell-main ${inWorkspace ? 'm-shell-workspace' : ''} md:pl-16 lg:pl-[272px] pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0 min-h-screen`}>
         {inWorkspace ? children : (
           <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8">{children}</div>
         )}

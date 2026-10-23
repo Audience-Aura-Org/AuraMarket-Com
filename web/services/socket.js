@@ -66,10 +66,12 @@ const normalizeSocketURL = (candidate, source = 'socket config') => {
   }
 };
 
-const getSocketURL = () => {
+export const getSocketURL = () => {
   // 1. Priority: Explicitly defined socket URL
   const explicitSocketURL = normalizeSocketURL(process.env.NEXT_PUBLIC_SOCKET_URL, 'NEXT_PUBLIC_SOCKET_URL');
   if (explicitSocketURL) return explicitSocketURL;
+  const configuredAPI = normalizeSocketURL(process.env.NEXT_PUBLIC_API_URL, 'NEXT_PUBLIC_API_URL');
+  if (configuredAPI) return configuredAPI;
 
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
@@ -216,6 +218,7 @@ class SocketService {
       },
       // Prioritize WebSocket for instant message delivery; fall back to polling if WS fails
       transports: ['websocket', 'polling'],
+      tryAllTransports: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1500,
       reconnectionDelayMax: 15000,
@@ -319,20 +322,11 @@ class SocketService {
     this.socket.on('connect_error', (err) => {
       try {
         const errorMsg = err?.message || err?.toString?.() || 'Unknown error';
-        console.error(`❌ [SocketService] Connect error (attempt ${this.connectionAttempts}): ${errorMsg}`);
-        console.error(`   Socket URL: ${SOCKET_URL}`);
-        console.error(`   Full error:`, err);
-        
-        // Provide specific guidance based on error type
-        if (errorMsg.includes('xhr poll error') || errorMsg.includes('ERR_NAME_NOT_RESOLVED') || errorMsg.includes('ECONNREFUSED')) {
-          console.error('[SocketService] ⚠️ Backend socket server is unreachable or offline.');
-          console.error('[SocketService] → Check if backend is running at', SOCKET_URL);
-        } else if (errorMsg.includes('403') || errorMsg.includes('Forbidden')) {
-          console.error('[SocketService] ⚠️ CORS or auth middleware rejected the connection.');
-        } else if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
-          console.error('[SocketService] ⚠️ Auth token invalid, expired, or missing.');
+        if (!this.warnedUnavailable || this.lastError !== errorMsg) {
+          console.warn('[SocketService] Realtime connection unavailable at ' + SOCKET_URL + ': ' + errorMsg + '. Retrying WebSocket/polling automatically.');
+          this.warnedUnavailable = true;
         }
-        
+        debugWarn('[SocketService] Connection details:', err);
         debugWarn('[SocketService] Retrying with exponential backoff.');
         this.lastError = errorMsg;
       } catch (e) {

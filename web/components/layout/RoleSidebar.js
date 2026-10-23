@@ -1,5 +1,6 @@
 "use client";
 
+import { groupSidebarItems } from '@/lib/sidebarGroups';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -196,7 +197,7 @@ export default function RoleSidebar({ role: roleProp, isOpen, onClose }) {
         onClick={onClose}
       />
 
-      <aside className={`fixed inset-y-0 left-0 w-[88vw] max-w-[270px] lg:w-[240px] bg-[var(--bg-primary)]/95 lg:bg-[var(--bg-primary)]/80 lg:backdrop-blur-xl border-r border-[var(--glass-border)]/50 flex flex-col h-full z-[220] transform-gpu [will-change:transform] transition-transform duration-200 ease-out motion-reduce:transition-none font-poppins ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`aura-sidebar fixed inset-y-0 left-0 w-[88vw] max-w-[270px] lg:w-[272px] lg:max-w-none bg-[var(--bg-primary)]/95 lg:bg-[var(--bg-primary)]/80 lg:backdrop-blur-xl border-r border-[var(--glass-border)]/50 flex flex-col h-full z-[220] transform-gpu [will-change:transform] transition-transform duration-200 ease-out motion-reduce:transition-none font-poppins ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         {/* Logo Area */}
         <div className="p-5 flex items-center justify-between border-b border-[var(--glass-border)] opacity-90">
           <div className="flex items-center gap-3 min-w-0">
@@ -277,7 +278,7 @@ export default function RoleSidebar({ role: roleProp, isOpen, onClose }) {
           {/* Main Navigation
               For restaurant vendors, drop generic "Products" — My Meals covers it.
               Normal retail/digital vendors keep the full VENDOR_NAV unchanged. */}
-          {[...(isRestaurantVendor ? config.nav.filter(i => i.label !== 'Products') : config.nav), ...ACCOUNT_NAV].map(item => {
+          {groupSidebarItems([...(isRestaurantVendor ? config.nav.filter(i => i.label !== 'Products') : config.nav), ...ACCOUNT_NAV]).map(item => {
             const itemPath = item.href.split('?')[0];
             
             // Re-evaluating isActive more simply for the profile tabs
@@ -308,11 +309,8 @@ export default function RoleSidebar({ role: roleProp, isOpen, onClose }) {
 
             return (
               <div key={item.href + item.label}>
-                {item.label === 'Security' && (
-                  <div className="pt-6 pb-2 px-4">
-                    <p className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-40">{t('nav.accountConfiguration', 'Account Configuration')}</p>
-                  </div>
-                )}
+                {item.groupStart && <div className="pt-5 first:pt-0 pb-2 px-4"><p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60">{t('nav.sections.' + item.groupStart.toLowerCase().replace(/[^a-z]+/g, '_'), item.groupStart)}</p></div>}
+
                 <Comp
                   type={isChatTrigger ? 'button' : undefined}
                   href={isChatTrigger ? undefined : item.href}

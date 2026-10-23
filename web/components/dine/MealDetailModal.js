@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { restaurantHref } from '@/lib/restaurantRoutes';
 import { X, Star, Clock, Plus, Minus, ChevronRight, Zap, ShoppingBag, Check, Package, Utensils, CalendarClock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -313,7 +314,7 @@ export default function MealDetailModal({ meal, onClose }) {
 
             {/* Restaurant row */}
             <Link
-              href={`/dine/restaurant/${meal.vendor_id}`}
+              href={restaurantHref(meal.vendor_id)}
               onClick={onClose}
               className="flex items-center gap-2 group/vendor"
             >

@@ -427,12 +427,21 @@ const getMyWithdrawals = async (req, res) => {
 // ── 3. ADMIN: GET ALL WITHDRAWALS ─────────────────────────────────────────────
 const adminGetAllWithdrawals = async (req, res) => {
   try {
-    const { status, role, currency, from, to, page = 1, limit = 30 } = req.query;
+    const { status, role, currency, from, to, search } = req.query;
+    const page = Math.max(1, Math.floor(Number(req.query.page) || 1));
+    const limit = Math.min(100, Math.max(1, Math.floor(Number(req.query.limit) || 20)));
     const query = {};
 
     if (status && status !== 'all') query.status = status;
     if (role   && role   !== 'all') query.role = role;
     if (currency) query.currency = currency;
+    if (search && String(search).trim()) {
+      const term = String(search).trim().slice(0, 100);
+      const pattern = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const accounts = await User.find({ $or: [{ name: pattern }, { email: pattern }, { phone: pattern }] }).select('_id').lean();
+      query.$or = [{ requested_by: { $in: accounts.map(account => account._id) } }];
+      if (mongoose.isValidObjectId(term)) query.$or.push({ _id: term });
+    }
     if (from || to) {
       query.createdAt = {};
       if (from) query.createdAt.$gte = new Date(from);
@@ -453,7 +462,7 @@ const adminGetAllWithdrawals = async (req, res) => {
       WithdrawalRequest.find(scopedQuery)
         .populate('requested_by', 'name email phone avatar role branding store_name storeName')
         .populate('reviewed_by', 'name email')
-        .sort('-createdAt')
+        .sort({ createdAt: -1, _id: -1 })
         .skip((page - 1) * limit)
         .limit(Number(limit)),
     ]);

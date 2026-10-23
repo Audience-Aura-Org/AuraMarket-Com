@@ -40,6 +40,7 @@ const { markEscrowDelivered } = require('./escrow.controller');
 const { toXAF, assertOrderTotal } = require('../utils/platformFees');
 const { getMobileMoneyCollectionFee, isMobileMoneyGateway } = require('../utils/mobileMoneyFees');
 const { hasRole } = require('../utils/roles');
+const { escapeRegExp } = require('../middleware/security.middleware');
 const { RETRY_TXN, shouldRetryTxn, withTxnRetry } = require('../utils/txnRetry');
 
 /** A checkout/refund rule the client broke: reaches the error handler as a 4xx, not a 500. */
@@ -859,6 +860,15 @@ const getVendorOrders = async (req, res, next) => {
       filter.food_status = { $in: wanted };
     }
 
+    if (req.query.status === 'failed') filter.payment_status = 'failed';
+    else if (Order.schema.path('order_status').enumValues.includes(req.query.status)) filter.order_status = req.query.status;
+    const term = String(req.query.search || '').trim().slice(0, 100);
+    if (term) {
+      const pattern = escapeRegExp(term);
+      const buyers = await User.find({ $or: [{ name: { $regex: pattern, $options: 'i' } }, { email: { $regex: pattern, $options: 'i' } }] }).select('_id').lean();
+      filter.$or = [{ customer_id: { $in: buyers.map(buyer => buyer._id) } }, { 'products.name': { $regex: pattern, $options: 'i' } }, { $expr: { $regexMatch: { input: { $toString: '$_id' }, regex: pattern, options: 'i' } } }];
+    }
+
     const [orders, total] = await Promise.all([
       Order.find(filter)
         .select('order_status food_status payment_status payment_method total_amount createdAt customer_id products vendor_id shipment logistics_company_id shipping_method shipping_address special_instructions status_logs')
@@ -870,7 +880,7 @@ const getVendorOrders = async (req, res, next) => {
           populate: { path: 'user_id', select: 'name avatar branding' }
         })
         .populate('shipment', 'status tracking_code')
-        .sort('-createdAt')
+        .sort({ createdAt: -1, _id: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
@@ -2020,7 +2030,13 @@ const updateFoodStatus = async (req, res, next) => {
     // Resolve the caller's role and ownership
     const isAdmin = req.user.role === 'admin';
     let isRestaurantVendor = false;
-    let isLogistics = hasRole(req.user, 'logistics');
+    let isLogistics = false;
+    if (hasRole(req.user, 'logistics') && order.logistics_company_id) {
+      const assignedFirm = await LogisticsCompany.findOne({
+        _id: order.logistics_company_id, user_id: req.user._id,
+      }).select('_id').session(session).lean();
+      isLogistics = Boolean(assignedFirm);
+    }
 
     if (hasRole(req.user, 'vendor')) {
       const callerVendor = await Vendor.findOne({ user_id: req.user._id }).select('_id vendor_type').lean();
@@ -2055,6 +2071,11 @@ const updateFoodStatus = async (req, res, next) => {
       await session.abortTransaction();
       session.endSession();
       return res.status(403).json({ success: false, message: 'Not authorised to perform this transition.' });
+    }
+    if (order.payment_status !== 'paid' || ['refund_pending', 'refunded', 'cancelled', 'completed'].includes(order.order_status)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(409).json({ success: false, message: 'This order is unpaid, disputed or closed and cannot advance.' });
     }
 
     // ── Apply the transition ────────────────────────────────────────────────

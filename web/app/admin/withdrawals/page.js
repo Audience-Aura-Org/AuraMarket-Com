@@ -1,5 +1,8 @@
 "use client";
 
+import StatCard from '@/components/layout/StatCard';
+import financeStyles from '@/components/admin/AdminFinance.module.css';
+
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -11,6 +14,7 @@ import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
+import FinanceEntry, { FinanceTable } from '@/components/admin/FinanceEntry';
 import { STATUS_CONFIG } from '@/utils/adminFinance';
 import { AmountDateColumn, GatewayBrand, PartyAvatar } from '@/components/admin/FinanceRowDisplay';
 import Pagination from '@/components/common/Pagination';
@@ -88,7 +92,8 @@ export default function AdminWithdrawalsPage() {
   const [approveGateway, setApproveGateway] = useState('pawapay');
   const [currentPage, setCurrentPage] = useState(1);
   const [brokenRequesterImages, setBrokenRequesterImages] = useState({});
-  const itemsPerPage = 10;
+  const itemsPerPage = 20;
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -102,13 +107,14 @@ export default function AdminWithdrawalsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = {};
+      const params = { page: currentPage, limit: itemsPerPage, search };
       if (filter !== 'all') params.status = filter;
       if (roleFilter !== 'all') params.role = roleFilter;
       const res = await api.get('/withdrawals/admin', { params });
       const payload = res.data?.data || res.data;
       if (res.data?.success || res.status === 200) {
         setWithdrawals(payload?.withdrawals || []);
+        setTotalPages(Math.max(1, payload?.pages || 1));
         setPendingCount(payload?.pendingCount || 0);
         if (payload?.stats) setWdStats(payload.stats);
       }
@@ -118,7 +124,7 @@ export default function AdminWithdrawalsPage() {
     } finally {
       setLoading(false);
     }
-  }, [filter, roleFilter]);
+  }, [filter, roleFilter, currentPage, search]);
 
   useEffect(() => {
     if (!hasHydrated || !['admin', 'manager'].includes(user?.role)) return;
@@ -182,19 +188,9 @@ export default function AdminWithdrawalsPage() {
     } finally { setProc(null); }
   };
 
-  const displayed = withdrawals.filter((w) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    const requester = getRequesterProfile(w);
-    return (
-      requester.name.toLowerCase().includes(q) ||
-      requester.contact.toLowerCase().includes(q) ||
-      (w._id || '').toLowerCase().includes(q)
-    );
-  });
+  const displayed = withdrawals;
 
-  const totalPages = Math.max(1, Math.ceil(displayed.length / itemsPerPage));
-  const pageItems = displayed.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const pageItems = displayed;
   const selectedRequester = selected ? getRequesterProfile(selected) : null;
   const flaggedCount = withdrawals.filter((w) =>
     ['failed', 'processing_error'].includes(w.status)
@@ -208,17 +204,11 @@ export default function AdminWithdrawalsPage() {
   const totalVolume = wdStats?.total_amount ?? 0;
 
   const kpis = [
-    { icon: Clock,        label: 'Pending',      value: pending,                                       color: 'amber' },
-    { icon: CheckCircle2, label: 'Approved',     value: approved,                                      color: 'emerald' },
-    { icon: Wallet,       label: 'Volume',        value: `${(totalVolume / 1000).toFixed(0)}k XAF`,    color: 'emerald' },
-    { icon: AlertCircle,  label: 'Issues',        value: issues,                                        color: 'rose' },
+    { icon: Clock, label: 'Pending', value: pending, color: 'amber', sub: 'Awaiting review', footer: 'Withdrawal requests' },
+    { icon: CheckCircle2, label: 'Approved', value: approved, color: 'emerald', sub: 'Approved or completed', footer: 'Reviewed requests' },
+    { icon: Wallet, label: 'Volume', value: Number(totalVolume).toLocaleString() + ' XAF', color: 'indigo', sub: 'Total requested amount', footer: 'Withdrawal volume' },
+    { icon: AlertCircle, label: 'Issues', value: issues, color: 'primary', sub: 'Transfers needing attention', footer: 'Review failed payouts' },
   ];
-
-  const COLOR_MAP = {
-    amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/15', text: 'text-amber-600' },
-    emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/15', text: 'text-emerald-600' },
-    rose: { bg: 'bg-rose-500/10', border: 'border-rose-500/15', text: 'text-rose-600' },
-  };
 
   return (
     <>
@@ -226,7 +216,7 @@ export default function AdminWithdrawalsPage() {
         <AdminFinanceHeader
           theme="withdrawals"
           icon={Wallet}
-          title="Payout Queue"
+          title="Withdrawals"
           description="Approve vendor, logistics, and customer withdrawals"
           badge={pendingCount > 0 ? `${pendingCount} pending` : null}
           onRefresh={load}
@@ -235,24 +225,10 @@ export default function AdminWithdrawalsPage() {
 
         <AdminFinanceBody>
           {/* KPI Strip */}
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-            {kpis.map(({ icon: KIcon, label, value, color }) => {
-              const c = COLOR_MAP[color];
-              return (
-                <div
-                  key={label}
-                  className={`flex items-center gap-2.5 rounded-xl border ${c.border} bg-[var(--bg-primary)]/95 px-3 py-2.5`}
-                >
-                  <div className={`size-8 shrink-0 rounded-lg ${c.bg} flex items-center justify-center`}>
-                    <KIcon className={`size-4 ${c.text}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-medium text-[var(--text-secondary)]">{label}</p>
-                    <p className="text-[12px] font-bold tabular-nums truncate">{value}</p>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            {kpis.map(({ icon, label, value, color, sub, footer }) => (
+              <StatCard key={label} icon={icon} label={label} value={value} color={color} sub={sub} footer={footer} loading={loading} />
+            ))}
           </div>
 
           {/* Pending alert */}
@@ -272,85 +248,25 @@ export default function AdminWithdrawalsPage() {
           )}
 
           {/* 2-Column Layout */}
-          <div className="grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:items-start">
-
-            {/* ── Left: Filters (sticky on desktop) ── */}
-            <aside className="space-y-3 lg:sticky lg:top-[85px]">
-              {/* Status Filter */}
-              <section className="rounded-2xl border border-emerald-500/10 bg-[var(--bg-primary)]/95 shadow-sm overflow-hidden">
-                <div className="px-3 py-2.5 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/20">
-                  <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Status</p>
-                </div>
-                <div className="p-2 space-y-1">
-                  {STATUS_TABS.map((tab) => {
-                    const isActive = filter === tab;
-                    const badge = tab === 'pending' ? pendingCount : undefined;
-                    return (
-                      <button
-                        key={tab}
-                        type="button"
-                        onClick={() => setFilter(tab)}
-                        className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-[11px] font-medium capitalize transition ${
-                          isActive
-                            ? 'bg-emerald-600 text-white shadow-sm'
-                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-                        }`}
-                      >
-                        {tab}
-                        {badge != null && badge > 0 && (
-                          <span className={`text-[9px] font-bold rounded-full px-1.5 py-0.5 ${
-                            isActive ? 'bg-white/20' : 'bg-emerald-500/10 text-emerald-600'
-                          }`}>
-                            {badge}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-
-              {/* Role Filter */}
-              <section className="rounded-2xl border border-emerald-500/10 bg-[var(--bg-primary)]/95 shadow-sm overflow-hidden">
-                <div className="px-3 py-2.5 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/20">
-                  <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Role</p>
-                </div>
-                <div className="p-2 space-y-1">
-                  {[
-                    { id: 'all', label: 'All Roles' },
-                    { id: 'vendor', label: 'Vendor' },
-                    { id: 'logistics', label: 'Logistics' },
-                    { id: 'user', label: 'Customer' },
-                  ].map(({ id, label }) => {
-                    const isActive = roleFilter === id;
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => setRoleFilter(id)}
-                        className={`w-full text-left rounded-xl px-3 py-2 text-[11px] font-medium transition ${
-                          isActive
-                            ? 'bg-emerald-600 text-white shadow-sm'
-                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            </aside>
-
+          <div className="space-y-5">
             {/* ── Right: Queue ── */}
-            <section className="rounded-2xl border border-emerald-500/10 bg-[var(--bg-primary)]/95 shadow-sm overflow-hidden">
+            <section className={financeStyles.panel}>
+              {/* Title bar */}
+              <div className={financeStyles.panelHeader}>
+                <h2 className="text-sm font-semibold">Requests</h2>
+                <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
+                  {displayed.length} shown
+                </span>
+              </div>
+
               {/* Search + mobile filters */}
-              <div className="space-y-2.5 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-2.5 sm:p-4">
-                <div className="flex gap-2">
+              <div className={`${financeStyles.filterArea} space-y-4`}>
+                <div className="flex flex-col gap-3 sm:flex-row">
                   <div className="relative flex-1">
                     <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-[var(--text-secondary)]" />
                     <input
                       type="text"
+                      aria-label="Search withdrawals"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search name, contact, or ID..."
@@ -358,9 +274,10 @@ export default function AdminWithdrawalsPage() {
                     />
                   </div>
                   <select
+                    aria-label="Requester role"
                     value={roleFilter}
                     onChange={(e) => setRoleFilter(e.target.value)}
-                    className="h-11 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 px-3 text-[16px] outline-none sm:h-10 sm:text-[12px] lg:hidden"
+                    className="h-11 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 px-3 text-[16px] outline-none sm:h-10 sm:text-[12px]"
                   >
                     <option value="all">All roles</option>
                     <option value="vendor">Vendor</option>
@@ -369,7 +286,7 @@ export default function AdminWithdrawalsPage() {
                   </select>
                 </div>
                 {/* Mobile status pills */}
-                <div className="flex gap-1.5 -mx-1 snap-x snap-mandatory overflow-x-auto px-1 no-scrollbar pb-1 lg:hidden">
+                <div className="flex gap-1.5 -mx-1 snap-x snap-mandatory overflow-x-auto px-1 no-scrollbar pb-1">
                   {STATUS_TABS.map((tab) => {
                     const isActive = filter === tab;
                     const badge = tab === 'pending' ? pendingCount : undefined;
@@ -389,14 +306,6 @@ export default function AdminWithdrawalsPage() {
                     );
                   })}
                 </div>
-              </div>
-
-              {/* Title bar */}
-              <div className="flex items-center justify-between gap-2 border-b border-[var(--glass-border)] px-4 py-2.5">
-                <p className="text-[12px] font-semibold">Requests</p>
-                <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
-                  {displayed.length} shown
-                </span>
               </div>
 
               {/* Queue list */}
@@ -420,7 +329,7 @@ export default function AdminWithdrawalsPage() {
                   )}
                 </div>
               ) : (
-                <div className="space-y-1.5 p-2 sm:space-y-2 sm:p-3">
+                <FinanceTable>
                   {pageItems.map((w) => {
                     const S = STATUS[w.status] || STATUS.pending;
                     const requester = getRequesterProfile(w);
@@ -428,79 +337,22 @@ export default function AdminWithdrawalsPage() {
                     const payoutGateway = w.payout_gateway || w.withdrawal_method;
 
                     return (
-                      <button
-                        key={w._id}
-                        type="button"
-                        onClick={() => setSelected(w)}
-                        className={`group flex w-full items-center gap-2.5 rounded-xl border p-2.5 text-left transition active:scale-[0.99] sm:gap-4 sm:rounded-2xl sm:p-3.5 ${
-                          isPending
-                            ? 'border-emerald-500/25 bg-emerald-500/[0.06] hover:border-emerald-500/40'
-                            : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 hover:border-emerald-500/20 hover:bg-[var(--bg-secondary)]/35'
-                        }`}
-                      >
-                        <PartyAvatar
-                          src={requester.logo}
-                          initial={requester.initial}
-                          alt={requester.name}
-                          size="lg"
-                          badge={
-                            <GatewayBrand
-                              gateway={payoutGateway}
-                              method={w.withdrawal_method}
-                              size="sm"
-                              className="ring-2 ring-[var(--bg-primary)]"
-                            />
-                          }
+                      <FinanceEntry key={w._id} onOpen={() => setSelected(w)}
+                          icon={<PartyAvatar src={requester.logo} initial={requester.initial} alt={requester.name} size="lg" />}
+                          title={requester.name} description={(w.role || 'Account') + ' \u00b7 ' + (w.withdrawal_method || 'Withdrawal').replace(/_/g, ' ')}
+                          reference={'#' + w._id.slice(-8).toUpperCase()} status={w.status}
+                          amount={Number(w.amount || 0).toLocaleString() + ' ' + (w.currency || 'XAF')}
+                          date={new Date(w.createdAt).toLocaleString()}
+                          tone={w.status === 'completed' || w.status === 'approved' ? 'success' : w.status === 'rejected' || w.status === 'failed' ? 'danger' : 'pending'}
+                          expandable meta={<span className="capitalize">Payout via {payoutGateway || 'Pending gateway'}</span>}
                         />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex flex-wrap items-center gap-1">
-                                <p className="truncate text-[12px] font-semibold group-hover:text-emerald-600 sm:text-[13px]">
-                                  {requester.name}
-                                </p>
-                                <span
-                                  className={`shrink-0 rounded-md px-1.5 py-0.5 text-[8px] font-semibold uppercase sm:text-[9px] ${S.cls}`}
-                                >
-                                  {w.status}
-                                </span>
-                              </div>
-                              <p className="mt-0.5 flex flex-wrap items-center gap-1 text-[9px] text-[var(--text-secondary)] sm:gap-1.5 sm:text-[10px]">
-                                <span className="capitalize">{w.role}</span>
-                                <span className="hidden opacity-40 sm:inline">&middot;</span>
-                                <span className="hidden capitalize sm:inline">{w.withdrawal_method}</span>
-                                <span className="font-mono">#{w._id.slice(-6).toUpperCase()}</span>
-                              </p>
-                            </div>
-                            <div className="flex shrink-0 items-center gap-1 sm:hidden">
-                              <AmountDateColumn
-                                compact
-                                amount={w.amount}
-                                currency={w.currency}
-                                createdAt={w.createdAt}
-                                amountClassName="text-emerald-700 dark:text-emerald-400"
-                              />
-                              <ChevronRight className="size-4 text-[var(--text-secondary)]" />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="hidden shrink-0 items-center gap-2 sm:flex">
-                          <AmountDateColumn
-                            amount={w.amount}
-                            currency={w.currency}
-                            createdAt={w.createdAt}
-                            amountClassName="text-emerald-700 dark:text-emerald-400"
-                          />
-                          <ChevronRight className="size-4 text-[var(--text-secondary)] group-hover:translate-x-0.5 group-hover:text-emerald-600" />
-                        </div>
-                      </button>
                     );
                   })}
-                </div>
+                </FinanceTable>
               )}
 
               {/* Pagination */}
-              {!loading && displayed.length > 0 && totalPages > 1 && (
+              {!loading && totalPages > 1 && (
                 <div className="border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/15 px-2 py-2 sm:px-4 sm:py-3">
                   <Pagination
                     compact
@@ -530,19 +382,21 @@ export default function AdminWithdrawalsPage() {
               initial={{ y: 24, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 24, opacity: 0 }}
+              role="dialog" aria-modal="true" aria-labelledby="payout-review-title"
               className="relative flex max-h-[min(92dvh,100%)] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl border border-emerald-500/20 bg-[var(--bg-primary)] shadow-2xl sm:max-h-[92dvh] sm:rounded-2xl"
             >
               <div className="mx-auto mt-2 h-1 w-10 shrink-0 rounded-full bg-[var(--glass-border)] sm:hidden" />
               <div className="h-1 shrink-0 bg-gradient-to-r from-emerald-500/80 via-emerald-400/50 to-transparent" />
               <div className="flex shrink-0 items-start justify-between border-b border-[var(--glass-border)] p-3 sm:p-4">
                 <div>
-                  <h2 className="text-base font-semibold">Review payout</h2>
+                  <h2 id="payout-review-title" className="text-base font-semibold">Review payout</h2>
                   <p className="text-[11px] text-[var(--text-secondary)]">
                     #{selected._id.slice(-8).toUpperCase()}
                   </p>
                 </div>
                 <button
                   type="button"
+                  aria-label="Close payout review"
                   onClick={() => setSelected(null)}
                   className="rounded-lg p-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
                 >

@@ -11,7 +11,7 @@
  *  Push notifications  → unchanged
  */
 
-const CACHE_NAME       = 'aura-cache-v13';
+const CACHE_NAME       = 'aura-cache-v14';
 const MEDIA_CACHE_NAME = 'aura-media-v2';   // bumped: evicts stale deleted-status media
 const API_CACHE_NAME   = 'aura-api-v2';     // bumped: evicts stale expired-status responses
 const VIDEO_CACHE_NAME = 'aura-video-v1';   // status video files (offline playback)
@@ -77,7 +77,7 @@ function normalizeNotificationUrl(rawUrl) {
 
   try {
     const url = new URL(rawUrl, self.location.origin);
-    if (url.origin !== self.location.origin) return url.href;
+    if (!['http:', 'https:'].includes(url.protocol) || ![self.location.origin, 'https://auradime.com', 'https://www.auradime.com'].includes(url.origin)) return '/notifications';
     let path = `${url.pathname}${url.search}${url.hash}`;
 
     if (/^\/vendor\/orders\/[^/?#]+/.test(path)) {
@@ -97,7 +97,7 @@ function normalizeNotificationUrl(rawUrl) {
     if (path === '/logistics/dashboard' || path === '/logistics') return '/logistics/manifests';
     return path;
   } catch {
-    return rawUrl;
+    return '/notifications';
   }
 }
 

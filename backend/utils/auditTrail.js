@@ -35,18 +35,19 @@ const recordAudit = async ({ actorId, action, targetType, targetId, before, afte
   try {
     const Model = getModel();
     const entry = {
-      actor_id:    actorId,
+      user_id:     actorId,
       action,
       target_type: targetType,
       target_id:   targetId,
-      before:      before !== undefined ? JSON.parse(JSON.stringify(before)) : undefined,
-      after:       after  !== undefined ? JSON.parse(JSON.stringify(after))  : undefined,
-      meta,
-      timestamp:   new Date(),
+      changes: {
+        old: before !== undefined ? JSON.parse(JSON.stringify(before)) : undefined,
+        new: after !== undefined ? JSON.parse(JSON.stringify(after)) : undefined,
+      },
+      metadata: { ip: meta.ip, user_agent: meta.user_agent, resource_url: meta.resource_url, details: meta },
     };
 
     if (session) {
-      await Model.create([entry], { session });
+      await Model.create([entry], { session, ordered: true });
     } else {
       await Model.create(entry);
     }

@@ -21,7 +21,7 @@ const {
 } = require('../controllers/orderMessages.controller');
 
 // ── SHIPMENT MESSAGES (for tracking page) ──────────────────────────
-router.get('/shipment/:shipmentId', getShipmentMessages);
+router.get('/shipment/:shipmentId', protectOptional, getShipmentMessages);
 router.post('/shipment/:shipmentId', protectOptional, sendShipmentMessage);
 
 // ── ORDER MESSAGES (buyer/vendor/logistics thread) ─────────────────

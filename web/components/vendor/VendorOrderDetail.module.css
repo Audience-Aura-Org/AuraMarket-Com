@@ -1,0 +1,32 @@
+.layout { display: grid; grid-template-columns: minmax(0,1fr) 320px; align-items: start; gap: 20px; }
+.main, .aside { display: grid; min-width: 0; gap: 20px; }
+.panel { background: var(--bg-primary); border: 1px solid var(--glass-border); border-radius: 28px; overflow: hidden; }
+.panel h2 { font-size: 15px; font-weight: 600; }
+.head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 20px 24px; border-bottom: 1px solid var(--glass-border); }
+.body { padding: 20px 24px; }
+.body p { font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
+.muted { color: var(--text-secondary); }
+.facts { display: grid; gap: 12px; }
+.fact { display: flex; justify-content: space-between; gap: 14px; font-size: 12px; }
+.fact dt { color: var(--text-secondary); }
+.fact dd { text-align: right; font-weight: 500; overflow-wrap: anywhere; }
+.tableScroll { overflow-x: auto; }
+.table { width: 100%; min-width: 540px; border-collapse: collapse; text-align: left; }
+.table th { background: var(--bg-secondary); color: var(--text-secondary); font-size: 11px; font-weight: 500; }
+.table :is(th,td) { padding: 14px 20px; border-bottom: 1px solid var(--glass-border); }
+.table td { font-size: 12px; }
+.table :is(th,td):last-child { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.product { display: flex; align-items: center; gap: 12px; }
+.product img { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; }
+.timeline { padding-left: 16px; border-left: 1px solid var(--glass-border); display: grid; gap: 18px; }
+.timeline li { position: relative; }
+.timeline li::before { content: ''; position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); left: -20px; top: 7px; }
+.timeline time { display: block; color: var(--text-secondary); font-size: 10px; margin-top: 3px; }
+.messages { display: grid; gap: 12px; max-height: 350px; overflow-y: auto; }
+.message { border: 1px solid var(--glass-border); border-radius: 16px; padding: 12px; background: var(--bg-secondary); }
+.message strong { font-size: 11px; }
+.message time { margin-left: 8px; font-size: 10px; color: var(--text-secondary); }
+.form { display: flex; align-items: flex-end; gap: 10px; margin-top: 16px; }
+.form textarea { resize: vertical; width: 100%; min-width: 0; min-height: 44px; max-height: 160px; padding: 12px; border-radius: 14px; background: var(--bg-secondary); border: 1px solid var(--glass-border); font-size: 12px; color: var(--text-primary); }
+@media(max-width: 1023px) { .layout { grid-template-columns: minmax(0,1fr); } .aside { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width: 640px) { .aside { grid-template-columns: minmax(0,1fr); } .head, .body { padding: 18px; } }

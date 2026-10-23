@@ -26,7 +26,7 @@ const sanitizePhone = (phone, country = 'CM') => {
     const prefixes = { CM: '237', KE: '254', UG: '256', RW: '250', GH: '233', NG: '234', CI: '225' };
     const prefix = prefixes[country] || '237';
     if (cleaned.startsWith('0')) cleaned = cleaned.slice(1);
-    cleaned = `+${prefix}${cleaned}`;
+    cleaned = cleaned.startsWith(prefix) ? `+${cleaned}` : `+${prefix}${cleaned}`;
   }
   return cleaned;
 };
@@ -92,6 +92,13 @@ const initializeSubscription = async (req, res, next) => {
 
     if (plan.contact_required) {
       return res.status(400).json({ success: false, message: 'This package requires direct support activation. Please contact Auradime support.' });
+    }
+
+    if (String(currency).toUpperCase() !== String(plan.currency).toUpperCase()) {
+      return res.status(400).json({ success: false, message: 'Payment currency must match the subscription plan currency.' });
+    }
+    if (payment_method === 'wallet' && String(plan.currency).toUpperCase() !== 'XAF') {
+      return res.status(400).json({ success: false, message: 'Aura Wallet can only pay for plans priced in XAF.' });
     }
 
     const current = await getSubscriptionStatus(req.user, role);
@@ -200,7 +207,7 @@ const initializeSubscription = async (req, res, next) => {
     // Idempotency guard for PayUnit: if user already has a recent pending
     // subscription payment for this plan, return that reference instead of
     // creating a duplicate that Orange Money will reject with 422.
-    if (['payunit', 'pawapay'].includes(payment_method)) {
+    if (['payunit', 'pawapay', 'eversend'].includes(payment_method)) {
       const recentCutoff = new Date(Date.now() - 15 * 60 * 1000);
       const existingPending = await Transaction.findOne({
         user_id: req.user._id,
@@ -358,9 +365,10 @@ const initializeSubscription = async (req, res, next) => {
     if (payment_method === 'pawapay') {
       const correspondent = pawapay.detectProvider(normalizedPhone);
       if (!pawapay.isSupportedCameroonProvider(correspondent)) {
-        await transaction.deleteOne();
+        await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: { status: 'failed' } });
         return res.status(400).json({ success: false, message: 'PawaPay is currently available for MTN Mobile Money only. Please use PayUnit for Orange Money.' });
       }
+      await Transaction.updateOne({ _id: transaction._id }, { $set: { gateway_transaction_id: pawapayDepositId } });
       try {
         const result = await pawapay.createDeposit({
           depositId: pawapayDepositId,
@@ -371,12 +379,10 @@ const initializeSubscription = async (req, res, next) => {
           description: 'Auradime subscription',
         });
         if (['REJECTED', 'FAILED'].includes(String(result?.status || '').toUpperCase())) {
-          await transaction.deleteOne();
+          await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: { status: 'failed', gateway_response: result } });
           return res.status(400).json({ success: false, message: result?.failureReason?.failureMessage || 'PawaPay rejected this subscription payment.' });
         }
-        transaction.gateway_transaction_id = pawapayDepositId;
-        transaction.gateway_response = result;
-        await transaction.save();
+        await Transaction.updateOne({ _id: transaction._id }, { $set: { gateway_response: result } });
         return res.status(200).json({
           success: true,
           message: 'PawaPay subscription payment request sent.',
@@ -390,8 +396,16 @@ const initializeSubscription = async (req, res, next) => {
           },
         });
       } catch (error) {
-        await transaction.deleteOne();
-        return res.status(error.response?.status || 502).json({ success: false, message: error.response?.data?.message || 'PawaPay subscription payment could not be initialized.' });
+        const rejected = error.response?.status >= 400 && error.response?.status < 500;
+        await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: {
+          ...(rejected ? { status: 'failed' } : {}),
+          'metadata.initialization_error': error.message,
+        } });
+        if (rejected) return res.status(error.response.status).json({ success: false, message: 'The provider rejected the payment request.', data: { reference: transaction.reference } });
+        return res.status(202).json({ success: true, status: 'PENDING', message: 'Payment confirmation is pending. Do not submit another payment.', data: {
+          reference: transaction.reference, transaction_id: pawapayDepositId, checkout_url: callbackUrl,
+          amount: feeBreakdown.netAmount, gross_amount: feeBreakdown.grossAmount, collection_fee: feeBreakdown.collectionFee,
+        } });
       }
     }
 

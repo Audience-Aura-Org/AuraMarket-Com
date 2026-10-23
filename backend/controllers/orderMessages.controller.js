@@ -128,9 +128,9 @@ const sendOrderMessage = async (req, res) => {
         message: `${user.name || 'User'}: ${text.trim().substring(0, 120)}`,
         type: 'order_message',
         metadata: {
-          order_id: orderId,
+          target_id: orderId,
           sender_id: userId,
-          link: `/account?tab=orders&order=${orderId}`,
+          link: rid === String(order.vendor_id?.user_id) ? `/vendor/orders?orderId=${orderId}` : `/orders/${orderId}`,
         },
         sendEmail: true,
       }).catch(err => console.error('[orderMessages] notification error:', err.message));
@@ -223,6 +223,15 @@ const markOrderThreadRead = async (req, res) => {
     const { orderId } = req.params;
     const userId = req.user?._id;
     if (!userId) return res.status(401).json({ success: false, message: 'Authentication required' });
+
+    const order = await Order.findById(orderId).select('customer_id vendor_id').populate('vendor_id', 'user_id');
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    let allowed = req.user.role === 'admin' || String(order.customer_id) === String(userId) || String(order.vendor_id?.user_id) === String(userId);
+    if (!allowed && req.user.role === 'logistics') {
+      const firm = await LogisticsCompany.findOne({ user_id: userId }).select('_id').lean();
+      allowed = Boolean(firm && await Shipment.exists({ order_id: orderId, logistics_id: firm._id }));
+    }
+    if (!allowed) return res.status(403).json({ success: false, message: 'Access denied' });
 
     await OrderMessage.updateMany(
       { order_id: orderId, read_by: { $ne: userId } },

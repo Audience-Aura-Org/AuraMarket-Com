@@ -11,7 +11,7 @@ export default function WorkingAsStrip({ account, mobile = false }) {
   return (
     <div className={mobile
       ? 'h-11 border-t border-[var(--m-border)] bg-[var(--m-surface-solid)]'
-      : 'hidden md:sticky md:top-0 md:z-50 md:block border-b border-[var(--m-border)] bg-[var(--m-surface-solid)]/90 md:backdrop-blur-2xl'}>
+      : 'hidden md:ml-16 lg:ml-[272px] md:sticky md:top-0 md:z-50 md:block md:h-[var(--manager-working-strip-height)] border-b border-[var(--m-border)] bg-[var(--m-surface-solid)]/90 md:backdrop-blur-2xl'}>
       <div className="flex items-center gap-3 h-full px-4 md:px-6">
         <span className="size-2 rounded-full bg-[var(--accent)] animate-pulse shrink-0" aria-hidden="true" />
         <p className="min-w-0 flex-1 truncate">

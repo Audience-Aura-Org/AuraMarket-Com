@@ -4,6 +4,8 @@ export function normalizeAppRoute(route, fallback = '/notifications') {
   try {
     const base = typeof window !== 'undefined' ? window.location.origin : 'https://auradime.com';
     const url = new URL(route, base);
+    const appOrigins = new Set([base, 'https://auradime.com', 'https://www.auradime.com']);
+    if (!['http:', 'https:'].includes(url.protocol) || !appOrigins.has(url.origin)) return fallback;
     let path = `${url.pathname}${url.search}${url.hash}`;
 
     if (/^\/vendor\/orders\/[^/?#]+/.test(path)) {
@@ -21,8 +23,8 @@ export function normalizeAppRoute(route, fallback = '/notifications') {
     }
 
     if (path === '/logistics/dashboard' || path === '/logistics') return '/logistics/manifests';
-    return url.origin === base ? path : url.href;
+    return path;
   } catch {
-    return route || fallback;
+    return fallback;
   }
 }

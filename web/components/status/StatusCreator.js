@@ -1474,8 +1474,11 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
     }
   };
 
+  const postingRef = useRef(false);
   const handlePost = async () => {
+    if (postingRef.current) return;
     if (!selectedCategory) { setError('Please select a category.'); return; }
+    postingRef.current = true;
 
     // ── VIDEO: hand off to background queue immediately, close modal ─────────
     if (type === 'video' && (file || nativeVideoUri)) {
@@ -1698,6 +1701,7 @@ export default function StatusCreator({ onClose, onStatusCreated, initialData = 
         'Failed to post story';
       setError(msg);
     } finally {
+      postingRef.current = false;
       setLoading(false);
       setUploadProgress(0);
       setUploadPhase('');

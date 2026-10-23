@@ -487,7 +487,9 @@ const updateSettings = async (req, res, next) => {
 
 const getAllOrders = async (req, res, next) => {
   try {
-    const { status, search, page = 1, limit = 30 } = req.query;
+    const { status, search } = req.query;
+    const page = Math.max(1, Math.floor(Number(req.query.page) || 1));
+    const limit = Math.min(100, Math.max(1, Math.floor(Number(req.query.limit) || 30)));
     const baseFilter = {
       $or: [
         { payment_status: { $in: ['paid', 'failed'] } },
@@ -498,6 +500,22 @@ const getAllOrders = async (req, res, next) => {
     if (status && status !== 'all') {
       if (status === 'failed') filter.payment_status = 'failed';
       else filter.order_status = status;
+    }
+    const searchText = String(search || '').trim().slice(0, 100);
+    if (searchText) {
+      const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(escaped, 'i');
+      const [customers, vendors] = await Promise.all([
+        User.find({ $or: [{ name: pattern }, { email: pattern }, { phone: pattern }] }).distinct('_id'),
+        Vendor.find({ store_name: pattern }).distinct('_id'),
+      ]);
+      const matches = [
+        { customer_id: { $in: customers } }, { vendor_id: { $in: vendors } },
+        { 'products.name': pattern }, { 'products.product_name': pattern },
+        { 'shipping_address.full_name': pattern }, { 'shipping_address.phone': pattern },
+      ];
+      if (/^[a-f0-9]{24}$/i.test(searchText)) matches.push({ _id: searchText });
+      filter.$and = [{ $or: matches }];
     }
     const query = scoped('Order', filter, req.managerScope);
     const scopedBase = scoped('Order', baseFilter, req.managerScope);
@@ -560,6 +578,13 @@ const updateOrderAdmin = async (req, res, next) => {
     const order = await Order.findById(id);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
     assertAccessLevel(req.managerScope, order.customer_id, 'standard');
+    if (payment_status && payment_status !== order.payment_status) {
+      return res.status(409).json({ success: false, message: 'Payment status must change through payment verification or a refund workflow.' });
+    }
+    if (order_status && order_status !== order.order_status &&
+      (['refunded', 'refund_pending', 'cancelled'].includes(order_status) || ['refunded', 'refund_pending', 'cancelled', 'completed'].includes(order.order_status))) {
+      return res.status(409).json({ success: false, message: 'Use the cancellation, dispute or refund workflow to change a financial or closed order state.' });
+    }
     if (order_status) order.order_status = order_status;
     if (payment_status) order.payment_status = payment_status;
     if (shipping_method) order.shipping_method = shipping_method;
@@ -1860,7 +1885,7 @@ const getAllTransactions = async (req, res, next) => {
       .populate('user_id', 'name email avatar role phone wallet_balance')
       .populate(orderContextPopulate)
       .populate(ordersContextPopulate)
-      .sort('-createdAt')
+      .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
@@ -1924,6 +1949,7 @@ const importEversendTransactions = async (req) => {
         status: rt.status === 'successful' ? 'completed' : rt.status === 'failed' ? 'failed' : 'pending',
         gateway: 'eversend',
         description: `Imported via Gateway Sync: ${rt.type} (${rt.status})`,
+        metadata: { reconciliation_only: true, owner_unresolved: true },
         gateway_response: rt,
       });
       importedCount++;
@@ -1934,82 +1960,32 @@ const importEversendTransactions = async (req) => {
 };
 
 const reconcileEversendTransactions = async (app) => {
-  const mongoose = require('mongoose');
   const eversend = require('../services/eversend.service');
-  const { settleOrdersInSession } = require('./payment.controller');
-
+  const { settleGatewayTransaction } = require('./payment.controller');
   const pending = await Transaction.find({
-    gateway: 'eversend',
-    status: { $in: ['pending', 'processing'] },
-  })
-    .limit(40)
-    .sort('-createdAt');
-
+    gateway: 'eversend', status: { $in: ['pending', 'processing', 'failed'] },
+    type: { $in: ['deposit', 'subscription', 'payment'] },
+    'metadata.reconciliation_only': { $ne: true },
+    description: { $not: /^Imported via Gateway Sync:/ },
+  }).sort({ createdAt: -1, _id: -1 }).limit(40);
   let updated = 0;
   for (const transaction of pending) {
-    const ageSeconds = (Date.now() - new Date(transaction.createdAt).getTime()) / 1000;
-    if (ageSeconds < 40) continue;
-
+    if (Date.now() - new Date(transaction.createdAt).getTime() < 40000) continue;
     try {
-      const lookupFn = transaction.gateway_transaction_id
-        ? () => eversend.getTransactionStatus(transaction.gateway_transaction_id)
-        : () => eversend.getCollectionByRef(transaction.reference);
-
-      const raw = await lookupFn();
+      const raw = transaction.gateway_transaction_id
+        ? await eversend.getTransactionStatus(transaction.gateway_transaction_id)
+        : await eversend.getCollectionByRef(transaction.reference);
       const data = raw?.data || raw;
-      const status = (data?.status || '').toUpperCase();
-
-      if (status === 'SUCCESSFUL' || status === 'COMPLETED') {
-        if (transaction.status === 'completed') continue;
-        const user = await User.findById(transaction.user_id);
-        if (!user) continue;
-
-        const sess = await mongoose.startSession();
-        sess.startTransaction();
-        try {
-          transaction.status = 'completed';
-          transaction.gateway_response = data;
-          if (data?.transactionId && !transaction.gateway_transaction_id) {
-            transaction.gateway_transaction_id = data.transactionId;
-          }
-          await transaction.save({ session: sess });
-
-          if (transaction.order_ids?.length > 0) {
-            await settleOrdersInSession(
-              transaction.user_id,
-              transaction.order_ids,
-              app,
-              sess,
-              true,
-              process.env.WEB_CLIENT_URL || '',
-              'eversend'
-            );
-          } else {
-            await User.findByIdAndUpdate(
-              transaction.user_id,
-              { $inc: { wallet_balance: transaction.amount } },
-              { session: sess }
-            );
-          }
-          await sess.commitTransaction();
-          updated++;
-        } catch (e) {
-          await sess.abortTransaction();
-          console.error('[syncGateways] Eversend settlement error:', e.message);
-        } finally {
-          sess.endSession();
-        }
-      } else if (status === 'FAILED' && transaction.status !== 'failed') {
-        transaction.status = 'failed';
-        transaction.gateway_response = data;
-        await transaction.save();
+      const status = String(data?.status || '').toUpperCase();
+      if (['SUCCESSFUL', 'COMPLETED'].includes(status)) {
+        await settleGatewayTransaction(transaction, data, app, process.env.WEB_CLIENT_URL || '', 'eversend');
         updated++;
+      } else if (status === 'FAILED') {
+        const failed = await Transaction.updateOne({ _id: transaction._id, status: { $ne: 'completed' } }, { $set: { status: 'failed', gateway_response: data } });
+        updated += failed.modifiedCount;
       }
-    } catch (err) {
-      console.error('[syncGateways] Eversend verify error:', transaction.reference, err.message);
-    }
+    } catch (error) { console.error('[syncGateways] Eversend reconciliation:', transaction.reference, error.message); }
   }
-
   return updated;
 };
 
@@ -2126,6 +2102,7 @@ const updateTransactionStatus = async (req, res, next) => {
     } else {
       transaction = await Transaction.findById(id);
       if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
+      if (transaction.status === 'completed') return res.status(409).json({ success: false, message: 'Completed transactions require a separate refund or adjustment; their status cannot be reset.' });
     }
 
     // If marking as completed and it wasn't already completed
@@ -2134,50 +2111,10 @@ const updateTransactionStatus = async (req, res, next) => {
       if (!user) return res.status(404).json({ success: false, message: 'User mapping failed: recipient account not found.' });
 
       // Handle cascading effects based on transaction type
-      if (transaction.type === 'deposit') {
-        // A deposit is either a pure top-up OR a checkout funding source
-        const isCheckout = transaction.order_ids && transaction.order_ids.length > 0;
-        
-        if (isCheckout) {
-          // Checkout funding — settle the associated orders
-          const { settleOrders } = require('../services/payment/settle.service');
-          const mongoose = require('mongoose');
-          const session = await mongoose.startSession();
-          session.startTransaction();
-          try {
-            await settleOrders(user._id, transaction.order_ids, session, req.app, true, '', transaction.gateway || 'admin_manual');
-            
-            transaction.status = 'completed';
-            if (admin_note) {
-              transaction.metadata = { ...transaction.metadata, admin_confirm_note: admin_note, manually_confirmed_by: req.user._id };
-            }
-            await transaction.save({ session });
-            await session.commitTransaction();
-          } catch (e) {
-            await session.abortTransaction();
-            console.error('[updateTransactionStatus] Settlement Error:', e.message);
-            return res.status(500).json({ success: false, message: `Status update failed during order settlement: ${e.message}` });
-          } finally {
-            session.endSession();
-          }
-        } else {
-          // Pure wallet top-up — atomic credit
-          await creditBalance(user._id, transaction.amount);
-          
-          transaction.status = 'completed';
-          if (admin_note) {
-            transaction.metadata = { ...transaction.metadata, admin_confirm_note: admin_note, manually_confirmed_by: req.user._id };
-          }
-          await transaction.save();
-
-          // Notify User
-          await sendNotification(req.app, user._id, {
-            title: '💰 Wallet Credited (Manual)',
-            message: `An administrator has manually confirmed your deposit of ${transaction.amount.toLocaleString()} ${transaction.currency || 'XAF'}.`,
-            type: 'wallet_update',
-            sendEmail: true
-          });
-        }
+      if (['deposit', 'subscription'].includes(transaction.type) || (transaction.type === 'payment' && (transaction.order_ids?.length || transaction.metadata?.type === 'p2p'))) {
+        const { settleGatewayTransaction } = require('./payment.controller');
+        await settleGatewayTransaction(transaction, { admin_manual: true, actor_id: String(req.user._id), note: admin_note || '' }, req.app, '', transaction.gateway || 'admin_manual');
+        transaction = await Transaction.findById(transaction._id);
       } else if (transaction.type === 'withdrawal') {
         // Withdrawal: status update only (funds were already deducted on request creation)
         transaction.status = 'completed';
@@ -2542,7 +2479,7 @@ const getAdminDirectPayoutHistory = async (req, res, next) => {
     const [transactions, total, statsAgg] = await Promise.all([
       Transaction.find(query)
         .populate('user_id', 'name email')
-        .sort('-createdAt')
+        .sort({ createdAt: -1, _id: -1 })
         .skip((Number(page) - 1) * Number(limit))
         .limit(Number(limit))
         .lean(),
@@ -2703,7 +2640,7 @@ const getAdminBalanceAdjustmentHistory = async (req, res, next) => {
     const [transactions, total, statsAgg] = await Promise.all([
       Transaction.find(query)
         .populate('user_id', 'name email phone')
-        .sort('-createdAt')
+        .sort({ createdAt: -1, _id: -1 })
         .skip((Number(page) - 1) * Number(limit))
         .limit(Number(limit))
         .lean(),
@@ -2747,7 +2684,7 @@ const getVendorTransactionHistory = async (req, res, next) => {
 
     const [transactions, total] = await Promise.all([
       Transaction.find({ user_id: userId })
-        .sort('-createdAt')
+        .sort({ createdAt: -1, _id: -1 })
         .skip((Number(page) - 1) * Number(limit))
         .limit(Number(limit))
         .lean(),

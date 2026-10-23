@@ -29,8 +29,12 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/services/api';
+import Pagination from '@/components/common/Pagination';
+import FinanceEntry, { FinanceTable } from '@/components/admin/FinanceEntry';
 import { useLanguage } from '@/context/LanguageContext';
 import StatCard from '@/components/layout/StatCard';
+import financeStyles from '@/components/admin/AdminFinance.module.css';
+import { AdminFinancePage, AdminFinanceHeader, AdminFinanceBody, AdminContentTabs } from '@/components/admin/AdminFinanceLayout';
 
 const ROLE_OPTIONS = ['customer', 'vendor', 'logistics'];
 const STATUS_OPTIONS = ['all', 'active', 'pending', 'grace', 'limited', 'cancelled', 'refunded'];
@@ -74,6 +78,7 @@ export default function AdminSubscriptionsPage() {
   const { t, label } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [section, setSection] = useState('subscribers');
   const [overview, setOverview] = useState({ plans: [], subscriptions: [], requirements: {}, grace_days: {}, stats: {} });
   const [planForm, setPlanForm] = useState(defaultPlan);
   const planFormRef = useRef(planForm);
@@ -169,6 +174,7 @@ export default function AdminSubscriptionsPage() {
   };
 
   const editPlan = (plan) => {
+    setSection('plans');
     setEditingPlanId(plan._id);
     setPlanForm({
       name: plan.name || '',
@@ -188,6 +194,7 @@ export default function AdminSubscriptionsPage() {
   };
 
   const resetForm = () => {
+    setSection('plans');
     setEditingPlanId(null);
     setPlanForm(defaultPlan);
   };
@@ -285,48 +292,11 @@ export default function AdminSubscriptionsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] p-4 pb-28 text-[var(--text-primary)] sm:p-6 lg:p-8 md:pt-4" style={{ paddingTop: 'calc\(56px\ \+\ env\(safe-area-inset-top,\ 0px\)\)' }}>
-      <div className="flex w-full flex-col gap-5">
-        <header className="overflow-hidden rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm">
-          <div className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 items-start gap-4">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                <CreditCard className="size-6" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[var(--accent)]">
-                  {t('nav.subscriptions', 'Subscriptions')}
-                </p>
-                <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-                  {t('subscription.adminTitle', 'Subscription Control')}
-                </h1>
-                <p className="mt-1 max-w-2xl text-sm font-medium leading-relaxed text-[var(--text-secondary)]">
-                  {t('subscription.adminSubtitle', 'Manage role gates, packages, subscribers, and subscription revenue.')}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <button
-                type="button"
-                onClick={resetForm}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] px-4 text-sm font-bold text-[var(--text-secondary)] transition active:scale-95"
-              >
-                <Plus className="size-4" />
-                {t('subscription.newPlan', 'New plan')}
-              </button>
-              <button
-                type="button"
-                onClick={load}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] px-4 text-sm font-bold text-white transition active:scale-95"
-              >
-                <RefreshCw className="size-4" />
-                {t('common.refresh', 'Refresh')}
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <AdminFinancePage theme="subscriptions">
+      <AdminFinanceHeader icon={CreditCard} title="Subscriptions" description="Manage subscribers, packages, and access rules." onRefresh={load} loading={loading}
+        actions={<button type="button" aria-label="New plan" onClick={resetForm} className={`${financeStyles.primaryButton} text-[11px]`}><Plus className="size-4" /><span className="hidden sm:inline">New plan</span></button>} />
+      <AdminFinanceBody>
+        <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           {(() => {
             const activePct = subscriptions.length > 0 ? Math.round((activeCount / subscriptions.length) * 100) : 0;
             const planPct   = plans.length > 0 ? Math.round((activePlansCount / plans.length) * 100) : 0;
@@ -341,36 +311,47 @@ export default function AdminSubscriptionsPage() {
             );
           })()}
         </section>
-
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
-          <div className="space-y-5">
-            <Panel
-              title={t('subscription.roleRequirements', 'Role requirements')}
-              description={t('subscription.roleRequirementsDetail', 'Admin is never gated. Toggle only roles that should pay before using role tools.')}
-            >
-              <div className="grid gap-3 md:grid-cols-3">
-                {ROLE_OPTIONS.map((role) => (
-                  <RoleGateCard
-                    key={role}
-                    role={role}
-                    enabled={Boolean(overview.requirements?.[role])}
-                    graceDays={overview.grace_days?.[role] ?? 0}
-                    onToggle={() => toggleRequirement(role)}
-                    onGraceChange={(value) => setOverview((current) => ({
-                      ...current,
-                      grace_days: {
-                        ...(current.grace_days || {}),
-                        [role]: value,
-                      },
-                    }))}
-                    onGraceBlur={(value) => updateGraceDays(role, value)}
-                    t={t}
-                    label={label}
-                  />
-                ))}
+        <AdminContentTabs value={section} onChange={setSection} items={[{ id: 'subscribers', label: 'Subscribers', icon: Users }, { id: 'plans', label: 'Plans & pricing', icon: CreditCard }, { id: 'access', label: 'Access rules', icon: ShieldCheck }, { id: 'activation', label: 'Manual activation', icon: BadgeCheck }]} />
+        {section === 'subscribers' && (
+        <Panel flush
+          title={t('subscription.subscribers', 'Subscribers')}
+          description={t('subscription.subscribersDetail', 'Recent subscription history and payment status.')}
+          action={
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <div className="relative min-w-0 sm:w-72">
+                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-secondary)]" />
+                <input
+                  aria-label="Search subscribers"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t('common.search', 'Search')}
+                  className="h-10 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-9 pr-3 text-[11px] placeholder:text-[11px] placeholder:font-normal font-semibold outline-none focus:border-[var(--accent)]"
+                />
               </div>
-            </Panel>
-
+              <select aria-label="Subscriber role" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="h-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[12px] font-semibold outline-none">
+                <option value="all">{t('common.allRoles', 'All roles')}</option>
+                {ROLE_OPTIONS.map((role) => <option key={role} value={role}>{label(role)}</option>)}
+              </select>
+              <select aria-label="Subscription status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[12px] font-semibold outline-none">
+                {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status === 'all' ? t('common.all', 'All') : label(status)}</option>)}
+              </select>
+            </div>
+          }
+        >
+          {loading ? (
+            <LoadingBlock />
+          ) : (
+            <SubscriberTable
+              subscriptions={filteredSubscriptions}
+              updateSubscription={updateSubscription}
+              deleteSubscription={deleteSubscription}
+              t={t}
+              label={label}
+            />
+          )}
+        </Panel>
+        )}
+        {section === 'plans' && <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
             <Panel
               title={t('subscription.plans', 'Plans')}
               description="Create packages, hide inactive offers, and edit pricing without touching code."
@@ -405,9 +386,6 @@ export default function AdminSubscriptionsPage() {
                 <EmptyState title="No packages yet" detail="Create your first subscription package from the plan studio." />
               )}
             </Panel>
-          </div>
-
-          <div className="space-y-5">
             <PlanStudio
               id="plan-studio"
               planForm={planForm}
@@ -419,7 +397,36 @@ export default function AdminSubscriptionsPage() {
               t={t}
               label={label}
             />
-
+        </div>}
+        {section === 'access' && (
+            <Panel
+              title={t('subscription.roleRequirements', 'Role requirements')}
+              description={t('subscription.roleRequirementsDetail', 'Admin is never gated. Toggle only roles that should pay before using role tools.')}
+            >
+              <div className="grid gap-3 md:grid-cols-3">
+                {ROLE_OPTIONS.map((role) => (
+                  <RoleGateCard
+                    key={role}
+                    role={role}
+                    enabled={Boolean(overview.requirements?.[role])}
+                    graceDays={overview.grace_days?.[role] ?? 0}
+                    onToggle={() => toggleRequirement(role)}
+                    onGraceChange={(value) => setOverview((current) => ({
+                      ...current,
+                      grace_days: {
+                        ...(current.grace_days || {}),
+                        [role]: value,
+                      },
+                    }))}
+                    onGraceBlur={(value) => updateGraceDays(role, value)}
+                    t={t}
+                    label={label}
+                  />
+                ))}
+              </div>
+            </Panel>
+        )}
+        {section === 'activation' && <div className="mx-auto max-w-3xl">
             <ManualActivationPanel
               manualActivation={manualActivation}
               setManualActivation={setManualActivation}
@@ -428,81 +435,24 @@ export default function AdminSubscriptionsPage() {
               t={t}
               label={label}
             />
-          </div>
-        </section>
-
-        <Panel
-          title={t('subscription.subscribers', 'Subscribers')}
-          description={t('subscription.subscribersDetail', 'Recent subscription history and payment status.')}
-          action={
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <div className="relative min-w-0 sm:w-72">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--text-secondary)]" />
-                <input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder={t('common.search', 'Search')}
-                  className="h-10 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-9 pr-3 text-[11px] placeholder:text-[11px] placeholder:font-normal font-semibold outline-none focus:border-[var(--accent)]"
-                />
-              </div>
-              <select value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)} className="h-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[12px] font-semibold outline-none">
-                <option value="all">{t('common.allRoles', 'All roles')}</option>
-                {ROLE_OPTIONS.map((role) => <option key={role} value={role}>{label(role)}</option>)}
-              </select>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[12px] font-semibold outline-none">
-                {STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status === 'all' ? t('common.all', 'All') : label(status)}</option>)}
-              </select>
-            </div>
-          }
-        >
-          {loading ? (
-            <LoadingBlock />
-          ) : (
-            <SubscriberTable
-              subscriptions={filteredSubscriptions}
-              updateSubscription={updateSubscription}
-              deleteSubscription={deleteSubscription}
-              t={t}
-              label={label}
-            />
-          )}
-        </Panel>
-      </div>
-    </div>
+        </div>}
+      </AdminFinanceBody>
+    </AdminFinancePage>
   );
 }
 
-function Panel({ title, description, action, children }) {
+function Panel({ title, description, action, children, flush = false }) {
   return (
-    <section className="rounded-[28px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-sm sm:p-5">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <section className={`${financeStyles.panel} ${flush ? '' : 'p-5 sm:p-6'}`}>
+      <div className={`${flush ? financeStyles.panelHeader : 'mb-5'} flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start xl:justify-between`}>
         <div className="min-w-0">
-          <h2 className="text-lg font-bold tracking-tight">{title}</h2>
-          {description && <p className="mt-1 max-w-3xl text-sm font-medium leading-relaxed text-[var(--text-secondary)]">{description}</p>}
+          <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
+          {description && <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-[var(--text-secondary)]">{description}</p>}
         </div>
-        {action && <div className="shrink-0">{action}</div>}
+        {action && <div className="min-w-0 max-w-full xl:shrink-0">{action}</div>}
       </div>
       {children}
     </section>
-  );
-}
-
-function Stat({ icon: Icon, label, value, detail, tone = 'accent' }) {
-  const tones = {
-    accent: 'bg-[var(--accent)]/10 text-[var(--accent)]',
-    emerald: 'bg-emerald-500/10 text-emerald-600',
-    amber: 'bg-amber-500/10 text-amber-600',
-    blue: 'bg-blue-500/10 text-blue-600',
-  };
-  return (
-    <div className="rounded-[24px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 shadow-sm">
-      <div className={`mb-4 flex size-11 items-center justify-center rounded-2xl ${tones[tone] || tones.accent}`}>
-        <Icon className="size-5" />
-      </div>
-      <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">{label}</p>
-      <p className="mt-1 text-2xl font-bold tracking-tight">{value}</p>
-      {detail && <p className="mt-1 text-xs font-semibold text-[var(--text-secondary)]">{detail}</p>}
-    </div>
   );
 }
 
@@ -551,7 +501,7 @@ function PlanCard({ plan, onEdit, onToggle, onDelete, t, label }) {
           </div>
           <p className="mt-2 line-clamp-2 text-xs font-medium leading-relaxed text-[var(--text-secondary)]">{plan.description}</p>
         </div>
-        <button onClick={onEdit} className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
+        <button type="button" aria-label={`Edit ${plan.name}`} onClick={onEdit} className="flex size-10 shrink-0 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
           <Edit3 className="size-4" />
         </button>
       </div>
@@ -766,73 +716,34 @@ function ManualActivationPanel({ manualActivation, setManualActivation, plans, a
 }
 
 function SubscriberTable({ subscriptions, updateSubscription, deleteSubscription, t, label }) {
+  const [expandedId, setExpandedId] = useState(null);
+  const [page, setPage] = useState(1);
+  useEffect(() => { setPage(1); setExpandedId(null); }, [subscriptions]);
+  const pages = Math.max(1, Math.ceil(subscriptions.length / 20));
+  const safePage = Math.min(page, pages);
   if (!subscriptions.length) {
     return <EmptyState title={t('subscription.noSubscribers', 'No subscribers yet.')} detail="Subscriptions will appear here when users pay or when an admin activates them manually." />;
   }
 
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[980px] text-left text-sm">
-        <thead className="text-xs uppercase text-[var(--text-secondary)]">
-          <tr>
-            <th className="px-4 py-3">{t('common.user', 'User')}</th>
-            <th className="px-4 py-3">{t('subscription.plan', 'Plan')}</th>
-            <th className="px-4 py-3">{t('common.status', 'Status')}</th>
-            <th className="px-4 py-3">{t('common.amount', 'Amount')}</th>
-            <th className="px-4 py-3">{t('subscription.expiryDate', 'Expiry date')}</th>
-            <th className="px-4 py-3">{t('common.actions', 'Actions')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {subscriptions.map((sub) => {
-            const user = sub.user_id || {};
-            const plan = sub.plan_id || {};
-            const avatar = user.avatar || user.branding?.logo;
-            return (
-              <tr key={sub._id} className="border-t border-[var(--glass-border)] align-top">
-                <td className="px-4 py-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--accent)]/10 text-sm font-bold text-[var(--accent)]">
-                      {avatar ? <img src={avatar} alt="" className="size-full object-cover" /> : (user.name || user.email || 'U').charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className={`truncate font-bold ${!user.name && !user.email ? 'text-[11px] italic text-[var(--text-secondary)]' : ''}`}>
-                        {user.name || (!user.email && !user.phone ? t('common.deletedAccount', 'Deleted account') : t('common.unknown', 'Unknown'))}
-                      </p>
-                      <p className="truncate text-xs text-[var(--text-secondary)]">{user.email || user.phone || '-'}</p>
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">{label(sub.role || user.role || 'user')}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <p className="font-bold">{plan.name || '-'}</p>
-                  <p className="mt-1 text-xs text-[var(--text-secondary)]">{shortDate(sub.started_at)} - {shortDate(sub.expires_at)}</p>
-                </td>
-                <td className="px-4 py-4">
-                  <StatusBadge status={sub.status} label={label} />
-                </td>
-                <td className="px-4 py-4 font-bold">{money(sub.amount_paid, sub.currency)}</td>
-                <td className="px-4 py-4">
-                  <div className="inline-flex items-center gap-2 rounded-2xl bg-[var(--bg-secondary)] px-3 py-2 text-xs font-bold text-[var(--text-secondary)]">
-                    <CalendarClock className="size-4" />
-                    {shortDate(sub.expires_at)}
-                  </div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    <ActionButton icon={CheckCircle2} label={t('common.activate', 'Activate')} onClick={() => updateSubscription(sub._id, 'activate')} />
-                    <ActionButton icon={XCircle} label={t('common.cancel', 'Cancel')} onClick={() => updateSubscription(sub._id, 'cancel')} />
-                    <ActionButton danger icon={RotateCcw} label={t('common.refund', 'Refund')} onClick={() => updateSubscription(sub._id, 'refund')} />
-                    <ActionButton danger icon={Trash2} label={t('common.delete', 'Delete')} onClick={() => deleteSubscription(sub._id)} />
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
+  return <><FinanceTable>
+    {subscriptions.slice((safePage - 1) * 20, safePage * 20).map((sub) => {
+      const user = sub.user_id || {}; const plan = sub.plan_id || {};
+      return <FinanceEntry key={sub._id} icon={<Users />}
+        title={user.name || user.email || 'Deleted account'} description={user.email || user.phone || 'No contact details'}
+        amount={money(sub.amount_paid, sub.currency)} date={'Expires ' + shortDate(sub.expires_at)}
+        status={label(sub.status || 'unknown')} tone={sub.status === 'active' ? 'success' : sub.status === 'pending' || sub.status === 'grace' ? 'pending' : 'neutral'}
+        meta={<><span>{plan.name || 'No plan'}</span><span>{label(sub.role || user.role || 'user')}</span><span>Started {shortDate(sub.started_at)}</span></>}
+        actions={<button type="button" className={financeStyles.button} aria-expanded={expandedId === sub._id} aria-label={'Manage subscription for ' + (user.name || user.email || 'Deleted account')} onClick={() => setExpandedId(expandedId === sub._id ? null : sub._id)}>Manage</button>}
+      >
+        {expandedId === sub._id && <div className={financeStyles.entryActions}>
+          <ActionButton icon={CheckCircle2} label={t('common.activate', 'Activate')} onClick={() => updateSubscription(sub._id, 'activate')} />
+          <ActionButton icon={XCircle} label={t('common.cancel', 'Cancel')} onClick={() => updateSubscription(sub._id, 'cancel')} />
+          <ActionButton danger icon={RotateCcw} label={t('common.refund', 'Refund')} onClick={() => updateSubscription(sub._id, 'refund')} />
+          <ActionButton danger icon={Trash2} label={t('common.delete', 'Delete')} onClick={() => deleteSubscription(sub._id)} />
+        </div>}
+      </FinanceEntry>;
+    })}
+  </FinanceTable><Pagination compact currentPage={safePage} totalPages={pages} onPageChange={setPage} /></>;
 }
 
 function StatusBadge({ status, label }) {

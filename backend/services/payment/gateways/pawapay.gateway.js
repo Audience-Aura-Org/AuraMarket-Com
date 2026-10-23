@@ -538,62 +538,36 @@ const pawapayGateway = {
     const webUrl = process.env.WEB_CLIENT_URL || 'https://auradime.com';
     const returnUrl = `${webUrl}/wallet/verify?gateway=pawapay&ref=${transactionRef}`;
 
-    // Sandbox mode: create a pending transaction without hitting the real API
+    // Persist the reference, NET credit and fee metadata before the provider can callback.
+    const fee = fields.feeBreakdown;
+    const transaction = await Transaction.create({
+      user_id: user._id, type: fields.paymentContext?.type === 'p2p' || orderIds.length > 0 ? 'payment' : 'deposit',
+      amount: Number(fee?.netAmount ?? amount), currency, reference: transactionRef,
+      gateway_transaction_id: depositId, status: 'pending', gateway: 'pawapay', order_ids: orderIds,
+      description: orderIds.length ? 'Checkout payment via PawaPay' : 'Wallet deposit via PawaPay',
+      metadata: { ...fields.paymentContext, depositId, correspondent, phone: normalizePhone(phone), checkout_key: fields.checkoutKey || null,
+        ...(fee ? { net_amount: fee.netAmount, collection_fee: fee.collectionFee, gross_amount: fee.grossAmount } : {}),
+        ...(process.env.PAWAPAY_SANDBOX_MODE === 'true' ? { is_sandbox: true } : {}) },
+    });
     if (process.env.PAWAPAY_SANDBOX_MODE === 'true') {
-      await Transaction.create({
-        user_id: user._id,
-        type: orderIds.length > 0 ? 'payment' : 'deposit',
-        amount: Number(amount),
-        currency,
-        reference: transactionRef,
-        gateway_transaction_id: depositId,
-        status: 'pending',
-        gateway: 'pawapay',
-        order_ids: orderIds,
-        description: `[SANDBOX] PawaPay deposit via ${correspondent}`,
-        metadata: { is_sandbox: true, depositId, correspondent, phone: normalizePhone(phone) },
-      });
-      return {
-        checkout_url: `${returnUrl}&sandbox=true`,
-        reference: transactionRef,
-        transaction_id: depositId,
-      };
+      return { checkout_url: returnUrl + '&sandbox=true', reference: transactionRef, transaction_id: depositId };
     }
-
-    // Live: submit deposit to PawaPay
-    const result = await createDeposit({
-      depositId,
-      amount,
-      currency,
-      correspondent,
-      phone,
-      description: orderIds.length > 0 ? 'Auradime order' : 'Auradime deposit',
-      returnUrl,
-    });
-
-    const status = (result?.status || '').toUpperCase();
-    if (status === 'REJECTED' || status === 'FAILED') {
-      throw new Error(
-        result?.rejectionReason?.rejectionMessage || 'PawaPay deposit was rejected by the operator.'
-      );
+    try {
+      const result = await createDeposit({ depositId, amount, currency, correspondent, phone,
+        description: orderIds.length ? 'Auradime order' : 'Auradime deposit', returnUrl });
+      if (['REJECTED', 'FAILED'].includes(String(result?.status || '').toUpperCase())) {
+        await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: { status: 'failed', gateway_response: result } });
+        throw new Error(result?.rejectionReason?.rejectionMessage || 'PawaPay deposit was rejected by the operator.');
+      }
+    } catch (error) {
+      // A transport failure is ambiguous: keep the provider ID available to webhooks/rechecks.
+      await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: { 'metadata.initialization_error': error.message } });
+      error.paymentReference = transactionRef;
+      if ((!error.response && error.code) || error.response?.status >= 500) {
+        return { checkout_url: returnUrl, reference: transactionRef, transaction_id: depositId, pending_confirmation: true };
+      }
+      throw error;
     }
-
-    await Transaction.create({
-      user_id: user._id,
-      type: orderIds.length > 0 ? 'payment' : 'deposit',
-      amount: Number(amount),
-      currency,
-      reference: transactionRef,
-      gateway_transaction_id: depositId,
-      status: 'pending',
-      gateway: 'pawapay',
-      order_ids: orderIds,
-      description:
-        orderIds.length > 0
-          ? `Checkout for ${orderIds.length} order(s) via PawaPay (${currency})`
-          : `Wallet deposit via PawaPay (${currency})`,
-      metadata: { depositId, correspondent, phone: normalizePhone(phone) },
-    });
 
     return { checkout_url: returnUrl, reference: transactionRef, transaction_id: depositId };
   },

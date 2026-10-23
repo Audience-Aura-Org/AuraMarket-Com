@@ -31,6 +31,21 @@ beforeAll(() => { app = buildApp() })
 // ─────────────────────────────────────────────────────────────────────────────
 let vendorUser, vendorDoc, customer
 
+it('paginates and searches only the current vendor orders on the server', async () => {
+  const { createOrder } = require('../factories')
+  for (let i=0;i<21;i++) await createOrder({customerId:customer._id,vendorId:vendorDoc._id},{order_status:'processing'})
+  await createOrder({customerId:customer._id,vendorId:new mongoose.Types.ObjectId()},{order_status:'processing'})
+  const headers=authHeader(signToken(vendorUser))
+  const first=await request(app).get('/api/v1/vendor/orders?limit=20&status=processing').set(headers)
+  const second=await request(app).get('/api/v1/vendor/orders?limit=20&status=processing&page=2').set(headers)
+  expect(first.status).toBe(200);expect(first.body.total).toBe(21)
+  expect(first.body.data.orders).toHaveLength(20);expect(second.body.data.orders).toHaveLength(1)
+  const id=second.body.data.orders[0]._id
+  expect(first.body.data.orders.some(order=>order._id===id)).toBe(false)
+  const search=await request(app).get('/api/v1/vendor/orders').query({search:id.slice(-8)}).set(headers)
+  expect(search.status).toBe(200);expect(search.body.total).toBe(1)
+})
+
 beforeEach(async () => {
   await PlatformSettings.create([{
     commission_rate:  0,
@@ -229,4 +244,53 @@ describe('GET /vendors — public store listing', () => {
     expect(res.body.success).toBe(true)
     expect(Array.isArray(res.body.data.stores)).toBe(true)
   })
+})
+
+describe('public directory eligibility and pagination', () => {
+  it('excludes hidden and inactive accounts before pagination and projects only public fields', async () => {
+    const Store = require('../../models/Store.model')
+    const records = []
+    for (let i = 0; i < 23; i++) {
+      const account = await createVendorUser({ is_active: i !== 22 })
+      const vendor = await Vendor.create({ user_id: account._id, store_name: 'Directory ' + String(i).padStart(2, '0'), phone: '+237650000001', is_onboarded: true, verified: i < 10 })
+      await Store.create({ vendor_id: vendor._id, is_active: i !== 21 })
+      records.push(vendor)
+    }
+    const first = await request(app).get('/api/v1/vendors?limit=20&search=Directory&sort=store_name')
+    expect(first.status).toBe(200)
+    expect(first.body.pagination.total).toBe(21)
+    expect(first.body.data.stores).toHaveLength(20)
+    expect(first.body.data.stores[0].user_id.email).toBeUndefined()
+    expect(first.body.data.stores[0].user_id.password).toBeUndefined()
+    const second = await request(app).get('/api/v1/vendors?limit=20&search=Directory&sort=store_name&page=2')
+    expect(second.body.data.stores).toHaveLength(1)
+    expect(second.body.data.stores[0]._id).toBe(String(records[20]._id))
+    const verified = await request(app).get('/api/v1/vendors?verified=true&search=Directory')
+    expect(verified.body.pagination.total).toBe(10)
+    expect(verified.body.data.stores.every(store => store.verified)).toBe(true)
+  })
+})
+
+it('does not recreate a missing store on a public GET and hides disabled stores', async () => {
+  const Store = require('../../models/Store.model')
+  const missing = await request(app).get('/api/v1/vendors/stores/' + vendorDoc._id)
+  expect(missing.status).toBe(404)
+  expect(await Store.countDocuments({ vendor_id: vendorDoc._id })).toBe(0)
+  await Store.create({ vendor_id: vendorDoc._id, is_active: false })
+  const disabled = await request(app).get('/api/v1/vendors/stores/' + vendorDoc._id)
+  expect(disabled.status).toBe(404)
+})
+
+it('never caches private vendor responses authenticated with a session cookie', async () => {
+  vi.stubEnv('DISABLE_CACHE', 'false')
+  const { clearApiCache } = require('../../middleware/cache.middleware')
+  await clearApiCache()
+  const signedIn = await request(app).get('/api/v1/vendors/me').set('Cookie', 'aura_token=' + signToken(vendorUser))
+  expect(signedIn.status).toBe(200)
+  expect(signedIn.headers['cache-control']).toBe('no-store')
+  const guest = await request(app).get('/api/v1/vendors/me')
+  expect(guest.status).toBe(401)
+  expect(guest.body.data?.vendor).toBeUndefined()
+  await clearApiCache()
+  vi.unstubAllEnvs()
 })

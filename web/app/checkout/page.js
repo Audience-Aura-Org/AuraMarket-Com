@@ -141,6 +141,8 @@ function CheckoutContent() {
   const deliveryQuartierTouchedRef = useRef(false);
   const profileHydratedRef = useRef(false);
   const checkoutInFlightRef = useRef(false);
+  const paymentPollingRef = useRef(null);
+  useEffect(() => () => paymentPollingRef.current?.(), []);
   const checkoutKeyRef = useRef(null); // { fingerprint, key } of an unanswered checkout
 
   const handleQuartierChange = (zone) => {
@@ -724,7 +726,8 @@ function CheckoutContent() {
           });
           setLoading(false);
 
-          pollTransactionStatus(
+          paymentPollingRef.current?.();
+          paymentPollingRef.current = pollTransactionStatus(
             resolvedGateway,
             ref,
             {
@@ -1005,7 +1008,7 @@ function CheckoutContent() {
                 {/* Close / dismiss button — payment still processes in background */}
                 <button
                   type="button"
-                  onClick={() => setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' })}
+                  onClick={() => { paymentPollingRef.current?.(); paymentPollingRef.current = null; setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' }); }}
                   className="absolute top-4 right-4 p-2 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] hover:bg-rose-500/10 hover:text-rose-500 transition-all active:scale-95"
                   title="Dismiss (payment continues in background)"
                 >

@@ -141,7 +141,8 @@ async function uploadViaPresign(file, folder, onProgress) {
     throw new Error(presignRes.data?.message || 'Could not prepare upload');
   }
 
-  const { uploadUrl, url } = presignRes.data.data;
+  const { uploadUrl, url } = presignRes.data.data || {};
+  if (!uploadUrl || !url) throw new Error('Upload service returned an incomplete upload destination');
 
   await withRetry(() => axios.put(uploadUrl, file, {
     headers: {
@@ -168,11 +169,13 @@ async function uploadViaApi(file, folder, fieldName = 'image') {
   formData.append('type', normalizeUploadFolder(folder));
   formData.append(fieldName, file);
 
+  let response;
   try {
-    const response = await api.post('/upload/single', formData, {
+    response = await api.post('/upload/single', formData, {
       timeout: 600000,
+      __skipRetry: true,
     });
-    return response.data;
+
   } catch (err) {
     if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
       throw new Error('Upload timed out. Please try again.');
@@ -182,6 +185,10 @@ async function uploadViaApi(file, folder, fieldName = 'image') {
     }
     throw err;
   }
+  if (!response.data?.success || !response.data?.data?.url) {
+    throw new Error(response.data?.message || 'Upload did not return a media URL');
+  }
+  return response.data;
 }
 
 export const uploadService = {

@@ -1,6 +1,10 @@
 "use client";
 
-import { Search, RefreshCw, Loader2 } from 'lucide-react';
+import { Search, RefreshCw, Loader2, BarChart3, ShieldCheck, Wallet, Landmark, Scale, Receipt, CreditCard } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import styles from './AdminFinance.module.css';
+import StatCard from '@/components/layout/StatCard';
 
 export const ADMIN_THEMES = {
   withdrawals: {
@@ -43,160 +47,76 @@ function useTheme(theme) {
 }
 
 export const adminSelectClass =
-  'h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 px-3 text-[16px] outline-none sm:h-10 sm:min-w-[130px] sm:text-[12px]';
+  'min-h-11 min-w-0 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[12px] outline-none sm:w-auto sm:min-w-[130px] sm:max-w-[220px] sm:flex-none';
 
 export const adminInputClass =
-  'h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/90 pl-9 pr-3 text-[16px] outline-none sm:h-10 sm:text-[12px]';
+  'min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-10 pr-3 text-[12px] outline-none';
 
-const normalizeMetricCards = (items = []) => {
-  const capped = items.slice(0, 4);
-  return capped.length > 1 && capped.length % 2 !== 0 ? capped.slice(0, capped.length - 1) : capped;
-};
+const FINANCE_PAGES = [
+  { href: '/admin/escrow', label: 'Escrow & fees', icon: ShieldCheck },
+  { href: '/admin/withdrawals', label: 'Withdrawals', icon: Wallet },
+  { href: '/admin/treasury', label: 'Treasury', icon: Landmark },
+  { href: '/admin/vendor-balance', label: 'Vendor balances', icon: Scale },
+  { href: '/admin/transactions', label: 'Transactions', icon: Receipt },
+  { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
+  { href: '/admin/logistics/earnings', label: 'Earnings', icon: Wallet },
+  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+];
 
 export function AdminFinancePage({ theme = 'transactions', children }) {
-  const t = useTheme(theme);
-  return (
-    <main className={`min-h-screen font-[Poppins] text-[var(--text-primary)] ${t.pageBg}`}>
-      {children}
-    </main>
-  );
+  return <main className={styles.page} data-finance-theme={theme}>{children}</main>;
 }
 
-export function AdminFinanceHeader({
-  theme = 'transactions',
-  icon: Icon,
-  title,
-  description,
-  badge,
-  onRefresh,
-  loading = false,
-  embedRefreshInToolbar = false,
-  children,
-}) {
-  const t = useTheme(theme);
-  return (
-    <header
-      className={`sticky top-0 z-40 border-b bg-[var(--bg-primary)]/90 backdrop-blur-md ${t.headerAccent}`}
-    >
-      <div className="w-full space-y-2.5 px-3 py-2.5 pt-[max(0.75rem,env(safe-area-inset-top,0px))] sm:space-y-3 sm:px-5 sm:py-4">
-        <div className="flex items-start justify-between gap-3">
+export function AdminFinanceHeader({ icon: Icon, title, description, badge, onRefresh, loading = false, children, actions, showNavigation = true }) {
+  const pathname = usePathname();
+  return <>
+    <header className={`${styles.header} sticky top-14 lg:top-0 z-30`}>
+      <div className={styles.headerInner}>
+        <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            {Icon && (
-              <div
-                className={`flex size-10 shrink-0 items-center justify-center rounded-2xl ${t.headerIcon}`}
-              >
-                <Icon className="size-5" />
-              </div>
-            )}
+            {Icon && <span className={styles.headerIcon}><Icon className="size-5" aria-hidden="true" /></span>}
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-base font-semibold tracking-tight sm:text-lg">{title}</h1>
-                {badge != null && (
-                  <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-0.5 text-[10px] font-semibold tabular-nums text-[var(--text-secondary)]">
-                    {badge}
-                  </span>
-                )}
-              </div>
-              {description && (
-                <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">{description}</p>
-              )}
+              <div className="flex flex-wrap items-center gap-2"><h1 className="text-base font-bold tracking-tight md:text-xl">{title}</h1>{badge != null && <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">{badge}</span>}</div>
+              {description && <p className="mt-1 text-[11px] text-[var(--text-secondary)]">{description}</p>}
             </div>
           </div>
-          {onRefresh && (
-            <button
-              type="button"
-              onClick={onRefresh}
-              className="inline-flex size-9 shrink-0 items-center justify-center rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] sm:hidden"
-              aria-label="Refresh"
-            >
-              <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-            </button>
-          )}
-        </div>
-
-        {children}
-
-        {onRefresh && !embedRefreshInToolbar && (
-          <div className="hidden sm:flex sm:justify-end">
-            <button
-              type="button"
-              onClick={onRefresh}
-              className="inline-flex h-9 items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[11px] font-medium text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
-            >
-              <RefreshCw className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {actions}
+            {onRefresh && <button type="button" onClick={onRefresh} disabled={loading} className={styles.iconButton} aria-label="Refresh"><RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /></button>}
           </div>
-        )}
+        </div>
+        {children && <div className="mt-4">{children}</div>}
       </div>
     </header>
-  );
+    {showNavigation && <nav aria-label="Financial pages" className={`${styles.navigation} bg-[var(--bg-primary)]/65`}>
+      <div className={styles.navInner}>{FINANCE_PAGES.map(({ href, label, icon: NavIcon }) => <Link key={href} href={href} className={`${styles.navLink} text-[11px]`} aria-current={pathname === href ? 'page' : undefined}><NavIcon className="size-3.5" aria-hidden="true" />{label}</Link>)}</div>
+    </nav>}
+  </>;
 }
 
 export function AdminFinanceBody({ children, className = '' }) {
-  return (
-    <div
-      className={`w-full space-y-3 px-3 py-3 pb-[max(6.5rem,env(safe-area-inset-bottom,0px))] sm:space-y-4 sm:px-5 sm:py-5 sm:pb-28 ${className}`}
-    >
-      {children}
-    </div>
-  );
+  return <div className={`${styles.body} ${className}`}>{children}</div>;
 }
 
-/** Compact metrics — 2×2 grid on mobile, single strip on desktop */
-export function AdminMetricStrip({ metrics = [], theme = 'transactions' }) {
-  const t = useTheme(theme);
-  const visibleMetrics = normalizeMetricCards(metrics);
-  if (!visibleMetrics.length) return null;
-  return (
-    <>
-      <div className="grid grid-cols-2 gap-2 sm:hidden">
-        {visibleMetrics.map(({ label, value }) => (
-          <div
-            key={`m-${label}`}
-            className={`rounded-xl border px-2.5 py-2 ${t.metricCard} bg-[var(--bg-primary)]/95`}
-          >
-            <p className="text-[9px] font-medium text-[var(--text-secondary)]">{label}</p>
-            <p className="mt-0.5 text-[12px] font-semibold tabular-nums">{value}</p>
-          </div>
-        ))}
-      </div>
-      <div
-        className={`hidden w-full items-stretch divide-x divide-[var(--glass-border)] overflow-hidden rounded-2xl border bg-[var(--bg-primary)]/95 sm:flex ${t.panel}`}
-      >
-        {visibleMetrics.map(({ label, value }) => (
-          <div
-            key={label}
-            className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-2 py-3 text-center sm:flex-row sm:gap-1.5"
-          >
-            <span className="text-[10px] font-medium text-[var(--text-secondary)]">{label}</span>
-            <span className="text-[11px] font-semibold tabular-nums sm:text-[12px]">{value}</span>
-          </div>
-        ))}
-      </div>
-    </>
-  );
+export function AdminContentTabs({ value, onChange, items, label = 'Page sections' }) {
+  return <div role="group" aria-label={label} className={styles.viewTabs}>
+    {items.map(({ id, label: title, icon: Icon }) => <button key={id} type="button" className={`${styles.viewTab} text-[11px]`} aria-pressed={value === id} onClick={() => onChange(id)}>{Icon && <Icon className="size-4" aria-hidden="true" />}{title}</button>)}
+  </div>;
 }
 
-/** Individual metric cards — better for many KPIs */
+/** Finance summaries share the dashboard card layout on every screen size. */
+export function AdminMetricStrip(props) {
+  return <AdminMetricGrid {...props} />;
+}
+
 export function AdminMetricGrid({ metrics = [], theme = 'transactions', columns = 4 }) {
-  const t = useTheme(theme);
-  const visibleMetrics = normalizeMetricCards(metrics);
-  if (!visibleMetrics.length) return null;
-  const colClass = columns === 2 || visibleMetrics.length <= 2
-    ? 'grid-cols-2'
-    : 'grid-cols-2 sm:grid-cols-4';
+  if (!metrics.length) return null;
+  const colClass = columns === 2 || metrics.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4';
+  const color = theme === 'withdrawals' ? 'emerald' : theme === 'treasury' ? 'amber' : 'indigo';
   return (
-    <div className={`grid gap-1.5 sm:gap-2 ${colClass}`}>
-      {visibleMetrics.map(({ label, value, hint }) => (
-        <div
-          key={label}
-          className={`rounded-xl border px-2.5 py-2 sm:rounded-2xl sm:px-3 sm:py-2.5 ${t.metricCard} bg-[var(--bg-primary)]/95`}
-        >
-          <p className="text-[9px] font-medium text-[var(--text-secondary)] sm:text-[10px]">{label}</p>
-          <p className="mt-0.5 truncate text-[11px] font-semibold tabular-nums sm:text-[12px]">{value}</p>
-          {hint && <p className="mt-0.5 text-[8px] text-[var(--text-secondary)]/80 sm:text-[9px]">{hint}</p>}
-        </div>
+    <div className={`grid gap-3 sm:gap-4 ${colClass}`}>
+      {metrics.map(({ label, value, hint, icon, ...metric }) => (
+        <StatCard key={label} color={color} {...metric} label={label} value={value} footer={hint} icon={icon || BarChart3} />
       ))}
     </div>
   );
@@ -258,18 +178,20 @@ export function AdminFilterSearch({
         onChange={onChange}
         onKeyDown={onSubmit ? (e) => e.key === 'Enter' && onSubmit() : undefined}
         placeholder={placeholder}
+        aria-label={placeholder}
         className={`${adminInputClass} ${t.inputFocus}`}
       />
     </div>
   );
 }
 
-export function AdminFilterSelect({ value, onChange, children, className = '', theme }) {
+export function AdminFilterSelect({ value, onChange, children, className = '', theme, label }) {
   const t = theme ? useTheme(theme) : null;
   return (
     <select
       value={value}
       onChange={onChange}
+      aria-label={label || 'Filter results'}
       className={`${adminSelectClass} ${t ? t.inputFocus : ''} ${className}`}
     >
       {children}
@@ -294,7 +216,8 @@ export function AdminFilterPills({
           ? 'flex-col'
           : '-mx-1 snap-x snap-mandatory overflow-x-auto px-1 no-scrollbar pb-1'
       } ${className}`}
-      role="tablist"
+      role="group"
+      aria-label="Filter by status"
     >
       {items.map((item) => {
         const id = typeof item === 'string' ? item : item.id;
@@ -309,8 +232,7 @@ export function AdminFilterPills({
           <button
             key={id}
             type="button"
-            role="tab"
-            aria-selected={active}
+            aria-pressed={active}
             onClick={() => onChange(id)}
             className={`text-left capitalize transition ${
               isVertical
@@ -374,7 +296,7 @@ export function AdminListPanel({
 }) {
   const t = useTheme(theme);
   const listBodyClass =
-    variant === 'ledger'
+    variant === 'records' ? styles.entryList : variant === 'ledger'
       ? 'divide-y divide-[var(--glass-border)]'
       : variant === 'queue'
         ? 'space-y-1.5 p-2 sm:space-y-2 sm:p-4'
@@ -382,22 +304,23 @@ export function AdminListPanel({
 
   return (
     <section
-      className={`overflow-hidden rounded-2xl border bg-[var(--bg-primary)]/95 ${t.panel}`}
+      className={styles.panel}
     >
-      {filterSlot && (
-        <div className="space-y-2.5 border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-2.5 sm:space-y-3 sm:p-4">
-          {filterSlot}
-        </div>
-      )}
 
-      <div className="flex items-center justify-between gap-2 border-b border-[var(--glass-border)] px-2.5 py-2 sm:px-4 sm:py-2.5">
-        <p className="text-[11px] font-semibold sm:text-[12px]">{title}</p>
+      <div className={styles.panelHeader}>
+        <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
         {countLabel != null && (
           <span className="max-w-[55%] truncate rounded-full bg-[var(--bg-secondary)] px-2 py-0.5 text-[9px] font-medium text-[var(--text-secondary)] sm:max-w-none sm:px-2.5 sm:py-1 sm:text-[10px]">
             {countLabel}
           </span>
         )}
       </div>
+
+      {filterSlot && (
+        <div className={`${styles.filterArea} space-y-3`}>
+          {filterSlot}
+        </div>
+      )}
 
       {listHeader}
 
@@ -406,7 +329,7 @@ export function AdminListPanel({
       ) : isEmpty ? (
         <AdminListEmpty icon={EmptyIcon} message={emptyMessage} action={emptyAction} />
       ) : (
-        <div className={variant === 'ledger' ? listBodyClass : `${listBodyClass} p-3 sm:p-4`}>
+        <div className={(variant === 'ledger' || variant === 'records') ? listBodyClass : `${listBodyClass} p-3 sm:p-4`}>
           {children}
         </div>
       )}
@@ -423,7 +346,7 @@ export function AdminListPanel({
 export function AdminLedgerTableHeader({ columns = [] }) {
   if (!columns.length) return null;
   return (
-    <div className="hidden border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 sm:grid sm:grid-cols-[minmax(0,1fr)_100px_120px_80px] sm:gap-3 sm:px-4 sm:py-2">
+    <div className="hidden border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/30 sm:grid sm:grid-cols-[minmax(0,1fr)_120px_110px_36px] sm:gap-3 sm:px-4 sm:py-2">
       {columns.map((col) => (
         <span
           key={col}

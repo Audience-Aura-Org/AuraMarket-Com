@@ -69,11 +69,11 @@ describe('ending a session the server no longer accepts', () => {
     expect(events).toEqual([]);
   });
 
-  it('sends the saved token when the main slot is empty (startup heal window)', async () => {
+  it('does not authorize using a cached token after its credential was removed', async () => {
     localStorage.setItem('aura-auth-storage', JSON.stringify({ state: { token: 'saved-tok', isAuthenticated: true }, version: 0 }));
     let auth;
     api.defaults.adapter = async (config) => { auth = config.headers.Authorization; return { data: { success: true }, status: 200, headers: {}, config }; };
     await api.get('/orders', { skipClientCache: true });
-    expect(auth).toBe('Bearer saved-tok');
+    expect(auth).toBeUndefined();
   });
 });

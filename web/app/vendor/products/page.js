@@ -1,437 +1,172 @@
-"use client";
+'use client';
 
-export const dynamic = 'force-dynamic';
-
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Zap, Package, AlertCircle, Eye, Search, Trash2, RefreshCw, ChevronRight, LayoutGrid, List, Pencil, Tag, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { AlertCircle, ArrowUpRight, CheckCircle2, Eye, LayoutGrid, List, Loader2, Package, Pencil, Plus, RefreshCw, Search, ShoppingBag, Tag, Trash2 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
-import Pagination from '@/components/common/Pagination';
 import { useLanguage } from '@/context/LanguageContext';
+import { effectiveStock, isAvailable, stockLevel } from '@/lib/stock';
+import { productImageUrl } from '@/lib/productEditor';
+import Pagination from '@/components/common/Pagination';
 import StatCard from '@/components/layout/StatCard';
-import { stockLevel, isAvailable, effectiveStock } from '@/lib/stock';
+import { ProductPageHeader, useProductPaths } from '@/components/vendor/ProductWorkspace';
+import styles from '@/components/vendor/Products.module.css';
+
+function priceDetails(product) {
+  const variants = product.has_variants && Array.isArray(product.sku_variants) ? product.sku_variants : [];
+  const offers = variants.length ? variants : [product];
+  const sale = offers.some((offer) => Number(offer.sale_price) > 0 && Number(offer.sale_price) < Number(offer.price));
+  const price = Math.min(...offers.map((offer) => Number(offer.sale_price) > 0 && Number(offer.sale_price) < Number(offer.price) ? Number(offer.sale_price) : Number(offer.price) || 0));
+  return { price, sale, variants: variants.length };
+}
+
+function StockBadge({ product }) {
+  const level = stockLevel(product);
+  const tone = level === 'out' ? 'text-rose-600 dark:text-rose-400 bg-rose-500/10' : level === 'low' ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10' : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10';
+  return <span className={`${styles.pill} ${tone}`}><span className="size-1.5 rounded-full bg-current" />{level === 'out' ? 'Out of stock' : level === 'low' ? 'Low stock' : product.is_meal ? 'On menu' : 'In stock'}</span>;
+}
+
+function ProductImage({ product, className }) {
+  const src = productImageUrl(product.images?.[0]);
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [src]);
+  return src && !broken ? <img src={src} alt={product.name} className={className} loading="lazy" onError={() => setBroken(true)} />
+    : <div className={`${className} flex items-center justify-center`}><Package className="size-9 text-[var(--text-secondary)] opacity-25" aria-hidden="true" /></div>;
+}
+
+function ProductItem({ product, listView, editPath, onDelete, deleting }) {
+  const pricing = priceDetails(product);
+  const category = typeof product.category === 'string' ? product.category : product.category?.name || 'General';
+  const price = <p className="break-words text-[13px] font-bold tabular-nums">{pricing.variants > 0 && <span className="text-[10px] font-normal text-[var(--text-secondary)]">From </span>}{pricing.price.toLocaleString()} <span className="text-[10px] font-medium text-[var(--text-secondary)]">XAF</span></p>;
+  const actions = <>
+    <Link href={editPath} aria-label={`Edit ${product.name}`} className={`${styles.secondaryButton} !min-h-9 !gap-1.5 !px-3 !py-2`}><Pencil className="size-3.5" /><span className="text-[10px]">Edit</span></Link>
+    <button type="button" disabled={deleting} onClick={() => onDelete(product)} aria-label={`Delete ${product.name}`} className={`${styles.iconButton} !size-9 !min-h-9 !rounded-xl text-rose-500`}>
+      {deleting ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+    </button>
+  </>;
+  if (listView) return <article className={`${styles.card} flex items-center gap-3 p-3 sm:gap-4 sm:p-4`}>
+    <Link href={editPath} className="shrink-0"><ProductImage product={product} className="size-16 rounded-xl bg-[var(--bg-secondary)] object-cover sm:size-20" /></Link>
+    <div className="min-w-0 flex-1"><p className="truncate text-[10px] text-[var(--text-secondary)]">{category}</p><Link href={editPath} className="mt-0.5 block truncate text-[12px] font-semibold">{product.name}</Link><div className="mt-2 flex flex-wrap items-center gap-2 sm:gap-4">{price}<StockBadge product={product} /></div></div>
+    <div className="flex shrink-0 flex-col gap-2 sm:flex-row">{actions}</div>
+  </article>;
+  return <article className={styles.card}>
+    <div className="relative"><Link href={editPath} aria-label={`Edit ${product.name}`}><ProductImage product={product} className={styles.image} /></Link><div className="absolute left-3 top-3"><StockBadge product={product} /></div>{pricing.sale && <span className="absolute bottom-3 left-3 rounded-full bg-[var(--accent)] px-2.5 py-1 text-[10px] font-semibold text-white">On sale</span>}</div>
+    <div className="space-y-3 p-3 sm:p-4">
+      <div><p className="truncate text-[10px] text-[var(--text-secondary)]">{category}</p><Link href={editPath} className="mt-1 block truncate text-[12px] font-semibold">{product.name}</Link></div>
+      <div className="space-y-1">{price}<p className="text-[10px] text-[var(--text-secondary)]">{product.is_meal ? 'On your menu' : `${effectiveStock(product)} units in stock`}{pricing.variants > 0 ? ` · ${pricing.variants} variants` : ''}</p></div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[var(--text-secondary)]"><span className="inline-flex items-center gap-1"><Eye className="size-3" />{product.view_count || 0} views</span><span className="inline-flex items-center gap-1"><ShoppingBag className="size-3" />{product.purchase_count || 0} sold</span></div>
+      <div className="flex items-center justify-between gap-2 border-t border-[var(--glass-border)] pt-3"><div className="flex items-center gap-1.5">{actions}</div><Link href={`/products/${product._id}`} aria-label={`View ${product.name} in store`} className="hidden rounded-lg p-2 text-[var(--text-secondary)] hover:text-[var(--accent)] sm:block"><ArrowUpRight className="size-4" /></Link></div>
+      {product.status && product.status !== 'active' && <p className="text-[10px] capitalize text-[var(--text-secondary)]">{product.status} listing</p>}
+    </div>
+  </article>;
+}
 
 export default function VendorProductsPage() {
   const { t } = useLanguage();
-  const authTokenFromStore = useAuthStore((s) => s.token);
-  const user = useAuthStore((s) => s.user);
-  const updateUser = useAuthStore((s) => s.updateUser);
-  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
+  const hydrated = useAuthStore((state) => state.hasHydrated);
+  const paths = useProductPaths();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [mounted, setMounted] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState(() =>
-    (typeof window !== 'undefined' && localStorage.getItem('productsView')) || 'grid'
-  );
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
   const [stockFilter, setStockFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
-  const itemsPerPage = viewMode === 'grid' ? 12 : 20;
+  const [sort, setSort] = useState('newest');
+  const [view, setView] = useState('grid');
+  const [page, setPage] = useState(1);
+  const [deleting, setDeleting] = useState(null);
+  const requestId = useRef(0);
+  const deleteRef = useRef(false);
+  const userId = user?._id;
+  const role = user?.role;
+  const pageSize = view === 'grid' ? 12 : 20;
 
-  const fetchProducts = async () => {
-    setError(null);
-    setLoading(true);
+  const loadProducts = useCallback(async () => {
+    const request = ++requestId.current;
+    setLoading(true); setError('');
     try {
-      const res = await api.get('/vendor/products');
-      if (res?.data?.success) {
-        const prods = res.data.data?.products || res.data.data || [];
-        setProducts(prods);
-        setLoading(false);
-        return;
-      }
-      setError(res?.data?.message || t('products.loadFailed', 'Failed to load products'));
-    } catch (err) {
-      const status = err?.response?.status;
-      if (status === 404) {
-        if (updateUser) updateUser({ onboarded: false });
-        router.push('/onboarding');
-      } else {
-        setError(err?.response?.data?.message || err.message || t('products.fetchError', 'Fetch error'));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+      const res = await api.get('/vendor/products', { skipClientCache: true });
+      if (request !== requestId.current) return;
+      if (!res.data?.success) throw new Error(res.data?.message || 'Could not load products.');
+      const records = res.data.data?.products || res.data.data;
+      if (!Array.isArray(records)) throw new Error('Could not read your product catalogue. Please try again.');
+      setProducts(records.filter((product) => product && product._id));
+    } catch (err) { if (request === requestId.current) setError(err.response?.data?.message || err.message || 'Could not load products.'); }
+    finally { if (request === requestId.current) setLoading(false); }
+  }, [userId]);
 
   useEffect(() => {
-    setMounted(true);
-    if (!user || user.role !== 'vendor' || !user.onboarded) return;
-    fetchProducts();
-  }, [authTokenFromStore, user]);
+    if (!hydrated || !userId || role !== 'vendor') return;
+    loadProducts();
+    return () => { requestId.current += 1; };
+  }, [hydrated, userId, role, loadProducts]);
+  useEffect(() => { try { const saved = localStorage.getItem('productsView'); if (saved === 'grid' || saved === 'list') setView(saved); } catch {} }, []);
 
-  const filteredProducts = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    let list = products.filter((p) =>
-      !query ||
-      p.name?.toLowerCase().includes(query) ||
-      p.category?.toLowerCase().includes(query)
-    );
-    if (stockFilter === 'in_stock') list = list.filter((p) => ['in', 'meal'].includes(stockLevel(p)));
-    else if (stockFilter === 'low_stock') list = list.filter((p) => stockLevel(p) === 'low');
-    else if (stockFilter === 'out_of_stock') list = list.filter((p) => stockLevel(p) === 'out');
-    if (sortBy === 'price_asc') list = [...list].sort((a, b) => (a.price ?? 0) - (b.price ?? 0));
-    else if (sortBy === 'price_desc') list = [...list].sort((a, b) => (b.price ?? 0) - (a.price ?? 0));
-    else if (sortBy === 'stock') list = [...list].sort((a, b) => (b.stock ?? 0) - (a.stock ?? 0));
-    else list = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    return list;
-  }, [products, searchTerm, stockFilter, sortBy]);
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-  const currentProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  // Meals don't track stock — consider them "in stock" when status is active.
-  // Variant products track stock per-variant; sum the variants for accurate counts.
-  // One stock rule (lib/stock) for these cards, the filter tabs and the badges.
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const records = products.filter((product) => {
+      const category = typeof product.category === 'string' ? product.category : product.category?.name || '';
+      if (query && !`${product.name || ''} ${category}`.toLowerCase().includes(query)) return false;
+      if (stockFilter === 'in') return isAvailable(product);
+      if (stockFilter === 'low') return stockLevel(product) === 'low';
+      if (stockFilter === 'out') return stockLevel(product) === 'out';
+      return true;
+    });
+    return records.sort((a, b) => sort === 'name' ? String(a.name || '').localeCompare(String(b.name || ''))
+      : sort === 'price_asc' ? priceDetails(a).price - priceDetails(b).price
+        : sort === 'price_desc' ? priceDetails(b).price - priceDetails(a).price
+          : sort === 'stock' ? effectiveStock(b) - effectiveStock(a)
+            : (Date.parse(b.createdAt || b.created_at) || 0) - (Date.parse(a.createdAt || a.created_at) || 0));
+  }, [products, search, stockFilter, sort]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const visible = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const activeCount = products.filter(isAvailable).length;
-  const lowStockCount = products.filter((p) => stockLevel(p) === 'low').length;
+  const lowCount = products.filter((product) => stockLevel(product) === 'low').length;
+  const saleCount = products.filter((product) => priceDetails(product).sale).length;
+  const filters = [{ value: 'all', label: 'All products', count: products.length }, { value: 'in', label: 'In stock', count: activeCount }, { value: 'low', label: 'Low stock', count: lowCount }, { value: 'out', label: 'Out of stock', count: products.filter((product) => stockLevel(product) === 'out').length }];
+  const changeView = (value) => { setView(value); setPage(1); try { localStorage.setItem('productsView', value); } catch {} };
 
-  const onSaleCount = products.filter((p) => {
-    // Top-level sale price
-    if (p.sale_price != null && Number(p.sale_price) > 0 && Number(p.sale_price) < Number(p.price)) return true;
-    // Variant-level sale price
-    if (p.has_variants && p.sku_variants?.length)
-      return p.sku_variants.some(v => v.sale_price != null && Number(v.sale_price) > 0 && Number(v.sale_price) < Number(v.price));
-    return false;
-  }).length;
-
-  const handleDeleteProduct = async (id) => {
-    if (!window.confirm(t('products.deleteConfirm', 'Are you sure you want to delete this product? This action cannot be undone.'))) return;
+  const deleteProduct = async (product) => {
+    if (deleteRef.current || !window.confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
+    deleteRef.current = true; setDeleting(product._id);
     try {
-      const res = await api.delete(`/products/${id}`);
-      if (res.data.success) {
-        setProducts(products.filter(p => p._id !== id));
-      }
-    } catch (err) {
-      setError(`${t('products.deletionFailed', 'Deletion failed:')} ${err.response?.data?.message || err.message}`);
-    }
+      const res = await api.delete(`/products/${encodeURIComponent(product._id)}`);
+      if (!res.data?.success) throw new Error(res.data?.message || 'Could not delete this product.');
+      setProducts((previous) => previous.filter((item) => item._id !== product._id));
+    } catch (err) { setError(err.response?.data?.message || err.message || 'Could not delete this product.'); }
+    finally { deleteRef.current = false; setDeleting(null); }
   };
 
-  if (!mounted) return null;
-  if (user?.role !== 'vendor' || !user.onboarded) return null;
-
-  return (
-    <main className="min-h-screen w-full bg-[var(--bg-secondary)] font-[Poppins] text-[var(--text-primary)]">
-      <div className="sticky top-0 z-30 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur">
-        <div className="w-full px-3 py-3 sm:px-5 lg:px-6">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]">
-                  <Package className="size-4.5" />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">{t('products.title', 'Products')}</h1>
-                  <p className="truncate text-[11px] text-[var(--text-secondary)]">{user?.branding?.store_name || t('products.vendorStore', 'Vendor store')}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={fetchProducts}
-                  className="inline-flex size-9 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] transition active:scale-95"
-                  aria-label="Refresh products"
-                >
-                  <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
-                </button>
-                <Link
-                  href="/vendor/products/add"
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-[var(--accent)] px-3 text-[11px] font-semibold text-white shadow-md shadow-[var(--accent)]/20 active:scale-95"
-                >
-                  {t('products.addProduct', 'Add product')}
-                </Link>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-[var(--text-secondary)]" />
-                  <input
-                    type="text"
-                    placeholder={t('products.searchPlaceholder', 'Search products or category')}
-                    value={searchTerm}
-                    onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                    className="h-9 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/60 pl-8 pr-3 text-[11px] placeholder:text-[11px] placeholder:font-normal placeholder:opacity-70 outline-none transition-all focus:border-[var(--accent)]/50 focus:bg-[var(--bg-primary)]/80 focus:ring-1 focus:ring-[var(--accent)]/20"
-                  />
-                </div>
-                <div className="inline-flex items-center gap-1 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)]/45 p-1">
-                  <button
-                    onClick={() => { setViewMode('grid'); localStorage.setItem('productsView', 'grid'); }}
-                    className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
-                  >
-                    <LayoutGrid className="size-3.5" />
-                    {t('products.grid', 'Grid')}
-                  </button>
-                  <button
-                    onClick={() => { setViewMode('list'); localStorage.setItem('productsView', 'list'); }}
-                    className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition ${viewMode === 'list' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-secondary)]'}`}
-                  >
-                    <List className="size-3.5" />
-                    {t('products.list', 'List')}
-                  </button>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
-                {[
-                  { key: 'all', label: 'All' },
-                  { key: 'in_stock', label: 'In Stock' },
-                  { key: 'low_stock', label: 'Low Stock' },
-                  { key: 'out_of_stock', label: 'Out of Stock' },
-                ].map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => { setStockFilter(key); setCurrentPage(1); }}
-                    className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-medium transition ${stockFilter === key ? 'border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-                <div className="ml-auto shrink-0">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => { setSortBy(e.target.value); setCurrentPage(1); }}
-                    className="h-7 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 text-[10px] text-[var(--text-secondary)] outline-none"
-                  >
-                    <option value="name">A–Z</option>
-                    <option value="price_asc">Price ↑</option>
-                    <option value="price_desc">Price ↓</option>
-                    <option value="stock">Stock</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+  if (!hydrated || !user) return null;
+  return <div className={styles.page}>
+    <ProductPageHeader title={t('products.title', 'Products')} description={user.branding?.store_name || 'Your catalogue, all in one place.'}>
+      <button type="button" aria-label="Refresh products" onClick={loadProducts} disabled={loading} className={styles.iconButton}><RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} /></button>
+      <Link href={paths.add} className={styles.button}><Plus className="size-4" /><span className="text-[11px]">{t('products.addProduct', 'Add product')}</span></Link>
+    </ProductPageHeader>
+    <div className="mx-auto w-full max-w-[1600px] space-y-6 px-4 py-5 pb-32 sm:px-6 md:px-8 md:py-7">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <StatCard label="Total products" value={products.length} icon={Package} color="indigo" pct="Catalogue" footer="Products in your store" loading={loading} />
+        <StatCard label="In stock" value={activeCount} icon={CheckCircle2} color="emerald" progress={products.length ? activeCount / products.length * 100 : 0} footer="Ready for your customers" loading={loading} />
+        <StatCard label="Low stock" value={lowCount} icon={AlertCircle} color="amber" progress={products.length ? lowCount / products.length * 100 : 0} footer={lowCount ? `${lowCount} products need a restock` : 'Stock is looking healthy'} loading={loading} />
+        <StatCard label="On sale" value={saleCount} icon={Tag} color="primary" progress={products.length ? saleCount / products.length * 100 : 0} footer="Products with a sale price" loading={loading} />
       </div>
-
-      <div className="w-full space-y-4 px-3 py-4 pb-28 sm:px-5 sm:py-5 lg:px-6">
-        {error && (
-          <div className="flex items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-red-500">
-            <AlertCircle className="size-4 shrink-0" />
-            <p className="text-[11px] font-medium">{error}</p>
+      {error && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-2xl border border-rose-500/25 bg-rose-500/10 p-4 text-[12px] text-rose-600 dark:text-rose-300"><AlertCircle className="size-4 shrink-0" /><p className="min-w-0 flex-1">{error}</p><button type="button" onClick={loadProducts} disabled={loading} className="font-semibold underline">Try again</button></div>}
+      <section className={`${styles.panel} !p-0 overflow-hidden`} aria-label="Product catalogue">
+        <div className="space-y-5 border-b border-[var(--glass-border)] p-4 sm:p-6">
+          <div className="flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold">Your catalogue</h2><p className="mt-1 text-[11px] text-[var(--text-secondary)]">Keep your products fresh and your stock up to date.</p></div><span className={`${styles.pill} hidden text-[var(--text-secondary)] sm:inline-flex`}>{filtered.length} products</span></div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="relative min-w-0 flex-1"><Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--text-secondary)]" /><input type="search" aria-label="Search products" placeholder="Search products or categories" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} className={`${styles.input} !pl-11 text-[12px]`} /></div>
+            <div className="flex items-center gap-2"><select aria-label="Sort products" className={`${styles.input} min-w-0 flex-1 text-[11px] sm:!w-auto`} value={sort} onChange={(event) => { setSort(event.target.value); setPage(1); }}><option value="newest">Newest first</option><option value="name">Name: A to Z</option><option value="price_asc">Price: low to high</option><option value="price_desc">Price: high to low</option><option value="stock">Most stock</option></select><div className="flex gap-1 rounded-2xl border border-[var(--glass-border)] p-1">{[{ value: 'grid', icon: LayoutGrid }, { value: 'list', icon: List }].map(({ value, icon: Icon }) => <button key={value} type="button" aria-label={`${value === 'grid' ? 'Grid' : 'List'} view`} aria-pressed={view === value} onClick={() => changeView(value)} className={`rounded-xl p-2.5 ${view === value ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}><Icon className="size-4" /></button>)}</div></div>
           </div>
-        )}
-
-        {(() => {
-          const total      = products.length || 1;
-          const activePct  = Math.round((activeCount    / total) * 100);
-          const lowPct     = Math.round((lowStockCount  / total) * 100);
-          const salePct    = Math.round((onSaleCount    / total) * 100);
-          return (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              <StatCard label={t('products.total', 'Total')}    value={String(products.length)} icon="inventory_2"  color="indigo"  sub="Products"   progress={100}     footer={`${products.length} in catalog`} />
-              <StatCard label={t('products.active', 'Active')}  value={String(activeCount)}     icon="check_circle" color="emerald" sub="In stock"    progress={activePct} footer={`${activePct}% active`} />
-              <StatCard label={t('products.low', 'Low Stock')}  value={String(lowStockCount)}   icon="warning"      color="amber"   sub="≤ 5 units"  progress={lowPct}    footer={lowStockCount > 0 ? `${lowStockCount} need restock` : 'Stock healthy'} />
-              <StatCard label={t('products.onSale', 'On Sale')} value={String(onSaleCount)}     icon="sell"         color="primary" sub="Discounted"  progress={salePct}   footer={`${salePct}% on sale`} />
-            </div>
-          );
-        })()}
-
-        <section className="overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
-          <div className="flex items-center justify-between border-b border-[var(--glass-border)] px-3 py-2.5 sm:px-4">
-            <p className="text-[12px] font-semibold">{t('products.productCatalog', 'Product catalog')}</p>
-            <span className="rounded-full bg-[var(--bg-secondary)] px-2 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
-              {filteredProducts.length} {t('products.items', 'items')}
-            </span>
-          </div>
-
-          {loading ? (
-            <div className="space-y-2 p-3 sm:p-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-24 animate-pulse rounded-xl bg-[var(--bg-secondary)]" />
-              ))}
-            </div>
-          ) : currentProducts.length > 0 ? (
-            viewMode === 'grid' ? (
-              <div className="grid grid-cols-2 gap-2.5 p-3 sm:grid-cols-3 sm:gap-3 sm:p-4 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-                {currentProducts.map((product) => (
-                  <ManagementCard key={product._id} product={product} onDelete={handleDeleteProduct} t={t} />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-2 p-3 sm:p-4">
-                {currentProducts.map((product) => (
-                  <ListRow key={product._id} product={product} onDelete={handleDeleteProduct} t={t} />
-                ))}
-              </div>
-            )
-          ) : (
-            <div className="py-16 text-center">
-              <Package className="mx-auto mb-3 size-8 text-[var(--text-secondary)]/40" />
-              <p className="text-sm font-medium text-[var(--text-secondary)]">{t('products.noProductsFound', 'No products found.')}</p>
-            </div>
-          )}
-
-          <div className="border-t border-[var(--glass-border)] px-3 py-3 sm:px-4">
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-          </div>
-        </section>
-      </div>
-    </main>
-  );
-}
-
-
-function getProductImageUrl(product) {
-  const firstImage = product?.images?.[0];
-  if (!firstImage) return '';
-  return typeof firstImage === 'string' ? firstImage : firstImage.url || firstImage.location || '';
-}
-
-function ManagementCard({ product, onDelete, t }) {
-  const router = useRouter();
-  const level = stockLevel(product);
-  const isOutOfStock = level === 'out';
-  const isLowStock = level === 'low';
-  // Sales are sale_price < price (compare_at_price is deprecated and always null).
-  const hasSale = Number(product.sale_price) > 0 && Number(product.sale_price) < Number(product.price);
-  const discountPct = hasSale ? Math.round(((Number(product.price) - Number(product.sale_price)) / Number(product.price)) * 100) : 0;
-  const status = isOutOfStock
-    ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
-    : isLowStock
-       ? { label: t('products.lowStock', 'Low Stock'), color: 'text-amber-500', bg: 'bg-amber-500/10' }
-       : { label: t('products.active', 'Active'), color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
-
-  return (
-    <div
-      className="group relative overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] cursor-pointer active:scale-[0.98] transition-transform"
-      onClick={() => router.push(`/vendor/products/edit?id=${product._id}`)}
-    >
-      <div className="relative aspect-[4/3] bg-[var(--bg-secondary)]">
-        {getProductImageUrl(product) ? (
-          <img src={getProductImageUrl(product)} alt={product.name} loading="lazy" decoding="async" className="size-full object-cover transition duration-500 group-hover:scale-105" />
-        ) : (
-          <div className="flex size-full items-center justify-center text-[var(--accent)]/20">
-            <Package className="size-10" />
-          </div>
-        )}
-        <div className="absolute left-2.5 top-2.5 z-10 rounded-full bg-black/45 px-2 py-1 text-[10px] font-medium backdrop-blur">
-          <span className={status.color}>
-            {status.label}
-          </span>
+          <div className="flex flex-wrap gap-2">{filters.map((filter) => <button key={filter.value} type="button" aria-pressed={stockFilter === filter.value} onClick={() => { setStockFilter(filter.value); setPage(1); }} className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[10px] font-medium transition ${stockFilter === filter.value ? 'border-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>{filter.label}<span className="opacity-65">{filter.count}</span></button>)}</div>
         </div>
-        {hasSale && (
-          <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-1 rounded-full bg-[var(--accent)] px-2 py-1 text-[10px] font-bold text-white shadow-sm">
-            <Tag className="size-2.5" />
-            -{discountPct}%
-          </div>
-        )}
-      </div>
-      <div className="space-y-2 p-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-[10px] font-medium text-[var(--text-secondary)]">{product.category || t('products.general', 'General')}</p>
-            <p className="mt-0.5 truncate text-[12px] font-semibold text-[var(--text-primary)]">
-              {product.name}
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <div className="inline-flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--accent)]">
-              <Pencil className="size-3.5" />
-            </div>
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(product._id); }}
-              className="inline-flex size-8 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white"
-              aria-label="Delete product"
-            >
-              <Trash2 className="size-3.5" />
-            </button>
-          </div>
-        </div>
-        <div className="flex items-center justify-between border-t border-[var(--glass-border)] pt-2">
-          <div className="flex flex-col">
-            {hasSale ? (
-              <>
-                <span className="text-[12px] font-bold text-[var(--accent)]">{Number(product.sale_price).toLocaleString()} XAF</span>
-                <span className="text-[10px] font-medium text-[var(--text-secondary)] line-through">{Number(product.price).toLocaleString()} XAF</span>
-              </>
-            ) : (
-              <span className="text-[12px] font-semibold">{product.price?.toLocaleString()} XAF</span>
-            )}
-          </div>
-          <p className={`text-[11px] font-semibold ${isOutOfStock ? 'text-red-500' : isLowStock ? 'text-amber-500' : 'text-emerald-500'}`}>
-            {product.is_meal ? t('products.onMenu', 'On menu') : <>{t('products.stock', 'Stock:')} {effectiveStock(product)}</>}
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-[10px] font-medium text-[var(--text-secondary)]">
-          <span className="inline-flex items-center gap-1"><Eye className="size-3" />{product.view_count || 0}</span>
-          <span className="inline-flex items-center gap-1"><Zap className="size-3" />{product.purchase_count || 0}</span>
-        </div>
-      </div>
+        {loading ? <div aria-label="Loading products" aria-busy="true" className="grid grid-cols-2 gap-4 p-4 sm:p-6 lg:grid-cols-3 xl:grid-cols-4">{Array.from({ length: 8 }, (_, index) => <div key={index} className="h-64 animate-pulse rounded-3xl bg-[var(--bg-secondary)]" />)}</div>
+          : visible.length ? <div className={view === 'grid' ? 'grid grid-cols-2 gap-3 p-3 sm:gap-4 sm:p-6 lg:grid-cols-3 2xl:grid-cols-4' : 'space-y-3 p-3 sm:p-6'}>{visible.map((product) => <ProductItem key={product._id} product={product} editPath={paths.edit(product._id)} listView={view === 'list'} onDelete={deleteProduct} deleting={deleting === product._id} />)}</div>
+            : <div className="flex flex-col items-center px-5 py-16 text-center"><span className="mb-5 flex size-16 items-center justify-center rounded-3xl bg-[var(--accent)]/10 text-[var(--accent)]"><Package className="size-7" /></span><h3 className="text-base font-semibold">{products.length ? 'No products match your filters' : error ? 'Your catalogue is unavailable' : 'Your next great product starts here'}</h3><p className="mb-6 mt-2 max-w-sm text-[12px] leading-relaxed text-[var(--text-secondary)]">{products.length ? 'Try a different search or clear your filters.' : error ? 'Try loading your products again.' : 'Add your first product with photos, a price, and a few details.'}</p>{products.length ? <button type="button" className={styles.secondaryButton} onClick={() => { setSearch(''); setStockFilter('all'); setPage(1); }}>Clear filters</button> : !error && <Link href={paths.add} className={styles.button}><Plus className="size-4" />Add your first product</Link>}</div>}
+        {!loading && filtered.length > 0 && <div className="flex flex-col items-center justify-between gap-3 border-t border-[var(--glass-border)] px-4 py-4 sm:flex-row sm:px-6"><p className="text-[11px] text-[var(--text-secondary)]">Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filtered.length)} of {filtered.length} products</p><Pagination compact currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} /></div>}
+      </section>
     </div>
-  );
-}
-
-function ListRow({ product, onDelete, t }) {
-  const router = useRouter();
-  const level = stockLevel(product);
-  const isOutOfStock = level === 'out';
-  const isLowStock = level === 'low';
-  // Sales are sale_price < price (compare_at_price is deprecated and always null).
-  const hasSale = Number(product.sale_price) > 0 && Number(product.sale_price) < Number(product.price);
-  const discountPct = hasSale ? Math.round(((Number(product.price) - Number(product.sale_price)) / Number(product.price)) * 100) : 0;
-  const status = isOutOfStock
-    ? { label: t('products.soldOut', 'Sold Out'), color: 'text-red-500', bg: 'bg-red-500/10' }
-    : isLowStock
-       ? { label: t('products.lowStock', 'Low Stock'), color: 'text-amber-500', bg: 'bg-amber-500/10' }
-       : { label: t('products.active', 'Active'), color: 'text-emerald-500', bg: 'bg-emerald-500/10' };
-
-  return (
-    <div
-      className="flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-2.5 cursor-pointer active:scale-[0.99] transition-transform"
-      onClick={() => router.push(`/vendor/products/edit?id=${product._id}`)}
-    >
-      <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-[var(--bg-secondary)]">
-        {getProductImageUrl(product) ? (
-          <img src={getProductImageUrl(product)} alt={product.name} loading="lazy" decoding="async" className="size-full object-cover" />
-        ) : (
-          <div className="flex size-full items-center justify-center text-[var(--accent)]/20">
-            <Package className="size-5" />
-          </div>
-        )}
-        {hasSale && (
-          <div className="absolute bottom-0 left-0 right-0 bg-[var(--accent)] py-0.5 text-center text-[8px] font-bold text-white">
-            -{discountPct}%
-          </div>
-        )}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-[12px] font-semibold">{product.name}</p>
-        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] text-[var(--text-secondary)]">
-          <span>{product.category || t('products.general', 'General')}</span>
-          <span className={status.color}>{status.label}</span>
-          {hasSale ? (
-            <span className="flex items-center gap-1">
-              <span className="font-semibold text-[var(--accent)]">{Number(product.sale_price).toLocaleString()} XAF</span>
-              <span className="line-through">{Number(product.price).toLocaleString()} XAF</span>
-            </span>
-          ) : (
-            <span>{product.price?.toLocaleString()} XAF</span>
-          )}
-        </div>
-        <div className="mt-1 flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
-          <span className="inline-flex items-center gap-1"><Eye className="size-3" />{product.view_count || 0}</span>
-          <span className="inline-flex items-center gap-1"><Zap className="size-3" />{product.purchase_count || 0}</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <div className="inline-flex h-8 items-center gap-1 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-2 text-[10px] font-medium text-[var(--accent)]">
-          <Pencil className="size-3.5" />
-          {t('products.edit', 'Edit')}
-        </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(product._id); }}
-          className="inline-flex size-8 items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 text-red-500 transition hover:bg-red-500 hover:text-white"
-          aria-label="Delete product"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-        <div className="inline-flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--accent)]">
-          <ChevronRight className="size-3.5" />
-        </div>
-      </div>
-    </div>
-  );
+  </div>;
 }

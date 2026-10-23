@@ -43,6 +43,10 @@ const isVerificationWriteAllowed = (req) => {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return true;
 
   const path = req.originalUrl || req.url || '';
+  // Acknowledging personal alerts cannot move money or alter verification.
+  if (/^\/api(?:\/v1)?\/notifications(?:\/|$)/.test(path)) return true;
+  if (/^\/api(?:\/v1)?\/push\/(?:subscribe|unsubscribe)(?:\/|$)/.test(path)) return true;
+  if (/^\/api(?:\/v1)?\/users\/notification-preferences(?:\/|$)/.test(path)) return true;
   return [
     '/api/v1/users/kyc',
     '/api/v1/upload',

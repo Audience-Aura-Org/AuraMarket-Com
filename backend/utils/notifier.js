@@ -1,4 +1,5 @@
 const webPush = require('web-push');
+const { notificationChannels } = require('./notificationPolicy');
 const Notification = require('../models/Notification.model');
 const User = require('../models/User.model');
 const { 
@@ -249,9 +250,10 @@ const sendNotification = async (app, recipientId, data) => {
     // two sequential DB round-trips before FCM can fire.
     const PushSubscription = require('../models/PushSubscription.model');
     const [recipientProfile, pushSubs] = await Promise.all([
-      User.findById(recipientId).select('preferred_language').lean().catch(() => null),
+      User.findById(recipientId).select('preferred_language notification_preferences manager_settings role').lean().catch(() => null),
       PushSubscription.find({ user_id: recipientId }).lean().catch(() => []),
     ]);
+    const channels = notificationChannels(recipientProfile, type);
     const recipientLanguage = recipientProfile?.preferred_language === 'fr' ? 'fr' : 'en';
     const localizedTitle = translateNotificationText(title, recipientLanguage);
     const localizedMessage = translateNotificationText(message, recipientLanguage);
@@ -275,13 +277,15 @@ const sendNotification = async (app, recipientId, data) => {
     // ─────────────────────────────────────────────
 
     // 🚀 CHANNEL 1: PWA WEB PUSH (ULTRA-FAST PATH)
-    enqueueJob('push', async () => {
-      if (!VAPID_PUB || !VAPID_PRIV) return; // push disabled — VAPID keys not configured
+    const finishedPushEndpoints = new Set();
+    const finishedAndroidTokens = new Set();
+    if (channels.push) enqueueJob('push', async () => {
+
       try {
         // Use pre-fetched subscriptions — no extra DB query needed here
-        const rawWebSubs = pushSubs.filter((sub) => sub.channel !== 'android' && sub.subscription?.endpoint && !String(sub.subscription.endpoint).startsWith('fcm:'));
+        const rawWebSubs = (!VAPID_PUB || !VAPID_PRIV) ? [] : pushSubs.filter((sub) => sub.channel !== 'android' && sub.subscription?.endpoint && !finishedPushEndpoints.has(sub.subscription.endpoint) && !String(sub.subscription.endpoint).startsWith('fcm:'));
         const androidTokens = pushSubs
-          .filter((sub) => sub.channel === 'android' && sub.fcm_token)
+          .filter((sub) => sub.channel === 'android' && sub.fcm_token && !finishedAndroidTokens.has(sub.fcm_token))
           .map((sub) => sub.fcm_token);
 
         // Validate subscription objects — purge any stored as truncated/malformed JSON strings
@@ -325,7 +329,7 @@ const sendNotification = async (app, recipientId, data) => {
             body: localizedMessage,
             icon: iconUrl,
             image: (type === 'message' && senderAvatar) ? senderAvatar : undefined,
-            tag: (type === 'message' && senderId) ? `msg-${senderId}` : `alert-${recipientId}-${Date.now()}`,
+            tag: (type === 'message' && senderId) ? `msg-${senderId}` : `alert-${notification._id}`,
             data: {
               url: notificationUrl,
               sender_id: senderId,
@@ -338,8 +342,10 @@ const sendNotification = async (app, recipientId, data) => {
 
           const results = await Promise.allSettled(webSubs.map(sub => 
             webPush.sendNotification(sub.subscription, payload, WEB_PUSH_OPTIONS)
+              .then(result => { finishedPushEndpoints.add(sub.subscription.endpoint); return result; })
               .catch(async (e) => {
-                if (e.statusCode === 410 || e.statusCode === 404 || e.statusCode === 401) {
+                if (e.statusCode === 410 || e.statusCode === 404) {
+                  finishedPushEndpoints.add(sub.subscription.endpoint);
                   await PushSubscription.deleteOne({ _id: sub._id }).catch(() => {});
                   console.log(`🗑️  Purged invalid sub ${sub._id} (HTTP ${e.statusCode})`);
                 }
@@ -348,6 +354,7 @@ const sendNotification = async (app, recipientId, data) => {
           ));
           const delivered = results.filter(result => result.status === 'fulfilled').length;
           const failed = results.length - delivered;
+          let shouldRetryPush = results.some(result => result.status === 'rejected' && (!result.reason?.statusCode || result.reason.statusCode >= 500 || result.reason.statusCode === 429));
           console.log(`📱 PWA Push Signal Broadcasted to ${delivered}/${webSubs.length} connections for ${recipientId}${failed ? ` (${failed} failed)` : ''}`);
 
           if (androidTokens.length > 0) {
@@ -363,6 +370,8 @@ const sendNotification = async (app, recipientId, data) => {
               senderData,
             });
 
+            for (const token of [...(androidResult.deliveredTokens || []), ...(androidResult.invalidTokens || [])]) finishedAndroidTokens.add(token);
+            shouldRetryPush = shouldRetryPush || Boolean(androidResult.retryTokens?.length);
             if (androidResult.invalidTokens?.length) {
               await PushSubscription.deleteMany({
                 fcm_token: { $in: androidResult.invalidTokens },
@@ -371,11 +380,13 @@ const sendNotification = async (app, recipientId, data) => {
 
             console.log(`📲 Android Push delivered to ${androidResult.sent}/${androidTokens.length} tokens for ${recipientId}${androidResult.failed ? ` (${androidResult.failed} failed)` : ''}`);
           }
+          if (shouldRetryPush) throw new Error('Transient push delivery failure; retrying undelivered endpoints.');
         } else {
           console.log(`[PWA] No saved push subscriptions for ${recipientId}; notification stored only (${type}).`);
         }
       } catch (err) {
         console.error('❌ PWA Push Signal Error:', err.message);
+        throw err;
       }
     }, { recipientId: recipientId.toString(), notificationId: notification._id.toString(), type });
 

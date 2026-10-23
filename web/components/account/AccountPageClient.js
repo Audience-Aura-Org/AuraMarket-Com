@@ -72,15 +72,17 @@ export default function AccountPageClient() {
   useEffect(() => {
     if (activeTab !== 'notifications' || !user?._id) return;
     if ('Notification' in window) setPushPermission(Notification.permission);
-    api.get('/users/notification-preferences', { silent: true })
+    api.get('/users/notification-preferences', { silent: true, __noActAs: true })
       .then((res) => { if (res.data?.data) setNotifPrefs((p) => ({ ...p, ...res.data.data })); })
       .catch(() => {});
   }, [activeTab, user?._id]);
 
-  const saveNotifPref = (key, value) => {
-    const updated = { ...notifPrefs, [key]: value };
-    setNotifPrefs(updated);
-    api.patch('/users/notification-preferences', updated).catch(() => {});
+  const saveNotifPref = async (key, value) => {
+    const previous = notifPrefs[key];
+    setNotifPrefs(current => ({ ...current, [key]: value }));
+    try { await api.patch('/users/notification-preferences', { [key]: value }, { __noActAs: true }); }
+    catch { setNotifPrefs(current => ({ ...current, [key]: current[key] === value ? previous : current[key] })); setBrandingStatus('Notification setting could not be saved. Please try again.'); }
+
   };
 
   const requestPushPermission = async () => {

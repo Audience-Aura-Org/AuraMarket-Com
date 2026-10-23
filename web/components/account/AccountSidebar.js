@@ -14,6 +14,13 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
   const router = useRouter();
 
   const filteredTabs = TABS.filter((t) => t.roles.includes(user?.role || 'customer'));
+  const groupedTabs = [
+    ['Account', ['general', 'my-managers']],
+    ['Shopping & business', ['store', 'orders', 'wishlist']],
+    ['Connections', ['audience', 'network']],
+    ['Security & access', ['kyc', 'security', 'close-account']],
+    ['Preferences', ['notifications', 'install']],
+  ].flatMap(([group, ids]) => filteredTabs.filter(tab => ids.includes(tab.id)).map((tab, index) => ({ ...tab, groupStart: index === 0 ? group : null })));
 
   const handleTabClick = (tabId) => {
     if (onTabChange) {
@@ -24,7 +31,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
   };
 
   return (
-    <div className="lg:col-span-1">
+    <div className="aura-sidebar lg:col-span-1">
       {/* ── Mobile: horizontal scrollable tab bar (store-page style) ── */}
       <div className="flex lg:hidden items-center gap-2 overflow-x-auto pb-1 no-scrollbar px-1">
         {filteredTabs.map((tab) => {
@@ -77,13 +84,15 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
           </span>
         </button>
 
-        <nav className="space-y-1">
-          {filteredTabs.map((tab) => {
+        <nav aria-label="Account navigation" className="space-y-1">
+          {groupedTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
+              <div key={tab.id}>
+                {tab.groupStart && <p className="px-3 pt-5 pb-2 text-[11px] font-medium text-[var(--text-secondary)] opacity-60">{t('nav.sections.' + tab.groupStart.toLowerCase().replace(/[^a-z]+/g, '_'), tab.groupStart)}</p>}
               <button
-                key={tab.id}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => handleTabClick(tab.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all text-left group ${
                   isActive
@@ -98,6 +107,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
                 </div>
                 <span className="text-[13px] font-semibold tracking-tight">{t(`tabs.${tab.id}`, tab.label)}</span>
               </button>
+              </div>
             );
           })}
         </nav>

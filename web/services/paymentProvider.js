@@ -115,50 +115,29 @@ export const initiateSmartCameroonCollection = async (payload) => {
  */
 export const pollTransactionStatus = (gateway, reference, { onPending, onSuccess, onFailed, onTimeout }, interval = 5000, maxDuration = 300000) => {
   let stopped = false;
+  let timer;
   const startTime = Date.now();
-
+  const schedule = (delay) => { timer = setTimeout(poll, delay); };
+  const finish = (callback, payload) => { if (stopped) return; stopped = true; clearTimeout(timer); callback?.(payload); };
   const poll = async () => {
     if (stopped) return;
-
-    if (Date.now() - startTime >= maxDuration) {
-      if (onTimeout) onTimeout({ reference });
-      return;
-    }
-
+    if (Date.now() - startTime >= maxDuration) { finish(onTimeout, { reference }); return; }
     try {
-      const res = await api.get(`/payments/${gateway}/verify/${reference}`);
+      const res = await api.get('/payments/' + encodeURIComponent(gateway) + '/verify/' + encodeURIComponent(reference), { skipClientCache: true, __skipRetry: true });
+      if (stopped) return;
       const { status, data, message, reason } = res.data;
-
-      if (status === 'SUCCESSFUL') {
-        if (onSuccess) onSuccess({ data, message });
-        return;
-      }
-
-      if (status === 'FAILED') {
-        if (onFailed) onFailed({ reason: reason || message });
-        return;
-      }
-
-      if (status === 'TIMEOUT') {
-        if (onTimeout) onTimeout({ reference });
-        return;
-      }
-
-      if (onPending) onPending({ message });
-      if (!stopped) setTimeout(poll, interval);
-
+      if (status === 'SUCCESSFUL') { finish(onSuccess, { data, message }); return; }
+      if (status === 'FAILED') { finish(onFailed, { reason: reason || message }); return; }
+      if (status === 'TIMEOUT') { finish(onTimeout, { reference }); return; }
+      onPending?.({ message });
     } catch (err) {
-      console.warn(`[PaymentProvider] Poll error (${gateway}):`, err.message);
-      if (!stopped && Date.now() - startTime < maxDuration) {
-        setTimeout(poll, interval);
-      } else {
-        if (onTimeout) onTimeout({ reference });
-      }
+      if (stopped) return;
+      console.warn('[PaymentProvider] Payment status could not be checked:', err.message);
     }
+    if (!stopped) schedule(Math.min(interval, Math.max(0, maxDuration - (Date.now() - startTime))));
   };
-
-  setTimeout(poll, 1000);
-  return () => { stopped = true; };
+  schedule(1000);
+  return () => { stopped = true; clearTimeout(timer); };
 };
 
 // ── Recheck ───────────────────────────────────────────────────────────────────

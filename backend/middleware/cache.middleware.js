@@ -29,6 +29,8 @@ const cacheResponse = ({ ttlSeconds = DEFAULT_TTL_SECONDS, privateRoute = false 
       req.method !== 'GET' ||
       isAdminPath ||
       req.headers.authorization ||
+      req.headers.cookie ||
+      req.headers['x-act-as'] ||
       req.user ||
       req.query?.nocache === '1' ||
       privateRoute ||

@@ -377,46 +377,46 @@ const updateVendorProfile = async (req, res, next) => {
 // ─────────────────────────────────────────────
 const getPublicStores = async (req, res, next) => {
   try {
-    const { search } = req.query;
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
-    const startIndex = (page - 1) * limit;
-
-    let query = {
+    const search = String(req.query.search || '').trim().slice(0, 100);
+    const page = Math.max(1, Math.floor(Number(req.query.page) || 1));
+    const limit = Math.min(100, Math.max(1, Math.floor(Number(req.query.limit) || 20)));
+    const query = {
       is_onboarded: true,
-      store_name: { $exists: true, $nin: ['', null] },
+      store_name: { $exists: true, $nin: ['', null], $not: /^\s*(store|my store|shop|my shop)\s*$/i },
     };
-
-    if (search) {
-      query.store_name = { $regex: escapeRegExp(search), $options: 'i' };
-    }
-
-    const sort = req.query.sort || '-createdAt';
-
-    const total = await Vendor.countDocuments(query);
-
-    // We fetch base Vendors and populate their Stores
-    // Used for store directories and discovery feeds
-    const stores = await Vendor.find(query)
-      .select('store_name rating verified description user_id follower_count createdAt vendor_type')
-      .populate('store', 'logo banner categories delivery_time minimum_order_amount is_active') // only fetch visible assets
-      .populate('user_id', 'branding avatar is_online last_seen') // fetch user-level branding for fallbacks
-      .skip(startIndex)
-      .limit(limit)
-      .sort(sort)
-      .lean();
-
-    // Filter out vendors whose Store is missing/deactivated, whose user account was deleted,
-    // or whose store_name is just a generic placeholder like "Store"
-    const filtered = stores.filter(s => {
-      if (!s.store) return false; // no Store document created
-      if (s.store.is_active === false) return false;
-      if (!s.user_id) return false; // user account deleted
-      // Filter out generic placeholder names
-      const name = (s.store_name || '').trim().toLowerCase();
-      if (['store', 'my store', 'shop', 'my shop'].includes(name)) return false;
-      return true;
-    });
+    if (search) query.$and = [{ store_name: { $regex: escapeRegExp(search), $options: 'i' } }];
+    if (req.query.verified === 'true') query.verified = true;
+    const sorts = {
+      '-createdAt': { createdAt: -1, _id: -1 },
+      '-rating': { rating: -1, _id: -1 },
+      store_name: { store_name: 1, _id: 1 },
+    };
+    // Eligibility is resolved before counting and paging. Hidden stores must not
+    // consume directory slots or leave gaps between pages.
+    const [directory] = await Vendor.aggregate([
+      { $match: query },
+      { $lookup: { from: Store.collection.name, localField: '_id', foreignField: 'vendor_id', as: 'store' } },
+      { $unwind: '$store' },
+      { $match: { 'store.is_active': { $ne: false } } },
+      { $lookup: { from: User.collection.name, localField: 'user_id', foreignField: '_id', as: 'user_id' } },
+      { $unwind: '$user_id' },
+      { $match: { 'user_id.is_active': { $ne: false } } },
+      { $facet: {
+        count: [{ $count: 'total' }],
+        stores: [
+          { $sort: Object.hasOwn(sorts, req.query.sort) ? sorts[req.query.sort] : sorts['-createdAt'] },
+          { $skip: (page - 1) * limit }, { $limit: limit },
+          { $project: {
+            store_name: 1, rating: 1, verified: 1, description: 1, follower_count: 1, createdAt: 1, vendor_type: 1,
+            'store._id': 1, 'store.logo': 1, 'store.banner': 1, 'store.categories': 1,
+            'store.delivery_time': 1, 'store.minimum_order_amount': 1, 'store.is_active': 1,
+            'user_id._id': 1, 'user_id.branding': 1, 'user_id.avatar': 1, 'user_id.is_online': 1, 'user_id.last_seen': 1,
+          } },
+        ],
+      } },
+    ]);
+    const total = directory?.count?.[0]?.total || 0;
+    const filtered = directory?.stores || [];
 
     // Batch-sync real follower counts to avoid showing stale 0s
     if (filtered.length > 0) {
@@ -474,29 +474,11 @@ const getStore = async (req, res, next) => {
       });
     }
 
-    if (!store) {
-      const vendor = await Vendor.findOne({
-        $or: [{ _id: req.params.id }, { user_id: req.params.id }],
-      });
-
-      if (!vendor) {
-        return res.status(404).json({
-          success: false,
-          message: 'Store not found.',
-        });
-      }
-
-      vendorId = vendor._id;
-      store = await Store.findOneAndUpdate(
-        { vendor_id: vendorId },
-        { $setOnInsert: { vendor_id: vendorId, categories: [] } },
-        { returnDocument: 'after', upsert: true, runValidators: true }
-      ).populate({
-        path: 'vendor_id',
-        select: 'store_name description rating verified user_id follower_count',
-        populate: { path: 'user_id', select: 'branding avatar is_online last_seen' }
-      });
+    if (!store || store.is_active === false || !store.vendor_id?.user_id?._id) {
+      return res.status(404).json({ success: false, message: 'Store not found.' });
     }
+    const ownerIsActive = await User.exists({ _id: store.vendor_id.user_id._id, is_active: { $ne: false } });
+    if (!ownerIsActive) return res.status(404).json({ success: false, message: 'Store not found.' });
 
     // Ensure follower_count on the populated vendor reflects the real Follow count.
     // Fall back to vendor.user_id if vendor._id yields 0 (handles legacy mis-stored follows).
@@ -507,7 +489,7 @@ const getStore = async (req, res, next) => {
       }
       if (store.vendor_id.follower_count !== realFollowerCount) {
         store.vendor_id.follower_count = realFollowerCount;
-        Vendor.findByIdAndUpdate(store.vendor_id._id, { follower_count: realFollowerCount }).catch(() => {});
+
       }
     }
 

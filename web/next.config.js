@@ -50,13 +50,7 @@ const nextConfig = {
         // Aggressive static asset caching. Not emitted by static export builds.
         async headers() {
           return [
-            // ── Immutable static bundles (content-hashed filenames) ──────────
-            {
-              source: '/_next/static/:path*',
-              headers: [
-                { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-              ],
-            },
+            // Next.js manages caching for its own hashed static bundles.
 
             // ── Service worker — MUST NOT be cached by browser or CDN ────────
             // Browsers check for a new sw.js on every navigation; a cached copy

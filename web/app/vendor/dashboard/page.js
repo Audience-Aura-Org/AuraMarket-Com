@@ -8,6 +8,7 @@ import api from '@/services/api';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import TrendChart from '@/components/kit/TrendChart';
+import StatCard from '@/components/layout/StatCard';
 import {
   ArrowRight,
   BarChart3,
@@ -359,118 +360,10 @@ export default function VendorDashboard() {
 
           {/* Operational Matrix — 4 Core KPIs */}
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-            {/* Net Revenue */}
-            <div className="relative overflow-hidden rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] backdrop-blur-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-xl transition-all group">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
-              <div className="flex items-center justify-between">
-                <div className="size-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shrink-0">
-                  <CreditCard className="size-5" />
-                </div>
-                <span className="text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Revenue</span>
-              </div>
-              <div>
-                <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Net sales</p>
-                {loading
-                  ? <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate tabular-nums">{totalSales.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
-                }
-              </div>
-              <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 rounded-full transition-all duration-1000" style={{ width: '70%' }} />
-              </div>
-              {loading
-                ? <div className="h-3 w-36 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] lg:text-[13px] font-medium tracking-tight text-emerald-600/80 dark:text-emerald-400/90">
-                    {fulfilledOrderCount} {t('dashboard.ordersFulfilled', 'orders fulfilled')}
-                  </p>
-              }
-            </div>
-
-            {/* Open Orders */}
-            <Link href="/vendor/orders" className="relative overflow-hidden rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] backdrop-blur-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-xl hover:border-[var(--accent)]/30 transition-all group">
-              <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
-              <div className="flex items-center justify-between">
-                <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
-                  <ShoppingBag className="size-5" />
-                </div>
-                <div className="flex items-center gap-1.5">
-                  {openOrderCount > 0 && <span className="size-1.5 rounded-full bg-[var(--accent)] animate-pulse" />}
-                  <span className="text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70">Live</span>
-                </div>
-              </div>
-              <div>
-                <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Open orders</p>
-                {loading
-                  ? <div className="h-7 w-16 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none tabular-nums">{openOrderCount}</p>
-                }
-              </div>
-              <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
-                <div className="h-full bg-[var(--accent)] rounded-full transition-all duration-1000" style={{ width: orders.length ? `${Math.min((openOrderCount / orders.length) * 100, 100)}%` : '0%' }} />
-              </div>
-              {loading
-                ? <div className="h-3 w-40 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] lg:text-[13px] font-medium tracking-tight text-[var(--accent)]/80">{processingOrders} processing · tap to view →</p>
-              }
-            </Link>
-
-            {/* Inventory */}
-            <div className="relative overflow-hidden rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] backdrop-blur-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-xl transition-all group">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
-              <div className="flex items-center justify-between">
-                <div className="size-10 rounded-2xl bg-indigo-600/10 flex items-center justify-center text-indigo-500 border border-indigo-600/20 shrink-0">
-                  <Boxes className="size-5" />
-                </div>
-                {lowStockCount > 0 && (
-                  <span className="text-[10px] lg:text-[13px] font-medium tracking-wide text-rose-500/90">
-                    {lowStockCount} {t('dashboard.lowStock', 'low stock')}
-                  </span>
-                )}
-              </div>
-              <div>
-                <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">Inventory</p>
-                {loading
-                  ? <div className="h-7 w-20 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none tabular-nums">{totalProducts} <span className="text-sm opacity-50">SKUs</span></p>
-                }
-              </div>
-              <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: totalProducts ? `${Math.min((inStockProducts / totalProducts) * 100, 100)}%` : '0%' }} />
-              </div>
-              {loading
-                ? <div className="h-3 w-32 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] lg:text-[13px] font-medium tracking-tight text-indigo-600/80 dark:text-indigo-400/90">
-                    {inStockProducts} {t('dashboard.inStock', 'in stock')} · {outOfStockProducts} {t('dashboard.outOfStockShort', 'out')}
-                  </p>
-              }
-            </div>
-
-            {/* Wallet Balance */}
-            <div className="relative overflow-hidden rounded-[2rem] bg-[var(--bg-primary)]/70 border border-[var(--glass-border)] backdrop-blur-xl p-5 flex flex-col gap-3 shadow-sm hover:shadow-xl transition-all group">
-              <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent)]/5 via-transparent to-transparent pointer-events-none rounded-[2rem]" />
-              <div className="flex items-center justify-between">
-                <div className="size-10 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] border border-[var(--accent)]/20 shrink-0">
-                  <Wallet className="size-5" />
-                </div>
-                <Link href="/vendor/wallet" className="text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-70 transition-colors hover:text-[var(--accent)] hover:opacity-100">
-                  Withdraw
-                </Link>
-              </div>
-              <div>
-                <p className="mb-1 text-[10px] lg:text-[13px] font-medium tracking-wide text-[var(--text-secondary)] opacity-65">{t('dashboard.walletBalance', 'Wallet balance')}</p>
-                {loading
-                  ? <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse" />
-                  : <p className="text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-primary)] tracking-tighter leading-none truncate tabular-nums">{walletBalance.toLocaleString()} <span className="text-sm opacity-50">XAF</span></p>
-                }
-              </div>
-              <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
-                <div className="h-full bg-[var(--accent)] rounded-full" style={{ width: '60%' }} />
-              </div>
-              {loading
-                ? <div className="h-3 w-36 rounded-full bg-[var(--bg-secondary)] animate-pulse" />
-                : <p className="text-[10px] lg:text-[13px] font-medium tracking-tight text-[var(--accent)]/80 tabular-nums">{pendingEscrow.toLocaleString()} {t('dashboard.xafInEscrow', 'XAF in escrow')}</p>
-              }
-            </div>
+            <StatCard label="Net sales" value={totalSales.toLocaleString()} unit="XAF" icon={CreditCard} color="emerald" pct="Revenue" loading={loading} progress={70} footer={`${fulfilledOrderCount} ${t('dashboard.ordersFulfilled', 'orders fulfilled')}`} />
+            <StatCard label="Open orders" value={openOrderCount} icon={ShoppingBag} color="primary" pct="Live" href="/vendor/orders" loading={loading} progress={orders.length ? (openOrderCount / orders.length) * 100 : 0} footer={`${processingOrders} processing - tap to view`} />
+            <StatCard label="Inventory" value={totalProducts} icon={Boxes} color="indigo" pct="Products" loading={loading} progress={totalProducts ? (inStockProducts / totalProducts) * 100 : 0} footer={`${inStockProducts} ${t('dashboard.inStock', 'in stock')} /  ${outOfStockProducts} ${t('dashboard.outOfStockShort', 'out')}`} />
+            <StatCard label={t('dashboard.walletBalance', 'Wallet balance')} value={walletBalance.toLocaleString()} unit="XAF" icon={Wallet} color="primary" pct="Withdraw" href="/vendor/wallet" loading={loading} progress={60} footer={`${pendingEscrow.toLocaleString()} ${t('dashboard.xafInEscrow', 'XAF in escrow')}`} />
           </div>
           
           {/* Signal Center Quick Action */}

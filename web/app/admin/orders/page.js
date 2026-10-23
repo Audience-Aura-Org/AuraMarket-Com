@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Package,
   RefreshCw,
@@ -23,6 +23,7 @@ import { toast } from 'react-hot-toast';
 
 import Pagination from '@/components/common/Pagination';
 import StatCard from '@/components/layout/StatCard';
+import FinanceEntry, { FinanceTable } from '@/components/admin/FinanceEntry';
 import {
   AdminFinancePage,
   AdminFinanceHeader,
@@ -36,6 +37,7 @@ import {
 } from '@/components/admin/AdminFinanceLayout';
 
 const STATUS_CONFIG = {
+  failed:         { label: 'Failed', color: 'text-rose-600', bg: 'bg-rose-500/10' },
   placed:         { label: 'Placed',      color: 'text-purple-600',  bg: 'bg-purple-500/10' },
   processing:     { label: 'Processing',  color: 'text-blue-500',    bg: 'bg-blue-500/10' },
   shipped:        { label: 'Shipped',     color: 'text-indigo-600',  bg: 'bg-indigo-500/10' },
@@ -74,12 +76,10 @@ const orderCustomer = (order) => {
   };
 };
 const productId = (item) => String(item?.product_id?._id || item?.product_id || '');
-const productImage = (item) => (
-  item?.image ||
-  item?.product_id?.images?.[0] ||
-  item?.product_id?.image ||
-  '/placeholder-product.png'
-);
+const productImage = (item) => {
+  const image = item?.image || item?.product_id?.images?.[0] || item?.product_id?.image;
+  return (typeof image === 'string' ? image : image?.url) || '/placeholder-product.png';
+};
 const variantEntries = (variant) => {
   if (!variant) return [];
   if (Array.isArray(variant)) {
@@ -115,13 +115,19 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [query, setQuery] = useState('');
+  const requestVersion = useRef(0);
+  useEffect(() => {
+    const timer = setTimeout(() => { setQuery(search.trim()); setCurrentPage(1); }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedId, setExpandedId] = useState(null);
   const [savingOrderId, setSavingOrderId] = useState(null);
   const [orderEdits, setOrderEdits] = useState({});
   const [stats, setStats] = useState(null);
   const [totalOrders, setTotalOrders] = useState(0);
-  const itemsPerPage = 10;
+  const itemsPerPage = 20;
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -130,10 +136,12 @@ export default function AdminOrdersPage() {
   }, []);
 
   const fetchOrders = useCallback(async () => {
+    const version = ++requestVersion.current;
     setLoading(true);
     try {
-      const params = activeTab !== 'all' ? { status: activeTab } : {};
+      const params = { page: currentPage, limit: itemsPerPage, search: query, ...(activeTab !== 'all' ? { status: activeTab } : {}) };
       const res = await api.get('/admin/orders', { params });
+      if (version !== requestVersion.current) return;
       if (res.data.success) {
         setOrders(res.data.data.orders || []);
         if (res.data.data.stats) setStats(res.data.data.stats);
@@ -143,13 +151,12 @@ export default function AdminOrdersPage() {
       console.error('Failed to fetch admin orders:', err);
       toast.error(err.response?.data?.message || 'Failed to fetch orders');
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
-  }, [activeTab]);
+  }, [activeTab, currentPage, query]);
 
   useEffect(() => {
     fetchOrders();
-    setCurrentPage(1);
   }, [fetchOrders]);
 
   useEffect(() => {
@@ -249,32 +256,19 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const filtered = orders.filter((order) => {
-    const q = search.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      order._id?.toLowerCase().includes(q) ||
-      orderCustomer(order).name?.toLowerCase().includes(q) ||
-      orderCustomer(order).email?.toLowerCase().includes(q) ||
-      orderCustomer(order).phone?.toLowerCase().includes(q) ||
-      order.vendor_id?.store_name?.toLowerCase().includes(q) ||
-      order.products?.some((item) => (
-        item.name || item.product_name || item.product_id?.name || ''
-      ).toLowerCase().includes(q))
-    );
-  });
-
-  const totalPages = Math.max(Math.ceil(filtered.length / itemsPerPage), 1);
-  const currentOrders = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const tabs = ['all', 'placed', 'processing', 'shipped', 'delivered', 'failed', 'cancelled', 'refund_pending'];
+  const filtered = orders;
+  const totalPages = Math.max(Math.ceil(totalOrders / itemsPerPage), 1);
+  const currentOrders = orders;
+  const tabs = ['all', 'placed', 'processing', 'shipped', 'delivered', 'completed', 'failed', 'cancelled', 'refund_pending', 'refunded'];
 
   return (
     <AdminFinancePage theme="transactions">
       <AdminFinanceHeader
         theme="transactions"
         icon={Package}
-        title="Order Manifest"
-        description="Operational pipeline and order controls."
+        title="Orders"
+        showNavigation={false}
+        description="Track purchases, manage fulfilment, and resolve payment issues."
         badge={`${totalOrders || filtered.length} orders`}
         onRefresh={fetchOrders}
         loading={loading}
@@ -308,17 +302,18 @@ export default function AdminOrdersPage() {
         {(() => {
           const activeOrders    = stats?.active    || 0;
           const resolvedOrders  = stats?.delivered  || 0;
-          const allOrders       = stats?.total      || totalOrders || 1;
+          const allOrders       = stats?.total ?? totalOrders;
+          const denominator = Math.max(allOrders, 1);
           const attentionOrders = stats?.attention   || 0;
-          const activePct    = Math.min(Math.round((activeOrders   / allOrders) * 100), 100);
-          const resolvedPct  = Math.min(Math.round((resolvedOrders / allOrders) * 100), 100);
+          const activePct    = Math.min(Math.round((activeOrders   / denominator) * 100), 100);
+          const resolvedPct  = Math.min(Math.round((resolvedOrders / denominator) * 100), 100);
           const attentionPct = Math.min(attentionOrders * 5, 100);
           return (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <StatCard label="Active orders" value={stats ? activeOrders : '…'} icon={ShoppingBag} color="primary" sub="In progress" progress={activePct} footer={`${activePct}% of total`} />
               <StatCard label="Attention" value={stats ? attentionOrders : '…'} icon={Zap} color="amber" sub="Needs review" progress={attentionPct} footer={attentionOrders > 0 ? `${attentionOrders} flagged` : 'All clear'} />
               <StatCard label="Resolved" value={stats ? resolvedOrders : '…'} icon={ShieldCheck} color="emerald" sub="Cycle complete" progress={resolvedPct} footer={`${resolvedPct}% resolved`} />
-              <StatCard label="Closed" value={stats ? allOrders : '…'} icon={Database} color="indigo" sub="Archive total" footer="All-time orders" />
+              <StatCard label="Total orders" value={stats ? allOrders : '…'} icon={Database} color="indigo" sub="Archive total" footer="All-time orders" />
             </div>
           );
         })()}
@@ -326,7 +321,7 @@ export default function AdminOrdersPage() {
         <AdminListPanel
           theme="transactions"
           variant="ledger"
-          title="Order ledger"
+          title="Order activity"
           countLabel={
             <>
               <span className="sm:hidden">Pg {currentPage}</span>
@@ -337,14 +332,14 @@ export default function AdminOrdersPage() {
           loadingMessage="Loading order ledger..."
           isEmpty={!currentOrders.length}
           emptyIcon={Database}
-          emptyMessage="No operational manifests detected in this node."
-          listHeader={<AdminLedgerTableHeader columns={['Order', 'Amount & date', 'Status', '']} />}
+          emptyMessage="No orders match these filters."
           footer={
             totalPages > 1 ? (
               <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
             ) : null
           }
         >
+          <FinanceTable>
           {currentOrders.map((order) => {
             const isExpanded = expandedId === order._id;
             const status = STATUS_CONFIG[order.order_status] || STATUS_CONFIG.placed;
@@ -353,87 +348,21 @@ export default function AdminOrdersPage() {
             const product = productName(order);
 
             return (
-              <div
-                key={order._id}
-                className={`transition ${isExpanded ? 'bg-indigo-500/[0.06]' : ''}`}
+              <FinanceEntry key={order._id} icon={<Package />} title={product}
+                description={(customer?.name || 'Guest') + ' / ' + (order.vendor_id?.store_name || 'Unknown store')}
+                reference={'#' + shortId(order, 10)} amount={fmt(order.total_amount) + ' XAF'}
+                date={new Date(order.createdAt).toLocaleString()} status={status.label}
+                tone={['delivered', 'completed'].includes(order.order_status) ? 'success' : ['cancelled', 'failed'].includes(order.order_status) ? 'danger' : 'pending'}
+                meta={<span>{payment.label} payment</span>} expandable expanded={isExpanded}
+                controls={'order-details-' + order._id} onOpen={() => setExpandedId(isExpanded ? null : order._id)}
               >
-                <button
-                  type="button"
-                  onClick={() => setExpandedId(isExpanded ? null : order._id)}
-                  className="block w-full text-left transition hover:bg-indigo-500/[0.04]"
-                >
-                  <div className="flex items-center gap-2.5 px-2.5 py-2.5 sm:hidden">
-                    <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl border border-current/10 ${status.bg} ${status.color}`}>
-                      <Package className="size-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-[11px] font-semibold">{product}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${payment.bg} ${payment.color}`}>
-                          {payment.label}
-                        </span>
-                      </div>
-                      <p className="mt-0.5 truncate font-mono text-[9px] text-indigo-600 dark:text-indigo-400">
-                        #{shortId(order)}
-                      </p>
-                      <p className="mt-0.5 truncate text-[9px] text-[var(--text-secondary)]">
-                        {customer?.name || 'Guest'} · {order.vendor_id?.store_name || 'Unknown store'}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end">
-                      <span className="text-[11px] font-semibold tabular-nums">{fmt(order.total_amount)} XAF</span>
-                      <span className="text-[9px] text-[var(--text-secondary)]">{new Date(order.createdAt).toLocaleDateString()}</span>
-                    </div>
-                    <ChevronDown className={`size-4 text-[var(--text-secondary)] transition ${isExpanded ? 'rotate-180 text-indigo-600' : ''}`} />
-                  </div>
-
-                  <div className="hidden sm:grid sm:grid-cols-[minmax(0,1fr)_120px_110px_36px] sm:items-center sm:gap-3 sm:px-4 sm:py-2.5">
-                    <div className="flex min-w-0 items-start gap-2.5">
-                      <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl border border-current/10 ${status.bg} ${status.color}`}>
-                        <Package className="size-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-[12px] font-semibold">{product}</span>
-                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${status.bg} ${status.color}`}>
-                            {status.label}
-                          </span>
-                          <span className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${payment.bg} ${payment.color}`}>
-                            {payment.label}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 font-mono text-[10px] text-indigo-600 dark:text-indigo-400">
-                          #{shortId(order, 10)}
-                        </p>
-                        <p className="mt-0.5 line-clamp-1 text-[10px] text-[var(--text-secondary)]">
-                          {customer?.name || 'Guest'} · {order.vendor_id?.store_name || 'Unknown store'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-[12px] font-semibold tabular-nums text-indigo-900 dark:text-indigo-200">{fmt(order.total_amount)} XAF</p>
-                      <p className="mt-0.5 text-[10px] text-[var(--text-secondary)]">{new Date(order.createdAt).toLocaleDateString()}</p>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${status.bg} ${status.color}`}>
-                        {status.label}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <ChevronDown className={`size-4 text-[var(--text-secondary)] transition ${isExpanded ? 'rotate-180 text-indigo-600' : ''}`} />
-                    </div>
-                  </div>
-                </button>
-
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
+                      id={'order-details-' + order._id}
                       className="overflow-hidden border-t border-indigo-500/15 bg-[var(--bg-primary)]/50"
                     >
                       <div className="grid gap-2.5 p-2.5 lg:grid-cols-3 sm:gap-3 sm:p-4">
@@ -510,7 +439,7 @@ export default function AdminOrdersPage() {
                             className="h-11 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3 text-[11px] font-semibold outline-none focus:border-indigo-500"
                           >
                             {Object.keys(STATUS_CONFIG).map((s) => (
-                              <option key={s} value={s}>{STATUS_CONFIG[s].label.toUpperCase()}</option>
+                              <option key={s} value={s} disabled={['cancelled', 'refunded', 'refund_pending'].includes(s) && s !== order.order_status}>{STATUS_CONFIG[s].label}</option>
                             ))}
                           </select>
                           <select
@@ -601,9 +530,10 @@ export default function AdminOrdersPage() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </FinanceEntry>
             );
           })}
+          </FinanceTable>
         </AdminListPanel>
       </AdminFinanceBody>
     </AdminFinancePage>

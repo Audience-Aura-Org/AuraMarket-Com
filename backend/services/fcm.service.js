@@ -80,6 +80,7 @@ const sendAndroidPush = async (tokens, payload) => {
       priority: 'high',
       notification: {
         channelId: 'auradime_default',
+        tag: payload.notification_id ? `alert-${payload.notification_id}` : undefined,
         color: '#f20df2',
         clickAction: 'FCM_PLUGIN_ACTIVITY',
       },
@@ -87,15 +88,18 @@ const sendAndroidPush = async (tokens, payload) => {
   });
 
   const invalidTokens = [];
+  const deliveredTokens = [];
+  const retryTokens = [];
   const errorCodes = {};
   response.responses.forEach((result, index) => {
+    if (result.success) deliveredTokens.push(cleanTokens[index]);
     if (!result.success) {
       const code = result.error?.code || 'unknown';
       errorCodes[code] = (errorCodes[code] || 0) + 1;
+      if (/internal|unavailable|quota-exceeded/.test(code)) retryTokens.push(cleanTokens[index]);
       if (
         code.includes('registration-token-not-registered') ||
-        code.includes('invalid-registration-token') ||
-        code.includes('invalid-argument')
+        code.includes('invalid-registration-token')
       ) {
         invalidTokens.push(cleanTokens[index]);
       }
@@ -105,7 +109,7 @@ const sendAndroidPush = async (tokens, payload) => {
     console.warn('[FCM] Failure breakdown:', JSON.stringify(errorCodes));
   }
 
-  return { sent: response.successCount, failed: response.failureCount, invalidTokens };
+  return { sent: response.successCount, failed: response.failureCount, invalidTokens, deliveredTokens, retryTokens };
 };
 
 module.exports = { sendAndroidPush };

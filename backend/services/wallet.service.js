@@ -103,9 +103,12 @@ const adjustBalance = async (userId, delta, session, meta = {}) => {
   } catch (error) {
     // A completed first request owns the retry key. Return its result without
     // applying the balance mutation a second time.
-    if (meta.idempotency_key && isDuplicateIdempotencyKey(error)) {
+    if (meta.idempotency_key && error?.code === 11000) {
       const transaction = await Transaction.findOne({ idempotency_key: meta.idempotency_key }).lean();
-      if (transaction) {
+      // MongoDB may report the reference index before the idempotency index.
+      // Only return an existing result when it belongs to this exact mutation.
+      if (transaction && String(transaction.user_id) === String(userId)
+        && transaction.amount === amount && transaction.type === txData.type) {
         const user = await User.findById(userId).select('wallet_balance').lean();
         return { user, transaction };
       }
@@ -126,7 +129,11 @@ const debitBalance = async (userId, amount, session, opts = {}) => {
     ? { _id: userId }
     : { _id: userId, wallet_balance: { $gte: amt } };
   const updateOpts = session ? { session, returnDocument: "after" } : { returnDocument: "after" };
-  return User.findOneAndUpdate(filter, { $inc: { wallet_balance: -amt } }, updateOpts);
+  const updated = await User.findOneAndUpdate(filter, { $inc: { wallet_balance: -amt } }, updateOpts);
+  if (updated) await recordAudit({ actorId: userId, action: 'wallet_debit', targetType: 'User', targetId: userId,
+    before: { wallet_balance: updated.wallet_balance + amt }, after: { wallet_balance: updated.wallet_balance },
+    session, meta: { amount: amt, source: 'wallet_service' } });
+  return updated;
 };
 
 /**
@@ -136,7 +143,11 @@ const debitBalance = async (userId, amount, session, opts = {}) => {
 const creditBalance = async (userId, amount, session) => {
   const amt = toXAF(Math.abs(amount));
   const opts = session ? { session, returnDocument: "after" } : { returnDocument: "after" };
-  return User.findOneAndUpdate({ _id: userId }, { $inc: { wallet_balance: amt } }, opts);
+  const updated = await User.findOneAndUpdate({ _id: userId }, { $inc: { wallet_balance: amt } }, opts);
+  if (updated) await recordAudit({ actorId: userId, action: 'wallet_credit', targetType: 'User', targetId: userId,
+    before: { wallet_balance: updated.wallet_balance - amt }, after: { wallet_balance: updated.wallet_balance },
+    session, meta: { amount: amt, source: 'wallet_service' } });
+  return updated;
 };
 
 module.exports = { adjustBalance, generateRef, debitBalance, creditBalance };

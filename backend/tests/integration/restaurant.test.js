@@ -259,3 +259,31 @@ describe('GET /dine/restaurant/:vendor_id — public restaurant menu', () => {
     expect(res.body.data.profile.service_zones).toHaveLength(0)
   })
 })
+
+describe('food order role boundaries', () => {
+  const { createLogisticsUser, createOrder } = require('../factories')
+  const LogisticsCompany = require('../../models/LogisticsCompany.model')
+  const Order = require('../../models/Order.model')
+  const firmFor = account => LogisticsCompany.create({ user_id: account._id, company_name: 'Food Courier', contact_email: account.email, contact_phone: '+237650000001' })
+  it('rejects an unrelated logistics firm but permits the assigned firm to arrive', async () => {
+    const buyer = await createUser()
+    const assigned = await createLogisticsUser()
+    const stranger = await createLogisticsUser()
+    const firm = await firmFor(assigned)
+    await firmFor(stranger)
+    const order = await createOrder({ customerId: buyer._id, vendorId: restaurantVendorDoc._id }, { payment_status: 'paid', order_status: 'processing', food_status: 'ready', logistics_company_id: firm._id, fulfilment_type: 'delivery' })
+    const path = '/api/v1/orders/' + order._id + '/food-status'
+    const rejected = await request(app).patch(path).set(authHeader(signToken(stranger))).send({ food_status: 'rider_arrived' })
+    expect(rejected.status).toBe(403)
+    expect((await Order.findById(order._id)).food_status).toBe('ready')
+    const accepted = await request(app).patch(path).set(authHeader(signToken(assigned))).send({ food_status: 'rider_arrived' })
+    expect(accepted.status).toBe(200)
+  })
+  it('prevents a disputed meal from advancing and triggering payouts', async () => {
+    const buyer = await createUser()
+    const order = await createOrder({ customerId: buyer._id, vendorId: restaurantVendorDoc._id }, { payment_status: 'paid', order_status: 'refund_pending', food_status: 'picked_up' })
+    const result = await request(app).patch('/api/v1/orders/' + order._id + '/food-status').set(authHeader(signToken(restaurantVendorUser))).send({ food_status: 'delivered' })
+    expect(result.status).toBe(409)
+    expect((await Order.findById(order._id)).food_status).toBe('picked_up')
+  })
+})

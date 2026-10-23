@@ -143,3 +143,23 @@ describe('POST /push/unsubscribe — remove a push subscription', () => {
     expect(res.status).toBe(401)
   })
 })
+
+it('supports multiple browser subscriptions for one account without an Android token', async () => {
+  await PushSubscription.init()
+  const user = await createUser()
+  for (const suffix of ['desktop-a', 'phone-b']) {
+    const res = await request(app).post('/api/v1/push/subscribe').set(authHeader(signToken(user))).send({ subscription: fakeSubscription(suffix) })
+    expect([200,201]).toContain(res.status)
+  }
+  expect(await PushSubscription.countDocuments({user_id:user._id,channel:'web'})).toBe(2)
+})
+
+it('stores notification preferences per account and rejects unsupported fields', async () => {
+  const user = await createUser(), other=await createUser()
+  const changed = await request(app).patch('/api/v1/users/notification-preferences').set(authHeader(signToken(user))).send({push_orders:false})
+  expect(changed.status).toBe(200);expect(changed.body.data.push_orders).toBe(false)
+  const mine = await request(app).get('/api/v1/users/notification-preferences').set(authHeader(signToken(user)))
+  const theirs = await request(app).get('/api/v1/users/notification-preferences').set(authHeader(signToken(other)))
+  expect(mine.body.data.push_orders).toBe(false);expect(theirs.body.data.push_orders).toBe(true)
+  expect((await request(app).patch('/api/v1/users/notification-preferences').set(authHeader(signToken(user))).send({wallet_balance:99999})).status).toBe(400)
+})

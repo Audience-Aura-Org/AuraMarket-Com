@@ -17,18 +17,21 @@ export function NotificationProvider({ children }) {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const latestCount = useRef(0);
   const messageDebounce = useRef(null);
+  const currentUserId = useRef(user?._id);
+  currentUserId.current = user?._id;
 
   const refresh = useCallback(async () => {
     if (!user?._id) return;
 
     const [notificationsResult, chatsResult] = await Promise.allSettled([
-      api.get('/notifications'),
+      api.get('/notifications', { __noActAs: true, skipClientCache: true }),
       api.get('/chat', { __noActAs: true }),
     ]);
+    if (currentUserId.current !== user._id) return;
 
     if (notificationsResult.status === 'fulfilled' && notificationsResult.value.data?.success) {
       const notifications = notificationsResult.value.data.data?.notifications || [];
-      const count = notifications.filter((notification) => !notification.is_read).length;
+      const count = notificationsResult.value.data.data?.unreadCount ?? notifications.filter((notification) => !notification.is_read).length;
       latestCount.current = count;
       setUnreadCount(count);
     }
@@ -47,11 +50,10 @@ export function NotificationProvider({ children }) {
     }
 
     refresh();
-    const handleNotification = (notification) => {
-      if (!notification?.is_read) {
-        latestCount.current += 1;
-        setUnreadCount(latestCount.current);
-      }
+    // Count from the server so replayed socket events cannot inflate badges.
+    const handleNotification = () => {
+      if (messageDebounce.current) clearTimeout(messageDebounce.current);
+      messageDebounce.current = setTimeout(refresh, 300);
     };
     const handleMessage = () => {
       if (messageDebounce.current) clearTimeout(messageDebounce.current);
@@ -69,6 +71,7 @@ export function NotificationProvider({ children }) {
     socketService.on('messages_read', refresh);
     const interval = setInterval(poll, NOTIFICATION_POLL_MS);
     document.addEventListener('visibilitychange', handleVisible);
+    window.addEventListener('aura:push-received', refresh);
 
     return () => {
       socketService.off('notification', handleNotification);
@@ -77,11 +80,14 @@ export function NotificationProvider({ children }) {
       if (messageDebounce.current) clearTimeout(messageDebounce.current);
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisible);
+      window.removeEventListener('aura:push-received', refresh);
     };
   }, [user?._id, refresh]);
 
   const markAllRead = useCallback(async () => {
-    await api.patch('/notifications/read-all');
+    const userId = currentUserId.current;
+    await api.patch('/notifications/read-all', undefined, { __noActAs: true });
+    if (currentUserId.current !== userId) return;
     latestCount.current = 0;
     setUnreadCount(0);
   }, []);

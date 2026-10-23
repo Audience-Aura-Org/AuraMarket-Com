@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { restaurantHref } from '@/lib/restaurantRoutes';
 import { 
   MessageCircle, LayoutGrid, Search, 
   Loader2, Heart, Bell, 
@@ -682,7 +683,7 @@ function ChatLink({ chat }) {
   const handleClick = () => {
     if (!partnerId) return;
     if (chat.isFollowed && partner?.vendor_type === 'restaurant') {
-      router.push(`/dine/restaurant/${partnerId}`);
+      router.push(restaurantHref(partnerId));
       return;
     }
     openChat(partnerId, null, partner, false);

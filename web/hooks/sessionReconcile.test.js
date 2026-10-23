@@ -20,6 +20,17 @@ const signedIn = (token) => useAuthStore.setState({
 beforeEach(() => { tokenStore.value = null; });
 
 describe('startup: a session exists only while a token exists', () => {
+  it('hydrates a persisted session during module initialization without accessing an uninitialized store', async () => {
+    vi.resetModules();
+    tokenStore.value = 'startup-token';
+    localStorage.setItem('aura-auth-storage', JSON.stringify({
+      state: { user: { _id: 'startup-user', role: 'vendor' }, token: 'startup-token', isAuthenticated: true }, version: 0,
+    }));
+    const { useAuthStore: freshStore } = await import('./useAuth');
+    await vi.waitFor(() => expect(freshStore.getState().hasHydrated).toBe(true));
+    expect(freshStore.getState().user._id).toBe('startup-user');
+    expect(freshStore.getState().token).toBe('startup-token');
+  });
   it('a saved "signed in" state with no token anywhere is signed out', async () => {
     signedIn(null);
     await reconcileHydratedSession();
@@ -35,11 +46,11 @@ describe('startup: a session exists only while a token exists', () => {
     expect(useAuthStore.getState().isAuthenticated).toBe(true);
   });
 
-  it('heals a token missing from its main slot but present in the saved state', async () => {
+  it('does not resurrect a removed token from cached UI state', async () => {
     signedIn('tok-2');
     await reconcileHydratedSession();
-    expect(useAuthStore.getState().isAuthenticated).toBe(true);
-    expect(tokenStore.value).toBe('tok-2');
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(tokenStore.value).toBeNull();
   });
 
   it('leaves a signed-out visitor alone', async () => {

@@ -224,7 +224,7 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   // Prevents double-payout when manual release and the auto-release worker fire simultaneously,
   // or when two PM2 processes both reach this point for the same escrow.
   const claimed = await Escrow.findOneAndUpdate(
-    { _id: escrow._id, status: { $in: ['held', 'pending_release', 'releasing'] } },
+    { _id: escrow._id, status: { $in: ['held', 'pending_release'] } },
     { $set: { status: 'releasing' } },
     { session, new: false },
   );

@@ -35,32 +35,38 @@ const createDispute = async (req, res, next) => {
     const { sendNotification, notifyAdmins } = require('../utils/notifier');
     const { order_id, reason, description, evidence_urls } = req.body;
 
-    const order = await Order.findById(order_id);
-    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
-
-    // Auth check
-    if (order.customer_id.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Not authorized.' });
-    }
-
-    // Check if dispute already exists
-    const existingDispute = await Dispute.findOne({ order_id, status: { $ne: 'cancelled' } });
-    if (existingDispute) {
-      return res.status(400).json({ success: false, message: 'A dispute is already open for this order.' });
-    }
-
-    const dispute = await Dispute.create({
-      order_id,
-      initiator_id: req.user._id,
-      reason,
-      description,
-      evidence_urls,
-      status: 'pending',
-    });
-
-    // Update Order Status
-    order.order_status = 'refund_pending';
-    await order.save();
+    const session = await mongoose.startSession();
+    let order, dispute;
+    const reject = (statusCode, message) => { const error = new Error(message); error.statusCode = statusCode; throw error; };
+    try {
+      await session.withTransaction(async () => {
+        order = await Order.findById(order_id).session(session);
+        if (!order) reject(404, 'Order not found.');
+        if (order.customer_id.toString() !== req.user._id.toString()) reject(403, 'Not authorized.');
+        const existingDispute = await Dispute.findOne({ order_id, status: { $ne: 'cancelled' } }).session(session);
+        if (existingDispute) reject(400, 'A dispute is already open for this order.');
+        if (order.payment_status !== 'paid' || ['cancelled', 'refunded'].includes(order.order_status)) {
+          reject(409, 'Only paid, non-refunded orders can be disputed.');
+        }
+        const escrow = await Escrow.findOne({ order_id }).session(session);
+        if (escrow) {
+          if (!['held', 'pending_release'].includes(escrow.status)) reject(409, 'Escrow has already been settled or disputed.');
+          // Both settlement and dispute creation must write the same escrow.
+          // A concurrent release conflicts and retries against its terminal state.
+          const claimed = await Escrow.findOneAndUpdate(
+            { _id: escrow._id, status: { $in: ['held', 'pending_release'] } },
+            { $set: { status: 'disputed' } }, { session, returnDocument: 'after' },
+          );
+          if (!claimed) reject(409, 'Escrow is no longer available for dispute.');
+        }
+        // The order write serializes duplicate requests even for direct payments.
+        order.order_status = 'refund_pending';
+        await order.save({ session });
+        [dispute] = await Dispute.create([{
+          order_id, initiator_id: req.user._id, reason, description, evidence_urls, status: 'pending',
+        }], { session, ordered: true });
+      });
+    } finally { await session.endSession(); }
 
     notifyOrderStatusChange(req.app, order, 'refund_pending', {
       message: `A dispute has been opened for Order #${order._id.toString().slice(-6).toUpperCase()}.`,
@@ -157,7 +163,17 @@ const resolveDispute = async (req, res, next) => {
     const order = await Order.findById(dispute.order_id._id).session(session);
     const escrow = await Escrow.findOne({ order_id: order._id }).session(session);
 
+    if (escrow && !['held', 'pending_release', 'disputed'].includes(escrow.status)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(409).json({ success: false, message: 'Escrow has already been settled. This dispute requires reconciliation.' });
+    }
     const isFoodResolution = resolution_type.startsWith('food_');
+    if (isFoodResolution && !order.food_status) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ success: false, message: 'Food dispute outcomes require a food order.' });
+    }
     if (isFoodResolution && escrow) {
       await session.abortTransaction();
       session.endSession();
@@ -180,7 +196,7 @@ const resolveDispute = async (req, res, next) => {
       // 2. Logic for Escrow: credit back to buyer wallet.
       //    Use order.total_amount (what the buyer actually paid), not escrow.amount
       //    which only stores the vendor base portion after platform commission.
-      if (escrow && escrow.status === 'held') {
+      if (escrow && ['held', 'pending_release', 'disputed'].includes(escrow.status)) {
         const disputeRefundAmount = order.total_amount || escrow.amount;
         const disputeUpdatedBuyer = await creditBalance(escrow.buyer_id, disputeRefundAmount, session);
 

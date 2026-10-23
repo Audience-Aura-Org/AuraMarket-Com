@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Search, Package, Truck, CheckCircle2, 
   Clock, ChevronRight, MoreHorizontal, ArrowLeft,
@@ -21,7 +21,8 @@ import { toast } from 'react-hot-toast';
 
 import Pagination from '@/components/common/Pagination';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
-import SingleOrderView from '@/components/account/SingleOrderView';
+import VendorOrderDetail from '@/components/vendor/VendorOrderDetail';
+import FinanceEntry, { FinanceTable } from '@/components/admin/FinanceEntry';
 import StatCard from '@/components/layout/StatCard';
 import { formatVariantLabel } from '@/utils/variants';
 
@@ -60,14 +61,16 @@ export default function VendorOrdersPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 20;
+  const requestVersion = useRef(0);
   const [updatingId, setUpdatingId] = useState(null);
   const [viewingOrderId, setViewingOrderId] = useState(null);
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const orderId = searchParams.get('orderId');
-    if (orderId) setViewingOrderId(orderId);
+    const syncOrder = () => setViewingOrderId(new URLSearchParams(window.location.search).get('orderId'));
+    syncOrder();
+    window.addEventListener('popstate', syncOrder);
+    return () => window.removeEventListener('popstate', syncOrder);
   }, []);
 
   const handleViewOrder = (id) => {
@@ -85,14 +88,16 @@ export default function VendorOrdersPage() {
   };
 
   const fetchOrders = useCallback(async () => {
+    const version = ++requestVersion.current;
     try {
       setLoading(true);
       // /vendor (not the public /vendors catalogue path) so the list is never
       // served stale from the catalogue cache. Totals come from server-wide stats.
       const [res, analytics] = await Promise.all([
-        api.get('/vendor/orders', { params: { limit: 200 } }),
+        api.get('/vendor/orders', { params: { page: currentPage, limit: 20, status: activeTab, search }, skipClientCache: true }),
         api.get('/vendor/analytics').catch(() => null),
       ]);
+      if (version !== requestVersion.current) return;
       if (res.data.success) {
         setOrders(res.data.data.orders || []);
         setOrderTotal(Number(res.data.total) || (res.data.data.orders || []).length);
@@ -106,9 +111,9 @@ export default function VendorOrdersPage() {
       }
       console.error('Failed to fetch orders:', err);
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
-  }, [router, updateUser]);
+  }, [router, updateUser, currentPage, activeTab, search]);
 
   useEffect(() => { 
     if (!user || user.role !== 'vendor' || !user.onboarded) return;
@@ -118,9 +123,11 @@ export default function VendorOrdersPage() {
   // Real-time: re-fetch when logistics updates a shipment status
   useEffect(() => {
     const handleOrderUpdate = () => fetchOrders();
+    window.addEventListener('aura:push-received', handleOrderUpdate);
     socketService.on('order_update', handleOrderUpdate);
     socketService.on('notification', handleOrderUpdate);
     return () => {
+      window.removeEventListener('aura:push-received', handleOrderUpdate);
       socketService.off('order_update', handleOrderUpdate);
       socketService.off('notification', handleOrderUpdate);
     };
@@ -156,19 +163,8 @@ export default function VendorOrdersPage() {
      }
   };
 
-  const filtered = orders.filter(o => {
-    const status = o.order_status || 'placed';
-    const customerName = o.customer_id?.name || 'Customer';
-    const firstItem = o.products?.[0];
-    const productText = `${firstItem?.name || ''} ${formatVariantLabel(firstItem?.variant)}`.toLowerCase();
-    const matchesTab = activeTab === 'all' || status === activeTab || (activeTab === 'failed' && o.payment_status === 'failed');
-    const query = search.toLowerCase();
-    const matchesSearch = (o._id || '').includes(search) || customerName.toLowerCase().includes(query) || productText.includes(query);
-    return matchesTab && matchesSearch;
-  });
-
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const currentOrders = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(orderTotal / itemsPerPage));
+  const currentOrders = orders;
 
   // Server-wide figures (same earned-revenue rule as the dashboard); the
   // loaded list is only a fallback and the source of "last 24h".
@@ -194,8 +190,8 @@ export default function VendorOrdersPage() {
   const escrowRate     = pctOf(pendingEscrow, totalRevenue);
 
   const stats = [
-    { label: 'Total Revenue',   value: `${totalRevenue.toLocaleString()} XAF`, icon: 'payments',       color: 'emerald', pct: `${completedCount} done`,  sub: `+${recentRevenue.toLocaleString()} recent`, progress: completionRate, footer: `${completedCount} orders complete` },
-    { label: 'Open Orders',     value: String(openOrdersCount),                  icon: 'shopping_bag',   color: 'primary', pct: `${allOrdersCount} total`, sub: `${failedCount} failed`,       progress: openRate,       footer: `${allOrdersCount} orders total` },
+    { label: 'Total Revenue',   value: `${totalRevenue.toLocaleString()} XAF`, icon: 'payments',       color: 'emerald', pct: `${completedCount} done`,  sub: 'Completed-order earnings', progress: completionRate, footer: `${completedCount} orders complete` },
+    { label: 'Open Orders',     value: String(openOrdersCount),                  icon: 'shopping_bag',   color: 'primary', pct: `${allOrdersCount} total`, sub: 'Orders needing fulfilment',       progress: openRate,       footer: `${allOrdersCount} orders total` },
     { label: 'Pending Payouts', value: `${pendingEscrow.toLocaleString()} XAF`,  icon: 'account_balance', color: 'purple', pct: 'Held in Escrow',         sub: 'Released on delivery',                        progress: escrowRate,     footer: 'Held in escrow' },
     { label: 'Completed Orders', value: String(completedCount),                  icon: 'verified',       color: 'blue',   pct: 'Fully Completed',         sub: 'Delivered and Settled',                       progress: completionRate, footer: `${completedCount} fulfilled` },
   ];
@@ -206,7 +202,7 @@ export default function VendorOrdersPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[var(--bg-primary)]">
       {/* Redesigned Header */}
-      <header className="relative sticky top-0 md:top-16 lg:top-0 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-2xl">
+      <header className="relative sticky top-[calc(56px+env(safe-area-inset-top,0px))] lg:top-0 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-2xl">
         {/* Accent gradient line */}
         <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
         <div className="mx-auto max-w-[1600px] px-4 py-3 sm:px-5 md:px-8">
@@ -224,7 +220,7 @@ export default function VendorOrdersPage() {
                 </div>
               </div>
             </div>
-            <button onClick={fetchOrders} className="size-10 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] flex items-center justify-center hover:text-[var(--accent)] hover:border-[var(--accent)]/30 active:scale-95 transition-all">
+            <button aria-label="Refresh orders" disabled={loading} onClick={fetchOrders} className="size-10 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 text-[var(--text-secondary)] flex items-center justify-center hover:text-[var(--accent)] hover:border-[var(--accent)]/30 active:scale-95 transition-all">
                <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
           </div>
@@ -234,7 +230,8 @@ export default function VendorOrdersPage() {
                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-3.5 text-[var(--text-secondary)] opacity-30 group-focus-within:opacity-100 group-focus-within:text-[var(--accent)] transition-all" />
                <input
                  type="text"
-                 placeholder="Find Reference..."
+                 aria-label="Search orders"
+                 placeholder="Search orders..."
                  className="w-full h-9 bg-[var(--bg-secondary)]/60 border border-[var(--glass-border)] rounded-2xl pl-10 pr-4 text-[11px] font-semibold tracking-tight text-[var(--text-primary)] placeholder:text-[11px] placeholder:font-normal placeholder:opacity-50 outline-none focus:border-[var(--accent)]/40 focus:bg-[var(--bg-secondary)] focus:ring-1 focus:ring-[var(--accent)]/20 transition-all"
                  value={search}
                  onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
@@ -272,7 +269,7 @@ export default function VendorOrdersPage() {
       <div className={viewingOrderId ? "flex min-h-0 w-full flex-1 flex-col" : "p-4 md:p-10 space-y-8 pb-40"}>
          {viewingOrderId ? (
             <div className="flex min-h-0 flex-1 flex-col px-3 pb-28 pt-1 animate-in fade-in slide-in-from-bottom-3 duration-500 xs:px-4 sm:px-6 md:px-10 md:pb-40 md:pt-6">
-               <SingleOrderView orderId={viewingOrderId} onBack={handleBack} />
+               <VendorOrderDetail orderId={viewingOrderId} onBack={handleBack} />
             </div>
          ) : (
             <>
@@ -301,7 +298,7 @@ export default function VendorOrdersPage() {
                         Sales History
                      </h3>
                      <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
-                        {filtered.length} orders
+                        {orderTotal} orders
                      </span>
                   </div>
 
@@ -309,74 +306,18 @@ export default function VendorOrdersPage() {
                   {loading ? (
                      <LoadingSpinner />
                   ) : currentOrders.length > 0 ? (
-                     <div className="grid grid-cols-1 gap-3 p-3 sm:gap-3.5 sm:p-4">
-                        {currentOrders.map(order => {
-                        const status = STATUS_CONFIG[order.order_status] || STATUS_CONFIG.placed;
-                        const payment = PAYMENT_STATUS[order.payment_status] || PAYMENT_STATUS.pending;
-                        const customer = order.customer_id;
-                        const firstItem = order.products?.[0];
-                        const variantLabel = formatVariantLabel(firstItem?.variant);
-
-                        return (
-                              <button 
-                                 key={order._id} 
-                                 className="group relative w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] text-left transition hover:border-[var(--accent)]/30"
-                                 onClick={() => handleViewOrder(order._id)}
-                              >
-                                 <div className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between sm:p-4">
-                                    <div className="flex min-w-0 items-center gap-3">
-                                       <div className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${status.bg} ${status.color}`}>
-                                          <Package className="size-4.5" />
-                                       </div>
-                                       <div className="min-w-0">
-                                          <div className="flex flex-wrap items-center gap-2">
-                                             <span className="text-[12px] font-semibold text-[var(--text-primary)]">Order #{order._id.slice(-8).toUpperCase()}</span>
-                                             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${status.bg} ${status.color} ${status.border}`}>
-                                                {status.label}
-                                             </span>
-                                             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${payment.bg} ${payment.color} ${payment.border}`}>
-                                                {payment.label}
-                                             </span>
-                                             {order.food_status && !['delivered', 'completed'].includes(order.food_status) && (
-                                               <span className="inline-flex items-center gap-1 rounded-full border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-[10px] font-medium text-orange-600">
-                                                 <span className="size-1 rounded-full bg-orange-500" />
-                                                 {order.food_status.replace(/_/g, ' ')}
-                                               </span>
-                                             )}
-                                          </div>
-                                          <p className="mt-1 truncate text-[11px] text-[var(--text-secondary)]">
-                                             {customer?.name || 'Guest'} • {order.shipping_address?.quartier || 'No area'}
-                                          </p>
-                                          {firstItem && (
-                                             <p className="mt-1 truncate text-[10px] font-semibold text-[var(--text-primary)]/80">
-                                                {firstItem.name}{variantLabel ? ` - ${variantLabel}` : ''}
-                                             </p>
-                                          )}
-                                          <time className="mt-1 inline-flex items-center gap-1 text-[10px] text-[var(--text-secondary)]/70">
-                                             <Clock className="size-3" />
-                                             {new Date(order.createdAt).toLocaleDateString()}
-                                          </time>
-                                       </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between border-t border-[var(--glass-border)] pt-2 sm:border-t-0 sm:pt-0 sm:text-right">
-                                       <div>
-                                          <p className="text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">
-                                             {order.total_amount?.toLocaleString()} <span className="text-[10px] text-[var(--text-secondary)]">XAF</span>
-                                          </p>
-                                          <p className="text-[10px] text-[var(--text-secondary)]">
-                                             {order.products?.length || 1} item{(order.products?.length || 1) > 1 ? 's' : ''}
-                                          </p>
-                                       </div>
-                                       <div className="ml-3 flex size-8 items-center justify-center rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition group-hover:text-[var(--accent)]">
-                                          <ChevronRight className="size-4" />
-                                       </div>
-                                    </div>
-                                 </div>
-                              </button>
-                        );
-                        })}
-                     </div>
+                     <FinanceTable>
+                       {currentOrders.map(order => {
+                         const status = STATUS_CONFIG[order.order_status] || { label: order.order_status || 'Placed' };
+                         return <FinanceEntry key={order._id} icon={<Package />} title={order.customer_id?.name || 'Customer'}
+                           description={order.products?.[0]?.name || order.products?.[0]?.product_id?.name || 'Order items'}
+                           reference={'#' + order._id.slice(-8).toUpperCase()} amount={Number(order.total_amount || 0).toLocaleString() + ' XAF'}
+                           date={new Date(order.createdAt).toLocaleString()} status={status.label}
+                           tone={['delivered', 'completed'].includes(order.order_status) ? 'success' : ['failed', 'cancelled', 'refunded'].includes(order.order_status) ? 'danger' : 'pending'}
+                           meta={<span>{PAYMENT_STATUS[order.payment_status]?.label || order.payment_status} / {order.products?.length || 0} items</span>}
+                           onOpen={() => handleViewOrder(order._id)} />;
+                       })}
+                     </FinanceTable>
                   ) : (
                      <div className="px-6 py-16 text-center">
                         <Database className="mx-auto mb-3 size-8 text-[var(--text-secondary)]/40" />

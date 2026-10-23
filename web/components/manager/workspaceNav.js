@@ -34,3 +34,15 @@ const NAVS = {
 export function getWorkspaceNav(role) {
   return NAVS[role] || [];
 }
+
+export function getWorkspaceNavGroups(role) {
+  const nav = getWorkspaceNav(role);
+  const sections = [
+    ['Overview', ['dashboard']],
+    ['Operations', ['products', 'orders', 'manifests', 'tracking']],
+    ['Finance', ['wallet', 'pricing']],
+    ['Communication & support', ['messages', 'disputes']],
+    ['Insights', ['analytics', 'ratings']],
+  ];
+  return sections.map(([label, slugs]) => ({ label, items: nav.filter(item => slugs.includes(item.slug)) })).filter(section => section.items.length);
+}

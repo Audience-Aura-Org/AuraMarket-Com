@@ -36,7 +36,8 @@ const AuditLogSchema = new mongoose.Schema(
     metadata: {
       ip: String,
       user_agent: String,
-      resource_url: String
+      resource_url: String,
+      details: mongoose.Schema.Types.Mixed
     }
   },
   {

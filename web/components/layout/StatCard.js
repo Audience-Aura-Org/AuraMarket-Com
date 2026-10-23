@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import styles from './StatCard.module.css';
 
 const colorMap = {
   emerald: {
@@ -62,35 +63,35 @@ const colorMap = {
   },
 };
 
-export default function StatCard({ label, value, sub, icon: Icon, color = 'primary', pct, href, progress, footer, loading = false }) {
+export default function StatCard({ label, value, sub, icon: Icon, color = 'primary', pct, href, progress, footer, loading = false, unit }) {
   const c = colorMap[color] || colorMap.primary;
 
   const content = (
-    <div className="relative overflow-hidden glass-panel p-4 md:p-5 rounded-2xl md:rounded-[2rem] md:hover:-translate-y-1 transition-[transform,box-shadow] duration-200 bg-[var(--bg-primary)]/70 md:backdrop-blur-xl border border-[var(--glass-border)] shadow-sm hover:shadow-xl group h-full flex flex-col gap-3">
+    <div className={`${styles.card} relative overflow-hidden p-4 md:p-5 h-full min-w-0 flex flex-col gap-3`} aria-busy={loading || undefined}>
 
       {/* Gradient overlay — matches dashboard cards */}
       <div
-        className="absolute inset-0 pointer-events-none rounded-2xl md:rounded-[2rem]"
-        style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${c.gradient} 6%, transparent) 0%, transparent 60%)` }}
+        className="absolute inset-0 pointer-events-none rounded-[2rem]"
+        style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${c.gradient} 6%, transparent) 0%, transparent 55%)` }}
       />
 
       {/* Top: Icon + optional percentage badge */}
-      <div className="flex justify-between items-start">
-        <div className={`size-8 md:size-10 rounded-xl md:rounded-2xl ${c.bg} flex items-center justify-center ${c.text} shadow-inner border ${c.border} shrink-0`}>
+      <div className="relative flex justify-between items-center gap-2">
+        <div className={`size-10 rounded-2xl ${c.bg} flex items-center justify-center ${c.text} border ${c.border} shrink-0`}>
           {typeof Icon === 'string' ? (
-            <span className="material-symbols-outlined text-lg md:text-xl group-hover:scale-110 transition-transform">{Icon}</span>
+            <span className="material-symbols-outlined text-xl" aria-hidden="true">{Icon}</span>
           ) : Icon ? (
-            <Icon className="size-4 md:size-5 group-hover:scale-110 transition-transform" />
+            <Icon className="size-5" aria-hidden="true" />
           ) : null}
         </div>
         {pct && (
-          <span className="max-w-[48%] truncate text-right text-[10px] font-medium text-[var(--text-secondary)] opacity-65 tracking-wide">{pct}</span>
+          <span className={`${styles.small} max-w-[48%] truncate text-right font-medium text-[var(--text-secondary)]`}>{pct}</span>
         )}
       </div>
 
       {/* Content: label, value, sub */}
-      <div>
-        <p className="mb-0.5 text-[10px] font-medium capitalize tracking-wide text-[var(--text-secondary)] opacity-65">{label}</p>
+      <div className="relative min-w-0">
+        <p className={`${styles.label} font-medium text-[var(--text-secondary)] truncate`}>{label}</p>
         {loading ? (
           <>
             <div className="h-7 w-28 rounded-xl bg-[var(--bg-secondary)] animate-pulse mt-1" />
@@ -98,33 +99,27 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'prima
           </>
         ) : (
           <>
-            <h3 className="truncate text-xl md:text-2xl lg:text-3xl font-bold tracking-tighter leading-none text-[var(--text-primary)] tabular-nums">{value}</h3>
-            {sub && (
-              <p className="mt-0.5 truncate text-[10px] font-medium tracking-wide text-[var(--text-secondary)] opacity-55">{sub}</p>
-            )}
+            <p className="mt-1 flex items-baseline gap-1.5 min-w-0"><span className={`${styles.value} truncate text-[var(--text-primary)] tabular-nums`}>{value}</span>{unit && <span className={`${styles.value} shrink-0 text-[var(--text-primary)]`}>{unit}</span>}</p>
+            <p className={`${styles.small} mt-1 min-h-[1.5em] truncate font-medium text-[var(--text-secondary)]`} aria-hidden={!sub || undefined}>{sub || '\u00a0'}</p>
           </>
         )}
       </div>
 
       {/* Optional progress bar */}
-      {progress != null && (
-        <div className="h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
+      <div className="relative h-1 w-full bg-[var(--bg-secondary)] rounded-full overflow-hidden">
           <div
             className={`h-full ${c.bar} rounded-full transition-all duration-1000`}
             style={{ width: `${Math.min(Math.max(Number(progress) || 0, 0), 100)}%` }}
           />
-        </div>
-      )}
+      </div>
 
-      {/* Optional colored footer text */}
-      {footer && (
-        <p className={`text-[10px] font-medium tracking-tight ${c.footerText}`}>{footer}</p>
-      )}
+      {/* Consistent footer space keeps dashboard metrics aligned. */}
+      <p className={`${styles.small} relative min-h-[1.5em] font-medium ${c.footerText}`} aria-hidden={!footer || undefined}>{footer || '\u00a0'}</p>
     </div>
   );
 
   if (href) {
-    return <Link href={href} className="block h-full">{content}</Link>;
+    return <Link href={href} className="block h-full min-w-0 rounded-[2rem]">{content}</Link>;
   }
 
   return content;
