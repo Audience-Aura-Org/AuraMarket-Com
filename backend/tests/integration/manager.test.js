@@ -87,6 +87,35 @@ const setup = async (perms = ALL_PERMS) => {
   return { manager, vendorUser, vendor, customer }
 }
 
+describe('managed account messaging', () => {
+  it('reads and replies as the assigned account while preserving the manager inbox', async () => {
+    const {manager,vendorUser,customer}=await setup()
+    await Message.create({sender_id:customer._id,receiver_id:vendorUser._id,text:'Managed account question'})
+    const act=r=>r.set(asUser(manager)).set('X-Act-As',String(vendorUser._id))
+    const inbox=await act(request(app).get('/api/v1/chat')).expect(200)
+    expect(inbox.body.data.activeChats[0].partner._id).toBe(String(customer._id))
+    await request(app).get('/api/v1/chat').set(asUser(manager)).expect(200).then(res=>expect(res.body.data.activeChats).toHaveLength(0))
+    const body={receiver_id:String(customer._id),text:'Reply from the managed account',client_id:'managed-reply-once'}
+    await act(request(app).post('/api/v1/chat').send(body)).expect(201)
+    await act(request(app).post('/api/v1/chat').send(body)).expect(201)
+    expect(await Message.countDocuments({sender_id:vendorUser._id,text:body.text})).toBe(1)
+    expect(await Message.countDocuments({sender_id:manager._id})).toBe(0)
+    await vi.waitFor(async()=>expect(await ActivityLog.countDocuments({manager_id:manager._id,user_id:vendorUser._id,category:'messages',method:'POST'})).toBeGreaterThan(0))
+  })
+  it('denies inbox access and sending without the messages permission', async () => {
+    const {manager,vendorUser,customer}=await setup({...ALL_PERMS,messages:false})
+    const act=r=>r.set(asUser(manager)).set('X-Act-As',String(vendorUser._id))
+    await act(request(app).get('/api/v1/chat')).expect(403)
+    await act(request(app).post('/api/v1/chat').send({receiver_id:String(customer._id),text:'Denied'})).expect(403)
+    expect(await Message.countDocuments()).toBe(0)
+  })
+  it('denies messages immediately when the assignment is revoked', async () => {
+    const {manager,vendorUser}=await setup()
+    await ManagerAssignment.updateOne({manager_id:manager._id,user_id:vendorUser._id},{$set:{status:'revoked'}})
+    await request(app).get('/api/v1/chat').set(asUser(manager)).set('X-Act-As',String(vendorUser._id)).expect(404)
+  })
+})
+
 // ═════════════════════════════════════════════════════════════════════════════
 // 1. Manager space
 // ═════════════════════════════════════════════════════════════════════════════

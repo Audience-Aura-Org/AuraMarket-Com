@@ -1,5 +1,6 @@
 "use client";
 
+import mobileStyles from './SingleOrderView.module.css';
 import { orderParty } from '@/lib/orderParty';
 import { useManagerMode } from '@/hooks/useManagerMode';
 import { useState, useEffect, useRef } from 'react';
@@ -792,7 +793,7 @@ export default function SingleOrderView({ orderId, onBack }) {
   })();
 
   return (
-    <div className="font-order-detail flex w-full min-w-0 flex-1 flex-col gap-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-0 sm:gap-8 sm:pb-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className={`${mobileStyles.page} font-order-detail flex w-full min-w-0 flex-1 flex-col gap-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-0 sm:gap-8 sm:pb-8 animate-in fade-in slide-in-from-bottom-2 duration-500`}>
       {/* Top bar */}
       <header className="flex flex-col gap-5 border-b border-[var(--glass-border)] pb-5 sm:flex-row sm:items-start sm:justify-between sm:gap-6 sm:pb-6">
         <div className="min-w-0 space-y-3 sm:space-y-4">
@@ -1065,51 +1066,7 @@ export default function SingleOrderView({ orderId, onBack }) {
       })()}
 
       <div className="grid w-full min-w-0 flex-1 grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-12 lg:items-stretch lg:gap-10">
-        <div className="order-2 flex min-h-0 flex-col space-y-8 sm:space-y-10 lg:order-1 lg:col-span-8">
-          <div>
-            {sectionTitle('Shipment activity')}
-            <div className={`${cardBase} overflow-hidden`}>
-              <div className="flex items-center justify-between border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 px-4 py-3 sm:px-5">
-                <p className="text-[12px] font-semibold text-[var(--text-primary)]">Sales History</p>
-                <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
-                  {activityEntries.length} updates
-                </span>
-              </div>
-              <div className="p-4 sm:p-5 md:p-6">
-              {activityEntries.length > 0 ? (
-                <ul className="space-y-2">
-                  {activityEntries.slice().reverse().map((log, lIdx) => (
-                    <li key={log._id || lIdx} className="relative rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3.5 sm:p-4">
-                      <div className="absolute left-0 top-0 h-full w-1 rounded-l-xl bg-[var(--accent)]/40" />
-                      <div className="min-w-0 space-y-1.5 pl-2">
-                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                          <h4 className="text-[12px] font-semibold capitalize text-[var(--text-primary)]">
-                            {String(log.status || 'update').replace('_', ' ')}
-                          </h4>
-                          <time className="font-mono text-[10px] text-[var(--text-secondary)] opacity-75 sm:whitespace-nowrap">
-                            {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ·{' '}
-                            {new Date(log.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                          </time>
-                        </div>
-                        {log.note ? (
-                          <p className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-90">{log.note}</p>
-                        ) : (
-                          <p className="text-[11px] text-[var(--text-secondary)] opacity-65">No extra note for this update.</p>
-                        )}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="flex flex-col items-center py-10 text-center">
-                  <History className="mb-3 size-9 text-[var(--text-secondary)] opacity-25" />
-                  <p className="text-[12px] font-medium text-[var(--text-secondary)] opacity-60">No carrier updates yet</p>
-                </div>
-              )}
-              </div>
-            </div>
-          </div>
-
+        <div className="order-1 flex min-h-0 flex-col gap-5 sm:gap-8 lg:col-span-8">
           <div>
             {sectionTitle('Line items')}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -1129,7 +1086,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-[12px] font-semibold leading-snug text-[var(--text-primary)]">{item.name}</h3>
+                    <h3 className={`${mobileStyles.productName} text-[12px] font-semibold leading-snug text-[var(--text-primary)]`}>{item.name}</h3>
                     {variantLabel && (
                       <p className="mt-0.5 truncate text-[10px] font-semibold text-[var(--accent)]/80">{variantLabel}</p>
                     )}
@@ -1170,10 +1127,53 @@ export default function SingleOrderView({ orderId, onBack }) {
               })}
             </div>
           </div>
+          <div>
+            {sectionTitle('Shipment activity')}
+            <div className={`${cardBase} overflow-hidden`}>
+              <div className="flex items-center justify-between border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/25 px-4 py-3 sm:px-5">
+                <p className="text-[12px] font-semibold text-[var(--text-primary)]">Order updates</p>
+                <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-1 text-[10px] font-medium text-[var(--text-secondary)]">
+                  {activityEntries.length} updates
+                </span>
+              </div>
+              <div className={`${mobileStyles.activity} p-4 sm:p-5 md:p-6`}>
+              {activityEntries.length > 0 ? (
+                <ul className="space-y-2">
+                  {activityEntries.slice().reverse().map((log, lIdx) => (
+                    <li key={log._id || lIdx} className="relative rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3.5 sm:p-4">
+                      <div className="absolute left-0 top-0 h-full w-1 rounded-l-xl bg-[var(--accent)]/40" />
+                      <div className="min-w-0 space-y-1.5 pl-2">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                          <h4 className="text-[12px] font-semibold capitalize text-[var(--text-primary)]">
+                            {String(log.status || 'update').replace('_', ' ')}
+                          </h4>
+                          <time className="font-mono text-[10px] text-[var(--text-secondary)] opacity-75 sm:whitespace-nowrap">
+                            {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ·{' '}
+                            {new Date(log.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          </time>
+                        </div>
+                        {log.note ? (
+                          <p className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-90">{log.note}</p>
+                        ) : (
+                          <p className="text-[11px] text-[var(--text-secondary)] opacity-65">No extra note for this update.</p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="flex flex-col items-center py-10 text-center">
+                  <History className="mb-3 size-9 text-[var(--text-secondary)] opacity-25" />
+                  <p className="text-[12px] font-medium text-[var(--text-secondary)] opacity-60">No carrier updates yet</p>
+                </div>
+              )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ── Parties (matching delivery track page design) ──────────────── */}
-        <div className="order-1 lg:order-2 lg:col-span-4 space-y-4">
+        <div className={`${mobileStyles.parties} order-2 lg:col-span-4 space-y-4`}>
           {/* Customer / Buyer Card */}
           <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.03] p-5 space-y-3">
             <div className="flex items-center gap-2 text-blue-600">

@@ -202,7 +202,7 @@ export default function VendorOrdersPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-[var(--bg-primary)]">
       {/* Redesigned Header */}
-      <header className="relative sticky top-[calc(56px+env(safe-area-inset-top,0px))] lg:top-0 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-2xl">
+      {!viewingOrderId && <header className="relative sticky top-[calc(56px+env(safe-area-inset-top,0px))] lg:top-0 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-2xl">
         {/* Accent gradient line */}
         <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-[var(--accent)]/40 to-transparent" />
         <div className="mx-auto max-w-[1600px] px-4 py-3 sm:px-5 md:px-8">
@@ -264,7 +264,7 @@ export default function VendorOrdersPage() {
              </div>
           </div>
         </div>
-      </header>
+      </header>}
 
       <div className={viewingOrderId ? "flex min-h-0 w-full flex-1 flex-col" : "p-4 md:p-10 space-y-8 pb-40"}>
          {viewingOrderId ? (

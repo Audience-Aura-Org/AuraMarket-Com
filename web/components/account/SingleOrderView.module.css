@@ -1,0 +1,14 @@
+.page { min-width: 0; }
+.productName { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.parties { min-width: 0; }
+@media(max-width: 640px) {
+  .page { gap: 20px; padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+  .page > header { gap: 16px; padding-bottom: 18px; }
+  .page > header h1 { font-size: 28px; }
+  .page button, .page a[href^="tel:"] { min-height: 44px; }
+  .page :is(input,textarea,select) { font-size: 16px; }
+  .page textarea { min-height: 88px; }
+  .activity { max-height: 320px; overflow-y: auto; overscroll-behavior: contain; }
+  .parties p { overflow-wrap: anywhere; }
+  .productName { font-size: 14px; }
+}

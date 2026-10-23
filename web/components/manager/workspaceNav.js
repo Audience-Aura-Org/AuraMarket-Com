@@ -12,6 +12,7 @@ const NAVS = {
     { slug: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { slug: 'products',  label: 'Products',  icon: Package },
     { slug: 'orders',    label: 'Orders',    icon: ShoppingCart },
+    { slug: 'messages',  label: 'Messages',  icon: MessagesSquare },
     { slug: 'wallet',    label: 'Wallet',    icon: Wallet },
     { slug: 'analytics', label: 'Analytics', icon: BarChart3 },
     { slug: 'ratings',   label: 'Ratings',   icon: Star },
@@ -28,6 +29,7 @@ const NAVS = {
   ],
   customer: [
     { slug: 'dashboard', label: 'Account', icon: User },
+    { slug: 'messages', label: 'Messages', icon: MessagesSquare },
   ],
 };
 

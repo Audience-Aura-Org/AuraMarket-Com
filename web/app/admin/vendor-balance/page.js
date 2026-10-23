@@ -68,6 +68,8 @@ export default function AdminVendorBalancePage() {
   const [vendorTxnPage, setVendorTxnPage] = useState(1);
   const [vendorTxnPages, setVendorTxnPages] = useState(1);
   const [vendorTxnLoading, setVendorTxnLoading] = useState(false);
+  const [vendorTxnError, setVendorTxnError] = useState('');
+  const vendorTxnRequest = useRef(0);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -114,17 +116,20 @@ export default function AdminVendorBalancePage() {
 
   // Fetch selected vendor's transactions
   const fetchVendorTxns = useCallback(async (userId, page = 1) => {
+    const version = ++vendorTxnRequest.current;
     setVendorTxnLoading(true);
+    setVendorTxnError('');
     try {
-      const res = await api.get(`/admin/vendor-balance/transactions/${userId}`, { params: { page, limit: 20 } });
+      const res = await api.get(`/admin/vendor-balance/transactions/${userId}`, { params: { page, limit: 20 }, skipClientCache: true });
+      if (version !== vendorTxnRequest.current) return;
       if (res.data?.success) {
         setVendorTxns(res.data.data.transactions || []);
         setVendorTxnTotal(res.data.data.total || 0);
         setVendorTxnPages(res.data.pages || 1);
         setVendorTxnPage(page);
       }
-    } catch { /* silent */ }
-    finally { setVendorTxnLoading(false); }
+    } catch { if (version === vendorTxnRequest.current) setVendorTxnError('Transactions could not be loaded. Please retry.'); }
+    finally { if (version === vendorTxnRequest.current) setVendorTxnLoading(false); }
   }, []);
 
   useEffect(() => {
@@ -132,6 +137,10 @@ export default function AdminVendorBalancePage() {
   }, [selectedVendor, fetchVendorTxns]);
 
   const handleSelectVendor = (vendor) => {
+    vendorTxnRequest.current += 1;
+    setVendorTxns([]);
+    setVendorTxnTotal(0);
+    setVendorTxnPages(1);
     setSelectedVendor(vendor);
     setSearchQuery('');
     setSearchResults([]);
@@ -350,52 +359,25 @@ export default function AdminVendorBalancePage() {
                     <Loader2 className="size-7 animate-spin text-indigo-600" />
                     <p className="text-[11px] text-[var(--text-secondary)]">Loading transactions...</p>
                   </div>
+                ) : vendorTxnError ? (
+                  <div className="space-y-3 p-6"><p role="alert" className="text-xs text-rose-600">{vendorTxnError}</p><button type="button" className={financeStyles.button} onClick={() => fetchVendorTxns(selectedVendor.user_id, vendorTxnPage)}>Retry</button></div>
                 ) : vendorTxns.length === 0 ? (
                   <div className="px-6 py-16 text-center">
                     <History className="mx-auto mb-3 size-8 text-[var(--text-secondary)]/35" />
                     <p className="text-sm font-medium text-[var(--text-secondary)]">No transactions for this vendor.</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-[var(--glass-border)]">
-                    {vendorTxns.map(tx => (
-                      <div key={tx._id} className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-[var(--bg-secondary)]/20 transition-colors">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                            <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase border ${
-                              tx.type === 'deposit' || tx.type === 'escrow_release' || tx.type === 'refund'
-                                ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20'
-                                : tx.type === 'withdrawal' || tx.type === 'payment'
-                                ? 'text-rose-600 bg-rose-500/10 border-rose-500/20'
-                                : 'text-indigo-600 bg-indigo-500/10 border-indigo-500/20'
-                            }`}>
-                              {TYPE_LABEL[tx.type] || tx.type}
-                            </span>
-                            <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase border ${
-                              tx.status === 'completed' ? 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20'
-                              : tx.status === 'failed' ? 'text-rose-600 bg-rose-500/10 border-rose-500/20'
-                              : 'text-amber-600 bg-amber-500/10 border-amber-500/20'
-                            }`}>
-                              {tx.status}
-                            </span>
-                            {tx.gateway && (
-                              <span className="px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--glass-border)]">
-                                {tx.gateway}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-[9px] text-[var(--text-secondary)] opacity-60 truncate">
-                            {tx.description || tx.reference} &middot; {new Date(tx.createdAt).toLocaleString()}
-                          </p>
-                        </div>
-                        <p className={`text-[12px] font-bold tabular-nums shrink-0 ${
-                          tx.type === 'deposit' || tx.type === 'escrow_release' || tx.type === 'refund'
-                            ? 'text-emerald-600' : 'text-[var(--text-primary)]'
-                        }`}>
-                          {tx.type === 'withdrawal' || tx.type === 'payment' ? '-' : '+'}{(tx.amount || 0).toLocaleString()} XAF
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                  <FinanceTable label="Vendor transactions" columns={['Transaction', 'Reference / gateway', 'Status', 'Amount', 'Date']}>
+                    {vendorTxns.map(tx => {
+                      const debit = ['withdrawal', 'payment', 'subscription'].includes(tx.type) || tx.metadata?.operation === 'debit';
+                      return <FinanceEntry key={tx._id} showActions={false} icon={<Wallet />} title={TYPE_LABEL[tx.type] || tx.type}
+                        description={tx.description} reference={tx.reference || tx._id}
+                        meta={tx.gateway || 'Wallet'} status={tx.status}
+                        tone={tx.status === 'failed' ? 'danger' : tx.status === 'completed' ? 'success' : 'pending'}
+                        amount={(debit ? '-' : '+') + Number(tx.amount || 0).toLocaleString() + ' XAF'}
+                        date={new Date(tx.createdAt).toLocaleString()} />;
+                    })}
+                  </FinanceTable>
                 )}
 
                 {vendorTxnPages > 1 && !vendorTxnLoading && (
@@ -407,7 +389,7 @@ export default function AdminVendorBalancePage() {
             )}
 
             {/* Admin Adjustment History */}
-            <section className="rounded-2xl border border-indigo-500/10 bg-[var(--bg-primary)]/95 shadow-sm overflow-hidden">
+            <section hidden={view !== 'history'} className="rounded-2xl border border-indigo-500/10 bg-[var(--bg-primary)]/95 shadow-sm overflow-hidden">
               <div className={financeStyles.panelHeader}>
                 <h2 className="text-sm font-semibold">Adjustment History</h2>
                 <span className="rounded-full bg-[var(--bg-secondary)] px-2.5 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">

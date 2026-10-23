@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { MessagesSquare } from 'lucide-react';
 import { TYPE_LABEL } from './nav';
 
 /**
@@ -25,6 +26,7 @@ export default function WorkingAsStrip({ account, mobile = false }) {
           {account?.role && <span className="m-muted"> · {TYPE_LABEL[account.role] || account.role}</span>}
           <span className="hidden md:inline m-faint"> · changes are logged</span>
         </p>
+        {account?.id && <Link href={`/manager/as/${account.id}/messages`} aria-label={`Messages for ${account.name || 'managed account'}`} className="m-btn !min-h-8 shrink-0"><MessagesSquare size={15} /><span className="hidden sm:inline">Messages</span></Link>}
         <Link href="/manager" className="m-btn !min-h-8 shrink-0">Exit</Link>
       </div>
     </div>

@@ -14,6 +14,7 @@ const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const Shipment = require('../models/Shipment.model');
+const Dispute = require('../models/Dispute.model');
 const logisticsService = require('../services/logistics.service');
 const {
   syncShipmentsToOrderStatus,
@@ -28,6 +29,7 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const { hasRole } = require('../utils/roles');
 const { scoped } = require('../utils/scopeFilter');
+const { escapeRegExp } = require('../middleware/security.middleware');
 
 const generateTxRef = () => `AURA-ESCROW-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 const AUTO_RELEASE_WINDOW_MS = 6 * 60 * 60 * 1000;
@@ -220,6 +222,15 @@ const holdFunds = async (req, res, next) => {
  * This should only be called once all conditions (Mutual Agreement or Admin Override) are met.
  */
 const finalizeEscrowPayout = async (escrow, order, req, session) => {
+  const conflict = message => Object.assign(new Error(message), { statusCode: 409 });
+  if (!order || String(escrow.order_id) !== String(order._id)) throw conflict('Escrow settlement blocked: the original order is missing or does not match. Restore its records before settlement.');
+  if (String(order.vendor_id) !== String(escrow.vendor_id)) throw conflict('Escrow settlement blocked: the vendor does not match the original order. Reconcile the records before settlement.');
+  if (order.payment_status !== 'paid') throw conflict('Escrow settlement blocked: payment is not confirmed.');
+  if (await Dispute.exists({ order_id: order._id, status: { $in: ['pending', 'investigating'] } }).session(session)) throw conflict('Resolve the active dispute before releasing escrow.');
+  const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
+  if (!vendorAccount) throw conflict('Escrow settlement blocked: the original vendor record is missing. Restore its records before settlement.');
+  const vendorUser = await User.findById(vendorAccount.user_id).session(session);
+  if (!vendorUser) throw conflict('Escrow settlement blocked: the vendor wallet account is missing. Restore its records before settlement.');
   // Atomic claim: transition held/pending_release → releasing.
   // Prevents double-payout when manual release and the auto-release worker fire simultaneously,
   // or when two PM2 processes both reach this point for the same escrow.
@@ -231,9 +242,6 @@ const finalizeEscrowPayout = async (escrow, order, req, session) => {
   if (!claimed) {
     throw new Error(`Escrow ${escrow._id} already released or claimed by another operation.`);
   }
-
-  const vendorAccount = await Vendor.findById(escrow.vendor_id).session(session);
-  const vendorUser = await User.findById(vendorAccount.user_id).session(session);
 
   const { platformSettings, effectiveSettings } = await getEffectivePlatformSettings(escrow.vendor_id, session);
   const { commissionFee, escrowFee, platformFee, vendorPayout } = calculatePlatformFees(escrow.amount, effectiveSettings, {
@@ -379,7 +387,7 @@ const releaseFunds = async (req, res, next) => {
     const { orderId } = req.params;
 
     const order = await Order.findById(orderId).session(session);
-    if (!order) throw new Error('Order not found.');
+    if (!order) throw new Error('Escrow settlement blocked: the original order is missing. Restore the original records before settlement.');
 
     const escrow = await Escrow.findOne({ order_id: orderId }).session(session);
     const paymentIsSettled = order.payment_status === 'paid' || order.payment_method === 'pay_on_delivery';
@@ -682,6 +690,8 @@ const refundFunds = async (req, res, next) => {
 
     // Check auth bounds carefully: Admins can force dispute refunds. Vendors can voluntarily cancel orders.
     const order = await Order.findById(orderId).session(session);
+    if (!order) throw new Error('Escrow refund blocked: the original order is missing. Restore the original records before settlement.');
+    if (await Dispute.exists({ order_id: orderId, status: { $in: ['pending', 'investigating'] } }).session(session)) throw new Error('Resolve the active dispute before refunding escrow.');
     if (hasRole(req.user, 'vendor')) {
       const activeVendor = await Vendor.findOne({ user_id: req.user._id }).session(session);
       if (!activeVendor || order.vendor_id.toString() !== activeVendor._id.toString()) {
@@ -836,38 +846,47 @@ const denyEscrow = async (req, res, next) => {
 
 const getEscrowLogs = async (req, res, next) => {
   try {
-    const { status } = req.query;
-    const query = scoped('Escrow', status && status !== 'all' ? { status } : {}, req.managerScope);
-
-    // Newest 500 for the list; the totals below aggregate every record, so
-    // the cap never changes the figures. Both run in parallel.
-    const [logs, stats] = await Promise.all([
-      Escrow.find(query)
-        .populate('buyer_id', 'name email avatar')
-        .populate('vendor_id', 'store_name')
-        .populate('order_id', 'createdAt')
-        .sort('-createdAt')
-        .limit(500)
-        .lean(),
-      Escrow.aggregate([
-      { $match: scoped('Escrow', {}, req.managerScope) },
-      {
-        $group: {
-          _id: '$status',
-          totalAmount: { $sum: '$amount' },
-          count: { $sum: 1 }
-        }
-      }
-      ]),
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 20));
+    const filter = {};
+    if (Escrow.schema.path('status').enumValues.includes(req.query.status)) filter.status = req.query.status;
+    const term = String(req.query.search || '').trim().slice(0, 100);
+    if (term) {
+      const pattern = escapeRegExp(term);
+      const [buyers, vendors] = await Promise.all([
+        User.find({ $or: [{ name: { $regex: pattern, $options: 'i' } }, { email: { $regex: pattern, $options: 'i' } }] }).select('_id').lean(),
+        Vendor.find({ store_name: { $regex: pattern, $options: 'i' } }).select('_id').lean(),
+      ]);
+      filter.$or = [
+        { buyer_id: { $in: buyers.map(buyer => buyer._id) } }, { vendor_id: { $in: vendors.map(vendor => vendor._id) } },
+        { $expr: { $regexMatch: { input: { $toString: '$order_id' }, regex: pattern, options: 'i' } } },
+        { $expr: { $regexMatch: { input: { $toString: '$_id' }, regex: pattern, options: 'i' } } },
+      ];
+    }
+    const query = scoped('Escrow', filter, req.managerScope);
+    const [records, total, stats] = await Promise.all([
+      Escrow.find(query).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+      Escrow.countDocuments(query),
+      Escrow.aggregate([{ $match: scoped('Escrow', {}, req.managerScope) }, { $group: { _id: '$status', totalAmount: { $sum: '$amount' }, count: { $sum: 1 } } }]),
     ]);
-
-    res.status(200).json({
-      success: true,
-      data: { logs, stats }
-    });
-  } catch (error) {
-    next(error);
-  }
+    // Keep original references even when populate cannot find deleted records.
+    const logs = records.map(record => ({ ...record, order_reference: record.order_id, vendor_reference: record.vendor_id }));
+    await Escrow.populate(logs, [
+      { path: 'buyer_id', select: 'name email avatar' },
+      { path: 'vendor_id', select: 'store_name user_id', populate: { path: 'user_id', select: '_id' } },
+      { path: 'order_id', select: 'createdAt payment_status order_status' },
+    ]);
+    const disputes = await Dispute.find({ order_id: { $in: records.map(record => record.order_id) }, status: { $in: ['pending', 'investigating'] } }).select('order_id').lean();
+    const disputed = new Set(disputes.map(dispute => String(dispute.order_id)));
+    for (const log of logs) {
+      const missing = [!log.order_id && 'order', !log.vendor_id && 'vendor', log.vendor_id && !log.vendor_id.user_id && 'vendor wallet account'].filter(Boolean);
+      let reason = missing.length ? 'Missing ' + missing.join(' and ') + '. Restore the original records from a verified backup before settlement.' : '';
+      if (!reason && (log.status === 'disputed' || disputed.has(String(log.order_reference)))) reason = 'Resolve the active dispute before settlement.';
+      if (!reason && ['held', 'pending_release'].includes(log.status) && log.order_id.payment_status !== 'paid') reason = 'Order payment has not been confirmed.';
+      log.settlement = { blocked: Boolean(reason), reason, missing };
+    }
+    res.status(200).json({ success: true, total, page, pages: Math.max(1, Math.ceil(total / limit)), data: { logs, stats } });
+  } catch (error) { next(error); }
 };
 
 module.exports = {

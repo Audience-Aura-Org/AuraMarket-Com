@@ -103,6 +103,12 @@
 .recordTable th:nth-child(4) { width: 15%; text-align: right; }
 .recordTable th:nth-child(5) { width: 15%; }
 .recordTable th:nth-child(6) { width: 8%; }
+.recordTable[data-columns="5"] { min-width: 720px; }
+.recordTable[data-columns="5"] th:nth-child(1) { width: 25%; }
+.recordTable[data-columns="5"] th:nth-child(2) { width: 21%; }
+.recordTable[data-columns="5"] th:nth-child(3) { width: 18%; }
+.recordTable[data-columns="5"] th:nth-child(4) { width: 18%; }
+.recordTable[data-columns="5"] th:nth-child(5) { width: 18%; }
 .recordTable .entry { padding: 0; }
 .recordTable td { padding: 12px 16px; vertical-align: middle; border-bottom: 1px solid var(--glass-border); overflow-wrap: anywhere; }
 .recordTable .entry:hover { background: color-mix(in srgb, var(--accent) 3%, transparent); }
@@ -112,7 +118,25 @@
 .recordTable .entryTitle { font-size: 13px; }
 .recordTable .entryDescription, .recordTable .entryReference { white-space: normal; font-size: 11px; }
 .recordTable .entryDate { margin: 0; font-size: 11px; }
+.recordTable .entryStatus { white-space: nowrap; }
 .recordTable .tableAmount { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; }
 .recordTable .button { min-height: 30px; padding: 5px 10px; font-size: 11px; border-radius: 9px; }
 .recordTable .tableDetails > td { padding: 0; }
 .recordTable .entryActions { padding: 12px 16px; }
+.tableHint { display: none; }
+@media(max-width: 767px) {
+  .tableHint { display: block; position: sticky; left: 0; width: fit-content; max-width: 100%; padding: 12px 16px; font-size: 13px; color: var(--text-secondary); }
+  .recordTable { min-width: 980px; }
+  .recordTable[data-columns="5"] { min-width: 920px; }
+  .recordTable th { padding: 16px; font-size: 13px; }
+  .recordTable :is(th,td):first-child { width: 190px; }
+  .recordTable td { padding: 16px; line-height: 1.6; }
+  .recordTable .entryTitle { font-size: 15px; }
+  .recordTable :is(.entryDescription,.entryReference,.entryDate) { font-size: 13px; }
+  .recordTable .entryMeta { font-size: 13px; }
+  .recordTable .entryStatus { font-size: 12px; padding: 4px 8px; }
+  .recordTable .tableAmount { font-size: 15px; }
+  .recordTable .button { min-height: 44px; padding: 10px 14px; font-size: 13px; }
+  .recordTable .entry > tr:first-child > td:first-child, .recordTable thead th:first-child { position: sticky; left: 0; z-index: 1; background: var(--bg-primary); box-shadow: 1px 0 0 var(--glass-border); }
+  .recordTable thead th:first-child { z-index: 2; background: var(--bg-secondary); }
+}
