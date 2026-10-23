@@ -71,6 +71,8 @@ app.set('io', io);
 
 const { startEscrowAutoReleaseWorker } = require('./services/escrowAutoRelease.service');
 startEscrowAutoReleaseWorker(app);
+const { startAutomaticWithdrawalWorker } = require('./services/pawaWithdrawalApproval.service');
+startAutomaticWithdrawalWorker(app);
 const { startFoodAcceptanceTimeoutWorker } = require('./services/foodAcceptanceTimeout.service');
 startFoodAcceptanceTimeoutWorker(app);
 const { startDisputeWindowWorker } = require('./services/disputeWindowEnforcement.service');

@@ -309,6 +309,7 @@ const deleteAccount = async (req, res, next) => {
       return res.status(200).json({ success: true, message: 'Account already deleted.' });
     }
 
+    await require('../utils/accountDeletionGuard')([user._id]);
     user.token_version = Number(user.token_version || 0) + 1;
     user.is_active = false;
     await user.save({ validateBeforeSave: false });

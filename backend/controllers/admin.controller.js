@@ -1731,6 +1731,7 @@ const deleteUser = async (req, res, next) => {
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
     assertAccessLevel(req.managerScope, user._id, 'full');
+    await require('../utils/accountDeletionGuard')([user._id]);
 
     // Cascading deletion for business entities
     if (user.role === 'vendor') {
@@ -1775,6 +1776,7 @@ const bulkDeleteUsers = async (req, res, next) => {
       }
     }
 
+    await require('../utils/accountDeletionGuard')(filteredIds);
     const usersToDelete = await User.find({ _id: { $in: filteredIds } });
 
     for (const user of usersToDelete) {

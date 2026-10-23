@@ -94,6 +94,20 @@ export default function AdminWithdrawalsPage() {
   const [brokenRequesterImages, setBrokenRequesterImages] = useState({});
   const itemsPerPage = 20;
   const [totalPages, setTotalPages] = useState(1);
+  const [automation, setAutomation] = useState(null);
+  const [savingAutomation, setSavingAutomation] = useState(false);
+  const [automationError, setAutomationError] = useState('');
+  const loadAutomation = useCallback(async () => {
+    try { const response=await api.get('/withdrawals/admin/automation',{skipClientCache:true});setAutomation(response.data.data);setAutomationError(''); }
+    catch { setAutomationError('Automatic approval settings could not be loaded.'); }
+  }, []);
+  useEffect(() => { if(hasHydrated && user?.role==='admin') loadAutomation(); }, [hasHydrated,user?.role,loadAutomation]);
+  const toggleAutomation = async () => {
+    if(!automation || savingAutomation)return;setSavingAutomation(true);
+    try { const response=await api.patch('/withdrawals/admin/automation',{enabled:!automation.enabled});setAutomation(response.data.data);setAutomationError('');toast.success(response.data.data.enabled?'Automatic PawaPay approval enabled for new requests.':'Automatic approval disabled.'); }
+    catch(failure){setAutomationError(failure.response?.data?.message || 'Automatic approval settings could not be saved.');}
+    finally{setSavingAutomation(false);}
+  };
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -224,6 +238,7 @@ export default function AdminWithdrawalsPage() {
         />
 
         <AdminFinanceBody>
+          {user?.role === 'admin' && <section className={`${financeStyles.panel} p-5`} aria-label="Withdrawal automation"><div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-sm font-semibold">Automatic PawaPay approval</h2><p className="mt-2 max-w-2xl text-xs leading-relaxed text-[var(--text-secondary)]">Approve new eligible MTN Cameroon withdrawals automatically. Orange numbers and requests created before activation stay manual. Turning this off stops new approvals; submitted payouts still finish.</p>{automation?.enabled && automation.activated_at && <p className="mt-2 text-xs text-emerald-600">Active since {new Date(automation.activated_at).toLocaleString()}</p>}</div><button type="button" role="switch" aria-label="Automatic PawaPay approval" aria-checked={Boolean(automation?.enabled)} disabled={!automation || savingAutomation} onClick={toggleAutomation} className={`${financeStyles.button} !min-h-14 !min-w-24`}>{savingAutomation?'Saving...':automation?.enabled?'On':'Off'}</button></div>{automationError && <div className="mt-3 flex flex-wrap items-center gap-3"><p role="alert" className="text-xs text-rose-600">{automationError}</p><button type="button" className={financeStyles.button} onClick={loadAutomation}>Retry</button></div>}</section>}
           {/* KPI Strip */}
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {kpis.map(({ icon, label, value, color, sub, footer }) => (

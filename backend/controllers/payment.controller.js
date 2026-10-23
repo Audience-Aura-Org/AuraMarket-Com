@@ -18,6 +18,7 @@ const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
 const { activateSubscription } = require('../services/subscription.service');
 const { creditBalance, generateRef: genWalletRef } = require('../services/wallet.service');
 const pawapay = require('../services/payment/gateways/pawapay.gateway');
+const { paymentFailure, notifyDepositFailure } = require('../utils/paymentFailure');
 const webhookHealth = require('../services/webhookHealthMonitor.service');
 const Shipment = require('../models/Shipment.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
@@ -1464,7 +1465,9 @@ const pawapayInitialize = async (req, res) => {
     const detail = err.response?.data;
     return res.status(err.status || err.response?.status || 500).json({
       success: false,
-      message: detail?.message || err.message || 'PawaPay payment initialization failed.',
+      message: err.paymentFailure?.message || detail?.message || err.message || 'PawaPay payment initialization failed.',
+      ...(err.paymentFailure || {}),
+      status: err.paymentFailure ? 'FAILED' : undefined,
       detail,
     });
   }
@@ -1475,10 +1478,20 @@ const pawapayInitialize = async (req, res) => {
  * @desc    Poll deposit status and settle if complete.
  * @access  Private
  */
+async function recordPawaDepositFailure(transaction, result, app) {
+  const failed = await Transaction.findOneAndUpdate({ _id: transaction._id, status: 'pending' }, { $set: { status: 'failed', gateway_response: result } }, { returnDocument: 'after' });
+  if (failed) {
+    await notifyDepositFailure(app, failed, result);
+    if (failed.order_ids?.length) await markCheckoutOrdersFailed(failed.user_id, failed.order_ids);
+  }
+  const current = failed || await Transaction.findById(transaction._id);
+  return current?.status === 'completed' ? { status: 'SUCCESSFUL', message: 'Payment confirmed.' } : current?.status === 'failed' ? { status: 'FAILED', ...paymentFailure(current.gateway_response) } : { status: 'PENDING', message: 'Payment confirmation is still in progress.' };
+}
+
 const pawapayVerify = async (req, res) => {
   try {
     const { reference } = req.params;
-    const transaction = await Transaction.findOne({ reference, gateway: 'pawapay' });
+    const transaction = await Transaction.findOne({ reference, gateway: 'pawapay', ...recheckOwnerFilter(req) });
     if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found.' });
 
     if (transaction.status === 'completed') {
@@ -1493,7 +1506,7 @@ const pawapayVerify = async (req, res) => {
         success: false,
         status: 'FAILED',
         message: 'Payment failed.',
-        reason: transaction.gateway_response?.rejectionReason?.rejectionMessage,
+        ...paymentFailure(transaction.gateway_response),
       });
     }
 
@@ -1550,17 +1563,7 @@ const pawapayVerify = async (req, res) => {
       });
     }
 
-    if (status === 'FAILED') {
-      transaction.status = 'failed';
-      transaction.gateway_response = result;
-      await transaction.save();
-      if (transaction.order_ids?.length) await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
-      return res.status(400).json({
-        success: false,
-        status: 'FAILED',
-        message: result?.rejectionReason?.rejectionMessage || 'PawaPay payment failed.',
-      });
-    }
+    if (status === 'FAILED') return res.status(200).json({success:true,...await recordPawaDepositFailure(transaction,result,req.app)});
 
     return res.status(200).json({ success: true, status: 'PENDING', message: 'Awaiting PawaPay confirmation.' });
   } catch (err) {
@@ -1591,6 +1594,8 @@ const pawapayRecheck = async (req, res) => {
         data: isSubscriptionTransaction(transaction) ? { subscription: true } : { balance_added: transaction.amount },
       });
     }
+
+    if (transaction.status === 'failed') return res.status(200).json({success:true,status:'FAILED',...paymentFailure(transaction.gateway_response)});
 
     // Sandbox: auto-succeed
     if (transaction.metadata?.is_sandbox) {
@@ -1627,21 +1632,7 @@ const pawapayRecheck = async (req, res) => {
       });
     }
 
-    if (status === 'FAILED') {
-      if (transaction.status !== 'failed') {
-        transaction.status = 'failed';
-        transaction.gateway_response = result;
-        await transaction.save();
-        if (transaction.order_ids?.length) await markCheckoutOrdersFailed(transaction.user_id, transaction.order_ids);
-      }
-      // The recheck itself succeeded; the payment's outcome is data, not an HTTP error.
-      return res.status(200).json({
-        success: true,
-        status: 'FAILED',
-        message: result?.rejectionReason?.rejectionMessage || 'PawaPay payment was declined.',
-        reason: result?.rejectionReason?.rejectionMessage,
-      });
-    }
+    if (status === 'FAILED') return res.status(200).json({success:true,...await recordPawaDepositFailure(transaction,result,req.app)});
 
     return res.status(200).json({ success: true, status: 'PENDING', message: 'Payment is still being processed. Please wait and try again.' });
   } catch (err) {
@@ -1711,12 +1702,8 @@ const pawapayDepositWebhook = async (req, res) => {
       await settleGatewayTransaction(claimed, event, req.app, '', 'pawapay');
       webhookHealth.record('webhookSettled', 'pawapay');
     } else if (status === 'FAILED') {
-      const updated = await Transaction.findOneAndUpdate(
-        { reference: { $in: transactionRefs }, gateway: 'pawapay', status: { $in: ['pending', 'processing'] } },
-        { $set: { status: 'failed', gateway_response: event } },
-        { returnDocument: "after" }
-      );
-      if (updated?.order_ids?.length) await markCheckoutOrdersFailed(updated.user_id, updated.order_ids);
+      const transaction = await Transaction.findOne({reference:{$in:transactionRefs},gateway:'pawapay'});
+      if(transaction) await recordPawaDepositFailure(transaction,event,req.app);
     }
 
     return res.status(200).send('OK');

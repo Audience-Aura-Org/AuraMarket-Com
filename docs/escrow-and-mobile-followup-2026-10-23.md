@@ -1,5 +1,7 @@
 # Escrow, mobile tables and managed-account messaging
 
+Update: the operator subsequently requested removal of the orphaned 100 XAF record. It was archived and removed from active escrow, its pending payout cancelled, and no wallet transfer made. See `withdrawal-automation-2026-10-23.md` for the applied reconciliation and deletion-prevention controls. The original diagnosis below documents why it could not safely pay a vendor.
+
 ## Specific held escrow finding
 
 A read-only database check identified the screenshot's 100 XAF held escrow:

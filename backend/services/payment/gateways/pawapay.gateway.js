@@ -51,7 +51,8 @@ const detectProvider = (phone) => {
   const digits = phone.replace(/\D/g, '');
   const local = digits.length >= 9 ? digits.slice(-9) : digits;
   const prefix = parseInt(local.substring(0, 2), 10);
-  if ([65, 67, 68].includes(prefix)) return 'MTN_MOMO_CMR';
+  if (prefix === 65) return Number(local[2]) <= 4 ? 'MTN_MOMO_CMR' : 'ORANGE_MONEY_CMR';
+  if ([67, 68].includes(prefix)) return 'MTN_MOMO_CMR';
   if ([69, 62].includes(prefix)) return 'ORANGE_MONEY_CMR';
   // Fallback: caller should surface this as a prompt to the user
   return 'MTN_MOMO_CMR';
@@ -557,12 +558,20 @@ const pawapayGateway = {
         description: orderIds.length ? 'Auradime order' : 'Auradime deposit', returnUrl });
       if (['REJECTED', 'FAILED'].includes(String(result?.status || '').toUpperCase())) {
         await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: { status: 'failed', gateway_response: result } });
-        throw new Error(result?.rejectionReason?.rejectionMessage || 'PawaPay deposit was rejected by the operator.');
+        const failure = require('../../../utils/paymentFailure').paymentFailure(result);
+        await require('../../../utils/paymentFailure').notifyDepositFailure(req?.app, transaction, result);
+        throw Object.assign(new Error(failure.message), { status: 422, paymentFailure: failure });
       }
     } catch (error) {
       // A transport failure is ambiguous: keep the provider ID available to webhooks/rechecks.
       await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: { 'metadata.initialization_error': error.message } });
       error.paymentReference = transactionRef;
+      if (error.response?.status >= 400 && error.response.status < 500 && ![408,409,429].includes(error.response.status)) {
+        const response = error.response.data || {};
+        await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: { status: 'failed', gateway_response: response } });
+        error.paymentFailure = require('../../../utils/paymentFailure').paymentFailure(response);
+        await require('../../../utils/paymentFailure').notifyDepositFailure(req?.app, transaction, response);
+      }
       if ((!error.response && error.code) || error.response?.status >= 500) {
         return { checkout_url: returnUrl, reference: transactionRef, transaction_id: depositId, pending_confirmation: true };
       }
@@ -581,7 +590,7 @@ const pawapayGateway = {
     const transaction = await Transaction.findOne({ reference, gateway: 'pawapay' });
     if (!transaction) return { status: 'PENDING' };
     if (transaction.status === 'completed') return { status: 'SUCCESSFUL', amount: transaction.amount };
-    if (transaction.status === 'failed') return { status: 'FAILED', reason: transaction.gateway_response?.message };
+    if (transaction.status === 'failed') return { status: 'FAILED', ...require('../../../utils/paymentFailure').paymentFailure(transaction.gateway_response) };
 
     const depositId = transaction.gateway_transaction_id || transaction.metadata?.depositId;
     if (!depositId) return { status: 'PENDING' };
@@ -593,7 +602,7 @@ const pawapayGateway = {
     const norm = normalizeStatus(result?.status);
     if (norm === 'SUCCESSFUL') return { status: 'SUCCESSFUL', amount: transaction.amount };
     if (norm === 'FAILED') {
-      return { status: 'FAILED', reason: result?.rejectionReason?.rejectionMessage || 'Declined by operator.' };
+      return { status: 'FAILED', ...require('../../../utils/paymentFailure').paymentFailure(result) };
     }
     return { status: 'PENDING' };
   },

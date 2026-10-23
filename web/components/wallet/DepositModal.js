@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { initiateCollection, initiateSmartCameroonCollection, pollTransactionStatus, recheckTransaction } from '@/services/paymentProvider';
 import api from '@/services/api';
+import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 
 const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
@@ -41,6 +42,17 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   const inProgressRef  = useRef(false);
   // Holds the stop-polling function returned by pollTransactionStatus
   const stopPollingRef = useRef(null);
+  useEffect(() => () => { stopPollingRef.current?.(); }, []);
+  useEffect(() => {
+    if (!open || !ref || status !== 'pending') return;
+    const onPaymentStatus = event => {
+      if (event?.gateway !== 'pawapay' || event.reference !== ref || event.status !== 'FAILED') return;
+      stopPollingRef.current?.(); stopPollingRef.current = null;
+      setStatus('failed'); setStep('result'); setReason(event.reason || event.message || 'The mobile-money provider declined this deposit.');
+    };
+    socketService.on('payment_status', onPaymentStatus);
+    return () => socketService.off('payment_status', onPaymentStatus);
+  }, [open, ref, status]);
 
   // Pre-fill phone when userPhone prop changes (e.g. after auth loads)
   useEffect(() => {
@@ -67,7 +79,9 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
     const local = phone.replace(/[^\d]/g, '').replace(/^237/, '').replace(/^0/, '');
     if (local.length >= 2) {
       const p = parseInt(local.slice(0, 2), 10);
-      if ([65, 67, 68].includes(p)) setPawapayNetwork('MTN MoMo');
+      const prefix3 = Number(local.slice(0, 3));
+      if (prefix3 >= 655 && prefix3 <= 659) setPawapayNetwork('Orange Money');
+      else if ([65, 67, 68].includes(p)) setPawapayNetwork('MTN MoMo');
       else if ([69, 62].includes(p)) setPawapayNetwork('Orange Money');
       else setPawapayNetwork('');
     }
@@ -154,10 +168,6 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
     setMessage('Sending request to payment gateway...');
     setSubmitting(true);
 
-    const processingStart = Date.now();
-    const holdProcessing = (minMs = 1500) =>
-      new Promise(r => setTimeout(r, Math.max(0, minMs - (Date.now() - processingStart))));
-
     let localRef = null;
     let gw = gateway;
 
@@ -175,7 +185,6 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
         : await initiateCollection(gateway, payload);
       gw = res.gateway || gateway;
       if (gw !== gateway) setGateway(gw);
-      await holdProcessing();
 
       if (res.success) {
         localRef = res.data?.reference;
@@ -223,10 +232,12 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
         setReason(res.message || 'Payment initiation failed. Please try again.');
       }
     } catch (err) {
-      await holdProcessing();
       const errMsg = err?.response?.data?.message;
-      setStatus('timeout');
+      const body = err?.response?.data;
+      const definitiveFailure = body?.status === 'FAILED' || body?.code === 'INSUFFICIENT_FUNDS' || (err.response?.status >= 400 && err.response.status < 500 && ![408,409,429].includes(err.response.status));
+      setStatus(definitiveFailure ? 'failed' : 'timeout');
       setStep('result');
+      if (definitiveFailure) setReason(body?.reason || errMsg || 'The deposit could not be started. Please check your details and try again.');
       setMessage(
         errMsg
           ? errMsg
@@ -293,7 +304,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="relative w-full max-w-md bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2rem] p-5 sm:p-6 shadow-2xl overflow-hidden font-[Poppins]"
+        className="relative w-full max-w-md max-h-[calc(100dvh-2rem)] bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[2rem] p-5 sm:p-6 shadow-2xl overflow-y-auto font-[Poppins]"
       >
         <AnimatePresence mode="wait">
           {/* ── Step: form ─────────────────────────────── */}
@@ -517,10 +528,10 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                  <XCircle className="size-10" />}
               </div>
               <h4 className={`text-xl font-bold tracking-tight mb-2 ${status === 'success' ? 'text-emerald-500' : status === 'timeout' ? 'text-amber-500' : 'text-rose-500'}`}>
-                {status === 'success' ? 'Confirmed' : status === 'timeout' ? 'Timed Out' : 'Failed'}
+                {status === 'success' ? 'Confirmed' : status === 'timeout' ? 'Timed Out' : /insufficient/i.test(reason) ? 'Insufficient funds' : 'Failed'}
               </h4>
-              <div className="bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-xl p-4 mb-4 w-full">
-                <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-60 leading-relaxed tracking-tight">
+              <div role={status === 'failed' ? 'alert' : 'status'} className="bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-xl p-4 mb-4 w-full">
+                <p className="text-[13px] font-medium text-[var(--text-primary)] leading-relaxed">
                   {status === 'success' ? message : reason || message}
                 </p>
                 {(status === 'failed' || status === 'timeout') && ref && (

@@ -85,6 +85,7 @@ const holdFunds = async (req, res, next) => {
     if (order.payment_status !== 'pending') throw new Error('Payment has already been processed.');
 
     const vendorAccount = await Vendor.findById(order.vendor_id).session(session);
+    if (!vendorAccount || !await User.exists({_id:vendorAccount.user_id,is_active:{$ne:false}}).session(session)) throw new Error('The vendor account is unavailable. Escrow was not funded.');
 
     // 1 & 2. Atomic debit — guards against concurrent escrow funding attempts
     const user = await debitBalance(req.user._id, order.total_amount, session);

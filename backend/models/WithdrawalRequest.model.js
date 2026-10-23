@@ -79,6 +79,9 @@ const WithdrawalRequestSchema = new mongoose.Schema(
     eversend_quotation_token: { type: String, default: null, select: false },
     eversend_status:          { type: String, default: null },  // gateway status string
     balance_deducted:         { type: Boolean, default: false },
+    auto_approval_epoch: { type: String, default: null },
+    auto_approved: { type: Boolean, default: false },
+    payout_checked_at: { type: Date, default: null },
 
     // ── Admin Review ─────────────────────────────
     rejection_reason: { type: String, default: null },
@@ -97,6 +100,7 @@ const WithdrawalRequestSchema = new mongoose.Schema(
 // Index for quick admin queue lookups
 WithdrawalRequestSchema.index({ status: 1, createdAt: -1 });
 WithdrawalRequestSchema.index({ requested_by: 1, status: 1 });
+WithdrawalRequestSchema.index({ auto_approval_epoch: 1, status: 1, createdAt: 1 });
 // Sparse index for fast webhook lookup by gateway transaction id (PawaPay payoutId, Eversend txId)
 WithdrawalRequestSchema.index({ eversend_transaction_id: 1 }, { sparse: true });
 

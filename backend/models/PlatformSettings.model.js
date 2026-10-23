@@ -61,6 +61,12 @@ const PlatformSettingsSchema = new mongoose.Schema(
 
     // ── Withdrawal maintenance mode ─────────────────────────────────────────
     withdrawals_maintenance_mode: { type: Boolean, default: false },
+    withdrawal_automation: {
+      enabled: { type: Boolean, default: false },
+      activated_at: { type: Date, default: null },
+      activated_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      epoch: { type: String, default: null },
+    },
 
     // ── Phase 3 — Restaurant-specific settings ──────────────────────────────
 
