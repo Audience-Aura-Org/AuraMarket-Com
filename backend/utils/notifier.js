@@ -250,7 +250,7 @@ const sendNotification = async (app, recipientId, data) => {
     // two sequential DB round-trips before FCM can fire.
     const PushSubscription = require('../models/PushSubscription.model');
     const [recipientProfile, pushSubs] = await Promise.all([
-      User.findById(recipientId).select('preferred_language notification_preferences manager_settings role').lean().catch(() => null),
+      User.findById(recipientId).select('name branding preferred_language notification_preferences manager_settings role').lean().catch(() => null),
       PushSubscription.find({ user_id: recipientId }).lean().catch(() => []),
     ]);
     const channels = notificationChannels(recipientProfile, type);
@@ -280,6 +280,18 @@ const sendNotification = async (app, recipientId, data) => {
     const finishedPushEndpoints = new Set();
     const finishedAndroidTokens = new Set();
     if (channels.push) enqueueJob('push', async () => {
+      if (type === 'message' && metadata?.managed_account_id) {
+        const link = await require('../models/ManagerAssignment.model').findOne({
+          manager_id: recipientId, user_id: metadata.managed_account_id,
+          status: 'active', 'permissions.messages': true,
+          $or: [{ expires_at: null }, { expires_at: { $gt: new Date() } }],
+        }).lean();
+        if (!link) return;
+      }
+      // Suppress at the sender only for a fresh, exact foreground conversation.
+      // Once a push is sent the service worker always displays it (Safari).
+      if (type === 'message' && await require('./chatPushPolicy').isViewingConversation(io, recipientId, metadata)) return;
+
 
       try {
         // Use pre-fetched subscriptions — no extra DB query needed here
@@ -329,7 +341,7 @@ const sendNotification = async (app, recipientId, data) => {
             body: localizedMessage,
             icon: iconUrl,
             image: (type === 'message' && senderAvatar) ? senderAvatar : undefined,
-            tag: (type === 'message' && senderId) ? `msg-${senderId}` : `alert-${notification._id}`,
+            tag: (type === 'message' && senderId) ? `msg-${metadata?.managed_account_id || recipientId}-${senderId}` : `alert-${notification._id}`,
             data: {
               url: notificationUrl,
               sender_id: senderId,
@@ -440,6 +452,26 @@ const sendNotification = async (app, recipientId, data) => {
       }, { recipientId: recipientId.toString(), type, title: localizedTitle });
     }
 
+    if (type === 'message' && !metadata?.managed_account_id) {
+      // Fan out with the account identity intact; never bind a manager's device
+      // subscription to a managed owner's account.
+      try {
+        const ManagerAssignment = require('../models/ManagerAssignment.model');
+        const links = await ManagerAssignment.find({ user_id: recipientId, status: 'active',
+          'permissions.messages': true, $or: [{ expires_at: null }, { expires_at: { $gt: new Date() } }] }).lean();
+        const managerIds = [...new Set(links.map(link => String(link.manager_id)))].filter(id => id !== String(recipientId) && id !== String(metadata?.actor_id || ''));
+        if (managerIds.length && !['admin', 'manager'].includes(recipientProfile?.role)) {
+          const managers = await User.find({ _id: { $in: managerIds }, role: 'manager', is_active: { $ne: false } }).select('_id').lean();
+          const accountName = recipientProfile?.branding?.store_name || recipientProfile?.name || 'Managed account';
+          await Promise.allSettled(managers.map(manager => {
+            io?.to(String(manager._id)).emit('managed_message', { accountId: String(recipientId), senderId: String(metadata?.sender_id || metadata?.senderId || '') });
+            return sendNotification(app, manager._id, { ...data, title: accountName + ' - ' + localizedTitle,
+              metadata: { ...metadata, managed_account_id: String(recipientId),
+                link: '/manager/as/' + recipientId + '/messages?partnerId=' + encodeURIComponent(metadata?.sender_id || metadata?.senderId || '') } });
+          }));
+        }
+      } catch (error) { console.error('[Notifier] Managed message dispatch failed:', error.message); }
+    }
     return notification;
   } catch (err) {
     console.error('❌ Auradime Dispatch Fail:', err);

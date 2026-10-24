@@ -212,7 +212,7 @@ export default function AccountPicker({ mode = 'navigate', value = null, onSelec
                         {account.id && (
                           <span className="flex items-center gap-1.5 truncate m-fs-12 m-muted">
                             <StatusDot status={account.health || 'neutral'} label={HEALTH_LABEL[account.health] || 'Status unknown'} />
-                            {TYPE_LABEL[account.role] || account.role}
+                            {account.owned ? 'Own account' : (TYPE_LABEL[account.role] || account.role)}
                           </span>
                         )}
                       </span>

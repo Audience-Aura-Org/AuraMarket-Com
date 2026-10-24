@@ -8,7 +8,7 @@ import {
   MessageCircle, Check, CheckCheck, Loader2, Clock, WifiOff,
   Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical, UserPlus
 } from 'lucide-react';
-import api from '@/services/api';
+import api from '@/services/personalMessagingApi';
 import { uploadService } from '@/services/upload';
 import { useAuthStore } from '@/hooks/useAuth';
 import { toId, useChat } from '@/context/ChatContext';

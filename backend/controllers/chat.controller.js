@@ -322,6 +322,7 @@ const sendMessage = async (req, res, next) => {
         { sender_id: req.user._id, client_id },
         {
           $setOnInsert: {
+            actor_id: req.actor?._id || req.user._id,
             sender_id: req.user._id,
             receiver_id,
             text: text || null,

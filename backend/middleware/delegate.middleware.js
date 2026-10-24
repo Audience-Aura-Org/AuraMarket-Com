@@ -129,6 +129,16 @@ async function loadManagerScope(req, res, next) {
     const manageableIds = new Set(manageable.map((u) => String(u._id)));
     const links = allLinks.filter((l) => manageableIds.has(String(l.user_id)));
 
+    // The manager's original account remains the same financial/chat identity.
+    // Expose it as an owned workspace without granting access to other managers.
+    if (req.user.previous_role && !UNMANAGEABLE_ROLES.includes(req.user.previous_role)) {
+      const ownId = String(req.user._id);
+      if (!links.some(link => String(link.user_id) === ownId)) links.unshift({
+        user_id: req.user._id, owned: true,
+        permissions: { products: true, orders: true, messages: true, money: true, profile: true },
+        expires_at: null,
+      });
+    }
     const userIds = links.map((l) => l.user_id);
 
     const [vendors, logistics] = await Promise.all([
@@ -193,7 +203,8 @@ async function actAs(req, res, next) {
     }
 
     // Find active assignment for this manager → target
-    const link = mongoose.Types.ObjectId.isValid(targetId)
+    const ownsTarget = String(targetId) === String(manager._id) && manager.previous_role && !UNMANAGEABLE_ROLES.includes(manager.previous_role);
+    const link = ownsTarget ? { permissions: { products: true, orders: true, messages: true, money: true, profile: true } } : mongoose.Types.ObjectId.isValid(targetId)
       ? await ManagerAssignment.findOne(
           activeFilter({ manager_id: manager._id, user_id: targetId })
         ).lean()
@@ -228,7 +239,7 @@ async function actAs(req, res, next) {
 
     // Load the target user — must exist, be active, and not be admin/manager
     const target = await User.findById(targetId).select('-password');
-    if (!target || target.is_active === false || UNMANAGEABLE_ROLES.includes(target.role)) {
+    if (!target || target.is_active === false || (UNMANAGEABLE_ROLES.includes(target.role) && !ownsTarget)) {
       return res.status(404).json({
         success: false,
         code: 'ASSIGNMENT_NOT_FOUND',
@@ -238,7 +249,7 @@ async function actAs(req, res, next) {
 
     // ── Swap identity ──────────────────────────────────────────────
     req.actor    = manager;    // original manager (controllers can read req.actor._id)
-    req.user     = target;     // downstream sees the target user
+    req.user     = ownsTarget ? { ...target.toObject(), role: manager.previous_role } : target;
     req.actingAs = {
       assignmentId: link._id,
       category,

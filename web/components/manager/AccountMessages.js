@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, MessagesSquare, RefreshCw, Send, Search } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
+import socketService from '@/services/socket';
 import styles from './AccountMessages.module.css';
 
 const TABS = [{ id: 'direct', label: 'Messages' }, { id: 'order', label: 'Order chats' }, { id: 'shipment', label: 'Delivery chats' }];
@@ -17,8 +18,9 @@ export default function AccountMessages() {
   const [messages, setMessages] = useState([]), [query, setQuery] = useState(''), [drafts, setDrafts] = useState({});
   const [error, setError] = useState(''), [threadError, setThreadError] = useState(''), [loading, setLoading] = useState(true), [loadingThread, setLoadingThread] = useState(false), [sending, setSending] = useState(false);
   const [page, setPage] = useState(1), [total, setTotal] = useState(0);
+  const openedIntent = useRef(null);
   const listVersion = useRef(0), selectedKey = useRef(''), sendingRef = useRef(false), clientIds = useRef({});
-  const currentKey = selected ? kind + ':' + selected.id : '';
+  const currentKey = selected ? accountId + ':' + kind + ':' + selected.id : '';
   selectedKey.current = currentKey;
   const config = useCallback(() => ({ headers: { 'X-Act-As': accountId }, __noActAs: true, skipClientCache: true }), [accountId]);
   const loadInbox = useCallback(async () => {
@@ -38,7 +40,7 @@ export default function AccountMessages() {
   }, [kind, config]);
   const loadThread = useCallback(async (olderPage = 1) => {
     if (!selected) return;
-    const key = kind + ':' + selected.id;
+    const key = accountId + ':' + kind + ':' + selected.id;
     try {
       const response = await api.get(threadPath(kind, selected.id), { ...config(), params: { page: olderPage, limit: 20 } });
       if (key !== selectedKey.current) return;
@@ -52,7 +54,7 @@ export default function AccountMessages() {
       }
     } catch (failure) { if (key === selectedKey.current) setThreadError(failure.response?.data?.message || 'Conversation could not be loaded. Please retry.'); }
     finally { if (key === selectedKey.current) setLoadingThread(false); }
-  }, [selected, kind, config]);
+  }, [selected, kind, config, accountId]);
   useEffect(() => { setThreads([]); setLoading(true); loadInbox(); return () => { listVersion.current += 1; }; }, [loadInbox]);
   useEffect(() => { setMessages([]); setPage(1); setTotal(0); setThreadError(''); if (selected) { setLoadingThread(true); loadThread(); } }, [loadThread, selected]);
   useEffect(() => {
@@ -61,6 +63,36 @@ export default function AccountMessages() {
     document.addEventListener('visibilitychange', refresh); window.addEventListener('aura:push-received', refresh);
     return () => { clearInterval(timer); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('aura:push-received', refresh); };
   }, [loadInbox, loadThread]);
+  useEffect(() => {
+    const publish = () => socketService.emit('chat_view', { accountId,
+      partnerId: kind === 'direct' ? selected?.id : null,
+      visible: document.visibilityState === 'visible' && kind === 'direct' && Boolean(selected),
+    });
+    const refresh = payload => {
+      if (String(payload?.accountId) !== accountId) return;
+      loadInbox();
+      if (selected?.id === String(payload.senderId)) loadThread();
+    };
+    publish();
+    const timer = setInterval(publish, 10000);
+    socketService.on('managed_message', refresh);
+    socketService.on('connect', publish);
+    document.addEventListener('visibilitychange', publish);
+    const ownMessage = message => {
+      if ([identity(message?.sender_id), identity(message?.receiver_id)].includes(accountId)) { loadInbox(); if (selected) loadThread(); }
+    };
+    socketService.on('receive_message', ownMessage);
+    return () => { clearInterval(timer); socketService.off('managed_message', refresh); socketService.off('receive_message', ownMessage); socketService.off('connect', publish); document.removeEventListener('visibilitychange', publish); socketService.emit('chat_view', { visible: false }); };
+  }, [accountId, kind, selected, loadInbox, loadThread]);
+  useEffect(() => { setSelected(null); setMessages([]); }, [accountId]);
+  useEffect(() => {
+    const partnerId = new URLSearchParams(window.location.search).get('partnerId');
+    const intentKey = accountId + ':' + partnerId;
+    if (partnerId && kind === 'direct' && !selected && openedIntent.current !== intentKey) {
+      const thread = threads.find(row => row.id === partnerId);
+      if (thread) { openedIntent.current = intentKey; setSelected(thread); }
+    }
+  }, [threads, kind, accountId, selected]);
   const send = async event => {
     event.preventDefault(); const text = (drafts[currentKey] || '').trim();
     if (!selected || !text || sendingRef.current) return;
@@ -72,7 +104,9 @@ export default function AccountMessages() {
         if (clientIds.current[key]?.text !== text) clientIds.current[key] = { text, id: crypto.randomUUID() };
         body.client_id = clientIds.current[key].id;
       }
-      await api.post(kind === 'direct' ? '/chat' : threadPath(kind, selected.id), body, config());
+      const response = await api.post(kind === 'direct' ? '/chat' : threadPath(kind, selected.id), body, config());
+      const saved = response.data?.data?.message;
+      if (saved && selectedKey.current === key) setMessages(previous => [...new Map([...previous, saved].map(message => [identity(message), message])).values()]);
       setDrafts(previous => ({...previous, [key]: previous[key]?.trim() === text ? '' : previous[key]})); delete clientIds.current[key];
       if (selectedKey.current === key) { await loadThread(); await loadInbox(); }
     } catch (failure) { if (selectedKey.current === key) setThreadError(failure.response?.data?.message || 'Message was not sent. Your draft is saved.'); }
@@ -90,9 +124,9 @@ export default function AccountMessages() {
       </section>
       <section className={styles.conversation} data-open={Boolean(selected)} aria-label="Managed conversation">
         {selected ? <><div className={styles.conversationHeader}><button type="button" className={styles.back} aria-label="Back to conversations" onClick={() => setSelected(null)}><ArrowLeft size={18} /></button><h2>{selected.name}</h2></div>
-          <div className={styles.messages} aria-live="polite">{kind === 'direct' && messages.length < total && <button type="button" onClick={() => loadThread(page + 1)}>Load earlier messages</button>}{loadingThread ? <p role="status">Loading conversation...</p> : messages.map(message => <article key={identity(message)} className={styles.bubble} data-own={identity(message.sender_id) === accountId}><strong>{identity(message.sender_id) === accountId ? 'You' : message.sender_name || message.sender_id?.name || selected.name}</strong><p>{message.text || 'Shared attachment'}</p><time>{date(message.createdAt || message.timestamp)}</time></article>)}{!loadingThread && !messages.length && <p className={styles.empty}>No messages in this conversation yet.</p>}</div>
+          <div className={styles.messages} aria-live="polite">{kind === 'direct' && messages.length < total && <button type="button" onClick={() => loadThread(page + 1)}>Load earlier messages</button>}{loadingThread ? <p role="status">Loading conversation...</p> : messages.map(message => <article key={identity(message)} className={styles.bubble} data-own={identity(message.sender_id) === accountId}><strong>{identity(message.sender_id) === accountId ? 'Sent as ' + (user?.branding?.store_name || user?.name || 'this account') : message.sender_name || message.sender_id?.name || selected.name}</strong><p>{message.text || 'Shared attachment'}</p><time>{date(message.createdAt || message.timestamp)}</time></article>)}{!loadingThread && !messages.length && <p className={styles.empty}>No messages in this conversation yet.</p>}</div>
           {threadError && <p role="alert" className={styles.error}>{threadError}</p>}
-          <form className={styles.form} onSubmit={send}><textarea aria-label="Message as managed account" value={drafts[currentKey] || ''} maxLength={2000} placeholder="Write a message" onChange={event => { const value = event.target.value; setDrafts(previous => ({...previous, [currentKey]: value})); }} /><button type="submit" disabled={sending || loadingThread || !(drafts[currentKey] || '').trim()}><Send size={16} /> Send</button></form>
+          <form className={styles.form} onSubmit={send}><textarea aria-label="Message as managed account" value={drafts[currentKey] || ''} maxLength={2000} placeholder={"Reply as " + (user?.branding?.store_name || user?.name || "this account")} onChange={event => { const value = event.target.value; setDrafts(previous => ({...previous, [currentKey]: value})); }} /><button type="submit" disabled={sending || loadingThread || !(drafts[currentKey] || '').trim()}><Send size={16} /> Send</button></form>
         </> : <p className={styles.empty}>Choose a conversation to read and reply as this account.</p>}
       </section>
     </div>

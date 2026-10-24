@@ -32,7 +32,28 @@ const ActivityLog       = require('../../models/ActivityLog.model')
 const WithdrawalRequest = require('../../models/WithdrawalRequest.model')
 
 let app
-beforeAll(() => { app = buildApp() })
+beforeAll(() => { app = buildApp() }, 120000)
+
+describe('Original account after manager conversion', () => {
+  it('exposes the original account as an owned workspace without copying its identity', async () => {
+    const manager = await createUser({ role: 'manager', previous_role: 'vendor' });
+    const accounts = await request(app).get('/api/v1/manager/accounts').set(asUser(manager)).expect(200);
+    expect(accounts.body.data).toEqual(expect.arrayContaining([expect.objectContaining({ id: String(manager._id), role: 'vendor', owned: true })]));
+    const session = await request(app).get(`/api/v1/manager/accounts/${manager._id}/session`).set(asUser(manager)).expect(200);
+    expect(session.body.data.user.role).toBe('vendor');
+    const own = await request(app).get('/api/v1/auth/me').set(asUser(manager)).set('X-Act-As', String(manager._id)).expect(200);
+    expect(own.body.data.user._id).toBe(String(manager._id));
+    expect(own.body.data.user.role).toBe('vendor');
+    expect((await User.findById(manager._id)).role).toBe('manager');
+    await request(app).get('/api/v1/admin/dashboard').set(asUser(manager)).set('X-Act-As', String(manager._id)).expect(403);
+  });
+  it('never exposes another managers original workspace', async () => {
+    const manager = await createUser({ role: 'manager', previous_role: 'vendor' });
+    const other = await createUser({ role: 'manager', previous_role: 'vendor' });
+    await request(app).get(`/api/v1/manager/accounts/${other._id}/session`).set(asUser(manager)).expect(404);
+    await request(app).get('/api/v1/chat').set(asUser(manager)).set('X-Act-As', String(other._id)).expect(404);
+  });
+});
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
 

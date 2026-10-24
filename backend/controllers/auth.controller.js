@@ -574,6 +574,12 @@ const getMe = async (req, res, next) => {
     let user = await User.findById(req.user._id);
     if (user) user = await ensureSupportAdmin(user);
     const userObj = user ? (typeof user.toObject === 'function' ? user.toObject() : user) : null;
+    if (userObj && req.actingAs && String(req.actor?._id) === String(userObj._id) && userObj.role === 'manager') {
+      // Keep the workspace's original role in the response without changing
+      // the manager's stored login identity or issuing a different session.
+      userObj.role = req.user.role;
+      userObj.owned = true;
+    }
     if (userObj) {
       userObj.kyc = await KYC.findOne({ user_id: userObj._id }).sort('-updatedAt').lean();
     }

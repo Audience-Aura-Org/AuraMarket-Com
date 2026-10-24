@@ -335,6 +335,9 @@ const mapChatSockets = (server) => {
 
     const userRoom = socket.userId.toString();
     socket.join(userRoom);
+    socket.on('chat_view', input => {
+      require('../utils/chatPushPolicy').updateChatView(socket, input).catch(() => { socket.data.chatView = null; });
+    });
 
     if (isFirstSocket) {
       // Mark as online in DB after joining the user's room so presence checks see this socket.
@@ -419,6 +422,7 @@ const mapChatSockets = (server) => {
             type: 'message',
             senderAvatar,
             metadata: {
+              actor_id: socket.userId,
               sender_id: socket.userId,
               senderData,
               message_id: populatedMessage._id,

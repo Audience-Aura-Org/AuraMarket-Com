@@ -3,7 +3,9 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 const mocks=vi.hoisted(()=>({user:{_id:'managed-owner',name:'Managed Shop'},get:vi.fn(),patch:vi.fn(),post:vi.fn()}));
 vi.mock('@/hooks/useAuth',()=>({useAuthStore:selector=>selector({user:mocks.user})}));
 vi.mock('@/services/api',()=>({default:{get:mocks.get,patch:mocks.patch,post:mocks.post}}));
+vi.mock('@/services/socket',()=>({default:{on:vi.fn(),off:vi.fn(),emit:vi.fn()}}));
 import AccountMessages from './AccountMessages';
+import socketService from '@/services/socket';
 afterEach(cleanup);
 beforeEach(()=>{
  vi.clearAllMocks();mocks.patch.mockResolvedValue({data:{success:true}});mocks.post.mockResolvedValue({data:{success:true}});
@@ -30,5 +32,24 @@ describe('managed account messages',()=>{
   render(<AccountMessages/>);await screen.findByRole('button',{name:/Buyer.*Hello/});
   fireEvent.click(screen.getByRole('button',{name:'Order chats',exact:true}));await waitFor(()=>expect(mocks.get).toHaveBeenCalledWith('/messages/order-threads/mine',expect.any(Object)));
   fireEvent.click(screen.getByRole('button',{name:'Delivery chats',exact:true}));await waitFor(()=>expect(mocks.get).toHaveBeenCalledWith('/messages/shipment-threads/mine',expect.any(Object)));
+ });
+ it('consumes notification conversation intent once so Back stays on the inbox',async()=>{
+  window.history.replaceState({},'', '/manager/as/managed-owner/messages?partnerId=buyer');
+  render(<AccountMessages/>);
+  await screen.findByText('Hello from buyer');
+  fireEvent.click(screen.getByRole('button',{name:'Back to conversations'}));
+  fireEvent.click(screen.getByRole('button',{name:'Refresh',exact:true}));
+  await waitFor(()=>expect(screen.queryByRole('textbox',{name:'Message as managed account'})).toBeNull());
+  window.history.replaceState({},'', '/');
+ });
+ it('refreshes the selected account immediately on its socket event and ignores other accounts',async()=>{
+  render(<AccountMessages/>);
+  await screen.findByRole('button',{name:/Buyer.*Hello/});
+  const callback = socketService.on.mock.calls.find(([event])=>event==='managed_message')[1];
+  const before=mocks.get.mock.calls.length;
+  callback({accountId:'other-account',senderId:'buyer'});
+  expect(mocks.get.mock.calls.length).toBe(before);
+  callback({accountId:'managed-owner',senderId:'buyer'});
+  await waitFor(()=>expect(mocks.get.mock.calls.length).toBeGreaterThan(before));
  });
 });

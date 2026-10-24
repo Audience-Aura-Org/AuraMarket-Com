@@ -44,3 +44,23 @@ it('does not delete valid browser registrations on a VAPID authorization failure
 it('removes expired browser registrations',async()=>{
   send.mockRejectedValue({statusCode:410});await notify([webSub('https://push.test/a')]);await jobs[0]();expect(remove).toHaveBeenCalledOnce()
 })
+it('routes managed message alerts to the authorized manager with the receiving account identity', async()=>{
+  const Assignment = require('../../models/ManagerAssignment.model');
+  vi.spyOn(Assignment,'find').mockReturnValue({lean:async()=>[{manager_id:'manager-a'},{manager_id:'actor-manager'}]});
+  vi.spyOn(Assignment,'findOne').mockReturnValue({lean:async()=>({permissions:{messages:true}})});
+  const managers = vi.spyOn(User,'find').mockReturnValue({select:()=>({lean:async()=>[{_id:'manager-a'}]})});
+  vi.spyOn(PushSubscription,'find').mockReturnValue({lean:async()=>[webSub('https://push.test/device')]});
+  delete require.cache[require.resolve('../../utils/notifier')];
+  const emit=vi.fn();
+  await require('../../utils/notifier').sendNotification({get:()=>({to:()=>({emit})})},'owner',{
+    title:'Buyer',message:'Hello',type:'message',metadata:{sender_id:'buyer',actor_id:'actor-manager'},
+  });
+  expect(managers.mock.calls[0][0]._id.$in).toEqual(['manager-a']);
+  expect(emit).toHaveBeenCalledWith('managed_message',{accountId:'owner',senderId:'buyer'});
+  expect(jobs).toHaveLength(2);
+  await jobs[1]();
+  const payload=JSON.parse(send.mock.calls[0][1]);
+  expect(payload.title).toBe('Managed account - Buyer');
+  expect(payload.data.url).toBe('/manager/as/owner/messages?partnerId=buyer');
+  expect(payload.tag).toBe('msg-owner-buyer');
+});

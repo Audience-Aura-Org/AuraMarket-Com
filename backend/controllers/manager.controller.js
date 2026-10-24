@@ -58,7 +58,7 @@ const revenueExpr = earnedRevenueExpr;
 async function userMap(scope) {
   const users = await User.find(
     { _id: { $in: scope.userIds } },
-    'name email role avatar wallet_balance'
+    'name email role previous_role avatar wallet_balance'
   ).lean();
   return new Map(users.map((u) => [String(u._id), u]));
 }
@@ -341,7 +341,8 @@ exports.getAccounts = async (req, res, next) => {
           id: uid,
           name: u.name,
           email: u.email,
-          role: u.role,
+          role: l.owned ? u.previous_role : u.role,
+          owned: Boolean(l.owned),
           avatar: u.avatar || null,
           permissions: l.permissions,
           expires_at: l.expires_at,
@@ -380,6 +381,10 @@ exports.getAccountSession = async (req, res, next) => {
       .lean();
     if (!user) return fail(res, 404, 'Account not found.');
 
+    if (String(id) === String(req.user._id) && user.role === 'manager' && user.previous_role) {
+      user.role = user.previous_role;
+      user.owned = true;
+    }
     user.kyc = await KYC.findOne({ user_id: user._id })
       .sort('-updatedAt')
       .lean();

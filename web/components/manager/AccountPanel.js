@@ -65,7 +65,7 @@ export default function AccountPanel({ account, open, onClose }) {
             <StatusDot status={account.health || 'neutral'} label={HEALTH_LABEL[account.health] || 'Status unknown'} />
             <span>{HEALTH_LABEL[account.health] || 'On track'}</span>
             <span aria-hidden="true">·</span>
-            <span>{TYPE_LABEL[account.role] || account.role}</span>
+            <span>{account.owned ? 'Own account ? ' : ''}{TYPE_LABEL[account.role] || account.role}</span>
           </div>
 
           <dl className="mt-4 grid grid-cols-3 gap-2">

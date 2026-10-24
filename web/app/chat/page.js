@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import { toId, useChat } from '@/context/ChatContext';
 import { peekPendingPushIntentForVendor } from '@/lib/native-push';
-import api from '@/services/api';
+import api from '@/services/personalMessagingApi';
 import MessagingHub from '@/components/hub/MessagingHub';
 
 function chatExitHref(role) {

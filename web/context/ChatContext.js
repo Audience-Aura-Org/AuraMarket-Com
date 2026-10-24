@@ -9,7 +9,7 @@ import {
   useReducer,
   useRef,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import socketService from '@/services/socket';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -751,6 +751,7 @@ export function ChatProvider({ children }) {
   const lastInboxSyncAtRef = useRef(0);
   const inboxRateLimitedUntilRef = useRef(0);
   const lastClosedAtRef = useRef(0);
+  const chatPathname = usePathname();
   const { user } = useAuthStore();
   const router = useRouter();
 
@@ -766,6 +767,21 @@ export function ChatProvider({ children }) {
     const partnerId = state.isOpen && state.activePartnerId ? state.activePartnerId : null;
     navigator.serviceWorker.controller.postMessage({ type: 'set-active-chat', partnerId });
   }, [state.isOpen, state.activePartnerId]);
+
+  useEffect(() => {
+    // Managed messages publish their own account-scoped view heartbeat.
+    if (chatPathname?.startsWith('/manager/as/')) return;
+    const publish = () => socketService.emit('chat_view', {
+      accountId: user?._id,
+      partnerId: state.activePartnerId,
+      visible: document.visibilityState === 'visible' && Boolean(state.activePartnerId) && (state.isOpen || chatPathname === '/chat'),
+    });
+    publish();
+    const timer = setInterval(publish, 10000);
+    document.addEventListener('visibilitychange', publish);
+    socketService.on('connect', publish);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', publish); socketService.off('connect', publish); socketService.emit('chat_view', { visible: false }); };
+  }, [state.activePartnerId, state.isOpen, user?._id, chatPathname]);
 
   useEffect(() => {
     // Reset rate-limit refs when the user changes so a new user doesn't inherit

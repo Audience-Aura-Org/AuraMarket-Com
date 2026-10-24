@@ -567,7 +567,7 @@ export default function SocketProvider({ children }) {
         const pushSenderId = payload.sender_id || payload.senderId || payload.data?.senderId || payload.data?.sender_id;
         const text = payload.body || payload.message || 'New message received';
         const route = payload.data?.url || payload.url || (pushSenderId ? `/chat?vendorId=${pushSenderId}` : '/chat');
-        const pushType = payload.type || 'default';
+        const pushType = payload.type || payload.data?.type || 'default';
 
         if (isAppForeground()) {
           const socketDown = !socketService.isConnected();
