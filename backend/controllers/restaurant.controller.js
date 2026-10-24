@@ -32,46 +32,7 @@ const DINE_CACHE_TTL_SECONDS = 300; // 5 minutes — short because is_accepting_
 // ─────────────────────────────────────────────
 
 // Compute open/closed status from opening_hours + current Africa/Douala time
-const computeOpenStatus = (opening_hours = []) => {
-  // If no schedule defined, treat as always open
-  if (!opening_hours || opening_hours.length === 0) {
-    return { open_status: 'open', next_status_change_at: null };
-  }
-
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Douala' }));
-  const dayOfWeek = now.getDay(); // 0 = Sunday
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-  const todayRow = opening_hours.find(h => h.day === dayOfWeek);
-  if (!todayRow || todayRow.is_closed) return { open_status: 'closed', next_status_change_at: null };
-
-  const parseTime = (t) => {
-    if (!t) return null;
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  };
-
-  const opensAt = parseTime(todayRow.opens);
-  const closesAt = parseTime(todayRow.closes);
-  if (opensAt === null || closesAt === null) return { open_status: 'unknown', next_status_change_at: null };
-
-  const isOpen = currentMinutes >= opensAt && currentMinutes < closesAt;
-
-  // Build next_status_change_at as a UTC Date
-  const baseDate = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Douala' }));
-  baseDate.setSeconds(0, 0);
-
-  const changeMinutes = isOpen ? closesAt : opensAt;
-  if (!isOpen && currentMinutes > closesAt) {
-    // Already past closing today — next open is tomorrow
-    baseDate.setDate(baseDate.getDate() + 1);
-    baseDate.setHours(Math.floor(opensAt / 60), opensAt % 60, 0, 0);
-    return { open_status: 'closed', next_status_change_at: baseDate };
-  }
-
-  baseDate.setHours(Math.floor(changeMinutes / 60), changeMinutes % 60, 0, 0);
-  return { open_status: isOpen ? 'open' : 'closed', next_status_change_at: baseDate };
-};
+const { computeOpenStatus } = require('../services/restaurant-hours.service');
 
 // ─────────────────────────────────────────────
 // @route   GET /api/restaurant/profile

@@ -2241,6 +2241,13 @@ const reorder = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Reorder is only available for food orders.' });
     }
 
+    const bookingType = originalOrder.fulfilment_type || 'delivery';
+    const requestedDate = req.body?.scheduled_for || null;
+    if (bookingType === 'pre_order' && !requestedDate) {
+      return res.status(400).json({ success: false, code: 'PREORDER_DATE_REQUIRED', message: 'Choose a new available preorder date from the restaurant menu before reordering.' });
+    }
+    let scheduledFor = null;
+
     // Validate restaurant is still open + accepting
     const RestaurantProfile = require('../models/RestaurantProfile.model');
     const rProfile = await RestaurantProfile.findOne({ vendor_id: originalOrder.vendor_id })
@@ -2268,10 +2275,13 @@ const reorder = async (req, res, next) => {
         continue;
       }
 
-      if (currentProduct.is_meal === true && currentProduct.meal?.is_available_today === false) {
+      if (bookingType !== 'pre_order' && currentProduct.is_meal === true && currentProduct.meal?.is_available_today === false) {
         unavailable.push({ name: item.name, reason: 'not_available_today' });
         continue;
       }
+
+      const validatedDate = validateMealSchedule(currentProduct, bookingType, requestedDate);
+      if (validatedDate) scheduledFor = validatedDate;
 
       const currentPrice = currentProduct.sale_price || currentProduct.price;
       if (currentPrice !== item.price) {
@@ -2312,14 +2322,16 @@ const reorder = async (req, res, next) => {
     if (cart) {
       cart.items               = cartItemDocs;
       cart.context_vendor_id   = originalOrder.vendor_id;
-      cart.context_booking_type = originalOrder.fulfilment_type || 'delivery';
+      cart.context_booking_type = bookingType;
+      cart.scheduled_for = scheduledFor;
       await cart.save();
     } else {
       cart = await Cart.create({
         user_id:              req.user._id,
         items:                cartItemDocs,
         context_vendor_id:    originalOrder.vendor_id,
-        context_booking_type: originalOrder.fulfilment_type || 'delivery',
+        context_booking_type: bookingType,
+        scheduled_for: scheduledFor,
       });
     }
 
@@ -2336,7 +2348,8 @@ const reorder = async (req, res, next) => {
           vendor_id:          originalOrder.vendor_id,
           logistics_company_id: originalOrder.logistics_company_id,
           shipping_address:   originalOrder.shipping_address,
-          fulfilment_type:    originalOrder.fulfilment_type || 'delivery',
+          fulfilment_type:    bookingType,
+          scheduled_for: scheduledFor,
         },
       },
     });

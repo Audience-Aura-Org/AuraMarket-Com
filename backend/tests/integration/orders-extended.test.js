@@ -649,6 +649,28 @@ describe('POST /orders/:id/reorder — clone food order into cart', () => {
     })
   })
 
+  it('requires a new date when reordering a preorder and leaves the existing cart intact', async () => {
+    await Order.updateOne({ _id: completedFoodOrder._id }, { $set: { fulfilment_type: 'pre_order', scheduled_for: new Date('2020-01-01') } });
+    const Cart = require('../../models/Cart.model');
+    const existing = await Cart.create({ user_id: customer._id, items: [{ product: product._id, quantity: 1 }] });
+    const res = await request(app).post('/api/v1/orders/' + completedFoodOrder._id + '/reorder').set(authHeader(signToken(customer)));
+    expect(res.status).toBe(400); expect(res.body.code).toBe('PREORDER_DATE_REQUIRED');
+    expect(String((await Cart.findById(existing._id)).items[0].product)).toBe(String(product._id));
+  });
+
+  it('validates the new preorder date and persists it instead of reusing the historical date', async () => {
+    const future = new Date(Date.now() + 7 * 86400000), key = future.toISOString().slice(0,10);
+    await Order.updateOne({ _id: completedFoodOrder._id }, { $set: { fulfilment_type: 'pre_order', scheduled_for: new Date('2020-01-01') } });
+    await Product.collection.updateOne({ _id: mealProduct._id }, { $set: { 'meal.is_available_today': false, 'meal.booking_options': [{ type: 'pre_order', available_weekdays: [future.getUTCDay()] }] } });
+    const path = '/api/v1/orders/' + completedFoodOrder._id + '/reorder';
+    const invalid = await request(app).post(path).set(authHeader(signToken(customer))).send({ scheduled_for: new Date(future.getTime() + 86400000).toISOString().slice(0,10) });
+    expect(invalid.status).toBe(400);
+    const res = await request(app).post(path).set(authHeader(signToken(customer))).send({ scheduled_for: key });
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    const cart = await require('../../models/Cart.model').findOne({ user_id: customer._id });
+    expect(cart.scheduled_for.toISOString().slice(0,10)).toBe(key);
+  });
+
   it('clones items into cart and returns items_added count', async () => {
     const res = await request(app)
       .post(`/api/v1/orders/${completedFoodOrder._id}/reorder`)

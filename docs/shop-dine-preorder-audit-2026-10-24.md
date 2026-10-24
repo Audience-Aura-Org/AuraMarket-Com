@@ -24,3 +24,13 @@
 - Browser checks at 390px passed for Shop, Dine, delivery and logistics with no horizontal overflow or runtime errors; guest WhatsApp links checked. Authenticated fixture navigation checked across Shop, Stories and vendor discovery.
 
 Tests use isolated databases and browser API fixtures. No live provider charge was made. These checks cover the changed flows and do not certify all third-party services or every production scenario.
+
+## Follow-up: reorder and restaurant hours
+
+- Reordering a previous preorder now requires a newly chosen eligible date. The customer order screen opens the restaurant menu to select it, rather than copying the historical date or altering the existing cart first.
+- The reorder API validates current meal availability, weekdays and dates before rebuilding the cart. It persists the new date and clears any old preorder date when rebuilding an ordinary meal order.
+- Reorder review now reads the API's actual price-change, unavailable-item and added-count fields; buyers see the changes before proceeding to checkout. Retail orders no longer display a food-only reorder action.
+- Restaurant opening calculations use Cameroon time independently of the server timezone, support overnight shifts, find the next actual opening day, and merge touching shifts.
+- Existing placed orders retain their recorded schedule; current availability controls new checkouts and reorders.
+
+Follow-up verification: 11 schedule/opening-hours unit tests, 9 reorder/checkout integration tests, 18 restaurant integration tests, the production build, and mobile browser checks for choosing a new preorder date and reviewing reorder changes all passed. One combined integration attempt hit a setup timeout; the restaurant suite passed when rerun on its own.

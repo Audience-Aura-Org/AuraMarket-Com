@@ -262,11 +262,23 @@ export default function SingleOrderView({ orderId, onBack }) {
   };
 
   const handleReorder = async () => {
+    if (order?.fulfilment_type === 'pre_order') {
+      const vendorId = order.vendor_id?._id || order.vendor_id;
+      toast('Choose an available date from the restaurant menu.');
+      router.push(vendorId ? '/dine/restaurant/' + encodeURIComponent(vendorId) : '/dine');
+      return;
+    }
     setReorderLoading(true);
     try {
       const res = await api.post(`/orders/${orderId}/reorder`);
       if (res.data.success) {
-        const result = res.data.data;
+        const data = res.data.data;
+        const result = {
+          ...data,
+          items_unavailable: data.unavailable || data.items_unavailable || [],
+          items_changed: data.price_changes?.map(item => ({ ...item, old_price: item.original_price, new_price: item.current_price })) || data.items_changed || [],
+          items_added_count: Array.isArray(data.items_added) ? data.items_added.length : Number(data.items_added || 0),
+        };
         const hasIssues = (result.items_changed?.length || 0) > 0 || (result.items_unavailable?.length || 0) > 0;
         if (hasIssues) {
           setReorderResult(result);
@@ -843,7 +855,7 @@ export default function SingleOrderView({ orderId, onBack }) {
             <Share2 className="size-3.5 opacity-70" />
             Share
           </button>
-          {isBuyer && ['completed', 'delivered', 'cancelled'].includes(order.order_status) && (
+          {isBuyer && order.food_status && ['completed', 'delivered', 'cancelled'].includes(order.order_status) && (
             <button
               type="button"
               onClick={handleReorder}
@@ -851,7 +863,7 @@ export default function SingleOrderView({ orderId, onBack }) {
               className="inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/8 px-3 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/20 disabled:opacity-60 sm:min-h-10 sm:flex-initial sm:px-3.5 sm:hover:bg-[var(--accent)]/15"
             >
               {reorderLoading ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
-              Reorder
+              {order.fulfilment_type === 'pre_order' ? 'Choose new preorder date' : 'Reorder'}
             </button>
           )}
           <div
@@ -1629,10 +1641,10 @@ export default function SingleOrderView({ orderId, onBack }) {
                     </div>
                   </div>
                 )}
-                {reorderResult.items_added?.length > 0 && (
+                {reorderResult.items_added_count > 0 && (
                   <div>
                     <p className="text-[11px] font-bold text-emerald-600 uppercase tracking-wide mb-2">
-                      {reorderResult.items_added.length} item{reorderResult.items_added.length > 1 ? 's' : ''} added to cart
+                      {reorderResult.items_added_count} item{reorderResult.items_added_count > 1 ? 's' : ''} added to cart
                     </p>
                   </div>
                 )}
@@ -1645,7 +1657,7 @@ export default function SingleOrderView({ orderId, onBack }) {
                 >
                   Cancel
                 </button>
-                {(reorderResult.items_added?.length || 0) > 0 && (
+                {(reorderResult.items_added_count || 0) > 0 && (
                   <button
                     type="button"
                     onClick={() => { setReorderResult(null); router.push('/checkout'); }}
