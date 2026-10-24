@@ -10,7 +10,12 @@ function paymentFailure(payload={}) {
 }
 async function notifyDepositFailure(app,transaction,payload) {
   const failure=paymentFailure(payload);
+  const subscription = transaction.type === 'subscription' || transaction.metadata?.purpose === 'subscription';
+  if (subscription) {
+    failure.message = failure.code === 'INSUFFICIENT_FUNDS' ? 'Your mobile-money balance is insufficient for this subscription payment. Top up and try again. Your subscription has not been activated.' : 'The provider declined your subscription payment. Your subscription has not been activated.';
+    failure.reason = failure.message;
+  }
   app?.get?.('io')?.to(String(transaction.user_id)).emit('payment_status',{gateway:'pawapay',reference:transaction.reference,status:'FAILED',...failure});
-  await require('./notifier').sendNotification(app,transaction.user_id,{title:failure.code==='INSUFFICIENT_FUNDS'?'Insufficient mobile-money funds':'Deposit declined',message:failure.message,type:'wallet_update',metadata:{reference:transaction.reference,code:failure.code,link:'/wallet'}}).catch(()=>{});
+  await require('./notifier').sendNotification(app,transaction.user_id,{title:subscription?'Subscription payment declined':failure.code==='INSUFFICIENT_FUNDS'?'Insufficient mobile-money funds':'Deposit declined',message:failure.message,type:subscription?'subscription':'wallet_update',metadata:{reference:transaction.reference,code:failure.code,link:subscription?'/subscribe?role='+encodeURIComponent(transaction.metadata?.role || 'vendor'):'/wallet'}}).catch(()=>{});
 }
 module.exports={paymentFailure,notifyDepositFailure};

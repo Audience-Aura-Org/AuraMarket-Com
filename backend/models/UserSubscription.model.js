@@ -99,5 +99,6 @@ const UserSubscriptionSchema = new mongoose.Schema(
 
 UserSubscriptionSchema.index({ user_id: 1, role: 1, status: 1 });
 UserSubscriptionSchema.index({ status: 1, expires_at: 1 });
+UserSubscriptionSchema.index({ payment_transaction_id: 1, user_id: 1 });
 
 module.exports = mongoose.model('UserSubscription', UserSubscriptionSchema);

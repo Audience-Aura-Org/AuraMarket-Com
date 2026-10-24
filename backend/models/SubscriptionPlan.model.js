@@ -25,6 +25,10 @@ const SubscriptionPlanSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
+      validate: {
+        validator: function (price) { return Number.isFinite(price) && (this.currency !== 'XAF' || Number.isInteger(price)); },
+        message: 'Price must be finite; XAF prices must be whole numbers.',
+      },
     },
     currency: {
       type: String,
@@ -41,6 +45,7 @@ const SubscriptionPlanSchema = new mongoose.Schema(
       type: Number,
       default: null,
       min: 0,
+      validate: { validator: value => value == null || Number.isFinite(value), message: 'Duration must be finite.' },
     },
     contact_required: {
       type: Boolean,

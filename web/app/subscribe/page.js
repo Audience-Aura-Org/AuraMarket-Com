@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -65,6 +65,8 @@ function SubscribeContent() {
   const searchParams = useSearchParams();
   const { t, label } = useLanguage();
   const user = useAuthStore((state) => state.user);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const inFlight = useRef(false), statusVersion = useRef(0);
   const walletBalance = useAuthStore((state) => state.walletBalance);
   const refreshWalletBalance = useAuthStore((state) => state.refreshWalletBalance);
   const role = searchParams.get('role') || user?.role || 'vendor';
@@ -84,12 +86,14 @@ function SubscribeContent() {
 
   const activeSubscription = status?.subscription || null;
   const activePlan = activeSubscription?.plan_id || null;
-  const activePlanId = String(activePlan?._id || activeSubscription?.plan_id || '');
+  const activePlanId = status?.subscribed && activeSubscription?.status === 'active' ? String(activePlan?._id || activeSubscription?.plan_id || '') : '';
 
   const loadStatus = async () => {
+    const version = ++statusVersion.current;
     setLoading(true);
     try {
       const res = await api.get('/subscriptions/me', { params: { role }, skipClientCache: true });
+      if (version !== statusVersion.current) return;
       const next = res.data.data;
       setStatus(next);
       const currentPlanId = next?.subscription?.plan_id?._id || next?.subscription?.plan_id;
@@ -97,18 +101,21 @@ function SubscribeContent() {
     } catch (error) {
       toast.error(error.response?.data?.message || t('subscription.loadFailed', 'Could not load subscription.'));
     } finally {
-      setLoading(false);
+      if (version === statusVersion.current) setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (!hasHydrated) return;
     if (!user) {
       router.replace('/login?from=subscribe');
       return;
     }
+    setStatus(null); setSelectedPlanId(null); setPhone(user.phone || '');
     loadStatus();
+    return () => { statusVersion.current += 1; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?._id, role]);
+  }, [user?._id, role, hasHydrated]);
 
   // Auto-detect Orange vs MTN from phone prefix (mirrors checkout + deposit modal logic)
   useEffect(() => {
@@ -122,7 +129,7 @@ function SubscribeContent() {
   }, [phone, method]);
 
   const pay = async () => {
-    if (!selectedPlan) return;
+    if (!selectedPlan || inFlight.current) return;
     if (selectedPlan.contact_required) {
       router.push('/contact');
       return;
@@ -132,6 +139,7 @@ function SubscribeContent() {
       return;
     }
 
+    inFlight.current = true;
     setSubmitting(true);
     try {
       const resolvedMethod = method === 'pawapay'
@@ -148,7 +156,8 @@ function SubscribeContent() {
         redirect_url: `${window.location.origin}/wallet/verify?gateway=${resolvedMethod}&type=subscription&role=${encodeURIComponent(role)}`,
       });
 
-      if (method === 'wallet') {
+      const verificationGateway = res.data?.data?.gateway || resolvedMethod;
+      if (method === 'wallet' || res.data?.data?.active || res.data?.data?.status?.active) {
         await refreshWalletBalance?.();
         toast.success(res.data.message || t('subscription.activated', 'Subscription activated.'));
         await loadStatus();
@@ -166,18 +175,19 @@ function SubscribeContent() {
           window.open(hostedUrl, '_blank', 'noopener,noreferrer');
           toast.success(t('subscription.orangeHosted', 'Orange payment page opened. Complete payment there, then wait here.'));
         }
-        router.push(`/wallet/verify?gateway=${resolvedMethod}&type=subscription&ref=${encodeURIComponent(ref)}&role=${encodeURIComponent(role)}`);
+        router.push(`/wallet/verify?gateway=${verificationGateway}&type=subscription&ref=${encodeURIComponent(ref)}&role=${encodeURIComponent(role)}`);
       } else {
         toast.success(t('subscription.requestSent', 'Payment request sent.'));
       }
     } catch (error) {
       toast.error(error.response?.data?.message || t('subscription.paymentFailed', 'Subscription payment failed.'));
     } finally {
+      inFlight.current = false;
       setSubmitting(false);
     }
   };
 
-  const isAlreadyActive = status?.subscribed && status?.required;
+  const isAlreadyActive = status?.subscribed && status?.subscription?.status === 'active';
   const roleLabel = label(ROLE_LABELS[role] || role);
   const isContactPlan = Boolean(selectedPlan?.contact_required);
   const sidebarRole = ['admin', 'vendor', 'logistics', 'customer'].includes(user?.role)

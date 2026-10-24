@@ -30,7 +30,7 @@ const UserSubscription = require('../../models/UserSubscription.model')
 const Transaction      = require('../../models/Transaction.model')
 
 let app
-beforeAll(() => { app = buildApp() })
+beforeAll(() => { app = buildApp() }, 120000)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared fixtures

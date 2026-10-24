@@ -69,6 +69,7 @@ const UserSchema = new mongoose.Schema(
       default: 'customer',
     },
     // Stored when promoting to manager so demotion restores the original role
+    subscription_revision: { type: Number, default: 0, select: false },
     previous_role: {
       type: String,
       enum: ['customer', 'vendor', 'logistics'],

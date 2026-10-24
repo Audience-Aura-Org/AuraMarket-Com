@@ -163,8 +163,8 @@ const buildAdminEarningsSummary = async () => {
       .lean(),
 
     Transaction.aggregate([
-      { $match: { type: 'subscription', status: 'completed' } },
-      { $group: { _id: null, total: { $sum: '$amount' } } },
+      { $match: { status: 'completed', $or: [{ type: 'subscription' }, { type: 'refund', 'metadata.purpose': 'subscription_refund' }] } },
+      { $group: { _id: null, total: { $sum: { $cond: [{ $eq: ['$type', 'refund'] }, { $multiply: ['$amount', -1] }, '$amount'] } } } },
     ]),
   ]);
 

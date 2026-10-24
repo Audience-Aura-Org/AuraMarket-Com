@@ -37,7 +37,7 @@ import financeStyles from '@/components/admin/AdminFinance.module.css';
 import { AdminFinancePage, AdminFinanceHeader, AdminFinanceBody, AdminContentTabs } from '@/components/admin/AdminFinanceLayout';
 
 const ROLE_OPTIONS = ['customer', 'vendor', 'logistics'];
-const STATUS_OPTIONS = ['all', 'active', 'pending', 'grace', 'limited', 'cancelled', 'refunded'];
+const STATUS_OPTIONS = ['all', 'active', 'pending', 'grace', 'limited', 'cancelled', 'refunded', 'expired'];
 
 const FEATURE_CATALOG = [
   { key: 'max_products',       type: 'number', group: 'Vendor',             defaultValue: 20,    makeLabel: (v) => v >= 9999 ? 'Unlimited products in your store'          : `List up to ${v} products in your store` },
@@ -256,6 +256,7 @@ export default function AdminSubscriptionsPage() {
   };
 
   const updateSubscription = async (id, action) => {
+    if (action === 'refund' && !window.confirm('Refund the subscription payment to the account Aura Wallet? Provider collection fees are excluded. This cannot be undone.')) return;
     try {
       await api.patch(`/subscriptions/admin/subscriptions/${id}`, { action });
       toast.success(t('subscription.subscriptionUpdated', 'Subscription updated.'));
@@ -732,13 +733,13 @@ function SubscriberTable({ subscriptions, updateSubscription, deleteSubscription
         title={user.name || user.email || 'Deleted account'} description={user.email || user.phone || 'No contact details'}
         amount={money(sub.amount_paid, sub.currency)} date={'Expires ' + shortDate(sub.expires_at)}
         status={label(sub.status || 'unknown')} tone={sub.status === 'active' ? 'success' : sub.status === 'pending' || sub.status === 'grace' ? 'pending' : 'neutral'}
-        meta={<><span>{plan.name || 'No plan'}</span><span>{label(sub.role || user.role || 'user')}</span><span>Started {shortDate(sub.started_at)}</span></>}
+        meta={<><span>{plan.name || 'No plan'}</span><span>{label(sub.role || user.role || 'user')}</span><span>Started {shortDate(sub.started_at)}</span>{sub.integrity_issues?.includes('payment_unverified') && <span>Payment not linked</span>}</>}
         actions={<button type="button" className={financeStyles.button} aria-expanded={expandedId === sub._id} aria-label={'Manage subscription for ' + (user.name || user.email || 'Deleted account')} onClick={() => setExpandedId(expandedId === sub._id ? null : sub._id)}>Manage</button>}
       >
         {expandedId === sub._id && <div className={financeStyles.entryActions}>
           <ActionButton icon={CheckCircle2} label={t('common.activate', 'Activate')} onClick={() => updateSubscription(sub._id, 'activate')} />
           <ActionButton icon={XCircle} label={t('common.cancel', 'Cancel')} onClick={() => updateSubscription(sub._id, 'cancel')} />
-          <ActionButton danger icon={RotateCcw} label={t('common.refund', 'Refund')} onClick={() => updateSubscription(sub._id, 'refund')} />
+          <ActionButton danger icon={RotateCcw} label={t('subscription.refundToWallet', 'Refund to wallet')} onClick={() => updateSubscription(sub._id, 'refund')} />
           <ActionButton danger icon={Trash2} label={t('common.delete', 'Delete')} onClick={() => deleteSubscription(sub._id)} />
         </div>}
       </FinanceEntry>;

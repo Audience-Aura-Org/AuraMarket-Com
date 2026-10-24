@@ -15,6 +15,7 @@ const {
 } = require('../controllers/subscription.controller');
 
 router.use(protect);
+router.param('id', (req, res, next, id) => require('mongoose').isValidObjectId(id) ? next() : res.status(400).json({ success: false, message: 'Invalid record ID.' }));
 
 router.get('/me', getMySubscription);
 router.post('/initialize', initializeSubscription);

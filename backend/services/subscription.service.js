@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const User = require('../models/User.model');
+const { calculateExpiry, activationDates } = require('../utils/subscriptionDates');
 const SubscriptionPlan = require('../models/SubscriptionPlan.model');
 const UserSubscription = require('../models/UserSubscription.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
@@ -167,9 +169,19 @@ const toObjectId = (value) => {
   return mongoose.Types.ObjectId.isValid(value) ? new mongoose.Types.ObjectId(value) : null;
 };
 
-const ensureDefaultSubscriptionPlan = async () => {
+let seedInFlight = null;
+const ensureDefaultSubscriptionPlan = () => {
+  if (!seedInFlight) seedInFlight = seedDefaultPlans().finally(() => { seedInFlight = null; });
+  return seedInFlight;
+};
+const seedDefaultPlans = async () => {
   const allDefaults = [...DEFAULT_VENDOR_PLANS, ...DEFAULT_LOGISTICS_PLANS];
   const plans = [];
+  const existing = await SubscriptionPlan.find({ slug: { $in: allDefaults.map(plan => plan.slug) } });
+  if (existing.length === allDefaults.length && allDefaults.every(defaults => {
+    const plan = existing.find(plan => plan.slug === defaults.slug);
+    return defaults.features.every(feature => plan.features.some(value => value?.key === feature.key));
+  })) return existing.find(plan => plan.slug === DEFAULT_VENDOR_PLAN.slug);
 
   for (const defaults of allDefaults) {
     const { features, ...insertOnlyFields } = defaults;
@@ -185,7 +197,7 @@ const ensureDefaultSubscriptionPlan = async () => {
     // missing (e.g. status_duration_days added after initial seed).
     // Existing feature entries set by admins are never touched.
     if (plan) {
-      const existingKeys = new Set((plan.features || []).map((f) => f.key));
+      const existingKeys = new Set((plan.features || []).map((f) => f?.key));
       const missing = features.filter((f) => !existingKeys.has(f.key));
       if (missing.length > 0) {
         plan = await SubscriptionPlan.findByIdAndUpdate(
@@ -204,12 +216,6 @@ const ensureDefaultSubscriptionPlan = async () => {
     { $set: { is_active: false } }
   );
 
-  // Ensure existing PlatformSettings documents have logistics subscription required
-  await PlatformSettings.updateOne(
-    { 'subscription_required_roles.logistics': { $ne: true } },
-    { $set: { 'subscription_required_roles.logistics': true } }
-  ).catch(() => {});
-
   return plans[0];
 };
 
@@ -223,9 +229,9 @@ const getRoleRequirements = async () => {
       admin: false,
     },
     grace_days: {
-      customer: 0,
-      vendor: 0,
-      logistics: 0,
+      customer: Number(settings.subscription_grace_days?.customer || 0),
+      vendor: Number(settings.subscription_grace_days?.vendor || 0),
+      logistics: Number(settings.subscription_grace_days?.logistics || 0),
       admin: 0,
     },
   };
@@ -243,6 +249,7 @@ const getActiveSubscription = async (userId, role, session = null) => {
     user_id: userId,
     role,
     status: 'active',
+    $and: [{ $or: [{ started_at: null }, { started_at: { $lte: now } }] }],
     $or: [
       { expires_at: null },
       { expires_at: { $gt: now } },
@@ -250,7 +257,8 @@ const getActiveSubscription = async (userId, role, session = null) => {
   }).populate('plan_id');
 
   if (session) query.session(session);
-  return query.sort('-createdAt');
+  const subscription = await query.sort('-createdAt');
+  return subscription?.plan_id ? subscription : null;
 };
 
 const getLatestSubscriptionRecord = async (userId, role, session = null) => {
@@ -324,6 +332,7 @@ const getSubscriptionStatus = async (user, role = null) => {
     };
   }
 
+  await UserSubscription.updateMany({ user_id: user._id, role: activeRole, status: 'active', expires_at: { $lte: new Date(), $ne: null } }, { $set: { status: 'expired' } });
   const requirements = await getRoleRequirements();
   const required = Boolean(requirements.required?.[activeRole]);
   const graceDays = Number(requirements.grace_days?.[activeRole] || 0);
@@ -407,23 +416,6 @@ const getPlansForRole = async (role) => {
   }).sort({ price: 1, createdAt: 1 });
 };
 
-const calculateExpiry = (billingCycle, durationDays = null) => {
-  if (Number(durationDays || 0) > 0) {
-    return addDays(new Date(), Number(durationDays));
-  }
-  if (billingCycle === 'monthly') {
-    const date = new Date();
-    date.setMonth(date.getMonth() + 1);
-    return date;
-  }
-  if (billingCycle === 'yearly') {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() + 1);
-    return date;
-  }
-  return null;
-};
-
 const activateSubscription = async ({
   userId,
   planId,
@@ -436,23 +428,56 @@ const activateSubscription = async ({
   startedAt = null,
   expiresAt = undefined,
 }) => {
+  if (!session) {
+    if (!planId) await ensureDefaultSubscriptionPlan();
+    const ownedSession = await mongoose.startSession();
+    try {
+      let result;
+      await ownedSession.withTransaction(async () => { result = await activateSubscription({ userId, planId, role, transaction, source, activatedBy, session: ownedSession, note, startedAt, expiresAt }); });
+      return result;
+    } finally { await ownedSession.endSession(); }
+  }
+  if (process.env.NODE_ENV === 'production' && transaction &&
+      (transaction.metadata?.is_sandbox || String(transaction.gateway_transaction_id || '').startsWith('SBX-'))) {
+    throw Object.assign(new Error('Simulated payments cannot activate production subscriptions.'), { statusCode: 400 });
+  }
+  const owner = await User.findOneAndUpdate({ _id: userId, is_active: { $ne: false } }, { $inc: { subscription_revision: 1 } }, { session });
+  if (!owner) throw Object.assign(new Error('Subscription account not found or inactive.'), { statusCode: 404 });
+  if (transaction?._id) {
+    const applied = await UserSubscription.findOne({ payment_transaction_id: transaction._id, user_id: userId, role }).session(session);
+    if (applied) return applied;
+  }
+  if (planId && !toObjectId(planId)) throw Object.assign(new Error('Invalid plan ID.'), { statusCode: 400 });
   const planObjectId = toObjectId(planId);
   const plan = planObjectId
     ? await SubscriptionPlan.findById(planObjectId).session(session || null)
-    : await ensureDefaultSubscriptionPlan();
+    : await SubscriptionPlan.findOne({ is_active: true, roles: role }).sort({ price: 1 }).session(session);
 
   if (!plan) {
-    throw new Error('Subscription plan not found.');
+    throw Object.assign(new Error('Subscription plan not found.'), { statusCode: 404 });
   }
 
-  if (!plan.roles.includes(role)) {
-    throw new Error(`This plan does not apply to ${role} accounts.`);
+  if (!plan.roles.includes(role) && !(transaction?.metadata?.role === role)) {
+    throw Object.assign(new Error(`This plan does not apply to ${role} accounts.`), { statusCode: 400 });
   }
 
+  if (role !== owner.role && !(owner.role === 'manager' && role === owner.previous_role)) {
+    throw Object.assign(new Error('Subscription role must match the account role.'), { statusCode: 400 });
+  }
+  if (transaction && (transaction.status !== 'completed' || String(transaction.user_id) !== String(userId) ||
+      String(transaction.currency).toUpperCase() !== String(transaction.metadata?.plan_snapshot?.currency || plan.currency).toUpperCase())) {
+    throw Object.assign(new Error('Subscription requires a matching completed payment.'), { statusCode: 400 });
+  }
+
+  const terms = transaction?.metadata?.plan_snapshot || plan;
+  const dates = activationDates({ startedAt, expiresAt, cycle: terms.billing_cycle, durationDays: terms.duration_days });
   const existing = await getActiveSubscription(userId, role, session);
   if (existing) {
     if (String(existing.plan_id?._id || existing.plan_id) === String(plan._id)) {
-      return existing;
+      if (!transaction && startedAt == null && expiresAt === undefined) return existing;
+      // A distinct confirmed payment must buy time, never disappear behind an
+      // already-active record. Replayed payment IDs returned above.
+      if (transaction && existing.expires_at && expiresAt === undefined) dates.expiry = calculateExpiry(terms.billing_cycle, terms.duration_days, existing.expires_at);
     }
     existing.status = 'cancelled';
     existing.history.push({
@@ -468,17 +493,15 @@ const activateSubscription = async ({
     }
   }
 
-  const activationDate = startedAt instanceof Date && !Number.isNaN(startedAt.getTime()) ? startedAt : new Date();
-  const resolvedExpiry = expiresAt === undefined
-    ? calculateExpiry(plan.billing_cycle, plan.duration_days)
-    : (expiresAt instanceof Date && !Number.isNaN(expiresAt.getTime()) ? expiresAt : null);
+  const activationDate = dates.start;
+  const resolvedExpiry = dates.expiry;
   const payload = {
     user_id: userId,
     plan_id: plan._id,
     role,
     status: 'active',
-    billing_cycle: plan.billing_cycle,
-    amount_paid: transaction?.amount || plan.price,
+    billing_cycle: terms.billing_cycle,
+    amount_paid: transaction?.amount ?? 0,
     currency: transaction?.currency || plan.currency,
     started_at: activationDate,
     expires_at: resolvedExpiry,

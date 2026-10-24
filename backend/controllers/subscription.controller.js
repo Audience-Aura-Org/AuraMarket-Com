@@ -16,6 +16,8 @@ const {
   activateSubscription,
 } = require('../services/subscription.service');
 const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
+const { subscriptionReturnUrl } = require('../utils/subscriptionDates');
+const { paymentFailure } = require('../utils/paymentFailure');
 const { debitBalance } = require('../services/wallet.service');
 
 const sanitizePhone = (phone, country = 'CM') => {
@@ -53,6 +55,10 @@ const serializeStatus = async (user, role = null) => {
 const getMySubscription = async (req, res, next) => {
   try {
     const role = req.query.role || req.user.role;
+    if (!['customer', 'vendor', 'logistics', 'admin', 'manager'].includes(role)) return res.status(400).json({ success: false, message: 'Invalid account role.' });
+    if (req.user.role !== 'admin' && role !== req.user.role && !(req.user.role === 'manager' && role === req.user.previous_role)) {
+      return res.status(403).json({ success: false, message: 'Subscription status is available only for your account role.' });
+    }
     const data = await serializeStatus(req.user, role);
     res.status(200).json({ success: true, data });
   } catch (error) {
@@ -62,6 +68,7 @@ const getMySubscription = async (req, res, next) => {
 
 const initializeSubscription = async (req, res, next) => {
   const session = await mongoose.startSession();
+  let externalPayment = null;
   try {
     const {
       plan_id,
@@ -81,6 +88,7 @@ const initializeSubscription = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Subscriptions can only be purchased for your own account role.' });
     }
 
+    if (plan_id && !mongoose.isValidObjectId(plan_id)) return res.status(400).json({ success: false, message: 'Invalid plan ID.' });
     await ensureDefaultSubscriptionPlan();
     const plan = plan_id
       ? await SubscriptionPlan.findById(plan_id)
@@ -92,6 +100,9 @@ const initializeSubscription = async (req, res, next) => {
 
     if (plan.contact_required) {
       return res.status(400).json({ success: false, message: 'This package requires direct support activation. Please contact Auradime support.' });
+    }
+    if (!Number.isFinite(plan.price) || plan.price < 0 || (plan.currency === 'XAF' && !Number.isInteger(plan.price))) {
+      return res.status(400).json({ success: false, message: 'This subscription plan has an invalid price. Please contact support.' });
     }
 
     if (String(currency).toUpperCase() !== String(plan.currency).toUpperCase()) {
@@ -116,61 +127,44 @@ const initializeSubscription = async (req, res, next) => {
       });
     }
 
-    if (payment_method === 'wallet') {
-      session.startTransaction();
-      // Atomic debit — prevents concurrent subscription purchases from overdrawing
-      const user = await debitBalance(req.user._id, Number(plan.price || 0), session);
-      if (!user) {
-        await session.abortTransaction();
-        return res.status(400).json({ success: false, message: 'Insufficient wallet balance for this subscription.' });
-      }
-
-      const transaction = await Transaction.create([{
-        user_id: req.user._id,
-        type: 'subscription',
-        amount: plan.price,
-        reference: generateSubscriptionRef(user._id),
-        status: 'completed',
-        description: `${plan.name} subscription paid from Aura Wallet`,
-        gateway: 'wallet',
-        currency: plan.currency,
-        metadata: {
-          purpose: 'subscription',
-          plan_id: plan._id,
-          role,
-          billing_cycle: plan.billing_cycle,
-        },
-      }], { session });
-
-      const subscription = await activateSubscription({
-        userId: user._id,
-        planId: plan._id,
-        role,
-        transaction: transaction[0],
-        source: 'wallet',
-        session,
-        note: 'Activated after wallet payment.',
+    if (payment_method === 'wallet' || Number(plan.price) === 0) {
+      let result;
+      await session.withTransaction(async () => {
+        const locked = await User.findOneAndUpdate({ _id: req.user._id }, { $inc: { subscription_revision: 1 } }, { session, returnDocument: 'after' });
+        const existing = await require('../services/subscription.service').getActiveSubscription(req.user._id, role, session);
+        if (existing && String(existing.plan_id?._id || existing.plan_id) === String(plan._id)) {
+          result = { subscription: existing, transaction: null, user: locked, alreadyActive: true }; return;
+        }
+        const user = Number(plan.price) > 0 ? await debitBalance(req.user._id, Number(plan.price), session) : locked;
+        if (!user) throw Object.assign(new Error('Insufficient wallet balance for this subscription.'), { statusCode: 400 });
+        const transactions = Number(plan.price) > 0 ? await Transaction.create([{
+          user_id: user._id, type: 'subscription', amount: plan.price,
+          reference: generateSubscriptionRef(user._id), status: 'completed',
+          description: plan.name + ' subscription paid from Aura Wallet', gateway: 'wallet', currency: plan.currency,
+          metadata: { purpose: 'subscription', plan_id: plan._id, role, billing_cycle: plan.billing_cycle,
+            plan_snapshot: { price: plan.price, currency: plan.currency, billing_cycle: plan.billing_cycle, duration_days: plan.duration_days } },
+        }], { session }) : [];
+        const subscription = await activateSubscription({ userId: user._id, planId: plan._id, role,
+          transaction: transactions[0] || null, source: 'wallet', session, note: 'Activated after wallet payment.' });
+        result = { subscription, transaction: transactions[0] || null, user };
       });
-
-      await session.commitTransaction();
-
       const io = req.app.get('io');
-      if (io) {
-        const payload = { balance: user.wallet_balance, amount: plan.price, reference: transaction[0].reference };
-        io.to(user._id.toString()).emit('wallet:debited', payload);
-        io.to(`user:${user._id}`).emit('wallet:debited', payload);
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: 'Subscription activated.',
-        data: { subscription, transaction: transaction[0], status: await serializeStatus(user, role) },
+      if (io && result.transaction) io.to(String(result.user._id)).emit('wallet:debited', {
+        balance: result.user.wallet_balance, amount: plan.price, reference: result.transaction.reference,
       });
+      return res.status(200).json({ success: true, message: result.alreadyActive ? 'This package is already active.' : 'Subscription activated.',
+        data: { subscription: result.subscription, transaction: result.transaction, status: await serializeStatus(result.user, role) } });
     }
 
     const externalGateways = ['eversend', 'payunit', 'pawapay'];
     if (!externalGateways.includes(payment_method)) {
       return res.status(400).json({ success: false, message: 'Choose wallet, PawaPay, PayUnit, or Eversend to pay for this subscription.' });
+    }
+    if (process.env.NODE_ENV === 'production' &&
+        ((payment_method === 'eversend' && process.env.EVERSEND_SANDBOX_MODE === 'true') ||
+         (payment_method === 'pawapay' && process.env.PAWAPAY_SANDBOX_MODE === 'true') ||
+         (payment_method === 'payunit' && process.env.PAYUNIT_MODE === 'sandbox'))) {
+      return res.status(503).json({ success: false, message: 'This payment provider is not configured for live subscription payments.' });
     }
 
     const normalizedPhone = payment_method === 'payunit'
@@ -197,45 +191,21 @@ const initializeSubscription = async (req, res, next) => {
     const publicWebUrl = (process.env.WEB_CLIENT_URL && !/localhost|127\.0\.0\.1/i.test(process.env.WEB_CLIENT_URL))
       ? process.env.WEB_CLIENT_URL.replace(/\/$/, '')
       : 'https://auradime.com';
-    const safeRedirect = redirect_url && !/localhost|127\.0\.0\.1|capacitor:\/\//i.test(redirect_url)
-      ? redirect_url
-      : null;
-    const callbackUrl = safeRedirect || `${publicWebUrl}/wallet/verify?gateway=${payment_method}&type=subscription&ref=${transactionRef}`;
+    const callbackFor = reference => subscriptionReturnUrl(publicWebUrl, redirect_url, payment_method, reference);
+    const callbackUrl = callbackFor(transactionRef);
     const [firstName, ...rest] = String(req.user.name || 'Aura User').split(' ');
     const lastName = rest.join(' ') || 'User';
 
-    // Idempotency guard for PayUnit: if user already has a recent pending
-    // subscription payment for this plan, return that reference instead of
-    // creating a duplicate that Orange Money will reject with 422.
-    if (['payunit', 'pawapay', 'eversend'].includes(payment_method)) {
-      const recentCutoff = new Date(Date.now() - 15 * 60 * 1000);
-      const existingPending = await Transaction.findOne({
-        user_id: req.user._id,
-        gateway: payment_method,
-        status: 'pending',
-        'metadata.purpose': 'subscription',
-        'metadata.plan_id': plan._id,
-        createdAt: { $gte: recentCutoff },
-      }).sort({ createdAt: -1 });
-      if (existingPending) {
-        return res.status(200).json({
-          success: true,
-          message: 'A payment request is already pending. Please approve the USSD prompt on your phone.',
-          data: {
-            checkout_url: callbackUrl,
-            reference: existingPending.reference,
-            transaction_id: existingPending.gateway_transaction_id || existingPending.reference,
-            amount: existingPending.metadata?.net_amount || existingPending.amount,
-            collection_fee: existingPending.metadata?.collection_fee || 0,
-            gross_amount: existingPending.metadata?.gross_amount || existingPending.amount,
-            orange_hosted: false,
-            pending_resume: true,
-          },
-        });
-      }
-    }
-
-    const transaction = await Transaction.create({
+    let transaction, resumed = false;
+    await session.withTransaction(async () => {
+      resumed = false;
+      await User.updateOne({ _id: req.user._id }, { $inc: { subscription_revision: 1 } }, { session });
+      const pending = await Transaction.findOne({ user_id: req.user._id, gateway: { $in: externalGateways }, status: 'pending',
+        'metadata.purpose': 'subscription', 'metadata.plan_id': plan._id,
+        createdAt: { $gte: new Date(Date.now() - 15 * 60 * 1000) },
+      }).sort({ createdAt: -1 }).session(session);
+      if (pending) { transaction = pending; resumed = true; return; }
+      const [created] = await Transaction.create([{
       user_id: req.user._id,
       type: 'subscription',
       amount: plan.price,
@@ -243,19 +213,29 @@ const initializeSubscription = async (req, res, next) => {
       reference: transactionRef,
       status: 'pending',
       gateway: payment_method,
-      description: `${plan.name} subscription via ${payment_method === 'payunit' ? 'PayUnit' : 'Eversend'}`,
+      description: plan.name + ' subscription via ' + payment_method,
       metadata: {
         purpose: 'subscription',
         plan_id: plan._id,
         role,
         billing_cycle: plan.billing_cycle,
+        plan_snapshot: { price: plan.price, currency: plan.currency, billing_cycle: plan.billing_cycle, duration_days: plan.duration_days },
         net_amount: feeBreakdown.netAmount,
         collection_fee: feeBreakdown.collectionFee,
         gross_amount: feeBreakdown.grossAmount,
           ...(payment_method === 'payunit' ? { phone: payunit.normalizePhoneIntl(phone || req.user.phone, country) } : {}),
           ...(payment_method === 'pawapay' ? { phone: normalizedPhone, depositId: pawapayDepositId } : {}),
       },
+    }], { session });
+      transaction = created;
     });
+    externalPayment = transaction;
+    if (resumed) return res.status(200).json({ success: true, message: 'A payment request is already pending. Please confirm it on your phone.', data: {
+      checkout_url: subscriptionReturnUrl(publicWebUrl, redirect_url, transaction.gateway, transaction.reference), gateway: transaction.gateway, reference: transaction.reference,
+      transaction_id: transaction.gateway_transaction_id || transaction.reference,
+      amount: transaction.amount, collection_fee: transaction.metadata?.collection_fee || 0,
+      gross_amount: transaction.metadata?.gross_amount || transaction.amount, pending_resume: true,
+    } });
 
     if (payment_method === 'eversend' && process.env.EVERSEND_SANDBOX_MODE === 'true') {
       transaction.gateway_transaction_id = `SBX-SUB-${Date.now()}`;
@@ -298,7 +278,9 @@ const initializeSubscription = async (req, res, next) => {
         });
       } catch (initErr) {
         console.error('[PayUnit Sub initialize]', initErr.response?.data || initErr.message);
-        await transaction.deleteOne();
+        const definite = initErr.response?.status >= 400 && initErr.response?.status < 500 && ![408,409,429].includes(initErr.response.status);
+        await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: { ...(definite ? { status: 'failed' } : {}), gateway_response: initErr.response?.data || { message: initErr.message } } });
+        if (!definite) return res.status(202).json({ success: true, status: 'PENDING', message: 'Payment confirmation is pending. Do not submit another payment.', data: { reference: transaction.reference, checkout_url: callbackUrl } });
         return res.status(400).json({
           success: false,
           code: 'INIT_FAILED',
@@ -325,7 +307,7 @@ const initializeSubscription = async (req, res, next) => {
         } else if (mpeError.response?.status === 422 || mpeError.response?.status === 417) {
           // 422 = duplicate pending collection from Orange/MTN (one active USSD at a time)
           // 417 = PayUnit wraps Orange Money's 422 as HTTP 417 in some response paths
-          await transaction.deleteOne();
+          await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: { status: 'failed', gateway_response: mpeError.response?.data || { message: mpeError.message } } });
           return res.status(400).json({
             success: false,
             code: 'PENDING_COLLECTION',
@@ -380,7 +362,8 @@ const initializeSubscription = async (req, res, next) => {
         });
         if (['REJECTED', 'FAILED'].includes(String(result?.status || '').toUpperCase())) {
           await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: { status: 'failed', gateway_response: result } });
-          return res.status(400).json({ success: false, message: result?.failureReason?.failureMessage || 'PawaPay rejected this subscription payment.' });
+          const failure = paymentFailure(result);
+          return res.status(422).json({ success: false, status: 'FAILED', code: failure.code, message: failure.code === 'INSUFFICIENT_FUNDS' ? 'Your mobile-money account has insufficient funds. Top up your balance and try the subscription payment again. Your subscription has not been activated.' : failure.message, data: { reference: transaction.reference } });
         }
         await Transaction.updateOne({ _id: transaction._id }, { $set: { gateway_response: result } });
         return res.status(200).json({
@@ -396,7 +379,7 @@ const initializeSubscription = async (req, res, next) => {
           },
         });
       } catch (error) {
-        const rejected = error.response?.status >= 400 && error.response?.status < 500;
+        const rejected = error.response?.status >= 400 && error.response?.status < 500 && ![408,409,429].includes(error.response.status);
         await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: {
           ...(rejected ? { status: 'failed' } : {}),
           'metadata.initialization_error': error.message,
@@ -450,6 +433,13 @@ const initializeSubscription = async (req, res, next) => {
     });
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
+    if (externalPayment && (error.response || ['ETIMEDOUT','ECONNABORTED','ECONNRESET','ENOTFOUND','EAI_AGAIN'].includes(error.code))) {
+      const definite = error.response?.status >= 400 && error.response?.status < 500 && ![408,409,429].includes(error.response.status);
+      await Transaction.updateOne({ _id: externalPayment._id, status: 'pending' }, { $set: { ...(definite ? { status: 'failed' } : {}), 'metadata.initialization_error': error.message } });
+      return res.status(definite ? 422 : 202).json({ success: !definite, status: definite ? 'FAILED' : 'PENDING',
+        message: definite ? 'The payment provider declined this request.' : 'Payment confirmation is pending. Do not submit another payment.',
+        data: { reference: externalPayment.reference, transaction_id: externalPayment.gateway_transaction_id } });
+    }
     next(error);
   } finally {
     session.endSession();
@@ -459,6 +449,7 @@ const initializeSubscription = async (req, res, next) => {
 const getAdminOverview = async (req, res, next) => {
   try {
     await ensureDefaultSubscriptionPlan();
+    await UserSubscription.updateMany({ status: 'active', expires_at: { $lte: new Date(), $ne: null } }, { $set: { status: 'expired' } });
 
     // Status priority for deduplication: active wins over everything, then grace, limited, pending, cancelled/expired
     const STATUS_PRIORITY = { active: 5, grace: 4, limited: 3, pending: 2, refunded: 1, cancelled: 0, expired: 0 };
@@ -521,14 +512,17 @@ const getAdminOverview = async (req, res, next) => {
 
       getRoleRequirements(),
       Transaction.aggregate([
-        { $match: { type: 'subscription', status: 'completed' } },
-        { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
+        { $match: { status: 'completed', $or: [{ type: 'subscription' }, { type: 'refund', 'metadata.purpose': 'subscription_refund' }] } },
+        { $group: { _id: null, total: { $sum: { $cond: [{ $eq: ['$type', 'refund'] }, { $multiply: ['$amount', -1] }, '$amount'] } }, count: { $sum: { $cond: [{ $eq: ['$type', 'subscription'] }, 1, 0] } } } },
       ]),
     ]);
 
-    const subscriptions = rawSubscriptions;
+    const subscriptions = rawSubscriptions.map(sub => ({ ...sub, integrity_issues: [
+      ...(!sub.user_id ? ['account_missing'] : []), ...(!sub.plan_id ? ['plan_missing'] : []),
+      ...(sub.amount_paid > 0 && !sub.payment_transaction_id ? ['payment_unverified'] : []),
+    ] }));
 
-    const activeCount  = subscriptions.filter((sub) => sub.status === 'active').length;
+    const activeCount  = subscriptions.filter((sub) => sub.status === 'active' && sub.user_id && sub.plan_id && (!sub.started_at || new Date(sub.started_at) <= new Date())).length;
     const pendingCount = subscriptions.filter((sub) => sub.status === 'pending').length;
     const graceCount   = subscriptions.filter((sub) => sub.status === 'grace').length;
     const limitedCount = subscriptions.filter((sub) => sub.status === 'limited').length;
@@ -591,8 +585,10 @@ const updatePlan = async (req, res, next) => {
     if (patch.contact_required !== undefined) {
       patch.contact_required = Boolean(patch.contact_required);
     }
-    const plan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, patch, { returnDocument: 'after', runValidators: true });
+    const plan = await SubscriptionPlan.findById(req.params.id);
     if (!plan) return res.status(404).json({ success: false, message: 'Plan not found.' });
+    plan.set(patch);
+    await plan.save();
     res.status(200).json({ success: true, data: { plan } });
   } catch (error) {
     next(error);
@@ -604,10 +600,14 @@ const updateRoleRequirements = async (req, res, next) => {
     const settings = await PlatformSettings.getSettings();
     const incoming = req.body.requirements || req.body;
     const incomingGraceDays = req.body.grace_days || {};
+    for (const role of ['customer', 'vendor', 'logistics']) {
+      if (incoming[role] !== undefined && typeof incoming[role] !== 'boolean') return res.status(400).json({ success: false, message: 'Role requirements must be true or false.' });
+      if (incomingGraceDays[role] !== undefined && (!Number.isFinite(Number(incomingGraceDays[role])) || Number(incomingGraceDays[role]) < 0)) return res.status(400).json({ success: false, message: 'Grace days must be finite and non-negative.' });
+    }
     settings.subscription_required_roles = {
-      customer: Boolean(incoming.customer),
-      vendor: incoming.vendor !== false,
-      logistics: incoming.logistics !== false,
+      customer: incoming.customer ?? settings.subscription_required_roles?.customer ?? false,
+      vendor: incoming.vendor ?? settings.subscription_required_roles?.vendor ?? true,
+      logistics: incoming.logistics ?? settings.subscription_required_roles?.logistics ?? true,
       admin: false,
     };
     settings.subscription_grace_days = {
@@ -654,7 +654,7 @@ const activateUserSubscription = async (req, res, next) => {
     const subscription = await activateSubscription({
       userId: user._id,
       planId: plan_id,
-      role: role || user.role,
+      role: role || (user.role === 'manager' ? user.previous_role : user.role),
       source: 'admin',
       activatedBy: req.user._id,
       note: note || 'Activated manually by admin.',
@@ -669,6 +669,8 @@ const activateUserSubscription = async (req, res, next) => {
 
 const deletePlan = async (req, res, next) => {
   try {
+    const referenced = await UserSubscription.exists({ plan_id: req.params.id }) || await Transaction.exists({ 'metadata.plan_id': new mongoose.Types.ObjectId(req.params.id) });
+    if (referenced) return res.status(409).json({ success: false, message: 'This plan has subscription or payment records. Disable it instead of deleting it.' });
     const plan = await SubscriptionPlan.findByIdAndDelete(req.params.id);
     if (!plan) return res.status(404).json({ success: false, message: 'Plan not found.' });
     res.status(200).json({ success: true, message: 'Plan deleted.' });
@@ -679,6 +681,8 @@ const deletePlan = async (req, res, next) => {
 
 const deleteUserSubscription = async (req, res, next) => {
   try {
+    const existing = await UserSubscription.findById(req.params.id);
+    if (existing && (existing.payment_transaction_id || existing.amount_paid > 0)) return res.status(409).json({ success: false, message: 'Paid subscription history must be retained. Cancel or refund this subscription instead.' });
     const subscription = await UserSubscription.findByIdAndDelete(req.params.id);
     if (!subscription) return res.status(404).json({ success: false, message: 'Subscription not found.' });
     res.status(200).json({ success: true, message: 'Subscription deleted.' });
@@ -690,34 +694,17 @@ const deleteUserSubscription = async (req, res, next) => {
 const updateUserSubscription = async (req, res, next) => {
   try {
     const { action, note = '' } = req.body;
-    const subscription = await UserSubscription.findById(req.params.id);
-    if (!subscription) return res.status(404).json({ success: false, message: 'Subscription not found.' });
-
-    if (!['cancel', 'refund', 'activate'].includes(action)) {
-      return res.status(400).json({ success: false, message: 'Use cancel, refund, or activate.' });
+    if (!['cancel', 'refund', 'activate'].includes(action)) return res.status(400).json({ success: false, message: 'Use cancel, refund, or activate.' });
+    const subscription = await require('../services/subscriptionAdmin.service').updateSubscription({ id: req.params.id, action, note, actorId: req.user._id });
+    if (subscription.$locals?.refundApplied) {
+      const owner = await User.findById(subscription.user_id).select('wallet_balance').lean();
+      req.app.get('io')?.to(String(subscription.user_id)).emit('wallet:credited', { balance: owner?.wallet_balance, amount: subscription.amount_paid, reference: subscription.payment_reference });
+      setImmediate(() => require('../utils/notifier').sendNotification(req.app, subscription.user_id, {
+        title: 'Subscription refunded', message: subscription.amount_paid + ' XAF has been returned to your Aura Wallet.', type: 'refund', metadata: { link: '/wallet', target_id: subscription._id },
+      }).catch(() => {}));
     }
-
-    if (action === 'cancel') subscription.status = 'cancelled';
-    if (action === 'refund') subscription.status = 'refunded';
-    if (action === 'activate') {
-      subscription.status = 'active';
-      subscription.started_at = subscription.started_at || new Date();
-      subscription.limited_since = null;
-      subscription.restriction_reason = null;
-    }
-
-    subscription.history.push({
-      action,
-      note,
-      by: req.user._id,
-      at: new Date(),
-    });
-    await subscription.save();
-
     res.status(200).json({ success: true, data: { subscription } });
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 };
 
 module.exports = {
