@@ -34,6 +34,7 @@ export default function DinePage() {
   const [activeMealCategoryId, setActiveMealCategoryId] = useState(null);
   const [includeClosed, setIncludeClosed] = useState(false);
   const [visibleMealsCount, setVisibleMealsCount] = useState(12);
+  const fetchVersion = useRef(0);
   const carouselRef  = useRef(null);
   const sentinelRef  = useRef(null);
 
@@ -116,17 +117,18 @@ export default function DinePage() {
 
   const fetchDine = useCallback(async (zoneId, mealCatId, closed) => {
     if (!zoneId) return;
+    const version = ++fetchVersion.current;
     setLoading(true);
     try {
       const params = new URLSearchParams({ zone_id: zoneId });
       if (mealCatId) params.set('meal_category', mealCatId);
       if (closed) params.set('include_closed', 'true');
       const res = await api.get(`/dine?${params.toString()}`);
-      if (res.data.success) setData(res.data.data);
+      if (version === fetchVersion.current && res.data.success) setData(res.data.data);
     } catch {
       // silently fail
     } finally {
-      setLoading(false);
+      if (version === fetchVersion.current) setLoading(false);
     }
   }, []);
 

@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
+import PreorderAvailability from '@/components/dine/PreorderAvailability';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -78,6 +79,7 @@ export default function AddMealPage() {
   });
   const [prepTimeUnit, setPrepTimeUnit] = useState('minutes');
 
+  const [preorderRules, setPreorderRules] = useState({ available_weekdays: [], available_dates: [] });
   const [bookingOptions, setBookingOptions] = useState(['delivery']);
   const [optionGroups, setOptionGroups] = useState([]);
 
@@ -185,7 +187,7 @@ export default function AddMealPage() {
           ? Number(mealAttrs.prep_time_value) * (PREP_UNITS.find(u => u.value === prepTimeUnit)?.factor ?? 1)
           : null,
         option_groups:      optionGroups,
-        booking_options:    bookingOptions.map(v => ({ type: v })),
+        booking_options:    bookingOptions.map(v => v === 'pre_order' ? { ...preorderRules, type: v } : { type: v }),
       }));
       images.forEach(img => fd.append('images', img.file));
 
@@ -556,6 +558,8 @@ export default function AddMealPage() {
             })}
           </div>
         </section>
+
+        {bookingOptions.includes('pre_order') && <PreorderAvailability value={preorderRules} onChange={setPreorderRules} />}
 
         {/* Option Groups */}
         <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 p-4 sm:p-6 space-y-4">

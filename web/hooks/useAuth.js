@@ -325,9 +325,10 @@ const baseAuthStore = create(
 
       fetchFollowedVendors: async () => {
         if (!get().isAuthenticated) return;
+        const followedIdentity = get().user?._id;
         try {
           const res = await api.get('/users/followed-vendors', { __noActAs: true });
-          if (res.data.success) {
+          if (res.data.success && get().isAuthenticated && get().user?._id === followedIdentity) {
             const ids = (res.data.data.follows || [])
               .map((f) => f.vendor_id?._id || f.vendor_id)
               .filter((id) => id != null)

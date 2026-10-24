@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
+import WhatsAppSupport from '@/components/logistics/WhatsAppSupport';
 import {
   Package, Send, ArrowDownToLine, ChevronRight, MapPin,
   Clock, Wallet, CreditCard, Loader2, CheckCircle2,
@@ -422,7 +423,7 @@ export default function DeliveryPage() {
         : `${label} Location`;
 
     return (
-      <div className={`rounded-2xl border p-5 space-y-4 transition-all ${isPopulated ? 'border-[var(--accent)]/30 bg-gradient-to-br from-[var(--accent)]/10 to-transparent' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}>
+      <div className={`rounded-2xl border p-4 space-y-3 transition-all ${isPopulated ? 'border-[var(--accent)]/30 bg-gradient-to-br from-[var(--accent)]/10 to-transparent' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}>
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-[var(--text-primary)] text-[15px] flex items-center gap-2.5">
             <div className={`rounded-lg p-2 ${isPopulated ? 'bg-[var(--accent)]/20' : 'bg-[var(--text-secondary)]/10'}`}>
@@ -597,7 +598,7 @@ export default function DeliveryPage() {
               {/* Contact info */}
               <div><label className={LABEL_CLASS}>Full Name</label><input value={form[`${prefix}_name`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_name`]: e.target.value }))} className={INPUT_CLASS} placeholder="Full name" /></div>
               <div><label className={LABEL_CLASS}>Phone</label><input value={form[`${prefix}_phone`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_phone`]: e.target.value }))} className={INPUT_CLASS} placeholder="+237..." /></div>
-              <div className="md:col-span-2"><label className={LABEL_CLASS}>Email</label><input value={form[`${prefix}_email`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_email`]: e.target.value }))} className={INPUT_CLASS} placeholder="email@example.com" /></div>
+              <div className="md:col-span-2"><details><summary className={LABEL_CLASS + " cursor-pointer py-2"}>Email (optional)</summary><input value={form[`${prefix}_email`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_email`]: e.target.value }))} className={INPUT_CLASS} placeholder="email@example.com" /></details></div>
 
               {/* Address dropdowns */}
               <div>
@@ -681,6 +682,7 @@ export default function DeliveryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)]/20 pb-32 pt-4 sm:pt-6">
+      {!user && <WhatsAppSupport />}
       <style jsx>{`
         .delivery-input, .delivery-input::placeholder { font-size: 16px; }
         .delivery-label { font-size: 12px; }
@@ -1120,7 +1122,7 @@ export default function DeliveryPage() {
             {/* Direction Toggle */}
             <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
               <button onClick={() => setDirection('send')}
-                className={`direction-btn flex flex-col items-center gap-2 sm:gap-3 rounded-2xl border-2 p-4 sm:p-5 transition-all active:scale-[0.97] ${
+                className={`direction-btn flex flex-row items-center justify-center gap-2 rounded-2xl border-2 p-3 transition-all active:scale-[0.97] ${
                   direction === 'send'
                     ? 'border-[var(--accent)] bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 shadow-lg shadow-[var(--accent)]/10'
                     : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40'
@@ -1135,7 +1137,7 @@ export default function DeliveryPage() {
                 </span>
               </button>
               <button onClick={() => setDirection('request_pickup')}
-                className={`direction-btn flex flex-col items-center gap-2 sm:gap-3 rounded-2xl border-2 p-4 sm:p-5 transition-all active:scale-[0.97] ${
+                className={`direction-btn flex flex-row items-center justify-center gap-2 rounded-2xl border-2 p-3 transition-all active:scale-[0.97] ${
                   direction === 'request_pickup'
                     ? 'border-[var(--accent)] bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 shadow-lg shadow-[var(--accent)]/10'
                     : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40'
@@ -1178,8 +1180,10 @@ export default function DeliveryPage() {
                     {WEIGHT_TIERS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
                   </select>
                 </div>
+                <details className="md:col-span-2"><summary className="cursor-pointer py-2 text-sm font-semibold">Declared value & package description (optional)</summary><div className="mt-2 grid gap-3">
                 <div><label className={LABEL_CLASS}>Declared Value (XAF)</label><input type="number" value={form.declared_value} onChange={e => setForm(p => ({ ...p, declared_value: e.target.value }))} className={INPUT_CLASS} placeholder="0" /></div>
                 <div className="md:col-span-2"><label className={LABEL_CLASS}>Description</label><textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={`${INPUT_CLASS} resize-none`} rows={2} placeholder="Describe your package" /></div>
+                </div></details>
               </div>
 
               {/* Prohibited items */}

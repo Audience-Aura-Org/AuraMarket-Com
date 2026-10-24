@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '@/hooks/useAuth';
 
 // Request cache to prevent duplicate requests for the same vendor
-const followStatusCache = new Map();
 const pendingRequests = new Map();
 
 /**
@@ -14,8 +13,9 @@ const pendingRequests = new Map();
  * Manages follow/unfollow logic for vendors.
  * Handles state synchronization, optimistic updates, and request deduplication.
  */
-export function useFollow(vendorId) {
-  const { user, followedVendorIds, fetchFollowedVendors } = useAuthStore();
+export function useFollow(vendor) {
+  const vendorId = vendor?._id?.toString?.() || vendor?.toString?.() || '';
+  const { user, followedVendorIds = [], fetchFollowedVendors } = useSyncExternalStore(useAuthStore.subscribe, useAuthStore.getState, useAuthStore.getState);
   
   // 1. Initialize state immediately from the global store to avoid flicker
   const [isFollowing, setIsFollowing] = useState(() => {
@@ -58,6 +58,11 @@ export function useFollow(vendorId) {
     }
 
     if (!vendorId) return;
+    const requestKey = String(user._id) + ':' + vendorId;
+    if (pendingRequests.has(requestKey)) return;
+    pendingRequests.set(requestKey, true);
+    setLoading(true);
+    const stillCurrent = () => String(useAuthStore.getState().user?._id) === String(user._id);
 
     const prevStatus = isFollowing;
     const newStatus = !prevStatus;
@@ -77,19 +82,22 @@ export function useFollow(vendorId) {
 
     try {
       if (prevStatus) {
-        await api.delete(`/vendors/${vendorId}/follow`);
+        await api.delete(`/vendors/${vendorId}/follow`, { __noActAs: true });
       } else {
-        await api.post(`/vendors/${vendorId}/follow`);
+        await api.post(`/vendors/${vendorId}/follow`, {}, { __noActAs: true });
       }
       // Reconcile the optimistic state with the authoritative list before
       // notifying views that render full vendor records (such as Profile).
       // The optimistic event above can happen before the API mutation commits.
+      if (!stillCurrent()) return;
       await useAuthStore.getState().fetchFollowedVendors();
+      if (!stillCurrent()) return;
       window.dispatchEvent(new CustomEvent('aura_follow_synced', {
         detail: { vendorId, isFollowing: newStatus }
       }));
     } catch (err) {
       console.error('Follow toggle failed:', err);
+      if (!stillCurrent()) return;
       // Revert on error
       setIsFollowing(prevStatus);
       if (prevStatus) {
@@ -102,6 +110,7 @@ export function useFollow(vendorId) {
       }));
       toast.error('Follow action failed. Please try again.');
     } finally {
+      pendingRequests.delete(requestKey);
       setLoading(false);
     }
   };

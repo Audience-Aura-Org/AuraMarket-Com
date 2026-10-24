@@ -286,3 +286,14 @@ describe('DELETE /cart/clear — clear entire cart', () => {
     expect(res.body.data.cart.items).toHaveLength(0)
   })
 })
+
+it('rejects unavailable preorder weekdays and preserves an eligible date in the cart', async () => {
+ const first = new Date(Date.now() + 7 * 86400000); const key = first.toISOString().slice(0,10); const weekday = first.getUTCDay();
+ await Product.collection.updateOne({ _id: productId }, { $set: { is_meal: true, meal: { is_available_today: false, booking_options: [{ type: 'pre_order', available_weekdays: [weekday] }] } } });
+ const denied = await request(app).post('/api/v1/cart').set(authHeader(signToken(customer))).send({ product_id: productId, quantity: 1, booking_type: 'pre_order', scheduled_for: new Date(first.getTime() + 86400000).toISOString().slice(0,10) });
+ expect(denied.status).toBe(400);
+ const allowed = await request(app).post('/api/v1/cart').set(authHeader(signToken(customer))).send({ product_id: productId, quantity: 1, booking_type: 'pre_order', scheduled_for: key });
+ expect(allowed.status).toBe(200); expect(allowed.body.data.cart.scheduled_for.slice(0,10)).toBe(key);
+ const conflict = await request(app).post('/api/v1/cart').set(authHeader(signToken(customer))).send({ product_id: productId, quantity: 1, booking_type: 'pre_order', scheduled_for: new Date(first.getTime() + 7 * 86400000).toISOString().slice(0,10) });
+ expect(conflict.status).toBe(409);
+});

@@ -249,6 +249,8 @@ const ProductSchema = new mongoose.Schema(
           lead_time_minutes: Number,
           available_from:    Date,  // Start of pre-order availability window
           available_until:   Date,
+          available_weekdays: [{ type: Number, min: 0, max: 6, validate: Number.isInteger }],
+          available_dates: [Date],
         },
       ],
 

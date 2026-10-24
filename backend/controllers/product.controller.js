@@ -336,7 +336,7 @@ const getProducts = async (req, res, next) => {
       }
     }
 
-    if (req.query.search) parsedQuery.$text = { $search: req.query.search };
+    if (req.query.search) parsedQuery.$text = { $search: String(req.query.search).trim().slice(0, 120) };
 
     query = Product.find(parsedQuery).populate({
       path: 'vendor_id',
@@ -359,8 +359,8 @@ const getProducts = async (req, res, next) => {
       query = query.sort('-createdAt');
     }
 
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
     const startIndex = (page - 1) * limit;
     query = query.skip(startIndex).limit(limit);
 

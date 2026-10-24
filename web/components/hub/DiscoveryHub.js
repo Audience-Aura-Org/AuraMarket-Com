@@ -1,9 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { 
-  Compass, User, Store, Activity, LayoutDashboard, Utensils
-} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -57,22 +54,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  const isCustomer = !user || user.role === 'customer';
-  const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'manager' ? '/manager' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';
 
-  const TABS = isCustomer ? [
-    { id: 'discover', label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },
-    { id: 'vendors', label: t('bottomNav.vendors', 'Vendors'), icon: Store },
-    { id: 'status', label: t('bottomNav.stories', 'Stories'), icon: Activity },
-    { id: 'dine', label: t('bottomNav.dine', 'Dine'), href: "/dine", icon: Utensils },
-    { id: 'profile', label: t('bottomNav.profile', 'Profile'), icon: User }
-  ] : [
-    { id: 'dashboard', label: t('bottomNav.dashboard', 'Dashboard'), href: dashboardHref, icon: LayoutDashboard },
-    { id: 'discover', label: t('bottomNav.discovery', 'Discovery'), href: "/shop", icon: Compass },
-    { id: 'status', label: t('bottomNav.stories', 'Stories'), icon: Activity },
-    { id: 'dine', label: t('bottomNav.dine', 'Dine'), href: "/dine", icon: Utensils },
-    { id: 'profile', label: t('bottomNav.profile', 'Profile'), icon: User }
-  ];
 
   useEffect(() => {
     if (initialTab && initialTab !== 'discover') {
@@ -186,21 +168,6 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
     setSelectedStoryId(storyId);
   }, [markStoryViewed]);
 
-  const handleTabChange = (id) => {
-    const tab = TABS.find(t => t.id === id);
-    if (tab && tab.href) {
-      router.push(tab.href);
-      return;
-    }
-    
-    // Internal switch for instant feel
-    setActiveTab(id);
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location);
-      url.searchParams.set('tab', id);
-      window.history.pushState({}, '', url);
-    }
-  };
 
   return (
     <div className="relative min-h-screen bg-[var(--bg-secondary)] flex flex-col pt-[env(safe-area-inset-top)]">
@@ -327,73 +294,6 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
       </main>
 
       {/* â”€â”€ THE Discovery BOTTOM NAV â”€â”€ */}
-      <nav className="fixed bottom-0 left-0 right-0 z-[400] w-full overflow-hidden rounded-t-[24px] border-t border-[var(--glass-border)] bg-[color-mix(in_srgb,var(--bg-primary)_94%,transparent)] shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--text-primary)_8%,transparent),0_-8px_32px_-8px_rgba(0,0,0,0.14)] backdrop-blur-xl supports-[backdrop-filter]:bg-[color-mix(in_srgb,var(--bg-primary)_88%,transparent)] sm:hidden dark:shadow-[inset_0_1px_0_0_color-mix(in_srgb,var(--text-primary)_10%,transparent),0_-10px_36px_-8px_rgba(0,0,0,0.35)] pb-[env(safe-area-inset-bottom,0px)]">
-        <div className="relative flex h-[68px] w-full items-center justify-around px-1 pt-0.5">
-          {TABS.map((tab) => {
-            const isActive = activeTab === tab.id;
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => handleTabChange(tab.id)}
-                className={`relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 transition-colors duration-200 active:scale-[0.98] ${
-                  isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                <div
-                  className={`relative rounded-xl p-1.5 transition-colors duration-200 ${
-                    isActive
-                      ? "bg-[color-mix(in_srgb,var(--accent)_10%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--accent)_22%,transparent)]"
-                      : "bg-transparent"
-                  }`}
-                >
-                  <Icon className="size-5 shrink-0 stroke-2 transition-colors" />
-                </div>
-
-                <span
-                  className={`max-w-full truncate px-0.5 text-[10px] font-medium leading-none tracking-tight transition-colors min-[380px]:text-[11px] font-[Poppins] ${
-                    isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)] opacity-90"
-                  }`}
-                >
-                  {tab.label}
-                </span>
-
-                {isActive && (
-                  <motion.div
-                    layoutId="hub-indicator"
-                    className="absolute bottom-1 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-[var(--accent)] opacity-80"
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Desktop/Tablet Floating Dock Fallback */}
-      <nav className="hidden sm:block fixed bottom-6 left-1/2 -translate-x-1/2 z-[400] w-full max-w-lg">
-        <div className="flex items-center h-[54px] bg-black/50 backdrop-blur-2xl border border-white/10 rounded-[22px] shadow-[0_12px_40px_rgba(0,0,0,0.22)] px-1.5 overflow-hidden">
-          {TABS.map((tab, idx) => {
-            const isActive = activeTab === tab.id;
-            const Icon = tab.icon;
-            return (
-              <div key={tab.id} className="flex-1 flex items-center h-full">
-                {idx > 0 && <div className="w-px h-3 bg-white/10" />}
-                <button
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`flex-1 flex flex-col items-center justify-center h-full transition-all duration-300 relative ${
-                    isActive ? 'text-[var(--accent)]' : 'text-white/50 hover:text-white/80'
-                  }`}
-                >
-                   <Icon className={`size-[20px] ${isActive ? 'stroke-2 text-[var(--accent)]' : 'stroke-2 text-white/45'}`} />
-                   <span className={`max-w-[82px] truncate text-[10px] font-medium tracking-tight mt-1.5 md:text-[11px] font-[Poppins] ${isActive ? 'text-[var(--accent)]' : 'text-white/45'}`}>{tab.label}</span>
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </nav>
     </div>
   );
 }

@@ -40,6 +40,7 @@ function ShopContent() {
   const [hasMore, setHasMore] = useState(true);
   const [activePrice, setActivePrice] = useState(null);
   const [search, setSearch] = useState(initialQuery);
+  useEffect(() => { setSearch(initialQuery); }, [initialQuery]);
   const [sortBy, setSortBy] = useState('-purchase_count');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -56,6 +57,7 @@ function ShopContent() {
   // --- Vendor Discovery state ---
   const [activeVendor, setActiveVendor] = useState(null);
   const [vendorLoading, setVendorLoading] = useState(false);
+  const vendorLoadVersion = useRef(0);
 
   // --- Cart state for live minimum order progress ---
   const [cartItems, setCartItems] = useState(cartStore.getItems());
@@ -88,16 +90,17 @@ function ShopContent() {
 
   // 2. Vendor Detail Load (Tracks vendorId changes)
   useEffect(() => {
+    const version = ++vendorLoadVersion.current;
     const fetchVendorData = async () => {
       const vid = searchParams.get('vendorId');
-      if (!vid) { setActiveVendor(null); return; }
+      if (!vid) { setActiveVendor(null); setVendorLoading(false); return; }
       
       setVendorLoading(true);
       try {
         const res = await api.get(`/vendors/stores/${vid}`);
-        if (res.data.success) setActiveVendor(res.data.data.store);
+        if (version === vendorLoadVersion.current && res.data.success) setActiveVendor(res.data.data.store);
       } catch (err) { console.error('Vendor Load Error:', err); }
-      finally { setVendorLoading(false); }
+      finally { if (version === vendorLoadVersion.current) setVendorLoading(false); }
     };
     fetchVendorData();
     
@@ -157,7 +160,7 @@ function ShopContent() {
         }
         setTotalPages(cached.totalPages);
         setPage(targetPage);
-        setHasMore(cached.products.length === 50);
+        setHasMore(targetPage < cached.totalPages);
         setLoading(false);
         setLoadingMore(false);
         return;
@@ -176,6 +179,7 @@ function ShopContent() {
         setVendorsLoading(true);
         api.get('/vendors', { params: { search, limit: 8 } })
           .then(res => {
+            if (gen !== fetchGenRef.current) return;
             if (res.data?.success) {
               setMatchedVendors(res.data.data.stores || []);
             } else {
@@ -183,10 +187,11 @@ function ShopContent() {
             }
           })
           .catch(err => {
+            if (gen !== fetchGenRef.current) return;
             console.error('Vendor search error:', err);
             setMatchedVendors([]);
           })
-          .finally(() => setVendorsLoading(false));
+          .finally(() => { if (gen === fetchGenRef.current) setVendorsLoading(false); });
       } else {
         setMatchedVendors([]);
       }
@@ -204,7 +209,7 @@ function ShopContent() {
           const total = res.data.pagination?.pages || 1;
           setTotalPages(total);
           setPage(targetPage);
-          setHasMore(nextProducts.length === 50);
+          setHasMore(targetPage < total);
           if (!search) {
             productCacheRef.current.set(queryKey, { products: nextProducts, totalPages: total });
           }
@@ -212,6 +217,7 @@ function ShopContent() {
       } catch (err) {
         console.error('Shop fetch error:', err);
       } finally {
+        if (gen !== fetchGenRef.current) return;
         if (targetPage === 1) {
           setLoading(false);
         } else {
@@ -228,30 +234,17 @@ function ShopContent() {
   }, [activeCategoryId, activeCategoryName, activePrice, sortBy, search, searchParams]);
   // Note: 'page' intentionally excluded — always passed explicitly to avoid stale-closure issues.
 
-  // Filter / sort change → reset to page 1 and fetch immediately.
   useEffect(() => {
-    setPage(1);
-    pageRef.current = 1;
-    setHasMore(true);
-    fetchProducts(1, true);
-  }, [activeCategoryId, activeCategoryName, activePrice, sortBy]);
-  // Note: 'fetchProducts' not in deps — it only recreates when filter state changes,
-  // the same deps that trigger this effect, so the closure is always fresh.
+    setPage(1); pageRef.current = 1; setHasMore(true);
+    fetchProducts(1, !search.trim());
+    return () => { if (fetchTimeout.current) clearTimeout(fetchTimeout.current); };
+  }, [activeCategoryId, activeCategoryName, activePrice, sortBy, search, searchParams.get('vendorId')]);
 
-  // Search change → debounce fetch (skip on initial mount where search === URL param).
-  useEffect(() => {
-    const urlQuery = searchParams.get('q') || '';
-    if (search !== urlQuery) {
-      setPage(1);
-      pageRef.current = 1;
-      setHasMore(true);
-      fetchProducts(1, false); // debounced
-    }
-  }, [search]);
+  useEffect(() => () => { fetchGenRef.current += 1; if (fetchTimeout.current) clearTimeout(fetchTimeout.current); }, []);
 
   // Online refresh — uses pageRef so the handler is never stale.
   useEffect(() => {
-    const refreshWhenOnline = () => fetchProducts(pageRef.current, true);
+    const refreshWhenOnline = () => { setPage(1); pageRef.current = 1; fetchProducts(1, true); };
     window.addEventListener('online', refreshWhenOnline);
     return () => window.removeEventListener('online', refreshWhenOnline);
   }, [fetchProducts]);

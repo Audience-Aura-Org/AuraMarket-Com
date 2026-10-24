@@ -1,3 +1,4 @@
+const { validateMealSchedule } = require('../services/meal-schedule.service');
 /**
  * controllers/order.controller.js
  * Auradime — Order Controller
@@ -231,10 +232,12 @@ const createOrderAttempt = async (req, res, next, isLastAttempt) => {
       if (!mealCandidate || mealCandidate.status !== 'active') {
         throw checkoutRejection(400, `Product ${item.product_id} is unavailable.`);
       }
-      if (mealCandidate.is_meal === true && mealCandidate.meal?.is_available_today === false) {
+      if (mealCandidate.is_meal === true && req.body.fulfilment_type !== 'pre_order' && mealCandidate.meal?.is_available_today === false) {
         throw checkoutRejection(400, `"${mealCandidate.name}" is not available today.`);
       }
 
+      const selectedSchedule = validateMealSchedule(mealCandidate, req.body.fulfilment_type || 'delivery', req.body.scheduled_for);
+      if (selectedSchedule) mealAvailableDate = selectedSchedule;
       let product;
       if (mealCandidate.is_meal === true) {
         product = mealCandidate;
@@ -311,12 +314,6 @@ const createOrderAttempt = async (req, res, next, isLastAttempt) => {
         selected_options: Array.isArray(item.selected_options) ? item.selected_options : [],
       });
       itemParcelClasses.push({ parcel_class: product.parcel_class || 'small' });
-
-      // Track preorder date from meal.available_date (first future date wins)
-      if (product.meal?.available_date && !mealAvailableDate) {
-        const ad = new Date(product.meal.available_date);
-        if (ad > new Date()) mealAvailableDate = ad;
-      }
 
       subtotal += itemPrice * quantity;
     }
@@ -1515,6 +1512,8 @@ const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
        const cart = await Cart.findOne({ user_id: req.user._id }).populate('items.product').session(session);
        if (!cart || cart.items.length === 0) throw checkoutRejection(400, 'Cart is empty.');
        itemsForProcessing = cart.items;
+       if (!req.body.fulfilment_type && cart.context_booking_type) req.body.fulfilment_type = cart.context_booking_type;
+       if (!req.body.scheduled_for && cart.scheduled_for) req.body.scheduled_for = cart.scheduled_for;
     }
 
     const itemsByVendor = {};
@@ -1614,7 +1613,7 @@ const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
 
       for (const it of items) {
         if (it.product?.is_meal !== true) continue;
-        if (it.product.meal.is_available_today === false) {
+        if (fulfilment_type !== 'pre_order' && it.product.meal.is_available_today === false) {
           await session.abortTransaction();
           session.endSession();
           return res.status(409).json({
@@ -1684,8 +1683,10 @@ const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
           throw checkoutRejection(400, 'A product in your cart is no longer available. Please refresh your cart and try again.');
         }
         const quantity = Number(it.quantity || 1);
+        const selectedSchedule = validateMealSchedule(p, fulfilment_type || 'delivery', req.body.scheduled_for);
+        if (selectedSchedule) cartMealAvailableDate = selectedSchedule;
         if (p.is_meal === true) {
-          if (p.meal?.is_available_today === false) {
+          if (fulfilment_type !== 'pre_order' && p.meal?.is_available_today === false) {
             throw checkoutRejection(400, `"${p.name}" is not available today.`);
           }
           p.purchase_count = (p.purchase_count || 0) + quantity;
@@ -1705,11 +1706,6 @@ const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
           p.purchase_count = (p.purchase_count || 0) + quantity;
         }
         await p.save({ session });
-        // Track preorder date
-        if (p.is_meal === true && p.meal?.available_date && !cartMealAvailableDate) {
-          const ad = new Date(p.meal.available_date);
-          if (ad > new Date()) cartMealAvailableDate = ad;
-        }
       }
 
       let shippingFee = 0;

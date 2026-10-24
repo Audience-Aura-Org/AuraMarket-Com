@@ -28,6 +28,8 @@ export default function OnboardingWatcher() {
     if (!hasHydrated || loading) return;
 
     const role = user?.role?.toLowerCase();
+    // The logistics landing is public; account tools under it remain protected.
+    if (pathname === '/logistics') return;
     
     // 0. Skip for onboarding/auth pages to prevent redirect loops
     const SKIP_PREFIXES = ['/onboarding', '/login', '/signup', '/register', '/auth'];

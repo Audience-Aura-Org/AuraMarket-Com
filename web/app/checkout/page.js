@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
+import { eligiblePreorderDates } from '@/components/dine/PreorderDateSelect';
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { flushSync } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -429,7 +430,9 @@ function CheckoutContent() {
               compare_at_price: priced.compare_at_price,
               quantity: quantity,
               image: priced.image,
-              variant: priced.variant
+              variant: priced.variant,
+              is_meal: p.is_meal === true,
+              meal: p.is_meal ? p.meal : null
             }]);
           }
         })
@@ -455,7 +458,8 @@ function CheckoutContent() {
                 image: priced.image,
                 variant: i.variant || null,
                 selected_options: i.selected_options || [],
-                is_meal: !!(i.product?.meal),
+                is_meal: i.product?.is_meal === true,
+                meal: i.product?.is_meal ? i.product.meal : null,
              };
              });
              // Persist booking type for food orders so it's included in the order payload
@@ -563,8 +567,8 @@ function CheckoutContent() {
       return;
     }
 
-    if (isPreOrder && !preOrderDate) {
-      toast.error('Please select a scheduled date/time for your pre-order.');
+    if (isPreOrder && (!preOrderDate || !preorderDates.includes(preOrderDate))) {
+      toast.error('Please select a preorder date available for every meal in your cart.');
       return;
     }
     
@@ -877,6 +881,12 @@ function CheckoutContent() {
   const hasRetailItems = cartItems.some(it => !it.is_meal);
   const isPickupOrDineIn = ['pickup', 'dine_in'].includes(fulfilmentType) && !hasRetailItems;
   const isPreOrder = fulfilmentType === 'pre_order';
+  const preorderDates = useMemo(() => {
+    const meals = cartItems.filter(item => item.is_meal);
+    if (!meals.length) return [];
+    const sets = meals.slice(1).map(item => new Set(eligiblePreorderDates(item.meal)));
+    return eligiblePreorderDates(meals[0].meal).filter(date => sets.every(set => set.has(date)));
+  }, [cartItems]);
   const hasMealItems = cartItems.some(it => it.is_meal || it.product?.is_meal);
   const isFoodOrder = hasMealItems || !!fulfilmentType;
   const effectiveEscrowEnabled = formData.escrowEnabled && !isFoodOrder;
@@ -884,7 +894,7 @@ function CheckoutContent() {
   const checkoutBlocked =
     (!isPickupOrDineIn && !deliveryQuartier) ||
     (!isPickupOrDineIn && !isVendorManagedDelivery && !formData.logistics_company_id) ||
-    (isPreOrder && !preOrderDate) ||
+    (isPreOrder && !preorderDates.includes(preOrderDate)) ||
     vendorMinimumErrors.length > 0;
 
   const vendorTracking = matrixItems.reduce((acc, item) => {
@@ -1274,15 +1284,9 @@ function CheckoutContent() {
                           {isPreOrder && (
                             <div className="md:col-span-2 space-y-2 md:space-y-3">
                               <label className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight ml-1">
-                                Scheduled Date &amp; Time <span className="text-orange-500">*</span>
+                                Scheduled Date <span className="text-orange-500">*</span>
                               </label>
-                              <input
-                                type="datetime-local"
-                                value={preOrderDate}
-                                min={new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16)}
-                                onChange={e => setPreOrderDate(e.target.value)}
-                                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
-                              />
+                              <select aria-label="Preorder date" value={preorderDates.includes(preOrderDate) ? preOrderDate : ''} onChange={e => setPreOrderDate(e.target.value)} className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"><option value="">Choose an available date</option>{preorderDates.map(date => <option key={date} value={date}>{new Date(date + 'T12:00:00Z').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</option>)}</select>
                             </div>
                           )}
 

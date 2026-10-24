@@ -1,3 +1,4 @@
+const { validateMealSchedule, dayKey } = require('../services/meal-schedule.service');
 const Cart = require('../models/Cart.model');
 const Product = require('../models/Product.model');
 const Vendor = require('../models/Vendor.model');
@@ -63,10 +64,14 @@ const addToCart = async (req, res, next) => {
     // `meal` is a nested schema object and can exist even for retail products.
     // `is_meal` is the persisted, authoritative discriminator.
     const isMeal = product.is_meal === true;
+    if (!Number.isSafeInteger(quantity) || quantity < 1) return res.status(400).json({ success: false, message: 'Quantity must be a positive whole number.' });
+    if (product.status !== 'active') return res.status(400).json({ success: false, message: 'This product is unavailable.' });
+    validateMealSchedule(product, booking_type || 'delivery', scheduled_for);
     const productVendorId = product.vendor_id.toString();
 
     let cart = await Cart.findOne({ user_id: userId });
 
+    if (isMeal && booking_type === 'pre_order' && cart?.scheduled_for && dayKey(cart.scheduled_for) !== dayKey(scheduled_for)) return res.status(409).json({ success: false, message: 'Preorder meals in your cart must have the same date. Check out or clear your cart first.' });
     if (cart && cart.items.length > 0) {
       // Use context_booking_type as the food-cart signal (context_vendor_id is only
       // set for dine-in where single-restaurant is enforced).

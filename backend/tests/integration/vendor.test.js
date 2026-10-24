@@ -294,3 +294,11 @@ it('never caches private vendor responses authenticated with a session cookie', 
   await clearApiCache()
   vi.unstubAllEnvs()
 })
+
+it('keeps follower records and counts consistent under simultaneous follow taps', async () => {
+ const results = await Promise.all([1,2].map(() => request(app).post('/api/v1/vendors/' + vendorDoc._id + '/follow').set(authHeader(signToken(customer)))));
+ expect(results.map(result => result.status).sort()).toEqual([201,400]);
+ const Follow = require('../../models/Follow.model');
+ expect(await Follow.countDocuments({ user_id: customer._id, vendor_id: vendorDoc._id })).toBe(1);
+ expect((await Vendor.findById(vendorDoc._id)).follower_count).toBe(1);
+});

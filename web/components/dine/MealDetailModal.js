@@ -1,5 +1,6 @@
 "use client";
 
+import PreorderDateSelect, { eligiblePreorderDates } from './PreorderDateSelect';
 import { useState, useEffect } from 'react';
 import { restaurantHref } from '@/lib/restaurantRoutes';
 import { X, Star, Clock, Plus, Minus, ChevronRight, Zap, ShoppingBag, Check, Package, Utensils, CalendarClock } from 'lucide-react';
@@ -103,7 +104,7 @@ export default function MealDetailModal({ meal, onClose }) {
 
         // When restaurant is closed, force pre_order only
         if (restaurantClosed) {
-          setBookingType('pre_order');
+          setBookingType(modes.includes('pre_order') ? 'pre_order' : null);
         } else if (modes.length === 1) {
           setBookingType(modes[0]);
         } else if (modes.includes('delivery')) {
@@ -164,7 +165,7 @@ export default function MealDetailModal({ meal, onClose }) {
     g => g.is_required && (selections[g.name] || []).length < (g.min_select || 1)
   );
   const isPreOrder = bookingType === 'pre_order';
-  const canOrder = invalidGroups.length === 0 && !!bookingType && (!isPreOrder || !!preOrderDate);
+  const canOrder = invalidGroups.length === 0 && !!bookingType && (!isPreOrder || eligiblePreorderDates(fullProduct?.meal).includes(preOrderDate));
 
   /* ── Build cart payload ── */
   const buildPayload = () => ({
@@ -387,14 +388,7 @@ export default function MealDetailModal({ meal, onClose }) {
                       {new Date(mealAvailableDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                     </div>
                   ) : (
-                    <input
-                      type="date"
-                      value={preOrderDate}
-                      onChange={e => setPreOrderDate(e.target.value)}
-                      min={preOrderMin}
-                      {...(preOrderMax && { max: preOrderMax })}
-                      className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors"
-                    />
+                    <PreorderDateSelect meal={fullProduct?.meal} value={preOrderDate} onChange={setPreOrderDate} className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors" />
                   )}
                 </div>
               </div>
@@ -452,14 +446,7 @@ export default function MealDetailModal({ meal, onClose }) {
                     {new Date(mealAvailableDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                   </div>
                 ) : (
-                  <input
-                    type="date"
-                    value={preOrderDate}
-                    onChange={e => setPreOrderDate(e.target.value)}
-                    min={preOrderMin}
-                    {...(preOrderMax && { max: preOrderMax })}
-                    className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors"
-                  />
+                  <PreorderDateSelect meal={fullProduct?.meal} value={preOrderDate} onChange={setPreOrderDate} className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors" />
                 )}
               </div>
             )}

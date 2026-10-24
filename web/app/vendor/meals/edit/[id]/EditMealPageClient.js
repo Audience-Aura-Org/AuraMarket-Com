@@ -1,5 +1,6 @@
 "use client";
 
+import PreorderAvailability from '@/components/dine/PreorderAvailability';
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -93,6 +94,7 @@ function EditMealPageInner() {
   });
   const [prepTimeUnit, setPrepTimeUnit] = useState('minutes');
 
+  const [preorderRules, setPreorderRules] = useState({ available_weekdays: [], available_dates: [] });
   const [bookingOptions, setBookingOptions] = useState(['delivery']);
   const [optionGroups, setOptionGroups] = useState([]);
 
@@ -125,6 +127,7 @@ function EditMealPageInner() {
             .map(o => (typeof o === 'string' ? o : o.type))
             .filter(Boolean);
           if (opts.length) setBookingOptions(opts);
+          setPreorderRules(p.meal.booking_options?.find(option => option.type === 'pre_order') || { available_weekdays: [], available_dates: [] });
 
           const prepAttrs = {};
           if (p.meal.prep_time_minutes) {
@@ -255,7 +258,7 @@ function EditMealPageInner() {
           ? Number(mealAttrs.prep_time_value) * (PREP_UNITS.find(u => u.value === prepTimeUnit)?.factor ?? 1)
           : null,
         option_groups:      optionGroups,
-        booking_options:    bookingOptions.map(v => ({ type: v })),
+        booking_options:    bookingOptions.map(v => v === 'pre_order' ? { ...preorderRules, type: v } : { type: v }),
       }));
 
       // Existing images: pass URLs so backend keeps them
@@ -604,6 +607,8 @@ function EditMealPageInner() {
             })}
           </div>
         </section>
+
+        {bookingOptions.includes('pre_order') && <PreorderAvailability value={preorderRules} onChange={setPreorderRules} />}
 
         {/* Option Groups */}
         <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50 p-4 sm:p-6 space-y-4">

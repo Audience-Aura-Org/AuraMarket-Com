@@ -38,7 +38,7 @@ export default function BottomNav() {
 
   if (chatOpen || isChatPage || isAuthPage) return null;
   // If discovery hub uses its own exact replica, we can hide this one to prevent double rendering.
-  if (isDiscoveryPage) return null;
+
 
   const isCustomer = user?.role === 'customer';
   const dashboardHref = user?.role === 'admin' ? '/admin/dashboard' : user?.role === 'manager' ? '/manager' : user?.role === 'logistics' ? '/logistics/dashboard' : '/vendor/dashboard';

@@ -922,3 +922,39 @@ describe('GET /vendor/orders?food_status — kitchen board', () => {
     expect(res.body.data.orders).toHaveLength(0)
   })
 })
+
+describe('preorder checkout scheduling', () => {
+ let key, payload;
+ beforeEach(async () => {
+  const future = new Date(Date.now() + 7 * 86400000); key = future.toISOString().slice(0,10);
+  await Vendor.updateOne({ _id: vendorDoc._id }, { $set: { vendor_type: 'restaurant' } });
+  await Product.collection.updateOne({ _id: product._id }, { $set: { is_meal: true, meal: { is_available_today: false, booking_options: [{ type: 'pre_order', available_weekdays: [future.getUTCDay()] }] } } });
+  await RestaurantProfile.collection.insertOne({ vendor_id: vendorDoc._id, is_accepting_orders: true, opening_hours: [] });
+  payload = { items: [{ product_id: String(product._id), quantity: 1 }], payment_method: 'wallet', shipping_method: 'vendor_managed', shipping_address: shippingAddress(), fulfilment_type: 'pre_order', scheduled_for: key };
+ });
+ it('preserves the selected date through paid checkout', async () => {
+  const response = await request(app).post('/api/v1/orders/cart-split').set(authHeader(signToken(customer))).send(payload);
+  expect(response.status, JSON.stringify(response.body)).toBe(201);
+  const saved = await Order.findById(response.body.data.orderIds[0]);
+  expect(saved.fulfilment_type).toBe('pre_order'); expect(saved.scheduled_for.toISOString().slice(0,10)).toBe(key); expect(saved.payment_status).toBe('paid');
+ });
+ it('preserves the date through the single-vendor checkout endpoint too', async () => {
+  const response = await request(app).post('/api/v1/orders').set(authHeader(signToken(customer))).send({ ...payload, vendor_id: String(vendorDoc._id), products: payload.items });
+  expect(response.status, JSON.stringify(response.body)).toBe(201);
+  const saved = await Order.findOne({ customer_id: customer._id }); expect(saved.scheduled_for.toISOString().slice(0,10)).toBe(key);
+ });
+ it('uses the persisted cart date when checkout omits schedule fields', async () => {
+  const added = await request(app).post('/api/v1/cart').set(authHeader(signToken(customer))).send({ product_id: String(product._id), quantity: 1, booking_type: 'pre_order', scheduled_for: key });
+  expect(added.status).toBe(200);
+  const { items, scheduled_for, fulfilment_type, ...checkout } = payload;
+  const response = await request(app).post('/api/v1/orders/cart-split').set(authHeader(signToken(customer))).send(checkout);
+  expect(response.status, JSON.stringify(response.body)).toBe(201);
+  const saved = await Order.findById(response.body.data.orderIds[0]); expect(saved.scheduled_for.toISOString().slice(0,10)).toBe(key);
+ });
+ it('rejects an ineligible date without debiting the wallet or creating an order', async () => {
+  payload.scheduled_for = new Date(new Date(key).getTime() + 86400000).toISOString().slice(0,10);
+  const balance = (await User.findById(customer._id)).wallet_balance;
+  const response = await request(app).post('/api/v1/orders/cart-split').set(authHeader(signToken(customer))).send(payload);
+  expect(response.status).toBe(400); expect(await Order.countDocuments()).toBe(0); expect((await User.findById(customer._id)).wallet_balance).toBe(balance);
+ });
+});
