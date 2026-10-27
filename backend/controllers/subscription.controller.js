@@ -176,7 +176,11 @@ const initializeSubscription = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Phone number is required for mobile money subscription payment.' });
     }
 
-    const feeBreakdown = applyMobileMoneyCollectionFee(plan.price, payment_method, currency);
+    // Subscription money stays with the platform, so no payout reserve is added.
+    const feeBreakdown = applyMobileMoneyCollectionFee(plan.price, payment_method, currency, {
+      provider: payment_method === 'pawapay' ? pawapay.detectProvider(normalizedPhone) : null,
+      payoutReserve: false,
+    });
     // Orange Money CM hard-rejects transaction IDs longer than 20 characters (returns HTTP 417).
     // PayUnit ref: SU(2) + ms-timestamp(13) + userId-tail(5) = 20 chars exactly. Uppercase required.
     const pawapayDepositId = payment_method === 'pawapay' ? crypto.randomUUID() : null;
@@ -348,7 +352,7 @@ const initializeSubscription = async (req, res, next) => {
       const correspondent = pawapay.detectProvider(normalizedPhone);
       if (!pawapay.isSupportedCameroonProvider(correspondent)) {
         await Transaction.updateOne({ _id: transaction._id, status: 'pending' }, { $set: { status: 'failed' } });
-        return res.status(400).json({ success: false, message: 'PawaPay is currently available for MTN Mobile Money only. Please use PayUnit for Orange Money.' });
+        return res.status(400).json({ success: false, message: pawapay.UNSUPPORTED_PROVIDER_MESSAGE });
       }
       await Transaction.updateOne({ _id: transaction._id }, { $set: { gateway_transaction_id: pawapayDepositId } });
       try {

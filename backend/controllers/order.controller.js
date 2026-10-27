@@ -39,7 +39,7 @@ const {
 const templates               = require('../utils/emailTemplates');
 const { markEscrowDelivered } = require('./escrow.controller');
 const { toXAF, assertOrderTotal } = require('../utils/platformFees');
-const { getMobileMoneyCollectionFee, isMobileMoneyGateway } = require('../utils/mobileMoneyFees');
+const { isMobileMoneyGateway } = require('../utils/mobileMoneyFees');
 const { hasRole } = require('../utils/roles');
 const { escapeRegExp } = require('../middleware/security.middleware');
 const { RETRY_TXN, shouldRetryTxn, withTxnRetry } = require('../utils/txnRetry');
@@ -511,7 +511,8 @@ const createOrderAttempt = async (req, res, next, isLastAttempt) => {
 
     await assertMinimumOrderAmount(vendor_id, subtotal, session);
 
-    const collection_fee = getMobileMoneyCollectionFee(payment_method);
+    // Mobile money fees are charged once on the payment (gross-up), never on the order.
+    const collection_fee = 0;
     const total_amount = toXAF(subtotal + shipping_fee + transit_fee + collection_fee - discount);
     assertOrderTotal({ subtotal, shipping_fee, collection_fee, discount, total_amount });
 
@@ -1791,7 +1792,7 @@ const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
 
       await assertMinimumOrderAmount(vendorId, subtotal, session);
 
-      const collectionFee = getMobileMoneyCollectionFee(payment_method);
+      const collectionFee = 0; // charged on the payment, see utils/mobileMoneyFees
       const orderTotal = toXAF(subtotal + shippingFee + cartTransitFee + collectionFee);
       assertOrderTotal({ subtotal, shipping_fee: shippingFee, collection_fee: collectionFee, total_amount: orderTotal });
 

@@ -8,7 +8,7 @@ const Settings = require('../models/PlatformSettings.model');
 const AuditLog = require('../models/AuditLog.model');
 const pawapay = require('./payment/gateways/pawapay.gateway');
 const { creditBalance } = require('./wallet.service');
-const { isAutoEligible, supportedMtnPhone } = require('../utils/withdrawalAutomation');
+const {isAutoEligible,supportedPawaPayoutPhone} = require('../utils/withdrawalAutomation');
 const { sendNotification } = require('../utils/notifier');
 const error = (statusCode,message) => Object.assign(new Error(message),{statusCode});
 
@@ -49,7 +49,7 @@ async function approvePawaWithdrawal({id, actorId, automaticEpoch=null, app}) {
       const owner=await User.findById(wr.requested_by).session(session);
       if(!owner?.is_active)throw error(409,'Withdrawal owner is missing or inactive. No payout was sent.');
       if(!wr.balance_deducted)throw error(409,'Withdrawal balance has not been reserved. Review it manually.');
-      if(wr.withdrawal_method!=='momo' || wr.currency!=='XAF' || String(wr.recipient_details?.country).toUpperCase()!=='CM' || !supportedMtnPhone(wr.recipient_details?.phone_number))throw error(400,'PawaPay automatic payouts support validated MTN Cameroon numbers only. Orange and unknown numbers require manual review.');
+      if(wr.withdrawal_method!=='momo' || wr.currency!=='XAF' || String(wr.recipient_details?.country).toUpperCase()!=='CM' || !supportedPawaPayoutPhone(wr.recipient_details?.phone_number))throw error(400,pawapay.isOrangeEnabled()?'PawaPay payouts support validated MTN and Orange Cameroon numbers only. Unknown numbers require manual review.':'PawaPay payouts support validated MTN Cameroon numbers only. Orange and unknown numbers require manual review.');
       if(wr.amount<100)throw error(400,'PawaPay payouts require at least 100 XAF.');
       const payoutId=crypto.randomUUID();
       claimed=await Withdrawal.findOneAndUpdate({_id:id,status:'pending'},{$set:{status:'approved',payout_gateway:'pawapay',eversend_transaction_id:payoutId,eversend_status:'SUBMITTING',reviewed_by:actorId,reviewed_at:new Date(),auto_approved:Boolean(automaticEpoch),failure_reason:null}},{session,returnDocument:'after'});
@@ -62,7 +62,7 @@ async function approvePawaWithdrawal({id, actorId, automaticEpoch=null, app}) {
   // The intent and stable provider reference are committed BEFORE any external call.
   let result;
   try {
-    result=await pawapay.createPayout({payoutId:claimed.eversend_transaction_id,amount:claimed.amount,currency:claimed.currency,correspondent:'MTN_MOMO_CMR',phone:claimed.recipient_details.phone_number,description:'Auradime withdrawal',clientRef:String(claimed._id)});
+    result=await pawapay.createPayout({payoutId:claimed.eversend_transaction_id,amount:claimed.amount,currency:claimed.currency,correspondent:pawapay.detectProvider(claimed.recipient_details.phone_number),phone:claimed.recipient_details.phone_number,description:'Auradime withdrawal',clientRef:String(claimed._id)});
   }catch(failure){
     // A timeout/5xx can follow provider acceptance: retain the reservation and
     // reconcile the same payout ID, never pay twice or refund an uncertain payout.

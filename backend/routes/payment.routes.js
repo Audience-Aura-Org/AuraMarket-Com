@@ -4,6 +4,7 @@ const { protect } = require('../middleware/auth.middleware');
 const {
   // Gateway registry
   listGateways,
+  listFeeRates,
   // Eversend
   eversendGetWallets,
   eversendInitialize,
@@ -41,6 +42,7 @@ router.use(protect);
 
 // Gateway Registry — checkout UI reads this to know which methods are available
 router.get('/gateways', listGateways);
+router.get('/fees', listFeeRates);
 router.post('/checkout/failed', failCheckoutPayment);
 
 // PayUnit

@@ -59,9 +59,12 @@ const detectProvider = (phone) => {
 };
 
 // Keep this aligned with the PawaPay live active configuration. The current
-// Auradime account has MTN Cameroon enabled; Orange must be enabled in PawaPay
-// before it can be offered to customers.
-const isSupportedCameroonProvider = (provider) => provider === 'MTN_MOMO_CMR';
+// Auradime account has MTN Cameroon enabled; set PAWAPAY_ORANGE_ENABLED=true
+// once PawaPay activates Orange Money for the account.
+const isOrangeEnabled = () => process.env.PAWAPAY_ORANGE_ENABLED === 'true';
+const isSupportedCameroonProvider = (provider) =>
+  provider === 'MTN_MOMO_CMR' || (provider === 'ORANGE_MONEY_CMR' && isOrangeEnabled());
+const UNSUPPORTED_PROVIDER_MESSAGE = 'PawaPay is currently available for MTN Mobile Money only. Please use PayUnit for Orange Money.';
 
 /**
  * Map PawaPay status strings to our internal status tokens.
@@ -488,7 +491,9 @@ const pawapayGateway = {
   // Expose internals so controller can use them
   normalizePhone,
   detectProvider,
+  isOrangeEnabled,
   isSupportedCameroonProvider,
+  UNSUPPORTED_PROVIDER_MESSAGE,
   normalizeStatus,
   normalizePawaPayoutStatus,
   formatAmount,

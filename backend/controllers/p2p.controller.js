@@ -54,7 +54,8 @@ const sanitizePhone = (phone, country = 'CM') => {
  */
 const initiateP2PGatewayPayment = async ({ gateway, phone, amount, platformFee, user, shipment, trackingCode, req }) => {
   const currency = 'XAF';
-  const feeBreakdown = applyMobileMoneyCollectionFee(amount, gateway, currency);
+  const provider = gateway === 'pawapay' && phone ? pawapay.detectProvider(phone) : null;
+  const feeBreakdown = applyMobileMoneyCollectionFee(amount, gateway, currency, { provider });
 
   const sharedMeta = {
     shipment_id: shipment._id,
@@ -70,7 +71,7 @@ const initiateP2PGatewayPayment = async ({ gateway, phone, amount, platformFee, 
   if (gateway === 'pawapay') {
     const correspondent = pawapay.detectProvider(phone);
     if (!pawapay.isSupportedCameroonProvider(correspondent)) {
-      throw new Error('PawaPay is currently available for MTN Mobile Money only. Please use PayUnit for Orange Money.');
+      throw new Error(pawapay.UNSUPPORTED_PROVIDER_MESSAGE);
     }
     // pawapay.initialize() creates the deposit + Transaction internally
     const result = await pawapay.initialize({

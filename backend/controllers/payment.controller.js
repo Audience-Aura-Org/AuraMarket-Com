@@ -14,7 +14,7 @@ const { PAYUNIT_WEBHOOK_SECRET } = require('../config/env');
 // -- New unified services -----------------------------------------------------
 const { settleOrders } = require('../services/payment/settle.service');
 const { getAvailableGateways } = require('../services/payment/gateway.registry');
-const { applyMobileMoneyCollectionFee } = require('../utils/mobileMoneyFees');
+const { applyMobileMoneyCollectionFee, getPublicFeeRates } = require('../utils/mobileMoneyFees');
 const { activateSubscription } = require('../services/subscription.service');
 const { creditBalance, generateRef: genWalletRef } = require('../services/wallet.service');
 const pawapay = require('../services/payment/gateways/pawapay.gateway');
@@ -247,6 +247,14 @@ const listGateways = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to load payment gateways.' });
   }
 };
+
+/**
+ * @desc    GET /api/payments/fees
+ *          Mobile money fee rates for the client-side estimate. The amount the
+ *          customer is actually charged always comes from the initialize response.
+ * @access  Private
+ */
+const listFeeRates = (req, res) => res.status(200).json({ success: true, data: getPublicFeeRates() });
 
 /**
  * Internal Helper: Settle orders after a confirmed payment.
@@ -1387,15 +1395,24 @@ const pawapayInitialize = async (req, res) => {
       return res.status(400).json({ success: false, message: 'PawaPay currently supports XAF only.' });
     }
 
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number is required.' });
+    }
+    // Resolve provider via auto-detection (always override client-supplied value)
+    const correspondent = pawapay.detectProvider(phone);
+    if (!pawapay.isSupportedCameroonProvider(correspondent)) {
+      return res.status(400).json({
+        success: false,
+        message: pawapay.UNSUPPORTED_PROVIDER_MESSAGE,
+      });
+    }
+
     const checkoutAmount = await getAuthoritativeCheckoutAmount(req.user._id, order_ids, currency);
     const netAmount = checkoutAmount ?? Number(amount || 0);
-    const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'pawapay', currency);
+    const feeBreakdown = applyMobileMoneyCollectionFee(netAmount, 'pawapay', currency, { provider: correspondent });
 
     if (!feeBreakdown.netAmount || feeBreakdown.netAmount <= 0) {
       return res.status(400).json({ success: false, message: 'Invalid amount.' });
-    }
-    if (!phone) {
-      return res.status(400).json({ success: false, message: 'Phone number is required.' });
     }
 
     // Idempotency guard: return existing pending deposit for this phone (within 15 min)
@@ -1426,15 +1443,6 @@ const pawapayInitialize = async (req, res) => {
           gross_amount: existingPending.metadata?.gross_amount || existingPending.amount,
           pending_resume: true,
         },
-      });
-    }
-
-    // Resolve provider via auto-detection (always override client-supplied value)
-    const correspondent = phone ? pawapay.detectProvider(phone) : (provider || 'MTN_MOMO_CMR');
-    if (!pawapay.isSupportedCameroonProvider(correspondent)) {
-      return res.status(400).json({
-        success: false,
-        message: 'PawaPay is currently available for MTN Mobile Money only. Please use PayUnit for Orange Money.',
       });
     }
 
@@ -1985,6 +1993,7 @@ const pawapayCheckoutWebhook = async (req, res) => {
 module.exports = {
   // Gateway registry endpoint
   listGateways,
+  listFeeRates,
   failCheckoutPayment,
   payunitInitialize,
   payunitVerify,

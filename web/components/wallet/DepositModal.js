@@ -11,7 +11,7 @@ import api from '@/services/api';
 import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 
-const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
+import { detectPawaPayProvider, estimateMobileMoneyFee, useMobileMoneyFeeRates } from '@/lib/mobileMoneyFees';
 
 /**
  * DepositModal — shared deposit flow for all wallet roles.
@@ -25,6 +25,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   const setWalletBalance = useAuthStore((state) => state.setWalletBalance);
   const [step, setStep]         = useState('amount'); // 'amount' | 'processing' | 'result'
   const [gateway, setGateway]   = useState('pawapay');
+  const feeRates = useMobileMoneyFeeRates();
   const [amount, setAmount]     = useState('');
   const [phone, setPhone]       = useState(userPhone);
   const [network, setNetwork]   = useState('CM');
@@ -61,13 +62,13 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   }, [userPhone]);
 
   // Auto-detect MTN vs Orange from phone prefix as user types.
-  // Cameroon 9-digit local prefixes: Orange = 655-659, 690-699; MTN = everything else.
+  // Cameroon 9-digit local prefixes: Orange = 620-629, 655-659, 690-699; MTN = everything else.
   useEffect(() => {
     if (gateway !== 'payunit' || !phone) return;
     const local = phone.replace(/[^\d]/g, '').replace(/^237/, '').replace(/^0/, '');
     if (local.length >= 3) {
       const prefix = parseInt(local.slice(0, 3), 10);
-      const isOrange = (prefix >= 655 && prefix <= 659) || (prefix >= 690 && prefix <= 699);
+      const isOrange = (prefix >= 620 && prefix <= 629) || (prefix >= 655 && prefix <= 659) || (prefix >= 690 && prefix <= 699);
       setService(isOrange ? 'CM_ORANGE' : 'CM_MTNMOMO');
     }
   }, [phone, gateway]);
@@ -108,9 +109,10 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
 
   if (!open) return null;
 
-  const netAmount      = Math.max(0, Number(amount || 0));
-  const collectionFee  = netAmount > 0 ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
-  const approvalAmount = netAmount + collectionFee;
+  const { netAmount, fee: collectionFee, grossAmount: approvalAmount } = estimateMobileMoneyFee(amount, gateway, {
+    provider: gateway === 'pawapay' ? detectPawaPayProvider(phone) : null,
+    rates: feeRates,
+  });
 
   // PayUnit verification returns the committed balance. Applying it directly
   // makes the persistent top nav update even if Socket.IO is delayed or absent.
@@ -354,7 +356,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                   />
                   {netAmount > 0 && (
                     <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 text-center tabular-nums">
-                      You will be charged {approvalAmount.toLocaleString()} XAF (includes {collectionFee} XAF processing fee)
+                      You will be charged {approvalAmount.toLocaleString()} XAF (includes {collectionFee.toLocaleString()} XAF mobile money fee). {netAmount.toLocaleString()} XAF reaches your wallet and can be withdrawn without fees.
                     </p>
                   )}
                 </div>

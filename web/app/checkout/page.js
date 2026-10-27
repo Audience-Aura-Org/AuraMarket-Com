@@ -57,7 +57,7 @@ const mergeCheckoutItems = (items = []) => {
 };
 
 const VENDOR_MANAGED_LOGISTICS_ID = 'vendor_managed';
-const MOBILE_MONEY_COLLECTION_FEE_XAF = 50;
+import { detectPawaPayProvider, estimateMobileMoneyFee, useMobileMoneyFeeRates } from '@/lib/mobileMoneyFees';
 const newCheckoutKey = () => (
   globalThis.crypto?.randomUUID?.() ||
   `chk-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`
@@ -81,6 +81,11 @@ function CheckoutContent() {
   const bookingTypeParam = searchParams.get('bookingType'); // set by MealDetailModal Buy Now
   const scheduledForParam = searchParams.get('scheduledFor'); // pre-order date from MealDetailModal
   const { user, setWalletBalance: setSharedWalletBalance, walletBalance, refreshWalletBalance } = useAuthStore();
+  const feeRates = useMobileMoneyFeeRates();
+  const estimateCheckoutFee = (amount, method) => estimateMobileMoneyFee(amount, method, {
+    provider: method === 'pawapay' ? detectPawaPayProvider(formData.pawapay?.phone || formData.phone) : null,
+    rates: feeRates,
+  }).fee;
   const displayedWalletBalance = Number(walletBalance ?? 0);
   
   const [step, setStep] = useState(1);
@@ -536,7 +541,7 @@ function CheckoutContent() {
     // Meals use the restaurant acceptance/refund pipeline rather than escrow.
     // One derived value keeps the UI, order payload, and payment action aligned.
     const effectiveEscrowEnabled = formData.escrowEnabled && !containsMeals;
-    const computedCollectionFee = isExternal ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
+    const computedCollectionFee = isExternal ? estimateCheckoutFee(computedOrderTotal, formData.paymentMethod) : 0;
     const totalAmount = computedOrderTotal + computedCollectionFee;
 
     if (isWalletPayment && displayedWalletBalance < computedOrderTotal) {
@@ -744,7 +749,7 @@ function CheckoutContent() {
                 setCheckoutTotals({
                   subtotal: computedSubtotal,
                   finalDeliveryFee: computedDelivery,
-                  totalAmount: computedOrderTotal + computedCollectionFee,
+                  totalAmount: Number(evRes.data?.gross_amount) || computedOrderTotal + computedCollectionFee,
                   items: order?.products?.length ? [...(order.products)] : [...currentCartItems]
                 });
                 cartStore.clearCart();
@@ -827,7 +832,9 @@ function CheckoutContent() {
       deliveryFee = feePerVendor * vendorIdsForSummary.length;
     }
 
-    const collectionFee = isMobileMoneyPayment(formData.paymentMethod) ? MOBILE_MONEY_COLLECTION_FEE_XAF : 0;
+    const collectionFee = isMobileMoneyPayment(formData.paymentMethod)
+      ? estimateCheckoutFee(subtotal + deliveryFee, formData.paymentMethod)
+      : 0;
     const totalAmount = (step === 3 && checkoutTotals)
       ? checkoutTotals.totalAmount
       : subtotal + deliveryFee + collectionFee;
@@ -842,6 +849,9 @@ function CheckoutContent() {
     isVendorManagedDelivery,
     formData.logistics_company_id,
     formData.paymentMethod,
+    formData.pawapay?.phone,
+    formData.phone,
+    feeRates,
     deliveryQuartier,
     feePerVendor,
     vendorIdsForSummary.length,

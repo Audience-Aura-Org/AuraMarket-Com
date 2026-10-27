@@ -319,7 +319,7 @@ const submitWithdrawalAttempt = async (req, res, _next, isLastAttempt) => {
       note: note || null,
       status: 'pending',
       balance_deducted: true,
-      auto_approval_epoch: platformSettings.withdrawal_automation?.enabled && currency === 'XAF' && country === 'CM' && require('../utils/withdrawalAutomation').supportedMtnPhone(recipient_details.phone_number) ? platformSettings.withdrawal_automation.epoch : null,
+      auto_approval_epoch: platformSettings.withdrawal_automation?.enabled && currency === 'XAF' && country === 'CM' && require('../utils/withdrawalAutomation').supportedPawaPayoutPhone(recipient_details.phone_number) ? platformSettings.withdrawal_automation.epoch : null,
     }], { session, ordered: true });
 
     // ── Create Pending Transaction Immediately

@@ -41,9 +41,9 @@ const normalizedCameroonPhone = (phone = '') => {
   return withCountryCode.slice(0, 9);
 };
 
-// Cameroon Orange ranges: 620–629, 655–659 and 690–699. PawaPay's current
-// live configuration is MTN-only, so Orange must be routed straight to PayUnit.
-export const resolveCameroonMobileMoneyGateway = (phone = '') => {
+// Cameroon Orange ranges: 620–629, 655–659 and 690–699. Orange goes to PayUnit
+// until the backend reports PawaPay Orange as enabled (PAWAPAY_ORANGE_ENABLED).
+export const resolveCameroonMobileMoneyGateway = (phone = '', { pawapayOrange = false } = {}) => {
   const local = normalizedCameroonPhone(phone);
   const prefix3 = Number(local.slice(0, 3));
   const isOrange = (prefix3 >= 620 && prefix3 <= 629)
@@ -51,10 +51,24 @@ export const resolveCameroonMobileMoneyGateway = (phone = '') => {
     || (prefix3 >= 690 && prefix3 <= 699);
 
   return {
-    gateway: isOrange ? 'payunit' : 'pawapay',
+    gateway: isOrange && !pawapayOrange ? 'payunit' : 'pawapay',
     provider: isOrange ? 'CM_ORANGE' : 'CM_MTNMOMO',
     network: isOrange ? 'orange' : 'mtn',
   };
+};
+
+let pawapayOrangeRequest = null;
+const isPawaPayOrangeEnabled = () => {
+  pawapayOrangeRequest ||= (async () => {
+    try {
+      const res = await api.get('/payments/fees');
+      return res?.data?.data?.pawapay_orange_enabled === true;
+    } catch {
+      pawapayOrangeRequest = null; // retry on the next payment
+      return false;
+    }
+  })();
+  return pawapayOrangeRequest;
 };
 
 const isSafePreChargeFallbackError = (error) => {
@@ -73,7 +87,7 @@ const isSafePreChargeFallbackError = (error) => {
  * or service failure; retrying after a network timeout could create two charges.
  */
 export const initiateSmartCameroonCollection = async (payload) => {
-  const route = resolveCameroonMobileMoneyGateway(payload.phone);
+  const route = resolveCameroonMobileMoneyGateway(payload.phone, { pawapayOrange: await isPawaPayOrangeEnabled() });
   const requestPayload = { ...payload, provider: route.provider };
 
   try {
@@ -85,9 +99,9 @@ export const initiateSmartCameroonCollection = async (payload) => {
     // PawaPay failed → try PayUnit → then Eversend
     if (route.gateway === 'pawapay') {
       try {
-        const fallbackPayload = { ...payload, provider: 'CM_MTNMOMO' };
+        const fallbackPayload = { ...payload, provider: route.provider };
         const result = await initiateCollection('payunit', fallbackPayload);
-        return { ...result, gateway: 'payunit', routedNetwork: 'mtn', fallbackUsed: true };
+        return { ...result, gateway: 'payunit', routedNetwork: route.network, fallbackUsed: true };
       } catch (payunitError) {
         if (!isSafePreChargeFallbackError(payunitError)) throw payunitError;
         // PayUnit also down → last resort: Eversend

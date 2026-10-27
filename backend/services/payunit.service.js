@@ -168,7 +168,8 @@ const detectCmProvider = (phone) => {
   const local = normalizePhone(phone, 'CM');
   if (!local || local.length < 3) return 'CM_MTNMOMO';
   const prefix = parseInt(local.slice(0, 3), 10);
-  if ((prefix >= 655 && prefix <= 659) || (prefix >= 690 && prefix <= 699)) {
+  // Orange: 620-629, 655-659, 690-699 (same ranges as pawapay.detectProvider and the web router)
+  if ((prefix >= 620 && prefix <= 629) || (prefix >= 655 && prefix <= 659) || (prefix >= 690 && prefix <= 699)) {
     return 'CM_ORANGE';
   }
   return 'CM_MTNMOMO';
