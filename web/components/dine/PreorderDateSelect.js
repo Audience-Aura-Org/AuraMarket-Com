@@ -30,9 +30,11 @@ const WEEKDAYS = Array.from({ length: 7 }, (_, i) => label(`2024-01-0${i + 1}`, 
 /**
  * Month calendar of the dates a meal can be pre-ordered for. Only eligible
  * days are tappable; an invalid `value` is shown as unselected.
+ * Pass `dates` (sorted "YYYY-MM-DD" keys) instead of `meal` when the choices
+ * are already known, e.g. the dates every meal in a cart allows.
  */
-export default function PreorderDateSelect({ meal, value, onChange, className = '' }) {
-  const dates = useMemo(() => eligiblePreorderDates(meal), [meal]);
+export default function PreorderDateSelect({ meal, dates: providedDates, value, onChange, className = '' }) {
+  const dates = useMemo(() => providedDates || eligiblePreorderDates(meal), [providedDates, meal]);
   const eligible = useMemo(() => new Set(dates), [dates]);
   const selected = eligible.has(value) ? value : '';
   const firstMonth = dates[0] ? monthKey(dates[0]) : null;

@@ -33,3 +33,12 @@ it('says so when no preorder dates are available', () => {
  render(<PreorderDateSelect meal={{ available_date: '2020-01-01', booking_options: [] }} value="" onChange={() => {}} />);
  expect(screen.getByRole('status').textContent).toContain('No preorder dates available');
 });
+
+it('accepts a precomputed list of dates (checkout: dates every meal allows)', () => {
+ const picked = [];
+ render(<PreorderDateSelect dates={['2030-03-08','2030-03-15']} value="2030-03-15" onChange={date => picked.push(date)} />);
+ const days = within(screen.getByRole('group', { name: 'Preorder date' })).getAllByRole('button').filter(button => /^\d+$/.test(button.textContent));
+ expect(days.map(button => [button.textContent, button.getAttribute('aria-pressed')])).toEqual([['8','false'],['15','true']]);
+ fireEvent.click(days[0]);
+ expect(picked).toEqual(['2030-03-08']);
+});

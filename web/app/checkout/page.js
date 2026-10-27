@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { eligiblePreorderDates } from '@/components/dine/PreorderDateSelect';
+import PreorderDateSelect, { eligiblePreorderDates } from '@/components/dine/PreorderDateSelect';
 import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { flushSync } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -1296,7 +1296,7 @@ function CheckoutContent() {
                               <label className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight ml-1">
                                 Scheduled Date <span className="text-orange-500">*</span>
                               </label>
-                              <select aria-label="Preorder date" value={preorderDates.includes(preOrderDate) ? preOrderDate : ''} onChange={e => setPreOrderDate(e.target.value)} className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"><option value="">Choose an available date</option>{preorderDates.map(date => <option key={date} value={date}>{new Date(date + 'T12:00:00Z').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}</option>)}</select>
+                              <PreorderDateSelect dates={preorderDates} value={preOrderDate} onChange={setPreOrderDate} className="md:mx-0" />
                             </div>
                           )}
 
