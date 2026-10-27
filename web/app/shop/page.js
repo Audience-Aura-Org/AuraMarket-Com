@@ -19,6 +19,7 @@ import VendorFollowButton from '@/components/VendorFollowButton';
 import { useLanguage } from '@/context/LanguageContext';
 import { TOP_NAV_HEIGHT, TOP_NAV_HEIGHT_LG } from '@/components/layout/TopNav';
 import cartStore from '@/services/cartStore';
+import { restaurantHref } from '@/lib/restaurantRoutes';
 
 const PRICE_RANGES = [
   { id: 'under-5000', name: 'Under 5,000 XAF', min: 0, max: 5000 },
@@ -620,7 +621,7 @@ function ShopContent() {
                         <button
                           type="button"
                           key={vendor._id}
-                          onClick={() => router.push(`/stores?id=${encodeURIComponent(vendor._id)}`)}
+                          onClick={() => router.push(vendor.vendor_type === 'restaurant' ? restaurantHref(vendor._id) : `/stores?id=${encodeURIComponent(vendor._id)}`)}
                           className="w-64 shrink-0 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--accent)]/30 hover:shadow-md transition-[color,background-color,border-color,box-shadow] duration-150 cursor-pointer overflow-hidden group shadow-sm flex flex-col relative text-left"
                         >
                           {/* Banner background thumbnail */}

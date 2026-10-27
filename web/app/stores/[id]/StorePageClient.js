@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Star, MapPin, Package, Users, Filter, LayoutGrid, List, ShieldCheck, Heart, UserPlus, UserMinus, Loader2, Check, Activity, Share2, ShoppingBag } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '@/components/ProductCard';
+import { restaurantHref } from '@/lib/restaurantRoutes';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { useChat } from '@/context/ChatContext';
@@ -72,7 +73,13 @@ export default function StorePage({ storeId: explicitStoreId = null }) {
           // nocache: bypass 3-day offline cache so store settings (minimum_order_amount, etc.) are always current
           const storeRes = await api.get(`/vendors/stores/${id}`, { params: { nocache: '1' } });
           if (storeRes.data.success) {
-            setStore(storeRes.data.data.store);
+            const loadedStore = storeRes.data.data.store;
+            // Restaurants sell meals, which the retail storefront never lists: open the menu instead.
+            if (loadedStore?.vendor_id?.vendor_type === 'restaurant') {
+              router.replace(restaurantHref(loadedStore.vendor_id._id));
+              return;
+            }
+            setStore(loadedStore);
           }
         }
 
