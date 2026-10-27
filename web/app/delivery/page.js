@@ -32,7 +32,13 @@ const WEIGHT_TIERS = [
   { value: 'extra_heavy', label: 'Extra Heavy (30+ kg)' },
 ];
 
-const INPUT_CLASS = 'delivery-input w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3.5 py-2.5 text-[13px] font-semibold text-[var(--text-primary)] placeholder:font-normal outline-none transition-all focus:border-[var(--accent)]/50 min-h-[44px]';
+// Earliest selectable pickup: now, in the local "YYYY-MM-DDTHH:mm" format datetime-local expects.
+const minPickupDateTime = () => {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+
+const INPUT_CLASS ='delivery-input w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3.5 py-2.5 text-[13px] font-semibold text-[var(--text-primary)] placeholder:font-normal outline-none transition-all focus:border-[var(--accent)]/50 min-h-[44px]';
 const LABEL_CLASS = 'delivery-label block text-[11px] font-bold text-[var(--text-secondary)] mb-1.5 ml-0.5';
 
 export default function DeliveryPage() {
@@ -1205,20 +1211,38 @@ export default function DeliveryPage() {
                   </div>
                   Pickup Time
                 </h3>
-                <label className="flex items-center gap-2 cursor-pointer rounded-lg px-3 py-1.5 hover:bg-white/5 transition-all">
+                {/* A real switch button: a label around a display:none checkbox can drop taps in mobile WebViews */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.scheduled}
+                  aria-label="Schedule pickup for later"
+                  onClick={() => setForm(p => ({ ...p, scheduled: !p.scheduled }))}
+                  className="flex min-h-9 items-center gap-2 rounded-lg px-3 py-1.5 transition-colors hover:bg-[var(--accent)]/5"
+                >
                   <span className="text-[12px] font-bold text-[var(--text-primary)]">{form.scheduled ? 'Scheduled' : 'ASAP'}</span>
-                  <div className={`relative w-5 h-5 rounded-full border-2 transition-all ${
+                  <span className={`relative flex size-5 items-center justify-center rounded-full border-2 transition-colors ${
                     form.scheduled ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--text-secondary)]/40'
                   }`}>
-                    {form.scheduled && <div className="absolute inset-0 flex items-center justify-center"><div className="size-1.5 bg-white rounded-full" /></div>}
-                  </div>
-                  <input type="checkbox" checked={form.scheduled} onChange={e => setForm(p => ({ ...p, scheduled: e.target.checked }))}
-                    className="hidden" />
-                </label>
+                    {form.scheduled && <span className="size-1.5 rounded-full bg-white" />}
+                  </span>
+                </button>
               </div>
               {(form.scheduled || error?.includes('not currently available')) && (
-                <input type="datetime-local" value={form.scheduled_date} onChange={e => setForm(p => ({ ...p, scheduled_date: e.target.value }))}
-                  className={INPUT_CLASS} placeholder="Select pickup time" />
+                <label className="relative block">
+                  <span className="sr-only">Pickup date and time</span>
+                  <input type="datetime-local" value={form.scheduled_date} onChange={e => setForm(p => ({ ...p, scheduled_date: e.target.value }))}
+                    min={minPickupDateTime()}
+                    className={`${INPUT_CLASS} appearance-none`}
+                    style={form.scheduled_date ? undefined : { color: 'transparent' }} />
+                  {/* iOS Safari / Android WebView draw an empty datetime field as a blank box: show our own prompt */}
+                  {!form.scheduled_date && (
+                    <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
+                      <Clock className="size-3.5 text-[var(--accent)]" />
+                      <span className="text-[13px]">Tap to choose pickup date &amp; time</span>
+                    </span>
+                  )}
+                </label>
               )}
             </div>
 

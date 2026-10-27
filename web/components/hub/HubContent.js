@@ -238,9 +238,9 @@ export default function HubContent() {
   ];
 
   return (
-    <div className="flex flex-1 min-h-[calc(100vh-57px)] bg-[var(--bg-secondary)] relative border-t border-[var(--glass-border)] pb-20 md:pb-0 pt-0 md:pt-14">
+    <div className="[&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-[var(--accent)] [&_a]:focus-visible:outline-offset-[-2px] [&_button]:focus-visible:outline-2 [&_button]:focus-visible:outline-[var(--accent)] [&_button]:focus-visible:outline-offset-[-2px] [&_input]:focus-visible:outline-2 [&_input]:focus-visible:outline-[var(--accent)] flex min-w-0 flex-1 min-h-[calc(100vh-57px)] bg-[var(--bg-secondary)] relative border-t border-[var(--glass-border)] pb-20 md:pb-0 pt-0 md:pt-14">
       {/* Background Ambience */}
-      <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
+      <div className="hidden absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none overflow-hidden">
          <div className="absolute top-[-10%] left-[-10%] size-96 bg-[var(--accent)] blur-[100px] rounded-full" />
          <div className="absolute bottom-[-10%] right-[-10%] size-96 bg-[var(--accent-light)] blur-[100px] rounded-full" />
       </div>
@@ -249,20 +249,20 @@ export default function HubContent() {
       <div className="md:hidden flex flex-col w-full relative z-10">
          {/* Sticky Tab Bar */}
          <div
-           className="sticky z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)] px-4 py-1 shadow-sm"
+           className="sticky z-30 bg-[var(--bg-primary)]/80 border-b border-[var(--glass-border)] px-4 py-1 shadow-sm"
            style={{ top: TOP_NAV_HEIGHT }}
          >
             <div className="flex bg-[var(--bg-secondary)] p-1 gap-1 rounded-full border border-[var(--glass-border)]/50">
             <button 
                onClick={() => setActiveTab('chats')}
-               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all  font-semibold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-60'}`}
+               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-[color,background-color,border-color,box-shadow] duration-150 font-semibold text-[10px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-sm shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-80'}`}
             >
                <MessageCircle className="size-4" />
                Chats
             </button>
             <button 
                onClick={() => setActiveTab('feed')}
-               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-all  font-semibold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-xl shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-60'}`}
+               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-full transition-[color,background-color,border-color,box-shadow] duration-150 font-semibold text-[10px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-sm shadow-[var(--accent)]/20' : 'text-[var(--text-secondary)] opacity-80'}`}
             >
                <LayoutGrid className="size-4" />
                Discover
@@ -275,37 +275,37 @@ export default function HubContent() {
                {activeTab === 'chats' ? (
                   <motion.div 
                     key="chats"
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 10 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
                     className="space-y-3"
                   >
-                     <div className="overflow-hidden rounded-xl bg-[#075e54] text-white shadow-md">
+                     <div className="overflow-hidden rounded-xl bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-md">
                        <div className="px-4 pb-3 pt-4">
-                         <h2 className="text-lg font-semibold tracking-tight">Chats</h2>
-                         <p className="mt-0.5 text-[13px] text-[#b8e5d1]">
+                         <h2 className="text-[12px] font-semibold tracking-tight">Chats</h2>
+                         <p className="mt-0.5 text-[12px] text-[var(--text-secondary)]">
                            {filteredInbox.length} conversation{filteredInbox.length !== 1 ? 's' : ''}
                          </p>
                        </div>
-                       <div className="bg-[#f0f2f5] px-3 pb-3 pt-0">
+                       <div className="bg-[var(--bg-secondary)] px-3 pb-3 pt-0">
                          <div className="relative">
-                           <Search className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-[#667781]" />
+                           <Search className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-[var(--text-secondary)]" />
                            <input
                              type="search"
                              value={searchTerm}
                              onChange={e => setSearchTerm(e.target.value)}
                              placeholder="Search"
-                             className="w-full rounded-lg border-0 bg-white py-2.5 pl-10 pr-3 text-[13px] placeholder:text-[11px] placeholder:font-normal text-[#111b21] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[#667781] focus:ring-2 focus:ring-[#00a884]/40"
+                             className="min-h-[56px] lg:min-h-[60px] w-full rounded-lg border-0 bg-[var(--bg-primary)] py-2.5 pl-10 pr-3 text-[12px] placeholder:text-[10px] placeholder:font-normal text-[var(--text-primary)] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-[#00a884]/40"
                            />
                          </div>
                        </div>
                      </div>
-                     <p className="mb-2 ml-1 mt-4 text-[11px] font-semibold uppercase tracking-wide text-[#667781]">Messages &amp; followed</p>
+                     <p className="mb-2 ml-1 mt-4 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Messages &amp; followed</p>
                      {filteredInbox.length === 0 ? (
                         <EmptyPlaceholder icon={MessageCircle} text="No messages yet. Follow vendors to chat!" />
                      ) : (
-                        <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
-                          <div className="divide-y divide-[#f0f2f5]">
+                        <div className="overflow-hidden rounded-xl bg-[var(--bg-primary)] shadow-sm ring-1 ring-black/[0.06]">
+                          <div className="divide-y divide-[var(--glass-border)]">
                             {filteredInbox.map(chat => <ChatLink key={chat.partner?._id || chat.id} chat={chat} />)}
                           </div>
                         </div>
@@ -314,9 +314,9 @@ export default function HubContent() {
                ) : (
                    <motion.div 
                      key="feed"
-                     initial={{ opacity: 0, x: 10 }}
-                     animate={{ opacity: 1, x: 0 }}
-                     exit={{ opacity: 0, x: -10 }}
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
+                     exit={{ opacity: 0 }}
                      className="space-y-3 pt-4"
                    >
                       {/* Category Chips - Ported from Shop */}
@@ -326,13 +326,13 @@ export default function HubContent() {
                             <Home className="size-3" />
                           </button>
                         ) : (
-                          <button onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }} className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] lg:text-[12px] font-medium ${activeCategoryName === 'All' ? 'bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
+                          <button onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }} className={`shrink-0 px-4 py-1.5 rounded-full border transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] font-medium ${activeCategoryName === 'All' ? 'bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
                             All
                           </button>
                         )}
                         
                         {breadcrumb.map((crumb, idx) => (
-                           <button key={crumb._id} onClick={() => handleBreadcrumbClick(idx)} className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] lg:text-[12px] font-medium ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
+                           <button key={crumb._id} onClick={() => handleBreadcrumbClick(idx)} className={`shrink-0 px-4 py-1.5 rounded-full border transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] font-medium ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white' : 'border-[var(--glass-border)] text-[var(--text-secondary)]'}`}>
                              {crumb.name}
                            </button>
                         ))}
@@ -341,7 +341,7 @@ export default function HubContent() {
                           <button
                             key={cat._id}
                             onClick={() => handleCategoryClick(cat)}
-                            className={`shrink-0 px-4 py-1.5 rounded-full border transition-all text-[10px] lg:text-[12px] font-medium border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)]`}
+                            className={`shrink-0 px-4 py-1.5 rounded-full border transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] font-medium border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)]`}
                           >
                             {cat.name}
                           </button>
@@ -353,17 +353,17 @@ export default function HubContent() {
                         <div className="relative">
                           <button 
                             onClick={() => setIsSortOpen(!isSortOpen)}
-                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-primary)] shadow-sm"
+                            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] font-semibold tracking-tight text-[var(--text-primary)] shadow-sm"
                           >
-                            <span className="text-[var(--text-secondary)] font-normal opacity-50 ">Sort:</span> 
+                            <span className="text-[var(--text-secondary)] font-normal opacity-80 ">Sort:</span>
                             {SORT_OPTIONS.find(s => s.value === sortBy)?.label}
-                            <ChevronRight className={`size-3 text-[var(--accent)] transition-transform ${isSortOpen ? 'rotate-90' : 'rotate-90'}`} />
+                            <ChevronRight className={`size-3 text-[var(--accent)] transition-[color,background-color,border-color,box-shadow] duration-150 ${isSortOpen ? 'rotate-90' : 'rotate-90'}`} />
                           </button>
                           
                           {isSortOpen && (
-                            <div className="absolute left-0 top-full mt-2 w-48 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[1.5rem] shadow-2xl overflow-hidden py-2 z-50">
+                            <div className="absolute left-0 top-full mt-2 w-48 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-[1.5rem] shadow-sm overflow-hidden py-2 z-50">
                                {SORT_OPTIONS.map(opt => (
-                                 <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-4 py-2.5 text-[11px] lg:text-[12px] font-medium transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--text-primary)] bg-[var(--bg-secondary)]/50' : 'text-[var(--text-secondary)]'}`}>
+                                 <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-4 py-2.5 text-[10px] font-medium transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--text-primary)] bg-[var(--bg-secondary)]/50' : 'text-[var(--text-secondary)]'}`}>
                                    {opt.label}
                                    {sortBy === opt.value && <Check className="size-3" />}
                                  </button>
@@ -373,16 +373,16 @@ export default function HubContent() {
                         </div>
                         
                         <div className="flex items-center gap-1 bg-[var(--bg-primary)] rounded-full p-0.5 border border-[var(--glass-border)]">
-                          <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-full transition-all flex items-center justify-center ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
+                          <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-full transition-[color,background-color,border-color,box-shadow] duration-150 flex items-center justify-center ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
                             <LayoutGrid className="size-3.5" />
                           </button>
-                          <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-full transition-all flex items-center justify-center ${viewMode === 'list' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
+                          <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-full transition-[color,background-color,border-color,box-shadow] duration-150 flex items-center justify-center ${viewMode === 'list' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-transparent'}`}>
                             <List className="size-3.5" />
                           </button>
                         </div>
                       </div>
                       
-                      <p className="text-[11px] lg:text-[12px]  font-semibold  tracking-[0.3em] opacity-40 mb-1">
+                      <p className="text-[10px] font-semibold tracking-normal opacity-80 mb-1">
                         {activeCategoryName === 'All' ? 'Calibrated Discovery' : activeCategoryName}
                       </p>
                       {feed.length === 0 ? (
@@ -397,7 +397,7 @@ export default function HubContent() {
                           <button
                             onClick={() => setPage(p => p + 1)}
                             disabled={loadingFeed}
-                            className="w-full py-4 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-sm"
+                            className="w-full py-4 rounded-full bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[10px] font-semibold tracking-tight hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-[color,background-color,border-color,box-shadow] duration-150 shadow-sm"
                           >
                             Synchronize More
                           </button>
@@ -411,7 +411,7 @@ export default function HubContent() {
        </div>
 
        {/* ── DESKTOP VIEW ────────────────────────────────────── */}
-       <div className="hidden md:flex flex-col flex-1 w-full relative z-10">
+       <div className="hidden md:flex min-w-0 flex-col flex-1 w-full relative z-10">
         
         {/* STICKY HEADER STACK: Matches Shop experience */}
         <div
@@ -428,29 +428,29 @@ export default function HubContent() {
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 placeholder="Search hub..."
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-14 text-[13px] placeholder:text-[11px] placeholder:font-normal focus:ring-1 focus:ring-[var(--accent)] outline-none transition-all placeholder:text-[var(--text-secondary)]/50 font-medium"
+                className="min-h-[56px] lg:min-h-[60px] w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-14 text-[12px] placeholder:text-[10px] placeholder:font-normal focus:ring-1 focus:ring-[var(--accent)] outline-none transition-[color,background-color,border-color,box-shadow] duration-150 placeholder:text-[var(--text-secondary)]/50 font-medium"
               />
-              <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 transition-all flex items-center justify-center  font-bold">
+              <button className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-sm hover:opacity-90 transition-[color,background-color,border-color,box-shadow] duration-150 flex items-center justify-center font-semibold">
                 <Search className="size-4" />
               </button>
             </div>
           </div>
 
           {/* Tab Selector & Category Chips */}
-          <div className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
-            <div className="max-w-7xl mx-auto px-6 lg:px-12 py-3 flex items-center gap-6">
+          <div className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 ">
+            <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3 flex flex-wrap items-center gap-3">
                {/* Mode Switcher */}
                <div className="flex bg-[var(--bg-secondary)] p-1 rounded-full gap-1 shrink-0 border border-[var(--glass-border)] shadow-inner">
                   <button 
                     onClick={() => setActiveTab('chats')}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all  font-semibold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-[color,background-color,border-color,box-shadow] duration-150 font-semibold text-[10px] tracking-tight ${activeTab === 'chats' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                   >
                     <MessageCircle className="size-3.5" />
                     Chats
                   </button>
                   <button 
                     onClick={() => setActiveTab('feed')}
-                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all  font-semibold text-[10px] lg:text-[12px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                    className={`flex items-center gap-2 px-6 py-2 rounded-full transition-[color,background-color,border-color,box-shadow] duration-150 font-semibold text-[10px] tracking-tight ${activeTab === 'feed' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                   >
                     <LayoutGrid className="size-3.5" />
                     Discover
@@ -461,17 +461,17 @@ export default function HubContent() {
                <div className="h-8 w-px bg-[var(--glass-border)] shrink-0" />
 
                {/* Category Chips - Ported from Shop */}
-               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar flex-1">
+               <div className="flex items-center gap-2 min-w-0 overflow-x-auto no-scrollbar flex-1">
                  {isCategoriesLoading && currentLevel.length === 0 ? null : (
                   <>
                    {breadcrumb.length > 0 ? (
-                     <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] aura-cat-chip font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+                     <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] aura-cat-chip font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-[color,background-color,border-color,box-shadow] duration-150">
                        <Home className="size-3.5" /> Hub
                      </button>
                    ) : (
                       <button 
                         onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                        className={`shrink-0 px-5 py-2 rounded-full border transition-all text-[11px] lg:text-[12px] aura-cat-chip font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                        className={`shrink-0 px-5 py-2 rounded-full border transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] aura-cat-chip font-medium shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                       >
                         All Signals
                       </button>
@@ -482,7 +482,7 @@ export default function HubContent() {
                         <ChevronRight className="size-3 text-[var(--glass-border)]" />
                         <button 
                           onClick={() => handleBreadcrumbClick(idx)} 
-                          className={`px-5 py-2 rounded-full border transition-all text-[11px] lg:text-[12px] aura-cat-chip font-medium shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                          className={`px-5 py-2 rounded-full border transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] aura-cat-chip font-medium shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                         >
                           {crumb.name}
                         </button>
@@ -498,7 +498,7 @@ export default function HubContent() {
                           if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
                           else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
                         }}
-                        className={`shrink-0 px-5 py-2 rounded-full border transition-all text-[11px] lg:text-[12px] aura-cat-chip font-medium shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                        className={`shrink-0 px-5 py-2 rounded-full border transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] aura-cat-chip font-medium shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                      >
                        {cat.name}
                      </button>
@@ -516,23 +516,23 @@ export default function HubContent() {
           {/* TAB: CHATS */}
           {activeTab === 'chats' && (
             <div className="mx-auto max-w-6xl p-6 lg:px-12">
-               <div className="mb-6 overflow-hidden rounded-2xl bg-[#075e54] text-white shadow-lg md:rounded-xl">
+               <div className="mb-6 overflow-hidden rounded-2xl bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm md:rounded-xl">
                   <div className="flex flex-wrap items-end justify-between gap-4 px-6 pb-4 pt-6">
                      <div>
-                        <h2 className="text-2xl font-semibold tracking-tight">Chats</h2>
-                        <p className="mt-1 text-[14px] text-[#b8e5d1]">Same layout as messages — search and open a thread</p>
+                        <h2 className="text-[12px] font-semibold tracking-tight">Chats</h2>
+                        <p className="mt-1 text-[12px] text-[var(--text-secondary)]">Same layout as messages — search and open a thread</p>
                      </div>
-                     <Heart className="size-6 shrink-0 text-[#b8e5d1] opacity-90" />
+                     <Heart className="size-6 shrink-0 text-[var(--text-secondary)] opacity-90" />
                   </div>
-                  <div className="bg-[#f0f2f5] px-4 pb-4 pt-1">
+                  <div className="bg-[var(--bg-secondary)] px-4 pb-4 pt-1">
                      <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-[#667781]" />
+                        <Search className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-[var(--text-secondary)]" />
                         <input
                           type="search"
                           value={searchTerm}
                           onChange={e => setSearchTerm(e.target.value)}
                           placeholder="Search"
-                          className="w-full rounded-lg border-0 bg-white py-3 pl-10 pr-4 text-[13px] placeholder:text-[11px] placeholder:font-normal text-[#111b21] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[#667781] focus:ring-2 focus:ring-[#00a884]/40"
+                          className="min-h-[56px] lg:min-h-[60px] w-full rounded-lg border-0 bg-[var(--bg-primary)] py-3 pl-10 pr-4 text-[12px] placeholder:text-[10px] placeholder:font-normal text-[var(--text-primary)] shadow-sm outline-none ring-1 ring-black/[0.06] placeholder:text-[var(--text-secondary)] focus:ring-2 focus:ring-[#00a884]/40"
                         />
                      </div>
                   </div>
@@ -540,12 +540,12 @@ export default function HubContent() {
 
                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                   <div className="space-y-2">
-                     <p className="px-1 text-[12px] font-semibold uppercase tracking-wide text-[#667781]">Messages</p>
-                     <div className="min-h-[320px] overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
+                     <p className="px-1 text-[12px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Messages</p>
+                     <div className="min-h-[320px] overflow-hidden rounded-xl bg-[var(--bg-primary)] shadow-sm ring-1 ring-black/[0.06]">
                         {filteredInbox.filter(c => !c.isFollowed).length === 0 ? (
                           <EmptyPlaceholder icon={MessageCircle} text="No conversations yet." />
                         ) : (
-                          <div className="divide-y divide-[#f0f2f5]">
+                          <div className="divide-y divide-[var(--glass-border)]">
                              {filteredInbox.filter(c => !c.isFollowed).map(chat => <ChatLink key={chat.partner?._id || chat.id} chat={chat} />)}
                           </div>
                         )}
@@ -553,12 +553,12 @@ export default function HubContent() {
                   </div>
 
                   <div className="space-y-2">
-                     <p className="px-1 text-[12px] font-semibold uppercase tracking-wide text-[#667781]">Followed vendors</p>
-                     <div className="min-h-[320px] overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/[0.06]">
+                     <p className="px-1 text-[12px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">Followed vendors</p>
+                     <div className="min-h-[320px] overflow-hidden rounded-xl bg-[var(--bg-primary)] shadow-sm ring-1 ring-black/[0.06]">
                         {filteredInbox.filter(c => c.isFollowed).length === 0 ? (
                           <EmptyPlaceholder icon={Users} text="Follow vendors to see them here." />
                         ) : (
-                          <div className="divide-y divide-[#f0f2f5]">
+                          <div className="divide-y divide-[var(--glass-border)]">
                              {filteredInbox.filter(c => c.isFollowed).map(chat => <ChatLink key={chat.partner?._id || chat.id} chat={chat} />)}
                           </div>
                         )}
@@ -570,15 +570,15 @@ export default function HubContent() {
 
           {/* TAB: Discovery (FEED) */}
           {activeTab === 'feed' && (
-            <div className="max-w-[1600px] mx-auto p-6 lg:p-12">
+            <div className="max-w-[1600px] mx-auto p-3 sm:p-4 lg:p-6">
               {/* Toolbar */}
-              <div className="flex items-center justify-between mb-8 gap-4">
+              <div className="flex flex-wrap items-center justify-between mb-4 gap-3">
                 <div className="flex items-center gap-3">
-                  <h3 className="text-xl  font-bold text-[var(--text-primary)] tracking-tight">
+                  <h3 className="text-[12px] font-semibold text-[var(--text-primary)] tracking-tight">
                     {activeCategoryName === 'All' ? 'Aura Discovery' : activeCategoryName}
                   </h3>
                   <div className="h-4 w-px bg-[var(--glass-border)]" />
-                  <p className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight opacity-60">
+                  <p className="text-[10px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-80">
                     {feed.length} Results
                   </p>
                 </div>
@@ -588,16 +588,16 @@ export default function HubContent() {
                   <div className="relative">
                     <button 
                       onClick={() => setIsSortOpen(!isSortOpen)}
-                      className="flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-sm"
+                      className="flex items-center gap-2 px-6 py-3 rounded-full border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] font-semibold tracking-tight shadow-sm"
                     >
-                      <span className="text-[var(--text-secondary)] font-normal opacity-60">Sort:</span> 
+                      <span className="text-[var(--text-secondary)] font-normal opacity-80">Sort:</span>
                       {SORT_OPTIONS.find(s => s.value === sortBy)?.label}
-                      <ChevronRight className={`size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
+                      <ChevronRight className={`size-3 text-[var(--text-secondary)] transition-[color,background-color,border-color,box-shadow] duration-150 ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
                     </button>
                     {isSortOpen && (
-                      <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-sm overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                          {SORT_OPTIONS.map(opt => (
-                           <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                           <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[10px] font-semibold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                              {opt.label}
                              {sortBy === opt.value && <Check className="size-3.5" />}
                            </button>
@@ -608,10 +608,10 @@ export default function HubContent() {
 
                   {/* View Mode */}
                   <div className="flex bg-[var(--bg-primary)] rounded-full p-1 border border-[var(--glass-border)] shadow-inner">
-                    <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-full transition-all ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)]'}`}>
+                    <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-full transition-[color,background-color,border-color,box-shadow] duration-150 ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)]'}`}>
                       <LayoutGrid className="size-4" />
                     </button>
-                    <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-full transition-all ${viewMode === 'list' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)]'}`}>
+                    <button onClick={() => setViewMode('list')} className={`p-2.5 rounded-full transition-[color,background-color,border-color,box-shadow] duration-150 ${viewMode === 'list' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)]'}`}>
                       <List className="size-4" />
                     </button>
                   </div>
@@ -620,17 +620,17 @@ export default function HubContent() {
 
               {/* Product Grid - 6 PER ROW REQUEST */}
               {feed.length === 0 ? (
-                <div className="py-20 text-center bg-[var(--bg-primary)]/40 rounded-[48px] border border-[var(--glass-border)] border-dashed">
+                <div className="py-20 text-center bg-[var(--bg-primary)]/40 rounded-3xl border border-[var(--glass-border)] border-dashed">
                   <div className="size-20 bg-[var(--accent)]/5 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                     <Search className="size-8 text-[var(--accent)] opacity-20" />
                   </div>
-                  <h3 className="text-2xl  font-bold text-[var(--text-primary)] mb-2  tracking-tighter">{loadingFeed ? 'Discovery syncing' : 'No Frequency Detected'}</h3>
-                  <p className="text-sm font-medium text-[var(--text-secondary)] opacity-60">
+                  <h3 className="text-[12px] font-semibold text-[var(--text-primary)] mb-2 tracking-normal">{loadingFeed ? 'Discovery syncing' : 'No Frequency Detected'}</h3>
+                  <p className="text-[12px] font-medium text-[var(--text-secondary)] opacity-80">
                     {loadingFeed ? 'Products appear here as soon as the latest feed arrives.' : 'Adjust your category filters or try a different search signal.'}
                   </p>
                 </div>
               ) : (
-                <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-6 mb-12" : "flex flex-col gap-5 mb-12 max-w-5xl mx-auto"}>
+                <div className={viewMode === 'grid' ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 mb-12" : "flex flex-col gap-5 mb-12 max-w-5xl mx-auto"}>
                   {feed.map(product => <ProductCard key={product._id} product={product} layout={viewMode} />)}
                 </div>
               )}
@@ -641,7 +641,7 @@ export default function HubContent() {
                   <button
                     onClick={() => setPage(p => p + 1)}
                     disabled={loadingFeed}
-                    className="px-12 py-5 rounded-full bg-[var(--bg-primary)] border-2 border-[var(--glass-border)] text-[11px] lg:text-[12px]  font-semibold  tracking-[0.2em] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-all shadow-xl shadow-[var(--accent)]/5 disabled:opacity-50 active:scale-95"
+                    className="px-12 py-5 rounded-full bg-[var(--bg-primary)] border-2 border-[var(--glass-border)] text-[10px] font-semibold tracking-normal hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] transition-[color,background-color,border-color,box-shadow] duration-150 shadow-sm shadow-[var(--accent)]/5 disabled:opacity-80 "
                   >
                     {loadingFeed ? <Loader2 className="size-5 animate-spin" /> : 'Synchronize More Results'}
                   </button>
@@ -663,7 +663,7 @@ function EmptyPlaceholder({ icon: Icon, text }) {
       <div className="size-14 rounded-2xl bg-[var(--accent)]/5 flex items-center justify-center mb-4">
         <Icon className="size-6 text-[var(--accent)]/40" />
       </div>
-      <p className="text-xs font-medium text-[var(--text-secondary)]/60">{text}</p>
+      <p className="text-[12px] font-medium text-[var(--text-secondary)]/60">{text}</p>
     </div>
   );
 }
@@ -693,8 +693,8 @@ function ChatLink({ chat }) {
     <button
       type="button"
       onClick={handleClick}
-      className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors active:bg-[#f5f6f6] sm:gap-4 sm:px-4 ${
-        unreadCount > 0 ? 'bg-[#f0fff4]' : 'bg-white hover:bg-[#f5f6f6]'
+      className={`flex w-full items-center gap-3 px-3 py-3 text-left transition-colors active:bg-[var(--bg-secondary)] sm:gap-4 sm:px-4 ${
+        unreadCount > 0 ? 'bg-[var(--accent)]/5' : 'bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)]'
       }`}
     >
       <div className="relative shrink-0">
@@ -712,15 +712,15 @@ function ChatLink({ chat }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="mb-0.5 flex items-start justify-between gap-2">
-          <p className={`truncate text-[16px] capitalize ${unreadCount > 0 ? 'font-semibold text-[#111b21]' : 'font-medium text-[#111b21]'}`}>
+          <p className={`truncate text-[12px] capitalize ${unreadCount > 0 ? 'font-semibold text-[var(--text-primary)]' : 'font-medium text-[var(--text-primary)]'}`}>
             {partnerName}
           </p>
-          <span className="shrink-0 pt-0.5 text-[12px] text-[#667781]">
+          <span className="shrink-0 pt-0.5 text-[12px] text-[var(--text-secondary)]">
             {chat.isFollowed ? 'Following' : formatTime(chat.date)}
           </span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <p className={`min-w-0 flex-1 truncate text-[14px] leading-snug ${unreadCount > 0 ? 'font-medium text-[#111b21]' : 'text-[#667781]'}`}>
+          <p className={`min-w-0 flex-1 truncate text-[12px] leading-snug ${unreadCount > 0 ? 'font-medium text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
             {chat.snippet || 'Tap to chat'}
           </p>
           {unreadCount > 0 && (

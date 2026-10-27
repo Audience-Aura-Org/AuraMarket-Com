@@ -14,7 +14,7 @@ export default function DiscoveryHubPage() {
   // This allows for seamless transitions between operational and consumer views.
   
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-[var(--bg-primary)]">
+    <div className="flex min-w-0 flex-col min-h-screen bg-[var(--bg-primary)]">
       <TopNav />
       <HubContent />
     </div>

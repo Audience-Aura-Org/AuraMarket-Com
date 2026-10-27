@@ -229,6 +229,13 @@ html[data-font-size] [class*="text-[15px]"] { font-size: calc(17px * var(--aura-
   html[data-font-size] [class*="text-[15px]"] { font-size: calc(17px * var(--aura-text-scale, 1)) !important; }
 }
 
+/* Native date/time controls follow the app theme (text, icons and picker), not the OS theme. */
+.dark input[type="date"],
+.dark input[type="time"],
+.dark input[type="datetime-local"] {
+  color-scheme: dark;
+}
+
 .dark {
   --bg-primary: #0A0A0C;
   --bg-secondary: #0A0A0C;

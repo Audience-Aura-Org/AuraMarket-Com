@@ -315,7 +315,7 @@ function ShopContent() {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 md:pt-0">
+    <div className="[&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-[var(--accent)] [&_a]:focus-visible:outline-offset-[-2px] [&_button]:focus-visible:outline-2 [&_button]:focus-visible:outline-[var(--accent)] [&_button]:focus-visible:outline-offset-[-2px] [&_input]:focus-visible:outline-2 [&_input]:focus-visible:outline-[var(--accent)] min-h-screen bg-[var(--bg-secondary)] text-[var(--text-primary)] selection:bg-[var(--accent)]/30 md:pt-0">
         <div className="flex flex-col w-full min-h-screen relative">
 
         {/* STICKY HEADER STACK: Search + Category bar */}
@@ -337,29 +337,29 @@ function ShopContent() {
                 onChange={e => setSearch(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') { setPage(1); pageRef.current = 1; setHasMore(true); fetchProducts(1, true); } }}
                 style={{ touchAction: 'manipulation' }}
-                className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[13px] font-semibold placeholder:text-[11px] placeholder:font-normal outline-none transition-all placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
+                className="min-h-[56px] lg:min-h-[60px] w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-full py-2.5 pl-5 pr-12 text-[12px] font-semibold placeholder:text-[10px] placeholder:font-normal outline-none transition-[color,background-color,border-color,box-shadow] duration-150 placeholder:text-[var(--text-secondary)]/50 focus:border-[var(--accent)]/50 focus:ring-4 focus:ring-[var(--accent)]/5"
               />
               <button 
                 onClick={() => { setPage(1); pageRef.current = 1; setHasMore(true); fetchProducts(1, true); }}
-                className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-lg hover:opacity-90 transition-all flex items-center justify-center  font-bold"
+                className="absolute right-1 top-1 h-[calc(100%-8px)] px-5 bg-[var(--accent)] text-white rounded-full shadow-sm hover:opacity-90 transition-[color,background-color,border-color,box-shadow] duration-150 flex items-center justify-center font-semibold"
               >
                 <Search className="size-4" />
               </button>
             </div>
           </div>
 
-          <div className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl">
+          <div className="border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 ">
             <div className="py-2 sm:py-3 flex items-center gap-2 md:gap-3 overflow-x-auto no-scrollbar w-full px-4 sm:px-6 lg:px-12">
                {isCategoriesLoading && currentLevel.length === 0 ? null : (
                 <>
                  {breadcrumb.length > 0 ? (
-                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] lg:text-[12px] aura-cat-chip font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+                   <button onClick={() => handleBreadcrumbClick(-1)} className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[10px] aura-cat-chip font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-[color,background-color,border-color,box-shadow] duration-150">
                      <Home className="size-3.5" /> {t('common.market')}
                    </button>
                  ) : (
                     <button 
                       onClick={() => { setActiveCategoryId(null); setActiveCategoryName('All'); }}
-                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] aura-cat-chip font-semibold tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
+                      className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] aura-cat-chip font-semibold tracking-tight shadow-sm ${activeCategoryName === 'All' ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] border-[var(--text-primary)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]'}`}
                     >
                       {t('common.all')}
                     </button>
@@ -370,7 +370,7 @@ function ShopContent() {
                       <ChevronRight className="size-3 text-[var(--glass-border)]" />
                        <button 
                         onClick={() => handleBreadcrumbClick(idx)} 
-                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] aura-cat-chip font-semibold tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
+                        className={`px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] aura-cat-chip font-semibold tracking-tight shadow-sm ${idx === breadcrumb.length - 1 && currentLevel.length === 0 ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-transparent text-[var(--text-secondary)] hover:border-[var(--text-primary)]'}`}
                       >
                         {label(crumb.name)}
                       </button>
@@ -386,7 +386,7 @@ function ShopContent() {
                          if (cat.children && cat.children.length > 0) handleCategoryClick(cat);
                          else { setActiveCategoryId(cat._id); setActiveCategoryName(cat.name); }
                        }}
-                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-all text-[11px] lg:text-[12px] aura-cat-chip font-semibold tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
+                       className={`shrink-0 px-4 py-2 md:px-5 md:py-2.5 rounded-full border transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] aura-cat-chip font-semibold tracking-tight shadow-sm ${activeCategoryId === cat._id ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)]'}`}
                     >
                       {label(cat.name)}
                     </button>
@@ -413,10 +413,10 @@ function ShopContent() {
 
             {/* 2. Identity & Stats Overlay - CENTRALIZED WRAPPER ONLY */}
             <div className="max-w-7xl mx-auto px-4 md:px-12 relative z-10 -mt-10 md:-mt-14 pb-4">
-              <div className="glass-panel rounded-3xl md:rounded-[3rem] p-4 md:p-6 border border-[var(--glass-border)] shadow-2xl bg-[var(--bg-primary)]/80 backdrop-blur-3xl overflow-hidden">
+              <div className="rounded-3xl md:rounded-3xl p-4 md:p-6 border border-[var(--glass-border)] shadow-sm bg-[var(--bg-primary)]/80 overflow-hidden">
                 <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-center md:items-center text-center md:text-left">
                   {/* Overlapping Logo - ULTRA COMPACT */}
-                  <div className="size-16 md:size-24 rounded-2xl md:rounded-[2rem] border-2 md:border-4 border-[var(--bg-primary)] overflow-hidden shadow-lg shrink-0 bg-[var(--bg-secondary)] relative group">
+                  <div className="size-16 md:size-24 rounded-2xl md:rounded-3xl border-2 md:border-4 border-[var(--bg-primary)] overflow-hidden shadow-sm shrink-0 bg-[var(--bg-secondary)] relative group">
                     <BlurUpImage 
                       src={activeVendor.logo || activeVendor.vendor_id?.user_id?.branding?.logo || activeVendor.vendor_id?.user_id?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(activeVendor.vendor_id?.store_name || 'Store')}&background=random&size=200`} 
                       className="size-full" 
@@ -427,7 +427,7 @@ function ShopContent() {
 
                   <div className="flex-1 min-w-0 w-full space-y-3">
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                      <h1 className="text-xl md:text-3xl  font-bold tracking-tighter text-[var(--text-primary)] ">
+                      <h1 className="text-[12px] font-semibold tracking-normal text-[var(--text-primary)] ">
                         {activeVendor.vendor_id?.store_name}
                       </h1>
                       {activeVendor.vendor_id?.verified && (
@@ -438,26 +438,26 @@ function ShopContent() {
                     </div>
 
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-all">
-                        <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 group-hover:scale-110 transition-transform" />
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--accent)]/5 border border-[var(--accent)]/10 shadow-sm group hover:bg-[var(--accent)]/10 transition-[color,background-color,border-color,box-shadow] duration-150">
+                        <Star className="size-3.5 text-[var(--accent)] fill-[var(--accent)]/20 transition-[color,background-color,border-color,box-shadow] duration-150" />
                         {Number(activeVendor.vendor_id?.rating || 0) > 0 && (
-                          <span className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-primary)]">
+                          <span className="text-[10px] font-semibold text-[var(--text-primary)]">
                             {Number(activeVendor.vendor_id.rating).toFixed(1)}
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-all">
-                        <Users className="size-3.5 text-[var(--accent)] group-hover:scale-110 transition-transform" />
-                        <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-primary)]">
+                      <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] shadow-sm group hover:border-[var(--accent)]/30 transition-[color,background-color,border-color,box-shadow] duration-150">
+                        <Users className="size-3.5 text-[var(--accent)] transition-[color,background-color,border-color,box-shadow] duration-150" />
+                        <span className="text-[10px] font-semibold text-[var(--text-primary)]">
                           {activeVendor.vendor_id?.follower_count ? (activeVendor.vendor_id.follower_count >= 1000 ? (activeVendor.vendor_id.follower_count / 1000).toFixed(1) + 'k' : activeVendor.vendor_id.follower_count) : '0'}
                         </span>
-                        <span className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)]  opacity-40">{t('common.network')}</span>
+                        <span className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-80">{t('common.network')}</span>
                       </div>
 
                       <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 shadow-sm">
                         <ShieldCheck className="size-3.5 text-emerald-600" />
-                        <span className="text-[11px] lg:text-[12px]  font-semibold text-emerald-600 tracking-tight">{t('common.verifiedVendor')}</span>
+                        <span className="text-[10px] font-semibold text-emerald-600 tracking-tight">{t('common.verifiedVendor')}</span>
                       </div>
                     </div>
                   </div>
@@ -469,7 +469,7 @@ function ShopContent() {
                         store_name: activeVendor.vendor_id?.store_name,
                         branding: { logo: activeVendor.logo || activeVendor.vendor_id?.user_id?.branding?.logo }
                       })}
-                      className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)]  font-semibold text-[10px] lg:text-[12px] tracking-tight  hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-all shadow-sm flex-1 md:flex-none"
+                      className="h-10 md:h-11 px-6 rounded-xl bg-[var(--bg-primary)] border border-[var(--glass-border)] text-[var(--text-primary)] font-semibold text-[10px] tracking-tight hover:bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 transition-[color,background-color,border-color,box-shadow] duration-150 shadow-sm flex-1 md:flex-none"
                     >
                       {t('common.contact')}
                     </button>
@@ -487,9 +487,9 @@ function ShopContent() {
                   const pct = Math.min(100, Math.round((subtotal / minimum) * 100));
                   const met = subtotal >= minimum;
                   return (
-                    <div className={`mt-3 rounded-2xl border px-3 py-2.5 transition-colors duration-300 ${met ? 'border-emerald-500/25 bg-emerald-500/5' : 'border-amber-500/25 bg-amber-500/5'}`}>
+                    <div className={`mt-3 rounded-2xl border px-3 py-2.5 transition-colors duration-150 ${met ? 'border-emerald-500/25 bg-emerald-500/5' : 'border-amber-500/25 bg-amber-500/5'}`}>
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className={`text-[10px] font-bold tracking-tight flex items-center gap-1 ${met ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        <span className={`text-[10px] font-semibold tracking-tight flex items-center gap-1 ${met ? 'text-emerald-600' : 'text-amber-600'}`}>
                           {met ? null : <AlertTriangle className="size-3 shrink-0" />}
                           {met ? 'Minimum order met' : `Add ${(minimum - subtotal).toLocaleString()} XAF to meet min. order`}
                         </span>
@@ -498,7 +498,7 @@ function ShopContent() {
                         </span>
                       </div>
                       <div className="h-1 rounded-full bg-[var(--bg-secondary)] overflow-hidden">
-                        <div className={`h-full rounded-full transition-all duration-500 ${met ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${pct}%` }} />
+                        <div className={`h-full rounded-full transition-[color,background-color,border-color,box-shadow] duration-150 ${met ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   );
@@ -509,13 +509,13 @@ function ShopContent() {
         )}
 
         {/* ── MAIN CONTENT ── */}
-        <main ref={resultsAnchor} className="flex-1 bg-[var(--bg-secondary)] min-h-screen transition-colors duration-500 overflow-hidden pt-[1px]">
+        <main ref={resultsAnchor} className="flex-1 bg-[var(--bg-secondary)] min-h-screen transition-colors duration-150 overflow-hidden pt-[1px]">
           
           {/* Results Info & Action Bar */}
-          <div className="px-3 md:px-6 lg:px-12 py-1.5 md:py-3 border-b border-[var(--glass-border)] flex items-center justify-between gap-2 md:gap-3 bg-[var(--bg-secondary)]">
+          <div className="px-3 md:px-6 lg:px-12 py-1.5 md:py-3 border-b border-[var(--glass-border)] flex flex-wrap items-center justify-between gap-2 md:gap-3 bg-[var(--bg-secondary)]">
             
             <div className="flex items-center gap-2 md:gap-3 min-w-0">
-              <h3 className="text-[11px] md:text-[16px] font-bold text-[var(--text-primary)] tracking-tight truncate">
+              <h3 className="text-[12px] font-semibold text-[var(--text-primary)] tracking-tight truncate">
                 {activeCategoryName === 'All' ? t('common.globalMarket') : label(activeCategoryName)}
               </h3>
               <Link
@@ -532,19 +532,19 @@ function ShopContent() {
               <div className="relative dropdown-container">
                 <button 
                   onClick={() => { setIsPriceOpen(!isPriceOpen); setIsSortOpen(false); }}
-                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-sm"
+                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] font-semibold tracking-tight shadow-sm"
                 >
                   {t('common.price')}
-                  <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isPriceOpen ? 'rotate-90' : ''}`} />
+                  <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-[color,background-color,border-color,box-shadow] duration-150 ${isPriceOpen ? 'rotate-90' : ''}`} />
                 </button>
                 
                 {isPriceOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
-                     <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-sm overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                     <button onClick={() => {setActivePrice(null); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[10px] font-semibold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${!activePrice ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                        {t('common.anyPrice')} {!activePrice && <Check className="size-3.5" />}
                      </button>
                      {PRICE_RANGES.map(range => (
-                       <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                       <button key={range.id} onClick={() => {setActivePrice(range.id); setIsPriceOpen(false);}} className={`w-full text-left px-5 py-3 text-[10px] font-semibold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${activePrice === range.id ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                          {t(`price.${range.id.replace(/-/g, '').replace('under5000', 'under5000').replace('500010000', '5000to10000').replace('1000050000', '10000to50000').replace('over50000', 'over50000')}`, range.name)} {activePrice === range.id && <Check className="size-3.5" />}
                        </button>
                      ))}
@@ -556,16 +556,16 @@ function ShopContent() {
               <div className="relative dropdown-container">
                 <button 
                   onClick={() => { setIsSortOpen(!isSortOpen); setIsPriceOpen(false); }}
-                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-all text-[10px] lg:text-[12px] md:text-[11px] lg:text-[12px]  font-semibold tracking-tight shadow-sm"
+                  className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--text-secondary)] transition-[color,background-color,border-color,box-shadow] duration-150 text-[10px] font-semibold tracking-tight shadow-sm"
                 >
                   {t('common.sort')}
-                  <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-transform ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
+                  <ChevronRight className={`size-2.5 md:size-3 text-[var(--text-secondary)] transition-[color,background-color,border-color,box-shadow] duration-150 ${isSortOpen ? '-rotate-90' : 'rotate-90'}`} />
                 </button>
                 
                 {isSortOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-2xl overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-[var(--bg-primary)] border border-[var(--glass-border)] rounded-3xl shadow-sm overflow-hidden py-2 z-50 animate-in fade-in slide-in-from-top-2">
                      {SORT_OPTIONS.map(opt => (
-                       <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[11px] lg:text-[12px]  font-semibold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
+                       <button key={opt.value} onClick={() => {setSortBy(opt.value); setIsSortOpen(false);}} className={`w-full text-left px-5 py-3 text-[10px] font-semibold tracking-tight transition-colors hover:bg-[var(--bg-secondary)] flex items-center justify-between ${sortBy === opt.value ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`}>
                          {opt.label}
                          {sortBy === opt.value && <Check className="size-3.5" />}
                        </button>
@@ -576,10 +576,10 @@ function ShopContent() {
               
               {/* VIEW MODE */}
               <div className="flex bg-[var(--bg-primary)] rounded-lg md:rounded-2xl p-0.5 md:p-1 border border-[var(--glass-border)]">
-                <button onClick={() => setViewMode('grid')} className={`p-1.5 md:p-2.5 rounded-md md:rounded-xl transition-all ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)]'}`}>
+                <button onClick={() => setViewMode('grid')} className={`p-1.5 md:p-2.5 rounded-md md:rounded-xl transition-[color,background-color,border-color,box-shadow] duration-150 ${viewMode === 'grid' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)]'}`}>
                   <LayoutGrid className="size-3 md:size-4" />
                 </button>
-                <button onClick={() => setViewMode('list')} className={`p-1.5 md:p-2.5 rounded-md md:rounded-xl transition-all ${viewMode === 'list' ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)]'}`}>
+                <button onClick={() => setViewMode('list')} className={`p-1.5 md:p-2.5 rounded-md md:rounded-xl transition-[color,background-color,border-color,box-shadow] duration-150 ${viewMode === 'list' ? 'bg-[var(--accent)] text-white shadow-sm' : 'text-[var(--text-secondary)]'}`}>
                   <List className="size-3 md:size-4" />
                 </button>
               </div>
@@ -592,11 +592,11 @@ function ShopContent() {
             
             {/* MATCHED STORES STRIP */}
             {search && (matchedVendors.length > 0 || vendorsLoading) && (
-              <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-300">
+              <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-150">
                 <div className="flex items-center justify-between mb-4 px-1">
                   <div className="flex items-center gap-2">
                     <div className="size-2 rounded-full bg-[var(--accent)] animate-pulse" />
-                    <h3 className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+                    <h3 className="text-[12px] font-semibold uppercase tracking-normal text-[var(--text-secondary)]">
                       {t('search.matchingStores', 'Matching Stores')}
                     </h3>
                   </div>
@@ -621,24 +621,24 @@ function ShopContent() {
                           type="button"
                           key={vendor._id}
                           onClick={() => router.push(`/stores?id=${encodeURIComponent(vendor._id)}`)}
-                          className="w-64 shrink-0 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/80 hover:border-[var(--accent)]/40 transition-all cursor-pointer overflow-hidden group shadow-sm flex flex-col relative text-left"
+                          className="w-64 shrink-0 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--accent)]/30 hover:shadow-md transition-[color,background-color,border-color,box-shadow] duration-150 cursor-pointer overflow-hidden group shadow-sm flex flex-col relative text-left"
                         >
                           {/* Banner background thumbnail */}
                           <div className="h-12 w-full overflow-hidden relative">
-                            <img src={banner} alt="" className="w-full h-full object-cover brightness-[0.6] transition-transform duration-700 group-hover:scale-105" />
+                            <img src={banner} alt="" className="w-full h-full object-cover brightness-[0.6]" loading="lazy" decoding="async" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                           </div>
                           
                           {/* Logo overlapping banner */}
                           <div className="absolute top-6 left-4 size-10 rounded-xl border border-white/10 overflow-hidden shadow-md bg-[var(--bg-primary)]">
-                            <img src={logo} alt="" className="size-full object-cover" />
+                            <img src={logo} alt="" className="size-full object-cover" loading="lazy" />
                           </div>
                           
                           {/* Store Details */}
                           <div className="pt-5 pb-3 px-4 flex-1 flex flex-col justify-between">
                             <div>
                               <div className="flex items-center gap-1">
-                                <h4 className="font-bold text-[13px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors leading-tight">
+                                <h4 className="font-semibold text-[12px] text-[var(--text-primary)] truncate group-hover:text-[var(--accent)] transition-colors leading-tight">
                                   {vendor.store_name}
                                 </h4>
                                 {vendor.verified && (
@@ -651,12 +651,12 @@ function ShopContent() {
                             </div>
                             
                             {/* Stats */}
-                            <div className="mt-3 flex items-center justify-between text-[9px] font-bold text-[var(--text-secondary)]/60 tracking-wider">
-                              <span className="flex items-center gap-0.5">
+                            <div className="mt-3 flex items-center justify-between text-[10px] font-semibold text-[var(--text-secondary)] tracking-normal">
+                              <span className="flex items-center gap-0.5 text-[10px] tabular-nums">
                                 <svg className="size-3 text-amber-400 fill-current" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
                                 {Number(vendor.rating || 0) > 0 ? Number(vendor.rating).toFixed(1) : 'New'}
                               </span>
-                              <span>
+                              <span className="text-[10px] tabular-nums">
                                 {vendor.follower_count || 0} followers
                               </span>
                             </div>
@@ -673,11 +673,11 @@ function ShopContent() {
             )}
 
             {products.length === 0 && loading ? (
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-6">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6">
                 {Array.from({ length: 12 }).map((_, index) => (
                   <div
                     key={index}
-                    className="aspect-[3/4] rounded-[2rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/50"
+                    className="aspect-[3/4] rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/50"
                   />
                 ))}
               </div>
@@ -686,8 +686,8 @@ function ShopContent() {
                 <div className="size-20 md:size-24 bg-[var(--accent)]/5 rounded-full flex items-center justify-center mx-auto mb-8 text-[var(--text-secondary)]/50">
                   <Search className="size-8 md:size-10" />
                 </div>
-                <h2 className="text-2xl md:text-3xl  font-bold text-[var(--text-primary)] mb-2">{t('common.noProductsFound')}</h2>
-                <p className="text-[var(--text-secondary)] font-semibold text-sm md:text-base px-6">
+                <h2 className="text-[12px] font-semibold text-[var(--text-primary)] mb-2">{t('common.noProductsFound')}</h2>
+                <p className="text-[var(--text-secondary)] font-semibold text-[12px] px-6">
                   {t('common.noMatches')}
                 </p>
                 <button
@@ -698,7 +698,7 @@ function ShopContent() {
                     setActivePrice(null);
                     setSearch('');
                   }}
-                  className="mt-10 px-8 py-3 bg-[var(--accent)] text-white  font-semibold text-[10px] lg:text-[12px] tracking-[0.2em] rounded-full shadow-lg shadow-[var(--accent)]/20 "
+                  className="mt-10 px-8 py-3 bg-[var(--accent)] text-white font-semibold text-[10px] tracking-normal rounded-full shadow-sm shadow-[var(--accent)]/20 "
                 >
                   {t('common.resetFilters')}
                 </button>
@@ -706,7 +706,7 @@ function ShopContent() {
             ) : (
               <>
                 <div
-                  className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4 mb-6" : "flex flex-col gap-4 mb-6 mx-auto max-w-4xl"}
+                  className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 md:gap-4 mb-6" : "flex flex-col gap-4 mb-6 mx-auto max-w-4xl"}
                   style={{ opacity: loading ? 0.45 : 1, transition: 'opacity 0.15s ease' }}
                 >
                   {products.map(product => (
@@ -726,7 +726,7 @@ function ShopContent() {
 
                 {/* End of catalogue */}
                 {!hasMore && !loadingMore && products.length > 0 && (
-                  <p className="text-center text-[10px] font-semibold text-[var(--text-secondary)]/40 tracking-widest uppercase py-8">
+                  <p className="text-center text-[10px] font-semibold text-[var(--text-secondary)]/40 tracking-normal uppercase py-8">
                     All products loaded
                   </p>
                 )}

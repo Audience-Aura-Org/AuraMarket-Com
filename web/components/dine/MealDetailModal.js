@@ -248,7 +248,7 @@ export default function MealDetailModal({ meal, onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[600] bg-black/60 backdrop-blur-sm"
+        className="fixed inset-0 z-[600] bg-black/60"
         onClick={onClose}
       />
 
@@ -270,7 +270,8 @@ export default function MealDetailModal({ meal, onClose }) {
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 flex size-8 items-center justify-center rounded-full bg-black/40 text-white"
+          aria-label="Close"
+          className="absolute top-4 right-4 z-10 flex size-9 items-center justify-center rounded-full bg-black/50 text-white"
         >
           <X className="size-4" />
         </button>
@@ -294,7 +295,7 @@ export default function MealDetailModal({ meal, onClose }) {
               />
               <div className="absolute inset-0 flex items-center justify-center">
                 <span
-                  className="select-none font-black text-white/50 leading-none"
+                  className="select-none font-bold text-white/50 leading-none"
                   style={{ fontSize: '72px', letterSpacing: '-0.04em' }}
                 >
                   {mealInitial}
@@ -323,7 +324,7 @@ export default function MealDetailModal({ meal, onClose }) {
                 {meal.restaurant_logo_url ? (
                   <img src={meal.restaurant_logo_url} alt={meal.restaurant_name} className="size-full object-cover" />
                 ) : (
-                  <span className="text-[10px] font-black text-[var(--text-secondary)]">{initial}</span>
+                  <span className="text-[10px] font-semibold text-[var(--text-secondary)]">{initial}</span>
                 )}
               </div>
               <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-[var(--text-secondary)] group-hover/vendor:text-[var(--accent)] transition-colors">
@@ -338,9 +339,9 @@ export default function MealDetailModal({ meal, onClose }) {
                 {meal.name}
               </h2>
               <div className="shrink-0 text-right">
-                <div className="text-[18px] font-bold text-[var(--accent)] leading-tight">
+                <div className="text-[18px] font-bold tabular-nums text-[var(--text-primary)] leading-tight">
                   {meal.price.toLocaleString()}
-                  <span className="text-[11px] font-semibold ml-0.5">XAF</span>
+                  <span className="ml-0.5 text-[11px] font-medium text-[var(--text-secondary)]">XAF</span>
                   {totalDelta > 0 && (
                     <span className="block text-[10px] text-[var(--text-secondary)] font-medium">base</span>
                   )}
@@ -379,16 +380,16 @@ export default function MealDetailModal({ meal, onClose }) {
                   Restaurant is closed — Pre-order for a specific date
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[var(--text-secondary)] mb-1.5">
+                  <label className="mb-2 block text-[12px] font-medium text-[var(--text-primary)]">
                     {preOrderDateLocked ? 'Available on' : 'Select date'} <span className="text-orange-500">*</span>
                   </label>
                   {preOrderDateLocked ? (
-                    <div className="flex items-center gap-2 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-3 py-2.5 text-[12px] font-semibold text-[var(--text-primary)]">
+                    <div className="flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-3 py-2.5 text-[12px] font-semibold text-[var(--text-primary)]">
                       <CalendarClock className="size-3.5 text-[var(--accent)] shrink-0" />
                       {new Date(mealAvailableDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                     </div>
                   ) : (
-                    <PreorderDateSelect meal={fullProduct?.meal} value={preOrderDate} onChange={setPreOrderDate} className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors" />
+                    <PreorderDateSelect meal={fullProduct?.meal} value={preOrderDate} onChange={setPreOrderDate} className="min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors" />
                   )}
                 </div>
               </div>
@@ -410,7 +411,7 @@ export default function MealDetailModal({ meal, onClose }) {
             {/* Order mode picker — only shown when multiple modes are available and restaurant is open */}
             {!loadingProduct && !restaurantClosed && availableModes.length > 1 && (
               <div className="border-t border-[var(--glass-border)] pt-3 space-y-2">
-                <p className="text-[11px] font-bold text-[var(--text-secondary)] tracking-wide">
+                <p className="text-[12px] font-medium text-[var(--text-primary)]">
                   Order Mode <span className="text-orange-500">*</span>
                 </p>
                 <div className="grid grid-cols-2 gap-2">
@@ -419,7 +420,7 @@ export default function MealDetailModal({ meal, onClose }) {
                       key={value}
                       type="button"
                       onClick={() => { setBookingType(value); if (value !== 'pre_order') setPreOrderDate(''); }}
-                      className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-[11px] font-bold transition-all active:scale-95 ${
+                      className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2.5 text-[11px] font-semibold transition-colors duration-150 ${
                         bookingType === value
                           ? 'border-[var(--accent)]/50 bg-[var(--accent)]/10 text-[var(--accent)]'
                           : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
@@ -437,16 +438,16 @@ export default function MealDetailModal({ meal, onClose }) {
             {/* Pre-order date picker — when user manually selects pre_order while restaurant is open */}
             {!loadingProduct && !restaurantClosed && isPreOrder && (
               <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-[var(--text-secondary)]">
+                <label className="block text-[12px] font-medium text-[var(--text-primary)]">
                   {preOrderDateLocked ? 'Available on' : 'Schedule for'} <span className="text-orange-500">*</span>
                 </label>
                 {preOrderDateLocked ? (
-                  <div className="flex items-center gap-2 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-3 py-2.5 text-[12px] font-semibold text-[var(--text-primary)]">
+                  <div className="flex min-h-11 items-center gap-2 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 px-3 py-2.5 text-[12px] font-semibold text-[var(--text-primary)]">
                     <CalendarClock className="size-3.5 text-[var(--accent)] shrink-0" />
                     {new Date(mealAvailableDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                   </div>
                 ) : (
-                  <PreorderDateSelect meal={fullProduct?.meal} value={preOrderDate} onChange={setPreOrderDate} className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors" />
+                  <PreorderDateSelect meal={fullProduct?.meal} value={preOrderDate} onChange={setPreOrderDate} className="min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors" />
                 )}
               </div>
             )}
@@ -463,7 +464,7 @@ export default function MealDetailModal({ meal, onClose }) {
                 {optionGroups.map(group => (
                   <div key={group.name} className="pt-3">
                     <div className="flex items-center justify-between mb-2.5">
-                      <h3 className="text-[12px] font-bold text-[var(--text-primary)] font-[Poppins]">
+                      <h3 className="text-[12px] font-semibold text-[var(--text-primary)]">
                         {group.name}
                       </h3>
                       <span className={`text-[10px] rounded-full px-2 py-0.5 font-medium ${
@@ -488,7 +489,7 @@ export default function MealDetailModal({ meal, onClose }) {
                             key={option.label}
                             onClick={() => !unavail && toggleOption(group.name, option.label, group.max_select)}
                             disabled={unavail}
-                            className={`w-full flex items-center justify-between rounded-xl px-3 py-2.5 border transition-all text-left ${
+                            className={`w-full min-h-11 flex items-center justify-between rounded-xl px-3 py-2.5 border transition-colors duration-150 text-left ${
                               isSelected
                                 ? 'border-[var(--accent)]/50 bg-[var(--accent)]/8'
                                 : unavail
@@ -509,7 +510,7 @@ export default function MealDetailModal({ meal, onClose }) {
                               </span>
                             </div>
                             {option.price_delta > 0 && (
-                              <span className="text-[11px] font-semibold text-[var(--accent)] shrink-0 ml-2">
+                              <span className="ml-2 shrink-0 text-[11px] font-semibold tabular-nums text-[var(--text-secondary)]">
                                 +{option.price_delta.toLocaleString()} XAF
                               </span>
                             )}
@@ -539,16 +540,16 @@ export default function MealDetailModal({ meal, onClose }) {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="size-8 rounded-full border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors active:scale-95"
+                className="size-9 rounded-full border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <Minus className="size-3.5" />
               </button>
-              <span className="text-[14px] font-bold text-[var(--text-primary)] w-5 text-center">
+              <span className="w-6 text-center text-[14px] font-bold tabular-nums text-[var(--text-primary)]">
                 {quantity}
               </span>
               <button
                 onClick={() => setQuantity(q => q + 1)}
-                className="size-8 rounded-full border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors active:scale-95"
+                className="size-9 rounded-full border border-[var(--glass-border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <Plus className="size-3.5" />
               </button>
@@ -560,7 +561,7 @@ export default function MealDetailModal({ meal, onClose }) {
             <button
               onClick={handleAddToCart}
               disabled={adding || !canOrder}
-              className="flex h-12 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[12px] font-bold text-[var(--text-primary)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] active:scale-95 transition-all disabled:opacity-50"
+              className="flex h-12 items-center justify-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[12px] font-semibold text-[var(--text-primary)] hover:border-[var(--accent)]/40 hover:text-[var(--accent)] transition-colors duration-150 disabled:opacity-50"
             >
               <ShoppingBag className="size-4 shrink-0" />
               {adding ? 'Adding\u2026' : 'Add to cart'}
@@ -568,7 +569,7 @@ export default function MealDetailModal({ meal, onClose }) {
             <button
               onClick={handleBuyNow}
               disabled={adding || !canOrder}
-              className="flex h-12 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] text-white text-[12px] font-bold shadow-lg shadow-[var(--accent)]/25 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
+              className="flex h-12 items-center justify-center gap-1.5 rounded-xl bg-[var(--accent)] text-white text-[12px] font-semibold tabular-nums shadow-sm shadow-[var(--accent)]/25 hover:brightness-110 transition-[filter] duration-150 disabled:opacity-50"
             >
               <Zap className="size-4 shrink-0 fill-white" />
               {totalDelta > 0 || quantity > 1

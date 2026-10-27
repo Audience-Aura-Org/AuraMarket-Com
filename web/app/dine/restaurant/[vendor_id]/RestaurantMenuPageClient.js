@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast';
 import { useFollow } from '@/hooks/useFollow';
 import MealCard from '@/components/dine/MealCard';
 import MealDetailModal from '@/components/dine/MealDetailModal';
+import { isMealUnavailable } from '@/lib/mealAvailability';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Cuisine slug → gradient
@@ -174,12 +175,12 @@ export default function RestaurantMenuPageClient() {
 
         <button
           onClick={() => router.back()}
-          className="absolute top-4 left-4 z-10 size-9 lg:size-10 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center text-white active:scale-95 transition-all hover:bg-black/50"
+          className="absolute top-4 left-4 z-10 size-9 lg:size-10 rounded-full bg-black/30 md:backdrop-blur-md flex items-center justify-center text-white transition-colors hover:bg-black/50"
         >
           <ArrowLeft className="size-4 lg:size-5" />
         </button>
 
-        <div className={`absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] lg:text-[12px] font-bold shadow-lg backdrop-blur-sm ${
+        <div className={`absolute top-4 right-4 flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] lg:text-[12px] font-semibold shadow-md md:backdrop-blur-sm ${
           isOpen ? 'bg-emerald-500 text-white' : 'bg-black/55 text-white/85'
         }`}>
           {isOpen && <span className="size-1.5 rounded-full bg-white animate-pulse" />}
@@ -189,7 +190,7 @@ export default function RestaurantMenuPageClient() {
 
       {/* ── Restaurant info card ─────────────────────────────────────── */}
       <div className="px-4 sm:px-6 lg:px-10 xl:px-16 -mt-10 relative z-10">
-        <div className="rounded-2xl lg:rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-xl shadow-xl p-4 lg:p-5">
+        <div className="rounded-2xl lg:rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/95 md:backdrop-blur-xl shadow-xl p-4 lg:p-5">
 
           {/* Top row: logo + name + cuisine */}
           <div className="flex items-center gap-3 lg:gap-4">
@@ -199,7 +200,7 @@ export default function RestaurantMenuPageClient() {
               ) : (
                 <div className="h-full w-full flex items-center justify-center"
                   style={{ background: `linear-gradient(135deg, ${heroTheme.from} 0%, ${heroTheme.to} 100%)` }}>
-                  <span className="text-[26px] lg:text-[32px] font-black text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
+                  <span className="text-[26px] lg:text-[32px] font-bold text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>
                     {initial}
                   </span>
                 </div>
@@ -207,7 +208,7 @@ export default function RestaurantMenuPageClient() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-[18px] lg:text-[22px] font-black text-[var(--text-primary)] font-[Poppins] leading-tight">{vendor.store_name}</h1>
+                <h1 className="text-[18px] lg:text-[22px] font-bold text-[var(--text-primary)] leading-tight">{vendor.store_name}</h1>
                 {vendor.verified && (
                   <BadgeCheck className="size-5 lg:size-6 text-blue-500 shrink-0" title="Verified restaurant" />
                 )}
@@ -277,7 +278,7 @@ export default function RestaurantMenuPageClient() {
 
       {/* ── Category filter tabs (always shown when meals exist) ─────── */}
       {menu.length > 0 && (
-        <div className="sticky top-[53px] md:top-[69px] lg:top-[65px] z-30 bg-[var(--bg-primary)]/95 backdrop-blur-xl border-b border-[var(--glass-border)] mt-4">
+        <div className="sticky top-[53px] md:top-[69px] lg:top-[65px] z-30 bg-[var(--bg-primary)]/95 md:backdrop-blur-xl border-b border-[var(--glass-border)] mt-4">
           <div className="px-4 sm:px-6 lg:px-10 xl:px-16">
             <div className="flex w-full overflow-x-auto no-scrollbar gap-2 py-2.5">
 
@@ -354,10 +355,7 @@ export default function RestaurantMenuPageClient() {
                     storeName={vendor.store_name}
                     logoUrl={vendor.logo_url}
                     prepTime={profile.prep_time_minutes}
-                    unavailable={
-                      !meal.meal?.is_available_today ||
-                      !profile.delivery_available
-                    }
+                    unavailable={isMealUnavailable(meal)}
                   />
                 </motion.div>
               ))}

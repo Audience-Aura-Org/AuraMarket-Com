@@ -170,7 +170,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
 
 
   return (
-    <div className="relative min-h-screen bg-[var(--bg-secondary)] flex flex-col pt-[env(safe-area-inset-top)]">
+    <div className="[&_a]:focus-visible:outline-2 [&_a]:focus-visible:outline-[var(--accent)] [&_a]:focus-visible:outline-offset-[-2px] [&_button]:focus-visible:outline-2 [&_button]:focus-visible:outline-[var(--accent)] [&_button]:focus-visible:outline-offset-[-2px] [&_input]:focus-visible:outline-2 [&_input]:focus-visible:outline-[var(--accent)] relative min-h-screen bg-[var(--bg-secondary)] flex flex-col pt-[env(safe-area-inset-top)]">
       <AuraAssistant user={user} />
       
       <main className="flex-1 relative">
@@ -181,12 +181,12 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
               className="flex flex-col relative"
             >
               {(followedStatuses?.length > 0 || user?.role === 'vendor' || user?.role === 'logistics') && (
                 <div
-                  className="sticky z-[50] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 shadow-sm overflow-hidden"
+                  className="sticky z-[50] bg-[var(--bg-secondary)]/80 border-b border-[var(--glass-border)] shadow-sm overflow-hidden"
                   style={{ top: TOP_NAV_HEIGHT }}
                 >
                   <StatusRow
@@ -219,11 +219,11 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             >
               {(followedStatuses?.length > 0 || user?.role === 'vendor' || user?.role === 'logistics') && (
                 <div
-                  className="sticky z-[50] bg-[var(--bg-secondary)]/80 backdrop-blur-2xl border-b border-white/5 overflow-hidden"
+                  className="sticky z-[50] bg-[var(--bg-secondary)]/80 border-b border-[var(--glass-border)] overflow-hidden"
                   style={{ top: TOP_NAV_HEIGHT }}
                 >
                   <StatusRow
@@ -251,7 +251,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.15 }}
             >
               {(followedStatuses?.length > 0 || user?.role === 'vendor' || user?.role === 'logistics') && (
                 <div className="border-b border-[var(--glass-border)] bg-[var(--bg-secondary)]/70 overflow-hidden">
@@ -263,7 +263,7 @@ export default function DiscoveryHub({ initialTab = 'vendors' }) {
                   />
                 </div>
               )}
-              <ProfileContent user={user} onSelectTab={handleTabChange} />
+              <ProfileContent user={user} onSelectTab={setActiveTab} />
             </motion.div>
           )}
         </AnimatePresence>

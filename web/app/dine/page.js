@@ -205,7 +205,7 @@ export default function DinePage() {
     <div className="w-full flex flex-col bg-[var(--bg-primary)]">
 
       {/* ── Sticky header ──────────────────────────────────────────── */}
-      <header className="sticky top-0 md:top-16 lg:top-0 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 backdrop-blur-2xl">
+      <header className="sticky top-0 md:top-16 lg:top-0 z-40 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/95 md:backdrop-blur-2xl">
         <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-orange-500/40 to-transparent" />
 
         <div className="px-4 sm:px-6 lg:px-10 xl:px-16 py-3 lg:py-4">

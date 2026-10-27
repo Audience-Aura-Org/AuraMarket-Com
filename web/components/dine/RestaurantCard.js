@@ -82,7 +82,7 @@ export default function RestaurantCard({ restaurant }) {
   const hasMealImages = top_meals.some(m => m.thumbnail_url);
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm hover:shadow-xl hover:-translate-y-0.5 hover:border-orange-400/40 transition-all duration-300 font-[Poppins]">
+    <div className="group flex min-w-0 flex-col overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-sm hover:border-[var(--accent)]/30 hover:shadow-md transition-[color,background-color,border-color,box-shadow] duration-150 font-poppins">
       <Link href={restaurantHref(vendor_id)} className="block">
 
         {/* ── Wide landscape banner — distinct from square product images ── */}
@@ -106,7 +106,8 @@ export default function RestaurantCard({ restaurant }) {
             <img
               src={banner_url}
               alt={store_name}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              className="absolute inset-0 h-full w-full object-cover"
+              decoding="async"
               loading="lazy"
             />
           )}
@@ -116,7 +117,7 @@ export default function RestaurantCard({ restaurant }) {
             <div className="absolute inset-0 flex">
               {top_meals.filter(m => m.thumbnail_url).slice(0, 3).map((meal, i, arr) => (
                 <div key={meal._id} className="relative flex-1 overflow-hidden">
-                  <img src={meal.thumbnail_url} alt={meal.name} className="h-full w-full object-cover" loading="lazy" />
+                  <img src={meal.thumbnail_url} alt={meal.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
                   <div className="absolute inset-0 bg-black/20" />
                   {i < arr.length - 1 && <div className="absolute right-0 top-0 bottom-0 w-px bg-white/20" />}
                 </div>
@@ -128,8 +129,8 @@ export default function RestaurantCard({ restaurant }) {
           <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
           {/* Open / Closed / Inactive badge — top right */}
-          <div className={`absolute top-2.5 right-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold shadow backdrop-blur-sm ${
-            isOpen ? 'bg-emerald-500 text-white' : 'bg-black/60 text-white/80'
+          <div className={`absolute top-2.5 right-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold shadow-sm ${
+            isOpen ? 'bg-emerald-500 text-white' : 'bg-black/70 text-white'
           }`}>
             {isOpen && <span className="size-1.5 rounded-full bg-white animate-pulse" />}
             {isOpen ? 'Open' : 'Closed'}
@@ -137,34 +138,34 @@ export default function RestaurantCard({ restaurant }) {
 
           {/* Rating pill — top left */}
           {rating > 0 && (
-            <div className="absolute top-2.5 left-2.5 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-sm px-2 py-1 shadow">
+            <div className="absolute top-2.5 left-2.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 shadow-sm">
               <Star className="size-2.5 fill-amber-400 text-amber-400" />
-              <span className="text-[10px] font-bold text-white">{rating.toFixed(1)}</span>
-              {num_reviews > 0 && <span className="text-[9px] text-white/60">({num_reviews})</span>}
+              <span className="text-[10px] font-semibold text-white">{rating.toFixed(1)}</span>
+              {num_reviews > 0 && <span className="text-[9px] text-white/70">({num_reviews})</span>}
             </div>
           )}
 
           {/* Logo circle overlaid at bottom-left — anchored to banner */}
-          <div className="absolute bottom-3 left-3 size-12 rounded-full border-2 border-white/40 bg-white/10 backdrop-blur-md overflow-hidden shadow-lg flex items-center justify-center">
+          <div className="absolute bottom-3 left-3 size-11 rounded-full border-2 border-white/40 bg-black/30 overflow-hidden shadow-md flex items-center justify-center">
             {logo_url ? (
-              <img src={logo_url} alt={store_name} className="h-full w-full object-cover" />
+              <img src={logo_url} alt={store_name} className="h-full w-full object-cover" loading="lazy" />
             ) : (
-              <span className="font-black text-2xl text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
+              <span className="text-[20px] font-bold text-white" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
                 {initial}
               </span>
             )}
           </div>
 
           {/* Restaurant name on banner */}
-          <div className="absolute bottom-3 left-[4.5rem] right-3">
+          <div className="absolute bottom-3 left-[4.25rem] right-3 min-w-0">
             <div className="flex items-center gap-1">
-              <h3 className="text-sm font-bold text-white leading-tight line-clamp-1" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>
+              <h3 className="min-w-0 truncate text-[12px] font-semibold text-white leading-tight" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.5)' }}>
                 {store_name}
               </h3>
               {is_verified && <BadgeCheck className="size-3.5 text-blue-300 shrink-0" />}
             </div>
             {cuisine_types.length > 0 && (
-              <p className="text-[10px] text-white/70 mt-0.5 line-clamp-1">
+              <p className="mt-0.5 truncate text-[10px] text-white/80">
                 {cuisine_types.map(c => c.name).join(' · ')}
               </p>
             )}
@@ -174,23 +175,23 @@ export default function RestaurantCard({ restaurant }) {
       </Link>
 
       {/* ── Info strip below banner ── */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+      <div className="flex min-w-0 items-center justify-between gap-2 px-3 py-2.5 sm:px-4">
         {/* Meta row */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-[var(--text-secondary)] min-w-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-[var(--text-secondary)]">
           {prep_time_minutes && (
-            <span className="flex items-center gap-1 shrink-0">
+            <span className="flex shrink-0 items-center gap-1 text-[10px]">
               <Clock className="size-3 text-orange-400" />
               {formatPrepTime(prep_time_minutes)}
             </span>
           )}
           {!!min_order_amount && (
-            <span className="flex items-center gap-1 shrink-0">
+            <span className="flex shrink-0 items-center gap-1 text-[10px]">
               <Zap className="size-3 text-orange-400" />
               Min {min_order_amount.toLocaleString()} XAF
             </span>
           )}
           {delivery_fee_estimate !== null && delivery_fee_estimate !== undefined && (
-            <span className="flex items-center gap-1 shrink-0">
+            <span className="flex shrink-0 items-center gap-1 text-[10px]">
               <MapPin className="size-3 text-orange-400" />
               {delivery_fee_estimate > 0 ? `${delivery_fee_estimate.toLocaleString()} XAF` : 'Free delivery'}
             </span>
@@ -201,7 +202,7 @@ export default function RestaurantCard({ restaurant }) {
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleFollow(); }}
           disabled={followLoading}
-          className={`shrink-0 whitespace-nowrap px-3 py-1 rounded-full text-[10px] font-semibold transition-all active:scale-95 border ${
+          className={`shrink-0 whitespace-nowrap px-3 py-1 rounded-full text-[10px] font-semibold transition-[color,background-color,border-color,box-shadow] duration-150 border ${
             isFollowing
               ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
               : 'bg-[var(--accent)] text-white border-[var(--accent)] hover:brightness-110'
