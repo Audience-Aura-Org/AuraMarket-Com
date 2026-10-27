@@ -688,7 +688,7 @@ export default function DeliveryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)]/20 pb-32 pt-4 sm:pt-6">
-      {!user && <WhatsAppSupport />}
+      <WhatsAppSupport />
       <style jsx>{`
         .delivery-input, .delivery-input::placeholder { font-size: 16px; }
         .delivery-label { font-size: 12px; }
