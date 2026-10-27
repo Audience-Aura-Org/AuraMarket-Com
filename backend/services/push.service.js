@@ -4,7 +4,8 @@ const PushSubscription = require('../models/PushSubscription.model');
 // Set VAPID keys (should be in .env)
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidEmail = process.env.EMAIL_USER || 'mailto:hello@auradime.com';
+const contactEmail = process.env.EMAIL_REPLY_TO || process.env.EMAIL_USER || 'hello@auradime.com';
+const vapidEmail = contactEmail.startsWith('mailto:') ? contactEmail : `mailto:${contactEmail}`; // web-push requires a mailto: or https: subject
 
 if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);

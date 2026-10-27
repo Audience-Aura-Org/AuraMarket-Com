@@ -77,6 +77,7 @@ module.exports = {
   EMAIL_SECURE: process.env.EMAIL_SECURE === 'true',
   EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME || 'Aura Dime',
   EMAIL_FROM: process.env.EMAIL_FROM,
+  EMAIL_REPLY_TO: process.env.EMAIL_REPLY_TO,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
   // VAPID keys are now REQUIRED — no hardcoded fallbacks. See validateEnv().
   VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,

@@ -417,20 +417,23 @@ const sendNotification = async (app, recipientId, data) => {
           }
           
           if (targetEmail) {
+            const html = emailTemplate?.html || buildOrderEmailHtml(
+              localizedTitle,
+              localizedMessage,
+              orderDetails,
+              role,
+              emailLink,
+              qrCode,
+              webUrl,
+              { type, metadata, shipment: metadata?.shipment || orderDetails?.shipment }
+            );
+            // The gist goes in the subject, the inbox preview line and a highlight
+            // block, so most notifications can be understood without opening them.
             const success = await dispatchEmail({
               to: targetEmail,
-              subject: localizedTitle,
-              text: emailTemplate?.text || localizedMessage,
-              html: emailTemplate?.html || buildOrderEmailHtml(
-                localizedTitle,
-                localizedMessage,
-                orderDetails,
-                role,
-                emailLink,
-                qrCode,
-                webUrl,
-                { type, metadata, shipment: metadata?.shipment || orderDetails?.shipment }
-              ),
+              subject: templates.notificationSubject(localizedTitle, localizedMessage),
+              text: [localizedMessage, emailTemplate?.text].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join('\n\n') || localizedTitle,
+              html: templates.withNotificationHighlight(html, { message: localizedMessage }),
               role: role || 'user'
             });
 

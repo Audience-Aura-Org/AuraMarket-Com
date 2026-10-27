@@ -45,7 +45,7 @@ const translateErrorMessage = (message, language) => {
 const _recentErrors = new Map();
 const ERROR_EMAIL_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
 
-const ADMIN_ERROR_EMAIL = process.env.ADMIN_ERROR_EMAIL || process.env.EMAIL_USER || 'hello@auradime.com';
+const ADMIN_ERROR_EMAIL = process.env.ADMIN_ERROR_EMAIL || process.env.EMAIL_REPLY_TO || process.env.EMAIL_USER || 'hello@auradime.com';
 
 function notifyAdminOfError(err, req, statusCode) {
   // Only notify on genuine server errors (500+), not client errors

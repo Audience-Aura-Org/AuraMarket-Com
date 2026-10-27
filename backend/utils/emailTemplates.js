@@ -11,9 +11,15 @@ const sanitizeUrl = (url) => {
   return String(url).replace(/\/+$/, '');
 };
 
+// Notification text can carry user content (chat messages, store names): escape before it reaches HTML.
+const escapeHtml = (value = '') => String(value)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 const WEB_URL = sanitizeUrl(process.env.WEB_CLIENT_URL || 'https://auradime.com');
 const LOGO_URL = process.env.EMAIL_LOGO_URL || 'https://auradime.com/icon-512.png';
-const SUPPORT_EMAIL = process.env.EMAIL_USER || 'support@auradime.com';
+// Contact address shown to recipients: the monitored reply inbox, not the no-reply sender.
+const SUPPORT_EMAIL = process.env.EMAIL_REPLY_TO || process.env.EMAIL_USER || 'support@auradime.com';
 
 // Auradime — brand aligned with app & PDF invoice (full-width email layout)
 const COLORS = {
@@ -31,6 +37,14 @@ const COLORS = {
   footerBg:     '#f8fafc',
   stripe:       '#5B21B6',
 };
+/* Detail rows are written as <div class="card-row"><span class="card-label">…</span><span class="card-value">…</span></div>.
+ * Outlook ignores flexbox and phones stacked them, so render each one as a two-column table row. */
+const CARD_ROW = /<div class="card-row">\s*<span class="card-label">([\s\S]*?)<\/span>\s*<span class="card-value"[^>]*>([\s\S]*?)<\/span>\s*<\/div>/g;
+const tableizeCardRows = (body = '') => body
+  .replace(/<div class="card-divider"><\/div>/g, '')
+  .replace(CARD_ROW, (_, label, value) =>
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="card-row-t"><tr><td class="card-label" style="width:38%;padding:10px 12px 10px 0;color:${COLORS.textSecondary};font-size:12px;font-weight:500;vertical-align:top;">${label}</td><td class="card-value" align="right" style="padding:10px 0;color:${COLORS.textPrimary};font-size:12px;font-weight:600;text-align:right;vertical-align:top;">${value}</td></tr></table>`);
+
 /* ─── Premium Email Wrapper ─── */
 const wrap = (title, heading, body) => `
 <!DOCTYPE html>
@@ -58,8 +72,8 @@ const wrap = (title, heading, body) => `
       .header-inner { padding: 7px 20px 8px !important; }
     }
     .logo-img { height: 36px; width: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.35); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
-    .header-title { color: #ffffff; font-size: 12px; font-weight: 700; letter-spacing: 0; margin: 0; line-height: 1.05; }
-    .header-sub { color: rgba(255,255,255,0.88); font-size: 8px; margin: 2px 0 0; font-weight: 500; }
+    .header-title { color: #ffffff; font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin: 0; line-height: 1.1; }
+    .header-sub { color: rgba(255,255,255,0.85); font-size: 10px; margin: 2px 0 0; font-weight: 500; }
 
     .accent-stripe { height: 2px; background: ${COLORS.stripe}; font-size: 0; line-height: 0; }
 
@@ -72,7 +86,11 @@ const wrap = (title, heading, body) => `
     .content-td p  { font-size: 13px; color: ${COLORS.textSecondary}; margin: 0 0 14px; line-height: 1.6; }
     .content-td strong { color: ${COLORS.textPrimary}; font-weight: 600; }
 
-    .card { background: ${COLORS.accentSoft}; border: 1px solid #e9d5ff; border-radius: 14px; padding: 6px 18px; margin: 20px 0; }
+    .card { background: ${COLORS.accentSoft}; border: 1px solid #e9d5ff; border-radius: 14px; padding: 4px 16px; margin: 18px 0; }
+    .card-row-t td { padding: 10px 0; border-top: 1px solid #ead9fb; vertical-align: top; font-size: 12px; line-height: 1.45; }
+    .card .card-row-t:first-child td { border-top: 0; }
+    td.card-label { color: ${COLORS.textSecondary}; font-weight: 500; width: 38%; padding-right: 12px !important; }
+    td.card-value { color: ${COLORS.textPrimary}; font-weight: 600; text-align: right; word-break: break-word; }
     .card-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; }
     .card-row:not(:last-child) { border-bottom: 1px solid #f3e8ff; }
     .card-divider { height: 1px; background: #f3e8ff; margin: 0; }
@@ -98,7 +116,7 @@ const wrap = (title, heading, body) => `
     .table-products th { padding: 11px 14px; text-align: left; font-weight: 600; color: ${COLORS.textSecondary}; font-size: 11px; border-bottom: 1px solid ${COLORS.border}; }
     .table-products td { padding: 11px 14px; border-bottom: 1px solid ${COLORS.border}; color: ${COLORS.textPrimary}; font-size: 13px; }
     .table-products td.number { text-align: center; }
-    .table-products td.amount { text-align: right; font-weight: 600; color: ${COLORS.accent}; }
+    .table-products td.amount { text-align: right; font-weight: 600; color: ${COLORS.accent}; white-space: nowrap; }
     .table-products tbody tr:last-child td { border-bottom: none; }
 
     .footer-td { padding: 32px 24px; text-align: center; background: ${COLORS.footerBg}; border-top: 1px solid ${COLORS.border}; }
@@ -115,16 +133,17 @@ const wrap = (title, heading, body) => `
 
     @media only screen and (max-width: 600px) {
       .content-td { padding: 22px 16px 16px !important; }
+      .content-td h2 { font-size: 19px !important; }
+      .table-products th, .table-products td { padding: 10px 10px !important; }
       .header-inner { padding: 7px 14px 8px !important; }
       .footer-td  { padding: 22px 16px !important; }
-      .card-row   { flex-direction: column; align-items: flex-start; gap: 4px; }
-      .card-value { text-align: left !important; }
       .btn        { display: block !important; text-align: center !important; width: 100% !important; box-sizing: border-box !important; }
       table[width="100%"] { max-width: 100% !important; width: 100% !important; }
     }
   </style>
 </head>
 <body style="margin:0;padding:0;background:${COLORS.bgOuter};font-family:'Poppins',Arial,Helvetica,sans-serif !important;">
+  <!--AURA_PREHEADER-->
   <table id="bodyTable" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:0;padding:0;width:100%;background:${COLORS.bgOuter};font-family:'Poppins',Arial,Helvetica,sans-serif !important;">
     <tr>
       <td align="center" valign="top" style="padding:0;">
@@ -140,7 +159,7 @@ const wrap = (title, heading, body) => `
                           <img src="${LOGO_URL}" alt="Auradime" class="logo-img" width="36" height="36" style="height:36px;width:36px;border-radius:10px;border:1px solid rgba(255,255,255,0.35);box-shadow:0 3px 8px rgba(0,0,0,0.12);" />
                         </td>
                         <td style="vertical-align:middle;padding-left:10px;">
-                          <p class="header-title">Aura Dime</p>
+                          <p class="header-title">Auradime</p>
                           <p class="header-sub">Commerce &bull; logistics &bull; fulfilment</p>
                         </td>
                       </tr>
@@ -154,12 +173,13 @@ const wrap = (title, heading, body) => `
           <tr>
             <td class="content-td content-shell">
               <h2>${heading}</h2>
-              ${body}
+              <!--AURA_HIGHLIGHT-->
+              ${tableizeCardRows(body)}
             </td>
           </tr>
           <tr>
             <td class="footer-td">
-              <p class="footer-brand">Aura Dime</p>
+              <p class="footer-brand">Auradime</p>
               <p>Questions? <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
               <p>&copy; ${new Date().getFullYear()} Auradime &bull; Audience Aura Org</p>
             </td>
@@ -171,6 +191,39 @@ const wrap = (title, heading, body) => `
 </body>
 </html>`;
 
+/* ─── Notification highlight ───
+ * Puts the notification's own text where the recipient sees it without opening
+ * the email: the inbox preview line (hidden preheader) and a highlight block at
+ * the top of the body. "Sender: text" messages render as a quoted message.
+ * The block is skipped when the template body already shows the message.
+ */
+const PREHEADER_PAD = '&#847;&zwnj;&nbsp;'.repeat(40); // stops clients pulling body text into the preview
+
+const withNotificationHighlight = (html, { message } = {}) => {
+  if (!html || !message) return html;
+  const text = String(message).trim();
+  const escaped = escapeHtml(text);
+  const preheader = `<div style="display:none;font-size:1px;color:${COLORS.bgOuter};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escaped}${PREHEADER_PAD}</div>`;
+
+  const sender = text.match(/^([^:\n]{1,60}):\s+([\s\S]+)$/);
+  const block = html.includes(escaped) ? '' : sender
+    ? `<div class="highlight" style="background:${COLORS.accentSoft};border-left:4px solid ${COLORS.accent};padding:13px 16px;margin:4px 0 18px;border-radius:0 12px 12px 0;"><p style="margin:0 0 4px;font-size:11px;font-weight:600;color:${COLORS.accent};">${escapeHtml(sender[1])}</p><p style="margin:0;font-size:14px;line-height:1.55;color:${COLORS.textPrimary};font-weight:500;white-space:pre-line;">${escapeHtml(sender[2])}</p></div>`
+    : `<div class="highlight" style="background:${COLORS.accentSoft};border-left:4px solid ${COLORS.accent};padding:13px 16px;margin:4px 0 18px;border-radius:0 12px 12px 0;"><p style="margin:0;font-size:14px;line-height:1.55;color:${COLORS.textPrimary};font-weight:500;white-space:pre-line;">${escaped}</p></div>`;
+
+  return html.replace('<!--AURA_PREHEADER-->', preheader).replace('<!--AURA_HIGHLIGHT-->', block);
+};
+
+/** Subject that carries the gist: "Order #AB12CD34 · Amina: is size 42 available?" */
+const notificationSubject = (title, message, max = 110) => {
+  const head = String(title || 'Auradime update').trim();
+  const gist = String(message || '').replace(/\s+/g, ' ').trim();
+  if (!gist || head.toLowerCase().includes(gist.toLowerCase()) || gist.toLowerCase().startsWith(head.toLowerCase())) {
+    return head.length > max ? `${head.slice(0, max - 1)}…` : head;
+  }
+  const subject = `${head} · ${gist}`;
+  return subject.length > max ? `${subject.slice(0, max - 1).trimEnd()}…` : subject;
+};
+
 /* ─── Welcome / Sign Up (new template) ─── */
 const welcomeEmail = ({ user, webUrl }) => {
   const baseUrl = webUrl || WEB_URL;
@@ -180,13 +233,13 @@ const welcomeEmail = ({ user, webUrl }) => {
     <p>Welcome to Auradime! Your account is active and ready for use.</p>
     
     <div class="card">
+      ${user.email || user.phone ? `<div class="card-row">
+        <span class="card-label">${user.email ? 'Email' : 'Phone'}</span>
+        <span class="card-value">${escapeHtml(user.email || user.phone)}</span>
+      </div>` : ''}
       <div class="card-row">
-        <span class="card-label">Email</span>
-        <span class="card-value">${user.email}</span>
-      </div>
-      <div class="card-row">
-        <span class="card-label">Role</span>
-        <span class="card-value"><span class="role-badge">${user.role || 'Customer'}</span></span>
+        <span class="card-label">Account</span>
+        <span class="card-value"><span class="role-badge">${String(user.role || 'customer').replace(/^\w/, c => c.toUpperCase())}</span></span>
       </div>
     </div>
     
@@ -258,9 +311,14 @@ const resolveVendorName = (order = {}) => {
 
 const resolveCustomerName = (order = {}, fallback = 'Valued Customer') => {
   if (typeof order.customer_name === 'string' && order.customer_name) return order.customer_name;
+  if (typeof order.customer_id === 'object' && order.customer_id?.name) return order.customer_id.name;
   if (order.shipping_address?.name) return order.shipping_address.name;
   return fallback;
 };
+
+const resolveCustomerPhone = (order = {}) =>
+  order.shipping_address?.phone || order.shipping_address?.contact_phone ||
+  (typeof order.customer_id === 'object' ? order.customer_id?.phone : null) || null;
 
 const resolveTrackingCode = (shipment, order) =>
   shipment?.tracking_code ||
@@ -323,7 +381,7 @@ const formatProducts = (products = []) => {
   if (!products.length) return '';
   const rows = products.map(p => `
     <tr>
-      <td>${p.name || 'Product'}</td>
+      <td>${escapeHtml(p.name || 'Product')}</td>
       <td class="number">${p.quantity || 1}</td>
       <td class="amount">XAF ${((p.price || 0) * (p.quantity || 1)).toLocaleString()}</td>
     </tr>`).join('');
@@ -354,6 +412,16 @@ const getBadgeClass = (status) => {
     'in_transit': 'badge-shipped',
     'out_for_delivery': 'badge-shipped',
     'refund_pending': 'badge-pending',
+    'paid': 'badge-delivered',
+    'confirmed': 'badge-delivered',
+    'accepted': 'badge-processing',
+    'preparing': 'badge-processing',
+    'ready': 'badge-shipped',
+    'assigned': 'badge-shipped',
+    'cancelled': 'badge-failed',
+    'rejected': 'badge-failed',
+    'refund_approved': 'badge-refunded',
+    'partially_refunded': 'badge-refunded',
   };
   return map[status] || 'badge-pending';
 };
@@ -545,7 +613,7 @@ const newOrderForVendor = ({ order, vendor, webUrl }) => {
       status: order.order_status || 'placed',
       extraRows: [
         `<div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(order)}</span></div>`,
-        `<div class="card-row"><span class="card-label">Phone</span><span class="card-value">${order.shipping_address?.phone || 'Not provided'}</span></div>`,
+        `<div class="card-row"><span class="card-label">Phone</span><span class="card-value">${resolveCustomerPhone(order) || 'Not provided'}</span></div>`,
         `<div class="card-row"><span class="card-label">Delivery To</span><span class="card-value" style="text-align:right;">${formatAddress(order.shipping_address)}</span></div>`,
         `<div class="card-row"><span class="card-label">Payment</span><span class="card-value">${badge(order.payment_status || 'pending')}</span></div>`,
       ],
@@ -578,8 +646,6 @@ const shipmentAssigned = ({ shipment, order, logistics, firm, webUrl, dashboardL
       order,
       status: shipment?.status || order.order_status || 'assigned',
       extraRows: [
-        `<div class="card-row"><span class="card-label">Tracking</span><span class="card-value">${track}</span></div>`,
-        `<div class="card-row"><span class="card-label">Customer</span><span class="card-value">${resolveCustomerName(order)}</span></div>`,
         `<div class="card-row"><span class="card-label">Delivery Fee</span><span class="card-value">XAF ${(shipment?.price || order.shipping_fee || 0).toLocaleString()}</span></div>`,
       ],
     })}
@@ -606,7 +672,7 @@ const logisticsShipmentClosed = ({ order, shipment, logistics, webUrl, dashboard
 
   const body = `
     <p>Hi <strong>${firmInfo.company_name || 'Partner'}</strong>,</p>
-    <p>${message || `Shipment for Order #${ref} has been confirmed delivered and settled.`}</p>
+    <p>${message ? escapeHtml(message) : `Shipment for Order #${ref} has been confirmed delivered and settled.`}</p>
 
     ${orderSummaryCard({
       order,
@@ -635,7 +701,7 @@ const deliveryConfirmationRequest = ({ order, customer, webUrl, dashboardLink, m
   const subject = `📬 Confirm Delivery — Order #${ref}`;
   const body = `
     <p>Hi <strong>${customer?.name || resolveCustomerName(order)}</strong>,</p>
-    <p>${message || `Order #${ref} was delivered. Please confirm receipt to release funds to the vendor.`}</p>
+    <p>${message ? escapeHtml(message) : `Order #${ref} was delivered. Please confirm receipt to release funds to the vendor.`}</p>
 
     ${orderSummaryCard({
       order,
@@ -661,11 +727,11 @@ const deliveryConfirmationRequest = ({ order, customer, webUrl, dashboardLink, m
 const orderNotificationFallback = ({ title, message, link, webUrl, order }) => {
   const baseUrl = webUrl || WEB_URL;
   const body = `
-    <p>${message || 'You have a new update on Auradime.'}</p>
+    ${message ? '' : '<p>You have a new update on Auradime.</p>'}
     ${order ? orderSummaryCard({ order, status: order.order_status || 'updated' }) : ''}
     ${dashboardButton(link || baseUrl, 'View Details')}
   `;
-  const html = wrap(title || 'Auradime Update', title || 'Notification', body);
+  const html = wrap(escapeHtml(title || 'Auradime Update'), escapeHtml(title || 'Notification'), body);
   return { subject: title || 'Auradime Update', html, text: message || title || 'Auradime update' };
 };
 
@@ -759,7 +825,7 @@ const adminNotification = ({ title, message, orderDetails, metadata, link, webUr
   const metaRows = metadata
     ? Object.entries(metadata)
         .filter(([k, v]) => !['sender_id', 'senderId', 'senderData', 'shipment', 'link'].includes(k) && v != null && typeof v !== 'object')
-        .map(([k, v]) => `<div class="card-row"><span class="card-label">${k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span><span class="card-value">${v}</span></div>`)
+        .map(([k, v]) => `<div class="card-row"><span class="card-label">${k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span><span class="card-value">${escapeHtml(v)}</span></div>`)
         .join('')
     : '';
   const metaSection = metaRows ? `<div class="card">${metaRows}</div>` : '';
@@ -768,7 +834,7 @@ const adminNotification = ({ title, message, orderDetails, metadata, link, webUr
 
   const body = `
     <div class="highlight"><p><strong>Platform Admin Alert</strong> — this notification was sent automatically by the Auradime system.</p></div>
-    <p>${message || 'A platform event requires your attention.'}</p>
+    <p>${message ? escapeHtml(message) : 'A platform event requires your attention.'}</p>
     ${orderSection}
     ${metaSection}
     ${dashboardButton(actionLink, 'Open Admin Panel')}
@@ -791,6 +857,9 @@ module.exports = {
   logisticsShipmentClosed,
   deliveryConfirmationRequest,
   orderNotificationFallback,
+  withNotificationHighlight,
+  notificationSubject,
+  escapeHtml,
   refundRequested,
   orderStatusUpdated,
   adminNotification,

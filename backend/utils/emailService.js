@@ -15,8 +15,19 @@ const {
   EMAIL_PASS,
   EMAIL_FROM_NAME,
   EMAIL_FROM,
+  EMAIL_REPLY_TO,
   RESEND_API_KEY,
 } = require('../config/env');
+
+// Sender shown to recipients. EMAIL_FROM may be a bare address (noreply@auradime.com)
+// or already formatted ("Auradime" <noreply@auradime.com>). With Titan SMTP it must be
+// the login mailbox or one of its aliases, otherwise Titan rejects the message.
+const SENDER_ADDRESS = EMAIL_FROM || EMAIL_USER || 'hello@auradime.com';
+const FROM_HEADER = SENDER_ADDRESS.includes('<')
+  ? SENDER_ADDRESS
+  : `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${SENDER_ADDRESS}>`;
+// Replies to a no-reply sender should still reach a monitored inbox.
+const DEFAULT_REPLY_TO = EMAIL_REPLY_TO || EMAIL_USER || undefined;
 
 const EMAIL_TIMEOUT_MS = Number(process.env.EMAIL_TIMEOUT_MS || 15000);
 
@@ -80,7 +91,16 @@ const verifyConnection = async () => {
  * @param {string}          [opts.replyTo] - Reply-To address
  * @returns {Promise<boolean>}           - true on success, false on failure
  */
-const sendEmail = async ({ to, subject, html, text, replyTo }) => {
+// Fragments (e.g. "<p>Your code is …</p>") get the branded layout so every email looks the same.
+const brandHtml = (html, subject) => {
+  if (!html || /^\s*(<!doctype|<html)/i.test(html)) return html;
+  const { wrap, escapeHtml } = require('./emailTemplates');
+  const heading = escapeHtml(String(subject || 'Auradime').replace(/^[^\p{L}\p{N}]+/u, '').trim() || 'Auradime');
+  return wrap(heading, heading, html);
+};
+
+const sendEmail = async ({ to, subject, html: rawHtml, text, replyTo }) => {
+  const html = brandHtml(rawHtml, subject);
   if (RESEND_API_KEY) {
     try {
       const response = await fetchWithTimeout('https://api.resend.com/emails', {
@@ -90,12 +110,12 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: EMAIL_FROM || `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${EMAIL_USER || 'hello@auradime.com'}>`,
+          from: FROM_HEADER,
           to: Array.isArray(to) ? to : [to],
           subject,
           html,
           text: text || subject,
-          reply_to: replyTo || EMAIL_USER || undefined,
+          reply_to: replyTo || DEFAULT_REPLY_TO,
         }),
       });
 
@@ -117,15 +137,25 @@ const sendEmail = async ({ to, subject, html, text, replyTo }) => {
     return false;
   }
 
+  const message = {
+    from:    FROM_HEADER,
+    to:      Array.isArray(to) ? to.join(', ') : to,
+    subject,
+    html,
+    text:    text || subject,
+    replyTo: replyTo || DEFAULT_REPLY_TO,
+  };
   try {
-    const info = await transporter.sendMail({
-      from:    `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${EMAIL_USER}>`,
-      to:      Array.isArray(to) ? to.join(', ') : to,
-      subject,
-      html,
-      text:    text || subject,
-      replyTo: replyTo || EMAIL_USER,
-    });
+    let info;
+    try {
+      info = await transporter.sendMail(message);
+    } catch (err) {
+      // Titan answers 553 "Sender address rejected: not owned by user" when EMAIL_FROM is
+      // not an alias of the login mailbox. Deliver from the login mailbox rather than drop it.
+      if (err.responseCode !== 553 || !EMAIL_USER || SENDER_ADDRESS.includes(EMAIL_USER)) throw err;
+      console.error(`⚠️  Sender ${SENDER_ADDRESS} rejected by SMTP; add it as an alias of ${EMAIL_USER}. Retrying from ${EMAIL_USER}.`);
+      info = await transporter.sendMail({ ...message, from: `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${EMAIL_USER}>` });
+    }
 
     console.log(`📧 Email sent → ${to} | Subject: "${subject}" | MsgId: ${info.messageId}`);
     return true;
