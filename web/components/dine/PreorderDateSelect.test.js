@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import PreorderDateSelect from './PreorderDateSelect';
 import { describe, it, expect } from 'vitest';
 import { eligiblePreorderDates } from './PreorderDateSelect';
@@ -18,9 +18,18 @@ describe('preorder date choices', () => {
  });
 });
 
-it('renders only eligible options and clears an invalid selected value', () => {
- render(<PreorderDateSelect meal={{ booking_options: [{ type: 'pre_order', available_dates: ['2030-01-04','2030-01-05'], available_weekdays: [5] }] }} value="2030-01-05" onChange={() => {}} />);
- const select = screen.getByRole('combobox', { name: 'Preorder date' });
- expect(select.value).toBe('');
- expect(Array.from(select.options).map(option => option.value)).toEqual(['','2030-01-04']);
+it('makes only eligible days selectable and shows an invalid value as unselected', () => {
+ const picked = [];
+ render(<PreorderDateSelect meal={{ booking_options: [{ type: 'pre_order', available_dates: ['2030-01-04','2030-01-05'], available_weekdays: [5] }] }} value="2030-01-05" onChange={date => picked.push(date)} />);
+ const calendar = screen.getByRole('group', { name: 'Preorder date' });
+ const days = within(calendar).getAllByRole('button').filter(button => /^\d+$/.test(button.textContent));
+ expect(days.map(button => button.textContent)).toEqual(['4']);
+ expect(days[0].getAttribute('aria-pressed')).toBe('false');
+ fireEvent.click(days[0]);
+ expect(picked).toEqual(['2030-01-04']);
+});
+
+it('says so when no preorder dates are available', () => {
+ render(<PreorderDateSelect meal={{ available_date: '2020-01-01', booking_options: [] }} value="" onChange={() => {}} />);
+ expect(screen.getByRole('status').textContent).toContain('No preorder dates available');
 });

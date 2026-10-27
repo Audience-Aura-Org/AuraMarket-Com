@@ -389,7 +389,7 @@ export default function MealDetailModal({ meal, onClose }) {
                       {new Date(mealAvailableDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                     </div>
                   ) : (
-                    <PreorderDateSelect meal={fullProduct?.meal} value={preOrderDate} onChange={setPreOrderDate} className="min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors" />
+                    <PreorderDateSelect meal={fullProduct?.meal} value={preOrderDate} onChange={setPreOrderDate} />
                   )}
                 </div>
               </div>
@@ -447,7 +447,7 @@ export default function MealDetailModal({ meal, onClose }) {
                     {new Date(mealAvailableDate + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
                   </div>
                 ) : (
-                  <PreorderDateSelect meal={fullProduct?.meal} value={preOrderDate} onChange={setPreOrderDate} className="min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none transition-colors" />
+                  <PreorderDateSelect meal={fullProduct?.meal} value={preOrderDate} onChange={setPreOrderDate} />
                 )}
               </div>
             )}

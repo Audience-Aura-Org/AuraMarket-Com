@@ -353,7 +353,7 @@ export default function DinePage() {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search restaurants or dishes..."
-                  className="w-full h-12 lg:h-13 pl-11 pr-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[13px] lg:text-[14px] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/30 transition-all"
+                  className="w-full h-12 lg:h-13 pl-11 pr-10 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[13px] lg:text-[14px] text-[var(--text-primary)] max-lg:placeholder:text-[12px] placeholder:text-[var(--text-secondary)] focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/30 transition-all"
                 />
                 {searchQuery && (
                   <button
