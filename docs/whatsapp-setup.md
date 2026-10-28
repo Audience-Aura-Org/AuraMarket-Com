@@ -38,17 +38,48 @@ as below. Paste the body; Meta asks for sample values for each `{{n}}`.
 
 ### `auradime_update` — order, payment and delivery updates
 
-- en: `Auradime update: {{1}}` ↵↵ `{{2}}` ↵↵ `Open Auradime for the details: {{3}}`
-- fr: `Mise à jour Auradime : {{1}}` ↵↵ `{{2}}` ↵↵ `Ouvrez Auradime pour les détails : {{3}}`
-- samples: `Order #A6D79B78 is on its way` · `Your order from Mama Ngozi Boutique has left the store.` · `https://auradime.com/orders/123`
+English body (one blank line between paragraphs):
+```
+Auradime update: {{1}}
+
+{{2}}
+
+See the details here: {{3}}
+
+Thank you for using Auradime.
+```
+French body:
+```
+Mise à jour Auradime : {{1}}
+
+{{2}}
+
+Voir les détails ici : {{3}}
+
+Merci d’utiliser Auradime.
+```
+Samples: {{1}} `Order #A6D79B78 is on its way` · {{2}} `Your order from Mama Ngozi Boutique has left the store.` · {{3}} `https://auradime.com/orders/123`
 
 ### `auradime_delivery_link` — agency package tracking link
 
-- en: `{{1}} is delivering your package {{2}}. Follow it here: {{3}}` ↵↵ `Please keep your phone on so the rider can reach you.`
-- fr: `{{1}} livre votre colis {{2}}. Suivez-le ici : {{3}}` ↵↵ `Gardez votre téléphone allumé pour que le livreur puisse vous joindre.`
-- samples: `FastShip` · `AURA-K7Q2M9XP` · `https://auradime.com/delivery/track?t=abc`
+English body:
+```
+Hello, {{1}} is delivering your package {{2}}. Follow it here: {{3}}
 
-(↵↵ = a blank line.) The template text lives in `backend/constants/whatsappTemplates.js`;
+Please keep your phone on so the rider can reach you.
+```
+French body:
+```
+Bonjour, {{1}} livre votre colis {{2}}. Suivez-le ici : {{3}}
+
+Gardez votre téléphone allumé pour que le livreur puisse vous joindre.
+```
+Samples: {{1}} `FastShip` · {{2}} `AURA-K7Q2M9XP` · {{3}} `https://auradime.com/delivery/track?t=abc`
+
+Meta rejects a body that starts or ends with a variable, so keep the fixed first
+and last lines.
+
+The template text lives in `backend/constants/whatsappTemplates.js`;
 keep the two in sync.
 
 ## 4. Go live
