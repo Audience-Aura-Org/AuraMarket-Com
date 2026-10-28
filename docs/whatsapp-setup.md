@@ -46,29 +46,22 @@ Or create them by hand in WhatsApp Manager → Message templates → Create:
 Category **Utility**, languages **English (en)** and **French (fr)**, names exactly
 as below. Paste the body; Meta asks for sample values for each `{{n}}`.
 
-### `auradime_update` — order, payment and delivery updates
+### Update templates, one per topic
 
-English body (one blank line between paragraphs):
-```
-Auradime update: {{1}}
+A single generic "update: {{1}}" template was reclassified by Meta as **Marketing**
+(paid, and blocked for users who limit promotions). Each topic now has its own
+Utility template with fixed wording; the exact English and French bodies and the
+samples are in `backend/constants/whatsappTemplates.js`.
 
-{{2}}
+| Template | Notification types | {{1}} | {{2}} |
+|---|---|---|---|
+| `auradime_order_update` | order, refund, dispute, escrow | the notification text | order link |
+| `auradime_payment_update` | payment, wallet, deposit, withdrawal, payout, subscription | the notification text | wallet link |
+| `auradime_delivery_update` | logistics, P2P, shipment, delivery | the notification text | tracking link |
+| `auradime_security_notice` | security | the notification text | account link |
 
-See the details here: {{3}}
-
-Thank you for using Auradime.
-```
-French body:
-```
-Mise à jour Auradime : {{1}}
-
-{{2}}
-
-Voir les détails ici : {{3}}
-
-Merci d’utiliser Auradime.
-```
-Samples: {{1}} `Order #A6D79B78 is on its way` · {{2}} `Your order from Mama Ngozi Boutique has left the store.` · {{3}} `https://auradime.com/orders/123`
+Do not mention passwords or codes in `auradime_security_notice`: Meta then treats
+it as an Authentication template and rejects it (INCORRECT_CATEGORY).
 
 ### `auradime_delivery_link` — agency package tracking link
 

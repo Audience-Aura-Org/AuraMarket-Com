@@ -13,15 +13,48 @@ const WEB = () => (process.env.WEB_CLIENT_URL && !/localhost/.test(process.env.W
 const clip = (s, n) => (String(s || '').length > n ? `${String(s).slice(0, n - 1)}…` : String(s || ''));
 const link = (path) => (path ? `${WEB()}${path.startsWith('/') ? path : `/${path}`}` : WEB());
 
+// One template per transaction topic. A single generic "update: {{1}}" template was
+// reclassified as Marketing by Meta (it could carry anything); fixed wording tied to
+// an order / payment / delivery / account keeps these in the Utility category.
+const summary = (n) => clip(n.message || n.title, 600);
 const TEMPLATES = {
-  auradime_update: {
+  auradime_order_update: {
     category: 'UTILITY',
     body: {
-      en: 'Auradime update: {{1}}\n\n{{2}}\n\nSee the details here: {{3}}\n\nThank you for using Auradime.',
-      fr: 'Mise à jour Auradime : {{1}}\n\n{{2}}\n\nVoir les détails ici : {{3}}\n\nMerci d’utiliser Auradime.',
+      en: 'There is an update on your Auradime order: {{1}}\n\nView your order: {{2}}\n\nThank you for shopping with Auradime.',
+      fr: 'Votre commande Auradime a été mise à jour : {{1}}\n\nVoir votre commande : {{2}}\n\nMerci pour votre achat sur Auradime.',
     },
-    example: ['Order #A6D79B78 is on its way', 'Your order from Mama Ngozi Boutique has left the store. The rider expects to arrive before 4 PM.', 'https://auradime.com/orders/123'],
-    params: (n) => [clip(n.title, 60), clip(n.message, 700), link(n.metadata?.link)],
+    example: ['Order #A6D79B78 from Mama Ngozi Boutique has left the store and will arrive before 4 PM.', 'https://auradime.com/orders/123'],
+    params: (n) => [summary(n), link(n.metadata?.link || '/orders')],
+  },
+  auradime_payment_update: {
+    category: 'UTILITY',
+    body: {
+      en: 'Payment notice for your Auradime account: {{1}}\n\nView your wallet: {{2}}\n\nThis is an automatic notice about your own transaction.',
+      fr: 'Avis de paiement pour votre compte Auradime : {{1}}\n\nVoir votre portefeuille : {{2}}\n\nCeci est un avis automatique concernant votre propre transaction.',
+    },
+    example: ['We received your payment of 31,500 XAF for order #A6D79B78.', 'https://auradime.com/wallet'],
+    params: (n) => [summary(n), link(n.metadata?.link || '/wallet')],
+  },
+  auradime_delivery_update: {
+    category: 'UTILITY',
+    body: {
+      en: 'Update on your Auradime delivery: {{1}}\n\nTrack your delivery: {{2}}\n\nPlease keep your phone on so the rider can reach you.',
+      fr: 'Mise à jour de votre livraison Auradime : {{1}}\n\nSuivre votre livraison : {{2}}\n\nGardez votre téléphone allumé pour que le livreur puisse vous joindre.',
+    },
+    example: ['Delivery AURA-K7Q2M9XP is out for delivery.', 'https://auradime.com/delivery/track?code=AURA-K7Q2M9XP'],
+    params: (n) => [summary(n), link(n.metadata?.link || '/delivery/history')],
+  },
+  // Wording about passwords or codes makes Meta read this as Authentication (rejected
+  // as INCORRECT_CATEGORY), so it only describes the account change.
+  auradime_security_notice: {
+    category: 'UTILITY',
+    body: {
+      en: 'Security notice for your Auradime account: {{1}}\n\nReview your account activity here: {{2}}\n\nContact Auradime support if you did not make this change.',
+      fr: 'Avis de sécurité pour votre compte Auradime : {{1}}\n\nConsultez l’activité de votre compte ici : {{2}}\n\nContactez le support Auradime si vous n’êtes pas à l’origine de ce changement.',
+    },
+    example: ['Your account was signed in from a new device.', 'https://auradime.com/account'],
+    params: (n) => [summary(n), link(n.metadata?.link || '/account')],
   },
   auradime_delivery_link: {
     category: 'UTILITY',
@@ -35,7 +68,16 @@ const TEMPLATES = {
 };
 
 /** Notification types sent on WhatsApp (to opted-in users). Chat and promotions stay off: cost and consent. */
-const WHATSAPP_CATEGORIES = /order|payment|wallet|deposit|withdrawal|payout|refund|subscription|logistics|p2p|shipment|delivery|dispute|escrow|security/;
-const templateForNotification = (type) => (WHATSAPP_CATEGORIES.test(String(type || '')) && !/message|chat/.test(String(type || '')) ? 'auradime_update' : null);
+const TOPICS = [
+  [/security/, 'auradime_security_notice'],
+  [/payment|wallet|deposit|withdrawal|payout|subscription/, 'auradime_payment_update'],
+  [/logistics|p2p|shipment|delivery/, 'auradime_delivery_update'],
+  [/order|refund|dispute|escrow/, 'auradime_order_update'],
+];
+const templateForNotification = (type) => {
+  const t = String(type || '');
+  if (/message|chat/.test(t)) return null;
+  return TOPICS.find(([re]) => re.test(t))?.[1] || null;
+};
 
 module.exports = { TEMPLATES, templateForNotification };

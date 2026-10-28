@@ -49,7 +49,7 @@ describe('Meta webhook', () => {
 
   it('moves message status forward only, and STOP opts the sender out', async () => {
     const user = await createUser({ whatsapp: { opted_in: true, number: '237677123456' } })
-    await WhatsAppMessage.create({ to: '237677123456', template: 'auradime_update', status: 'accepted', wa_message_id: 'wamid.1' })
+    await WhatsAppMessage.create({ to: '237677123456', template: 'auradime_order_update', status: 'accepted', wa_message_id: 'wamid.1' })
     await post({ entry: [{ changes: [{ value: { statuses: [{ id: 'wamid.1', status: 'read', timestamp: '1761600000' }] } }] }] })
     await post({ entry: [{ changes: [{ value: { statuses: [{ id: 'wamid.1', status: 'delivered', timestamp: '1761599990' }] } }] }] })
     expect((await waitFor(async () => { const m = await WhatsAppMessage.findOne({ wa_message_id: 'wamid.1' }); return m.status === 'read' && m }))?.status).toBe('read')
@@ -81,7 +81,7 @@ describe('Notifier → WhatsApp', () => {
     await sendNotification(null, notOptedIn._id, { title: 'Order Updated', message: 'x', type: 'order_status' })
     const sent = await waitFor(() => WhatsAppMessage.find({}).lean().then((r) => r.length && r))
     expect(sent).toHaveLength(1)
-    expect(sent[0]).toMatchObject({ to: '237677123456', template: 'auradime_update', status: 'dry_run' })
+    expect(sent[0]).toMatchObject({ to: '237677123456', template: 'auradime_order_update', status: 'dry_run' })
 
     await PlatformSettings.updateOne({}, { $set: { features: { whatsapp_notifications: false } } })
     await sendNotification(null, optedIn._id, { title: 'Order Updated: Delivered', message: 'Delivered.', type: 'order_status' })

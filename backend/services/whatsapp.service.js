@@ -105,17 +105,17 @@ const handleWebhook = async (payload) => {
     for (const change of entry.changes || []) {
       const value = change.value || {};
       for (const s of value.statuses || []) {
-        const msg = await WhatsAppMessage.findOne({ wa_message_id: s.id });
-        if (!msg) continue;
-        // Webhooks can arrive out of order: never move a message backwards (read → delivered).
-        if (s.status === 'failed' || (STATUS_RANK[s.status] ?? -1) > (STATUS_RANK[msg.status] ?? -1)) {
-          msg.status = s.status;
-          msg.status_at = s.timestamp ? new Date(Number(s.timestamp) * 1000) : new Date();
-          if (s.errors?.length) msg.error = s.errors.map((e) => `${e.code}: ${e.title}`).join('; ');
-          if (s.pricing) msg.pricing = s.pricing;
-          await msg.save();
-          statuses++;
-        }
+        const rank = STATUS_RANK[s.status];
+        if (rank === undefined) continue;
+        // Webhooks arrive out of order and concurrently: the status only moves forward
+        // (never read → delivered), enforced atomically in the update filter.
+        const lower = Object.keys(STATUS_RANK).filter((k) => STATUS_RANK[k] < rank && k !== 'failed');
+        const set = { status: s.status, status_at: s.timestamp ? new Date(Number(s.timestamp) * 1000) : new Date() };
+        if (s.errors?.length) set.error = s.errors.map((e) => `${e.code}: ${e.title}`).join('; ');
+        if (s.pricing) set.pricing = s.pricing;
+        const filter = s.status === 'failed' ? { wa_message_id: s.id } : { wa_message_id: s.id, status: { $in: [...lower, 'dry_run'] } };
+        const r = await WhatsAppMessage.updateOne(filter, { $set: set });
+        statuses += r.modifiedCount || 0;
       }
       for (const m of value.messages || []) {
         if (m.type === 'text' && OPT_OUT.test(m.text?.body || '')) {
