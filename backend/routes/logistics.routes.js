@@ -56,6 +56,11 @@ router.get('/riders', restrictTo('logistics'), listRiders);
 router.post('/riders/invite', restrictTo('logistics'), inviteRider);
 router.patch('/riders/:riderId', restrictTo('logistics'), updateRider);
 
+// ── Agency packages & shareable tracking links ──
+const { createPackage, createTrackingLink } = require('../controllers/agencyPackage.controller');
+router.post('/packages', restrictTo('logistics'), createPackage);
+router.post('/shipments/:id/tracking-link', restrictTo('logistics'), createTrackingLink);
+
 
 // Drivers map statuses dynamically e.g. "transit", "delivered"
 router.patch('/shipments/:id/status', restrictTo('logistics', 'admin'), modifyShipmentStatus);

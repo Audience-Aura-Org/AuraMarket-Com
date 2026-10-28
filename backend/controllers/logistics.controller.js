@@ -455,7 +455,8 @@ const modifyShipmentStatus = async (req, res, next) => {
     }
 
     // P2P shipments have no order — skip order checks and use P2P-specific logic
-    const isP2P = shipment.type === 'p2p';
+    // Shipments without a marketplace order: P2P bookings and agency-registered packages.
+    const isP2P = shipment.type === 'p2p' || shipment.type === 'agency';
     const order = isP2P ? null : await Order.findById(shipment.order_id).session(session);
     if (!isP2P && !order) throw new Error('Associated order not found.');
 
@@ -526,7 +527,8 @@ const modifyShipmentStatus = async (req, res, next) => {
     if (isP2P) {
 
       // ── Credit logistics firm when P2P shipment is delivered ──
-      if (status === 'delivered' && shipment.payment_status === 'paid') {
+      // Only P2P money passes through the platform; agency packages are paid to the agency directly.
+      if (status === 'delivered' && shipment.type === 'p2p' && shipment.payment_status === 'paid') {
         // Determine logistics payout: base_price (excl. platform fee).
         // For older shipments without base_price stored, subtract platform_fee from total.
         const payoutAmount = shipment.base_price

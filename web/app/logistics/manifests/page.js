@@ -24,6 +24,7 @@ import { useAuthStore } from "@/hooks/useAuth";
 import { useWalletBalance } from "@/hooks/useWalletBalance";
 import StatCard from "@/components/layout/StatCard";
 import ShipmentStatusModal from "@/components/logistics/ShipmentStatusModal";
+import ShareTrackingLink from "@/components/logistics/ShareTrackingLink";
 import { summarizeLineItems, destinationLine } from "@/lib/logistics";
 import {
   LogisticsSubpageHeader,
@@ -237,6 +238,7 @@ export default function LogisticsManifestsPage() {
             </div>
           ) : selectedShipment ? (
             <div className="flex h-full min-h-0 flex-1 flex-col animate-in fade-in slide-in-from-bottom-3 duration-500">
+              <ShareTrackingLink shipment={selectedShipment} />
               <ShipmentStatusModal
                 embedded open
                 shipment={selectedShipment}

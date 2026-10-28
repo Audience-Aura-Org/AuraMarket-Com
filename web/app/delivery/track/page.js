@@ -156,10 +156,12 @@ function formatAddress(addr) {
 function TrackContent() {
   const searchParams = useSearchParams();
   const codeParam = searchParams.get('code') || '';
+  // Secure share links (?t=<token>) from agencies, e.g. sent over WhatsApp.
+  const tokenParam = searchParams.get('t') || '';
 
   const [code, setCode] = useState(codeParam);
   const [shipment, setShipment] = useState(null);
-  const [loading, setLoading] = useState(!!codeParam);
+  const [loading, setLoading] = useState(!!codeParam || !!tokenParam);
   const [error, setError] = useState('');
   const [messages, setMessages] = useState([]);
   const [msgInput, setMsgInput] = useState('');
@@ -206,7 +208,20 @@ function TrackContent() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  useEffect(() => { if (codeParam) fetchShipment(codeParam); }, [codeParam, fetchShipment]);
+  const fetchByToken = useCallback(async (token) => {
+    setLoading(true); setError('');
+    try {
+      const res = await api.get(`/track/${encodeURIComponent(token)}`);
+      if (res.data?.success) { setShipment(res.data.data.shipment); setCode(res.data.data.shipment?.tracking_code || ''); }
+      else { setError('This tracking link is not valid.'); setShipment(null); }
+    } catch (err) { setError(err.response?.data?.message || 'This tracking link is not valid.'); setShipment(null); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (tokenParam) fetchByToken(tokenParam);
+    else if (codeParam) fetchShipment(codeParam);
+  }, [tokenParam, codeParam, fetchByToken, fetchShipment]);
   useEffect(() => {
     if (shipment?._id) {
       fetchMsgs(shipment._id);
@@ -225,6 +240,8 @@ function TrackContent() {
   useLiveClock(!isTerminal && !!shipment);
   const pickup = shipment ? formatAddress(shipment.pickup_address) : { lines: [], phone: null };
   const drop = shipment ? formatAddress(shipment.delivery_address) : { lines: [], phone: null };
+  // A masked number ("6•• ••• 654") cannot be dialled: drop the call buttons in the public view.
+  if (shipment?.redacted) { pickup.phone = null; drop.phone = null; }
   const senderObj = shipment?.booked_by || shipment?.guest_booker;
   const recipientObj = shipment?.other_party;
   const pkg = shipment?.package_details;
@@ -535,7 +552,8 @@ function TrackContent() {
             )}
 
             {/* ── Shipment Messages ─────────────────────────────────── */}
-            <div className="space-y-3">
+            {/* Messages need a signed-in sender or recipient; link holders only see progress. */}
+            {!shipment.redacted && (<div className="space-y-3">
               <div className="flex items-center gap-2 opacity-60">
                 <MessageCircle className="size-4" />
                 <span className="text-[10px] font-bold uppercase tracking-wider">
@@ -583,7 +601,7 @@ function TrackContent() {
                   </button>
                 </form>
               </div>
-            </div>
+            </div>)}
 
             {/* ── Timeline ──────────────────────────────────────────── */}
             {shipment.shipment_logs?.length > 0 && (

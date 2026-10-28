@@ -13,7 +13,7 @@ const ShipmentSchema = new mongoose.Schema(
     // ── Shipment type ──────────────────────────────────────────────────
     type: {
       type: String,
-      enum: ['marketplace', 'p2p'],
+      enum: ['marketplace', 'p2p', 'agency'], // agency = registered by the agency itself
       default: 'marketplace',
     },
 
@@ -180,6 +180,19 @@ const ShipmentSchema = new mongoose.Schema(
       default: 'unpaid',
     },
     payment_reference: String,
+    // Secure share link (/delivery/track?t=): only the SHA-256 of the token is stored.
+    tracking_token_hash: { type: String, default: undefined, select: false },
+    tracking_token_issued_at: { type: Date, default: null },
+    // Packages an agency registers itself (type: 'agency').
+    agency_package: {
+      reference: { type: String, default: null },
+      payer: { type: String, enum: ['sender', 'recipient'] },
+      payment_arrangement: { type: String, enum: ['paid_to_agency', 'pay_on_delivery', 'agency_account'] },
+      amount_due_on_delivery: { type: Number, default: 0 },
+      fee_source: { type: String, enum: ['district', 'manual'] },
+      photo_url: { type: String, default: null },
+      created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    },
     cancellation_fee: { type: Number, default: 0 },
     pod_otp_hash: String,
     pod_otp_expires: Date,
@@ -193,6 +206,7 @@ const ShipmentSchema = new mongoose.Schema(
 // ── Indexes ──────────────────────────────────────────────────────────
 ShipmentSchema.index({ vendor_id: 1, status: 1, createdAt: -1 });
 ShipmentSchema.index({ logistics_id: 1, status: 1, createdAt: -1 });
+ShipmentSchema.index({ tracking_token_hash: 1 }, { unique: true, sparse: true });
 ShipmentSchema.index({ order_id: 1, status: 1 }, { sparse: true });
 // P2P indexes
 ShipmentSchema.index({ type: 1, booked_by: 1, createdAt: -1 });
