@@ -50,9 +50,15 @@ describe('normalizePhone', () => {
 // detectProvider
 // ─────────────────────────────────────────────────────────────────────────────
 describe('detectProvider', () => {
-  it('detects MTN for 65x prefix', () => {
+  // The 65x block is split: 650–654 are MTN, 655–659 are Orange.
+  it('detects MTN for 650–654', () => {
     expect(pawapay.detectProvider('237650000001')).toBe('MTN_MOMO_CMR')
-    expect(pawapay.detectProvider('237659999999')).toBe('MTN_MOMO_CMR')
+    expect(pawapay.detectProvider('237654999999')).toBe('MTN_MOMO_CMR')
+  })
+
+  it('detects Orange for 655–659', () => {
+    expect(pawapay.detectProvider('237655000001')).toBe('ORANGE_MONEY_CMR')
+    expect(pawapay.detectProvider('237659999999')).toBe('ORANGE_MONEY_CMR')
   })
 
   it('detects MTN for 67x prefix', () => {

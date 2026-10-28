@@ -39,7 +39,10 @@ describe('GET /payments/pawapay/recheck/:reference', () => {
 
     expect(res.status).toBe(200)
     expect(res.body.status).toBe('FAILED')
-    expect(res.body.reason).toMatch(/insufficient balance/i)
+    // The provider's wording is replaced by a customer-facing explanation (utils/paymentFailure).
+    expect(res.body.code).toBe('INSUFFICIENT_FUNDS')
+    expect(res.body.reason).toMatch(/insufficient funds/i)
+    expect(res.body.reason).toMatch(/has not been credited/i)
     expect((await Transaction.findById(tx._id)).status).toBe('failed')
   })
 
