@@ -87,6 +87,8 @@ const { startScheduledPickupDispatchWorker } = require('./services/scheduledPick
 startScheduledPickupDispatchWorker(app);
 const { startAvgDeliveryMinutesJob } = require('./services/avgDeliveryMinutes.service');
 startAvgDeliveryMinutesJob();
+const { startRiderOfferExpiryWorker } = require('./services/riderDispatch.service');
+startRiderOfferExpiryWorker(app);
 const { startDelayedRiderDispatchWorker } = require('./services/delayedRiderDispatch.service');
 startDelayedRiderDispatchWorker(app);
 const { startIntercityArrivalLapseWorker } = require('./services/intercityArrivalLapse.service');

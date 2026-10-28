@@ -63,7 +63,14 @@ router.post('/shipments/:id/tracking-link', restrictTo('logistics'), createTrack
 
 
 // Drivers map statuses dynamically e.g. "transit", "delivered"
-router.patch('/shipments/:id/status', restrictTo('logistics', 'admin'), modifyShipmentStatus);
+// Ending a delivery here also closes any rider assignment and frees the rider.
+const { withAssignmentSync, getAssignment, assignRider, cancelAssignment } = require('../controllers/dispatch.controller');
+router.patch('/shipments/:id/status', restrictTo('logistics', 'admin'), withAssignmentSync(modifyShipmentStatus));
+
+// ── Rider assignment (own shipments) ──
+router.get('/shipments/:id/assignment', restrictTo('logistics'), getAssignment);
+router.post('/shipments/:id/assign', restrictTo('logistics'), assignRider);
+router.post('/shipments/:id/assignment/cancel', restrictTo('logistics'), cancelAssignment);
 
 
 module.exports = router;

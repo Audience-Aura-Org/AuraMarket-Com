@@ -6,10 +6,11 @@
  */
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bike, Building2, Check, Loader2, PackageOpen, Phone, Power, X } from "lucide-react";
+import { Bike, Building2, Check, Loader2, Phone, Power, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "@/services/api";
 import { useAuthStore } from "@/hooks/useAuth";
+import RiderDeliveries from "@/components/rider/RiderDeliveries";
 
 const VEHICLE_LABEL = { motorcycle: "Motorcycle", bicycle: "Bicycle", car: "Car", van: "Van", on_foot: "On foot" };
 
@@ -116,10 +117,6 @@ export default function RiderPage() {
         <span className="block text-[10px] text-[var(--text-secondary)]">{online ? "Tap to stop receiving deliveries." : "Tap to start receiving deliveries."}</span>
       </span>
     </button>
-    <div className="flex flex-col items-center gap-2 rounded-3xl border border-dashed border-[var(--glass-border)] px-6 py-10 text-center">
-      <PackageOpen className="size-8 text-[var(--text-secondary)] opacity-40" />
-      <p className="text-[13px] font-semibold">No deliveries yet</p>
-      <p className="max-w-xs text-[11px] text-[var(--text-secondary)]">Deliveries your agency assigns to you will appear here.</p>
-    </div>
+    <RiderDeliveries key={rider.availability} />
   </>);
 }

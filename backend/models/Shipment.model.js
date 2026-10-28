@@ -180,6 +180,18 @@ const ShipmentSchema = new mongoose.Schema(
       default: 'unpaid',
     },
     payment_reference: String,
+    // Rider currently carrying the delivery (set when a rider accepts an offer).
+    rider_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    rider_assigned_at: { type: Date, default: null },
+    // Dispatch engine record: in "shadow" mode it only suggests, humans still assign.
+    dispatch: {
+      mode: { type: String, enum: ['manual', 'auto', 'shadow'], default: undefined },
+      suggested_rider_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: undefined },
+      suggested_at: { type: Date, default: undefined },
+      reason: { type: String, default: undefined },
+      attempts: { type: Number, default: 0 },
+      unassigned_alerted_at: { type: Date, default: undefined },
+    },
     // Secure share link (/delivery/track?t=): only the SHA-256 of the token is stored.
     tracking_token_hash: { type: String, default: undefined, select: false },
     tracking_token_issued_at: { type: Date, default: null },
@@ -189,6 +201,9 @@ const ShipmentSchema = new mongoose.Schema(
       payer: { type: String, enum: ['sender', 'recipient'] },
       payment_arrangement: { type: String, enum: ['paid_to_agency', 'pay_on_delivery', 'agency_account'] },
       amount_due_on_delivery: { type: Number, default: 0 },
+      collected_amount: { type: Number, default: null },
+      collected_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      collected_at: { type: Date, default: null },
       fee_source: { type: String, enum: ['district', 'manual'] },
       photo_url: { type: String, default: null },
       created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

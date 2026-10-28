@@ -113,6 +113,8 @@ const createPackage = async (req, res, next) => {
     await shipment.save();
     await recordAudit({ actorId: req.user._id, action: 'agency_package_created', targetType: 'Shipment', targetId: shipment._id, after: { fee, fee_source: shipment.agency_package.fee_source } });
 
+    // Offer it to one of the agency's riders right away when automatic dispatch is on.
+    setImmediate(() => require('../services/riderDispatch.service').autoDispatch(shipment._id, req.app).catch((e) => console.error('[agencyPackage] dispatch:', e.message)));
     const body = shipment.toObject();
     delete body.tracking_token_hash;
     res.status(201).json({ success: true, data: { shipment: body, ...shareBundle(shipment, token, firm.company_name) } });

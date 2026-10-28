@@ -470,7 +470,10 @@ const modifyShipmentStatus = async (req, res, next) => {
     }
 
     const firm = await LogisticsCompany.findById(shipment.logistics_id).session(session);
-    if (req.user.role !== 'admin' && firm?.user_id.toString() !== req.user._id.toString()) {
+    // The rider carrying this delivery may update it (routed here by rider.controller, which
+    // limits riders to pickup → delivered/failed steps).
+    const isAssignedRider = req.riderContext === true && shipment.rider_id?.toString() === req.user._id.toString();
+    if (req.user.role !== 'admin' && firm?.user_id.toString() !== req.user._id.toString() && !isAssignedRider) {
       throw new Error('Access denied.');
     }
 
@@ -505,6 +508,16 @@ const modifyShipmentStatus = async (req, res, next) => {
         receiver_name: receiver_name,
         timestamp:     new Date()
       };
+      // Agency packages paid on delivery: record the cash the rider took.
+      if (shipment.type === 'agency' && shipment.agency_package?.payment_arrangement === 'pay_on_delivery') {
+        const due = Number(shipment.agency_package.amount_due_on_delivery) || 0;
+        const collected = req.body.cash_collected === undefined ? due : Math.round(Number(req.body.cash_collected));
+        if (!Number.isFinite(collected) || collected < 0) throw new Error('Enter the cash collected, in whole XAF.');
+        shipment.agency_package.collected_amount = collected;
+        shipment.agency_package.collected_by = req.user._id;
+        shipment.agency_package.collected_at = new Date();
+        if (collected >= due) shipment.payment_status = 'paid';
+      }
     }
 
     // Validation for Failed status
@@ -755,6 +768,7 @@ const modifyShipmentStatus = async (req, res, next) => {
                     { $setOnInsert: {
                       agency_id: shipment.logistics_id?._id || shipment.logistics_id,
                       shipment_id: shipment._id,
+                      rider_id: shipment.rider_id || null,
                       amount_collected: Number(order.total_amount) || 0,
                       amount_due: vendorBaseAmount,
                       reference: `AURA-COLL-${require('crypto').randomBytes(6).toString('hex').toUpperCase()}`,
