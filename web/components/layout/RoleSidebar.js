@@ -79,6 +79,8 @@ const LOGISTICS_NAV = [
   { icon: 'dashboard_customize', label: 'Dashboard',    href: '/logistics/dashboard' },
   { icon: 'workspace_premium',   label: 'Subscription', href: '/subscribe?role=logistics' },
   { icon: 'list_alt',            label: 'Manifests',    href: '/logistics/manifests' },
+  { icon: 'add_box',             label: 'Add Package',  href: '/logistics/packages' },
+  { icon: 'two_wheeler',         label: 'Riders',       href: '/logistics/riders' },
   { icon: 'payments',            label: 'Route Pricing',href: '/logistics/pricing' },
   { icon: 'location_on',         label: 'Live Tracking',href: '/logistics/tracking' },
   { icon: 'analytics',           label: 'Performance',  href: '/logistics/analytics' },

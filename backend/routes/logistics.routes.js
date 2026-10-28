@@ -50,6 +50,12 @@ router.get('/profile', restrictTo('logistics', 'admin'), getProfile);
 router.patch('/profile', restrictTo('logistics', 'admin'), updateProfile);
 router.patch('/pricing', restrictTo('logistics', 'admin'), updatePricing);
 
+// ── Rider management (own agency only) ──
+const { listRiders, inviteRider, updateRider } = require('../controllers/rider.controller');
+router.get('/riders', restrictTo('logistics'), listRiders);
+router.post('/riders/invite', restrictTo('logistics'), inviteRider);
+router.patch('/riders/:riderId', restrictTo('logistics'), updateRider);
+
 
 // Drivers map statuses dynamically e.g. "transit", "delivered"
 router.patch('/shipments/:id/status', restrictTo('logistics', 'admin'), modifyShipmentStatus);
