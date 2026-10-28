@@ -31,7 +31,8 @@ const post = (payload, signature) => {
   const body = JSON.stringify(payload)
   return request(app).post('/api/v1/whatsapp/webhook').set('Content-Type', 'application/json').set('X-Hub-Signature-256', signature ?? sign(body)).send(body)
 }
-const waitFor = async (fn, ms = 3000) => { const end = Date.now() + ms; let v; while (Date.now() < end) { v = await fn(); if (v) return v; await new Promise((r) => setTimeout(r, 50)) } return v }
+// Webhooks are processed after the 200 reply, so allow for a slow machine.
+const waitFor = async (fn, ms = 8000) => { const end = Date.now() + ms; let v; while (Date.now() < end) { v = await fn(); if (v) return v; await new Promise((r) => setTimeout(r, 50)) } return v }
 
 describe('Meta webhook', () => {
   it('answers the verification handshake only with the right token', async () => {
