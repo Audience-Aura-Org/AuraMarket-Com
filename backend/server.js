@@ -144,6 +144,8 @@ const {
   pawapayCheckoutWebhook,
 } = require('./controllers/payment.controller');
 const { pawapayPayoutWebhook } = require('./controllers/withdrawal.controller');
+// WhatsApp (Meta) signs the raw body with the app secret.
+app.post('/api/v1/whatsapp/webhook', express.raw({ type: 'application/json' }), require('./controllers/whatsapp.controller').receiveWebhook);
 app.post('/api/v1/payments/eversend/webhook', express.raw({ type: 'application/json' }), eversendWebhook);
 app.post('/api/payments/eversend/webhook', express.raw({ type: 'application/json' }), eversendWebhook);
 // PayUnit signs the exact callback bytes. Mount before express.json() so valid

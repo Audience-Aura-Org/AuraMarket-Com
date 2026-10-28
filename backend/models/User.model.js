@@ -82,6 +82,13 @@ const UserSchema = new mongoose.Schema(
       email_orders: { type: Boolean, default: true }, email_messages: { type: Boolean, default: false },
       email_payments: { type: Boolean, default: true }, email_promos: { type: Boolean, default: false },
     },
+    // WhatsApp updates are opt-in only (Meta policy). Replying STOP sets opted_in false.
+    whatsapp: {
+      opted_in: { type: Boolean, default: false },
+      number: { type: String, default: null }, // E.164 without "+", e.g. 237677123456
+      opted_in_at: { type: Date, default: null },
+      opted_out_at: { type: Date, default: null },
+    },
     manager_settings: {
       notify_email: { type: Boolean, default: true },
       notify_push:  { type: Boolean, default: true },

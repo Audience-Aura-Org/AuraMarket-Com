@@ -70,6 +70,9 @@ function buildApp() {
     eversendWebhook
   )
 
+  // ── WhatsApp (Meta) raw body — X-Hub-Signature-256 is over the exact bytes ──
+  app.post('/api/v1/whatsapp/webhook', express.raw({ type: 'application/json' }), require('../../controllers/whatsapp.controller').receiveWebhook)
+
   // ── PawaPay raw body (before express.json — required for Content-Digest) ──
   app.post('/api/v1/payments/pawapay/webhook/deposit',  express.raw({ type: 'application/json' }), pawapayDepositWebhook)
   app.post('/api/payments/pawapay/webhook/deposit',     express.raw({ type: 'application/json' }), pawapayDepositWebhook)

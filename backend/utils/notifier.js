@@ -250,7 +250,7 @@ const sendNotification = async (app, recipientId, data) => {
     // two sequential DB round-trips before FCM can fire.
     const PushSubscription = require('../models/PushSubscription.model');
     const [recipientProfile, pushSubs] = await Promise.all([
-      User.findById(recipientId).select('name branding preferred_language notification_preferences manager_settings role').lean().catch(() => null),
+      User.findById(recipientId).select('name branding preferred_language notification_preferences manager_settings role whatsapp').lean().catch(() => null),
       PushSubscription.find({ user_id: recipientId }).lean().catch(() => []),
     ]);
     const channels = notificationChannels(recipientProfile, type);
@@ -453,6 +453,25 @@ const sendNotification = async (app, recipientId, data) => {
           console.error('❌ Email Signal Dispatch Error:', err.message);
         }
       }, { recipientId: recipientId.toString(), type, title: localizedTitle });
+    }
+
+    // 🚀 CHANNEL 3: WHATSAPP (opted-in users, approved template, behind a flag)
+    const waTemplate = recipientProfile?.whatsapp?.opted_in && recipientProfile.whatsapp.number
+      ? require('../constants/whatsappTemplates').templateForNotification(type) : null;
+    if (waTemplate) {
+      enqueueJob('whatsapp', async () => {
+        const settings = await require('../models/PlatformSettings.model').getSettings();
+        if (!require('./featureFlags').isEnabled(settings, 'whatsapp_notifications')) return;
+        const { TEMPLATES } = require('../constants/whatsappTemplates');
+        await require('../services/whatsapp.service').sendTemplate({
+          to: recipientProfile.whatsapp.number,
+          template: waTemplate,
+          params: TEMPLATES[waTemplate].params({ title: localizedTitle, message: localizedMessage, metadata }),
+          language: recipientLanguage,
+          userId: recipientId,
+          notificationId: notification._id,
+        });
+      }, { recipientId: recipientId.toString(), type, channel: 'whatsapp' });
     }
 
     if (type === 'message' && !metadata?.managed_account_id) {

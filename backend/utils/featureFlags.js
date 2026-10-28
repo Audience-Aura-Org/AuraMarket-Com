@@ -13,6 +13,7 @@ const FEATURE_FLAGS = Object.freeze({
   auto_agency_dispatch: 'mode',      // off | shadow | on
   payment_triggered_dispatch: 'boolean',
   enhanced_chat: 'boolean',
+  whatsapp_notifications: 'boolean', // send opted-in users WhatsApp updates
 });
 const MODES = ['off', 'shadow', 'on'];
 

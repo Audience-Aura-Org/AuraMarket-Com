@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
+import WhatsAppOptIn from '@/components/account/WhatsAppOptIn';
 import {
   ArrowLeft, User, Bell, Shield, Lock, Power, ChevronRight,
   Store, ShieldAlert, Database, BarChart3,
@@ -1488,6 +1489,8 @@ export default function AccountPageClient() {
                           <NotificationToggle label="Promotions &amp; offers" active={notifPrefs.email_promos} onChange={(v) => saveNotifPref('email_promos', v)} />
                         </div>
                       </div>
+
+                      <WhatsAppOptIn />
                     </div>
                   </div>
                 </div>
