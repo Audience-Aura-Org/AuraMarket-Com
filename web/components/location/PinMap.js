@@ -5,8 +5,7 @@
  * map is actually shown.
  */
 import { useEffect, useRef } from 'react';
-import * as maplibregl from 'maplibre-gl'; // v6 is ESM-only with named exports
-import 'maplibre-gl/dist/maplibre-gl.css';
+import maplibregl from '@/lib/maplibre';
 
 export const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 const DOUALA = { lat: 4.0511, lng: 9.7043 };

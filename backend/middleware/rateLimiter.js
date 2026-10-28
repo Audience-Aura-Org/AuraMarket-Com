@@ -148,8 +148,24 @@ const trackingLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * Live rider position polling: one open tracking page polls about every 10 s, so it
+ * needs more room than code lookups. It only serves deliveries the viewer may see.
+ */
+const liveTrackingLimiter = rateLimit({
+  store: redisStore('auradime:rl:live:'),
+  passOnStoreError: true,
+  windowMs: 15 * 60 * 1000,
+  max: intEnv('LIVE_TRACKING_RATE_LIMIT_MAX', 300),
+  keyGenerator: userOrIpKey,
+  message: { success: false, message: 'Too many live tracking requests. Please wait a moment.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   apiLimiter,
+  liveTrackingLimiter,
   strictLimiter,
   trackingLimiter,
   publicLimiter,

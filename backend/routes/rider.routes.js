@@ -16,4 +16,7 @@ router.post('/me/offers/:assignmentId/accept', acceptOffer);
 router.post('/me/offers/:assignmentId/reject', rejectOffer);
 router.post('/me/deliveries/:shipmentId/status', riderStatus);
 
+const { reportMyLocation } = require('../controllers/liveTracking.controller');
+router.post('/me/location', reportMyLocation);
+
 module.exports = router;

@@ -3,6 +3,8 @@
 import { useState, useEffect, Suspense, useRef, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import api from '@/services/api';
+import { useFeatureFlag } from '@/lib/featureFlags';
+import LiveRiderCard from '@/components/delivery/LiveRiderCard';
 import {
   Package, MapPin, Clock, CheckCircle2, XCircle, Truck, AlertTriangle,
   Search, Loader2, User, MessageCircle, Send, Copy, Check,
@@ -169,16 +171,17 @@ function TrackContent() {
   const [copied, setCopied] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
   const msgEnd = useRef(null);
+  const liveTracking = useFeatureFlag('live_tracking');
 
-  const fetchShipment = useCallback(async (tc) => {
+  const fetchShipment = useCallback(async (tc, background = false) => {
     if (!tc) return;
-    setLoading(true); setError('');
+    if (!background) { setLoading(true); setError(''); }
     try {
       const res = await api.get(`/p2p/track/${tc.trim().toUpperCase()}`);
       if (res.data?.success) setShipment(res.data.data.shipment);
-      else { setError('Shipment not found'); setShipment(null); }
-    } catch (err) { setError(err.response?.data?.message || 'Shipment not found'); setShipment(null); }
-    setLoading(false);
+      else if (!background) { setError('Shipment not found'); setShipment(null); }
+    } catch (err) { if (!background) { setError(err.response?.data?.message || 'Shipment not found'); setShipment(null); } }
+    if (!background) setLoading(false);
   }, []);
 
   const fetchMsgs = useCallback(async (id) => {
@@ -208,14 +211,14 @@ function TrackContent() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const fetchByToken = useCallback(async (token) => {
-    setLoading(true); setError('');
+  const fetchByToken = useCallback(async (token, background = false) => {
+    if (!background) { setLoading(true); setError(''); }
     try {
       const res = await api.get(`/track/${encodeURIComponent(token)}`);
-      if (res.data?.success) { setShipment(res.data.data.shipment); setCode(res.data.data.shipment?.tracking_code || ''); }
-      else { setError('This tracking link is not valid.'); setShipment(null); }
-    } catch (err) { setError(err.response?.data?.message || 'This tracking link is not valid.'); setShipment(null); }
-    setLoading(false);
+      if (res.data?.success) { setShipment(res.data.data.shipment); if (!background) setCode(res.data.data.shipment?.tracking_code || ''); }
+      else if (!background) { setError('This tracking link is not valid.'); setShipment(null); }
+    } catch (err) { if (!background) { setError(err.response?.data?.message || 'This tracking link is not valid.'); setShipment(null); } }
+    if (!background) setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -231,9 +234,10 @@ function TrackContent() {
   }, [shipment?._id, fetchMsgs]);
   useEffect(() => {
     if (!shipment || ['delivered', 'cancelled', 'failed'].includes(shipment.status)) return;
-    const iv = setInterval(() => { fetchShipment(shipment.tracking_code); fetchMsgs(shipment._id); }, 30000);
+    // Link viewers refresh through the link: agency packages are not found by code.
+    const iv = setInterval(() => { if (tokenParam) fetchByToken(tokenParam, true); else fetchShipment(shipment.tracking_code, true); fetchMsgs(shipment._id); }, 30000);
     return () => clearInterval(iv);
-  }, [shipment, fetchShipment, fetchMsgs]);
+  }, [shipment, tokenParam, fetchShipment, fetchByToken, fetchMsgs]);
 
   const m = shipment ? STATUS_META[shipment.status] || STATUS_META.pending : null;
   const isTerminal = shipment && ['delivered', 'cancelled', 'failed'].includes(shipment.status);
@@ -373,6 +377,11 @@ function TrackContent() {
 
             {/* ── Step-by-step Status Progress ─────────────────────── */}
             <StatusStepper status={shipment.status} />
+
+            {/* ── Live rider position (link holders and signed-in parties) ── */}
+            {liveTracking && !isTerminal && (tokenParam || !shipment.redacted) && (
+              <LiveRiderCard token={tokenParam || null} code={shipment.tracking_code} destination={shipment.delivery_address?.location} />
+            )}
 
             {/* ── Quick Info Row (price + carrier + payment) ──────── */}
             <div className="grid grid-cols-3 gap-3">

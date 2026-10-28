@@ -4,15 +4,19 @@
  * delivery with navigation, calls and one-tap steps, and recent deliveries.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Banknote, Check, CircleAlert, Loader2, MapPin, Navigation, PackageOpen, Phone, X } from "lucide-react";
+import { Banknote, Check, CircleAlert, Loader2, LocateFixed, MapPin, Navigation, PackageOpen, Phone, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "@/services/api";
+import { useFeatureFlag } from "@/lib/featureFlags";
+import useShareLocation from "./useShareLocation";
 
 const NEXT_STEP = {
   assigned: { status: "picked_up", label: "I picked it up" },
   picked_up: { status: "out_for_delivery", label: "I'm on the way" },
   in_transit: { status: "out_for_delivery", label: "I'm on the way" },
 };
+// The customer sees the rider on the map only during these steps.
+const LIVE_STATUSES = ["assigned", "picked_up", "in_transit", "out_for_delivery"];
 const STATUS_LABEL = { assigned: "Go to pickup", picked_up: "Picked up", in_transit: "On the way", out_for_delivery: "On the way", delivered: "Delivered", failed: "Failed", cancelled: "Cancelled" };
 
 const secondsLeft = (iso) => Math.max(0, Math.round((new Date(iso).getTime() - Date.now()) / 1000));
@@ -46,6 +50,8 @@ export default function RiderDeliveries() {
   const [finishing, setFinishing] = useState(null); // { mode: 'delivered' | 'failed' }
   const [form, setForm] = useState({ note: "", cash: "", reason: "" });
   const [, tick] = useState(0);
+  const liveTracking = useFeatureFlag("live_tracking");
+  const gps = useShareLocation(liveTracking && !!data?.active?.some(({ shipment }) => LIVE_STATUSES.includes(shipment.status)));
 
   const load = useCallback(async () => {
     try { const res = await api.get("/riders/me/deliveries", { skipClientCache: true }); setData(res.data.data); } catch { /* keep last view */ }
@@ -85,6 +91,13 @@ export default function RiderDeliveries() {
           </div>
         </div>
       ))}
+
+      {gps !== "off" && (
+        <p className={`flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[11px] font-semibold ${gps === "sharing" ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
+          <LocateFixed className="size-4 shrink-0" />
+          {gps === "sharing" ? "Sharing your location with the customer during this delivery." : gps === "denied" ? "Allow location access so the customer can follow the delivery." : "Waiting for GPS…"}
+        </p>
+      )}
 
       {data.active.map(({ assignment_id, shipment: s }) => {
         const next = NEXT_STEP[s.status];

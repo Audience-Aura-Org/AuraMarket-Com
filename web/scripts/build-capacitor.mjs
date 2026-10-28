@@ -78,6 +78,7 @@ try {
     if (moveIfExists(source, target)) moved.push([target, source]);
   }
 
+  spawnSync('node scripts/copy-maplibre-worker.mjs', { cwd: root, stdio: 'inherit', shell: true });
   const result = spawnSync('npx next build', {
     cwd: root,
     env: {

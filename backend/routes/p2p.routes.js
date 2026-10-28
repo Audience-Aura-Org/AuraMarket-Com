@@ -6,7 +6,8 @@
 const express = require('express');
 const router = express.Router();
 const { protect, protectOptional } = require('../middleware/auth.middleware');
-const { strictLimiter, trackingLimiter } = require('../middleware/rateLimiter');
+const { strictLimiter, trackingLimiter, liveTrackingLimiter } = require('../middleware/rateLimiter');
+const { liveByCode } = require('../controllers/liveTracking.controller');
 const {
   getP2PQuote,
   createP2PShipment,
@@ -22,6 +23,7 @@ const {
 // ── Public / Guest-friendly ────────────────────────────────────────────
 router.post('/quote', protectOptional, getP2PQuote);
 router.post('/book', strictLimiter, protectOptional, createP2PShipment);
+router.get('/track/:trackingCode/live', liveTrackingLimiter, protect, liveByCode);
 router.get('/track/:trackingCode', trackingLimiter, protectOptional, trackP2PShipment);
 router.get('/guest/:sessionId', getGuestDeliveries);
 

@@ -7,7 +7,9 @@
   },
   "main": "index.js",
   "scripts": {
+    "predev": "node scripts/copy-maplibre-worker.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-maplibre-worker.mjs",
     "dev:network": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start",
