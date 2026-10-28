@@ -89,6 +89,8 @@ router.use('/subscriptions', subscriptionRoutes);
 router.use('/dine', publicLimiter, dineRoutes);       // GET /api/dine and /api/dine/restaurant/:id
 router.use('/restaurant', restaurantRoutes);           // GET/POST/PATCH /api/restaurant/profile
 router.use('/reservations', reservationRoutes);        // Phase 3 Step 14 — dine-in reservations
+router.use('/locations', publicLimiter, require('./location.routes'));   // Location search & pin → zone
+router.use('/features', publicLimiter, cacheResponse({ ttlSeconds: 30 }), require('./feature.routes')); // Rollout flags
 router.use('/p2p', p2pRoutes);                         // P2P Pickup & Delivery
 router.use('/messages', messagesRoutes);               // Shipment messages
 

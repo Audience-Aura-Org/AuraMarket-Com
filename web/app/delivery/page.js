@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import WhatsAppSupport from '@/components/logistics/WhatsAppSupport';
+import LocationPicker from '@/components/location/LocationPicker';
+import { useFeatureFlag } from '@/lib/featureFlags';
 import {
   Package, Send, ArrowDownToLine, ChevronRight, MapPin,
   Clock, Wallet, CreditCard, Loader2, CheckCircle2,
@@ -44,6 +46,7 @@ const LABEL_CLASS = 'delivery-label block text-[11px] font-bold text-[var(--text
 export default function DeliveryPage() {
   const router = useRouter();
   const { user, walletBalance, refreshWalletBalance } = useAuthStore();
+  const locationPickerEnabled = useFeatureFlag('location_picker');
   const displayedWalletBalance = Number(walletBalance ?? 0);
   const { t } = useLanguage();
 
@@ -350,11 +353,15 @@ export default function DeliveryPage() {
           name: form.pickup_name, phone: form.pickup_phone, email: form.pickup_email,
           street: form.pickup_street, city: form.pickup_city,
           quartier: form.pickup_quartier, zone_id: form.pickup_zone_id,
+          ...(form.pickup_location && { location: form.pickup_location }),
+          ...(form.pickup_landmark && { landmark: form.pickup_landmark }),
         },
         dropoff_address: {
           name: form.dropoff_name, phone: form.dropoff_phone, email: form.dropoff_email,
           street: form.dropoff_street, city: form.dropoff_city,
           quartier: form.dropoff_quartier, zone_id: form.dropoff_zone_id,
+          ...(form.dropoff_location && { location: form.dropoff_location }),
+          ...(form.dropoff_landmark && { landmark: form.dropoff_landmark }),
         },
         package_details: {
           category: form.category, weight_tier: form.weight_tier,
@@ -605,6 +612,17 @@ export default function DeliveryPage() {
               <div><label className={LABEL_CLASS}>Full Name</label><input value={form[`${prefix}_name`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_name`]: e.target.value }))} className={INPUT_CLASS} placeholder="Full name" /></div>
               <div><label className={LABEL_CLASS}>Phone</label><input value={form[`${prefix}_phone`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_phone`]: e.target.value }))} className={INPUT_CLASS} placeholder="+237..." /></div>
               <div className="md:col-span-2"><details><summary className={LABEL_CLASS + " cursor-pointer py-2"}>Email (optional)</summary><input value={form[`${prefix}_email`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_email`]: e.target.value }))} className={INPUT_CLASS} placeholder="email@example.com" /></details></div>
+
+              {locationPickerEnabled && (
+                <div className="md:col-span-2">
+                  <LocationPicker
+                    label="Find the exact spot"
+                    value={{ zone_id: form[`${prefix}_zone_id`], quartier: form[`${prefix}_quartier`], district: form[`${prefix}_district`], city: form[`${prefix}_city`], location: form[`${prefix}_location`] || null, landmark: form[`${prefix}_landmark`] || '' }}
+                    onChange={(v) => setForm(p => ({ ...p, [`${prefix}_zone_id`]: v.zone_id || '', [`${prefix}_quartier`]: v.quartier || '', [`${prefix}_district`]: v.district || '', [`${prefix}_city`]: v.city || p[`${prefix}_city`], [`${prefix}_location`]: v.location || null, [`${prefix}_landmark`]: v.landmark || '' }))}
+                  />
+                  <p className="mt-2 text-[10px] text-[var(--text-secondary)]">Or choose the quartier yourself below.</p>
+                </div>
+              )}
 
               {/* Address dropdowns */}
               <div>

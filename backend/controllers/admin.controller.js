@@ -477,6 +477,15 @@ const updateSettings = async (req, res, next) => {
       };
     }
 
+    // Rollout flags: whitelisted keys and values only, merged over current values.
+    if (req.body.features !== undefined) {
+      const { parseFlagUpdate, readFlags } = require('../utils/featureFlags');
+      const parsed = parseFlagUpdate(req.body.features);
+      if (parsed.error) return res.status(400).json({ success: false, message: parsed.error });
+      settings.features = { ...readFlags(settings), ...parsed.flags };
+      settings.markModified('features');
+    }
+
     await settings.save();
     await clearApiCache();
     res.status(200).json({ success: true, message: 'Settings updated successfully.', data: { settings } });

@@ -48,11 +48,11 @@ const LogisticZoneSchema = new mongoose.Schema(
       type: Number,
       default: null, // 1 = city · 2 = district · 3 = quartier
     },
+    // Only present once real coordinates exist: a bare { type: 'Point' } breaks the 2dsphere index.
     centroid: {
       type: {
         type: String,
         enum: ['Point'],
-        default: 'Point',
       },
       coordinates: {
         type: [Number], // [longitude, latitude]
@@ -73,5 +73,7 @@ LogisticZoneSchema.index({ name: 1 });
 LogisticZoneSchema.index({ code: 1 }, { unique: true, sparse: true });
 LogisticZoneSchema.index({ ancestors: 1, type: 1 });
 LogisticZoneSchema.index({ parent_id: 1, is_active: 1 });
+// Pin → nearest quartier. Built by migrations/16 (it first clears empty centroids).
+LogisticZoneSchema.index({ centroid: '2dsphere' }, { name: 'centroid_2dsphere' });
 
 module.exports = mongoose.model('LogisticZone', LogisticZoneSchema);

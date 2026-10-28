@@ -60,6 +60,14 @@ const ShipmentSchema = new mongoose.Schema(
       quartier: String,
       phone: String,
       zone_id: { type: mongoose.Schema.Types.ObjectId, ref: 'LogisticZone', default: null },
+      landmark: { type: String, default: null },
+      // Exact spot confirmed by the customer on the map; pricing still uses zone_id.
+      location: {
+        lat: Number,
+        lng: Number,
+        source: { type: String, enum: ['search', 'pin', 'gps', 'saved'] },
+        confirmed_at: Date,
+      },
     },
     delivery_address: {
       street: String,
@@ -68,6 +76,14 @@ const ShipmentSchema = new mongoose.Schema(
       quartier: String,
       phone: String,
       zone_id: { type: mongoose.Schema.Types.ObjectId, ref: 'LogisticZone', default: null },
+      landmark: { type: String, default: null },
+      // Exact spot confirmed by the customer on the map; pricing still uses zone_id.
+      location: {
+        lat: Number,
+        lng: Number,
+        source: { type: String, enum: ['search', 'pin', 'gps', 'saved'] },
+        confirmed_at: Date,
+      },
     },
     delivery_description: {
       type: String,

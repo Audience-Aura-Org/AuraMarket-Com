@@ -114,6 +114,10 @@ const PlatformSettingsSchema = new mongoose.Schema(
       min: 1,
     },
 
+    // ── Logistics / maps rollout flags (see utils/featureFlags.js) ─────
+    // Mixed: booleans plus off|shadow|on modes for dispatch. Validated on write.
+    features: { type: mongoose.Schema.Types.Mixed, default: () => ({}) },
+
     // ── P2P Pickup & Delivery config ───────────────────────
     p2p_enabled: { type: Boolean, default: false },
     p2p_logistics_provider_ids: [{
