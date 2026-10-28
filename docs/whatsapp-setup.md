@@ -26,12 +26,22 @@ Leave "Attach a client certificate" off. After saving, subscribe the webhook to 
 | `WHATSAPP_PHONE_NUMBER_ID` | WhatsApp Manager → API setup → *Phone number ID* (not the number) |
 | `WHATSAPP_TOKEN` | Business Settings → System users → add an admin system user → *Generate token* for the app with `whatsapp_business_messaging` and `whatsapp_business_management` (choose "Never" expiry) |
 | `WHATSAPP_APP_SECRET` | App dashboard → App settings → Basic → *App secret* |
+| `WHATSAPP_BUSINESS_ACCOUNT_ID` | WhatsApp Manager address bar `asset_id=…` (not the phone number ID); needed to submit templates |
 | `WHATSAPP_API_VERSION` | `v23.0` unless Meta retires it |
 
 The sending number must be registered to the Cloud API; it can no longer be used
 in the normal WhatsApp or WhatsApp Business app.
 
-## 3. Message templates (WhatsApp Manager → Message templates → Create)
+## 3. Message templates
+
+Submit them with the script (no manual typing):
+
+```
+node backend/scripts/whatsapp-templates.js --submit   # creates any missing template/language
+node backend/scripts/whatsapp-templates.js --status   # shows PENDING / APPROVED / REJECTED
+```
+
+Or create them by hand in WhatsApp Manager → Message templates → Create:
 
 Category **Utility**, languages **English (en)** and **French (fr)**, names exactly
 as below. Paste the body; Meta asks for sample values for each `{{n}}`.
