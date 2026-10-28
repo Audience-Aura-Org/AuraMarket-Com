@@ -151,3 +151,37 @@ describe('Rider delivery steps', () => {
     expect((await waitFor(async () => { const p = await RiderProfile.findOne({ user_id: near._id }); return p.availability === 'online' && p }))?.availability).toBe('online')
   })
 })
+
+describe('Proximity from live positions', () => {
+  const LogisticZone = require('../../models/LogisticZone.model')
+  const report = (user, body) => request(app).post('/api/v1/riders/me/location').set(authHeader(signToken(user))).send(body)
+
+  it('without a pickup pin, ranks riders by distance to the pickup quartier centre', async () => {
+    await LogisticZone.create({ name: 'Akwa', type: 'quartier', level: 3, centroid: { type: 'Point', coordinates: [9.6966, 4.0483] } })
+    const s = await parcel({ pickup_address: { quartier: 'akwa', city: 'Douala' } })
+    const [first] = await dispatch.rankRiders(s.toObject())
+    expect(first.profile.user_id._id.toString()).toBe(near._id.toString())
+    expect(first.reason).toMatch(/^~0\.\d km from pickup \(quartier centre\)$/)
+  })
+
+  it('online riders report their position while auto dispatch is on, and going offline forgets it', async () => {
+    const fresh = await rider(firm, 'Fresh Rider')
+    expect((await report(fresh, { lat: 4.05, lng: 9.70 })).status).toBe(403) // dispatch off, live tracking off
+    await setMode('on')
+    expect((await report(fresh, { lat: 4.05, lng: 9.70 })).body.data.stored).toBe(true)
+    expect((await RiderProfile.findOne({ user_id: fresh._id }).lean()).last_location.lat).toBe(4.05)
+
+    await request(app).patch('/api/v1/riders/me/availability').set(authHeader(signToken(fresh))).send({ availability: 'offline' })
+    expect((await RiderProfile.findOne({ user_id: fresh._id }).lean()).last_location).toBeUndefined()
+    expect((await report(fresh, { lat: 4.05, lng: 9.70 })).status).toBe(409) // offline and no delivery
+  })
+
+  it('a rider coming online picks up a waiting delivery straight away', async () => {
+    await setMode('on')
+    await RiderProfile.updateMany({}, { $set: { availability: 'offline' } })
+    const s = await parcel()
+    await request(app).patch('/api/v1/riders/me/availability').set(authHeader(signToken(far))).send({ availability: 'online' })
+    const offered = await waitFor(() => DeliveryAssignment.findOne({ shipment_id: s._id, status: 'offered' }).lean())
+    expect(offered.rider_id.toString()).toBe(far._id.toString())
+  })
+})

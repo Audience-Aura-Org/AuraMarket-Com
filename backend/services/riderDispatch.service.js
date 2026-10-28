@@ -7,9 +7,12 @@
  * let this shipment's offer expire, and with a vehicle fit for the package
  * (heavy parcels never go to bicycles or riders on foot).
  *
- * Ranking (transparent, recorded as `reason`): nearest to the pickup pin when
- * both the pin and a fresh rider location (≤ 10 min) exist; otherwise fewest
- * deliveries today, then longest idle.
+ * Ranking (transparent, recorded as `reason`): nearest to the pickup when both
+ * the pickup point and a fresh rider location (≤ 10 min) exist; riders with no
+ * fresh location come after those with one, then fewest deliveries today, then
+ * longest idle. The pickup point is the customer's map pin, or else the centre of
+ * the pickup quartier (approximate, and the reason says so). Online riders report
+ * their position from the rider page (services/liveTracking.service.js).
  *
  * Flag auto_rider_dispatch: "off" → agencies assign by hand; "shadow" → the
  * engine records its suggestion only; "on" → the engine sends offers and moves to
@@ -21,6 +24,7 @@ const DeliveryAssignment = require('../models/DeliveryAssignment.model');
 const RiderProfile = require('../models/RiderProfile.model');
 const Shipment = require('../models/Shipment.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
+const LogisticZone = require('../models/LogisticZone.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const { readFlags } = require('../utils/featureFlags');
 const { sendNotification } = require('../utils/notifier');
@@ -44,6 +48,21 @@ const distanceKm = (a, b) => {
   return 2 * R * Math.asin(Math.sqrt(h));
 };
 
+const escapeRegex = (v) => String(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** Where the rider must go: the exact pin, else the pickup quartier's centre. */
+const pickupPoint = async (address) => {
+  if (address?.location?.lat != null && address?.location?.lng != null) return { lat: address.location.lat, lng: address.location.lng, approx: false };
+  let zone = null;
+  if (address?.zone_id) zone = await LogisticZone.findById(address.zone_id).select('centroid').lean();
+  if (!zone?.centroid?.coordinates && address?.quartier) {
+    zone = await LogisticZone.findOne({ type: 'quartier', name: new RegExp(`^${escapeRegex(address.quartier.trim())}$`, 'i'), 'centroid.coordinates': { $exists: true } })
+      .select('centroid').lean();
+  }
+  const c = zone?.centroid?.coordinates;
+  return c?.length === 2 ? { lng: c[0], lat: c[1], approx: true } : null;
+};
+
 const dispatchMode = async () => readFlags(await PlatformSettings.getSettings()).auto_rider_dispatch;
 
 /** Ranked eligible riders for a shipment: [{ profile, distance_km, today, reason }]. */
@@ -61,14 +80,14 @@ const rankRiders = async (shipment) => {
     { $group: { _id: '$rider_id', n: { $sum: 1 } } },
   ]);
   const today = new Map(todayCounts.map((r) => [r._id.toString(), r.n]));
-  const pickup = shipment.pickup_address?.location?.lat != null ? shipment.pickup_address.location : null;
+  const pickup = await pickupPoint(shipment.pickup_address);
 
   return eligible.map((p) => {
     const fresh = p.last_location?.at && Date.now() - new Date(p.last_location.at).getTime() <= FRESH_LOCATION_MS && p.last_location.lat != null;
     const distance_km = pickup && fresh ? Math.round(distanceKm(pickup, p.last_location) * 10) / 10 : null;
     const n = today.get(p.user_id._id.toString()) || 0;
     return { profile: p, distance_km, today: n, idle_since: p.availability_changed_at ? new Date(p.availability_changed_at).getTime() : 0,
-      reason: distance_km != null ? `${distance_km} km from pickup` : `${n} deliver${n === 1 ? 'y' : 'ies'} today` };
+      reason: distance_km != null ? `${pickup.approx ? '~' : ''}${distance_km} km from pickup${pickup.approx ? ' (quartier centre)' : ''}` : `${n} deliver${n === 1 ? 'y' : 'ies'} today` };
   }).sort((a, b) => {
     if (a.distance_km != null || b.distance_km != null) {
       if (a.distance_km == null) return 1;
@@ -267,4 +286,4 @@ const startRiderOfferExpiryWorker = (app) => {
   if (timer.unref) timer.unref();
 };
 
-module.exports = { rankRiders, autoDispatch, sweepUndispatched, manualOffer, accept, reject, cancel, settleAfterStatus, expireDueOffers, startRiderOfferExpiryWorker, distanceKm };
+module.exports = { pickupPoint, rankRiders, autoDispatch, sweepUndispatched, manualOffer, accept, reject, cancel, settleAfterStatus, expireDueOffers, startRiderOfferExpiryWorker, distanceKm };

@@ -51,7 +51,11 @@ export default function RiderDeliveries() {
   const [form, setForm] = useState({ note: "", cash: "", reason: "" });
   const [, tick] = useState(0);
   const liveTracking = useFeatureFlag("live_tracking");
-  const gps = useShareLocation(liveTracking && !!data?.active?.some(({ shipment }) => LIVE_STATUSES.includes(shipment.status)));
+  const autoDispatch = useFeatureFlag("auto_rider_dispatch");
+  const delivering = liveTracking && !!data?.active?.some(({ shipment }) => LIVE_STATUSES.includes(shipment.status));
+  // Online riders share their position so automatic dispatch can offer them the nearest pickups.
+  const waiting = autoDispatch && data?.availability === "online";
+  const gps = useShareLocation(delivering || waiting);
 
   const load = useCallback(async () => {
     try { const res = await api.get("/riders/me/deliveries", { skipClientCache: true }); setData(res.data.data); } catch { /* keep last view */ }
@@ -95,7 +99,11 @@ export default function RiderDeliveries() {
       {gps !== "off" && (
         <p className={`flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[11px] font-semibold ${gps === "sharing" ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"}`}>
           <LocateFixed className="size-4 shrink-0" />
-          {gps === "sharing" ? "Sharing your location with the customer during this delivery." : gps === "denied" ? "Allow location access so the customer can follow the delivery." : "Waiting for GPS…"}
+          {gps === "sharing"
+            ? (delivering ? "Sharing your location with the customer during this delivery." : "Sharing your location while you are online, so you get the nearest deliveries.")
+            : gps === "denied"
+              ? (delivering ? "Allow location access so the customer can follow the delivery." : "Allow location access to get deliveries near you.")
+              : "Waiting for GPS…"}
         </p>
       )}
 

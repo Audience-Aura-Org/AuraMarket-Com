@@ -160,12 +160,16 @@ const setAvailability = async (req, res, next) => {
   try {
     const availability = req.body?.availability;
     if (!['online', 'offline'].includes(availability)) return fail(res, 400, 'Availability must be online or offline.');
-    const profile = await RiderProfile.findOneAndUpdate(
-      { user_id: req.user._id, status: 'active' },
-      { $set: { availability, availability_changed_at: new Date() } },
-      { returnDocument: 'after' }
-    );
+    // Going offline forgets the last position: offline riders are not tracked.
+    const update = availability === 'offline'
+      ? { $set: { availability, availability_changed_at: new Date() }, $unset: { last_location: 1 } }
+      : { $set: { availability, availability_changed_at: new Date() } };
+    const profile = await RiderProfile.findOneAndUpdate({ user_id: req.user._id, status: 'active' }, update, { returnDocument: 'after' });
     if (!profile) return fail(res, 403, 'You are not an active rider.');
+    // A rider coming online may be the one a waiting delivery needs.
+    if (availability === 'online') {
+      setImmediate(() => require('../services/riderDispatch.service').sweepUndispatched(req.app).catch((e) => console.error('[rider] dispatch:', e.message)));
+    }
     res.json({ success: true, data: { availability: profile.availability } });
   } catch (err) { next(err); }
 };
