@@ -8,7 +8,7 @@ import { Banknote, Check, CircleAlert, Loader2, LocateFixed, MapPin, Navigation,
 import { toast } from "react-hot-toast";
 import api from "@/services/api";
 import { useFeatureFlag } from "@/lib/featureFlags";
-import useShareLocation from "./useShareLocation";
+import useShareLocation, { openLocationSettings } from "./useShareLocation";
 
 const NEXT_STEP = {
   assigned: { status: "picked_up", label: "I picked it up" },
@@ -104,6 +104,9 @@ export default function RiderDeliveries() {
             : gps === "denied"
               ? (delivering ? "Allow location access so the customer can follow the delivery." : "Allow location access to get deliveries near you.")
               : "Waiting for GPS…"}
+          {gps === "denied" && openLocationSettings && (
+            <button type="button" onClick={openLocationSettings} className="ml-auto shrink-0 rounded-xl bg-amber-600 px-2.5 py-1.5 text-[11px] font-semibold text-white">Open settings</button>
+          )}
         </p>
       )}
 
