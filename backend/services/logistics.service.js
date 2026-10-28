@@ -22,20 +22,18 @@ const mongoose = require('mongoose');
 const { escapeRegExp } = require('../middleware/security.middleware');
 
 /**
- * Generates a unique tracking code in the format AURA-XXXXXX
+ * Generates a unique, unguessable tracking code: AURA- + 8 characters (~8.5e11 combinations)
  */
+// Unambiguous alphabet (no 0/O, 1/I/L) so codes survive being read out over the phone.
+const TRACKING_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const generateTrackingCode = async () => {
-  const prefix = 'AURA-';
-  let isUnique = false;
-  let code;
-
-  while (!isUnique) {
-    const random = Math.floor(100000 + Math.random() * 900000); // 6 digits
-    code = `${prefix}${random}`;
-    const existing = await Shipment.findOne({ tracking_code: code });
-    if (!existing) isUnique = true;
+  const crypto = require('crypto');
+  for (;;) {
+    let random = '';
+    for (let i = 0; i < 8; i++) random += TRACKING_ALPHABET[crypto.randomInt(TRACKING_ALPHABET.length)];
+    const code = `AURA-${random}`;
+    if (!(await Shipment.exists({ tracking_code: code }))) return code;
   }
-  return code;
 };
 
 /**

@@ -133,9 +133,25 @@ const walletWriteLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * Shipment tracking lookups by code: generous for real recipients refreshing a
+ * page, far too slow to enumerate tracking codes.
+ */
+const trackingLimiter = rateLimit({
+  store: redisStore('auradime:rl:track:'),
+  passOnStoreError: true,
+  windowMs: intEnv('TRACKING_RATE_LIMIT_WINDOW_MS', 15 * 60 * 1000),
+  max: intEnv('TRACKING_RATE_LIMIT_MAX', 60),
+  keyGenerator: userOrIpKey,
+  message: { success: false, message: 'Too many tracking lookups. Please wait a few minutes and try again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   apiLimiter,
   strictLimiter,
+  trackingLimiter,
   publicLimiter,
   walletWriteLimiter,
   videoUploadLimiter,

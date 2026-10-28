@@ -283,6 +283,12 @@ adminOnly.use(restrictTo('admin'));
 // Platform Settings (write)
 adminOnly.patch('/settings', updateSettings);
 
+// Pay-on-delivery cash held by delivery agencies
+const { listAgencyBalances, getAgencyLedger, recordRemittance } = require('../controllers/agencySettlement.controller');
+adminOnly.get('/agency-settlements', listAgencyBalances);
+adminOnly.get('/agency-settlements/:agencyId', getAgencyLedger);
+adminOnly.post('/agency-settlements/:agencyId/remittances', recordRemittance);
+
 // Manager Promotion / Demotion
 adminOnly.post('/managers/:userId/promote', promoteToManager);
 adminOnly.post('/managers/:userId/demote', demoteManager);

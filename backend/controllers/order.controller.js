@@ -61,7 +61,7 @@ const assertMinimumOrderAmount = async (vendorId, subtotal, session) => {
     throw checkoutRejection(400, `Your order from ${vendor?.store_name || 'this store'} must be at least ${minimum.toLocaleString()} XAF. Please add more items from this store or remove their products to continue.`);
   }
 };
-const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
+const generateTxRef = () => `AURA-COD-${require('crypto').randomBytes(6).toString('hex').toUpperCase()}`;
 const isVendorManagedShipping = (method) => method === 'vendor_managed' || method === 'self_managed';
 const normalizePaymentMethod = (method) => {
   if (method === 'mesomb' || method === 'mobile_money') return 'eversend';

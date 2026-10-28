@@ -10,6 +10,8 @@ const User = require('../models/User.model');
 const Transaction = require('../models/Transaction.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
 const { generateTrackingCode } = require('../services/logistics.service');
+const { isShipmentParty, redactShipmentForPublic } = require('../utils/trackingPrivacy');
+const { confirmedPoint } = require('../utils/geoPoint');
 const { getQuotes, getQuoteForProvider } = require('../services/p2p.service');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const { debitBalance, creditBalance } = require('../services/wallet.service');
@@ -291,6 +293,8 @@ const createP2PShipment = async (req, res) => {
         quartier: pickup_address.quartier,
         phone: pickup_address.phone,
         zone_id: pickup_address.zone_id || null,
+        landmark: typeof pickup_address.landmark === 'string' ? pickup_address.landmark.slice(0, 200) : null,
+        location: confirmedPoint(pickup_address.location) || undefined,
       },
       delivery_address: {
         street: dropoff_address.street,
@@ -299,6 +303,8 @@ const createP2PShipment = async (req, res) => {
         quartier: dropoff_address.quartier,
         phone: dropoff_address.phone,
         zone_id: dropoff_address.zone_id || null,
+        landmark: typeof dropoff_address.landmark === 'string' ? dropoff_address.landmark.slice(0, 200) : null,
+        location: confirmedPoint(dropoff_address.location) || undefined,
       },
       delivery_description: pickup_address.landmark_description || dropoff_address.landmark_description || null,
       package_details: {
@@ -603,13 +609,12 @@ const trackP2PShipment = async (req, res) => {
     })
       .select('tracking_code status direction price payment_status pickup_address delivery_address package_details shipment_logs proof_of_delivery estimated_delivery createdAt booked_by guest_booker other_party logistics_id scheduled_pickup')
       .populate('booked_by', 'name email phone')
-      .populate('logistics_id', 'company_name avg_delivery_minutes')
+      .populate('logistics_id', 'company_name avg_delivery_minutes user_id')
       .lean();
 
     if (!shipment) {
       return res.status(404).json({ success: false, message: 'Shipment not found' });
     }
-
     // Compute ETA on-the-fly for existing shipments that lack it
     if (!shipment.estimated_delivery && shipment.logistics_id?.avg_delivery_minutes && shipment.createdAt) {
       shipment.estimated_delivery = new Date(
@@ -617,7 +622,11 @@ const trackP2PShipment = async (req, res) => {
       );
     }
 
-    return res.json({ success: true, data: { shipment } });
+    // A tracking code alone only reveals progress; personal details need a party account.
+    const visible = isShipmentParty(req.user, shipment) ? shipment : redactShipmentForPublic(shipment);
+    if (visible.logistics_id) delete visible.logistics_id.user_id;
+
+    return res.json({ success: true, data: { shipment: visible } });
   } catch (err) {
     console.error('[p2p] trackP2PShipment error:', err.message);
     return res.status(500).json({ success: false, message: 'Failed to track shipment' });

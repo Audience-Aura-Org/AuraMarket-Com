@@ -12,6 +12,7 @@ const Escrow            = require('../models/Escrow.model');
 const User              = require('../models/User.model');
 const Store             = require('../models/Store.model');
 const Transaction       = require('../models/Transaction.model');
+const AgencySettlement = require('../models/AgencySettlement.model');
 const PlatformSettings  = require('../models/PlatformSettings.model');
 const LogisticZone      = require('../models/LogisticZone.model');
 const mongoose          = require('mongoose');
@@ -25,7 +26,7 @@ const { applyCommissionOverride, calculatePlatformFees } = require('../utils/pla
 const { creditBalance } = require('../services/wallet.service');
 const { markEscrowDelivered } = require('./escrow.controller');
 
-const generateTxRef = () => `AURA-COD-${Math.floor(100000 + Math.random() * 900000)}`;
+const generateTxRef = () => `AURA-COD-${require('crypto').randomBytes(6).toString('hex').toUpperCase()}`;
 
 const getEffectivePlatformSettings = async (vendorId, session) => {
   const platformSettings = await PlatformSettings.getSettings(session);
@@ -744,6 +745,23 @@ const modifyShipmentStatus = async (req, res, next) => {
                   description: `COD payment settled via logistics (Order #${order._id.toString().slice(-6).toUpperCase()})`,
                   order_id:    order._id,
                 }], { session, ordered: true });
+                // The vendor was paid from platform funds while the cash sits with the
+                // agency: record what the agency now owes so collections reconcile.
+                if (isLogisticsOrder) {
+                  await AgencySettlement.updateOne(
+                    { order_id: order._id, kind: 'collection' },
+                    { $setOnInsert: {
+                      agency_id: shipment.logistics_id?._id || shipment.logistics_id,
+                      shipment_id: shipment._id,
+                      amount_collected: Number(order.total_amount) || 0,
+                      amount_due: vendorBaseAmount,
+                      reference: `AURA-COLL-${require('crypto').randomBytes(6).toString('hex').toUpperCase()}`,
+                      note: `Pay-on-delivery cash for Order #${order._id.toString().slice(-6).toUpperCase()}`,
+                      recorded_by: req.user?._id || null,
+                    } },
+                    { upsert: true, session }
+                  );
+                }
 
                 orderCompleted = true;
               }

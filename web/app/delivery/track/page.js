@@ -250,7 +250,7 @@ function TrackContent() {
                 onChange={e => setCode(e.target.value.toUpperCase())}
                 onKeyDown={e => e.key === 'Enter' && fetchShipment(code)}
                 className="w-full rounded-xl border border-[var(--glass-border)]/40 bg-[var(--bg-secondary)]/60 pl-10 pr-4 py-2.5 text-sm font-mono font-bold outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 placeholder:font-sans placeholder:font-normal placeholder:text-[var(--text-secondary)]/20 min-h-[44px]"
-                placeholder="AURA-XXXXXX"
+                placeholder="AURA-XXXXXXXX"
               />
             </div>
             <button onClick={() => fetchShipment(code)} disabled={loading || !code.trim()}
@@ -277,7 +277,7 @@ function TrackContent() {
               <Package className="size-7 text-[var(--text-secondary)]/15" />
             </div>
             <p className="text-sm font-bold text-[var(--text-primary)] mb-1">Enter your tracking code</p>
-            <p className="text-[11px] text-[var(--text-secondary)]/35">Paste or type your AURA-XXXXXX code above</p>
+            <p className="text-[11px] text-[var(--text-secondary)]/35">Paste or type your AURA- tracking code above</p>
           </div>
         )}
 
@@ -416,6 +416,12 @@ function TrackContent() {
               </div>
             </div>
 
+            {shipment.redacted && (
+              <p className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[11px] text-[var(--text-secondary)]">
+                Contact details are partly hidden. Sign in as the sender or recipient to see them in full.
+              </p>
+            )}
+
             {/* ── Sender & Recipient ───────────────────────────────── */}
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Sender */}
@@ -427,10 +433,17 @@ function TrackContent() {
                 <div>
                   <p className="text-sm font-bold text-[var(--text-primary)]">{senderObj?.name || '—'}</p>
                   {senderObj?.phone && (
-                    <a href={`tel:${senderObj.phone}`} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 hover:text-[var(--accent)] transition-colors">
-                      <Phone className="size-3" />
-                      {senderObj.phone}
-                    </a>
+                    shipment.redacted ? (
+                      <p className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 tabular-nums">
+                        <Phone className="size-3" />
+                        <span className="text-[11px]">{senderObj.phone}</span>
+                      </p>
+                    ) : (
+                      <a href={`tel:${senderObj.phone}`} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 hover:text-[var(--accent)] transition-colors">
+                        <Phone className="size-3" />
+                        {senderObj.phone}
+                      </a>
+                    )
                   )}
                   {senderObj?.email && (
                     <p className="text-[11px] text-[var(--text-secondary)] opacity-50 mt-1">{senderObj.email}</p>
@@ -452,10 +465,17 @@ function TrackContent() {
                 <div>
                   <p className="text-sm font-bold text-[var(--text-primary)]">{recipientObj?.name || '—'}</p>
                   {recipientObj?.phone && (
-                    <a href={`tel:${recipientObj.phone}`} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 hover:text-[var(--accent)] transition-colors">
-                      <Phone className="size-3" />
-                      {recipientObj.phone}
-                    </a>
+                    shipment.redacted ? (
+                      <p className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 tabular-nums">
+                        <Phone className="size-3" />
+                        <span className="text-[11px]">{recipientObj.phone}</span>
+                      </p>
+                    ) : (
+                      <a href={`tel:${recipientObj.phone}`} className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)] opacity-70 mt-1.5 hover:text-[var(--accent)] transition-colors">
+                        <Phone className="size-3" />
+                        {recipientObj.phone}
+                      </a>
+                    )
                   )}
                   {recipientObj?.email && (
                     <p className="text-[11px] text-[var(--text-secondary)] opacity-50 mt-1">{recipientObj.email}</p>
