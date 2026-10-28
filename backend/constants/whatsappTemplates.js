@@ -35,7 +35,7 @@ const TEMPLATES = {
 };
 
 /** Notification types sent on WhatsApp (to opted-in users). Chat and promotions stay off: cost and consent. */
-const WHATSAPP_CATEGORIES = /order|payment|wallet|deposit|withdrawal|payout|refund|subscription|logistics|p2p|shipment|delivery|dispute|escrow/;
+const WHATSAPP_CATEGORIES = /order|payment|wallet|deposit|withdrawal|payout|refund|subscription|logistics|p2p|shipment|delivery|dispute|escrow|security/;
 const templateForNotification = (type) => (WHATSAPP_CATEGORIES.test(String(type || '')) && !/message|chat/.test(String(type || '')) ? 'auradime_update' : null);
 
 module.exports = { TEMPLATES, templateForNotification };
