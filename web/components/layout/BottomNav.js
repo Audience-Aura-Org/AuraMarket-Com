@@ -5,7 +5,8 @@ import { haptic } from "@/lib/haptics";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Compass, User, Utensils, Store, Activity, LayoutDashboard, Lock, Bike
+  Compass, User, Utensils, Store, Activity, LayoutDashboard, Lock, Bike,
+  Map as MapIcon, History, Wallet
 } from "lucide-react";
 import { useRiderProfile } from '@/lib/riderProfile';
 import { useAuthStore } from '@/hooks/useAuth';
@@ -76,13 +77,24 @@ export default function BottomNav() {
     { label: t('bottomNav.profile',   'Profile'),   href: "/profile",               icon: User            },
   ];
 
-  const menu = !user ? guestMenu : isCustomer ? customerMenu : vendorMenu;
+  // Active riders inside their workspace get rider tabs (Account links back to shopping).
+  const riderMenu = [
+    { label: t('bottomNav.riderHome', 'Home'),       href: "/rider",          icon: Bike,    exact: true },
+    { label: t('bottomNav.riderMap', 'Map'),         href: "/rider/map",      icon: MapIcon },
+    { label: t('bottomNav.riderJobs', 'Deliveries'), href: "/rider/history",  icon: History },
+    { label: t('bottomNav.riderPay', 'Earnings'),    href: "/rider/earnings", icon: Wallet  },
+    { label: t('bottomNav.riderAccount', 'Account'), href: "/rider/account",  icon: User    },
+  ];
+  const inRiderMode = isCustomer && rider?.status === 'active' && pathname?.startsWith('/rider');
+
+  const menu = !user ? guestMenu : inRiderMode ? riderMenu : isCustomer ? customerMenu : vendorMenu;
 
   const isItemActive = (item) => {
     const [itemPath, itemQuery = ''] = item.href.split('?');
     const itemTab = new URLSearchParams(itemQuery).get('tab');
 
     if (item.href === '/') return pathname === '/';
+    if (item.exact) return pathname === item.href || pathname === item.href + '/';
     if (item.href === '/shop' && isShopSurface) return true;
 
     if (itemTab) {

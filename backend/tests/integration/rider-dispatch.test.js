@@ -186,3 +186,22 @@ describe('Proximity from live positions', () => {
     expect(offered.rider_id.toString()).toBe(far._id.toString())
   })
 })
+
+describe('Rider map', () => {
+  it('shows the rider, the stops of the delivery they accepted, and refuses non-riders', async () => {
+    const s = await parcel({ delivery_address: { quartier: 'Bonamoussadi', city: 'Douala', location: { lat: 4.0946, lng: 9.7427 } } })
+    const profile = await RiderProfile.findOne({ user_id: near._id })
+    const offered = await request(app).post(`/api/v1/logistics/shipments/${s._id}/assign`).set(authHeader(signToken(owner))).send({ rider_id: profile._id })
+    const auth = authHeader(signToken(near))
+    await request(app).post(`/api/v1/riders/me/offers/${offered.body.data.assignment._id}/accept`).set(auth).expect(200)
+
+    const res = await request(app).get('/api/v1/riders/me/map').set(auth)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toMatchObject({ availability: 'busy', vehicle_type: 'motorcycle', me: { lat: 4.049, lng: 9.697 } })
+    expect(res.body.data.jobs).toHaveLength(1)
+    expect(res.body.data.jobs[0]).toMatchObject({ tracking_code: s.tracking_code, status: 'assigned', pickup: { lat: 4.0483, lng: 9.6966, approx: false }, dropoff: { lat: 4.0946, lng: 9.7427, quartier: 'Bonamoussadi' } })
+
+    const stranger = await createUser()
+    expect((await request(app).get('/api/v1/riders/me/map').set(authHeader(signToken(stranger)))).status).toBe(403)
+  })
+})

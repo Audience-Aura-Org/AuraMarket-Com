@@ -1,18 +1,28 @@
 "use client";
 
 /**
- * Rider workspace: answer an agency's invitation, then go online/offline.
- * Deliveries (accept, pickup, complete) arrive here in the dispatch phase.
+ * Rider → Home: answer an agency's invitation; then go online / offline, work the
+ * current delivery, see today at a glance and jump to the map, deliveries,
+ * earnings and settings. Offers pop up over every rider tab (app/rider/layout.js).
  */
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bike, Building2, Check, Loader2, Phone, Power, X } from "lucide-react";
+import Link from "next/link";
+import { Bike, Building2, Check, History, Loader2, Map as MapIcon, Phone, Power, Settings, Wallet, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "@/services/api";
 import { useAuthStore } from "@/hooks/useAuth";
 import RiderDeliveries from "@/components/rider/RiderDeliveries";
 import RiderSummary from "@/components/rider/RiderSummary";
 import { refreshRiderProfile } from "@/lib/riderProfile";
+import { useRiderJobs } from "@/components/rider/RiderJobsContext";
+
+const QUICK = [
+  { href: "/rider/map", label: "Map", sub: "Route & directions", icon: MapIcon },
+  { href: "/rider/history", label: "Deliveries", sub: "Everything you did", icon: History },
+  { href: "/rider/earnings", label: "Earnings", sub: "Paid & owed", icon: Wallet },
+  { href: "/rider/account", label: "Settings", sub: "Alerts, navigation", icon: Settings },
+];
 
 const VEHICLE_LABEL = { motorcycle: "Motorcycle", bicycle: "Bicycle", car: "Car", van: "Van", on_foot: "On foot" };
 
@@ -21,6 +31,7 @@ export default function RiderPage() {
   const { user, hasHydrated, authChecked, fetchMe } = useAuthStore();
   const [rider, setRider] = useState(undefined); // undefined = loading, null = not a rider
   const [busy, setBusy] = useState(false);
+  const jobs = useRiderJobs();
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -39,7 +50,7 @@ export default function RiderPage() {
 
   const act = async (fn, success) => {
     setBusy(true);
-    try { await fn(); if (success) toast.success(success); await load(); refreshRiderProfile(); }
+    try { await fn(); if (success) toast.success(success); await load(); refreshRiderProfile(); jobs?.load(); }
     catch (err) { toast.error(err?.response?.data?.message || "Something went wrong. Please try again."); }
     finally { setBusy(false); }
   };
@@ -103,24 +114,49 @@ export default function RiderPage() {
     </>);
   }
 
-  const online = rider.availability !== "offline";
-  return shell(<>
-    {agencyCard}
-    <button
-      type="button"
-      role="switch"
-      aria-checked={online}
-      disabled={busy || rider.availability === "busy"}
-      onClick={() => act(() => api.patch("/riders/me/availability", { availability: online ? "offline" : "online" }), online ? "You are offline." : "You are online and can receive deliveries.")}
-      className={`flex w-full items-center gap-3 rounded-3xl border p-4 text-left transition-colors disabled:opacity-60 ${online ? "border-emerald-500/40 bg-emerald-500/5" : "border-[var(--glass-border)] bg-[var(--bg-primary)]"}`}
-    >
-      <span className={`flex size-11 items-center justify-center rounded-2xl ${online ? "bg-emerald-500 text-white" : "bg-[var(--bg-secondary)] text-[var(--text-secondary)]"}`}>{busy ? <Loader2 className="size-5 animate-spin" /> : <Power className="size-5" />}</span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-semibold">{rider.availability === "busy" ? "On a delivery" : online ? "You are online" : "You are offline"}</span>
-        <span className="block text-[10px] text-[var(--text-secondary)]">{online ? "Tap to stop receiving deliveries." : "Tap to start receiving deliveries."}</span>
-      </span>
-    </button>
-    <RiderDeliveries key={rider.availability} />
-    <RiderSummary refreshKey={rider.availability} />
-  </>);
+  const availability = jobs?.data?.availability || rider.availability;
+  const online = availability !== "offline";
+  const firstName = (user?.name || "").split(" ")[0];
+  return (
+    <div className="mx-auto w-full max-w-lg space-y-4 px-4 py-5 pb-28 text-[var(--text-primary)]">
+      <div className="flex items-center gap-3">
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)] text-[17px] font-bold text-white">{(firstName[0] || "R").toUpperCase()}</div>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-[17px] font-bold">Hi{firstName ? `, ${firstName}` : ""}</h1>
+          <p className="truncate text-[11px] text-[var(--text-secondary)]">{rider.agency?.name || "Your agency"} · {VEHICLE_LABEL[rider.vehicle_type] || rider.vehicle_type}{rider.vehicle_plate ? ` · ${rider.vehicle_plate}` : ""}</p>
+        </div>
+        {rider.agency?.phone && <a href={`tel:${rider.agency.phone}`} aria-label="Call my agency" className="flex size-11 items-center justify-center rounded-2xl border border-[var(--glass-border)] hover:text-[var(--accent)]"><Phone className="size-4" /></a>}
+      </div>
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={online}
+        disabled={busy || availability === "busy"}
+        onClick={() => act(() => api.patch("/riders/me/availability", { availability: online ? "offline" : "online" }), online ? "You are offline." : "You are online and can receive deliveries.")}
+        className={`flex w-full items-center gap-4 rounded-[28px] p-5 text-left shadow-sm transition-colors disabled:opacity-80 ${availability === "busy" ? "bg-amber-500 text-white" : online ? "bg-emerald-600 text-white" : "border border-[var(--glass-border)] bg-[var(--bg-primary)]"}`}
+      >
+        <span className={`flex size-14 items-center justify-center rounded-full ${online ? "bg-white/20" : "bg-[var(--bg-secondary)] text-[var(--text-secondary)]"}`}>{busy ? <Loader2 className="size-6 animate-spin" /> : <Power className="size-6" />}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[17px] font-bold">{availability === "busy" ? "On a delivery" : online ? "You are online" : "You are offline"}</span>
+          <span className={`block text-[11px] ${online ? "text-white/85" : "text-[var(--text-secondary)]"}`}>{availability === "busy" ? "Finish this delivery to get the next one." : online ? "Tap to stop receiving deliveries." : "Tap to go online and get deliveries."}</span>
+        </span>
+      </button>
+
+      <section id="current" className="scroll-mt-20">
+        <RiderDeliveries showRecent={false} />
+      </section>
+
+      <RiderSummary refreshKey={availability} compact />
+
+      <nav aria-label="Rider shortcuts" className="grid grid-cols-2 gap-2">
+        {QUICK.map(({ href, label, sub, icon: Icon }) => (
+          <Link key={href} href={href} className="flex items-center gap-3 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3.5 active:scale-[0.98]">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)]/10 text-[var(--accent)]"><Icon className="size-5" /></span>
+            <span className="min-w-0"><span className="block text-[13px] font-semibold">{label}</span><span className="block truncate text-[10px] text-[var(--text-secondary)]">{sub}</span></span>
+          </Link>
+        ))}
+      </nav>
+    </div>
+  );
 }

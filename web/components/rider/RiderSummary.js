@@ -20,7 +20,7 @@ function Tile({ label, value, tone = "" }) {
   );
 }
 
-export default function RiderSummary({ refreshKey, showCash = false }) {
+export default function RiderSummary({ refreshKey, showCash = false, compact = false }) {
   const [data, setData] = useState(null);
   const load = useCallback(async () => {
     try { const res = await api.get("/riders/me/summary", { skipClientCache: true }); setData(res.data?.data || null); } catch { /* keep last */ }
@@ -29,6 +29,20 @@ export default function RiderSummary({ refreshKey, showCash = false }) {
 
   if (!data?.today || !data?.earnings) return null; // nothing (or an unexpected reply) to show yet
   const paid = Boolean(data.pay_rule);
+  // Home: today in one row, the rest on the Earnings tab.
+  if (compact) {
+    return (
+      <Link href="/rider/earnings" className="block space-y-2.5 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4">
+        <div className="flex items-center justify-between"><p className="text-[13px] font-semibold">Today</p><span className="flex items-center text-[11px] font-semibold text-[var(--accent)]">Earnings <ChevronRight className="size-4" /></span></div>
+        <div className="grid grid-cols-3 gap-2">
+          <Tile label="Delivered" value={data.today.delivered} />
+          <Tile label="Earned" value={paid ? xaf(data.today.earned) : "—"} tone={paid ? "text-emerald-600" : ""} />
+          <Tile label="Agency owes you" value={paid ? xaf(data.earnings.owed) : "—"} />
+        </div>
+        {data.cash_holding > 0 && <p className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-700"><Banknote className="size-4 shrink-0" /> Holding {xaf(data.cash_holding)} cash for your agency</p>}
+      </Link>
+    );
+  }
   return (
     <div className="space-y-3">
       <section className="space-y-2.5 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4">

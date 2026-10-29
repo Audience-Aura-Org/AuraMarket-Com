@@ -8,7 +8,8 @@
  * location" notification while it runs). In a browser it uses navigator.geolocation,
  * which only works while the page is open.
  *
- * Returns 'off' | 'sharing' | 'denied' | 'unavailable'.
+ * Returns 'off' | 'sharing' | 'denied' | 'unavailable'. `onFix` (optional) gets every
+ * fix { lat, lng, accuracy } so the rider's own map can follow them between uploads.
  */
 import { useEffect, useRef, useState } from "react";
 import { Capacitor, registerPlugin } from "@capacitor/core";
@@ -22,15 +23,18 @@ const backgroundPlugin = () => (BackgroundGeolocation ||= registerPlugin("Backgr
 /** In the Android app, opens Auradime's system settings (after location was refused). Null elsewhere. */
 export const openLocationSettings = isAndroidApp() ? () => backgroundPlugin().openSettings().catch(() => {}) : null;
 
-export default function useShareLocation(enabled) {
+export default function useShareLocation(enabled, onFix) {
   const [state, setState] = useState("off");
   const lastSent = useRef(0);
+  const fixHandler = useRef(onFix);
+  fixHandler.current = onFix;
 
   useEffect(() => {
     if (!enabled) { setState("off"); return undefined; }
 
     const send = ({ lat, lng, accuracy }) => {
       setState("sharing");
+      fixHandler.current?.({ lat, lng, accuracy });
       if (Date.now() - lastSent.current < SEND_EVERY_MS) return;
       lastSent.current = Date.now();
       api.post("/riders/me/location", { lat, lng, accuracy_m: accuracy }).catch(() => {});

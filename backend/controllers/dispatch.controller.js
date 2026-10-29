@@ -99,6 +99,36 @@ const myDeliveries = async (req, res) => {
   } catch (e) { fail(res, e, 'Could not load your deliveries.'); }
 };
 
+/**
+ * Rider map: the rider's last position, each accepted delivery's pickup and drop-off
+ * (exact pins, else the quartier centre, flagged approx), and the road route for the
+ * delivery being worked on now. Routes are cached, so polling this is cheap.
+ */
+const myMap = async (req, res) => {
+  try {
+    const profile = await RiderProfile.findOne({ user_id: req.user._id, status: 'active' }).select('availability vehicle_type last_location').lean();
+    if (!profile) return res.status(403).json({ success: false, message: 'You are not an active rider.' });
+    const { routeForShipment } = require('../services/liveTracking.service');
+    const active = await DeliveryAssignment.find({ rider_id: req.user._id, status: 'accepted', active: true })
+      .populate('shipment_id', 'tracking_code status pickup_address delivery_address').sort({ responded_at: 1 }).lean();
+    const loc = profile.last_location;
+    const me = loc?.lat != null ? { lat: loc.lat, lng: loc.lng, at: loc.at } : null;
+    const jobs = await Promise.all(active.filter((a) => a.shipment_id).map(async (a, i) => {
+      const s = a.shipment_id;
+      const [pickup, dropoff] = await Promise.all([dispatch.pickupPoint(s.pickup_address), dispatch.pickupPoint(s.delivery_address)]);
+      // Only the first delivery gets a road route (the one the rider is doing now).
+      const route = i === 0 && me ? await routeForShipment(s, me).catch(() => null) : null;
+      return {
+        shipment_id: s._id, tracking_code: s.tracking_code, status: s.status,
+        pickup: pickup && { ...pickup, quartier: s.pickup_address?.quartier || null },
+        dropoff: dropoff && { ...dropoff, quartier: s.delivery_address?.quartier || null },
+        route,
+      };
+    }));
+    res.json({ success: true, data: { availability: profile.availability, vehicle_type: profile.vehicle_type, me, jobs } });
+  } catch (e) { fail(res, e, 'Could not load your map.'); }
+};
+
 const respond = (accept) => async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.assignmentId)) return res.status(404).json({ success: false, message: 'Offer not found.' });
@@ -118,4 +148,4 @@ const riderStatus = async (req, res, next) => {
   return withAssignmentSync(modifyShipmentStatus)(req, res, next);
 };
 
-module.exports = { getAssignment, assignRider, cancelAssignment, myDeliveries, acceptOffer: respond(true), rejectOffer: respond(false), riderStatus, withAssignmentSync };
+module.exports = { getAssignment, assignRider, cancelAssignment, myDeliveries, myMap, acceptOffer: respond(true), rejectOffer: respond(false), riderStatus, withAssignmentSync };
