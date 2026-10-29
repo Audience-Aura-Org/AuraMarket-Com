@@ -29,6 +29,7 @@ export default function RiderMapPage() {
   const jobs = useRiderJobs();
   const [map, setMap] = useState(null);
   const [recenter, setRecenter] = useState(0);
+  const [selected, setSelected] = useState(null); // shipment shown when carrying several
   const [toggling, setToggling] = useState(false);
 
   const load = useCallback(async () => {
@@ -41,7 +42,7 @@ export default function RiderMapPage() {
     return () => clearInterval(t);
   }, [load, activeKey]);
 
-  const job = map?.jobs?.[0] || null;
+  const job = map?.jobs?.find((j) => String(j.shipment_id) === String(selected)) || map?.jobs?.[0] || null;
   const card = jobs?.data?.active?.find((a) => String(a.shipment.id) === String(job?.shipment_id))?.shipment || null;
   const me = jobs?.position || map?.me || null;
   const availability = jobs?.data?.availability || map?.availability;
@@ -71,6 +72,21 @@ export default function RiderMapPage() {
       </div>
 
       <div className="absolute inset-x-0 bottom-0 p-3 pb-[calc(68px+env(safe-area-inset-bottom,0px)+0.75rem)] sm:pb-28">
+        {map?.jobs?.length > 1 && (
+          // Carrying several deliveries: choose which one the map and card show.
+          <div className="no-scrollbar mx-auto mb-2 flex max-w-lg gap-2 overflow-x-auto" role="tablist" aria-label="My deliveries">
+            {map.jobs.map((j, i) => {
+              const on = String(j.shipment_id) === String(job?.shipment_id);
+              const eta = j.route ? (j.status === "assigned" ? j.route.pickup_eta_min : j.route.dropoff_eta_min) : null;
+              return (
+                <button key={j.shipment_id} type="button" role="tab" aria-selected={on} onClick={() => setSelected(j.shipment_id)}
+                  className={`min-h-10 shrink-0 rounded-full px-3.5 text-[12px] font-semibold shadow-md ${on ? "bg-[var(--accent)] text-white" : "bg-[var(--bg-primary)]"}`}>
+                  {i + 1}. {j.status === "assigned" ? j.pickup?.quartier : j.dropoff?.quartier}{eta != null ? ` · ${eta} min` : ""}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="mx-auto max-w-lg space-y-3 rounded-[24px] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 shadow-xl">
           {job && card ? (
             <>

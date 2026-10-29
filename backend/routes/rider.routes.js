@@ -10,9 +10,11 @@ router.post('/me/accept', acceptInvite);
 router.post('/me/decline', declineInvite);
 router.patch('/me/availability', setAvailability);
 
-const { myDeliveries, myMap, acceptOffer, rejectOffer, riderStatus } = require('../controllers/dispatch.controller');
+const { myDeliveries, myMap, openList, claimOpen, acceptOffer, rejectOffer, riderStatus } = require('../controllers/dispatch.controller');
 router.get('/me/deliveries', myDeliveries);
 router.get('/me/map', myMap);
+router.get('/me/open', openList);
+router.post('/me/open/:shipmentId/claim', claimOpen);
 router.post('/me/offers/:assignmentId/accept', acceptOffer);
 router.post('/me/offers/:assignmentId/reject', rejectOffer);
 router.post('/me/deliveries/:shipmentId/status', riderStatus);

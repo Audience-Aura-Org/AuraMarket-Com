@@ -13,6 +13,7 @@ import StatCard from "@/components/layout/StatCard";
 import { LogisticsSubpageHeader } from "@/components/logistics/LogisticsSubpageShell";
 import { useFeatureFlag } from "@/lib/featureFlags";
 import RiderPayRate from "@/components/logistics/RiderPayRate";
+import RiderLimit from "@/components/logistics/RiderLimit";
 
 const VEHICLES = [
   { value: "motorcycle", label: "Motorcycle" },
@@ -143,6 +144,7 @@ export default function LogisticsRidersPage() {
         </div>
 
         {ridersEnabled && <RiderPayRate />}
+        {ridersEnabled && <RiderLimit />}
 
         {showInvite && (
           <form onSubmit={submitInvite} className="space-y-3 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 sm:p-5">

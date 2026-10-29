@@ -1,10 +1,11 @@
 "use client";
 /**
  * New delivery offer, shown over whichever rider tab is open, with a countdown
- * ring and big Accept / Decline buttons. One offer at a time (the oldest first).
+ * ring and big Accept / Decline buttons, and "Later" to put it aside: it then waits
+ * on Home ("Offers for you") until it expires. One offer at a time, oldest first.
  */
 import { useEffect, useState } from "react";
-import { Banknote, Check, Loader2, MapPin, Package, X } from "lucide-react";
+import { Banknote, Check, Clock, Loader2, MapPin, Package, X } from "lucide-react";
 import { secondsLeft, useRiderJobs } from "./RiderJobsContext";
 
 const R = 26;
@@ -13,7 +14,7 @@ const C = 2 * Math.PI * R;
 export default function RiderOfferSheet() {
   const jobs = useRiderJobs();
   const [, tick] = useState(0);
-  const offer = jobs?.data?.offers?.find((o) => secondsLeft(o.expires_at) > 0);
+  const offer = jobs?.data?.offers?.find((o) => secondsLeft(o.expires_at) > 0 && !jobs.later.has(String(o.assignment_id)));
 
   useEffect(() => {
     if (!offer) return undefined;
@@ -55,8 +56,9 @@ export default function RiderOfferSheet() {
           {s.cash_to_collect > 0 && <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-1 font-semibold text-amber-700"><Banknote className="size-3.5" /> Collect {Number(s.cash_to_collect).toLocaleString()} XAF</span>}
         </div>
 
-        <div className="grid grid-cols-[1fr_2fr] gap-2">
+        <div className="grid grid-cols-[1fr_1fr_2fr] gap-2">
           <button type="button" disabled={busy} onClick={() => jobs.decline(offer)} className="inline-flex min-h-14 items-center justify-center gap-1.5 rounded-2xl border border-[var(--glass-border)] text-[13px] font-semibold disabled:opacity-50"><X className="size-4" /> Decline</button>
+          <button type="button" disabled={busy} onClick={() => jobs.putAside(offer)} className="inline-flex min-h-14 items-center justify-center gap-1.5 rounded-2xl border border-[var(--glass-border)] text-[13px] font-semibold disabled:opacity-50"><Clock className="size-4" /> Later</button>
           <button type="button" disabled={busy} onClick={() => jobs.accept(offer)} className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-[15px] font-bold text-white disabled:opacity-50">{busy ? <Loader2 className="size-5 animate-spin" /> : <Check className="size-5" />} Accept</button>
         </div>
       </div>

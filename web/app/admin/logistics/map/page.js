@@ -5,17 +5,14 @@
  * 20 s while the tab is visible (GET /admin/logistics/live-map).
  */
 import { useCallback, useEffect, useState } from "react";
-import dynamic from "next/dynamic";
+import withMapFallback from "@/components/location/withMapFallback";
 import { Bike, Loader2, MapPinned, Package, RefreshCw, Timer } from "lucide-react";
 import api from "@/services/api";
 import StatCard from "@/components/layout/StatCard";
-import { useGoogleMaps } from "@/lib/googleMaps";
 
 // Google Maps when a key is configured, else the free MapLibre map.
-const FleetMap = dynamic(() => (useGoogleMaps ? import("@/components/location/google/GoogleFleetMap") : import("@/components/location/FleetMap")), {
-  ssr: false,
-  loading: () => <div className="flex h-[60vh] min-h-[360px] items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]"><Loader2 className="size-5 animate-spin text-[var(--accent)]" /></div>,
-});
+const FleetMap = withMapFallback(() => import("@/components/location/google/GoogleFleetMap"), () => import("@/components/location/FleetMap"),
+  () => <div className="flex h-[60vh] min-h-[360px] items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]"><Loader2 className="size-5 animate-spin text-[var(--accent)]" /></div>);
 
 const REFRESH_MS = 20000;
 const LEGEND = [

@@ -62,6 +62,8 @@ const LogisticsCompanySchema = new mongoose.Schema(
       mode: { type: String, enum: ['percent', 'fixed'] },
       value: { type: Number, min: 0 },
     },
+    // How many deliveries one rider may hold at once (accepted plus open offers).
+    max_active_per_rider: { type: Number, min: 1, max: 10, default: 3 },
     // How the agency prices deliveries. 'district' (default) uses quartier_prices;
     // 'distance' charges base + per_km on the road distance from pickup to drop-off,
     // within min/max and rounded up to round_to. Cross-city trips use a fixed price

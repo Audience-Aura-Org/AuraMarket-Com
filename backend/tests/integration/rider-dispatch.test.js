@@ -205,3 +205,76 @@ describe('Rider map', () => {
     expect((await request(app).get('/api/v1/riders/me/map').set(authHeader(signToken(stranger)))).status).toBe(403)
   })
 })
+
+describe('Several deliveries per rider', () => {
+  const take = async (rider, s) => {
+    const profile = await RiderProfile.findOne({ user_id: rider._id })
+    const o = await request(app).post(`/api/v1/logistics/shipments/${s._id}/assign`).set(authHeader(signToken(owner))).send({ rider_id: profile._id })
+    expect(o.status).toBe(201)
+    await request(app).post(`/api/v1/riders/me/offers/${o.body.data.assignment._id}/accept`).set(authHeader(signToken(rider))).expect(200)
+  }
+
+  it('a rider on a delivery still gets offers, free riders first, up to the agency limit', async () => {
+    await setMode('on')
+    await RiderProfile.updateMany({ user_id: { $in: [far._id, cyclist._id] } }, { $set: { availability: 'offline' } })
+    await take(near, await parcel())
+    expect((await RiderProfile.findOne({ user_id: near._id })).availability).toBe('busy')
+
+    // Near is busy but still the only one online: they get the next offer.
+    const r = await dispatch.autoDispatch((await parcel())._id)
+    expect(r.offered.toString()).toBe(near._id.toString())
+    // A free rider comes online: they are preferred over the busy one, even farther away.
+    await RiderProfile.updateOne({ user_id: far._id }, { $set: { availability: 'online' } })
+    expect((await dispatch.autoDispatch((await parcel())._id)).offered.toString()).toBe(far._id.toString())
+
+    // Limit of 2: near holds 1 accepted + 1 offer, so no more for near.
+    await LogisticsCompany.updateOne({ _id: firm._id }, { $set: { max_active_per_rider: 2 } })
+    await RiderProfile.updateOne({ user_id: far._id }, { $set: { availability: 'offline' } })
+    expect((await dispatch.autoDispatch((await parcel())._id)).reason).toBe('no_eligible_rider')
+  })
+
+  it('accepts two deliveries, stays busy until both are done', async () => {
+    const [a, b] = [await parcel(), await parcel()]
+    await take(near, a)
+    await take(near, b)
+    const auth = authHeader(signToken(near))
+    const mine = await request(app).get('/api/v1/riders/me/deliveries').set(auth)
+    expect(mine.body.data.active).toHaveLength(2)
+    for (const st of ['picked_up', 'out_for_delivery']) await request(app).post(`/api/v1/riders/me/deliveries/${a._id}/status`).set(auth).send({ status: st }).expect(200)
+    await request(app).post(`/api/v1/riders/me/deliveries/${a._id}/status`).set(auth).send({ status: 'delivered', note: 'Handed over', receiver_name: 'Jean' }).expect(200)
+    await waitFor(async () => (await DeliveryAssignment.findOne({ shipment_id: a._id })).status === 'completed')
+    expect((await RiderProfile.findOne({ user_id: near._id })).availability).toBe('busy') // b is still on
+  })
+
+  it('lists deliveries waiting in the agency and lets a rider take one, even if offered to someone else', async () => {
+    const waiting = await parcel()
+    const offeredToFar = await parcel()
+    const farProfile = await RiderProfile.findOne({ user_id: far._id })
+    await request(app).post(`/api/v1/logistics/shipments/${offeredToFar._id}/assign`).set(authHeader(signToken(owner))).send({ rider_id: farProfile._id }).expect(201)
+    await parcel({ type: 'p2p', payment_status: 'pending' }) // unpaid P2P: never listed
+
+    const auth = authHeader(signToken(near))
+    const open = await request(app).get('/api/v1/riders/me/open').set(auth)
+    const codes = open.body.data.deliveries.map((d) => d.tracking_code)
+    expect(codes).toEqual(expect.arrayContaining([waiting.tracking_code, offeredToFar.tracking_code]))
+    expect(codes).toHaveLength(2)
+    const other = open.body.data.deliveries.find((d) => d.tracking_code === offeredToFar.tracking_code)
+    expect(other).toMatchObject({ offered_to_other: true, distance_km: expect.any(Number) })
+    expect(JSON.stringify(open.body.data)).not.toContain('699987654') // no contacts before taking it
+
+    await request(app).post(`/api/v1/riders/me/open/${offeredToFar._id}/claim`).set(auth).expect(200)
+    const s = await Shipment.findById(offeredToFar._id).lean()
+    expect(s).toMatchObject({ status: 'assigned' })
+    expect(s.rider_id.toString()).toBe(near._id.toString())
+    expect(await DeliveryAssignment.findOne({ shipment_id: s._id, rider_id: far._id }).lean()).toMatchObject({ status: 'cancelled', active: false })
+    // Too late for anyone else.
+    expect((await request(app).post(`/api/v1/riders/me/open/${offeredToFar._id}/claim`).set(authHeader(signToken(far)))).status).toBe(409)
+  })
+
+  it('lets the agency set the limit (1 to 10)', async () => {
+    const auth = authHeader(signToken(owner))
+    expect((await request(app).get('/api/v1/logistics/rider-rules').set(auth)).body.data.max_active_per_rider).toBe(3)
+    expect((await request(app).patch('/api/v1/logistics/rider-rules').set(auth).send({ max_active_per_rider: 0 })).status).toBe(400)
+    expect((await request(app).patch('/api/v1/logistics/rider-rules').set(auth).send({ max_active_per_rider: 4 })).body.data.max_active_per_rider).toBe(4)
+  })
+})

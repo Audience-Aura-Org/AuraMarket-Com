@@ -5,16 +5,14 @@
  * Pass `token` for secure tracking links, or `code` for a signed-in sender/recipient.
  */
 import { useCallback, useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
+import withMapFallback from '@/components/location/withMapFallback';
 import { Bike, Loader2, Phone } from 'lucide-react';
 import api from '@/services/api';
-import { useGoogleMaps } from '@/lib/googleMaps';
 
 // Google Maps when a key is configured, else the free MapLibre map.
-const LiveMap = dynamic(() => (useGoogleMaps ? import('@/components/location/google/GoogleLiveMap') : import('@/components/location/LiveMap')), {
-  ssr: false,
-  loading: () => <div className="flex h-56 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] sm:h-64"><Loader2 className="size-5 animate-spin text-[var(--accent)]" /></div>,
-});
+// Google Maps when its key works, else the free map.
+const LiveMap = withMapFallback(() => import('@/components/location/google/GoogleLiveMap'), () => import('@/components/location/LiveMap'),
+  () => <div className="flex h-56 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] sm:h-64"><Loader2 className="size-5 animate-spin text-[var(--accent)]" /></div>);
 
 const POLL_MS = 10000;
 const VEHICLE = { motorcycle: 'Motorcycle', bicycle: 'Bicycle', car: 'Car', van: 'Van', on_foot: 'On foot' };

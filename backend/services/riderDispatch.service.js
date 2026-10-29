@@ -2,15 +2,19 @@
  * services/riderDispatch.service.js
  * Offering deliveries to an agency's riders, manually or automatically.
  *
- * Eligible rider: active member of the shipment's agency, online (not offline,
- * not busy on another delivery), account active, has not already rejected or
- * let this shipment's offer expire, and with a vehicle fit for the package
- * (heavy parcels never go to bicycles or riders on foot).
+ * Eligible rider: active member of the shipment's agency, online or already on a
+ * delivery (never offline), holding fewer deliveries than the agency's limit
+ * (max_active_per_rider: accepted ones plus open offers), account active, has not
+ * already rejected or let this shipment's offer expire, and with a vehicle fit for
+ * the package (heavy parcels never go to bicycles or riders on foot).
  *
- * Ranking (transparent, recorded as `reason`): nearest to the pickup when both
- * the pickup point and a fresh rider location (≤ 10 min) exist; riders with no
- * fresh location come after those with one, then fewest deliveries today, then
- * longest idle. The pickup point is the customer's map pin, or else the centre of
+ * Ranking (transparent, recorded as `reason`): free riders before riders already
+ * carrying something; then nearest to the pickup when both the pickup point and a
+ * fresh rider location (≤ 10 min) exist; riders with no fresh location come after
+ * those with one, then fewest deliveries today, then longest idle.
+ *
+ * Riders may also take a waiting delivery themselves from their open deliveries
+ * list (claim), including one offered to another rider who has not answered yet. The pickup point is the customer's map pin, or else the centre of
  * the pickup quartier (approximate, and the reason says so). Online riders report
  * their position from the rider page (services/liveTracking.service.js).
  *
@@ -50,6 +54,17 @@ const distanceKm = (a, b) => {
 
 const escapeRegex = (v) => String(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const DEFAULT_MAX_ACTIVE = 3;
+const capFor = async (agencyId) => (await LogisticsCompany.findById(agencyId).select('max_active_per_rider').lean())?.max_active_per_rider || DEFAULT_MAX_ACTIVE;
+/** Deliveries each rider holds now (accepted + open offers): Map(riderId -> n). */
+const loadOf = async (riderIds) => {
+  const rows = await DeliveryAssignment.aggregate([
+    { $match: { rider_id: { $in: riderIds }, active: true, status: { $in: ['offered', 'accepted'] } } },
+    { $group: { _id: '$rider_id', n: { $sum: 1 } } },
+  ]);
+  return new Map(rows.map((r) => [r._id.toString(), r.n]));
+};
+
 /** Where the rider must go: the exact pin, else the pickup quartier's centre. */
 const pickupPoint = async (address) => {
   if (address?.location?.lat != null && address?.location?.lng != null) return { lat: address.location.lat, lng: address.location.lng, approx: false };
@@ -68,10 +83,12 @@ const dispatchMode = async () => readFlags(await PlatformSettings.getSettings())
 /** Ranked eligible riders for a shipment: [{ profile, distance_km, today, reason }]. */
 const rankRiders = async (shipment) => {
   const tried = await DeliveryAssignment.distinct('rider_id', { shipment_id: shipment._id, status: { $in: ['rejected', 'expired'] } });
-  const profiles = await RiderProfile.find({ agency_id: shipment.logistics_id, status: 'active', availability: 'online', user_id: { $nin: tried } })
+  const profiles = await RiderProfile.find({ agency_id: shipment.logistics_id, status: 'active', availability: { $in: ['online', 'busy'] }, user_id: { $nin: tried } })
     .populate('user_id', 'name is_active').lean();
   const heavy = HEAVY.includes(shipment.package_details?.weight_tier);
-  const eligible = profiles.filter((p) => p.user_id && p.user_id.is_active !== false && !(heavy && SMALL_VEHICLES.includes(p.vehicle_type)));
+  const [cap, load] = await Promise.all([capFor(shipment.logistics_id), loadOf(profiles.map((p) => p.user_id?._id).filter(Boolean))]);
+  const eligible = profiles.filter((p) => p.user_id && p.user_id.is_active !== false && !(heavy && SMALL_VEHICLES.includes(p.vehicle_type))
+    && (load.get(p.user_id._id.toString()) || 0) < cap);
   if (!eligible.length) return [];
 
   const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
@@ -86,9 +103,12 @@ const rankRiders = async (shipment) => {
     const fresh = p.last_location?.at && Date.now() - new Date(p.last_location.at).getTime() <= FRESH_LOCATION_MS && p.last_location.lat != null;
     const distance_km = pickup && fresh ? Math.round(distanceKm(pickup, p.last_location) * 10) / 10 : null;
     const n = today.get(p.user_id._id.toString()) || 0;
-    return { profile: p, distance_km, today: n, idle_since: p.availability_changed_at ? new Date(p.availability_changed_at).getTime() : 0,
-      reason: distance_km != null ? `${pickup.approx ? '~' : ''}${distance_km} km from pickup${pickup.approx ? ' (quartier centre)' : ''}` : `${n} deliver${n === 1 ? 'y' : 'ies'} today` };
+    const carrying = load.get(p.user_id._id.toString()) || 0;
+    const base = distance_km != null ? `${pickup.approx ? '~' : ''}${distance_km} km from pickup${pickup.approx ? ' (quartier centre)' : ''}` : `${n} deliver${n === 1 ? 'y' : 'ies'} today`;
+    return { profile: p, distance_km, today: n, carrying, idle_since: p.availability_changed_at ? new Date(p.availability_changed_at).getTime() : 0,
+      reason: carrying ? `${base} · already carrying ${carrying}` : base };
   }).sort((a, b) => {
+    if ((a.carrying > 0) !== (b.carrying > 0)) return a.carrying > 0 ? 1 : -1; // free riders first
     if (a.distance_km != null || b.distance_km != null) {
       if (a.distance_km == null) return 1;
       if (b.distance_km == null) return -1;
@@ -132,7 +152,7 @@ const autoDispatch = async (shipmentId, app = null) => {
     if (mode === 'on' && !shipment.dispatch?.unassigned_alerted_at) {
       await Shipment.updateOne({ _id: shipment._id }, { $set: { 'dispatch.unassigned_alerted_at': new Date() } });
       const firm = await LogisticsCompany.findById(shipment.logistics_id).select('user_id').lean();
-      notify(app, firm?.user_id, { title: 'No rider available', message: `${shipment.tracking_code} is waiting: none of your riders is online and free. Assign it by hand from Manifests.`,
+      notify(app, firm?.user_id, { title: 'No rider available', message: `${shipment.tracking_code} is waiting: none of your riders is online with room for another delivery. Assign it by hand from Manifests.`,
         type: 'logistics_update', metadata: { link: `/logistics/manifests?shipmentId=${shipment._id}` } });
     }
     return { assigned: false, reason: 'no_eligible_rider' };
@@ -160,7 +180,9 @@ const manualOffer = async ({ shipmentId, agencyId, riderProfileId, actorId, app 
   const profile = mongoose.isValidObjectId(riderProfileId) ? await RiderProfile.findOne({ _id: riderProfileId, agency_id: agencyId }).lean() : null;
   if (!profile) throw err(404, 'Rider not found.');
   if (profile.status !== 'active') throw err(400, 'This rider is not active.');
-  if (profile.availability === 'busy') throw err(400, 'This rider is on another delivery.');
+  const [cap, load] = await Promise.all([capFor(agencyId), loadOf([profile.user_id])]);
+  const holding = load.get(profile.user_id.toString()) || 0;
+  if (holding >= cap) throw err(400, `This rider already has ${holding} deliveries (your limit is ${cap} at a time).`);
   return offer(shipment, profile.user_id, { mode: 'manual', offeredBy: actorId, reason: 'Chosen by the agency', app });
 };
 
@@ -176,6 +198,9 @@ const accept = async ({ assignmentId, rider, app }) => {
         { session, returnDocument: 'after' }
       );
       if (!assignment) throw err(409, 'This offer has expired or is no longer yours.');
+      const carrying = await DeliveryAssignment.countDocuments({ rider_id: rider._id, status: 'accepted', active: true, _id: { $ne: assignment._id } }).session(session);
+      const cap = await capFor(assignment.agency_id);
+      if (carrying >= cap) throw err(409, `You already carry ${carrying} deliveries, your agency's limit. Finish one first.`);
       shipment = await Shipment.findOne({ _id: assignment.shipment_id, rider_id: null }).session(session);
       if (!shipment) throw err(409, 'This delivery already has a rider.');
       shipment.rider_id = rider._id;
@@ -190,12 +215,108 @@ const accept = async ({ assignmentId, rider, app }) => {
   } finally {
     await session.endSession();
   }
+  await announceRider(shipment, rider, app, 'accepted');
+  return { assignment, shipment };
+};
+
+/** Tells the agency and the customer(s) who is delivering. */
+const announceRider = async (shipment, rider, app, verb) => {
   const firm = await LogisticsCompany.findById(shipment.logistics_id).select('user_id').lean();
-  notify(app, firm?.user_id, { title: 'Rider on the way', message: `${rider.name || 'Your rider'} accepted ${shipment.tracking_code}.`, type: 'logistics_update', metadata: { link: `/logistics/manifests?shipmentId=${shipment._id}` } });
+  notify(app, firm?.user_id, { title: 'Rider on the way', message: `${rider.name || 'Your rider'} ${verb} ${shipment.tracking_code}.`, type: 'logistics_update', metadata: { link: `/logistics/manifests?shipmentId=${shipment._id}` } });
   for (const party of [shipment.booked_by, shipment.other_party?.user_id]) {
     notify(app, party, { title: 'A rider is assigned', message: `${rider.name?.split(' ')[0] || 'A rider'} will deliver ${shipment.tracking_code}. You can follow it from your delivery page.`,
       type: 'p2p_status', metadata: { link: `/delivery/track?code=${shipment.tracking_code}`, status: 'assigned' } });
   }
+};
+
+// Deliveries a rider may see waiting in their agency (and take themselves).
+const OPEN_DAYS = 3;
+const openFilter = (agencyId) => ({
+  logistics_id: agencyId, rider_id: null, status: { $in: DISPATCHABLE }, createdAt: { $gte: new Date(Date.now() - OPEN_DAYS * 864e5) },
+  $or: [{ type: { $ne: 'p2p' } }, { payment_status: 'paid' }], // unpaid P2P bookings never go out
+});
+
+/**
+ * Deliveries of the rider's agency still waiting for a rider, nearest pickup first.
+ * Includes ones offered to another rider who has not answered (`offered_to_other`);
+ * the rider's own open offers are listed separately (myDeliveries.offers).
+ * Contact details stay hidden until the rider takes the delivery.
+ */
+const openDeliveries = async (rider) => {
+  const profile = await RiderProfile.findOne({ user_id: rider._id, status: 'active' }).lean();
+  if (!profile) throw err(403, 'You are not an active rider.');
+  const shipments = await Shipment.find(openFilter(profile.agency_id))
+    .select('tracking_code status type price pickup_address delivery_address package_details agency_package order_id createdAt')
+    .populate('order_id', 'payment_method payment_status total_amount').sort({ createdAt: 1 }).limit(40).lean();
+  const live = await DeliveryAssignment.find({ shipment_id: { $in: shipments.map((s) => s._id) }, active: true }).select('shipment_id rider_id status').lean();
+  const liveBy = new Map(live.map((a) => [a.shipment_id.toString(), a]));
+  const fresh = profile.last_location?.lat != null && Date.now() - new Date(profile.last_location.at).getTime() <= FRESH_LOCATION_MS;
+  const rows = [];
+  for (const s of shipments) {
+    const a = liveBy.get(s._id.toString());
+    if (a && (a.status === 'accepted' || a.rider_id.toString() === rider._id.toString())) continue;
+    const pickup = fresh ? await pickupPoint(s.pickup_address) : null;
+    rows.push({
+      id: s._id, tracking_code: s.tracking_code, status: s.status, type: s.type || 'order', price: s.price, created_at: s.createdAt,
+      pickup: { quartier: s.pickup_address?.quartier || null, landmark: s.pickup_address?.landmark || s.pickup_address?.street || null, city: s.pickup_address?.city || null },
+      delivery: { quartier: s.delivery_address?.quartier || null, landmark: s.delivery_address?.landmark || null, city: s.delivery_address?.city || null },
+      package: { category: s.package_details?.category, weight_tier: s.package_details?.weight_tier, description: s.package_details?.description },
+      cash_to_collect: s.agency_package?.payment_arrangement === 'pay_on_delivery' ? s.agency_package.amount_due_on_delivery
+        : s.order_id?.payment_method === 'pay_on_delivery' && s.order_id?.payment_status !== 'paid' ? s.order_id.total_amount : 0,
+      distance_km: pickup ? Math.round(distanceKm(pickup, profile.last_location) * 10) / 10 : null,
+      offered_to_other: Boolean(a),
+      too_heavy: SMALL_VEHICLES.includes(profile.vehicle_type) && HEAVY.includes(s.package_details?.weight_tier),
+    });
+  }
+  rows.sort((x, y) => (x.distance_km ?? Infinity) - (y.distance_km ?? Infinity) || new Date(x.created_at) - new Date(y.created_at));
+  return rows;
+};
+
+/**
+ * A rider takes a waiting delivery from the open list. An unanswered offer to
+ * another rider is withdrawn; the one-live-assignment index still guarantees only
+ * one rider ends up with it when two riders tap at the same moment.
+ */
+const claim = async ({ shipmentId, rider, app }) => {
+  const profile = await RiderProfile.findOne({ user_id: rider._id, status: 'active' }).lean();
+  if (!profile) throw err(403, 'You are not an active rider.');
+  if (profile.availability === 'offline') throw err(400, 'Go online to take deliveries.');
+  const mine = await DeliveryAssignment.findOne({ shipment_id: shipmentId, rider_id: rider._id, status: 'offered', active: true }).select('_id').lean();
+  if (mine) return accept({ assignmentId: mine._id, rider, app }); // it is already offered to this rider
+  const session = await mongoose.startSession();
+  let shipment;
+  let assignment;
+  try {
+    await session.withTransaction(async () => {
+      shipment = await Shipment.findOne({ _id: shipmentId, ...openFilter(profile.agency_id) }).session(session);
+      if (!shipment) throw err(409, 'This delivery is no longer waiting for a rider.');
+      if (SMALL_VEHICLES.includes(profile.vehicle_type) && HEAVY.includes(shipment.package_details?.weight_tier)) throw err(400, 'This package is too heavy for your vehicle.');
+      const carrying = await DeliveryAssignment.countDocuments({ rider_id: rider._id, active: true, status: { $in: ['offered', 'accepted'] } }).session(session);
+      const cap = await capFor(profile.agency_id);
+      if (carrying >= cap) throw err(409, `You already have ${carrying} deliveries, your agency's limit. Finish one first.`);
+      const live = await DeliveryAssignment.findOne({ shipment_id: shipment._id, active: true }).session(session);
+      if (live?.status === 'accepted') throw err(409, 'Another rider has just taken this delivery.');
+      if (live) await DeliveryAssignment.updateOne({ _id: live._id, status: 'offered', active: true }, { $set: { status: 'cancelled', active: false, responded_at: new Date(), reject_reason: 'Taken by another rider' } }, { session });
+      [assignment] = await DeliveryAssignment.create([{
+        shipment_id: shipment._id, agency_id: profile.agency_id, rider_id: rider._id, mode: 'claim', status: 'accepted',
+        offered_at: new Date(), responded_at: new Date(), expires_at: new Date(), reason: 'Taken from open deliveries',
+      }], { session });
+      shipment.rider_id = rider._id;
+      shipment.rider_assigned_at = new Date();
+      if (shipment.status === 'pending' || shipment.status === 'failed') {
+        shipment.status = 'assigned';
+        shipment.shipment_logs.push({ status: 'assigned', updated_by: rider._id, timestamp: new Date(), note: `Rider ${rider.name || ''} took it from open deliveries`.trim() });
+      }
+      await shipment.save({ session });
+      await RiderProfile.updateOne({ user_id: rider._id, status: 'active' }, { $set: { availability: 'busy', availability_changed_at: new Date() } }, { session });
+    });
+  } catch (e) {
+    if (e?.code === 11000) throw err(409, 'Another rider has just taken this delivery.');
+    throw e;
+  } finally {
+    await session.endSession();
+  }
+  await announceRider(shipment, rider, app, 'took');
   return { assignment, shipment };
 };
 
@@ -224,7 +345,8 @@ const cancel = async ({ shipmentId, agencyId, actorId }) => {
   await DeliveryAssignment.updateOne({ _id: live._id, active: true }, { $set: { status: 'cancelled', active: false, responded_at: new Date() } });
   if (live.status === 'accepted') {
     await Shipment.updateOne({ _id: shipment._id }, { $set: { rider_id: null, rider_assigned_at: null }, $push: { shipment_logs: { status: shipment.status, updated_by: actorId, timestamp: new Date(), note: 'Rider unassigned by the agency' } } });
-    await RiderProfile.updateOne({ user_id: live.rider_id, availability: 'busy' }, { $set: { availability: 'online', availability_changed_at: new Date() } });
+    const stillBusy = await DeliveryAssignment.exists({ rider_id: live.rider_id, status: 'accepted', active: true });
+    if (!stillBusy) await RiderProfile.updateOne({ user_id: live.rider_id, availability: 'busy' }, { $set: { availability: 'online', availability_changed_at: new Date() } });
   }
   return live;
 };
@@ -316,4 +438,4 @@ const startRiderOfferExpiryWorker = (app) => {
   if (timer.unref) timer.unref();
 };
 
-module.exports = { pickupPoint, rankRiders, autoDispatch, dispatchAfterPayment, sweepUndispatched, manualOffer, accept, reject, cancel, settleAfterStatus, expireDueOffers, startRiderOfferExpiryWorker, distanceKm };
+module.exports = { pickupPoint, rankRiders, autoDispatch, dispatchAfterPayment, sweepUndispatched, manualOffer, accept, reject, cancel, claim, openDeliveries, DEFAULT_MAX_ACTIVE, settleAfterStatus, expireDueOffers, startRiderOfferExpiryWorker, distanceKm };

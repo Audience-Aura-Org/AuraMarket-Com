@@ -18,7 +18,9 @@ const DeliveryAssignmentSchema = new mongoose.Schema(
     rider_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     status: { type: String, enum: ['offered', 'accepted', 'rejected', 'expired', 'cancelled', 'completed'], default: 'offered' },
     active: { type: Boolean, default: true },
-    mode: { type: String, enum: ['manual', 'auto'], required: true },
+    // manual = offered by the agency, auto = by the dispatch engine, claim = the rider
+    // took it from the open deliveries list.
+    mode: { type: String, enum: ['manual', 'auto', 'claim'], required: true },
     offered_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }, // null = dispatch engine
     offered_at: { type: Date, default: Date.now },
     expires_at: { type: Date, required: true },

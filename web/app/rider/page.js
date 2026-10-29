@@ -17,6 +17,7 @@ import RiderSummary from "@/components/rider/RiderSummary";
 import { refreshRiderProfile } from "@/lib/riderProfile";
 import { useRiderJobs } from "@/components/rider/RiderJobsContext";
 import RiderPageHeader, { RIDER_PAGE } from "@/components/rider/RiderPageHeader";
+import { RiderOffers, RiderOpenDeliveries } from "@/components/rider/RiderBoard";
 
 const QUICK = [
   { href: "/rider/map", label: "Map", sub: "Route & directions", icon: MapIcon },
@@ -135,13 +136,18 @@ export default function RiderPage() {
         <span className={`flex size-14 items-center justify-center rounded-full ${online ? "bg-white/20" : "bg-[var(--bg-secondary)] text-[var(--text-secondary)]"}`}>{busy ? <Loader2 className="size-6 animate-spin" /> : <Power className="size-6" />}</span>
         <span className="min-w-0 flex-1">
           <span className="block text-[17px] font-bold">{availability === "busy" ? "On a delivery" : online ? "You are online" : "You are offline"}</span>
-          <span className={`block text-[11px] ${online ? "text-white/85" : "text-[var(--text-secondary)]"}`}>{availability === "busy" ? "Finish this delivery to get the next one." : online ? "Tap to stop receiving deliveries." : "Tap to go online and get deliveries."}</span>
+          <span className={`block text-[11px] ${online ? "text-white/85" : "text-[var(--text-secondary)]"}`}>{availability === "busy" ? "You can still accept more deliveries below." : online ? "Tap to stop receiving deliveries." : "Tap to go online and get deliveries."}</span>
         </span>
       </button>
 
-      <section id="current" className="scroll-mt-20">
+      <RiderOffers />
+
+      <section id="current" className="scroll-mt-20 space-y-2">
+        {(jobs?.data?.active?.length || 0) > 1 && <h2 className="text-[13px] font-bold">My deliveries now <span className="font-normal text-[var(--text-secondary)]">({jobs.data.active.length})</span></h2>}
         <RiderDeliveries showRecent={false} />
       </section>
+
+      <RiderOpenDeliveries />
 
       <RiderSummary refreshKey={availability} compact />
 

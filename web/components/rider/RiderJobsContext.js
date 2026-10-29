@@ -107,12 +107,38 @@ export function RiderJobsProvider({ enabled, children }) {
     } finally { setBusy(null); }
   }, [load]);
 
-  const accept = (offer) => act(`acc-${offer.assignment_id}`, () => api.post(`/riders/me/offers/${offer.assignment_id}/accept`), "Delivery accepted. Head to the pickup.");
+  // Deliveries waiting in the agency that the rider can take themselves.
+  const [open, setOpen] = useState(null);
+  const loadOpen = useCallback(async () => {
+    try { const res = await api.get("/riders/me/open", { skipClientCache: true }); setOpen(res.data?.data?.deliveries || []); } catch { /* keep last view */ }
+  }, []);
+  const online = data?.availability && data.availability !== "offline";
+  useEffect(() => {
+    if (!enabled || !online) { setOpen(null); return undefined; }
+    loadOpen();
+    const t = setInterval(loadOpen, 30000);
+    return () => clearInterval(t);
+  }, [enabled, online, loadOpen]);
+
+  // Offers put aside with "Later": no pop-up, still listed on Home until they expire.
+  // Kept for the session so reopening the app does not pop them up again.
+  const [later, setLater] = useState(() => {
+    try { return new Set(JSON.parse(sessionStorage.getItem("aura-rider-later") || "[]")); } catch { return new Set(); }
+  });
+  const putAside = (offer) => setLater((s) => {
+    const next = new Set(s).add(String(offer.assignment_id));
+    try { sessionStorage.setItem("aura-rider-later", JSON.stringify([...next].slice(-50))); } catch { /* private mode */ }
+    return next;
+  });
+
+  const refreshAll = async () => { await Promise.all([load(), loadOpen()]); };
+  const accept = (offer) => act(`acc-${offer.assignment_id}`, () => api.post(`/riders/me/offers/${offer.assignment_id}/accept`), "Delivery accepted. Head to the pickup.").then((ok) => { loadOpen(); return ok; });
   const decline = (offer) => act(`rej-${offer.assignment_id}`, () => api.post(`/riders/me/offers/${offer.assignment_id}/reject`), "Offer declined.");
+  const claim = (item) => act(`take-${item.id}`, () => api.post(`/riders/me/open/${item.id}/claim`), `${item.tracking_code} is yours. Head to the pickup.`).then((ok) => { loadOpen(); return ok; });
   const step = (shipment, body, success) => act(`step-${shipment.id}`, () => api.post(`/riders/me/deliveries/${shipment.id}/status`, body), success);
 
   return (
-    <Ctx.Provider value={{ enabled, data, load, busy, act, accept, decline, step, gps, delivering, position, prefs }}>
+    <Ctx.Provider value={{ enabled, data, load, busy, act, accept, decline, claim, step, gps, delivering, position, prefs, open, loadOpen, refreshAll, later, putAside }}>
       {children}
     </Ctx.Provider>
   );

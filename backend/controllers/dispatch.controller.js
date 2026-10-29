@@ -101,8 +101,8 @@ const myDeliveries = async (req, res) => {
 
 /**
  * Rider map: the rider's last position, each accepted delivery's pickup and drop-off
- * (exact pins, else the quartier centre, flagged approx), and the road route for the
- * delivery being worked on now. Routes are cached, so polling this is cheap.
+ * (exact pins, else the quartier centre, flagged approx), and the road route to each
+ * one's next stop (a rider may carry several). Routes are cached, so polling is cheap.
  */
 const myMap = async (req, res) => {
   try {
@@ -113,11 +113,10 @@ const myMap = async (req, res) => {
       .populate('shipment_id', 'tracking_code status pickup_address delivery_address').sort({ responded_at: 1 }).lean();
     const loc = profile.last_location;
     const me = loc?.lat != null ? { lat: loc.lat, lng: loc.lng, at: loc.at } : null;
-    const jobs = await Promise.all(active.filter((a) => a.shipment_id).map(async (a, i) => {
+    const jobs = await Promise.all(active.filter((a) => a.shipment_id).map(async (a) => {
       const s = a.shipment_id;
       const [pickup, dropoff] = await Promise.all([dispatch.pickupPoint(s.pickup_address), dispatch.pickupPoint(s.delivery_address)]);
-      // Only the first delivery gets a road route (the one the rider is doing now).
-      const route = i === 0 && me ? await routeForShipment(s, me).catch(() => null) : null;
+      const route = me ? await routeForShipment(s, me).catch(() => null) : null;
       return {
         shipment_id: s._id, tracking_code: s.tracking_code, status: s.status,
         pickup: pickup && { ...pickup, quartier: s.pickup_address?.quartier || null },
@@ -138,6 +137,37 @@ const respond = (accept) => async (req, res) => {
   } catch (e) { fail(res, e, 'Could not answer the offer.'); }
 };
 
+/** Rider: the agency's deliveries still waiting for a rider (GET /riders/me/open). */
+const openList = async (req, res) => {
+  try {
+    res.json({ success: true, data: { deliveries: await dispatch.openDeliveries(req.user) } });
+  } catch (e) { fail(res, e, 'Could not load open deliveries.'); }
+};
+
+/** Rider takes one of them (POST /riders/me/open/:shipmentId/claim). */
+const claimOpen = async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.shipmentId)) return res.status(404).json({ success: false, message: 'Delivery not found.' });
+    const { shipment } = await dispatch.claim({ shipmentId: req.params.shipmentId, rider: req.user, app: req.app });
+    res.json({ success: true, data: { tracking_code: shipment.tracking_code } });
+  } catch (e) { fail(res, e, 'Could not take this delivery.'); }
+};
+
+/** Agency: how many deliveries one rider may hold at once (GET/PATCH /logistics/rider-rules). */
+const riderRules = async (req, res) => {
+  try {
+    const agency = await LogisticsCompany.findOne({ user_id: req.user._id });
+    if (!agency) return res.status(404).json({ success: false, message: 'Set up your delivery agency first.' });
+    if (req.method === 'PATCH') {
+      const n = Number(req.body?.max_active_per_rider);
+      if (!Number.isInteger(n) || n < 1 || n > 10) return res.status(400).json({ success: false, message: 'Choose between 1 and 10 deliveries at a time.' });
+      agency.max_active_per_rider = n;
+      await agency.save();
+    }
+    res.json({ success: true, data: { max_active_per_rider: agency.max_active_per_rider || dispatch.DEFAULT_MAX_ACTIVE } });
+  } catch (e) { fail(res, e, 'Could not save rider rules.'); }
+};
+
 const riderStatus = async (req, res, next) => {
   if (!RIDER_STATUSES.includes(req.body?.status)) return res.status(400).json({ success: false, message: 'Choose picked up, on the way, delivered or failed.' });
   if (!mongoose.isValidObjectId(req.params.shipmentId)) return res.status(404).json({ success: false, message: 'Delivery not found.' });
@@ -148,4 +178,4 @@ const riderStatus = async (req, res, next) => {
   return withAssignmentSync(modifyShipmentStatus)(req, res, next);
 };
 
-module.exports = { getAssignment, assignRider, cancelAssignment, myDeliveries, myMap, acceptOffer: respond(true), rejectOffer: respond(false), riderStatus, withAssignmentSync };
+module.exports = { getAssignment, assignRider, cancelAssignment, myDeliveries, myMap, openList, claimOpen, riderRules, acceptOffer: respond(true), rejectOffer: respond(false), riderStatus, withAssignmentSync };

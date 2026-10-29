@@ -80,7 +80,7 @@ export default function AssignRiderPanel({ shipment, onChanged, inline = false }
                     <p className="truncate text-[12px] font-semibold">{r.rank ? `${r.rank}. ` : ""}{r.name}</p>
                     <p className="text-[10px] text-[var(--text-secondary)]">{AVAIL[r.availability] || r.availability}{r.reason ? ` · ${r.reason}` : ""}</p>
                   </div>
-                  <button type="button" disabled={!!busy || r.availability === "busy"} onClick={() => offer(r)} className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-xl bg-[var(--accent)] px-3 text-[11px] font-semibold text-white disabled:opacity-40">
+                  <button type="button" disabled={!!busy} onClick={() => offer(r)} className="inline-flex min-h-9 shrink-0 items-center gap-1 rounded-xl bg-[var(--accent)] px-3 text-[11px] font-semibold text-white disabled:opacity-40">
                     {busy === `Offered to ${r.name}.` ? <Loader2 className="size-3.5 animate-spin" /> : "Offer"}
                   </button>
                 </li>

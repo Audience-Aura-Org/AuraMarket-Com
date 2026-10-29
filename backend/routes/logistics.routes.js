@@ -63,6 +63,9 @@ router.post('/riders/:riderId/cash-handovers', restrictTo('logistics'), recordCa
 const riderEarnings = require('../controllers/riderEarnings.controller');
 router.get('/rider-pay', restrictTo('logistics'), riderEarnings.getRiderPay);
 router.patch('/rider-pay', restrictTo('logistics'), riderEarnings.setRiderPay);
+const { riderRules } = require('../controllers/dispatch.controller');
+router.get('/rider-rules', restrictTo('logistics'), riderRules);
+router.patch('/rider-rules', restrictTo('logistics'), riderRules);
 router.post('/riders/:riderId/payouts', restrictTo('logistics'), riderEarnings.recordRiderPayout);
 router.get('/riders/report', restrictTo('logistics'), require('../controllers/logisticsReport.controller').riderReport);
 

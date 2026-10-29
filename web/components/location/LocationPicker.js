@@ -10,16 +10,13 @@
  *     place_name (the place chosen in the search), landmark (optional description) }
  */
 import { useEffect, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
-import { useGoogleMaps } from '@/lib/googleMaps';
+import withMapFallback from './withMapFallback';
 import { Building2, Check, Crosshair, Landmark, Loader2, MapPin, Search, X } from 'lucide-react';
 import api from '@/services/api';
 
 // Google Maps when a key is configured, else the free MapLibre map.
-const PinMap = dynamic(() => (useGoogleMaps ? import('./google/GooglePinMap') : import('./PinMap')), {
-  ssr: false,
-  loading: () => <div className="flex h-56 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] text-[var(--text-secondary)] sm:h-64">Loading map…</div>,
-});
+const PinMap = withMapFallback(() => import('./google/GooglePinMap'), () => import('./PinMap'),
+  () => <div className="flex h-56 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] text-[var(--text-secondary)] sm:h-64">Loading map…</div>);
 
 const KIND_LABEL = { quartier: 'Quartier', district: 'District', city: 'City', region: 'Region', place: 'Landmark' };
 const placeLine = (r) => [r.quartier, r.district, r.city].filter((v, i, a) => v && a.indexOf(v) === i && v !== r.name).join(' · ');
