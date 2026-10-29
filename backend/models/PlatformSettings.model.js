@@ -32,6 +32,13 @@ const PlatformSettingsSchema = new mongoose.Schema(
       default: 0,
       min: 0
     },
+    // Admin overrides for env defaults (null = use env). Read through utils/runtimeSettings.
+    // Fixed XAF added to every mobile money payment on top of the gateway percentages.
+    momo_fixed_fee_xaf: { type: Number, default: null, min: 0, max: 5000 },
+    // Android app: newest version on the download page / oldest allowed to run.
+    app_latest_version: { type: String, default: null, match: /^\d+\.\d+(\.\d+)?$/ },
+    app_min_version: { type: String, default: null, match: /^\d+\.\d+(\.\d+)?$/ },
+    // Not charged anywhere: withdrawals are covered by the mobile money payout reserve.
     withdrawal_fee: {
       type: Number,
       default: 500,

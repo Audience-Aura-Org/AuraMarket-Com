@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { Save, Loader2, CheckCircle2, Truck, AlertTriangle, ToggleRight } from 'lucide-react';
+import { Save, Loader2, CheckCircle2, Truck, AlertTriangle, ToggleRight, Smartphone, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
@@ -54,6 +54,7 @@ export default function AdminSettingsPage() {
   const [s, setS] = useState(null);
   const [firms, setFirms] = useState([]);
   const [features, setFeatures] = useState({});
+  const [rates, setRates] = useState(null); // live mobile money rates (GET /payments/fees)
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -65,6 +66,7 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     if (user?.role !== 'admin') return;
+    api.get('/payments/fees').then((r) => setRates(r.data?.data || null)).catch(() => {});
     Promise.all([
       api.get('/admin/settings'),
       api.get('/admin/logistics/firms'),
@@ -85,6 +87,16 @@ export default function AdminSettingsPage() {
     onChange: (v) => setS(prev => ({ ...prev, [key]: v })),
   });
 
+  // What a customer pays to put 10,000 XAF in their wallet with MTN, at the
+  // fixed fee being edited (same formula as the server: utils/mobileMoneyFees).
+  const example = (() => {
+    if (!rates) return null;
+    const fixed = s?.momo_fixed_fee_xaf === '' || s?.momo_fixed_fee_xaf == null ? Number(rates.fixed || 0) : Number(s.momo_fixed_fee_xaf);
+    const collection = rates.collection?.pawapay?.MTN_MOMO_CMR ?? 0.0175;
+    return Math.ceil((10000 * (1 + (rates.payout || 0)) + (Number.isFinite(fixed) ? fixed : 0)) / (1 - collection));
+  })();
+  const pctText = (v) => (v == null ? '—' : `${(Number(v) * 100).toFixed(2).replace(/\.?0+$/, '')}%`);
+
   const save = async () => {
     setSaving(true);
     try {
@@ -94,10 +106,11 @@ export default function AdminSettingsPage() {
       if (res.data.success) {
         setS(res.data.data.settings);
         setFeatures(res.data.data.settings?.features || flags);
+        api.get('/payments/fees', { skipClientCache: true }).then((r) => setRates(r.data?.data || null)).catch(() => {});
         toast.success('Settings saved');
       }
-    } catch {
-      toast.error('Failed to save settings');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -194,9 +207,6 @@ export default function AdminSettingsPage() {
         <Field label="Commission rate (%)" hint="Platform cut on every retail order settlement.">
           <NumInput min={0} max={100} step={0.5} {...field('commission_rate')} />
         </Field>
-        <Field label="Withdrawal fee (XAF)" hint="Fixed fee deducted from each withdrawal request.">
-          <NumInput min={0} {...field('withdrawal_fee')} />
-        </Field>
         <Field label="Minimum withdrawal amount (XAF)">
           <NumInput min={0} {...field('min_withdrawal_amount')} />
         </Field>
@@ -215,6 +225,40 @@ export default function AdminSettingsPage() {
             </span>
           </label>
         </Field>
+      </section>
+
+      {/* ── Mobile money fees ── */}
+      <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 space-y-4">
+        <h2 className="text-[12px] font-bold text-amber-500 tracking-widest uppercase flex items-center gap-2"><Wallet className="size-3.5" /> Mobile money fees</h2>
+        <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+          The customer pays the gateway&apos;s fee plus a reserve that covers paying the money out later, so wallets can be withdrawn with no fee.
+          Current rates: MTN {pctText(rates?.collection?.pawapay?.MTN_MOMO_CMR)} · Orange (PayUnit) {pctText(rates?.collection?.payunit)} · Eversend {pctText(rates?.collection?.eversend)} · payout reserve {pctText(rates?.payout)}.
+          The rates follow the gateway contracts and are set on the server.
+        </p>
+        <Field label="Extra fixed fee per payment (XAF)" hint="Kept by the platform on every mobile money payment, on top of the percentages. Leave empty to use the server default. Wallet payments are never charged.">
+          <NumInput min={0} max={5000} value={s?.momo_fixed_fee_xaf ?? ''} onChange={(v) => setS((prev) => ({ ...prev, momo_fixed_fee_xaf: v }))} />
+        </Field>
+        {example != null && (
+          <p className="rounded-xl bg-[var(--bg-secondary)] px-3 py-2 text-[11px] text-[var(--text-primary)]">
+            Example: to add 10,000 XAF to a wallet with MTN, the customer pays <strong>{example.toLocaleString()} XAF</strong>.
+          </p>
+        )}
+      </section>
+
+      {/* ── Android app ── */}
+      <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 space-y-4">
+        <h2 className="text-[12px] font-bold text-indigo-400 tracking-widest uppercase flex items-center gap-2"><Smartphone className="size-3.5" /> Android app</h2>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Latest version" hint="The APK on the download page. Older apps show an Update bar.">
+            <input value={s?.app_latest_version ?? ''} onChange={(e) => setS((prev) => ({ ...prev, app_latest_version: e.target.value }))} placeholder="e.g. 1.7.1" inputMode="decimal"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2.5 text-[13px] font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40" />
+          </Field>
+          <Field label="Minimum version" hint="Apps older than this are blocked until they update. Leave empty to allow all.">
+            <input value={s?.app_min_version ?? ''} onChange={(e) => setS((prev) => ({ ...prev, app_min_version: e.target.value }))} placeholder="empty = allow all" inputMode="decimal"
+              className="w-full bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl px-4 py-2.5 text-[13px] font-semibold text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/40" />
+          </Field>
+        </div>
+        <p className="text-[10px] text-[var(--text-secondary)]">Set the latest version only after the new APK is live at /downloads/Auradime.apk. Changes reach every server within a minute.</p>
       </section>
 
       {/* ── Restaurant / Dine ── */}

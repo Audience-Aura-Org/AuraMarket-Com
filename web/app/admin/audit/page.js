@@ -1,207 +1,206 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+/**
+ * Admin: audit log — who changed what, when, newest first. Filtering and paging
+ * happen on the server (GET /admin/audit?category=&page=), so filters cover the
+ * whole history, not just the loaded page.
+ */
+import { useCallback, useEffect, useState } from 'react';
 import api from '@/services/api';
-import { 
-  Shield, Clock, User, FileText, Filter, 
-  Search, RefreshCw, ChevronRight, AlertTriangle,
-  Database, Fingerprint, Activity, Loader2
-} from 'lucide-react';
+import { Shield, Clock, User, RefreshCw, AlertTriangle, Database, Activity, Loader2, ChevronDown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import Pagination from '@/components/common/Pagination';
 import StatCard from '@/components/layout/StatCard';
 
+const CATEGORIES = [
+  ['all', 'All'],
+  ['users', 'Users'],
+  ['payments', 'Payments'],
+  ['deliveries', 'Deliveries'],
+  ['orders', 'Orders'],
+  ['products', 'Products'],
+  ['disputes', 'Disputes'],
+];
+
+// Plain-language names for recorded actions; anything else is humanised.
+const ACTION_LABELS = {
+  admin_direct_payout: 'Direct payout by admin',
+  agency_package_created: 'Agency package registered',
+  agency_remittance_recorded: 'Agency cash remittance recorded',
+  demote_manager: 'Manager removed',
+  promote_to_manager: 'Made a manager',
+  payment_settled: 'Payment settled',
+  price_change: 'Price changed',
+  rider_cash_handover: 'Rider handed over cash',
+  rider_invited: 'Rider invited',
+  rider_reactivated: 'Rider reactivated',
+  rider_deactivated: 'Rider deactivated',
+  role_change: 'Role changed',
+  subscription_activated: 'Subscription activated',
+  verification_status_change: 'Verification status changed',
+  wallet_credit: 'Wallet credited',
+  wallet_debit: 'Wallet debited',
+};
+const TARGET_LABELS = {
+  user: 'User', vendor: 'Vendor', transaction: 'Payment', usersubscription: 'Subscription', subscription: 'Subscription',
+  shipment: 'Delivery', riderprofile: 'Rider', logisticscompany: 'Delivery agency', agencysettlement: 'Agency cash',
+  order: 'Order', product: 'Product', dispute: 'Dispute', wallet: 'Wallet', withdrawal: 'Withdrawal',
+};
+const HIGH_PRIORITY = /ban|delete|suspend|reject|demote|deactivat|direct_payout|role_change|limited|refund/;
+
+const humanise = (s) => String(s || '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/^./, (c) => c.toUpperCase());
+const actionLabel = (a) => ACTION_LABELS[a] || humanise(a);
+const targetLabel = (t) => TARGET_LABELS[String(t || '').toLowerCase()] || humanise(t);
+
+const actionTone = (a = '') => {
+  if (HIGH_PRIORITY.test(a)) return 'text-rose-600 bg-rose-500/10 border-rose-500/20';
+  if (/approve|resolve|activat|settled|credit|invited|promote|created|recorded|handover/.test(a)) return 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20';
+  if (/change|update|edit|debit/.test(a)) return 'text-amber-600 bg-amber-500/10 border-amber-500/20';
+  return 'text-indigo-600 bg-indigo-500/10 border-indigo-500/20';
+};
+
+const ago = (iso) => {
+  if (!iso) return '—';
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 1440) return `${Math.round(mins / 60)} h ago`;
+  return `${Math.round(mins / 1440)} d ago`;
+};
+
+// Short readable value for the before/after columns.
+const show = (v) => {
+  if (v === undefined || v === null || v === '') return '—';
+  if (typeof v === 'object') return Object.entries(v).map(([k, x]) => `${humanise(k)}: ${typeof x === 'object' && x !== null ? JSON.stringify(x) : x}`).join(' · ');
+  return String(v);
+};
+
+function Change({ log }) {
+  const [open, setOpen] = useState(false);
+  const before = log.changes?.old;
+  const after = log.changes?.new;
+  const details = log.metadata?.details && Object.keys(log.metadata.details).length ? log.metadata.details : null;
+  if (before === undefined && after === undefined && !details) return null;
+  return (
+    <div className="mt-3 space-y-2">
+      {(before !== undefined || after !== undefined) && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 px-3 py-2">
+            <p className="text-[10px] font-semibold text-[var(--text-secondary)]">Before</p>
+            <p className="mt-0.5 break-words text-[12px] text-[var(--text-primary)]">{show(before)}</p>
+          </div>
+          <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 px-3 py-2">
+            <p className="text-[10px] font-semibold text-[var(--text-secondary)]">After</p>
+            <p className="mt-0.5 break-words text-[12px] text-[var(--text-primary)]">{show(after)}</p>
+          </div>
+        </div>
+      )}
+      {details && (
+        <div>
+          <button type="button" onClick={() => setOpen((v) => !v)} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--text-secondary)] hover:text-[var(--accent)]">
+            <ChevronDown className={`size-3.5 transition-transform ${open ? 'rotate-180' : ''}`} /> {open ? 'Hide details' : 'Show details'}
+          </button>
+          {open && <pre className="mt-1.5 max-h-48 overflow-auto rounded-xl bg-[var(--bg-secondary)]/60 p-3 text-[11px] leading-relaxed text-[var(--text-primary)]">{JSON.stringify(details, null, 2)}</pre>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminAuditLogs() {
-  const [mounted, setMounted] = useState(false);
-  const [logs, setLogs] = useState([]);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 7;
+  const [category, setCategory] = useState('all');
+  const [page, setPage] = useState(1);
 
-  useEffect(() => {
-    setMounted(true);
-    fetchLogs();
-  }, []);
-
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/admin/audit');
-      if (res.data?.success) setLogs(res.data.data.logs || []);
-    } catch (err) {
-      console.error('Failed to fetch audit logs:', err);
-      toast.error('Failed to sync security logs');
+      const res = await api.get('/admin/audit', { params: { page, limit: 20, ...(category !== 'all' && { category }) }, skipClientCache: true });
+      if (res.data?.success) setData(res.data.data);
+    } catch {
+      toast.error('Could not load the audit log.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, category]);
+  useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
-  const getActionColor = (action) => {
-    if (action.includes('resolve') || action.includes('approve')) return 'text-emerald-500 bg-emerald-500/10';
-    if (action.includes('reject') || action.includes('delete') || action.includes('ban')) return 'text-rose-500 bg-rose-500/10';
-    if (action.includes('change') || action.includes('update')) return 'text-amber-500 bg-amber-500/10';
-    return 'text-indigo-500 bg-indigo-500/10';
-  };
-
-  const filteredLogs = logs.filter(log => {
-      if (activeFilter === 'all') return true;
-      return log.target_type === activeFilter;
-  });
-
-  const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
-  const currentLogs = filteredLogs.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  if (!mounted) return null;
+  const logs = data?.logs || [];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
-      <header className="min-h-20 py-4 flex flex-col md:flex-row md:h-24 items-center justify-between px-4 md:px-10 border-b border-[var(--glass-border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl sticky top-0 md:top-16 lg:top-0 z-40 gap-4 md:gap-0">
-        <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-start">
-          <div className="flex items-center gap-4">
-            <div className="size-10 md:size-12 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] shadow-inner border border-[var(--accent)]/20 shrink-0">
-               <Shield className="w-5 h-5 md:w-6 md:h-6" />
+    <div className="min-h-screen bg-[var(--bg-primary)] pb-32">
+      <div className="mx-auto w-full max-w-[1200px] space-y-5 px-4 py-6 md:px-8">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/10 text-[var(--accent)]">
+              <Shield className="size-5" />
             </div>
             <div>
-              <h2 className="text-lg md:text-xl font-bold text-[var(--text-primary)] tracking-tight">Security <span className="text-[var(--accent)]">Audit</span></h2>
-              <div className="flex items-center gap-2 mt-0.5">
-                 <div className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[10px] md:text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight opacity-50 uppercase">Live Stream_V3</p>
-              </div>
+              <h1 className="text-[18px] font-bold tracking-tight text-[var(--text-primary)]">Audit log</h1>
+              <p className="text-[11px] text-[var(--text-secondary)]">Who changed what, and when. Newest first.</p>
             </div>
           </div>
-          <button onClick={fetchLogs} className="md:hidden size-10 rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] flex items-center justify-center active:scale-95">
-             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <button type="button" onClick={fetchLogs} aria-label="Refresh" className="flex size-10 items-center justify-center rounded-xl border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--accent)]">
+            <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-           <div className="flex bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-2xl p-1 overflow-x-auto no-scrollbar flex-1 md:flex-none justify-between md:justify-start shadow-inner">
-              {['all', 'product', 'user', 'dispute'].map(type => (
-                <button 
-                  key={type}
-                  onClick={() => { setActiveFilter(type); setCurrentPage(1); }}
-                  className={`px-3 md:px-4 py-1.5 rounded-xl text-[10px] lg:text-[12px] font-bold tracking-tight transition-all uppercase ${activeFilter === type ? 'bg-[var(--accent)] text-white shadow-lg' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] opacity-40'}`}
-                >
-                  {type}
-                </button>
-              ))}
-           </div>
-           <button onClick={fetchLogs} className="hidden md:flex size-11 md:size-12 rounded-2xl border border-[var(--glass-border)] hover:bg-[var(--accent)]/10 text-[var(--text-secondary)] items-center justify-center transition-all shadow-sm active:scale-95">
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-           </button>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <StatCard label="Events" value={data?.total ?? '—'} icon={Database} color="primary" sub={category === 'all' ? 'All categories' : CATEGORIES.find(([k]) => k === category)?.[1]} />
+          <StatCard label="High priority" value={data?.high_priority ?? '—'} icon={AlertTriangle} color="rose" sub="Bans, deletions, payouts, role changes" />
+          <StatCard label="Latest event" value={ago(data?.latest_at)} icon={Activity} color="emerald" sub={data?.latest_at ? new Date(data.latest_at).toLocaleString() : 'No events yet'} />
         </div>
-      </header>
 
-      <div className="mx-auto w-full max-w-[1600px] px-4 md:px-8 py-5 md:py-8 space-y-6 md:space-y-8 pb-32">
-         {/* Live Intelligence Metadata */}
-         {(() => {
-           const highPriority = logs.filter(l => l.action.includes('ban')).length;
-           const highPct      = logs.length > 0 ? Math.round((highPriority / logs.length) * 100) : 0;
-           const eventTypes   = new Set(logs.map(l => l.action).filter(Boolean)).size;
-           const latestAt     = logs.reduce((max, l) => Math.max(max, new Date(l.createdAt || 0).getTime() || 0), 0);
-           const sinceLatest  = latestAt ? Math.max(0, Math.round((Date.now() - latestAt) / 60000)) : null;
-           const latestLabel  = sinceLatest == null ? '—' : sinceLatest < 60 ? `${sinceLatest}m ago` : sinceLatest < 1440 ? `${Math.round(sinceLatest / 60)}h ago` : `${Math.round(sinceLatest / 1440)}d ago`;
-           return (
-             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-               <StatCard label="Total Events" value={logs.length} icon={Database} color="primary" sub="Registry" footer={`${logs.length} log entries`} />
-               <StatCard label="High Priority" value={highPriority} icon={AlertTriangle} color="rose" sub="Critical" progress={highPct} footer={`${highPct}% flagged`} />
-               <StatCard label="Event Types" value={eventTypes} icon={Fingerprint} color="indigo" sub="Distinct actions" footer="In the loaded log" />
-               <StatCard label="Latest Event" value={latestLabel} icon={Activity} color="emerald" sub="Most recent entry" footer={latestAt ? new Date(latestAt).toLocaleString() : 'No events yet'} />
-             </div>
-           );
-         })()}
+        <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1" role="tablist" aria-label="Category">
+          {CATEGORIES.map(([key, label]) => (
+            <button key={key} type="button" role="tab" aria-selected={category === key}
+              onClick={() => { setCategory(key); setPage(1); }}
+              className={`min-h-9 shrink-0 rounded-full px-4 text-[12px] font-semibold transition-colors ${category === key ? 'bg-[var(--accent)] text-white' : 'border border-[var(--glass-border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
 
-         {/* Event Stream */}
-         <div className="rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)]/40 overflow-hidden shadow-2xl backdrop-blur-xl">
-            <div className="p-6 md:p-8 border-b border-[var(--glass-border)] flex items-center justify-between bg-[var(--bg-secondary)]/20">
-               <h3 className="text-xs font-bold text-[var(--text-primary)] tracking-[0.2em] flex items-center gap-3 uppercase">
-                  <Clock className="size-4 text-[var(--accent)]" /> Chronological Mutation Stream
-               </h3>
-               <div className="hidden md:flex items-center gap-2 text-[10px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-[0.3em]">
-                  <Filter className="size-3" /> Filter: {activeFilter}
-               </div>
+        <div className="overflow-hidden rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)]">
+          {loading && !logs.length ? (
+            <div className="flex justify-center py-16"><Loader2 className="size-6 animate-spin text-[var(--accent)]" /></div>
+          ) : logs.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
+              <Shield className="size-8 text-[var(--text-secondary)] opacity-40" />
+              <p className="text-[13px] font-semibold">Nothing recorded here yet</p>
             </div>
-
-            <div className="divide-y divide-[var(--glass-border)]/30">
-               {loading ? (
-                  <div className="py-20 flex flex-col items-center justify-center gap-4 opacity-20">
-                     <Loader2 className="animate-spin size-10" />
-                     <p className="text-[10px] font-bold uppercase tracking-[0.3em]">Decrypting Stream...</p>
+          ) : (
+            <ul className={`divide-y divide-[var(--glass-border)] ${loading ? 'opacity-60' : ''}`}>
+              {logs.map((log) => (
+                <li key={log._id} className="flex gap-3 p-4 md:p-5">
+                  <div className="size-10 shrink-0 overflow-hidden rounded-full bg-[var(--bg-secondary)]">
+                    {log.user_id?.avatar ? <img src={log.user_id.avatar} className="size-full object-cover" alt="" /> : <User className="size-full p-2.5 text-[var(--text-secondary)] opacity-50" />}
                   </div>
-               ) : currentLogs.length > 0 ? (
-                  currentLogs.map(log => (
-                    <div key={log._id} className="p-6 md:p-8 hover:bg-[var(--accent)]/[0.02] transition-colors group flex flex-col md:flex-row gap-6">
-                        <div className="flex items-center md:flex-col md:gap-3 gap-4 shrink-0">
-                           <div className="size-12 md:size-14 rounded-2xl border border-[var(--glass-border)] overflow-hidden bg-[var(--bg-secondary)] shadow-inner">
-                              {log.user_id?.avatar ? <img src={log.user_id.avatar} className="size-full object-cover" alt="" /> : <User className="size-full p-3 opacity-20" />}
-                           </div>
-                           <div className="flex-1 md:hidden">
-                              <p className="text-[13px] font-bold text-[var(--text-primary)] tracking-tight truncate">{log.user_id?.name || 'System Operator'}</p>
-                              <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40 uppercase tracking-widest">{log.user_id?.role || 'SYSTEM'}</p>
-                           </div>
-                           <div className="hidden md:block w-px h-full bg-gradient-to-b from-[var(--glass-border)] to-transparent" />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                              <div className="hidden md:flex items-center gap-3">
-                                 <span className="text-sm font-bold text-[var(--text-primary)] tracking-tight">{log.user_id?.name || 'System Operator'}</span>
-                                 <span className="px-2 py-0.5 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-[10px] font-bold tracking-widest uppercase border border-[var(--glass-border)]">
-                                    {log.user_id?.role || 'SYSTEM'}
-                                 </span>
-                              </div>
-                              <div className="flex items-center gap-3 flex-wrap">
-                                 <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold tracking-widest uppercase border ${getActionColor(log.action)}`}>
-                                    {log.action.replace('_', ' ')}
-                                 </span>
-                                 <time className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest flex items-center gap-2">
-                                    <Clock className="w-3 h-3" /> {new Date(log.createdAt).toLocaleString()}
-                                 </time>
-                              </div>
-                           </div>
-
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-5 rounded-2xl group-hover:border-[var(--accent)]/30 transition-colors">
-                                 <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-3 opacity-40 flex items-center gap-2">
-                                    <FileText className="size-3" /> Targeted Entity
-                                 </p>
-                                 <div className="flex items-center justify-between">
-                                    <p className="text-[11px] font-bold text-[var(--text-primary)] flex items-center gap-2">
-                                       <span className="opacity-30 uppercase">{log.target_type}:</span>
-                                       <span className="font-mono text-[var(--accent)] tracking-tighter">#{log.target_id.slice(-8).toUpperCase()}</span>
-                                    </p>
-                                    <ChevronRight className="size-4 opacity-20 group-hover:translate-x-1 transition-transform" />
-                                 </div>
-                              </div>
-
-                              <div className="bg-[var(--bg-secondary)]/30 border border-[var(--glass-border)] p-5 rounded-2xl group-hover:border-[var(--accent)]/30 transition-colors">
-                                 <p className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-3 opacity-40">Mutation Payload</p>
-                                 <div className="font-mono text-[10px] text-[var(--text-primary)]/80 leading-relaxed max-h-24 overflow-y-auto no-scrollbar scroll-smooth">
-                                    {JSON.stringify(log.changes, null, 2)}
-                                 </div>
-                              </div>
-                           </div>
-                        </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className={`rounded-lg border px-2 py-0.5 text-[11px] font-semibold ${actionTone(log.action)}`}>{actionLabel(log.action)}</span>
+                      <span className="text-[12px] text-[var(--text-secondary)]">
+                        {targetLabel(log.target_type)} <span className="font-mono text-[11px] text-[var(--text-primary)]">#{String(log.target_id || '').slice(-8).toUpperCase()}</span>
+                      </span>
                     </div>
-                  ))
-               ) : (
-                  <div className="py-40 flex flex-col items-center justify-center opacity-10 px-10 text-center gap-6">
-                     <Shield className="w-16 h-16 text-[var(--text-secondary)]" />
-                     <p className="text-xs font-bold tracking-[0.4em] uppercase max-w-sm">No System Mutations Recorded</p>
+                    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-[var(--text-secondary)]">
+                      <span className="font-semibold text-[var(--text-primary)]">{log.user_id?.name || 'System'}</span>
+                      {log.user_id?.role && <span className="capitalize">{log.user_id.role}</span>}
+                      <span className="inline-flex items-center gap-1"><Clock className="size-3" />{new Date(log.createdAt).toLocaleString()}</span>
+                    </p>
+                    <Change log={log} />
                   </div>
-               )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {(data?.pages || 1) > 1 && (
+            <div className="flex justify-center border-t border-[var(--glass-border)] p-4">
+              <Pagination currentPage={page} totalPages={data.pages} onPageChange={setPage} />
             </div>
-
-            <div className="p-6 md:p-8 border-t border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 flex justify-center">
-               <Pagination 
-                   currentPage={currentPage}
-                   totalPages={totalPages}
-                   onPageChange={setCurrentPage}
-               />
-            </div>
-         </div>
+          )}
+        </div>
       </div>
     </div>
   );

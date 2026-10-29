@@ -35,3 +35,28 @@ describe('Android push token', () => {
     expect(rows).toEqual({ 'tok-new': '1.7.1', 'tok-old': null, 'tok-bad': null })
   })
 })
+
+describe('Admin overrides', () => {
+  const { createAdmin } = require('../factories')
+  const fees = require('../../utils/mobileMoneyFees')
+  const runtime = require('../../utils/runtimeSettings')
+  afterEach(() => runtime.apply({}))
+
+  it('sets the fixed mobile money fee and app versions from admin settings, and clears back to env', async () => {
+    const admin = await createAdmin()
+    const auth = authHeader(signToken(admin))
+    const before = fees.applyMobileMoneyCollectionFee(10000, 'pawapay', 'XAF', { provider: 'MTN_MOMO_CMR' }).grossAmount
+    const r = await request(app).patch('/api/v1/admin/settings').set(auth).send({ momo_fixed_fee_xaf: 50, app_latest_version: '1.8.0', app_min_version: '1.7.0' })
+    expect(r.status).toBe(200)
+    expect(fees.applyMobileMoneyCollectionFee(10000, 'pawapay', 'XAF', { provider: 'MTN_MOMO_CMR' }).grossAmount).toBe(before + 51) // 50 grossed up for the 1.75% cut
+    const v = await request(app).get('/api/v1/app/version').query({ v: '1.6.1' })
+    expect(v.body.data).toMatchObject({ latest: '1.8.0', minimum: '1.7.0', update_required: true })
+
+    expect((await request(app).patch('/api/v1/admin/settings').set(auth).send({ app_latest_version: 'latest' })).status).toBe(400)
+    expect((await request(app).patch('/api/v1/admin/settings').set(auth).send({ momo_fixed_fee_xaf: -5 })).status).toBe(400)
+
+    await request(app).patch('/api/v1/admin/settings').set(auth).send({ momo_fixed_fee_xaf: '', app_latest_version: '', app_min_version: '' })
+    expect((await request(app).get('/api/v1/app/version').query({ v: '1.6.1' })).body.data).toMatchObject({ latest: '1.7.1', minimum: null })
+    expect(fees.applyMobileMoneyCollectionFee(10000, 'pawapay', 'XAF', { provider: 'MTN_MOMO_CMR' }).grossAmount).toBe(before)
+  })
+})

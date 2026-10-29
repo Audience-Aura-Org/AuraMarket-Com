@@ -31,7 +31,8 @@ const getFeeConfig = () => ({
   },
   // Withdrawals are paid out through PawaPay MTN (see pawaWithdrawalApproval).
   payout: pct('MOMO_PAYOUT_FEE_PCT', 1.3),
-  fixed: Math.max(0, Math.round(Number(process.env.MOMO_FEE_FIXED_XAF || 0)) || 0),
+  // Admin Settings value when set, else MOMO_FEE_FIXED_XAF.
+  fixed: Math.max(0, Math.round(Number(require('./runtimeSettings').get('momo_fixed_fee_xaf') ?? process.env.MOMO_FEE_FIXED_XAF ?? 0)) || 0),
 });
 
 const MOBILE_MONEY_GATEWAYS = new Set(['eversend', 'payunit', 'pawapay']);

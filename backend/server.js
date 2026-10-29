@@ -89,6 +89,7 @@ const { startAvgDeliveryMinutesJob } = require('./services/avgDeliveryMinutes.se
 startAvgDeliveryMinutesJob();
 const { startRiderOfferExpiryWorker } = require('./services/riderDispatch.service');
 startRiderOfferExpiryWorker(app);
+require('./utils/runtimeSettings').startRuntimeSettings(); // admin fee / app version overrides
 const { startDelayedRiderDispatchWorker } = require('./services/delayedRiderDispatch.service');
 startDelayedRiderDispatchWorker(app);
 const { startIntercityArrivalLapseWorker } = require('./services/intercityArrivalLapse.service');

@@ -478,6 +478,23 @@ const updateSettings = async (req, res, next) => {
     }
 
     // Rollout flags: whitelisted keys and values only, merged over current values.
+    // Admin overrides of env defaults; empty clears back to the env value.
+    const version = (v) => (v === '' || v === null ? null : String(v).trim());
+    for (const k of ['app_latest_version', 'app_min_version']) {
+      const v = version(req.body[k]);
+      if (req.body[k] !== undefined && v !== null && !/^\d+\.\d+(\.\d+)?$/.test(v)) return res.status(400).json({ success: false, message: 'App versions look like 1.7.1.' });
+    }
+    if (req.body.momo_fixed_fee_xaf !== undefined && req.body.momo_fixed_fee_xaf !== '' && req.body.momo_fixed_fee_xaf !== null) {
+      const fee = Number(req.body.momo_fixed_fee_xaf);
+      if (!Number.isFinite(fee) || fee < 0 || fee > 5000) return res.status(400).json({ success: false, message: 'The fixed mobile money fee must be between 0 and 5000 XAF.' });
+    }
+    if (req.body.momo_fixed_fee_xaf !== undefined) {
+      const v = req.body.momo_fixed_fee_xaf;
+      settings.momo_fixed_fee_xaf = v === '' || v === null ? null : Math.round(Number(v));
+    }
+    if (req.body.app_latest_version !== undefined) settings.app_latest_version = version(req.body.app_latest_version);
+    if (req.body.app_min_version !== undefined) settings.app_min_version = version(req.body.app_min_version);
+
     if (req.body.features !== undefined) {
       const { parseFlagUpdate, readFlags } = require('../utils/featureFlags');
       const parsed = parseFlagUpdate(req.body.features);
@@ -487,6 +504,7 @@ const updateSettings = async (req, res, next) => {
     }
 
     await settings.save();
+    require('../utils/runtimeSettings').apply(settings); // this process at once; others within a minute
     await clearApiCache();
     res.status(200).json({ success: true, message: 'Settings updated successfully.', data: { settings } });
   } catch (error) {
