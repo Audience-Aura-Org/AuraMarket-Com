@@ -3,6 +3,7 @@ const KYC = require('../models/KYC.model');
 const Vendor = require('../models/Vendor.model');
 const Follow = require('../models/Follow.model');
 const { hasRole } = require('../utils/roles');
+const { confirmedPoint } = require('../utils/geoPoint');
 
 const getMe = async (req, res, next) => {
   try {
@@ -39,7 +40,16 @@ const updateMe = async (req, res, next) => {
         // If avatar is explicitly sent, also sync logo
         if (!updates['branding.logo']) updates['branding.logo'] = req.body.avatar || null;
     }
-    if (req.body?.onboarding_location !== undefined) updates.onboarding_location = req.body.onboarding_location;
+    if (req.body?.onboarding_location !== undefined) {
+      const loc = req.body.onboarding_location || {};
+      const str = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : undefined);
+      updates.onboarding_location = {
+        city: str(loc.city, 80), zone: str(loc.zone, 120), quartier: str(loc.quartier, 120), address_description: str(loc.address_description, 300),
+        zone_id: require('mongoose').isValidObjectId(loc.zone_id) ? loc.zone_id : null,
+        place_name: str(loc.place_name, 120),
+        location: confirmedPoint(loc.location) || undefined, // inside Cameroon only
+      };
+    }
 
     // ── Username update (editable once every 3 months) ──
     if (req.body?.username !== undefined) {

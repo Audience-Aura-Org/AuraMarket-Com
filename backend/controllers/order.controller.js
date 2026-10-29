@@ -29,6 +29,7 @@ const { generateInvoice }     = require('../utils/invoiceGenerator');
 const { getWebUrl }           = require('../utils/url');
 const logisticsService        = require('../services/logistics.service');
 const { confirmedPoint } = require('../utils/geoPoint');
+const { rememberLater } = require('../services/savedAddress.service');
 const { handleVendorPayout }  = require('../services/payment/settle.service');
 const { debitBalance, creditBalance, generateRef } = require('../services/wallet.service');
 const { resolveDelivery, isIntercityEnabled } = require('../services/intercityResolver.service');
@@ -705,6 +706,7 @@ const createOrderAttempt = async (req, res, next, isLastAttempt) => {
       });
     }
 
+    if (shipping_address?.quartier || shipping_address?.location) rememberLater(req.user._id, { ...shipping_address, location: confirmedPoint(shipping_address.location) });
     res.status(201).json({
       success: true,
       message: 'Order created successfully.',
@@ -1976,6 +1978,8 @@ const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
       });
     }
 
+    // Keep the delivery address for next time (up to 5 per account).
+    if (shipping_address?.quartier || shipping_address?.location) rememberLater(req.user._id, { ...shipping_address, location: confirmedPoint(shipping_address.location) });
     res.status(201).json({ success: true, data: { orderIds: createdOrderIds } });
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();

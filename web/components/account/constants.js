@@ -1,11 +1,12 @@
 import {
   User, Bell, Shield, Store, ShieldAlert,
   Database, Truck, ShoppingBag,
-  Users, Heart, ShieldCheck, Smartphone, UserCog
+  Users, Heart, ShieldCheck, Smartphone, UserCog, MapPin
 } from 'lucide-react';
 
 export const TABS = [
   { id: 'general',       label: 'Profile',       icon: User,        roles: ['customer', 'vendor', 'admin', 'logistics', 'manager'] },
+  { id: 'addresses',     label: 'Addresses',     icon: MapPin,      roles: ['customer', 'vendor', 'logistics'] },
   { id: 'store',         label: 'Store',          icon: Store,       roles: ['vendor'] },
   { id: 'orders',        label: 'Orders',         icon: ShoppingBag, roles: ['customer', 'vendor'] },
   { id: 'audience',      label: 'Audience',       icon: Heart,       roles: ['vendor'] },

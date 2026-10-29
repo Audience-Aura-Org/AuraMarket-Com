@@ -31,6 +31,7 @@ import AccountSidebar from './AccountSidebar';
 import MyManagersTab from './MyManagersTab';
 import { useLanguage } from '@/context/LanguageContext';
 import LocationPicker from '@/components/location/LocationPicker';
+import SavedAddressesTab from './SavedAddressesTab';
 import { setFontSize, getFontSize, resetFontSettings, FONT_SIZES } from '@/utils/fontSettings';
 
 
@@ -319,7 +320,10 @@ export default function AccountPageClient() {
         city: user.onboarding_location?.city || '',
         zone: user.onboarding_location?.zone || '',
         quartier: user.onboarding_location?.quartier || '',
-        address_description: user.onboarding_location?.address_description || ''
+        address_description: user.onboarding_location?.address_description || '',
+        zone_id: user.onboarding_location?.zone_id || '',
+        place_name: user.onboarding_location?.place_name || '',
+        location: user.onboarding_location?.location?.lat != null ? user.onboarding_location.location : null,
       }
     });
     if (user.kyc) {
@@ -895,11 +899,32 @@ export default function AccountPageClient() {
                               </div>
                             </div>
 
-                            <ZoneAddressPicker
-                              zones={zones}
-                              address={userData.onboarding_location}
-                              onChange={(loc) => setUserData({ ...userData, onboarding_location: loc })}
+                            {/* One place search; the description is optional. */}
+                            <LocationPicker
+                              label={user?.role === 'logistics' ? 'Base location' : 'Home location'}
+                              value={{
+                                location: userData.onboarding_location.location || null,
+                                place_name: userData.onboarding_location.place_name || '',
+                                zone_id: userData.onboarding_location.zone_id || '',
+                                quartier: userData.onboarding_location.quartier || '',
+                                city: userData.onboarding_location.city || '',
+                                landmark: userData.onboarding_location.address_description || '',
+                              }}
+                              onChange={(v) => setUserData((ud) => ({
+                                ...ud,
+                                onboarding_location: {
+                                  ...ud.onboarding_location,
+                                  city: v.city || ud.onboarding_location.city,
+                                  zone: v.district || ud.onboarding_location.zone,
+                                  quartier: v.quartier || ud.onboarding_location.quartier,
+                                  address_description: v.landmark ?? ud.onboarding_location.address_description,
+                                  zone_id: v.zone_id || undefined,
+                                  place_name: v.place_name || undefined,
+                                  location: v.location || undefined,
+                                },
+                              }))}
                             />
+                            <p className="text-[11px] text-[var(--text-secondary)]">Delivery addresses you use are kept under <a href="/profile?tab=addresses" className="font-semibold text-[var(--accent)]">Addresses</a> (up to 5).</p>
                           </div>
                         )}
 
@@ -1057,14 +1082,15 @@ export default function AccountPageClient() {
                           </h4>
                         </div>
 
-                        {/* Exact spot: one search, like ride-hailing apps. Riders, routes and
-                            arrival times use it; the quartier below still sets prices. */}
+                        {/* One place search (with map pin) and an optional description. The spot
+                            gives riders, routes and distance prices; its quartier gives district prices. */}
                         <div id="pickup-spot">
                           <LocationPicker
                             label={storeData.vendor_type === 'restaurant' ? 'Exact restaurant location' : 'Exact pickup location'}
                             value={{
                               location: storeData.pickup_address.location || null,
-                              landmark: storeData.pickup_address.place_name || '',
+                              place_name: storeData.pickup_address.place_name || '',
+                              landmark: storeData.pickup_address.address_description || '',
                               zone_id: storeData.pickup_address.zone_id || '',
                               quartier: storeData.pickup_address.quartier || '',
                               city: storeData.pickup_address.city || '',
@@ -1074,7 +1100,9 @@ export default function AccountPageClient() {
                               pickup_address: {
                                 ...sd.pickup_address,
                                 location: v.location || undefined,
-                                place_name: v.landmark || undefined,
+                                place_name: v.place_name || undefined,
+                                address_description: v.landmark ?? sd.pickup_address.address_description,
+                                district: v.district || sd.pickup_address.district,
                                 zone_id: v.zone_id || sd.pickup_address.zone_id,
                                 quartier: v.quartier || sd.pickup_address.quartier,
                                 city: v.city || sd.pickup_address.city,
@@ -1086,15 +1114,6 @@ export default function AccountPageClient() {
                           )}
                         </div>
 
-                        <ZoneAddressPicker
-                          zones={zones}
-                          address={storeData.pickup_address}
-                          onChange={(addr) => setStoreData({ ...storeData, pickup_address: addr })}
-                          descriptionLabel={storeData.vendor_type === 'restaurant' ? 'Restaurant Address Description' : 'Store Pickup Address Description'}
-                          descriptionPlaceholder={storeData.vendor_type === 'restaurant'
-                            ? 'Exact restaurant address — building name, street, landmark, floor, or entrance...'
-                            : 'Describe the exact store pickup point, landmark, building, floor, or gate...'}
-                        />
                       </div>
 
                       <button
@@ -1531,6 +1550,7 @@ export default function AccountPageClient() {
               )}
 
               {activeTab === 'my-managers' && <MyManagersTab />}
+              {activeTab === 'addresses' && <SavedAddressesTab />}
 
               {activeTab === 'install' && <InstallAppTab />}
 
@@ -1699,70 +1719,6 @@ function KycUploadCard({ title, image, field, uploading, onUpload }) {
       )}
       <input type="file" accept="image/*" className="hidden" onChange={(e) => onUpload(field, e.target.files?.[0])} />
     </label>
-  );
-}
-
-function ZoneAddressPicker({ zones, address, onChange, descriptionLabel = 'Street / Landmark', descriptionPlaceholder = 'Building, gate, landmark, or street name…' }) {
-  const city = address.city || '';
-  const district = address.district || address.zone || '';
-  const quartier = address.quartier || '';
-  const addressDescription = address.address_description || '';
-
-  // Resolve which key the parent uses for the district-level field
-  const districtKey = 'zone' in address ? 'zone' : 'district';
-
-  const cityZone = zones.find(z => (z.type === 'city' || z.type === 'region') && z.name === city);
-  const districtOpts = cityZone
-    ? zones.filter(z => (z.type === 'district' || z.type === 'quartier') && String(z.parent_id?._id ?? z.parent_id) === String(cityZone._id))
-    : [];
-  const districtZone = districtOpts.find(z => z.name === district);
-  const quartierOpts = districtZone
-    ? zones.filter(z => z.type === 'quartier' && String(z.parent_id?._id ?? z.parent_id) === String(districtZone._id))
-    : [];
-
-  const update = (patch) => onChange({ ...address, ...patch });
-
-  return (
-    <>
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-          <FormSelect
-            label="City"
-            value={city}
-            onChange={(v) => update({ city: v, [districtKey]: '', quartier: '' })}
-            options={zones.filter(z => z.type === 'city' || z.type === 'region').map(z => ({ label: z.name, value: z.name }))}
-            placeholder="Select city"
-          />
-          {districtOpts.length > 0 && (
-            <FormSelect
-              label="District"
-              value={district}
-              onChange={(v) => update({ [districtKey]: v, quartier: '' })}
-              options={districtOpts.map(z => ({ label: z.name, value: z.name }))}
-              placeholder="Select district"
-              disabled={!city}
-            />
-          )}
-        </div>
-        {quartierOpts.length > 0 && (
-          <FormSelect
-            label="Quartier"
-            value={quartier}
-            onChange={(v) => update({ quartier: v })}
-            options={quartierOpts.map(z => ({ label: z.name, value: z.name }))}
-            placeholder="Select quartier"
-            disabled={!district}
-          />
-        )}
-      </div>
-      <FormField
-        label={descriptionLabel}
-        value={addressDescription}
-        onChange={(v) => update({ address_description: v })}
-        placeholder={descriptionPlaceholder}
-        textarea={true}
-      />
-    </>
   );
 }
 

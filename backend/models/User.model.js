@@ -160,6 +160,9 @@ const UserSchema = new mongoose.Schema(
         source: { type: String, enum: ['search', 'pin', 'gps', 'saved'] },
         confirmed_at: Date,
       },
+        // Last time this address was used (checkout, packages). Addresses are saved
+        // automatically when used; at the limit the least recently used one makes room.
+        last_used_at: Date,
       }
     ],
     // User's home district — set during signup zone grid (skippable).
@@ -204,6 +207,10 @@ const UserSchema = new mongoose.Schema(
       zone: String,            // District / Zone level (e.g. "Bastos")
       quartier: String,        // Sub-quartier under the zone
       address_description: String,
+      // Exact spot from the place search (Profile → home / base location).
+      zone_id: { type: mongoose.Schema.Types.ObjectId, ref: 'LogisticZone', default: null },
+      place_name: String,
+      location: { lat: Number, lng: Number, source: { type: String, enum: ['search', 'pin', 'gps', 'saved'] }, confirmed_at: Date },
     },
 
     // ── Referral System ──────────────────────────

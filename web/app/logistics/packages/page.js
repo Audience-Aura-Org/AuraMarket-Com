@@ -9,7 +9,7 @@ import Link from "next/link";
 import { Check, Copy, Loader2, MessageCircle, Package, PackagePlus, Plus } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "@/services/api";
-import LocationPicker from "@/components/location/LocationPicker";
+import AddressField from "@/components/location/AddressField";
 import { LogisticsSubpageHeader } from "@/components/logistics/LogisticsSubpageShell";
 import { useFeatureFlag } from "@/lib/featureFlags";
 import AssignRiderPanel from "@/components/logistics/AssignRiderPanel";
@@ -106,7 +106,13 @@ export default function AgencyPackagesPage() {
                   <div><label className={LABEL} htmlFor={`${who}-name`}>Name</label><input id={`${who}-name`} required value={form[who].name} onChange={(e) => set(`${who}.name`, e.target.value)} className={FIELD} /></div>
                   <div><label className={LABEL} htmlFor={`${who}-phone`}>Phone</label><input id={`${who}-phone`} required inputMode="tel" value={form[who].phone} onChange={(e) => set(`${who}.phone`, e.target.value)} placeholder="677 12 34 56" className={FIELD} /></div>
                 </div>
-                <LocationPicker label={where === "pickup" ? "Pickup location" : "Delivery location"} value={form[where]} onChange={(v) => set(where, v)} />
+                {/* Saved places (the agency's most used pickups and drop-offs) or a new place search. */}
+                <AddressField label={where === "pickup" ? "Pickup location" : "Delivery location"} value={form[where]} onChange={(v) => setForm((f) => ({
+                  ...f,
+                  [where]: v,
+                  // A saved address brings its contact when the fields are still empty.
+                  [who]: v.address_id ? { name: f[who].name || v.recipient_name || "", phone: f[who].phone || v.contact_phone || "" } : f[who],
+                }))} />
               </div>
             ))}
 

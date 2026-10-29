@@ -12,6 +12,7 @@ const PlatformSettings = require('../models/PlatformSettings.model');
 const { generateTrackingCode } = require('../services/logistics.service');
 const { isShipmentParty, redactShipmentForPublic } = require('../utils/trackingPrivacy');
 const { confirmedPoint } = require('../utils/geoPoint');
+const { rememberLater } = require('../services/savedAddress.service');
 const { getQuotes, getQuoteForProvider } = require('../services/p2p.service');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const { debitBalance, creditBalance } = require('../services/wallet.service');
@@ -520,6 +521,8 @@ const createP2PShipment = async (req, res) => {
       responseData.payment = paymentResult;
     }
 
+    // Both places come back as saved addresses next time (up to 5 per account).
+    rememberLater(req.user._id, pickup_address, dropoff_address);
     return res.status(201).json({
       success: true,
       message: paymentResult

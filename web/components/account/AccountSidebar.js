@@ -15,7 +15,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
 
   const filteredTabs = TABS.filter((t) => t.roles.includes(user?.role || 'customer'));
   const groupedTabs = [
-    ['Account', ['general', 'my-managers']],
+    ['Account', ['general', 'addresses', 'my-managers']],
     ['Shopping & business', ['store', 'orders', 'wishlist']],
     ['Connections', ['audience', 'network']],
     ['Security & access', ['kyc', 'security', 'close-account']],

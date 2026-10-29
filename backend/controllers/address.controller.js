@@ -7,6 +7,7 @@ const User = require('../models/User.model');
 const { confirmedPoint } = require('../utils/geoPoint');
 const Vendor = require('../models/Vendor.model');
 const { hasRole } = require('../utils/roles');
+const { MAX_SAVED, sortSaved } = require('../services/savedAddress.service');
 
 // ─────────────────────────────────────────────
 // @route   GET /api/addresses
@@ -38,7 +39,7 @@ const getAddresses = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      data: { addresses }
+      data: { addresses: sortSaved(addresses), max: MAX_SAVED }
     });
   } catch (error) {
     next(error);
@@ -53,6 +54,9 @@ const getAddresses = async (req, res, next) => {
 const addAddress = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
+    if (user.addresses.length >= MAX_SAVED) {
+      return res.status(400).json({ success: false, message: `You can keep up to ${MAX_SAVED} addresses. Change or remove one first.` });
+    }
 
     // If this is the first address, make it default
     const isDefault = user.addresses.length === 0 ? true : req.body.isDefault || false;
@@ -74,6 +78,7 @@ const addAddress = async (req, res, next) => {
       recipient_name: req.body.recipient_name,
       place_name: req.body.place_name,
       location: confirmedPoint(req.body.location) || undefined,
+      last_used_at: new Date(),
       isDefault
     });
 

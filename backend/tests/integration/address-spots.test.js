@@ -71,3 +71,39 @@ it('merges streets and landmarks from the place search after our quartiers', asy
   await request(app).get('/api/v1/locations/search').query({ q: 'simbock' })
   expect(ors).toHaveBeenCalledTimes(1) // cached for the day
 })
+
+describe('Saved addresses (up to 5, saved when used)', () => {
+  const { rememberAddress } = require('../../services/savedAddress.service')
+  const spot = (lat, lng) => ({ lat, lng, source: 'search' })
+
+  it('saves a new place, refreshes the same place, and adds a pin it was missing', async () => {
+    const u = await createUser()
+    await rememberAddress(u._id, { quartier: 'Simbock', city: 'Yaoundé', landmark: 'Blue gate' })
+    await rememberAddress(u._id, { quartier: 'Simbock', city: 'Yaoundé', landmark: 'Blue gate', location: spot(3.8099, 11.4762) })
+    await rememberAddress(u._id, { quartier: 'Simbock', place_name: 'Tradex Simbock', location: spot(3.81, 11.4763) }) // ~20 m away: same place
+    const addrs = (await User.findById(u._id).lean()).addresses
+    expect(addrs).toHaveLength(1)
+    expect(addrs[0]).toMatchObject({ quartier: 'Simbock', landmark_description: 'Blue gate', place_name: 'Tradex Simbock', isDefault: true, location: { lat: 3.8099 } })
+  })
+
+  it('keeps at most 5: the least recently used non-default address makes room', async () => {
+    const u = await createUser()
+    for (let i = 0; i < 5; i++) await rememberAddress(u._id, { quartier: `Q${i}`, location: spot(3.80 + i * 0.01, 11.47) })
+    await rememberAddress(u._id, { quartier: 'Q1', location: spot(3.81, 11.47) }) // used again: now the most recent
+    await rememberAddress(u._id, { quartier: 'Q5', location: spot(3.90, 11.47) })
+    const names = (await User.findById(u._id).lean()).addresses.map((a) => a.quartier).sort()
+    expect(names).toEqual(['Q0', 'Q1', 'Q3', 'Q4', 'Q5']) // Q0 is the default; Q2 was the least recently used
+  })
+
+  it('refuses a sixth address added by hand and lists the default first, then the latest used', async () => {
+    const u = await createUser()
+    const auth = authHeader(signToken(u))
+    for (let i = 0; i < 5; i++) await rememberAddress(u._id, { quartier: `Q${i}`, location: spot(3.80 + i * 0.01, 11.47) })
+    const full = await request(app).post('/api/v1/addresses').set(auth).send({ quartier: 'Extra', location: spot(3.95, 11.47) })
+    expect(full.status).toBe(400)
+    expect(full.body.message).toMatch(/up to 5/)
+    const list = await request(app).get('/api/v1/addresses').set(auth)
+    expect(list.body.data.addresses.map((a) => a.quartier)).toEqual(['Q0', 'Q4', 'Q3', 'Q2', 'Q1'])
+    expect(list.body.data.max).toBe(5)
+  })
+})

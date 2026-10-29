@@ -18,6 +18,7 @@ const { confirmedPoint } = require('../utils/geoPoint');
 const { isShipmentParty, redactShipmentForPublic } = require('../utils/trackingPrivacy');
 const { isDistance, priceDelivery } = require('../services/pricing.service');
 const { recordAudit } = require('../utils/auditTrail');
+const { rememberLater } = require('../services/savedAddress.service');
 
 const CATEGORIES = ['document', 'fragile', 'food', 'electronics', 'clothing', 'household', 'other'];
 const WEIGHTS = ['light', 'medium', 'heavy', 'extra_heavy'];
@@ -56,7 +57,7 @@ const addressFrom = async (input, label) => {
   return {
     zone,
     address: {
-      street: text(input.street, 200), quartier: zone.name, city: parents.find((p) => p.type === 'city')?.name || '',
+      street: text(input.street || input.place_name, 200), quartier: zone.name, city: parents.find((p) => p.type === 'city')?.name || '',
       region: parents.find((p) => p.type === 'region')?.name || undefined, phone: text(input.phone, 20) || undefined,
       zone_id: zone._id, landmark: text(input.landmark, 200) || null, location: confirmedPoint(input.location) || undefined,
     },
@@ -127,6 +128,8 @@ const createPackage = async (req, res, next) => {
     setImmediate(() => require('../services/riderDispatch.service').autoDispatch(shipment._id, req.app).catch((e) => console.error('[agencyPackage] dispatch:', e.message)));
     const body = shipment.toObject();
     delete body.tracking_token_hash;
+    // The agency's most used pickup and delivery places come back as saved addresses.
+    rememberLater(req.user._id, pickup.address, drop.address);
     res.status(201).json({ success: true, data: { shipment: body, ...shareBundle(shipment, token, firm.company_name) } });
   } catch (err) { next(err); }
 };

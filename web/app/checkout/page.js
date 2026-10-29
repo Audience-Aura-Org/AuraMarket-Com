@@ -24,7 +24,7 @@ import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 import { applyVariantPricing, formatVariantLabel } from '@/utils/variants';
 import { MOBILE_MONEY_PROVIDERS } from '@/lib/formatting';
 import { Capacitor } from '@capacitor/core';
-import LocationPicker from '@/components/location/LocationPicker';
+import AddressField, { spotFromSaved } from '@/components/location/AddressField';
 import { useFeatureFlag } from '@/lib/featureFlags';
 
 // Payment gateway return URLs must be public HTTPS URLs, never capacitor://localhost.
@@ -139,9 +139,20 @@ function CheckoutContent() {
   const exactSpotOn = useFeatureFlag('location_picker');
   const [deliverySpot, setDeliverySpot] = useState({});
   const [spotAddressId, setSpotAddressId] = useState(null);
-  const spotFromAddress = (addr) => (addr?.location?.lat != null
-    ? { location: { ...addr.location, source: 'saved' }, zone_id: addr.zone_id || '', quartier: addr.quartier || '', city: addr.city || '', landmark: addr.place_name || '' }
-    : {});
+  // A saved address in the address field's shape (its pin, place, quartier and description).
+  const spotFromAddress = (addr) => (addr ? spotFromSaved(addr) : {});
+  // The address field drives the quartier (prices), the city and the description.
+  const applySpot = (v) => {
+    setDeliverySpot(v);
+    setSpotAddressId(v.address_id || null);
+    if (v.quartier) handleQuartierChange(v.quartier);
+    setFormData((f) => ({
+      ...f,
+      city: v.city || f.city,
+      address: v.landmark ?? f.address,
+      ...(v.address_id ? { name: v.recipient_name || f.name, phone: v.contact_phone || f.phone } : {}),
+    }));
+  };
   const [isIntercityRoute, setIsIntercityRoute] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [removingItemKey, setRemovingItemKey] = useState(null);
@@ -384,7 +395,7 @@ function CheckoutContent() {
 
       if (addrs.length) {
         setSavedAddresses(addrs);
-        if (def) { setDeliverySpot(spotFromAddress(def)); setSpotAddressId(def._id || null); }
+        if (def) applySpot(spotFromAddress(def));
       }
 
       setFormData((f) => ({
@@ -631,7 +642,7 @@ function CheckoutContent() {
                phone: formData.recipient_phone || formData.phone,
                full_name: formData.recipient_name || formData.name,
                landmark: formData.landmark || deliverySpot.landmark || undefined,
-               ...(deliverySpot.location ? { location: deliverySpot.location, place_name: deliverySpot.landmark || undefined, zone_id: deliverySpot.zone_id || undefined } : {}),
+               ...(deliverySpot.location ? { location: deliverySpot.location, place_name: deliverySpot.place_name || undefined, zone_id: deliverySpot.zone_id || undefined } : {}),
             },
             escrow_enabled: !isPayOnDelivery && effectiveEscrowEnabled,
             payment_method: isPayOnDelivery ? 'pay_on_delivery'
@@ -678,11 +689,7 @@ function CheckoutContent() {
         if (splitRes.data.success) {
             finalOrderIds = splitRes.data.data.orderIds;
             setCreatedOrderIds(finalOrderIds); // Cache orders for transaction persistence
-            // Remember the exact spot on the saved address so it is not asked again.
-            const savedAddr = savedAddresses.find((a) => a._id === spotAddressId);
-            if (savedAddr && !savedAddr.location && deliverySpot.location) {
-              api.patch(`/addresses/${spotAddressId}`, { location: deliverySpot.location, place_name: deliverySpot.landmark || undefined }).catch(() => {});
-            }
+            // The server saves this address (and its exact spot) to the account for next time.
             // For external (mobile-money) payments, don't clear the local cart yet —
             // the verify page will clear it once the gateway confirms the payment.
             // For all other methods the order is already confirmed at this point.
@@ -1255,7 +1262,7 @@ function CheckoutContent() {
                     <div className="glass-panel space-y-5 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)]/70 p-4 sm:p-5 md:p-6">
 
                        {/* Saved address quick-select — shown when user has addresses on file */}
-                       {savedAddresses.length > 0 && !isPickupOrDineIn && (
+                       {savedAddresses.length > 0 && !isPickupOrDineIn && !(exactSpotOn && !orderId) && (
                          <div className="space-y-2">
                            <p className="text-[11px] font-semibold text-[var(--text-secondary)] tracking-tight ml-1">Saved Addresses</p>
                            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x">
@@ -1351,23 +1358,15 @@ function CheckoutContent() {
                               Choosing a place also sets the quartier (pricing) below. */}
                           {!isPickupOrDineIn && exactSpotOn && !orderId && (
                             <div id="delivery-spot" className="md:col-span-2 space-y-2">
-                              <LocationPicker
-                                label="Delivery spot"
-                                value={deliverySpot}
-                                onChange={(v) => {
-                                  setDeliverySpot(v);
-                                  if (v.quartier) handleQuartierChange(v.quartier);
-                                  if (v.city) setFormData((f) => ({ ...f, city: f.city || v.city }));
-                                }}
-                              />
+                              <AddressField label="Delivery address" value={deliverySpot} onChange={applySpot} />
                               {needsDeliverySpot && (
                                 <p className="text-[11px] font-semibold text-amber-600">Search a nearby place or street, or drop the pin, so the rider finds you.</p>
                               )}
                             </div>
                           )}
 
-                          {/* Delivery zone — hidden for pickup/dine-in */}
-                          {!isPickupOrDineIn && (
+                          {/* Delivery zone and street: only without the address field (place search off). */}
+                          {!isPickupOrDineIn && !(exactSpotOn && !orderId) && (
                             <div className="md:col-span-2 space-y-3 md:space-y-4">
                               <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Delivery Quartier (Zone)</label>
                               <ZonePickerField
@@ -1378,8 +1377,7 @@ function CheckoutContent() {
                             </div>
                           )}
 
-                          {/* Street address — hidden for pickup/dine-in */}
-                          {!isPickupOrDineIn && (
+                          {!isPickupOrDineIn && !(exactSpotOn && !orderId) && (
                             <div className="md:col-span-2 space-y-2 md:space-y-3">
                               <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Precise Landing Details (Build/Street No.)</label>
                               <textarea

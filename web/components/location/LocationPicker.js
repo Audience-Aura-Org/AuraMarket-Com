@@ -6,7 +6,8 @@
  * records the exact spot. Ambiguous pins ask the customer to confirm the quartier.
  *
  * value / onChange shape:
- *   { zone_id, quartier, district, city, location: { lat, lng, source } | null, landmark }
+ *   { zone_id, quartier, district, city, location: { lat, lng, source } | null,
+ *     place_name (the place chosen in the search), landmark (optional description) }
  */
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
@@ -51,21 +52,23 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
     return () => { active = false; clearTimeout(timer); };
   }, [query]);
 
-  const applyZone = (zone, location = value.location) => update({
-    zone_id: zone.zone_id, quartier: zone.name, district: zone.district || '', city: zone.city || '', location,
+  const applyZone = (zone, location = value.location, base = value) => onChange({
+    ...base, zone_id: zone.zone_id, quartier: zone.name, district: zone.district || '', city: zone.city || '', location,
   });
 
-  const resolvePin = async (point, source) => {
+  // A spot from the search keeps the place's name; a dropped pin or GPS fix clears it.
+  const resolvePin = async (point, source, placeName = '') => {
     const location = { lat: point.lat, lng: point.lng, source };
-    update({ location });
+    const base = { ...value, place_name: placeName };
+    onChange({ ...base, location });
     const seq = ++resolveSeq.current;
     try {
       const res = await api.get('/locations/resolve', { params: { lat: point.lat, lng: point.lng } });
       if (seq !== resolveSeq.current) return;
       const data = res?.data?.data;
       setResolution(data);
-      if (data?.zone && !data.needs_confirmation) applyZone(data.zone, location);
-      else onChange({ ...value, location, zone_id: '', quartier: '' });
+      if (data?.zone && !data.needs_confirmation) applyZone(data.zone, location, base);
+      else onChange({ ...base, location, zone_id: '', quartier: '' });
       setError('');
     } catch (err) {
       if (seq === resolveSeq.current) setError(err?.response?.data?.message || 'Could not check this spot. Choose the quartier below.');
@@ -78,13 +81,12 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
       // A quartier or a landmark: already tied to a priced quartier.
       const location = r.point ? { lat: r.point.lat, lng: r.point.lng, source: 'search' } : null;
       onChange({ ...value, zone_id: r.zone_id, quartier: r.kind === 'place' ? r.quartier : r.name, district: r.district || '', city: r.city || '', location,
-        landmark: r.kind === 'place' && !value.landmark ? r.name : value.landmark });
+        place_name: r.kind === 'place' ? r.name : '' });
     } else if (r.kind === 'place' && r.point) {
       // A street, landmark or business from the place search: exact spot, quartier
       // looked up from it (asks the customer if it sits between two quartiers).
-      if (!value.landmark) update({ landmark: r.name });
       setCenter(r.point);
-      resolvePin(r.point, 'search');
+      resolvePin(r.point, 'search', r.name);
     } else if (r.point) {
       setCenter(r.point); // City or district: move the map there and let them drop the pin.
     }
@@ -165,7 +167,7 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
       {value.zone_id && (
         <p className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]">
           <Check className="size-3.5 shrink-0 text-emerald-500" aria-hidden="true" />
-          <span className="text-[11px]"><span className="font-semibold text-[var(--text-primary)]">{value.quartier}</span>{value.city ? ` · ${value.city}` : ''}{value.location ? ' · exact spot pinned' : ''}</span>
+          <span className="text-[11px]">{value.place_name ? <span className="font-semibold text-[var(--text-primary)]">{value.place_name} · </span> : null}<span className="font-semibold text-[var(--text-primary)]">{value.quartier}</span>{value.city ? ` · ${value.city}` : ''}{value.location ? ' · exact spot pinned' : ''}</span>
           {value.location && <button type="button" aria-label="Remove pin" onClick={() => update({ location: null })} className="ml-1 rounded-full p-1 hover:bg-[var(--accent)]/10"><X className="size-3" /></button>}
         </p>
       )}
@@ -173,8 +175,8 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
       <input
         value={value.landmark || ''}
         onChange={(e) => update({ landmark: e.target.value.slice(0, 200) })}
-        placeholder="Landmark or directions (e.g. blue gate after the pharmacy)"
-        aria-label={`${label}: landmark or directions`}
+        placeholder="Address description (optional), e.g. blue gate after the pharmacy"
+        aria-label={`${label}: address description (optional)`}
         className="min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3.5 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[12px] placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
       />
       {error && <p role="alert" className="text-[11px] text-rose-600">{error}</p>}

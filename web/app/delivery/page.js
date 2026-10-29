@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import WhatsAppSupport from '@/components/logistics/WhatsAppSupport';
-import LocationPicker from '@/components/location/LocationPicker';
+import AddressField from '@/components/location/AddressField';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import {
   Package, Send, ArrowDownToLine, ChevronRight, MapPin,
@@ -286,6 +286,9 @@ export default function DeliveryPage() {
         pickup_zone_id: form.pickup_zone_id,
         dropoff_zone_id: form.dropoff_zone_id,
         weight_tier: form.weight_tier,
+        // Exact spots let distance-priced agencies quote the real trip.
+        pickup_location: form.pickup_location || undefined,
+        dropoff_location: form.dropoff_location || undefined,
       });
       if (res.data?.success && res.data.data.coverage && res.data.data.quotes?.length) {
         setQuotes(res.data.data.quotes);
@@ -613,47 +616,57 @@ export default function DeliveryPage() {
               <div><label className={LABEL_CLASS}>Phone</label><input value={form[`${prefix}_phone`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_phone`]: e.target.value }))} className={INPUT_CLASS} placeholder="+237..." /></div>
               <div className="md:col-span-2"><details><summary className={LABEL_CLASS + " cursor-pointer py-2"}>Email (optional)</summary><input value={form[`${prefix}_email`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_email`]: e.target.value }))} className={INPUT_CLASS} placeholder="email@example.com" /></details></div>
 
-              {locationPickerEnabled && (
+              {locationPickerEnabled ? (
+                // One field: saved addresses, a place search (with map pin) and an optional description.
                 <div className="md:col-span-2">
-                  <LocationPicker
-                    label="Find the exact spot"
-                    value={{ zone_id: form[`${prefix}_zone_id`], quartier: form[`${prefix}_quartier`], district: form[`${prefix}_district`], city: form[`${prefix}_city`], location: form[`${prefix}_location`] || null, landmark: form[`${prefix}_landmark`] || '' }}
-                    onChange={(v) => setForm(p => ({ ...p, [`${prefix}_zone_id`]: v.zone_id || '', [`${prefix}_quartier`]: v.quartier || '', [`${prefix}_district`]: v.district || '', [`${prefix}_city`]: v.city || p[`${prefix}_city`], [`${prefix}_location`]: v.location || null, [`${prefix}_landmark`]: v.landmark || '' }))}
+                  <AddressField
+                    label={prefix === 'pickup' ? 'Pickup address' : 'Delivery address'}
+                    value={{ address_id: form[`${prefix}_address_id`] || '', zone_id: form[`${prefix}_zone_id`], quartier: form[`${prefix}_quartier`], district: form[`${prefix}_district`], city: form[`${prefix}_city`], location: form[`${prefix}_location`] || null, place_name: form[`${prefix}_street`] || '', landmark: form[`${prefix}_landmark`] || '' }}
+                    onChange={(v) => setForm(p => ({
+                      ...p,
+                      [`${prefix}_address_id`]: v.address_id || '',
+                      [`${prefix}_zone_id`]: v.zone_id || '', [`${prefix}_quartier`]: v.quartier || '', [`${prefix}_district`]: v.district || '',
+                      [`${prefix}_city`]: v.city || p[`${prefix}_city`], [`${prefix}_location`]: v.location || null,
+                      [`${prefix}_street`]: v.place_name || '', [`${prefix}_landmark`]: v.landmark || '',
+                      // A saved address brings its contact when the fields are still empty.
+                      ...(v.address_id ? { [`${prefix}_name`]: p[`${prefix}_name`] || v.recipient_name || '', [`${prefix}_phone`]: p[`${prefix}_phone`] || v.contact_phone || '' } : {}),
+                    }))}
                   />
-                  <p className="mt-2 text-[10px] text-[var(--text-secondary)]">Or choose the quartier yourself below.</p>
                 </div>
-              )}
-
-              {/* Address dropdowns */}
-              <div>
-                <label className={LABEL_CLASS}>City</label>
-                <select value={form[`${prefix}_city`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_city`]: e.target.value, [`${prefix}_district`]: '', [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={INPUT_CLASS}>
-                  <option value="">Select city</option>
-                  {cities.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-                </select>
-              </div>
-              {distOpts.length > 0 && (
+              ) : (
+                <>
+                {/* Address dropdowns */}
                 <div>
-                  <label className={LABEL_CLASS}>District</label>
-                  <select value={form[`${prefix}_district`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_district`]: e.target.value, [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={INPUT_CLASS}>
-                    <option value="">Select district</option>
-                    {distOpts.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                  <label className={LABEL_CLASS}>City</label>
+                  <select value={form[`${prefix}_city`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_city`]: e.target.value, [`${prefix}_district`]: '', [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={INPUT_CLASS}>
+                    <option value="">Select city</option>
+                    {cities.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
                   </select>
                 </div>
+                {distOpts.length > 0 && (
+                  <div>
+                    <label className={LABEL_CLASS}>District</label>
+                    <select value={form[`${prefix}_district`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_district`]: e.target.value, [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={INPUT_CLASS}>
+                      <option value="">Select district</option>
+                      {distOpts.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {qOpts.length > 0 && (
+                  <div>
+                    <label className={LABEL_CLASS}>Quartier</label>
+                    <select value={form[`${prefix}_quartier`]} onChange={e => {
+                      const zone = qOpts.find(z => z.name === e.target.value);
+                      setForm(p => ({ ...p, [`${prefix}_quartier`]: e.target.value, [`${prefix}_zone_id`]: zone?._id || '' }));
+                    }} className={INPUT_CLASS}>
+                      <option value="">Select quartier</option>
+                      {qOpts.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div><label className={LABEL_CLASS}>Street / Landmark</label><input value={form[`${prefix}_street`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_street`]: e.target.value }))} className={INPUT_CLASS} placeholder="Building, gate, landmark..." /></div>
+                </>
               )}
-              {qOpts.length > 0 && (
-                <div>
-                  <label className={LABEL_CLASS}>Quartier</label>
-                  <select value={form[`${prefix}_quartier`]} onChange={e => {
-                    const zone = qOpts.find(z => z.name === e.target.value);
-                    setForm(p => ({ ...p, [`${prefix}_quartier`]: e.target.value, [`${prefix}_zone_id`]: zone?._id || '' }));
-                  }} className={INPUT_CLASS}>
-                    <option value="">Select quartier</option>
-                    {qOpts.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-                  </select>
-                </div>
-              )}
-              <div><label className={LABEL_CLASS}>Street / Landmark</label><input value={form[`${prefix}_street`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_street`]: e.target.value }))} className={INPUT_CLASS} placeholder="Building, gate, landmark..." /></div>
             </div>
           </>
         )}
