@@ -12,6 +12,7 @@ import api from "@/services/api";
 import LocationPicker from "@/components/location/LocationPicker";
 import { LogisticsSubpageHeader } from "@/components/logistics/LogisticsSubpageShell";
 import { useFeatureFlag } from "@/lib/featureFlags";
+import AssignRiderPanel from "@/components/logistics/AssignRiderPanel";
 
 const FIELD = "min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3.5 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[12px] placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]";
 const LABEL = "mb-1.5 block text-[12px] font-medium text-[var(--text-primary)]";
@@ -77,11 +78,13 @@ export default function AgencyPackagesPage() {
               </div>
               <p className="mt-1.5 text-[10px] text-[var(--text-secondary)]">Anyone with this link sees the delivery’s progress. It stops working 3 days after delivery.</p>
             </div>
+            {/* Hand it to a rider right away (automatic dispatch may already have offered it). */}
+            <AssignRiderPanel shipment={created.shipment} inline />
             <div className="grid gap-2 sm:grid-cols-2">
               <a href={created.whatsapp_url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-[#128C7E] text-[12px] font-semibold text-white"><MessageCircle className="size-4" /> Share via WhatsApp</a>
               <button type="button" onClick={() => { setCreated(null); setForm(EMPTY); }} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] text-[12px] font-semibold"><Plus className="size-4" /> Add another package</button>
             </div>
-            <Link href="/logistics/manifests" className="block text-center text-[11px] font-semibold text-[var(--accent)]">See it in Manifests</Link>
+            <Link href="/logistics/manifests" className="block text-center text-[11px] font-semibold text-[var(--accent)]">Track it in Manifests</Link>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
