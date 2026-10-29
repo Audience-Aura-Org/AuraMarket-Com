@@ -318,3 +318,51 @@ describe('GET /chat/admin/all — admin-only message view', () => {
     expect(res.status).toBe(403)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. Performance paths: cursor paging and the lean inbox
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Cursor paging and inbox summaries', () => {
+  const seed = async (from, to, n, start = Date.now() - 1e6) => {
+    const docs = Array.from({ length: n }, (_, i) => ({ sender_id: i % 2 ? from._id : to._id, receiver_id: i % 2 ? to._id : from._id, text: `m${i}`, read_status: true, createdAt: new Date(start + i * 1000) }))
+    return Message.insertMany(docs)
+  }
+
+  it('pages back through a thread with ?before= without gaps or repeats', async () => {
+    const a = await createUser(); const b = await createUser()
+    await seed(a, b, 25)
+    const auth = authHeader(signToken(a))
+    const first = await request(app).get(`/api/v1/chat/${b._id}`).query({ limit: 10 }).set(auth)
+    expect(first.body.data.has_more).toBe(true)
+    const seen = [...first.body.data.messages.map((m) => m.text)]
+    let cursor = first.body.data.messages[0]._id
+    for (;;) {
+      const r = await request(app).get(`/api/v1/chat/${b._id}`).query({ limit: 10, before: cursor }).set(auth)
+      expect(r.status).toBe(200)
+      seen.unshift(...r.body.data.messages.map((m) => m.text))
+      if (!r.body.data.has_more) break
+      cursor = r.body.data.messages[0]._id
+    }
+    expect(seen).toEqual(Array.from({ length: 25 }, (_, i) => `m${i}`))
+    // A cursor from another conversation is refused.
+    const c = await createUser()
+    const [foreign] = await seed(b, c, 1)
+    expect((await request(app).get(`/api/v1/chat/${b._id}`).query({ before: foreign._id.toString() }).set(auth)).status).toBe(400)
+  })
+
+  it('shows each partner once with the newest visible message and unread count', async () => {
+    const me = await createUser(); const p1 = await createUser(); const p2 = await createUser()
+    const t = Date.now() - 1e5
+    await Message.insertMany([
+      { sender_id: p1._id, receiver_id: me._id, text: 'p1 old', read_status: false, createdAt: new Date(t) },
+      { sender_id: p1._id, receiver_id: me._id, text: 'p1 new', read_status: false, createdAt: new Date(t + 3000) },
+      { sender_id: me._id, receiver_id: p2._id, text: 'to p2', read_status: false, createdAt: new Date(t + 1000) },
+      { sender_id: p2._id, receiver_id: me._id, text: 'p2 hidden', read_status: true, deleted_for: [me._id], createdAt: new Date(t + 5000) },
+    ])
+    const r = await request(app).get('/api/v1/chat').set(authHeader(signToken(me)))
+    const chats = r.body.data.activeChats
+    expect(chats.map((c) => c.snippet)).toEqual(['p1 new', 'to p2'])
+    expect(chats[0].unread_count).toBe(2)
+    expect(chats[1].unread_count).toBe(0)
+  })
+})

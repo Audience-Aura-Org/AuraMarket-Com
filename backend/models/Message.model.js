@@ -76,6 +76,11 @@ const MessageSchema = new mongoose.Schema(
 
 // Compound index to quickly fetch full bidirectional conversations
 MessageSchema.index({ sender_id: 1, receiver_id: 1, createdAt: -1 });
+// Inbox: a user's messages newest-first, from both sides (merged without an in-memory sort).
+MessageSchema.index({ sender_id: 1, createdAt: -1 });
+MessageSchema.index({ receiver_id: 1, createdAt: -1 });
+// Unread counts and mark-as-read: indexes only unread messages, so it stays small.
+MessageSchema.index({ receiver_id: 1, sender_id: 1 }, { partialFilterExpression: { read_status: false }, name: 'unread_by_pair' });
 // Sparse index for idempotent send lookups (client_id is null for legacy messages)
 MessageSchema.index({ sender_id: 1, client_id: 1 }, { sparse: true });
 

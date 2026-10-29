@@ -923,6 +923,10 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
     try {
       let chatEndpoint = `/chat/${pid}?page=${pageNum}&limit=30`;
+      // Older pages go by cursor (messages before the oldest one shown): page
+      // offsets shift as new messages arrive and could skip history.
+      const oldestId = pageNum > 1 ? messagesRef.current.find((m) => /^[a-f0-9]{24}$/i.test(String(m?._id || "")))?._id : null;
+      if (oldestId) chatEndpoint = `/chat/${pid}?before=${oldestId}&limit=30`;
       if (isSystemWide && partnerBInfo) {
         const pid2 = partnerBInfo?._id || partnerBInfo;
         chatEndpoint = `/chat/admin/all?userA=${pid}&userB=${pid2}&page=${pageNum}&limit=30`;
@@ -947,7 +951,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           const prevScrollTop = scrollRef.current.scrollTop;
           
           upsertMessages(pid, newMsgs, { prepend: true });
-          setHasMore((messagesRef.current.length + newMsgs.length) < total);
+          setHasMore(typeof chatRes.data.data?.has_more === "boolean" ? chatRes.data.data.has_more : (messagesRef.current.length + newMsgs.length) < total);
           
           setTimeout(() => {
             if (scrollRef.current) {
@@ -970,7 +974,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
               socketService.emit('message_received', { messageId: message._id.toString() });
             }
           });
-          setHasMore(newMsgs.length < total);
+          setHasMore(typeof chatRes.data.data?.has_more === "boolean" ? chatRes.data.data.has_more : newMsgs.length < total);
           // Only pin to bottom if the user is already near the bottom (or this
           // is an explicit non-silent load). Silent background syncs (syncActivePid,
           // pre-send refresh, socket reconnect) must not yank the user away from
