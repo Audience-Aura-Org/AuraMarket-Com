@@ -1853,7 +1853,7 @@ function InstallAppTab() {
             </p>
             <div className="mt-6 w-full space-y-3">
               <a
-                href="/downloads/Auradime.apk?v=1.7.0"
+                href="/downloads/Auradime.apk?v=1.7.1"
                 download
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-[var(--accent)] text-white font-bold text-xs tracking-wide shadow-lg shadow-[var(--accent)]/20 hover:opacity-90 active:scale-[0.98] transition-all"
               >
