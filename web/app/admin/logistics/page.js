@@ -7,9 +7,10 @@ import {
   Truck, Building2, MapPin, Package, 
   CheckCircle2, AlertTriangle, RefreshCw, Eye, Search, 
   ChevronDown, DollarSign, Scale, Database, Zap, 
-  ShieldCheck, Loader2, Globe, Activity
+  ShieldCheck, Loader2, Globe, Activity, X
 } from 'lucide-react';
 import api from '@/services/api';
+import ShipmentPlan from "@/components/admin/ShipmentPlan";
 import { toast } from 'react-hot-toast';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -267,8 +268,8 @@ export default function AdminLogistics() {
                              <div className="flex items-start gap-3">
                                 <MapPin className="size-3.5 text-[var(--accent)] mt-0.5" />
                                 <div className="min-w-0">
-                                   <p className="text-[11px] font-bold text-[var(--text-primary)] truncate capitalize">{s.delivery_address?.quartier || 'UNMAPPED_NODE'}</p>
-                                   <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-30 uppercase tracking-widest mt-0.5">Destination Topology</p>
+                                   <p className="text-[11px] font-bold text-[var(--text-primary)] truncate capitalize">{s.pickup_address?.quartier || '—'} → {s.delivery_address?.quartier || '—'}</p>
+                                   <p className="text-[9px] font-bold text-[var(--text-secondary)] opacity-50 tracking-wide mt-0.5">{s.delivery_address?.location?.lat != null ? 'Exact drop-off spot' : 'Drop-off at quartier centre'}{s.agency_package?.fee_source ? ` · fee: ${s.agency_package.fee_source}` : ''}</p>
                                 </div>
                              </div>
                              <div className="flex items-start gap-3">
@@ -694,7 +695,7 @@ export default function AdminLogistics() {
          {selectedShipment && (
            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
              <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setSelectedShipment(null)} />
-             <motion.div initial={{ y: 20, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 20, opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-2xl rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-6 md:p-10 shadow-2xl backdrop-blur-3xl overflow-hidden">
+             <motion.div initial={{ y: 20, opacity: 0, scale: 0.95 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 20, opacity: 0, scale: 0.95 }} className="relative z-10 max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-[2.5rem] border border-[var(--glass-border)] bg-[var(--bg-primary)] p-6 shadow-2xl backdrop-blur-3xl md:p-10">
                <div className="mb-8 md:mb-10 flex items-start justify-between">
                   <div>
                      <h3 className="text-xl md:text-2xl font-bold tracking-tight">Fulfillment Override</h3>
@@ -703,6 +704,9 @@ export default function AdminLogistics() {
                   <button onClick={() => setSelectedShipment(null)} className="p-2 rounded-xl hover:bg-[var(--bg-secondary)] transition-all text-[var(--text-secondary)]"><X className="size-6" /></button>
                </div>
                
+               {/* Where the stops sit, the road between them, how the fee was set and who is riding. */}
+               <div className="mb-6"><ShipmentPlan shipmentId={selectedShipment._id} /></div>
+
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                      <label className="text-[10px] font-bold tracking-widest opacity-30 uppercase ml-1">Transit ID Signal</label>

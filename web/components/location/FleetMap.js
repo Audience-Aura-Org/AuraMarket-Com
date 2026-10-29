@@ -30,7 +30,7 @@ const routeLines = (riders) => ({
   })),
 });
 
-export default function FleetMap({ riders = [], deliveries = [], className = '' }) {
+export default function FleetMap({ riders = [], deliveries = [], className = '', height = 'h-[60vh] min-h-[360px]' }) {
   const container = useRef(null);
   const map = useRef(null);
   const markers = useRef([]); // delivery points, redrawn on each refresh
@@ -98,5 +98,5 @@ export default function FleetMap({ riders = [], deliveries = [], className = '' 
     }
   }, [riders, deliveries]);
 
-  return <div ref={container} className={`h-[60vh] min-h-[360px] w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] ${className}`} role="application" aria-label="Map of riders and deliveries" />;
+  return <div ref={container} className={`${height} w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] ${className}`} role="application" aria-label="Map of riders and deliveries" />;
 }

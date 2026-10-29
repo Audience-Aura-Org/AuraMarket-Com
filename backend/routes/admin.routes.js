@@ -168,6 +168,7 @@ shared.patch('/kyc/:id/review', reviewKYC);
 // Logistics Monitoring
 shared.get('/logistics/shipments', fetchAdminShipments);
 shared.patch('/logistics/shipments/:id', updateAdminShipment);
+shared.get('/logistics/shipments/:id/plan', require('../controllers/logisticsReport.controller').shipmentPlan);
 shared.get('/logistics/firms', getAdminLogisticsFirms);
 shared.get('/logistics/live-map', require('../controllers/logisticsReport.controller').liveMap);
 shared.get('/logistics/earnings', getLogisticsEarningsReport);

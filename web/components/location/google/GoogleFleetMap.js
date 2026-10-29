@@ -17,7 +17,7 @@ const dot = (color, size, hollow = false) => {
   return el;
 };
 
-export default function GoogleFleetMap({ riders = [], deliveries = [], className = '' }) {
+export default function GoogleFleetMap({ riders = [], deliveries = [], className = '', height = 'h-[60vh] min-h-[360px]' }) {
   const container = useRef(null);
   const lib = useRef(null);
   const map = useRef(null);
@@ -101,5 +101,5 @@ export default function GoogleFleetMap({ riders = [], deliveries = [], className
     if (!fitted.current && !bounds.isEmpty()) { fitted.current = true; m.fitBounds(bounds, 60); }
   }, [ready, riders, deliveries]);
 
-  return <div ref={container} className={`h-[60vh] min-h-[360px] w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] ${className}`} role="application" aria-label="Map of riders and deliveries" />;
+  return <div ref={container} className={`${height} w-full overflow-hidden rounded-2xl border border-[var(--glass-border)] ${className}`} role="application" aria-label="Map of riders and deliveries" />;
 }

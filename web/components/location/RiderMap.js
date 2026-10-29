@@ -20,7 +20,9 @@ const dot = (color, size, hollow) => {
   return el;
 };
 
-export default function RiderMap({ me, vehicle = 'motorcycle', job = null, recenterKey = 0, className = '' }) {
+const FULL_SCREEN_PADDING = { top: 90, bottom: 260, left: 40, right: 40 };
+
+export default function RiderMap({ me, vehicle = 'motorcycle', job = null, recenterKey = 0, className = '', padding = FULL_SCREEN_PADDING }) {
   const container = useRef(null);
   const map = useRef(null);
   const meMarker = useRef(null);
@@ -77,7 +79,7 @@ export default function RiderMap({ me, vehicle = 'motorcycle', job = null, recen
       if (goingToPickup && job.pickup) b.extend([job.pickup.lng, job.pickup.lat]);
       if (job.dropoff) b.extend([job.dropoff.lng, job.dropoff.lat]);
       for (const c of job.route?.coordinates || []) b.extend(c);
-      const fit = () => { m.resize(); m.fitBounds(b, { padding: { top: 90, bottom: 260, left: 40, right: 40 }, maxZoom: 16, duration: 0 }); };
+      const fit = () => { m.resize(); m.fitBounds(b, { padding, maxZoom: 16, duration: 0 }); };
       if (!b.isEmpty()) { if (m.loaded()) fit(); else m.once('load', fit); }
     }
   }, [jobKey, routeKey]); // eslint-disable-line react-hooks/exhaustive-deps

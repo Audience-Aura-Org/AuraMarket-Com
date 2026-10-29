@@ -54,7 +54,7 @@ export default function AdminLiveMapPage() {
   const waiting = deliveries.filter((d) => !d.has_rider).length;
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] space-y-4 px-3 py-5 text-[var(--text-primary)] sm:px-5 md:px-8">
+    <div className="w-full space-y-4 px-3 py-5 text-[var(--text-primary)] sm:px-4 lg:px-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-[18px] font-bold"><MapPinned className="size-5 text-[var(--accent)]" /> Live map</h1>
@@ -74,7 +74,8 @@ export default function AdminLiveMapPage() {
 
       {error && <p className="rounded-2xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-[11px]">{error}</p>}
 
-      <FleetMap riders={riders} deliveries={deliveries} />
+      {/* Full width, and as tall as the screen allows. */}
+      <FleetMap riders={riders} deliveries={deliveries} height="h-[calc(100dvh-220px)] min-h-[480px]" />
 
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-[var(--text-secondary)]">
         {LEGEND.map((l) => (

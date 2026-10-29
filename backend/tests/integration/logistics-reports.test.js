@@ -77,3 +77,24 @@ describe('Admin live map', () => {
     expect((await request(app).get('/api/v1/admin/logistics/live-map').set(authHeader(signToken(owner)))).status).toBe(403)
   })
 })
+
+describe('Admin shipment plan', () => {
+  it('explains where the stops sit, the road between them, the fee basis and the rider', async () => {
+    await LogisticZone.create({ name: 'Bonamoussadi', type: 'quartier', level: 3, centroid: { type: 'Point', coordinates: [9.7427, 4.0946] } })
+    await LogisticsCompany.updateOne({ _id: firm._id }, { $set: { pricing: { mode: 'distance', base_fee: 500, per_km: 150, min_fee: 500 } } })
+    const s = await ship({ rider_id: paul._id, pickup_address: { quartier: 'Akwa', city: 'Douala', landmark: 'Akwa Palace', location: { lat: 4.0483, lng: 9.6966, source: 'search' } } })
+    await offer(s, paul, 'accepted', { responded: 50, mode: 'manual' })
+    const admin = await createAdmin()
+    const res = await request(app).get(`/api/v1/admin/logistics/shipments/${s._id}/plan`).set(authHeader(signToken(admin)))
+    expect(res.status).toBe(200)
+    const d = res.body.data
+    expect(d.pickup).toMatchObject({ exact: true, how: 'Place search', label: 'Akwa Palace, Akwa, Douala' })
+    expect(d.dropoff).toMatchObject({ exact: false, how: 'Quartier centre (no exact spot given)' })
+    expect(d.road).toMatchObject({ approx: true }) // no routing key in tests: straight line × 1.3
+    expect(d.road.distance_km).toBeGreaterThan(6)
+    expect(d.fee).toMatchObject({ price: 1500, source: 'distance', agency: 'FastShip', rates: { per_km: 150 } })
+    expect(d.rider).toMatchObject({ name: 'Paul Rider' })
+    expect(d.offer).toMatchObject({ status: 'accepted', mode: 'manual', rider: 'Paul Rider' })
+    expect((await request(app).get(`/api/v1/admin/logistics/shipments/${s._id}/plan`).set(authHeader(signToken(owner)))).status).toBe(403)
+  })
+})
