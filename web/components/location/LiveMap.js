@@ -4,7 +4,7 @@
  * Import through next/dynamic so MapLibre loads only when a rider is on the move.
  */
 import { useEffect, useRef } from 'react';
-import maplibregl from '@/lib/maplibre';
+import maplibregl, { createMap } from '@/lib/maplibre';
 import { MAP_STYLE } from './PinMap';
 import { createVehicleMarker } from './vehicleMarker';
 
@@ -14,7 +14,7 @@ export default function LiveMap({ rider, destination, className = '' }) {
   const marker = useRef(null);
 
   useEffect(() => {
-    const m = new maplibregl.Map({
+    const m = createMap({
       container: container.current,
       style: MAP_STYLE,
       center: [rider.lng, rider.lat],

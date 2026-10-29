@@ -6,7 +6,7 @@
  * quartier centre). Import through next/dynamic: MapLibre loads only here.
  */
 import { useEffect, useRef } from 'react';
-import maplibregl from '@/lib/maplibre';
+import maplibregl, { createMap } from '@/lib/maplibre';
 import { MAP_STYLE } from './PinMap';
 import { createVehicleMarker } from './vehicleMarker';
 
@@ -27,7 +27,7 @@ export default function FleetMap({ riders = [], deliveries = [], className = '' 
   const fitted = useRef(false);
 
   useEffect(() => {
-    const m = new maplibregl.Map({ container: container.current, style: MAP_STYLE, center: DOUALA, zoom: 11.5, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
+    const m = createMap({ container: container.current, style: MAP_STYLE, center: DOUALA, zoom: 11.5, attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false });
     m.touchZoomRotate.disableRotation();
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     map.current = m;

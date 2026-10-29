@@ -5,7 +5,7 @@
  * map is actually shown.
  */
 import { useEffect, useRef } from 'react';
-import maplibregl from '@/lib/maplibre';
+import maplibregl, { createMap } from '@/lib/maplibre';
 
 export const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 const DOUALA = { lat: 4.0511, lng: 9.7043 };
@@ -19,7 +19,7 @@ export default function PinMap({ pin, center, zoom = 15, onPinChange, className 
 
   useEffect(() => {
     const start = pin || center || DOUALA;
-    const m = new maplibregl.Map({
+    const m = createMap({
       container: container.current,
       style: MAP_STYLE,
       center: [start.lng, start.lat],
