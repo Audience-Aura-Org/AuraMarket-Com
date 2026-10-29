@@ -29,3 +29,6 @@ Thumbs.db
 
 # Brainstorming / plan-execution scratch (design mockups, ledgers)
 .superpowers/
+
+# Local data backups written by scripts (may contain personal data)
+backend/backups/
