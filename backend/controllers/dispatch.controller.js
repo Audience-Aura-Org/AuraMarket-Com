@@ -94,7 +94,8 @@ const myDeliveries = async (req, res) => {
       populate(DeliveryAssignment.find({ rider_id: req.user._id, status: { $in: ['completed', 'cancelled'] } }).sort({ updatedAt: -1 }).limit(15)).lean(),
     ]);
     const shape = (a) => ({ assignment_id: a._id, status: a.status, offered_at: a.offered_at, expires_at: a.expires_at, completed_at: a.completed_at, shipment: shipmentCard(a.shipment_id) });
-    res.json({ success: true, data: { availability: profile.availability, offers: offers.map(shape), active: active.map(shape), recent: recent.map(shape) } });
+    const cash = await require('../services/riderCash.service').balanceFor(profile.agency_id, req.user._id);
+    res.json({ success: true, data: { availability: profile.availability, cash_holding: cash.holding, offers: offers.map(shape), active: active.map(shape), recent: recent.map(shape) } });
   } catch (e) { fail(res, e, 'Could not load your deliveries.'); }
 };
 

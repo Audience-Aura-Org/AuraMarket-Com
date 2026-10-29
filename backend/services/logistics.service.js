@@ -366,6 +366,10 @@ const createShipmentsForOrder = async (order, quartier, logisticsId, session = n
     shipments.push(shipment);
   }
 
+  // Shipments exist only once an order is paid (and, for food, accepted): offer riders now.
+  if (shipments.length) {
+    require('./riderDispatch.service').dispatchAfterPayment({ order_id: orderId }, { session });
+  }
   return shipments;
 };
 

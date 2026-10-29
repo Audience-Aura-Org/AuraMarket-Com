@@ -2,10 +2,11 @@
 
 /**
  * Agency: Manage Riders — invite riders by email, see who is online, and
- * activate or deactivate them. Only this agency's riders are ever listed.
+ * activate or deactivate them, and record the cash riders hand over after
+ * pay-on-delivery jobs. Only this agency's riders are ever listed.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Bike, Loader2, Mail, Phone, Plus, Power, RefreshCw, UserCheck, Users, X } from "lucide-react";
+import { Banknote, Bike, Loader2, Mail, Phone, Plus, Power, RefreshCw, UserCheck, Users, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "@/services/api";
 import StatCard from "@/components/layout/StatCard";
@@ -44,6 +45,7 @@ export default function LogisticsRidersPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(null);
+  const [handover, setHandover] = useState(null); // { id, amount, note }
   const ridersEnabled = useFeatureFlag("rider_accounts");
 
   const load = useCallback(async () => {
@@ -89,6 +91,22 @@ export default function LogisticsRidersPage() {
     }
   };
 
+  const recordHandover = async (e) => {
+    e.preventDefault();
+    const rider = riders.find((x) => x.id === handover.id);
+    setBusyId(handover.id);
+    try {
+      await api.post(`/logistics/riders/${handover.id}/cash-handovers`, { amount: Number(handover.amount), note: handover.note });
+      toast.success(`Recorded ${Number(handover.amount).toLocaleString()} XAF from ${rider?.user?.name || "the rider"}.`);
+      setHandover(null);
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Could not record the handover.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="flex w-full min-w-0 flex-col bg-[var(--bg-primary)] pb-[max(7rem,env(safe-area-inset-bottom,1.25rem))] text-[var(--text-primary)] lg:pb-16">
       <LogisticsSubpageHeader
@@ -113,10 +131,11 @@ export default function LogisticsRidersPage() {
         {!ridersEnabled && (
           <p className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-[11px] text-[var(--text-primary)]">Rider accounts are not switched on for your platform yet. You will be able to invite riders as soon as they are.</p>
         )}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatCard label="Active riders" value={counts.active || 0} icon={UserCheck} />
           <StatCard label="Online now" value={counts.online || 0} icon={Power} />
           <StatCard label="Invites waiting" value={counts.invited || 0} icon={Mail} />
+          <StatCard label="Cash with riders" value={`${(counts.cash_holding || 0).toLocaleString()} XAF`} icon={Banknote} />
         </div>
 
         {showInvite && (
@@ -167,8 +186,14 @@ export default function LogisticsRidersPage() {
                     {r.phone && <a href={`tel:${r.phone}`} className="inline-flex items-center gap-1 text-[10px] hover:text-[var(--accent)]"><Phone className="size-3" />{r.phone}</a>}
                     {r.status === "active" && <span className="text-[10px]">{r.availability === "offline" ? `Offline · seen ${lastSeen(r.last_seen_at)}` : r.availability === "busy" ? "On a delivery" : "Online"}</span>}
                     {r.status === "invited" && <span className="text-[10px]">{r.user?.email}</span>}
+                    {r.cash?.holding > 0 && <span className="text-[10px] font-semibold text-amber-600">Holding {r.cash.holding.toLocaleString()} XAF cash</span>}
                   </p>
                 </div>
+                {r.cash?.holding > 0 && handover?.id !== r.id && (
+                  <button type="button" onClick={() => setHandover({ id: r.id, amount: String(r.cash.holding), note: "" })} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl border border-amber-500/40 px-3 text-[11px] font-semibold text-amber-600">
+                    <Banknote className="size-3.5" /> Cash received
+                  </button>
+                )}
                 {(r.status === "active" || r.status === "inactive") && (
                   <button
                     type="button"
@@ -178,6 +203,14 @@ export default function LogisticsRidersPage() {
                   >
                     {busyId === r.id ? <Loader2 className="size-3.5 animate-spin" /> : r.status === "active" ? "Deactivate" : "Reactivate"}
                   </button>
+                )}
+                {handover?.id === r.id && (
+                  <form onSubmit={recordHandover} className="flex w-full flex-wrap items-center gap-2 rounded-2xl bg-[var(--bg-secondary)] p-2.5">
+                    <input required inputMode="numeric" value={handover.amount} onChange={(e) => setHandover((h) => ({ ...h, amount: e.target.value.replace(/D/g, "") }))} aria-label="Amount received (XAF)" placeholder="Amount (XAF)" className={`${FIELD} w-36 flex-none bg-[var(--bg-primary)] tabular-nums`} />
+                    <input value={handover.note} onChange={(e) => setHandover((h) => ({ ...h, note: e.target.value }))} aria-label="Note" placeholder="Note (optional)" className={`${FIELD} min-w-0 flex-1 bg-[var(--bg-primary)]`} />
+                    <button type="submit" disabled={busyId === r.id || !Number(handover.amount)} className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-[var(--accent)] px-4 text-[12px] font-semibold text-white disabled:opacity-50">{busyId === r.id ? <Loader2 className="size-4 animate-spin" /> : null}Record</button>
+                    <button type="button" onClick={() => setHandover(null)} aria-label="Cancel" className="flex size-11 items-center justify-center rounded-2xl text-[var(--text-secondary)]"><X className="size-4" /></button>
+                  </form>
                 )}
               </li>
             ))}

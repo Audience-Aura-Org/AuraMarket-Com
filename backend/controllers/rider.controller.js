@@ -18,6 +18,8 @@ const PlatformSettings = require('../models/PlatformSettings.model');
 const { isEnabled } = require('../utils/featureFlags');
 const { sendNotification } = require('../utils/notifier');
 const { recordAudit } = require('../utils/auditTrail');
+const RiderCashHandover = require('../models/RiderCashHandover.model');
+const riderCash = require('../services/riderCash.service');
 
 const VEHICLES = ['motorcycle', 'bicycle', 'car', 'van', 'on_foot'];
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
@@ -48,7 +50,9 @@ const listRiders = async (req, res, next) => {
       if (r.status === 'active' && r.availability !== 'offline') acc.online += 1;
       return acc;
     }, { online: 0 });
-    res.json({ success: true, data: { riders: riders.map(riderView), counts } });
+    const cash = await riderCash.balances(agency._id);
+    counts.cash_holding = Object.values(cash).reduce((sum, c) => sum + c.holding, 0);
+    res.json({ success: true, data: { riders: riders.map((r) => ({ ...riderView(r), cash: cash[(r.user_id?._id || r.user_id).toString()] || null })), counts } });
   } catch (err) { next(err); }
 };
 
@@ -174,4 +178,23 @@ const setAvailability = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { listRiders, inviteRider, updateRider, getMyRiderProfile, acceptInvite: answerInvite(true), declineInvite: answerInvite(false), setAvailability };
+/** Agency records cash a rider handed over (never more than the rider holds). */
+const recordCashHandover = async (req, res, next) => {
+  try {
+    const agency = await myAgency(req.user);
+    if (!agency) return fail(res, 404, 'Set up your delivery agency first.');
+    if (!mongoose.isValidObjectId(req.params.riderId)) return fail(res, 404, 'Rider not found.');
+    const profile = await RiderProfile.findOne({ _id: req.params.riderId, agency_id: agency._id }).select('user_id').lean();
+    if (!profile) return fail(res, 404, 'Rider not found.');
+    const amount = Math.round(Number(req.body?.amount));
+    if (!Number.isFinite(amount) || amount <= 0) return fail(res, 400, 'Enter the amount received, in whole XAF.');
+    const before = await riderCash.balanceFor(agency._id, profile.user_id);
+    if (amount > before.holding) return fail(res, 400, `This rider only holds ${before.holding.toLocaleString('en-US')} XAF.`);
+    const handover = await RiderCashHandover.create({ agency_id: agency._id, rider_id: profile.user_id, amount, note: String(req.body?.note || '').trim().slice(0, 200), recorded_by: req.user._id });
+    await recordAudit({ actorId: req.user._id, action: 'rider_cash_handover', targetType: 'RiderProfile', targetId: profile._id, before: { holding: before.holding }, after: { holding: before.holding - amount }, meta: { amount, handover_id: handover._id } });
+    sendNotification(req.app, profile.user_id, { title: 'Cash handover recorded', message: `${agency.company_name} recorded ${amount.toLocaleString('en-US')} XAF received from you.`, type: 'logistics_update', metadata: { link: '/rider' } }).catch(() => {});
+    res.status(201).json({ success: true, data: { cash: await riderCash.balanceFor(agency._id, profile.user_id) } });
+  } catch (err) { next(err); }
+};
+
+module.exports = { recordCashHandover, listRiders, inviteRider, updateRider, getMyRiderProfile, acceptInvite: answerInvite(true), declineInvite: answerInvite(false), setAvailability };

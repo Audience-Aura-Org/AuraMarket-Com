@@ -423,6 +423,11 @@ const createP2PShipment = async (req, res) => {
       }
     }
 
+    // Paid from the wallet: the delivery can go to a rider straight away.
+    if (shipment.payment_status === 'paid') {
+      require('../services/riderDispatch.service').dispatchAfterPayment({ _id: shipment._id }, { app: req.app });
+    }
+
     // Initiate gateway payment AFTER DB commit (external API calls must not be
     // inside the Mongo transaction — a rollback can't undo a PawaPay deposit).
     let paymentResult = null;

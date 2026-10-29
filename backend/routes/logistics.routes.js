@@ -51,10 +51,11 @@ router.patch('/profile', restrictTo('logistics', 'admin'), updateProfile);
 router.patch('/pricing', restrictTo('logistics', 'admin'), updatePricing);
 
 // ── Rider management (own agency only) ──
-const { listRiders, inviteRider, updateRider } = require('../controllers/rider.controller');
+const { listRiders, inviteRider, updateRider, recordCashHandover } = require('../controllers/rider.controller');
 router.get('/riders', restrictTo('logistics'), listRiders);
 router.post('/riders/invite', restrictTo('logistics'), inviteRider);
 router.patch('/riders/:riderId', restrictTo('logistics'), updateRider);
+router.post('/riders/:riderId/cash-handovers', restrictTo('logistics'), recordCashHandover);
 
 // ── Agency packages & shareable tracking links ──
 const { createPackage, createTrackingLink } = require('../controllers/agencyPackage.controller');

@@ -110,6 +110,12 @@ export default function RiderDeliveries() {
         </p>
       )}
 
+      {data.cash_holding > 0 && (
+        <p className="flex items-center gap-1.5 rounded-2xl bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-700">
+          <Banknote className="size-4 shrink-0" /> You are holding {Number(data.cash_holding).toLocaleString()} XAF cash for your agency. Hand it over and they will record it.
+        </p>
+      )}
+
       {data.active.map(({ assignment_id, shipment: s }) => {
         const next = NEXT_STEP[s.status];
         return (

@@ -336,6 +336,7 @@ const settleGatewayTransaction = async (transaction, gatewayData, app, webUrl, p
     if (isP2PPayment) {
       const trackingCode = claimed.metadata.tracking_code;
       const trackLink = `/delivery/track?code=${trackingCode}`;
+      require('../services/riderDispatch.service').dispatchAfterPayment({ _id: claimed.metadata.shipment_id }, { app });
 
       setImmediate(async () => {
         try {

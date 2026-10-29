@@ -26,7 +26,7 @@ const Shipment = require('../models/Shipment.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const LogisticZone = require('../models/LogisticZone.model');
 const PlatformSettings = require('../models/PlatformSettings.model');
-const { readFlags } = require('../utils/featureFlags');
+const { readFlags, isEnabled } = require('../utils/featureFlags');
 const { sendNotification } = require('../utils/notifier');
 const { withLock } = require('../utils/locks');
 
@@ -261,6 +261,24 @@ const sweepUndispatched = async (app = null) => {
   return n;
 };
 
+/**
+ * Flag payment_triggered_dispatch: offer riders the moment a delivery is paid for
+ * (or, for food, accepted by the kitchen) instead of waiting for the 30 s sweep.
+ * Pass the caller's transaction session so dispatch runs only once it has ended:
+ * an aborted payment leaves no shipment to find. The sweep remains the backstop.
+ */
+const dispatchAfterPayment = (filter, { app = null, session = null } = {}) => {
+  const run = async () => {
+    try {
+      if (!isEnabled(await PlatformSettings.getSettings(), 'payment_triggered_dispatch')) return;
+      const ids = await Shipment.find({ ...filter, rider_id: null, status: { $in: DISPATCHABLE } }).distinct('_id');
+      for (const id of ids) await autoDispatch(id, app);
+    } catch (e) { console.error('[riderDispatch] after payment:', e.message); }
+  };
+  if (session?.once) session.once('ended', () => setImmediate(run));
+  else setImmediate(run);
+};
+
 /** Worker tick: expire unanswered offers, move on to the next rider, and pick up undispatched deliveries. */
 const expireDueOffers = async (app = null) => withLock('worker:rider-offer-expiry', 50, async () => {
   const due = await DeliveryAssignment.find({ status: 'offered', active: true, expires_at: { $lte: new Date() } }).limit(50).lean();
@@ -286,4 +304,4 @@ const startRiderOfferExpiryWorker = (app) => {
   if (timer.unref) timer.unref();
 };
 
-module.exports = { pickupPoint, rankRiders, autoDispatch, sweepUndispatched, manualOffer, accept, reject, cancel, settleAfterStatus, expireDueOffers, startRiderOfferExpiryWorker, distanceKm };
+module.exports = { pickupPoint, rankRiders, autoDispatch, dispatchAfterPayment, sweepUndispatched, manualOffer, accept, reject, cancel, settleAfterStatus, expireDueOffers, startRiderOfferExpiryWorker, distanceKm };
