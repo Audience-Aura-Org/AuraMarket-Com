@@ -27,6 +27,7 @@ import {
   LogisticsSubpageHeader,
   LogisticsShortcutsRow,
 } from "@/components/logistics/LogisticsSubpageShell";
+import DistancePricing from "@/components/logistics/DistancePricing";
 
 export default function LogisticsPricingPage() {
   const { user } = useAuthStore();
@@ -47,6 +48,7 @@ export default function LogisticsPricingPage() {
   const [tableSelections, setTableSelections] = useState([]);
   const [bulkUpdatePrice, setBulkUpdatePrice] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [pricingMode, setPricingMode] = useState("district");
   const itemsPerPage = 8;
 
   useEffect(() => {
@@ -228,6 +230,14 @@ export default function LogisticsPricingPage() {
             },
           ]}
         />
+
+        <DistancePricing zones={zones} onModeChange={setPricingMode} />
+
+        {pricingMode === "distance" && (
+          <p className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3 text-[11px] text-[var(--text-secondary)]">
+            Distance pricing is on, so this quartier list is not used for fees. It is kept in case you switch back.
+          </p>
+        )}
 
         <section className="space-y-4 lg:space-y-6">
           <div className="flex items-center gap-3 lg:gap-4">

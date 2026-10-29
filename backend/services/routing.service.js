@@ -59,4 +59,30 @@ const routeFor = async (key, rider, stops) => {
   }
 };
 
-module.exports = { routeFor, metres };
+// Road distance between two points for pricing. Points are rounded to ~100 m so
+// nearby quotes share one lookup, kept for a day (roads do not move). Without a key,
+// or when the service fails, the straight line × 1.3 stands in (approx: true).
+const DISTANCE_TTL_MS = 24 * 60 * 60 * 1000;
+const distances = new Map(); // key -> { at, km }
+const ROAD_FACTOR = 1.3;
+
+const roadDistanceKm = async (a, b) => {
+  const r = (v) => Number(v).toFixed(3);
+  const key = `${r(a.lat)},${r(a.lng)}>${r(b.lat)},${r(b.lng)}`;
+  const hit = distances.get(key);
+  if (hit && Date.now() - hit.at < DISTANCE_TTL_MS) return { km: hit.km, approx: false };
+  try {
+    const route = await fetchRoute([a, b]);
+    if (route) {
+      const km = Math.round(route.distance_m / 100) / 10;
+      if (distances.size >= MAX_CACHE * 4) distances.delete(distances.keys().next().value);
+      distances.set(key, { at: Date.now(), km });
+      return { km, approx: false };
+    }
+  } catch (e) {
+    console.warn('[routing] distance', e.message);
+  }
+  return { km: Math.round((metres(a, b) * ROAD_FACTOR) / 100) / 10, approx: true };
+};
+
+module.exports = { routeFor, roadDistanceKm, metres };

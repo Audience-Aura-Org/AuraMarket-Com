@@ -20,6 +20,7 @@ const Vendor = require('../models/Vendor.model');
 const Order = require('../models/Order.model');
 const mongoose = require('mongoose');
 const { escapeRegExp } = require('../middleware/security.middleware');
+const { isDistance, priceDelivery, covers, cityOf, cityKey } = require('./pricing.service');
 
 /**
  * Generates a unique, unguessable tracking code: AURA- + 8 characters (~8.5e11 combinations)
@@ -98,6 +99,8 @@ const getCompatibleFirms = async (quartier, vendorIds, options = {}) => {
     const hierarchyIds = [targetZone._id, ...(targetZone.ancestors || [])];
     deliveryConditions.push({ 'quartier_prices.zone_id': { $in: hierarchyIds } });
   }
+  // Distance-priced agencies have no quartier list: their cities are checked below.
+  deliveryConditions.push({ 'pricing.mode': 'distance' });
 
   // String fallback (remove after Phase 1 verification week confirms zero hits)
   deliveryConditions.push({
@@ -150,15 +153,30 @@ const getCompatibleFirms = async (quartier, vendorIds, options = {}) => {
     });
     if (cityZoneIds.length > 0) {
       andConditions.push({
-        'quartier_prices.zone_id': { $in: cityZoneIds },
+        $or: [{ 'quartier_prices.zone_id': { $in: cityZoneIds } }, { 'pricing.mode': 'distance' }],
       });
     }
   }
 
-  const firms = await LogisticsCompany.find({ $and: andConditions }).populate(
+  let firms = await LogisticsCompany.find({ $and: andConditions }).populate(
     'user_id',
     'name email avatar branding'
   );
+
+  // Distance-priced agencies: keep those serving these cities (cross-city only when
+  // they take it; food never crosses cities).
+  if (firms.some(isDistance)) {
+    const toCity = await cityOf(options.dropoff?.zone_id || options.dropoff?.city ? options.dropoff : { zone_id: targetZone?._id, quartier });
+    const fromCities = await Promise.all(vendors.map((v) => cityOf(v.pickup_address)));
+    firms = firms.filter((f) => {
+      if (!isDistance(f)) return true;
+      return (fromCities.length ? fromCities : [null]).every((from) => {
+        const cross = from && toCity && cityKey(from) !== cityKey(toCity);
+        if (cross && options.city_zone_id) return false;
+        return covers(f, from, toCity);
+      });
+    });
+  }
 
   // Rank: cheapest price first, then fastest (avg_delivery_minutes), then highest rating
   if (firms.length > 1 && targetZone) {
@@ -260,11 +278,30 @@ const hasCoverageInCity = async (cityZoneId, activeSubUserIds = null) => {
  * @param {string}   quartier   — delivery neighbourhood name
  * @param {ObjectId} logisticsId — LogisticsCompany _id
  */
-const calculateShipmentFees = async (vendors, quartier, logisticsId) => {
+const calculateShipmentFees = async (vendors, quartier, logisticsId, options = {}) => {
   const LogisticZone = require('../models/LogisticZone.model');
 
   const firm = await LogisticsCompany.findById(logisticsId);
   if (!firm) throw new Error('Logistics firm not found');
+
+  // Distance pricing: each vendor's own trip, pickup spot to the customer's spot
+  // (quartier centre when no exact spot was pinned).
+  if (isDistance(firm)) {
+    const docs = vendors.every((v) => v && v.pickup_address !== undefined)
+      ? vendors
+      : await Vendor.find({ _id: { $in: vendors.map((v) => v?._id || v) } }).select('pickup_address').lean();
+    const dropoff = { ...(options.dropoff || {}), quartier: options.dropoff?.quartier || quartier };
+    const perVendor = new Map();
+    const quotes = [];
+    for (const v of docs) {
+      const q = await priceDelivery(firm, { pickup: v.pickup_address, dropoff });
+      if (q.error) throw Object.assign(new Error(q.error), { status: 400 });
+      perVendor.set(v._id.toString(), q.fee);
+      quotes.push({ vendor_id: v._id, ...q });
+    }
+    const totalFee = quotes.reduce((sum, q) => sum + q.fee, 0);
+    return { perShipmentFee: quotes.length ? Math.round(totalFee / quotes.length) : 0, totalFee, perVendor, quotes };
+  }
 
   // Resolve the target zone and its ancestry for hierarchical price lookup
   const targetZone = await LogisticZone.findOne({
@@ -326,7 +363,12 @@ const createShipmentsForOrder = async (order, quartier, logisticsId, session = n
   const vendorIds = Object.keys(productsByVendor);
   const vendors = await Vendor.find({ _id: { $in: vendorIds } }).session(session);
 
-  const { perShipmentFee } = await calculateShipmentFees(vendors, quartier, logisticsId);
+  const { perShipmentFee, perVendor } = await calculateShipmentFees(vendors, quartier, logisticsId, {
+    dropoff: typeof shipping_address?.toObject === 'function' ? shipping_address.toObject() : shipping_address,
+  });
+  // A distance-priced single-vendor order keeps the fee the customer was charged, so
+  // a re-routed road distance after payment never changes what the agency is owed.
+  const chargedFee = perVendor && vendors.length === 1 && Number(order.shipping_fee) > 0 ? Number(order.shipping_fee) : null;
 
   // Fetch avg delivery minutes for ETA computation
   const logCompany = await LogisticsCompany.findById(logisticsId).select('avg_delivery_minutes').lean().session(session);
@@ -344,7 +386,7 @@ const createShipmentsForOrder = async (order, quartier, logisticsId, session = n
       logistics_id: logisticsId,
       tracking_code: trackingCode,
       status: 'pending',
-      price: perShipmentFee,
+      price: chargedFee ?? perVendor?.get(vendor._id.toString()) ?? perShipmentFee,
       estimated_delivery: etaDate,
       pickup_address: {
         ...vendor.pickup_address,

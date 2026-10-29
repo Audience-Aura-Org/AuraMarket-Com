@@ -49,6 +49,10 @@ router.get('/shipments/:id', restrictTo('logistics', 'admin'), getFirmShipmentBy
 router.get('/profile', restrictTo('logistics', 'admin'), getProfile);
 router.patch('/profile', restrictTo('logistics', 'admin'), updateProfile);
 router.patch('/pricing', restrictTo('logistics', 'admin'), updatePricing);
+const agencyPricing = require('../controllers/agencyPricing.controller');
+router.get('/pricing/rules', restrictTo('logistics'), agencyPricing.getRules);
+router.patch('/pricing/rules', restrictTo('logistics'), agencyPricing.setRules);
+router.post('/pricing/preview', restrictTo('logistics'), agencyPricing.preview);
 
 // ── Rider management (own agency only) ──
 const { listRiders, inviteRider, updateRider, recordCashHandover } = require('../controllers/rider.controller');

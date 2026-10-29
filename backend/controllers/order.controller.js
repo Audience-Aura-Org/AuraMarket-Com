@@ -437,13 +437,14 @@ const createOrderAttempt = async (req, res, next, isLastAttempt) => {
         if (rp?.city_zone_id) firmFilterOptions.city_zone_id = rp.city_zone_id;
       }
 
-      const firms = await logisticsService.getCompatibleFirms(deliveryZone, [vendor_id], firmFilterOptions);
+      const dropoffSpot = { ...(shipping_address || {}), quartier: deliveryZone, location: confirmedPoint(shipping_address?.location) };
+      const firms = await logisticsService.getCompatibleFirms(deliveryZone, [vendor_id], { ...firmFilterOptions, dropoff: dropoffSpot });
       const isCompatible = firms.some(f => f._id.toString() === logistics_company_id);
       if (!isCompatible) {
         throw checkoutRejection(400, 'Selected logistics company does not support this delivery route.');
       }
 
-      const fees = await logisticsService.calculateShipmentFees([vendor_id], deliveryZone, logistics_company_id);
+      const fees = await logisticsService.calculateShipmentFees([vendor_id], deliveryZone, logistics_company_id, { dropoff: dropoffSpot });
       shipping_fee = fees.totalFee;
     }
 
@@ -1723,12 +1724,13 @@ const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
             if (rp?.city_zone_id) cartFirmOptions.city_zone_id = rp.city_zone_id;
           }
 
-          const compatibleFirms = await logisticsService.getCompatibleFirms(deliveryZone, [vendorId], cartFirmOptions);
+          const cartDropoff = { ...(shipping_address || {}), quartier: deliveryZone, location: confirmedPoint(shipping_address?.location) };
+          const compatibleFirms = await logisticsService.getCompatibleFirms(deliveryZone, [vendorId], { ...cartFirmOptions, dropoff: cartDropoff });
           const isCompatible = compatibleFirms.some(f => f._id.toString() === logistics_company_id.toString());
           if (!isCompatible) {
             throw checkoutRejection(400, 'The selected logistics company does not support this delivery route. Please return to checkout and choose another carrier.');
           }
-          const fees = await logisticsService.calculateShipmentFees([vendorId], deliveryZone, logistics_company_id);
+          const fees = await logisticsService.calculateShipmentFees([vendorId], deliveryZone, logistics_company_id, { dropoff: cartDropoff });
           shippingFee = fees.totalFee;
       }
 

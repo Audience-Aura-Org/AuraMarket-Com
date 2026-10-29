@@ -113,11 +113,11 @@ export default function AgencyPackagesPage() {
             <div className={CARD}>
               <p className="text-[12px] font-semibold">Payment</p>
               <div className="grid gap-3 sm:grid-cols-3">
-                <div><label className={LABEL} htmlFor="pkg-fee">Delivery fee (XAF)</label><input id="pkg-fee" inputMode="numeric" value={form.fee} onChange={(e) => set("fee", e.target.value.replace(/\D/g, ""))} placeholder="Your district price" className={`${FIELD} tabular-nums`} /></div>
+                <div><label className={LABEL} htmlFor="pkg-fee">Delivery fee (XAF)</label><input id="pkg-fee" inputMode="numeric" value={form.fee} onChange={(e) => set("fee", e.target.value.replace(/\D/g, ""))} placeholder="From your Route Pricing" className={`${FIELD} tabular-nums`} /></div>
                 <div><label className={LABEL} htmlFor="pkg-payer">Who pays</label><select id="pkg-payer" value={form.payer} onChange={(e) => setForm((f) => ({ ...f, payer: e.target.value, payment_arrangement: e.target.value === "recipient" ? "pay_on_delivery" : "paid_to_agency" }))} className={FIELD}><option value="sender">Sender</option><option value="recipient">Recipient</option></select></div>
                 <div><label className={LABEL} htmlFor="pkg-arr">How</label><select id="pkg-arr" value={form.payment_arrangement} onChange={(e) => set("payment_arrangement", e.target.value)} className={FIELD}><option value="paid_to_agency">Already paid to us</option><option value="pay_on_delivery">Pay the rider on delivery</option><option value="agency_account">On account (invoice later)</option></select></div>
               </div>
-              <p className="text-[10px] text-[var(--text-secondary)]">Leave the fee empty to use your price for the delivery quartier.</p>
+              <p className="text-[10px] text-[var(--text-secondary)]">Leave the fee empty to use your Route Pricing (by quartier or by distance).</p>
             </div>
 
             <button type="submit" disabled={saving || !enabled} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-[13px] font-semibold text-white disabled:opacity-50">

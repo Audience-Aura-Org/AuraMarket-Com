@@ -218,6 +218,8 @@ function CheckoutContent() {
   };
 
   const getFirmZonePrice = (firm, quartier) => {
+    // Distance-priced agencies: the server quoted this exact trip (fee per vendor).
+    if (firm?.pricing_mode === 'distance') return Number(firm.fee_estimate || 0);
     const zoneName = normalizeZoneName(quartier);
     if (!firm || !zoneName) return 0;
     const selectedZone = zones.find((z) => getZoneName(z).toLowerCase() === zoneName.toLowerCase());
@@ -310,6 +312,9 @@ function CheckoutContent() {
     setLogisticsLoading(true);
     const params = new URLSearchParams({ vendor_ids: vendorIds.join(',') });
     if (deliveryQuartier) params.set('quartier', deliveryQuartier);
+    // The exact spot lets distance-priced agencies quote the real trip.
+    if (deliverySpot.location?.lat != null) { params.set('lat', deliverySpot.location.lat); params.set('lng', deliverySpot.location.lng); }
+    if (deliverySpot.zone_id) params.set('zone_id', deliverySpot.zone_id);
     api.get(`/logistics/compatible-firms?${params.toString()}`)
       .then(res => {
         if (res.data.success) {
@@ -337,7 +342,7 @@ function CheckoutContent() {
       })
       .catch(() => toast.error("Logistics node lookup failed"))
       .finally(() => setLogisticsLoading(false));
-  }, [deliveryQuartier, order, cartItems]);
+  }, [deliveryQuartier, order, cartItems, deliverySpot.location?.lat, deliverySpot.location?.lng]);
 
   // Hydrate profile + saved address once per user (never overwrite a manually chosen zone)
   useEffect(() => {

@@ -171,7 +171,7 @@ const initiateP2PGatewayPayment = async ({ gateway, phone, amount, platformFee, 
 
 const getP2PQuote = async (req, res) => {
   try {
-    const { pickup_zone_id, dropoff_zone_id, weight_tier } = req.body;
+    const { pickup_zone_id, dropoff_zone_id, weight_tier, pickup_location, dropoff_location } = req.body;
 
     if (!pickup_zone_id || !dropoff_zone_id) {
       return res.status(400).json({ success: false, message: 'pickup_zone_id and dropoff_zone_id are required' });
@@ -181,6 +181,8 @@ const getP2PQuote = async (req, res) => {
       pickup_zone_id,
       dropoff_zone_id,
       weight_tier: weight_tier || 'light',
+      pickup_location: confirmedPoint(pickup_location),
+      dropoff_location: confirmedPoint(dropoff_location),
     });
 
     return res.json({ success: true, data: result });
@@ -259,6 +261,8 @@ const createP2PShipment = async (req, res) => {
       pickup_zone_id: pickup_address.zone_id,
       dropoff_zone_id: dropoff_address.zone_id,
       weight_tier: package_details?.weight_tier || 'light',
+      pickup_location: confirmedPoint(pickup_address.location),
+      dropoff_location: confirmedPoint(dropoff_address.location),
     });
 
     if (!quote.coverage) {

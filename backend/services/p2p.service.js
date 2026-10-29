@@ -9,6 +9,7 @@
 const PlatformSettings = require('../models/PlatformSettings.model');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const LogisticZone = require('../models/LogisticZone.model');
+const { isDistance, priceDelivery } = require('./pricing.service');
 
 /**
  * Load all designated P2P logistics providers.
@@ -103,7 +104,23 @@ const resolveZonePrice = (provider, hierarchyIdStrings, hierarchyNames) => {
  * @param {string}   params.weight_tier - light|medium|heavy|extra_heavy
  * @returns {{ coverage, reason, quotes: Array }}
  */
-const getQuotes = async ({ pickup_zone_id, dropoff_zone_id, weight_tier }) => {
+/**
+ * A provider's price before weight and commission: the district rate card, or for
+ * distance-priced agencies the trip from pickup to drop-off (exact spots when given).
+ * Returns null when the provider does not cover the trip.
+ */
+const providerBasePrice = async (provider, { pickup_zone_id, dropoff_zone_id, pickup_location, dropoff_location, dropoffHierarchy }) => {
+  if (isDistance(provider)) {
+    const q = await priceDelivery(provider, {
+      pickup: { zone_id: pickup_zone_id, location: pickup_location || null },
+      dropoff: { zone_id: dropoff_zone_id, location: dropoff_location || null },
+    });
+    return q.error ? null : q.fee;
+  }
+  return resolveZonePrice(provider, dropoffHierarchy.ids, dropoffHierarchy.names);
+};
+
+const getQuotes = async ({ pickup_zone_id, dropoff_zone_id, weight_tier, pickup_location, dropoff_location }) => {
   const settings = await PlatformSettings.getSettings();
   if (!settings.p2p_enabled) {
     console.log('[p2p.getQuotes] P2P disabled');
@@ -144,7 +161,7 @@ const getQuotes = async ({ pickup_zone_id, dropoff_zone_id, weight_tier }) => {
     }
 
     // Resolve dropoff price from rate card
-    const basePrice = resolveZonePrice(provider, dropoffHierarchy.ids, dropoffHierarchy.names);
+    const basePrice = await providerBasePrice(provider, { pickup_zone_id, dropoff_zone_id, pickup_location, dropoff_location, dropoffHierarchy });
     if (basePrice === null) {
       console.log(`[p2p.getQuotes] ${provider.company_name}: no price for dropoff zone`);
       continue;
@@ -181,7 +198,7 @@ const getQuotes = async ({ pickup_zone_id, dropoff_zone_id, weight_tier }) => {
  * Get a quote for a specific provider (used during booking validation).
  * @returns {{ coverage, price, base_price, platform_fee, provider_name, estimated_delivery_minutes }}
  */
-const getQuoteForProvider = async ({ provider_id, pickup_zone_id, dropoff_zone_id, weight_tier }) => {
+const getQuoteForProvider = async ({ provider_id, pickup_zone_id, dropoff_zone_id, weight_tier, pickup_location, dropoff_location }) => {
   const settings = await PlatformSettings.getSettings();
   if (!settings.p2p_enabled) {
     return { coverage: false, reason: 'P2P delivery is not currently available' };
@@ -213,7 +230,7 @@ const getQuoteForProvider = async ({ provider_id, pickup_zone_id, dropoff_zone_i
   }
 
   const dropoffHierarchy = await buildZoneHierarchy(dropoff_zone_id);
-  const basePrice = resolveZonePrice(provider, dropoffHierarchy.ids, dropoffHierarchy.names);
+  const basePrice = await providerBasePrice(provider, { pickup_zone_id, dropoff_zone_id, pickup_location, dropoff_location, dropoffHierarchy });
   if (basePrice === null) {
     return { coverage: false, reason: 'Delivery location not covered by this provider' };
   }

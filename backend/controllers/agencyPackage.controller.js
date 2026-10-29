@@ -16,6 +16,7 @@ const links = require('../services/trackingLink.service');
 const { isEnabled } = require('../utils/featureFlags');
 const { confirmedPoint } = require('../utils/geoPoint');
 const { isShipmentParty, redactShipmentForPublic } = require('../utils/trackingPrivacy');
+const { isDistance, priceDelivery } = require('../services/pricing.service');
 const { recordAudit } = require('../utils/auditTrail');
 
 const CATEGORIES = ['document', 'fragile', 'food', 'electronics', 'clothing', 'household', 'other'];
@@ -65,7 +66,7 @@ const addressFrom = async (input, label) => {
 const createPackage = async (req, res, next) => {
   try {
     if (!isEnabled(await PlatformSettings.getSettings(), 'agency_packages')) return fail(res, 403, 'Package registration is not enabled yet.');
-    const firm = await LogisticsCompany.findOne({ user_id: req.user._id }).select('company_name quartier_prices').lean();
+    const firm = await LogisticsCompany.findOne({ user_id: req.user._id }).select('company_name quartier_prices pricing service_regions').lean();
     if (!firm) return fail(res, 404, 'Set up your delivery agency first.');
 
     const b = req.body || {};
@@ -81,12 +82,21 @@ const createPackage = async (req, res, next) => {
     const drop = await addressFrom({ ...b.delivery, phone: b.delivery?.phone || recipient.phone }, 'delivery');
     if (drop.error) return fail(res, 400, drop.error);
 
-    // District pricing stays authoritative; an agency may still set its own fee on its own package.
-    const quoted = districtFee(firm, drop.zone);
+    // The agency's own price (district list, or distance from pickup to drop-off);
+    // it may still set its own fee on its own package.
+    let quoted;
+    if (isDistance(firm)) {
+      const q = await priceDelivery(firm, { pickup: pickup.address, dropoff: drop.address });
+      quoted = q.error ? null : q.fee;
+    } else {
+      quoted = districtFee(firm, drop.zone);
+    }
     const entered = b.fee === undefined || b.fee === null || b.fee === '' ? null : Math.round(Number(b.fee));
     if (entered !== null && (!Number.isFinite(entered) || entered < 0)) return fail(res, 400, 'The delivery fee must be a whole XAF amount.');
     const fee = entered ?? quoted;
-    if (fee === null) return fail(res, 400, `You have no price for ${drop.zone.name} yet. Enter the delivery fee or add it in Route Pricing.`);
+    if (fee === null) return fail(res, 400, isDistance(firm)
+      ? 'Your distance prices do not cover this trip (e.g. cross-city is off). Enter the delivery fee or update Route Pricing.'
+      : `You have no price for ${drop.zone.name} yet. Enter the delivery fee or add it in Route Pricing.`);
 
     const payer = b.payer === 'recipient' ? 'recipient' : 'sender';
     const arrangement = ARRANGEMENTS.includes(b.payment_arrangement) ? b.payment_arrangement : (payer === 'recipient' ? 'pay_on_delivery' : 'paid_to_agency');
@@ -103,7 +113,7 @@ const createPackage = async (req, res, next) => {
       agency_package: {
         reference: text(b.reference, 40) || null, payer, payment_arrangement: arrangement,
         amount_due_on_delivery: arrangement === 'pay_on_delivery' ? fee : 0,
-        fee_source: entered === null ? 'district' : entered === quoted ? 'district' : 'manual',
+        fee_source: entered === null || entered === quoted ? (isDistance(firm) ? 'distance' : 'district') : 'manual',
         photo_url: /^https:\/\//.test(b.photo_url || '') ? b.photo_url : null,
         created_by: req.user._id,
       },

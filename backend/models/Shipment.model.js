@@ -204,7 +204,7 @@ const ShipmentSchema = new mongoose.Schema(
       collected_amount: { type: Number, default: null },
       collected_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
       collected_at: { type: Date, default: null },
-      fee_source: { type: String, enum: ['district', 'manual'] },
+      fee_source: { type: String, enum: ['district', 'distance', 'manual'] },
       photo_url: { type: String, default: null },
       created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     },

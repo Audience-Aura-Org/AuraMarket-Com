@@ -62,6 +62,31 @@ const LogisticsCompanySchema = new mongoose.Schema(
       mode: { type: String, enum: ['percent', 'fixed'] },
       value: { type: Number, min: 0 },
     },
+    // How the agency prices deliveries. 'district' (default) uses quartier_prices;
+    // 'distance' charges base + per_km on the road distance from pickup to drop-off,
+    // within min/max and rounded up to round_to. Cross-city trips use a fixed price
+    // for the city pair when one is set, else the cross_city per-km rate.
+    pricing: {
+      mode: { type: String, enum: ['district', 'distance'], default: 'district' },
+      base_fee: { type: Number, min: 0, default: 500 },
+      per_km: { type: Number, min: 0, default: 150 },
+      min_fee: { type: Number, min: 0, default: 500 },
+      max_fee: { type: Number, min: 0, default: 0 }, // 0 = no cap
+      round_to: { type: Number, min: 1, default: 50 },
+      cross_city: {
+        enabled: { type: Boolean, default: false },
+        base_fee: { type: Number, min: 0, default: 2000 },
+        per_km: { type: Number, min: 0, default: 50 },
+        min_fee: { type: Number, min: 0, default: 2000 },
+        max_fee: { type: Number, min: 0, default: 0 },
+        city_pairs: [{
+          _id: false,
+          from_city: { type: String, trim: true, required: true },
+          to_city: { type: String, trim: true, required: true },
+          price: { type: Number, min: 0, required: true },
+        }],
+      },
+    },
     quartier_prices: [
       {
         quartier: { type: String, required: true },

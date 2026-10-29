@@ -21,6 +21,7 @@ const { sendNotification } = require('../utils/notifier');
 const { escapeRegExp } = require('../middleware/security.middleware');
 const { sendEmail }        = require('../utils/emailService');
 const logisticsService     = require('../services/logistics.service');
+const { isDistance }       = require('../services/pricing.service');
 const templates            = require('../utils/emailTemplates');
 const { applyCommissionOverride, calculatePlatformFees } = require('../utils/platformFees');
 const { creditBalance } = require('../services/wallet.service');
@@ -111,6 +112,13 @@ const _resolveCityId = async (zoneId) => {
 const getSearchCompatibleFirms = async (req, res, next) => {
   try {
     const { quartier, vendor_ids } = req.query;
+    // Exact customer spot (optional): distance-priced agencies quote the real trip.
+    const lat = Number(req.query.lat); const lng = Number(req.query.lng);
+    const spot = Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
+    const dropoff = quartier ? {
+      quartier, location: spot,
+      zone_id: mongoose.isValidObjectId(req.query.zone_id) ? req.query.zone_id : undefined,
+    } : null;
     if (!vendor_ids) {
       return res.status(400).json({ success: false, message: 'vendor_ids required.' });
     }
@@ -121,7 +129,7 @@ const getSearchCompatibleFirms = async (req, res, next) => {
     let is_intercity = false;
 
     if (quartier) {
-      firms = await logisticsService.getCompatibleFirms(quartier, vendorUserIds);
+      firms = await logisticsService.getCompatibleFirms(quartier, vendorUserIds, { dropoff });
 
       // --- Intercity detection ---
       // Only run when INTERCITY_ENABLED=true to avoid extra DB round-trips in local deployments
@@ -171,7 +179,30 @@ const getSearchCompatibleFirms = async (req, res, next) => {
     // Annotate fee_estimate (per shipment) and total_fee_estimate on each firm so the
     // cart and checkout pages can display a delivery estimate without a second request.
     const numVendors = vendorUserIds.length;
+    // Distance-priced agencies: quote each vendor's trip; drop the agency if it
+    // cannot take it (e.g. a city it does not serve).
+    const distanceQuotes = new Map();
+    if (dropoff) {
+      await Promise.all(firms.filter(isDistance).map(async (f) => {
+        try {
+          const fees = await logisticsService.calculateShipmentFees(vendorUserIds, quartier, f._id, { dropoff });
+          distanceQuotes.set(f._id.toString(), fees);
+        } catch (_) { distanceQuotes.set(f._id.toString(), null); }
+      }));
+      firms = firms.filter((f) => !isDistance(f) || distanceQuotes.get(f._id.toString()));
+    }
     const annotatedFirms = firms.map(f => {
+      if (isDistance(f)) {
+        const raw = typeof f.toObject === 'function' ? f.toObject() : { ...f };
+        const q = distanceQuotes.get(f._id.toString());
+        return {
+          ...raw,
+          pricing_mode: 'distance',
+          fee_estimate: q ? q.perShipmentFee : null,
+          total_fee_estimate: q ? q.totalFee : null,
+          distance_quotes: q ? q.quotes.map(({ vendor_id, fee, distance_km, approx, cross_city, from_city, to_city }) => ({ vendor_id, fee, distance_km, approx, cross_city, from_city, to_city })) : [],
+        };
+      }
       const raw = typeof f.toObject === 'function' ? f.toObject() : { ...f };
       const match = (f.quartier_prices || []).find(
         p => p.quartier && p.quartier.toLowerCase() === (quartier || '').toLowerCase()

@@ -300,7 +300,7 @@ const getDinePage = async (req, res, next) => {
         const eligibleFirms = await getCompatibleFirms(zone.name, vendorIds.slice(0, 1));
         if (eligibleFirms.length > 0) {
           const fees = await calculateShipmentFees(
-            [{ _id: vendorIds[0], pickup_address: {} }],
+            [vendorIds[0]], // the vendor's own pickup spot (distance-priced agencies use it)
             zone.name,
             eligibleFirms[0]._id
           );
