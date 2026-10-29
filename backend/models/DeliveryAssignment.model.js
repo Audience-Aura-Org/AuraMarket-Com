@@ -27,6 +27,11 @@ const DeliveryAssignmentSchema = new mongoose.Schema(
     reject_reason: { type: String, default: null, maxlength: 200 },
     // Why the engine chose this rider (transparent, for review).
     reason: { type: String, default: null },
+    // Set when the job ends (riderDispatch.settleAfterStatus): how it ended, the
+    // delivery fee, and what the rider earned under the agency's pay rate then.
+    outcome: { type: String, enum: ['delivered', 'failed', 'cancelled', null], default: null },
+    delivery_fee: { type: Number, default: null },
+    rider_pay: { type: Number, default: null }, // null = the agency had no pay rate set
   },
   { timestamps: true }
 );

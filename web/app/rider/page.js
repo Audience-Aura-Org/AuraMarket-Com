@@ -11,6 +11,7 @@ import { toast } from "react-hot-toast";
 import api from "@/services/api";
 import { useAuthStore } from "@/hooks/useAuth";
 import RiderDeliveries from "@/components/rider/RiderDeliveries";
+import RiderSummary from "@/components/rider/RiderSummary";
 import { refreshRiderProfile } from "@/lib/riderProfile";
 
 const VEHICLE_LABEL = { motorcycle: "Motorcycle", bicycle: "Bicycle", car: "Car", van: "Van", on_foot: "On foot" };
@@ -98,6 +99,7 @@ export default function RiderPage() {
     return shell(<>
       {agencyCard}
       <p className="rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-4 text-[11px] text-[var(--text-secondary)]">Your agency has paused your rider account. Contact them to be reactivated.</p>
+      <RiderSummary showCash />
     </>);
   }
 
@@ -119,5 +121,6 @@ export default function RiderPage() {
       </span>
     </button>
     <RiderDeliveries key={rider.availability} />
+    <RiderSummary refreshKey={rider.availability} />
   </>);
 }

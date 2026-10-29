@@ -6,12 +6,13 @@
  * pay-on-delivery jobs. Only this agency's riders are ever listed.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Banknote, Bike, Loader2, Mail, Phone, Plus, Power, RefreshCw, UserCheck, Users, X } from "lucide-react";
+import { Banknote, Bike, HandCoins, Loader2, Mail, Phone, Plus, Power, RefreshCw, UserCheck, Users, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "@/services/api";
 import StatCard from "@/components/layout/StatCard";
 import { LogisticsSubpageHeader } from "@/components/logistics/LogisticsSubpageShell";
 import { useFeatureFlag } from "@/lib/featureFlags";
+import RiderPayRate from "@/components/logistics/RiderPayRate";
 
 const VEHICLES = [
   { value: "motorcycle", label: "Motorcycle" },
@@ -45,7 +46,8 @@ export default function LogisticsRidersPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState(null);
-  const [handover, setHandover] = useState(null); // { id, amount, note }
+  // Money form under a rider: cash they handed over, or pay the agency gave them.
+  const [handover, setHandover] = useState(null); // { id, kind: 'cash' | 'pay', amount, note }
   const ridersEnabled = useFeatureFlag("rider_accounts");
 
   const load = useCallback(async () => {
@@ -96,8 +98,9 @@ export default function LogisticsRidersPage() {
     const rider = riders.find((x) => x.id === handover.id);
     setBusyId(handover.id);
     try {
-      await api.post(`/logistics/riders/${handover.id}/cash-handovers`, { amount: Number(handover.amount), note: handover.note });
-      toast.success(`Recorded ${Number(handover.amount).toLocaleString()} XAF from ${rider?.user?.name || "the rider"}.`);
+      const pay = handover.kind === "pay";
+      await api.post(`/logistics/riders/${handover.id}/${pay ? "payouts" : "cash-handovers"}`, { amount: Number(handover.amount), note: handover.note });
+      toast.success(pay ? `Recorded paying ${rider?.user?.name || "the rider"} ${Number(handover.amount).toLocaleString()} XAF.` : `Recorded ${Number(handover.amount).toLocaleString()} XAF from ${rider?.user?.name || "the rider"}.`);
       setHandover(null);
       load();
     } catch (err) {
@@ -131,12 +134,15 @@ export default function LogisticsRidersPage() {
         {!ridersEnabled && (
           <p className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-[11px] text-[var(--text-primary)]">Rider accounts are not switched on for your platform yet. You will be able to invite riders as soon as they are.</p>
         )}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <StatCard label="Active riders" value={counts.active || 0} icon={UserCheck} />
           <StatCard label="Online now" value={counts.online || 0} icon={Power} />
           <StatCard label="Invites waiting" value={counts.invited || 0} icon={Mail} />
           <StatCard label="Cash with riders" value={`${(counts.cash_holding || 0).toLocaleString()} XAF`} icon={Banknote} />
+          <StatCard label="Pay owed to riders" value={`${(counts.pay_owed || 0).toLocaleString()} XAF`} icon={HandCoins} />
         </div>
+
+        {ridersEnabled && <RiderPayRate />}
 
         {showInvite && (
           <form onSubmit={submitInvite} className="space-y-3 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 sm:p-5">
@@ -187,10 +193,16 @@ export default function LogisticsRidersPage() {
                     {r.status === "active" && <span className="text-[10px]">{r.availability === "offline" ? `Offline · seen ${lastSeen(r.last_seen_at)}` : r.availability === "busy" ? "On a delivery" : "Online"}</span>}
                     {r.status === "invited" && <span className="text-[10px]">{r.user?.email}</span>}
                     {r.cash?.holding > 0 && <span className="text-[10px] font-semibold text-amber-600">Holding {r.cash.holding.toLocaleString()} XAF cash</span>}
+                    {r.pay?.owed > 0 && <span className="text-[10px] font-semibold text-emerald-600">You owe {r.pay.owed.toLocaleString()} XAF pay</span>}
                   </p>
                 </div>
+                {r.pay?.owed > 0 && handover?.id !== r.id && (
+                  <button type="button" onClick={() => setHandover({ id: r.id, kind: "pay", amount: String(r.pay.owed), note: "" })} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl border border-emerald-500/40 px-3 text-[11px] font-semibold text-emerald-600">
+                    <HandCoins className="size-3.5" /> Pay rider
+                  </button>
+                )}
                 {r.cash?.holding > 0 && handover?.id !== r.id && (
-                  <button type="button" onClick={() => setHandover({ id: r.id, amount: String(r.cash.holding), note: "" })} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl border border-amber-500/40 px-3 text-[11px] font-semibold text-amber-600">
+                  <button type="button" onClick={() => setHandover({ id: r.id, kind: "cash", amount: String(r.cash.holding), note: "" })} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl border border-amber-500/40 px-3 text-[11px] font-semibold text-amber-600">
                     <Banknote className="size-3.5" /> Cash received
                   </button>
                 )}
@@ -206,7 +218,7 @@ export default function LogisticsRidersPage() {
                 )}
                 {handover?.id === r.id && (
                   <form onSubmit={recordHandover} className="flex w-full flex-wrap items-center gap-2 rounded-2xl bg-[var(--bg-secondary)] p-2.5">
-                    <input required inputMode="numeric" value={handover.amount} onChange={(e) => setHandover((h) => ({ ...h, amount: e.target.value.replace(/D/g, "") }))} aria-label="Amount received (XAF)" placeholder="Amount (XAF)" className={`${FIELD} w-36 flex-none bg-[var(--bg-primary)] tabular-nums`} />
+                    <input required inputMode="numeric" value={handover.amount} onChange={(e) => setHandover((h) => ({ ...h, amount: e.target.value.replace(/[^0-9]/g, "") }))} aria-label={handover.kind === "pay" ? "Amount paid (XAF)" : "Amount received (XAF)"} placeholder="Amount (XAF)" className={`${FIELD} w-36 flex-none bg-[var(--bg-primary)] tabular-nums`} />
                     <input value={handover.note} onChange={(e) => setHandover((h) => ({ ...h, note: e.target.value }))} aria-label="Note" placeholder="Note (optional)" className={`${FIELD} min-w-0 flex-1 bg-[var(--bg-primary)]`} />
                     <button type="submit" disabled={busyId === r.id || !Number(handover.amount)} className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-[var(--accent)] px-4 text-[12px] font-semibold text-white disabled:opacity-50">{busyId === r.id ? <Loader2 className="size-4 animate-spin" /> : null}Record</button>
                     <button type="button" onClick={() => setHandover(null)} aria-label="Cancel" className="flex size-11 items-center justify-center rounded-2xl text-[var(--text-secondary)]"><X className="size-4" /></button>

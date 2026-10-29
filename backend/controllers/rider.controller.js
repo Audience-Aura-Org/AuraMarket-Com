@@ -50,9 +50,11 @@ const listRiders = async (req, res, next) => {
       if (r.status === 'active' && r.availability !== 'offline') acc.online += 1;
       return acc;
     }, { online: 0 });
-    const cash = await riderCash.balances(agency._id);
+    const [cash, owed] = await Promise.all([riderCash.balances(agency._id), require('../services/riderEarnings.service').owedByRider(agency._id)]);
     counts.cash_holding = Object.values(cash).reduce((sum, c) => sum + c.holding, 0);
-    res.json({ success: true, data: { riders: riders.map((r) => ({ ...riderView(r), cash: cash[(r.user_id?._id || r.user_id).toString()] || null })), counts } });
+    counts.pay_owed = Object.values(owed).reduce((sum, o) => sum + o.owed, 0);
+    const key = (r) => (r.user_id?._id || r.user_id).toString();
+    res.json({ success: true, data: { riders: riders.map((r) => ({ ...riderView(r), cash: cash[key(r)] || null, pay: owed[key(r)] || null })), counts } });
   } catch (err) { next(err); }
 };
 

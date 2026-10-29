@@ -19,4 +19,8 @@ router.post('/me/deliveries/:shipmentId/status', riderStatus);
 const { reportMyLocation } = require('../controllers/liveTracking.controller');
 router.post('/me/location', reportMyLocation);
 
+const { riderSummary, riderHistory } = require('../controllers/riderEarnings.controller');
+router.get('/me/summary', riderSummary);
+router.get('/me/history', riderHistory);
+
 module.exports = router;

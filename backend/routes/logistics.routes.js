@@ -56,6 +56,10 @@ router.get('/riders', restrictTo('logistics'), listRiders);
 router.post('/riders/invite', restrictTo('logistics'), inviteRider);
 router.patch('/riders/:riderId', restrictTo('logistics'), updateRider);
 router.post('/riders/:riderId/cash-handovers', restrictTo('logistics'), recordCashHandover);
+const riderEarnings = require('../controllers/riderEarnings.controller');
+router.get('/rider-pay', restrictTo('logistics'), riderEarnings.getRiderPay);
+router.patch('/rider-pay', restrictTo('logistics'), riderEarnings.setRiderPay);
+router.post('/riders/:riderId/payouts', restrictTo('logistics'), riderEarnings.recordRiderPayout);
 router.get('/riders/report', restrictTo('logistics'), require('../controllers/logisticsReport.controller').riderReport);
 
 // ── Agency packages & shareable tracking links ──

@@ -234,9 +234,21 @@ const settleAfterStatus = async (shipmentId, status) => {
   if (!['delivered', 'failed', 'cancelled'].includes(status)) return;
   const live = await DeliveryAssignment.findOneAndUpdate(
     { shipment_id: shipmentId, active: true },
-    { $set: { status: status === 'delivered' ? 'completed' : 'cancelled', active: false, completed_at: new Date() } },
+    { $set: { status: status === 'delivered' ? 'completed' : 'cancelled', active: false, completed_at: new Date(), outcome: status } },
     { returnDocument: 'before' }
   );
+  // Record the fee and the rider's pay at today's rate, so later rate changes do not rewrite history.
+  if (live?.status === 'accepted') {
+    const [shipment, agency] = await Promise.all([
+      Shipment.findById(shipmentId).select('price').lean(),
+      LogisticsCompany.findById(live.agency_id).select('rider_pay').lean(),
+    ]);
+    const fee = Number(shipment?.price) || 0;
+    const rule = agency?.rider_pay;
+    const pay = status !== 'delivered' || !rule?.mode ? (status === 'delivered' ? null : 0)
+      : rule.mode === 'fixed' ? Math.round(rule.value || 0) : Math.round((fee * (rule.value || 0)) / 100);
+    await DeliveryAssignment.updateOne({ _id: live._id }, { $set: { delivery_fee: fee, rider_pay: pay } });
+  }
   if (live?.status === 'accepted') {
     const stillBusy = await DeliveryAssignment.exists({ rider_id: live.rider_id, status: 'accepted', active: true });
     if (!stillBusy) await RiderProfile.updateOne({ user_id: live.rider_id, availability: 'busy' }, { $set: { availability: 'online', availability_changed_at: new Date() } });

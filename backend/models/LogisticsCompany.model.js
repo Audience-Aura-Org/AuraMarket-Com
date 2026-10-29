@@ -56,6 +56,12 @@ const LogisticsCompanySchema = new mongoose.Schema(
       default: 0,
     },
     // New fields for the updated logistics system
+    // What riders earn per completed delivery: a percentage of the delivery fee or a
+    // fixed amount. Null until the agency sets it (earnings are then not shown).
+    rider_pay: {
+      mode: { type: String, enum: ['percent', 'fixed'] },
+      value: { type: Number, min: 0 },
+    },
     quartier_prices: [
       {
         quartier: { type: String, required: true },

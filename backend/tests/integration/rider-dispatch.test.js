@@ -18,7 +18,8 @@ const DeliveryAssignment = require('../../models/DeliveryAssignment.model')
 const dispatch = require('../../services/riderDispatch.service')
 
 let app
-beforeAll(() => { app = buildApp() })
+// The one-rider rule is a unique index: make sure it exists before racing offers.
+beforeAll(async () => { app = buildApp(); await DeliveryAssignment.init() })
 
 let owner, firm, otherFirm, near, far, cyclist, outsider
 const setMode = (mode) => PlatformSettings.updateOne({}, { $set: { features: { rider_accounts: true, auto_rider_dispatch: mode } } })
