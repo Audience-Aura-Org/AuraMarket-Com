@@ -11,7 +11,7 @@ const live = require('../services/liveTracking.service');
 const { isShipmentParty } = require('../utils/trackingPrivacy');
 
 const fail = (res, status, message) => res.status(status).json({ success: false, message });
-const SHIPMENT_FIELDS = '_id status booked_by other_party logistics_id';
+const SHIPMENT_FIELDS = '_id status booked_by other_party logistics_id pickup_address delivery_address';
 
 const reportMyLocation = async (req, res, next) => {
   try {

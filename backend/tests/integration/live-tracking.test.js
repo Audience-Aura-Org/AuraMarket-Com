@@ -94,3 +94,30 @@ describe('Customers see the rider', () => {
     expect(done.body.data).toMatchObject({ live: false, reason: 'not_under_way' })
   })
 })
+
+describe('Route and arrival time', () => {
+  const routing = require('../../services/routing.service')
+  afterEach(() => { vi.restoreAllMocks(); delete process.env.ORS_API_KEY })
+
+  it('shows who is coming, the road route and minutes to the drop-off, reusing a recent route', async () => {
+    process.env.ORS_API_KEY = 'test-key'
+    const ors = vi.spyOn(global, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ features: [{ geometry: { coordinates: [[9.7311, 4.0612], [9.735, 4.07], [9.7427, 4.0946]] }, properties: { summary: { distance: 4700, duration: 660 }, segments: [{ distance: 4700, duration: 660 }] } }] }),
+    })
+    await RiderProfile.updateOne({ user_id: riderUser._id }, { $set: { vehicle_plate: 'LT 123 AB', phone: '677111222' } })
+    await Shipment.updateOne({ _id: shipment._id }, { $set: { 'delivery_address.location': { lat: 4.0946, lng: 9.7427 } } })
+    await report()
+    const r = await request(app).get(`/api/v1/track/${token}/live`)
+    expect(r.body.data.rider_info).toMatchObject({ name: 'Paul', vehicle_type: 'motorcycle', vehicle_plate: 'LT 123 AB', phone: '677111222' })
+    expect(r.body.data.route).toMatchObject({ heading_to: 'dropoff', distance_km: 4.7, dropoff_eta_min: 11, pickup_eta_min: null })
+    expect(r.body.data.route.coordinates).toHaveLength(3)
+    await request(app).get(`/api/v1/track/${token}/live`)
+    expect(ors).toHaveBeenCalledTimes(1) // same position within a minute: cached
+  })
+
+  it('still says who is coming before the first GPS fix', async () => {
+    const r = await request(app).get(`/api/v1/track/${token}/live`)
+    expect(r.body.data).toMatchObject({ live: false, reason: 'no_signal', rider_info: { name: 'Paul' } })
+  })
+})

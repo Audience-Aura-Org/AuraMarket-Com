@@ -71,13 +71,44 @@ const liveForShipment = async (shipment) => {
   if (!LIVE_STATUSES.includes(shipment.status)) return { live: false, reason: 'not_under_way', status: shipment.status };
   const assignment = await DeliveryAssignment.findOne({ shipment_id: shipment._id, status: 'accepted', active: true }).select('rider_id').lean();
   if (!assignment) return { live: false, reason: 'no_rider', status: shipment.status };
-  const profile = await RiderProfile.findOne({ user_id: assignment.rider_id }).select('last_location vehicle_type').lean();
+  const profile = await RiderProfile.findOne({ user_id: assignment.rider_id }).select('last_location vehicle_type vehicle_plate phone user_id').populate('user_id', 'name').lean();
+  // Who is coming, shown even before the first GPS fix (like ride-hailing apps).
+  const who = {
+    name: String(profile?.user_id?.name || 'Your rider').trim().split(/\s+/)[0],
+    vehicle_type: profile?.vehicle_type || null,
+    vehicle_plate: profile?.vehicle_plate || null,
+    phone: profile?.phone || null,
+  };
   const loc = profile?.last_location;
-  if (!loc?.at || Date.now() - new Date(loc.at).getTime() > STALE_MS) return { live: false, reason: 'no_signal', status: shipment.status };
+  if (!loc?.at || Date.now() - new Date(loc.at).getTime() > STALE_MS) return { live: false, reason: 'no_signal', status: shipment.status, rider_info: who };
+
+  const rider = { lat: loc.lat, lng: loc.lng, accuracy_m: loc.accuracy_m ?? null, at: loc.at, vehicle_type: profile.vehicle_type };
+  return { live: true, status: shipment.status, rider, rider_info: who, route: await routeForShipment(shipment, rider) };
+};
+
+/**
+ * Road route and arrival times: before pickup the rider goes to the pickup and
+ * then the drop-off; after pickup, straight to the drop-off. Null without points
+ * or without a routing key.
+ */
+const routeForShipment = async (shipment, rider) => {
+  const { pickupPoint } = require('./riderDispatch.service');
+  const { routeFor } = require('./routing.service');
+  const toPickup = shipment.status === 'assigned';
+  const [pickup, dropoff] = await Promise.all([toPickup ? pickupPoint(shipment.pickup_address) : null, pickupPoint(shipment.delivery_address)]);
+  if (!dropoff || (toPickup && !pickup)) return null;
+  const r = await routeFor(`${shipment._id}:${toPickup ? 'pickup' : 'dropoff'}`, rider, toPickup ? [pickup, dropoff] : [dropoff]);
+  if (!r) return null;
+  const mins = (s) => Math.max(1, Math.round(s / 60));
   return {
-    live: true,
-    status: shipment.status,
-    rider: { lat: loc.lat, lng: loc.lng, accuracy_m: loc.accuracy_m ?? null, at: loc.at, vehicle_type: profile.vehicle_type },
+    heading_to: toPickup ? 'pickup' : 'dropoff',
+    coordinates: r.coordinates,
+    pickup: toPickup ? { lat: pickup.lat, lng: pickup.lng } : null,
+    dropoff: { lat: dropoff.lat, lng: dropoff.lng, approx: dropoff.approx },
+    distance_km: Math.round(r.distance_m / 100) / 10,
+    pickup_eta_min: toPickup ? mins(r.legs[0]?.duration_s ?? r.duration_s) : null,
+    dropoff_eta_min: mins(r.duration_s),
+    computed_at: new Date(),
   };
 };
 

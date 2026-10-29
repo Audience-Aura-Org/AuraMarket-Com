@@ -13,19 +13,19 @@ export const useGoogleMaps = Boolean(GOOGLE_MAPS_KEY);
 
 let loading = null;
 
-/** Resolves to { Map, AdvancedMarkerElement, InfoWindow, LatLngBounds } once the API is ready. */
+/** Resolves to { Map, AdvancedMarkerElement, InfoWindow, LatLngBounds, Polyline } once the API is ready. */
 export function loadGoogleMaps() {
   if (loading) return loading;
   loading = new Promise((resolve, reject) => {
     if (typeof window === 'undefined') return reject(new Error('Google Maps needs a browser'));
     const done = async () => {
       try {
-        const [{ Map, InfoWindow }, { AdvancedMarkerElement }, { LatLngBounds }] = await Promise.all([
+        const [{ Map, InfoWindow, Polyline }, { AdvancedMarkerElement }, { LatLngBounds }] = await Promise.all([
           google.maps.importLibrary('maps'),
           google.maps.importLibrary('marker'),
           google.maps.importLibrary('core'),
         ]);
-        resolve({ Map, AdvancedMarkerElement, InfoWindow, LatLngBounds });
+        resolve({ Map, AdvancedMarkerElement, InfoWindow, LatLngBounds, Polyline });
       } catch (e) { reject(e); }
     };
     if (window.google?.maps?.importLibrary) return done();

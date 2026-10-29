@@ -18,3 +18,5 @@ process.env.REDIS_SOCKET_ENABLED     = 'false'
 // Disable the in-memory cache for all integration/concurrency tests so that
 // tests never see stale cached responses from a previous test in the same run.
 process.env.DISABLE_CACHE            = 'true'
+// Never call the real routing service from tests (dotenv does not override a set value).
+process.env.ORS_API_KEY              = ''
