@@ -9,6 +9,9 @@ const routes = [
   ['app/api', '.capacitor-disabled-routes/api'],
   ['app/uploads', '.capacitor-disabled-routes/uploads'],
   ['app/admin', '.capacitor-disabled-routes/admin'],
+  // Search-engine files fetch live data at request time; the app has no use for them.
+  ['app/sitemap.js', '.capacitor-disabled-routes/sitemap.js'],
+  ['app/robots.js', '.capacitor-disabled-routes/robots.js'],
   ['public/downloads/Auradime.apk', '.capacitor-disabled-routes/Auradime.apk'],
 ];
 

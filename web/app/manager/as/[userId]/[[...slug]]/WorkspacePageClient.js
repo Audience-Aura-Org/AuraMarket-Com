@@ -20,7 +20,7 @@ import { EmptyState, Skeleton } from '@/components/manager/ui';
  *    for everything rendered below, so role/onboarding checks in the
  *    embedded pages pass and they never touch the manager's own session.
  */
-export default function WorkspacePage() {
+export default function WorkspacePageClient() {
   const { userId, slug } = useParams();
   const actAsId = useManagerMode((s) => s.actAsId);
   const pageSlug = Array.isArray(slug) && slug.length ? slug.join('/') : slug || 'dashboard';
