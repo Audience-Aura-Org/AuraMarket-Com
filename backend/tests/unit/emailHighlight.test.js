@@ -36,3 +36,21 @@ describe('notification email highlight', () => {
     expect(long.endsWith('…')).toBe(true);
   });
 });
+
+describe('Sender name and inbox preview', () => {
+  const t = require('../../utils/emailTemplates')
+  it('names the sender after what the email is about', () => {
+    expect(t.emailCategory({ subject: '762398 is your Auradime verification code' })).toBe('Security')
+    expect(t.emailCategory({ category: 'deposit', subject: 'x' })).toBe('Deposits')
+    expect(t.emailCategory({ category: 'withdrawal' })).toBe('Withdrawals')
+    expect(t.emailCategory({ subject: 'Delivery AURA-K7Q2M9XP — Package on the way' })).toBe('Delivery')
+    expect(t.emailCategory({ category: 'order_status' })).toBe('Orders')
+    expect(t.emailCategory({ subject: '🎉 Welcome to Auradime' })).toBeNull()
+  })
+  it('puts the code first in the verification email preview', () => {
+    const otp = t.otpEmail({ otp: '762398', email: 'a@x.cm' })
+    expect(otp.subject).toBe('762398 is your Auradime verification code')
+    expect(otp.text.startsWith('762398 is your verification code')).toBe(true)
+    expect(t.preheaderHtml(otp.text)).toContain('762398 is your verification code')
+  })
+})

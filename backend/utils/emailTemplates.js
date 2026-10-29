@@ -199,11 +199,39 @@ const wrap = (title, heading, body) => `
  */
 const PREHEADER_PAD = '&#847;&zwnj;&nbsp;'.repeat(40); // stops clients pulling body text into the preview
 
+/** Hidden first line that inboxes and phone notifications show as the preview. */
+const preheaderHtml = (text) => `<div style="display:none;font-size:1px;color:${COLORS.bgOuter};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escapeHtml(String(text || '').replace(/\s+/g, ' ').trim().slice(0, 200))}${PREHEADER_PAD}</div>`;
+
+/* ─── What an email is about ───
+ * Gives the sender name ("Auradime Security") and the header line, from the
+ * notification type when known, else from the subject. Order matters: the
+ * first match wins.
+ */
+const EMAIL_CATEGORIES = [
+  ['Security', /security|verif|code|password|sign.?in|log.?in|otp/i],
+  ['Deposits', /deposit|top.?up/i],
+  ['Withdrawals', /withdraw|payout/i],
+  ['Refunds', /refund/i],
+  ['Subscriptions', /subscription|plan|trial/i],
+  ['Payments', /payment|wallet|paid|charge|receipt|transaction/i],
+  ['Messages', /message|chat|replied|reply/i],
+  ['Delivery', /deliver|shipment|logistics|p2p|tracking|rider|pickup|package|parcel/i],
+  ['Orders', /order|purchase|dispute|escrow/i],
+];
+const emailCategory = ({ category, subject } = {}) => {
+  for (const source of [category, subject]) {
+    if (!source) continue;
+    const hit = EMAIL_CATEGORIES.find(([, re]) => re.test(String(source)));
+    if (hit) return hit[0];
+  }
+  return null;
+};
+
 const withNotificationHighlight = (html, { message } = {}) => {
   if (!html || !message) return html;
   const text = String(message).trim();
   const escaped = escapeHtml(text);
-  const preheader = `<div style="display:none;font-size:1px;color:${COLORS.bgOuter};line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">${escaped}${PREHEADER_PAD}</div>`;
+  const preheader = preheaderHtml(text);
 
   const sender = text.match(/^([^:\n]{1,60}):\s+([\s\S]+)$/);
   const block = html.includes(escaped) ? '' : sender
@@ -266,7 +294,7 @@ const passwordReset = ({ user, resetLink, webUrl }) => {
 };
 
 const otpEmail = ({ otp, email, expiresMinutes = 10 }) => {
-  const subject = 'Your Auradime verification code';
+  const subject = `${otp} is your Auradime verification code`;
   const body = `
     <p>Use this code to verify <strong>${email}</strong> and continue into Auradime.</p>
 
@@ -278,7 +306,8 @@ const otpEmail = ({ otp, email, expiresMinutes = 10 }) => {
     <p>If you did not request this code, you can safely ignore this email.</p>
   `;
   const html = wrap(subject, 'Verify your email', body);
-  return { subject, html, text: `Your Auradime verification code is ${otp}. It expires in ${expiresMinutes} minutes.` };
+  // Code first: it is what the phone notification and inbox preview show.
+  return { subject, html, text: `${otp} is your verification code for ${email}. It expires in ${expiresMinutes} minutes.` };
 };
 
 /* ─── Shared order / logistics helpers ─── */
@@ -844,6 +873,8 @@ const adminNotification = ({ title, message, orderDetails, metadata, link, webUr
 };
 
 module.exports = {
+  preheaderHtml,
+  emailCategory,
   welcomeEmail,
   otpEmail,
   passwordReset,

@@ -26,6 +26,10 @@ const SENDER_ADDRESS = EMAIL_FROM || EMAIL_USER || 'hello@auradime.com';
 const FROM_HEADER = SENDER_ADDRESS.includes('<')
   ? SENDER_ADDRESS
   : `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${SENDER_ADDRESS}>`;
+const BARE_SENDER = (SENDER_ADDRESS.match(/<([^>]+)>/) || [null, SENDER_ADDRESS])[1].trim();
+const BRAND_NAME = (EMAIL_FROM_NAME || 'Auradime').replace(/"/g, '');
+// "Auradime Security" <noreply@…> for a verification code, "Auradime Deposits" for a deposit…
+const fromFor = (label, address = BARE_SENDER) => (label ? `"${BRAND_NAME} ${label}" <${address}>` : FROM_HEADER.includes('<') && address === BARE_SENDER ? FROM_HEADER : `"${BRAND_NAME}" <${address}>`);
 // Replies to a no-reply sender should still reach a monitored inbox.
 const DEFAULT_REPLY_TO = EMAIL_REPLY_TO || EMAIL_USER || undefined;
 
@@ -99,8 +103,17 @@ const brandHtml = (html, subject) => {
   return wrap(heading, heading, html);
 };
 
-const sendEmail = async ({ to, subject, html: rawHtml, text, replyTo }) => {
-  const html = brandHtml(rawHtml, subject);
+const sendEmail = async ({ to, subject, html: rawHtml, text, replyTo, category }) => {
+  const { emailCategory, preheaderHtml } = require('./emailTemplates');
+  const label = emailCategory({ category, subject });
+  let html = brandHtml(rawHtml, subject);
+  if (html) {
+    // Inbox / notification preview: the email's own message, not the header text.
+    html = html.replace('<!--AURA_PREHEADER-->', preheaderHtml(text || subject));
+    // Header line under the logo says what the email is about.
+    if (label) html = html.replace('Commerce &bull; logistics &bull; fulfilment', label);
+  }
+  const FROM = fromFor(label);
   if (RESEND_API_KEY) {
     try {
       const response = await fetchWithTimeout('https://api.resend.com/emails', {
@@ -110,7 +123,7 @@ const sendEmail = async ({ to, subject, html: rawHtml, text, replyTo }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: FROM_HEADER,
+          from: FROM,
           to: Array.isArray(to) ? to : [to],
           subject,
           html,
@@ -138,7 +151,7 @@ const sendEmail = async ({ to, subject, html: rawHtml, text, replyTo }) => {
   }
 
   const message = {
-    from:    FROM_HEADER,
+    from:    FROM,
     to:      Array.isArray(to) ? to.join(', ') : to,
     subject,
     html,
@@ -154,7 +167,7 @@ const sendEmail = async ({ to, subject, html: rawHtml, text, replyTo }) => {
       // not an alias of the login mailbox. Deliver from the login mailbox rather than drop it.
       if (err.responseCode !== 553 || !EMAIL_USER || SENDER_ADDRESS.includes(EMAIL_USER)) throw err;
       console.error(`⚠️  Sender ${SENDER_ADDRESS} rejected by SMTP; add it as an alias of ${EMAIL_USER}. Retrying from ${EMAIL_USER}.`);
-      info = await transporter.sendMail({ ...message, from: `"${EMAIL_FROM_NAME || 'Aura Dime'}" <${EMAIL_USER}>` });
+      info = await transporter.sendMail({ ...message, from: fromFor(label, EMAIL_USER) });
     }
 
     console.log(`📧 Email sent → ${to} | Subject: "${subject}" | MsgId: ${info.messageId}`);

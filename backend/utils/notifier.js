@@ -434,6 +434,7 @@ const sendNotification = async (app, recipientId, data) => {
               subject: templates.notificationSubject(localizedTitle, localizedMessage),
               text: [localizedMessage, emailTemplate?.text].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join('\n\n') || localizedTitle,
               html: templates.withNotificationHighlight(html, { message: localizedMessage }),
+              category: type,
               role: role || 'user'
             });
 
