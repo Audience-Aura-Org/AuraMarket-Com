@@ -91,6 +91,8 @@ router.use('/restaurant', restaurantRoutes);           // GET/POST/PATCH /api/re
 router.use('/reservations', reservationRoutes);        // Phase 3 Step 14 — dine-in reservations
 router.use('/locations', publicLimiter, require('./location.routes'));   // Location search & pin → zone
 router.use('/features', publicLimiter, cacheResponse({ ttlSeconds: 30 }), require('./feature.routes')); // Rollout flags
+// Android app update check: GET /app/version?v=<installed version>
+router.get('/app/version', publicLimiter, (req, res) => res.json({ success: true, data: require('../utils/appVersion').statusFor(String(req.query.v || '').slice(0, 20)) }));
 router.use('/whatsapp', require('./whatsapp.routes'));             // WhatsApp webhook + opt-in
 router.use('/track', require('./track.routes'));                   // Secure tracking links
 router.use('/riders', require('./rider.routes'));                 // Rider self-service

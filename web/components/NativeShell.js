@@ -1,13 +1,14 @@
 'use client';
 /**
  * Android app chrome: status bar colour, hiding the launch splash once the first
- * screen has painted, and an offline bar. Renders nothing in browsers.
+ * screen has painted, an offline bar, and the update prompt. Renders nothing in browsers.
  * (Browser behaviours such as text selection and overscroll are switched off in
  * CSS under html.native-app, set before first paint in app/layout.js.)
  */
 import { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { WifiOff } from 'lucide-react';
+import AppUpdatePrompt from './AppUpdatePrompt';
 
 export default function NativeShell() {
   const [native, setNative] = useState(false);
@@ -46,10 +47,15 @@ export default function NativeShell() {
     };
   }, []);
 
-  if (!native || !offline) return null;
+  if (!native) return null;
   return (
-    <div role="status" className="fixed inset-x-0 top-0 z-[200] flex items-center justify-center gap-2 bg-[#0a050a] px-4 py-2 text-[12px] font-semibold text-white" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
-      <WifiOff className="size-4" /> No internet connection. Some content may be out of date.
-    </div>
+    <>
+      <AppUpdatePrompt />
+      {offline && (
+        <div role="status" className="fixed inset-x-0 top-0 z-[200] flex items-center justify-center gap-2 bg-[#0a050a] px-4 py-2 text-[12px] font-semibold text-white" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
+          <WifiOff className="size-4" /> No internet connection. Some content may be out of date.
+        </div>
+      )}
+    </>
   );
 }

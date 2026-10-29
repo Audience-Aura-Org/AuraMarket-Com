@@ -93,6 +93,7 @@ const subscribe = async (req, res, next) => {
 const saveNativeToken = async (req, res, next) => {
   try {
     const { token, platform = 'android', device_type = 'android' } = req.body;
+    const appVersion = /^\d+\.\d+(\.\d+)?$/.test(String(req.body.app_version || '')) ? String(req.body.app_version) : null;
     const cleanToken = String(token || '').trim();
 
     if (!cleanToken || platform !== 'android') {
@@ -114,6 +115,7 @@ const saveNativeToken = async (req, res, next) => {
         channel: 'android',
         fcm_token: cleanToken,
         device_type,
+        app_version: appVersion,
         subscription: {
           endpoint: `fcm:${cleanToken}`,
           keys: {

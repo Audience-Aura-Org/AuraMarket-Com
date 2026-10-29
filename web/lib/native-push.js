@@ -107,10 +107,13 @@ export async function registerNativeAndroidPush() {
       if (!value) return;
       saveNativePushToken(value);
       try {
+        // The app version lets the server tell outdated installs to update.
+        const appVersion = await import('@capacitor/app').then(({ App }) => App.getInfo()).then((i) => i.version).catch(() => null);
         await api.post('/push/native-token', {
           token: value,
           platform: 'android',
           device_type: 'android',
+          app_version: appVersion,
         }, { __skipRetry: true });
         console.log('✅ [FCM] Android push token synchronized.');
       } catch (error) {

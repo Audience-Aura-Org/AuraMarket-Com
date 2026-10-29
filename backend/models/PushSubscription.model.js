@@ -26,7 +26,15 @@ const PushSubscriptionSchema = new mongoose.Schema({
     type: String,
     enum: ['mobile', 'desktop', 'tablet', 'android'],
     default: 'mobile'
-  }
+  },
+  // Android app version that registered this token (e.g. "1.7.1"). Null means an
+  // app older than 1.7.1, which did not report it: scripts/notify-app-update.js
+  // asks those users to update.
+  app_version: {
+    type: String,
+    default: null,
+    maxlength: 20,
+  },
 }, { timestamps: true });
 
 // Ensure one subscription per device/endpoint for a user
