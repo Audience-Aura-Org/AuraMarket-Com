@@ -21,6 +21,7 @@ import { hasPendingPushIntent } from '@/lib/native-push';
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
 import { AnimatePresence } from 'framer-motion';
 import NativeShell from '@/components/NativeShell';
+import RiderInviteBanner from '@/components/rider/RiderInviteBanner';
 
 // Heavy sidebar & overlay — deferred until after hydration
 const CartSidebar = dynamic(() => import('@/components/CartSidebar'), { ssr: false });
@@ -171,6 +172,7 @@ export default function Providers({ children }) {
 
           {/* Android app chrome: status bar, splash, offline bar (nothing in browsers) */}
           <NativeShell />
+          {!isAuthRoute && <RiderInviteBanner />}
 
           {/* Global chat overlay — deferred, heavy */}
           {!isAuthRoute && <GlobalChatOverlay />}

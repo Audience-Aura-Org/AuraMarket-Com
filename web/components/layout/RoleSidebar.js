@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useRiderProfile } from '@/lib/riderProfile';
 import { useTheme } from "@/context/ThemeContext";
 import { useNotifications } from '@/hooks/useNotifications';
 import { useChat } from '@/context/ChatContext';
@@ -157,6 +158,9 @@ export default function RoleSidebar({ role: roleProp, isOpen, onClose }) {
   // only shows them the section links on shared dashboard pages.
   const role = roleProp;
   const config = ROLE_CONFIG[role] || ROLE_CONFIG.customer;
+  const rider = useRiderProfile();
+  // Riders (customer accounts with a rider profile) get their delivery page in the menu.
+  const riderNav = rider && ['invited', 'active'].includes(rider.status) ? [{ icon: 'two_wheeler', label: rider.status === 'invited' ? 'Rider invitation' : 'Rider', href: '/rider' }] : [];
 
   // Detect restaurant vendors to show Kitchen / Meals links
   const [isRestaurantVendor, setIsRestaurantVendor] = useState(false);
@@ -281,7 +285,7 @@ export default function RoleSidebar({ role: roleProp, isOpen, onClose }) {
           {/* Main Navigation
               For restaurant vendors, drop generic "Products" — My Meals covers it.
               Normal retail/digital vendors keep the full VENDOR_NAV unchanged. */}
-          {groupSidebarItems([...(isRestaurantVendor ? config.nav.filter(i => i.label !== 'Products') : config.nav), ...ACCOUNT_NAV]).map(item => {
+          {groupSidebarItems([...(isRestaurantVendor ? config.nav.filter(i => i.label !== 'Products') : [...config.nav.slice(0, 1), ...riderNav, ...config.nav.slice(1)]), ...ACCOUNT_NAV]).map(item => {
             const itemPath = item.href.split('?')[0];
             
             // Re-evaluating isActive more simply for the profile tabs

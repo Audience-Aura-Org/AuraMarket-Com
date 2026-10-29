@@ -11,6 +11,7 @@ import { toast } from "react-hot-toast";
 import api from "@/services/api";
 import { useAuthStore } from "@/hooks/useAuth";
 import RiderDeliveries from "@/components/rider/RiderDeliveries";
+import { refreshRiderProfile } from "@/lib/riderProfile";
 
 const VEHICLE_LABEL = { motorcycle: "Motorcycle", bicycle: "Bicycle", car: "Car", van: "Van", on_foot: "On foot" };
 
@@ -22,7 +23,7 @@ export default function RiderPage() {
 
   useEffect(() => {
     if (!hasHydrated) return;
-    if (!user) { if (!authChecked) fetchMe(); else router.replace("/login?from=rider"); }
+    if (!user) { if (!authChecked) fetchMe(); else router.replace("/login?redirect=/rider"); }
   }, [hasHydrated, authChecked, user, fetchMe, router]);
 
   const load = useCallback(async () => {
@@ -37,7 +38,7 @@ export default function RiderPage() {
 
   const act = async (fn, success) => {
     setBusy(true);
-    try { await fn(); if (success) toast.success(success); await load(); }
+    try { await fn(); if (success) toast.success(success); await load(); refreshRiderProfile(); }
     catch (err) { toast.error(err?.response?.data?.message || "Something went wrong. Please try again."); }
     finally { setBusy(false); }
   };
@@ -84,7 +85,7 @@ export default function RiderPage() {
       {agencyCard}
       <div className="space-y-3 rounded-3xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-4">
         <p className="text-[13px] font-semibold">{rider.agency?.name || "An agency"} invited you to deliver for them</p>
-        <p className="text-[11px] text-[var(--text-secondary)]">If you accept, they can assign you deliveries. Your location is only shared while you are on a delivery.</p>
+        <p className="text-[11px] text-[var(--text-secondary)]">If you accept, they can assign you deliveries. Your location is shared only while you are online or on a delivery, never when you are offline.</p>
         <div className="grid grid-cols-2 gap-2">
           <button type="button" disabled={busy} onClick={() => act(() => api.post("/riders/me/decline"), "Invitation declined.")} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border border-[var(--glass-border)] text-[12px] font-semibold disabled:opacity-50"><X className="size-4" /> Decline</button>
           <button type="button" disabled={busy} onClick={() => act(() => api.post("/riders/me/accept"), "Welcome to the team!")} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl bg-[var(--accent)] text-[12px] font-semibold text-white disabled:opacity-50">{busy ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Accept</button>

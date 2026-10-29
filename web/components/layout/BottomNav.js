@@ -5,8 +5,9 @@ import { haptic } from "@/lib/haptics";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Compass, User, Utensils, Store, Activity, LayoutDashboard, Lock
+  Compass, User, Utensils, Store, Activity, LayoutDashboard, Lock, Bike
 } from "lucide-react";
+import { useRiderProfile } from '@/lib/riderProfile';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useChat } from '@/context/ChatContext';
 import { motion } from "framer-motion";
@@ -18,6 +19,7 @@ export default function BottomNav() {
   const { user } = useAuthStore();
   const { isOpen: chatOpen } = useChat();
   const { t } = useLanguage();
+  const rider = useRiderProfile();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -54,9 +56,13 @@ export default function BottomNav() {
     { label: t('bottomNav.profile',   'Profile'),   href: "/profile",               icon: User,       locked: true  },
   ];
 
+  // Riders are customer accounts: their delivery page takes the Vendors slot.
+  const isRider = rider && ['invited', 'active'].includes(rider.status);
   const customerMenu = [
     { label: t('bottomNav.discovery', 'Discovery'), href: "/shop",                  icon: Compass  },
-    { label: t('bottomNav.vendors',   'Vendors'),   href: "/discovery?tab=vendors", icon: Store    },
+    isRider
+      ? { label: t('bottomNav.rider', 'Rider'), href: "/rider", icon: Bike, dot: rider.status === 'invited' }
+      : { label: t('bottomNav.vendors',   'Vendors'),   href: "/discovery?tab=vendors", icon: Store    },
     { label: t('bottomNav.dine',      'Dine'),      href: "/dine",                  icon: Utensils },
     { label: t('bottomNav.stories',   'Stories'),   href: "/discovery?tab=status",  icon: Activity },
     { label: t('bottomNav.profile',   'Profile'),   href: "/profile",               icon: User     },
@@ -111,6 +117,7 @@ export default function BottomNav() {
                   }`}
                 >
                   <Icon className="size-5 shrink-0 stroke-2 transition-colors" />
+                  {item.dot && <span className="absolute right-0.5 top-0.5 size-2.5 rounded-full border-2 border-[var(--bg-primary)] bg-rose-500" aria-label="Invitation waiting" />}
                   {locked && (
                     <span className="absolute -top-0.5 -right-0.5 bg-[var(--bg-secondary)] rounded-full p-[2px]">
                       <Lock className="size-2.5 text-[var(--text-secondary)] opacity-60" />

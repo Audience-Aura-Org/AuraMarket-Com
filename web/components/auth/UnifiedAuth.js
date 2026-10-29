@@ -125,8 +125,10 @@ export default function UnifiedAuth({ signupOnly = false } = {}) {
     if (typeof window !== 'undefined') {
       try {
         const params = new URLSearchParams(window.location.search);
-        const redirectUrl = params.get('redirect');
-        if (redirectUrl && redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
+        // ?redirect=/path, or ?from=path (older links, sometimes without the slash).
+        const raw = params.get('redirect') || params.get('from');
+        const redirectUrl = raw && !raw.startsWith("/") && /^[\w-]/.test(raw) ? "/" + raw : raw;
+        if (redirectUrl && redirectUrl.startsWith("/") && !redirectUrl.startsWith("//") && !/^\/(login|signup|onboarding)\b/.test(redirectUrl)) {
           destination = redirectUrl;
         }
       } catch (e) {
