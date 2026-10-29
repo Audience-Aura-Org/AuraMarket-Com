@@ -315,7 +315,8 @@ function TrackContent() {
           <div className="space-y-8">
 
             {/* ── ETA Countdown (top) ─────────────────────────────── */}
-            {eta && !isTerminal && (() => {
+            {/* Rough estimate only until a rider accepts; then the live route gives the real time. */}
+            {eta && shipment.status === 'pending' && (() => {
               const cd = countdown(eta);
               const isOverdue = cd?.overdue;
               const parts = cd && !isOverdue ? cd.text.split(' ') : [];

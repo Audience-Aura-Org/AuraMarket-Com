@@ -90,6 +90,9 @@ export default function ShipmentStatusModal({
   onClose,
   onBack,
   onSubmit,
+  // Shown at the top of the status form, where the agency decides what happens next
+  // (the Manifests page passes the rider assignment panel).
+  riderPanel = null,
 }) {
   const { openChat } = useChat();
   const [messages, setMessages] = useState([]);
@@ -838,6 +841,7 @@ export default function ShipmentStatusModal({
 
             return (
               <form onSubmit={onSubmit} className={`space-y-4 ${embedded ? "mx-auto max-w-4xl" : ""}`}>
+                {riderPanel}
                 {/* Current status + last update indicator */}
                 <div className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--glass-border)]/40 bg-[var(--bg-primary)]/50 px-4 py-3">
                   <div className="flex items-center gap-3">
@@ -903,27 +907,6 @@ export default function ShipmentStatusModal({
                   />
                 </div>
 
-                {/* ETA field */}
-                <div className="space-y-1.5">
-                  <label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50 ml-1">
-                    <Clock className="size-3" /> Estimated Delivery
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="datetime-local"
-                      value={updateData.estimated_delivery || ""}
-                      onChange={(e) => setUpdateData({ ...updateData, estimated_delivery: e.target.value })}
-                      className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 py-3 pr-10 text-[13px] font-bold outline-none ring-[var(--accent)]/20 focus:ring-4 focus:border-[var(--accent)]/30 transition-all"
-                    />
-                    <Clock className="pointer-events-none absolute right-3.5 top-1/2 size-4 -translate-y-1/2 opacity-20" />
-                  </div>
-                  {shipment.estimated_delivery && (
-                    <p className="text-[10px] text-[var(--text-secondary)] opacity-40 ml-1">
-                      Current: {new Date(shipment.estimated_delivery).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                    </p>
-                  )}
-                </div>
-
                 {/* Conditional: Delivered fields */}
                 {updateData.status === "delivered" && (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] p-4">
@@ -968,7 +951,7 @@ export default function ShipmentStatusModal({
                 {/* Submit */}
                 <button
                   type="submit"
-                  disabled={updating || (updateData.status === currentStatus && !updateData.note && !updateData.estimated_delivery)}
+                  disabled={updating || (updateData.status === currentStatus && !updateData.note)}
                   className="group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl bg-[var(--accent)] px-6 py-4 transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-[var(--accent)]/20"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />

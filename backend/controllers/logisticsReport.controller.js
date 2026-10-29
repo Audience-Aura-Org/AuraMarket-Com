@@ -9,6 +9,8 @@ const RiderProfile = require('../models/RiderProfile.model');
 const Shipment = require('../models/Shipment.model');
 const { agencyReport } = require('../services/riderReport.service');
 const { pickupPoint } = require('../services/riderDispatch.service');
+const DeliveryAssignment = require('../models/DeliveryAssignment.model');
+const { routeForShipment } = require('../services/liveTracking.service');
 
 const FRESH_MS = 10 * 60 * 1000;
 const UNDER_WAY = ['pending', 'assigned', 'picked_up', 'in_transit', 'out_for_delivery'];
@@ -40,13 +42,28 @@ const liveMap = async (req, res, next) => {
       return centres.get(key);
     };
     const points = await Promise.all(shipments.map((s) => Promise.all([pointOf(s.pickup_address), pointOf(s.delivery_address)])));
+    // Each busy rider's current job and road route (same cached route as the
+    // customer's tracking page, so watching both costs no extra routing calls).
+    const riders = profiles.filter((p) => p.user_id);
+    const busyIds = riders.filter((p) => p.availability === 'busy').map((p) => p.user_id._id);
+    const jobs = busyIds.length ? await DeliveryAssignment.find({ rider_id: { $in: busyIds }, status: 'accepted', active: true })
+      .populate('shipment_id', 'tracking_code status pickup_address delivery_address').lean() : [];
+    const jobBy = new Map(jobs.filter((j) => j.shipment_id).map((j) => [j.rider_id.toString(), j.shipment_id]));
+    const routes = await Promise.all(riders.map(async (p) => {
+      const job = jobBy.get(p.user_id._id.toString());
+      if (!job) return null;
+      const r = await routeForShipment(job, { lat: p.last_location.lat, lng: p.last_location.lng }).catch(() => null);
+      return { tracking_code: job.tracking_code, status: job.status, route: r && { heading_to: r.heading_to, coordinates: r.coordinates, eta_min: r.heading_to === 'pickup' ? r.pickup_eta_min : r.dropoff_eta_min, distance_km: r.distance_km } };
+    }));
+
     res.json({
       success: true,
       data: {
-        riders: profiles.filter((p) => p.user_id).map((p) => ({
+        riders: riders.map((p, i) => ({
           rider_id: p.user_id._id, name: p.user_id.name, agency: p.agency_id?.company_name || null,
           availability: p.availability, vehicle_type: p.vehicle_type,
           lat: p.last_location.lat, lng: p.last_location.lng, at: p.last_location.at,
+          job: routes[i],
         })),
         deliveries: shipments.map((s, i) => ({
           id: s._id, tracking_code: s.tracking_code, status: s.status, type: s.type || 'order',

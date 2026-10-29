@@ -24,6 +24,7 @@ export default function GoogleFleetMap({ riders = [], deliveries = [], className
   const info = useRef(null);
   const points = useRef([]);
   const riderMarkers = useRef(new Map());
+  const routeLinesRef = useRef([]);
   const fitted = useRef(false);
   const [ready, setReady] = useState(false);
 
@@ -38,9 +39,11 @@ export default function GoogleFleetMap({ riders = [], deliveries = [], className
     }).catch(() => {});
     return () => {
       cancelled = true;
+      fitted.current = false; // a new map must be framed again
       riderMarkers.current.forEach((v) => v.remove());
       riderMarkers.current.clear();
       points.current.forEach((p) => { p.map = null; });
+      routeLinesRef.current.forEach((l) => l.setMap(null));
       map.current = null;
     };
   }, []);
@@ -64,6 +67,19 @@ export default function GoogleFleetMap({ riders = [], deliveries = [], className
         bounds.extend({ lat: pt.lat, lng: pt.lng });
       }
     }
+    // Each busy rider's road route: white casing under a line in the rider's colour.
+    routeLinesRef.current.forEach((l) => l.setMap(null));
+    routeLinesRef.current = [];
+    for (const r of riders) {
+      const path = (r.job?.route?.coordinates || []).map(([lng, lat]) => ({ lat, lng }));
+      if (path.length < 2) continue;
+      const color = r.availability === 'busy' ? '#d97706' : '#2563eb';
+      routeLinesRef.current.push(
+        new lib.current.Polyline({ map: m, path, strokeColor: '#ffffff', strokeWeight: 7, zIndex: 1 }),
+        new lib.current.Polyline({ map: m, path, strokeColor: color, strokeWeight: 4, strokeOpacity: 0.9, zIndex: 2 }),
+      );
+      path.forEach((pt) => bounds.extend(pt));
+    }
     const seen = new Set();
     for (const r of riders) {
       const id = String(r.rider_id);
@@ -72,7 +88,7 @@ export default function GoogleFleetMap({ riders = [], deliveries = [], className
       let v = riderMarkers.current.get(id);
       if (!v) {
         v = createGoogleVehicleMarker(AdvancedMarkerElement, m, { vehicle: r.vehicle_type, color, label: r.name }).moveTo(r);
-        open(v.marker, `<strong>${esc(r.name)}</strong><br>${esc(r.agency || '')}<br>${r.availability === 'busy' ? 'On a delivery' : 'Free'} · ${esc(r.vehicle_type?.replace('_', ' '))}`);
+        open(v.marker, `<strong>${esc(r.name)}</strong><br>${esc(r.agency || '')}<br>${r.availability === 'busy' ? 'On a delivery' : 'Free'} · ${esc(r.vehicle_type?.replace('_', ' '))}${r.job ? `<br><strong>${esc(r.job.tracking_code)}</strong> · ${r.job.route ? `${r.job.route.heading_to === 'pickup' ? 'to pickup' : 'to drop-off'} in ${r.job.route.eta_min} min (${r.job.route.distance_km} km)` : esc(r.job.status.replace(/_/g, ' '))}` : ''}`);
         riderMarkers.current.set(id, v);
       } else {
         v.setColor(color).moveTo(r);

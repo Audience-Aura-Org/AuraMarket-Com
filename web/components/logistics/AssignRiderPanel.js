@@ -14,7 +14,7 @@ const AVAIL = { online: "Online", busy: "On a delivery", offline: "Offline" };
 
 const secondsLeft = (iso) => Math.max(0, Math.round((new Date(iso).getTime() - Date.now()) / 1000));
 
-export default function AssignRiderPanel({ shipment, onChanged }) {
+export default function AssignRiderPanel({ shipment, onChanged, inline = false }) {
   const enabled = useFeatureFlag("rider_accounts");
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(null);
@@ -51,7 +51,7 @@ export default function AssignRiderPanel({ shipment, onChanged }) {
   const suggested = data.suggested && data.riders.find((r) => String(r.user_id) === String(data.suggested.rider_id));
 
   return (
-    <div className="mx-4 mt-3 space-y-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3 md:mx-8">
+    <div className={`space-y-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-3 ${inline ? "" : "mx-4 mt-3 md:mx-8"}`}>
       <p className="flex items-center gap-2 text-[12px] font-semibold text-[var(--text-primary)]"><Bike className="size-4 text-[var(--accent)]" /> Rider</p>
 
       {data.live ? (

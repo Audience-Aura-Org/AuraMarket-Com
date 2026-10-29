@@ -78,7 +78,7 @@ export default function LogisticsManifestsPage() {
   const [statusFilter, setStatusFilter]     = useState("all");
   const [sortBy, setSortBy]                 = useState("order_placed");
   const [updateData, setUpdateData]         = useState({
-    status: "pending", note: "", proof_image: "", failure_reason: "", receiver_name: "", estimated_delivery: "",
+    status: "pending", note: "", proof_image: "", failure_reason: "", receiver_name: "",
   });
 
   const fetchManifests = useCallback(async (opts = {}) => {
@@ -126,7 +126,6 @@ export default function LogisticsManifestsPage() {
       proof_image: shipment.proof_of_delivery?.image_url || "",
       failure_reason: shipment.failure_reason || "",
       receiver_name: shipment.proof_of_delivery?.receiver_name || "",
-      estimated_delivery: shipment.estimated_delivery ? new Date(shipment.estimated_delivery).toISOString().slice(0, 16) : "",
     });
   }, []);
 
@@ -240,10 +239,10 @@ export default function LogisticsManifestsPage() {
           ) : selectedShipment ? (
             <div className="flex h-full min-h-0 flex-1 flex-col animate-in fade-in slide-in-from-bottom-3 duration-500">
               <ShareTrackingLink shipment={selectedShipment} />
-              <AssignRiderPanel shipment={selectedShipment} />
               <ShipmentStatusModal
                 embedded open
                 shipment={selectedShipment}
+                riderPanel={<AssignRiderPanel shipment={selectedShipment} inline />}
                 updateData={updateData}
                 setUpdateData={setUpdateData}
                 updating={updating}

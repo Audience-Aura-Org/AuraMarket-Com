@@ -112,4 +112,4 @@ const routeForShipment = async (shipment, rider) => {
   };
 };
 
-module.exports = { reportLocation, liveForShipment, LIVE_STATUSES, STALE_MS };
+module.exports = { reportLocation, liveForShipment, routeForShipment, LIVE_STATUSES, STALE_MS };
