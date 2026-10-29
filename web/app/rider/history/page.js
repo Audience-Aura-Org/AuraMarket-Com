@@ -5,11 +5,11 @@
  * collected. Filter by outcome and dates; "Load more" pages by cursor.
  */
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Banknote, CheckCircle2, CircleAlert, Loader2, PackageOpen, XCircle } from "lucide-react";
+import { Banknote, History, CheckCircle2, CircleAlert, Loader2, PackageOpen, XCircle } from "lucide-react";
 import api from "@/services/api";
 import { useAuthStore } from "@/hooks/useAuth";
+import RiderPageHeader, { RIDER_PAGE } from "@/components/rider/RiderPageHeader";
 
 const OUTCOMES = [["", "All"], ["delivered", "Delivered"], ["failed", "Couldn't deliver"], ["cancelled", "Cancelled"]];
 const ICON = {
@@ -48,14 +48,8 @@ export default function RiderHistoryPage() {
   useEffect(() => { if (user) load(); }, [user, load]);
 
   return (
-    <div className="mx-auto w-full max-w-2xl space-y-4 px-4 py-5 pb-32 text-[var(--text-primary)]">
-      <div className="flex items-center gap-3">
-        <Link href="/rider" aria-label="Back to Rider" className="flex size-10 items-center justify-center rounded-xl border border-[var(--glass-border)]"><ArrowLeft className="size-4" /></Link>
-        <div>
-          <h1 className="text-[17px] font-bold">My deliveries</h1>
-          <p className="text-[11px] text-[var(--text-secondary)]">Everything you finished, newest first.</p>
-        </div>
-      </div>
+    <div className={RIDER_PAGE}>
+      <RiderPageHeader icon={History} title="My deliveries" subtitle="Everything you finished, newest first." />
 
       <div className="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1" role="tablist" aria-label="Outcome">
         {OUTCOMES.map(([key, label]) => (
@@ -63,9 +57,10 @@ export default function RiderHistoryPage() {
             className={`min-h-9 shrink-0 rounded-full px-4 text-[12px] font-semibold ${outcome === key ? "bg-[var(--accent)] text-white" : "border border-[var(--glass-border)] text-[var(--text-secondary)]"}`}>{label}</button>
         ))}
       </div>
+      {/* iOS gives date fields a wide minimum width: let them shrink to their column. */}
       <div className="grid grid-cols-2 gap-2">
-        <label className="space-y-1 text-[10px] text-[var(--text-secondary)]">From<input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className={`${FIELD} w-full`} /></label>
-        <label className="space-y-1 text-[10px] text-[var(--text-secondary)]">To<input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className={`${FIELD} w-full`} /></label>
+        <label className="block min-w-0 space-y-1 text-[11px] text-[var(--text-secondary)]">From<input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} className={`${FIELD} block w-full min-w-0 max-w-full appearance-none`} /></label>
+        <label className="block min-w-0 space-y-1 text-[11px] text-[var(--text-secondary)]">To<input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} className={`${FIELD} block w-full min-w-0 max-w-full appearance-none`} /></label>
       </div>
 
       {loading && !items.length ? (

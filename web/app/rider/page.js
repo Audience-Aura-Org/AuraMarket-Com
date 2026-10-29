@@ -16,6 +16,7 @@ import RiderDeliveries from "@/components/rider/RiderDeliveries";
 import RiderSummary from "@/components/rider/RiderSummary";
 import { refreshRiderProfile } from "@/lib/riderProfile";
 import { useRiderJobs } from "@/components/rider/RiderJobsContext";
+import RiderPageHeader, { RIDER_PAGE } from "@/components/rider/RiderPageHeader";
 
 const QUICK = [
   { href: "/rider/map", label: "Map", sub: "Route & directions", icon: MapIcon },
@@ -60,11 +61,8 @@ export default function RiderPage() {
   }
 
   const shell = (children) => (
-    <div className="mx-auto w-full max-w-lg space-y-4 px-4 py-6 pb-28 text-[var(--text-primary)]">
-      <div className="flex items-center gap-3">
-        <div className="flex size-11 items-center justify-center rounded-2xl border border-[var(--accent)]/25 bg-[var(--accent)]/10"><Bike className="size-5 text-[var(--accent)]" /></div>
-        <div><h1 className="text-[16px] font-bold">Rider</h1><p className="text-[10px] text-[var(--text-secondary)]">Deliveries for your agency</p></div>
-      </div>
+    <div className={RIDER_PAGE}>
+      <RiderPageHeader icon={Bike} title="Rider" subtitle="Deliveries for your agency" />
       {children}
     </div>
   );
@@ -118,15 +116,13 @@ export default function RiderPage() {
   const online = availability !== "offline";
   const firstName = (user?.name || "").split(" ")[0];
   return (
-    <div className="mx-auto w-full max-w-lg space-y-4 px-4 py-5 pb-28 text-[var(--text-primary)]">
-      <div className="flex items-center gap-3">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)] text-[17px] font-bold text-white">{(firstName[0] || "R").toUpperCase()}</div>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-[17px] font-bold">Hi{firstName ? `, ${firstName}` : ""}</h1>
-          <p className="truncate text-[11px] text-[var(--text-secondary)]">{rider.agency?.name || "Your agency"} · {VEHICLE_LABEL[rider.vehicle_type] || rider.vehicle_type}{rider.vehicle_plate ? ` · ${rider.vehicle_plate}` : ""}</p>
-        </div>
-        {rider.agency?.phone && <a href={`tel:${rider.agency.phone}`} aria-label="Call my agency" className="flex size-11 items-center justify-center rounded-2xl border border-[var(--glass-border)] hover:text-[var(--accent)]"><Phone className="size-4" /></a>}
-      </div>
+    <div className={RIDER_PAGE}>
+      <RiderPageHeader
+        initial={firstName[0]}
+        title={`Hi${firstName ? `, ${firstName}` : ""}`}
+        subtitle={`${rider.agency?.name || "Your agency"} · ${VEHICLE_LABEL[rider.vehicle_type] || rider.vehicle_type}${rider.vehicle_plate ? ` · ${rider.vehicle_plate}` : ""}`}
+        action={rider.agency?.phone && <a href={`tel:${rider.agency?.phone}`} aria-label="Call my agency" className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/20"><Phone className="size-5" /></a>}
+      />
 
       <button
         type="button"

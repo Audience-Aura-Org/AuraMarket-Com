@@ -14,6 +14,7 @@ import { useRiderProfile } from "@/lib/riderProfile";
 import { useRiderPrefs } from "@/lib/riderPrefs";
 import { chime, useRiderJobs } from "@/components/rider/RiderJobsContext";
 import { openLocationSettings } from "@/components/rider/useShareLocation";
+import RiderPageHeader, { RIDER_PAGE } from "@/components/rider/RiderPageHeader";
 
 const VEHICLE_LABEL = { motorcycle: "Motorcycle", bicycle: "Bicycle", car: "Car", van: "Van", on_foot: "On foot" };
 const GPS_TEXT = { sharing: "Location is on and being shared.", denied: "Location access was refused. Riders need it to get nearby deliveries.", unavailable: "This phone could not get a GPS fix.", off: "Shared only while you are online or on a delivery." };
@@ -50,14 +51,8 @@ export default function RiderAccountPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-lg space-y-4 px-4 py-5 pb-28 text-[var(--text-primary)]">
-      <div className="flex items-center gap-3">
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)] text-[17px] font-bold text-white">{(user?.name?.[0] || "R").toUpperCase()}</div>
-        <div className="min-w-0">
-          <h1 className="truncate text-[17px] font-bold">{user?.name || "Rider"}</h1>
-          <p className="truncate text-[11px] text-[var(--text-secondary)]">{user?.email || user?.phone || ""}</p>
-        </div>
-      </div>
+    <div className={RIDER_PAGE}>
+      <RiderPageHeader initial={user?.name?.[0]} title={user?.name || "Rider"} subtitle={user?.email || user?.phone || ""} />
 
       <section className="flex items-center gap-3 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4">
         <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[var(--bg-secondary)]">
