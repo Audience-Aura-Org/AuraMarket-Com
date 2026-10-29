@@ -279,12 +279,35 @@ const getUserInbox = async (req, res, next) => {
 // @desc    Send a new message to a specific user
 // @access  Private
 // ─────────────────────────────────────────────
+/** Quote snapshot for a reply; null if the message is not in this conversation or was deleted. */
+const buildReplySnapshot = async (replyToId, me, partner) => {
+  if (!replyToId || !mongoose.isValidObjectId(replyToId) || !mongoose.isValidObjectId(partner)) return null;
+  const original = await Message.findOne({
+    _id: replyToId,
+    $or: [{ sender_id: me, receiver_id: partner }, { sender_id: partner, receiver_id: me }],
+    deleted_for: { $ne: me },
+    deleted_everyone: { $ne: true },
+  }).select('sender_id text image_url product_reference').lean();
+  if (!original) return null;
+  return {
+    message_id: original._id,
+    sender_id: original.sender_id,
+    text: String(original.text || '').slice(0, 160),
+    has_image: Boolean(original.image_url),
+    has_product: Boolean(original.product_reference),
+  };
+};
+
 const sendMessage = async (req, res, next) => {
   try {
     const { receiver_id, text, product_reference, metadata, image_url, client_id } = req.body;
 
     if (!receiver_id) {
       return res.status(400).json({ success: false, message: 'Receiver ID is required.' });
+    }
+    const reply_to = req.body.reply_to ? await buildReplySnapshot(req.body.reply_to, req.user._id, receiver_id) : null;
+    if (req.body.reply_to && !reply_to) {
+      return res.status(400).json({ success: false, message: 'The message you are replying to is no longer available.' });
     }
 
     console.log(`[API] 📨 sendMessage: ${req.user._id} -> ${receiver_id}`);
@@ -338,6 +361,7 @@ const sendMessage = async (req, res, next) => {
             product_reference: product_reference || null,
             metadata: metadata || null,
             image_url: image_url || null,
+            reply_to,
             delivered_status: false,
             client_id,
           },
@@ -356,6 +380,7 @@ const sendMessage = async (req, res, next) => {
         product_reference: product_reference || null,
         metadata: metadata || null,
         image_url: image_url || null,
+        reply_to,
         // Presence alone is not delivery; wait for a receipt from the client.
         delivered_status: false,
         client_id: null,

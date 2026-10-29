@@ -68,6 +68,19 @@ const MessageSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // The message this one answers (WhatsApp-style quote). A snapshot, so the quote
+    // still shows if the original is later deleted, and no extra lookup is needed.
+    reply_to: {
+      type: {
+        message_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' },
+        sender_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        text: { type: String, default: '' },
+        has_image: { type: Boolean, default: false },
+        has_product: { type: Boolean, default: false },
+      },
+      default: null,
+      _id: false,
+    },
   },
   {
     timestamps: true,

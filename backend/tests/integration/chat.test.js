@@ -366,3 +366,23 @@ describe('Cursor paging and inbox summaries', () => {
     expect(chats[1].unread_count).toBe(0)
   })
 })
+
+describe('Replies', () => {
+  it('quotes a message from the same conversation, and refuses others', async () => {
+    const a = await createUser(); const b = await createUser(); const c = await createUser()
+    const original = await Message.create({ sender_id: b._id, receiver_id: a._id, text: 'Is the blue dress still available in size M?' })
+    const r = await request(app).post('/api/v1/chat').set(authHeader(signToken(a))).send({ receiver_id: b._id, text: 'Yes it is', reply_to: original._id })
+    expect(r.status).toBeLessThan(300)
+    const saved = await Message.findOne({ sender_id: a._id, text: 'Yes it is' }).lean()
+    expect(saved.reply_to).toMatchObject({ text: 'Is the blue dress still available in size M?', has_image: false })
+    expect(saved.reply_to.sender_id.toString()).toBe(b._id.toString())
+
+    const thread = await request(app).get(`/api/v1/chat/${a._id}`).set(authHeader(signToken(b)))
+    expect(thread.body.data.messages.at(-1).reply_to.message_id).toBe(original._id.toString())
+
+    // A message from another conversation cannot be quoted.
+    const foreign = await Message.create({ sender_id: c._id, receiver_id: b._id, text: 'private' })
+    const bad = await request(app).post('/api/v1/chat').set(authHeader(signToken(a))).send({ receiver_id: b._id, text: 'x', reply_to: foreign._id })
+    expect(bad.status).toBe(400)
+  })
+})

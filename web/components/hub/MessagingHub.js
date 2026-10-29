@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import {
   Send, X, ArrowLeft, Package, Truck, Navigation,
   MessageCircle, Check, CheckCheck, Loader2, Clock, WifiOff,
-  Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical, UserPlus
+  Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical, UserPlus, Reply, X as CloseIcon
 } from 'lucide-react';
 import api from '@/services/personalMessagingApi';
 import { uploadService } from '@/services/upload';
@@ -39,6 +39,16 @@ const saveQueue = (q) => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(SEND_QUEUE_KEY, JSON.stringify(q));
 };
+/** Quote snapshot of a message, same shape the server stores in reply_to. */
+const replyQuote = (msg) => ({
+  message_id: msg._id,
+  sender_id: msg.sender_id?._id || msg.sender_id,
+  text: String(msg.text || '').slice(0, 160),
+  has_image: Boolean(msg.image_url),
+  has_product: Boolean(msg.product_reference),
+});
+const quoteText = (q) => q?.text || (q?.has_image ? '📷 Photo' : q?.has_product ? '🛍️ Product' : 'Message');
+
 const enqueueMsg = (item) => {
   saveQueue([...loadQueue(), { ...item, retries: 0, lastAttemptAt: 0, queuedAt: Date.now() }]);
   // Register a Background Sync tag so the SW wakes this tab when connectivity
@@ -222,6 +232,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
   } = useChat();
   // -- State --
   const [input, setInput] = useState('');
+  // Message being answered (WhatsApp-style quote); cleared on send or when switching chats.
+  const [replyTo, setReplyTo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [inboxLoading, setInboxLoading] = useState(false);
   const [pendingSendCount, setPendingSendCount] = useState(0);
@@ -315,6 +327,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     notificationTitle
   );
   const partnerTyping = Boolean(activePartnerId && typingIndicators[activePartnerId]);
+  useEffect(() => { setReplyTo(null); }, [activePartnerId]);
   const latestMessageKey = messages.length
     ? messages[messages.length - 1]?._id || messages[messages.length - 1]?.client_id || messages[messages.length - 1]?.createdAt
     : null;
@@ -1078,6 +1091,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           image_url: item.imageUrl || null,
           client_id: item.clientId,
           ...(item.productRef && { product_reference: item.productRef }),
+          ...(item.replyTo && { reply_to: item.replyTo }),
         }, { timeout: 12_000, __skipRetry: true });
         if (res.data.success) {
           dequeueMsg(item.clientId);
@@ -1358,6 +1372,8 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
 
     setPendingSendCount(count => count + 1);
     const sendStamp = Date.now();
+    const quoting = retryMessage ? retryMessage.reply_to || null : (fromComposer && replyTo ? replyQuote(replyTo) : null);
+    if (fromComposer) setReplyTo(null);
     const optimisticMsg = {
       _id: retryMessage?._id || `opt-${sendStamp}-${Math.random().toString(36).slice(2)}`,
       client_id: retryMessage?.client_id || `client-${sendStamp}-${Math.random().toString(36).slice(2)}`,
@@ -1374,6 +1390,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
       createdAt: new Date().toISOString(),
       status: 'sending',
       delivered_status: onlineUsersMap[sendPartnerId] === true,
+      reply_to: quoting,
     };
 
     receiveMessage(optimisticMsg, {
@@ -1394,6 +1411,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         image_url: imageUrl,
         client_id: optimisticMsg.client_id,
         ...(product && { product_reference: product._id }),
+        ...(quoting?.message_id && { reply_to: quoting.message_id }),
       }, { timeout: 12_000, __skipRetry: true });
       if (res.data.success) {
         const realMsg = res.data.data?.message || res.data.message;
@@ -1410,6 +1428,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
           clientId: optimisticMsg.client_id,
           tempId: optimisticMsg._id,
           productRef: product?._id || null,
+          replyTo: quoting?.message_id || null,
         });
         markMessageQueued(sendPartnerId, optimisticMsg._id);
       } else {
@@ -1543,6 +1562,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
         data-chat-action-menu="message"
         onClick={(event) => event.stopPropagation()}
       >
+        {/^[a-f0-9]{24}$/i.test(String(floatingMenu.msg?._id || '')) && (
+          <button
+            type="button"
+            onClick={() => { setReplyTo(floatingMenu.msg); closeFloatingMenu(); setTimeout(() => inputRef.current?.focus(), 0); }}
+            className="flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-secondary)]"
+          >
+            <Reply className="size-4 text-[var(--text-secondary)]" /> Reply
+          </button>
+        )}
         <button
           type="button"
           onClick={() => handleDeleteMessage(floatingMenu.msg._id, 'me')}
@@ -2334,6 +2362,13 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                             </button>
                           )}
 
+                          {msg.reply_to && (
+                            <div className="mb-1 rounded-lg border-l-[3px] border-[var(--accent)] bg-black/[0.06] px-2.5 py-1.5 dark:bg-white/[0.07]">
+                              <p className="text-[11px] font-semibold text-[var(--accent)]">{toId(msg.reply_to.sender_id) === user?._id?.toString?.() ? 'You' : (partnerName || 'Them')}</p>
+                              <p className="line-clamp-2 text-[12px] leading-snug opacity-80">{quoteText(msg.reply_to)}</p>
+                            </div>
+                          )}
+
                           {msg.image_url && (
                             <button
                               type="button"
@@ -2466,6 +2501,16 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
                   {q}
                 </motion.button>
               ))}
+            </div>
+          )}
+
+          {replyTo && (
+            <div className="mx-auto flex w-full max-w-4xl min-w-0 items-center gap-2 px-3 pt-2">
+              <div className="min-w-0 flex-1 rounded-lg border-l-[3px] border-[var(--accent)] bg-[var(--bg-primary)] px-2.5 py-1.5">
+                <p className="text-[11px] font-semibold text-[var(--accent)]">Replying to {toId(replyTo.sender_id) === user?._id?.toString?.() ? 'yourself' : (partnerName || 'them')}</p>
+                <p className="truncate text-[12px] text-[var(--text-secondary)]">{quoteText(replyQuote(replyTo))}</p>
+              </div>
+              <button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply" className="flex size-9 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]"><CloseIcon className="size-4" /></button>
             </div>
           )}
 
