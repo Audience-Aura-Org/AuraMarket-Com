@@ -1,44 +1,74 @@
 /**
- * Yango-style rider marker: a top-down vehicle icon that turns to face where it
- * is going and glides between GPS fixes instead of jumping.
+ * Yango-style rider marker: a top-down vehicle for the rider's vehicle type, over a
+ * pulsing "live" ring. It turns to face where it is going and glides between GPS
+ * fixes instead of jumping.
  *
  *   const v = createVehicleMarker(maplibregl, { vehicle: 'motorcycle', color: '#2563eb' }).addTo(map);
  *   v.moveTo({ lat, lng });   // animates and rotates
  *   v.setColor('#d97706'); v.remove();
  */
 
-// Top-down silhouettes, nose pointing up (north) in a 40×40 box.
+// Top-down vehicles, nose pointing up (north) in a 48×48 box. The body takes the
+// marker colour (currentColor); white and black overlays give it light and shade.
 const SHAPES = {
   motorcycle: `
-    <rect x="17.5" y="5" width="5" height="7" rx="2.5" fill="#1f2937"/>
-    <rect x="17.5" y="28" width="5" height="7" rx="2.5" fill="#1f2937"/>
-    <path d="M20 8 C25 10 26 14 25.5 20 L25 29 Q20 32 15 29 L14.5 20 C14 14 15 10 20 8 Z" fill="currentColor"/>
-    <rect x="11" y="12" width="18" height="3" rx="1.5" fill="#1f2937"/>
-    <circle cx="20" cy="21" r="4.2" fill="#fff"/>
-    <circle cx="20" cy="21" r="2.8" fill="#1f2937"/>`,
+    <ellipse cx="25" cy="26" rx="9" ry="19" fill="#000" opacity=".16"/>
+    <rect x="21.5" y="3" width="5" height="10" rx="2.5" fill="#111827"/>
+    <rect x="21.5" y="35" width="5" height="10" rx="2.5" fill="#111827"/>
+    <path d="M24 9c4.6 1.6 6.4 5.8 6.1 11.5l-.6 14.2c-.1 2-2.6 3.8-5.5 3.8s-5.4-1.8-5.5-3.8l-.6-14.2C17.6 14.8 19.4 10.6 24 9z" fill="currentColor"/>
+    <path d="M24 10.5c-2.3 1-3.4 3.4-3.6 6.5l3.6-1.2z" fill="#fff" opacity=".45"/>
+    <rect x="13" y="14" width="22" height="3" rx="1.5" fill="#1f2937"/>
+    <circle cx="13.5" cy="15.5" r="2" fill="#374151"/><circle cx="34.5" cy="15.5" r="2" fill="#374151"/>
+    <ellipse cx="24" cy="26.5" rx="8.5" ry="5.5" fill="#1f2937"/>
+    <circle cx="24" cy="23" r="5.2" fill="#fff"/>
+    <path d="M19.4 21.2a5.2 5.2 0 0 1 9.2 0z" fill="#0f172a" opacity=".85"/>`,
   bicycle: `
-    <rect x="18.3" y="4" width="3.4" height="9" rx="1.7" fill="#1f2937"/>
-    <rect x="18.3" y="27" width="3.4" height="9" rx="1.7" fill="#1f2937"/>
-    <rect x="17" y="11" width="6" height="18" rx="3" fill="currentColor"/>
-    <rect x="12" y="11.5" width="16" height="2.6" rx="1.3" fill="#1f2937"/>
-    <circle cx="20" cy="20" r="4" fill="#fff"/>
-    <circle cx="20" cy="20" r="2.6" fill="#1f2937"/>`,
+    <ellipse cx="25" cy="26" rx="8" ry="19" fill="#000" opacity=".14"/>
+    <rect x="22.6" y="3" width="2.8" height="12" rx="1.4" fill="#111827"/>
+    <rect x="22.6" y="33" width="2.8" height="12" rx="1.4" fill="#111827"/>
+    <rect x="22" y="12" width="4" height="22" rx="2" fill="currentColor"/>
+    <rect x="15" y="13" width="18" height="2.6" rx="1.3" fill="#1f2937"/>
+    <ellipse cx="24" cy="26" rx="7.5" ry="5" fill="#1f2937"/>
+    <circle cx="24" cy="22.5" r="4.8" fill="currentColor"/>
+    <path d="M20 21a4.8 4.8 0 0 1 8 0z" fill="#fff" opacity=".55"/>`,
   car: `
-    <rect x="11" y="4" width="18" height="32" rx="6" fill="currentColor"/>
-    <path d="M13.5 12.5 Q20 9 26.5 12.5 L25.5 16 Q20 14 14.5 16 Z" fill="#0f172a" opacity=".85"/>
-    <path d="M14.5 27 Q20 29 25.5 27 L26.5 30 Q20 32.5 13.5 30 Z" fill="#0f172a" opacity=".7"/>
-    <rect x="14" y="17" width="12" height="9" rx="2" fill="#fff" opacity=".18"/>`,
+    <rect x="13" y="6" width="24" height="39" rx="9" fill="#000" opacity=".16"/>
+    <rect x="12" y="4" width="24" height="40" rx="9" fill="currentColor"/>
+    <rect x="12" y="4" width="4" height="40" rx="2" fill="#000" opacity=".12"/>
+    <rect x="32" y="4" width="4" height="40" rx="2" fill="#000" opacity=".12"/>
+    <rect x="15" y="5.5" width="4" height="2.4" rx="1.2" fill="#fef9c3"/>
+    <rect x="29" y="5.5" width="4" height="2.4" rx="1.2" fill="#fef9c3"/>
+    <path d="M15 15.5Q24 11 33 15.5L31.5 20.5Q24 18 16.5 20.5Z" fill="#0f172a" opacity=".88"/>
+    <rect x="16.5" y="21.5" width="15" height="12" rx="3" fill="#fff" opacity=".22"/>
+    <path d="M16.5 35.5Q24 37.5 31.5 35.5L33 39.5Q24 42.5 15 39.5Z" fill="#0f172a" opacity=".75"/>
+    <ellipse cx="10.8" cy="17" rx="1.6" ry="1.1" fill="currentColor"/>
+    <ellipse cx="37.2" cy="17" rx="1.6" ry="1.1" fill="currentColor"/>`,
   van: `
-    <rect x="10.5" y="3" width="19" height="34" rx="5" fill="currentColor"/>
-    <path d="M13 9.5 Q20 6.5 27 9.5 L26 13 Q20 11.5 14 13 Z" fill="#0f172a" opacity=".85"/>
-    <rect x="13" y="16" width="14" height="18" rx="2" fill="#fff" opacity=".22"/>`,
+    <rect x="12.5" y="4" width="25" height="42" rx="6" fill="#000" opacity=".16"/>
+    <rect x="11.5" y="2.5" width="25" height="42" rx="6" fill="currentColor"/>
+    <rect x="14" y="3.8" width="4" height="2.2" rx="1.1" fill="#fef9c3"/>
+    <rect x="30" y="3.8" width="4" height="2.2" rx="1.1" fill="#fef9c3"/>
+    <path d="M14.5 10Q24 6.5 33.5 10L32.5 14Q24 12 15.5 14Z" fill="#0f172a" opacity=".88"/>
+    <rect x="14.5" y="17" width="19" height="25" rx="2.5" fill="#fff" opacity=".2"/>
+    <path d="M18 20v19M24 20v19M30 20v19" stroke="#000" stroke-opacity=".12" stroke-width="1"/>`,
   on_foot: `
-    <circle cx="20" cy="20" r="8" fill="currentColor"/>
-    <circle cx="20" cy="20" r="3.5" fill="#fff"/>
-    <path d="M20 5 L24 11 H16 Z" fill="currentColor"/>`,
+    <ellipse cx="25" cy="26" rx="10" ry="8" fill="#000" opacity=".14"/>
+    <ellipse cx="24" cy="25" rx="10" ry="6.5" fill="currentColor"/>
+    <circle cx="24" cy="24" r="5.5" fill="#1f2937"/>
+    <path d="M24 9l5 7h-10z" fill="currentColor"/>`,
 };
 
-const svgFor = (vehicle) => `<svg viewBox="0 0 40 40" width="36" height="36" aria-hidden="true">${SHAPES[vehicle] || SHAPES.motorcycle}</svg>`;
+const svgFor = (vehicle) => `<svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">${SHAPES[vehicle] || SHAPES.motorcycle}</svg>`;
+
+// "Live" pulse under the rider; the keyframes are injected once per page.
+const ensurePulseStyle = () => {
+  if (typeof document === 'undefined' || document.getElementById('aura-live-pulse')) return;
+  const style = document.createElement('style');
+  style.id = 'aura-live-pulse';
+  style.textContent = '@keyframes aura-live-pulse{0%{transform:scale(.5);opacity:.6}100%{transform:scale(1.7);opacity:0}}';
+  document.head.appendChild(style);
+};
+const haloColor = (color) => `${color}55`; // the marker colour at ~33% opacity
 
 // Initial compass bearing from a to b, in degrees.
 const bearing = (a, b) => {
@@ -55,21 +85,24 @@ const metres = (a, b) => Math.hypot((b.lat - a.lat) * 111320, (b.lng - a.lng) * 
  * puts the marker at { lat, lng } on whichever map library hosts it.
  */
 function vehicleCore({ vehicle = 'motorcycle', color = '#2563eb', label = 'Rider', glideMs = 1500 } = {}, place) {
+  ensurePulseStyle();
   const el = document.createElement('div');
   el.setAttribute('role', 'img');
   el.setAttribute('aria-label', label);
-  // White disc with a coloured ring keeps the vehicle readable on any map background.
-  el.style.cssText = `width:46px;height:46px;border-radius:9999px;background:#fff;border:3px solid ${color};box-shadow:0 2px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;cursor:pointer;box-sizing:border-box`;
+  el.style.cssText = 'position:relative;width:52px;height:52px;cursor:pointer';
+  // Pulsing ring: shows at a glance that this position is live.
+  const ring = document.createElement('div');
+  ring.style.cssText = `position:absolute;inset:6px;border-radius:9999px;background:${haloColor(color)};animation:aura-live-pulse 1.8s ease-out infinite;pointer-events:none`;
   const body = document.createElement('div');
-  body.style.cssText = `width:36px;height:36px;color:${color};transition:transform .6s ease;will-change:transform`;
+  body.style.cssText = `position:absolute;left:4px;top:4px;width:44px;height:44px;color:${color};transition:transform .6s ease;will-change:transform;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.35))`;
   body.innerHTML = svgFor(vehicle);
-  el.appendChild(body);
+  el.append(ring, body);
 
   let pos = null;
   let frame = null;
   const core = {
     element: el,
-    setColor(c) { body.style.color = c; el.style.borderColor = c; },
+    setColor(c) { body.style.color = c; ring.style.background = haloColor(c); },
     setVehicle(v) { body.innerHTML = svgFor(v); },
     getPosition() { return pos; },
     /** Glide to a new fix and face the direction of travel (ignores sub-5 m jitter). */
@@ -117,7 +150,7 @@ export function createVehicleMarker(maplibregl, options = {}) {
 export function createGoogleVehicleMarker(AdvancedMarkerElement, map, options = {}) {
   let marker = null;
   const core = vehicleCore(options, (p) => { marker.position = p; });
-  // Google anchors custom content at its bottom edge: centre the disc on the position.
+  // Google anchors custom content at its bottom edge: centre the vehicle on the position.
   core.element.style.transform = 'translateY(50%)';
   marker = new AdvancedMarkerElement({ map, content: core.element, title: options.label || 'Rider' });
   const api = {

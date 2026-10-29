@@ -9,10 +9,11 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
 
 /*
- * Calm, ride-hailing style look over OpenFreeMap "liberty" (in the spirit of
- * Yango): light warm base, white streets, yellow main roads, pale buildings that
- * only appear when zoomed in, and shop/service icons only at street level, so
- * riders and pins stand out. Layers missing from the style are skipped.
+ * Ride-hailing style look over OpenFreeMap "liberty" (in the spirit of Yango):
+ * light warm base, white streets, yellow main roads, soft buildings from
+ * neighbourhood zoom, and landmarks, shops and services from district zoom,
+ * so the map stays detailed while riders and pins stand out. Layers missing
+ * from the style are skipped.
  */
 const PAINT = {
   background: { 'background-color': '#f2efe9' },
@@ -26,7 +27,7 @@ const PAINT = {
   building: {
     'fill-color': '#e3dfd8',
     'fill-outline-color': '#d9d4cc',
-    'fill-opacity': ['interpolate', ['linear'], ['zoom'], 14.5, 0, 16, 0.85],
+    'fill-opacity': ['interpolate', ['linear'], ['zoom'], 13, 0, 14.5, 0.9],
   },
   road_minor: { 'line-color': '#ffffff' },
   road_service_track: { 'line-color': '#ffffff' },
@@ -46,8 +47,8 @@ const PAINT = {
   bridge_motorway: { 'line-color': '#f7c948' },
 };
 const HIDE = ['building-3d', 'road_area_pattern', 'road_one_way_arrow', 'road_one_way_arrow_opposite'];
-// Points of interest only once the map shows individual streets.
-const ZOOM_FROM = { poi_r20: 17, poi_r7: 16.5, poi_r1: 15.5, poi_transit: 15 };
+// Points of interest: the most important from district zoom, the rest closer in.
+const ZOOM_FROM = { poi_r1: 13.5, poi_transit: 14, poi_r7: 15, poi_r20: 16 };
 
 export function applyCleanStyle(map) {
   const has = (id) => Boolean(map.getLayer(id));
@@ -63,7 +64,14 @@ export function applyCleanStyle(map) {
 
 /** new maplibregl.Map(...) with the clean look applied once the style has loaded. */
 export function createMap(options) {
-  const map = new maplibregl.Map(options);
+  const map = new maplibregl.Map({
+    // Phones with 3x screens draw ~2x fewer pixels at 2x, which keeps panning
+    // smooth with no visible loss; more cached tiles make returning views instant.
+    pixelRatio: typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1,
+    maxTileCacheSize: 400,
+    fadeDuration: 150,
+    ...options,
+  });
   map.once('style.load', () => applyCleanStyle(map));
   return map;
 }
