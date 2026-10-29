@@ -109,6 +109,17 @@ const OrderSchema = new mongoose.Schema(
       country: { type: String, default: 'Cameroon' },
       phone: String,
       email: String,
+      // Exact delivery spot chosen with the place search / map pin (optional; older
+      // orders have none). Pricing still follows the quartier.
+      zone_id: { type: mongoose.Schema.Types.ObjectId, ref: 'LogisticZone', default: null },
+      place_name: String,
+      landmark: String,
+      location: {
+        lat: Number,
+        lng: Number,
+        source: { type: String, enum: ['search', 'pin', 'gps', 'saved'] },
+        confirmed_at: Date,
+      },
     },
     delivery_description: {
       type: String,

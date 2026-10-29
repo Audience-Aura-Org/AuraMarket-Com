@@ -30,6 +30,41 @@ const zoneLabel = (zone, byId) => {
 
 const toPoint = (doc) => (doc?.coordinates?.length === 2 ? { lng: doc.coordinates[0], lat: doc.coordinates[1] } : null);
 
+/*
+ * Streets, landmarks and businesses from OpenRouteService place search (Pelias over
+ * OpenStreetMap), limited to Cameroon. Results carry an exact point but no pricing
+ * zone: the client resolves the quartier from the point (resolvePoint) on choice.
+ * Cached for a day per query so repeated typing does not spend the daily allowance.
+ */
+const ORS_GEOCODE = 'https://api.openrouteservice.org/geocode/autocomplete';
+const geoCache = new Map(); // query -> { at, results }
+const GEO_TTL_MS = 24 * 3600 * 1000;
+const geocode = async (q) => {
+  const key = process.env.ORS_API_KEY;
+  if (!key || q.length < 3) return [];
+  const k = q.toLowerCase();
+  const hit = geoCache.get(k);
+  if (hit && Date.now() - hit.at < GEO_TTL_MS) return hit.results;
+  try {
+    const url = `${ORS_GEOCODE}?api_key=${encodeURIComponent(key)}&text=${encodeURIComponent(q)}&boundary.country=CM&size=6&layers=venue,street,address,neighbourhood,locality`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return hit?.results || [];
+    const json = await res.json();
+    const results = (json.features || []).map((f) => ({
+      kind: 'place', source: 'search', place_kind: f.properties.layer, id: `ors:${f.properties.gid || f.properties.id}`, zone_id: null,
+      name: f.properties.name,
+      city: f.properties.locality || f.properties.localadmin || f.properties.county || null,
+      quartier: f.properties.neighbourhood || null, district: null,
+      point: { lng: f.geometry.coordinates[0], lat: f.geometry.coordinates[1] },
+    }));
+    if (geoCache.size > 2000) geoCache.delete(geoCache.keys().next().value);
+    geoCache.set(k, { at: Date.now(), results });
+    return results;
+  } catch {
+    return hit?.results || [];
+  }
+};
+
 const search = async (rawQuery, { limit = 10 } = {}) => {
   const q = String(rawQuery || '').trim().slice(0, 60);
   if (q.length < 2) return [];
@@ -56,10 +91,15 @@ const search = async (rawQuery, { limit = 10 } = {}) => {
       ...(zone ? zoneLabel(zone, byId) : {}), point: toPoint(p.location), rank: (startsWith.test(p.name) ? 0 : 10) + 0.5 };
   });
 
-  return [...zoneResults, ...placeResults]
+  const own = [...zoneResults, ...placeResults]
     .sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name))
-    .slice(0, limit)
     .map(({ rank, ...r }) => r);
+  // Our quartiers and curated places first (they carry the pricing zone), then
+  // streets and landmarks from the place search, skipping names we already have.
+  const known = new Set(own.map((r) => r.name.toLowerCase()));
+  const extra = (await geocode(q)).filter((r) => r.name && !known.has(r.name.toLowerCase()));
+  const ownSlots = Math.max(4, limit - extra.length);
+  return [...own.slice(0, ownSlots), ...extra].slice(0, limit);
 };
 
 const resolvePoint = async ({ lat, lng }) => {

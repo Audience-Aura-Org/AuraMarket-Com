@@ -24,6 +24,8 @@ import { registerPWA, subscribeToPush } from '@/lib/pwa-helper';
 import { applyVariantPricing, formatVariantLabel } from '@/utils/variants';
 import { MOBILE_MONEY_PROVIDERS } from '@/lib/formatting';
 import { Capacitor } from '@capacitor/core';
+import LocationPicker from '@/components/location/LocationPicker';
+import { useFeatureFlag } from '@/lib/featureFlags';
 
 // Payment gateway return URLs must be public HTTPS URLs, never capacitor://localhost.
 const getPublicWebOrigin = () => {
@@ -131,6 +133,15 @@ function CheckoutContent() {
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [zones, setZones] = useState([]);
   const [deliveryQuartier, setDeliveryQuartier] = useState('');
+  // Exact delivery spot (place search / map pin), in LocationPicker's shape. Required
+  // for delivery orders while the location picker is on; saved back to the chosen
+  // saved address (which may predate exact spots) once the order is placed.
+  const exactSpotOn = useFeatureFlag('location_picker');
+  const [deliverySpot, setDeliverySpot] = useState({});
+  const [spotAddressId, setSpotAddressId] = useState(null);
+  const spotFromAddress = (addr) => (addr?.location?.lat != null
+    ? { location: { ...addr.location, source: 'saved' }, zone_id: addr.zone_id || '', quartier: addr.quartier || '', city: addr.city || '', landmark: addr.place_name || '' }
+    : {});
   const [isIntercityRoute, setIsIntercityRoute] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [removingItemKey, setRemovingItemKey] = useState(null);
@@ -159,6 +170,8 @@ function CheckoutContent() {
   };
 
   const applySavedAddress = (addr) => {
+    setDeliverySpot(spotFromAddress(addr));
+    setSpotAddressId(addr?._id || null);
     setFormData((f) => ({
       ...f,
       name: addr.recipient_name || f.name,
@@ -366,6 +379,7 @@ function CheckoutContent() {
 
       if (addrs.length) {
         setSavedAddresses(addrs);
+        if (def) { setDeliverySpot(spotFromAddress(def)); setSpotAddressId(def._id || null); }
       }
 
       setFormData((f) => ({
@@ -567,6 +581,12 @@ function CheckoutContent() {
       return;
     }
 
+    if (needsDeliverySpot) {
+      toast.error('Search for your delivery spot so the rider can find you.');
+      document.getElementById('delivery-spot')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
     if (!isPickupOrDineIn && !isVendorManagedDelivery && !formData.logistics_company_id) {
       toast.error('Please select a logistics partner or choose vendor-managed delivery.');
       return;
@@ -605,7 +625,8 @@ function CheckoutContent() {
                email: formData.email,
                phone: formData.recipient_phone || formData.phone,
                full_name: formData.recipient_name || formData.name,
-               landmark: formData.landmark || undefined,
+               landmark: formData.landmark || deliverySpot.landmark || undefined,
+               ...(deliverySpot.location ? { location: deliverySpot.location, place_name: deliverySpot.landmark || undefined, zone_id: deliverySpot.zone_id || undefined } : {}),
             },
             escrow_enabled: !isPayOnDelivery && effectiveEscrowEnabled,
             payment_method: isPayOnDelivery ? 'pay_on_delivery'
@@ -652,6 +673,11 @@ function CheckoutContent() {
         if (splitRes.data.success) {
             finalOrderIds = splitRes.data.data.orderIds;
             setCreatedOrderIds(finalOrderIds); // Cache orders for transaction persistence
+            // Remember the exact spot on the saved address so it is not asked again.
+            const savedAddr = savedAddresses.find((a) => a._id === spotAddressId);
+            if (savedAddr && !savedAddr.location && deliverySpot.location) {
+              api.patch(`/addresses/${spotAddressId}`, { location: deliverySpot.location, place_name: deliverySpot.landmark || undefined }).catch(() => {});
+            }
             // For external (mobile-money) payments, don't clear the local cart yet —
             // the verify page will clear it once the gateway confirms the payment.
             // For all other methods the order is already confirmed at this point.
@@ -890,6 +916,8 @@ function CheckoutContent() {
   // so we only suppress those fields when ALL items are food on pickup/dine-in.
   const hasRetailItems = cartItems.some(it => !it.is_meal);
   const isPickupOrDineIn = ['pickup', 'dine_in'].includes(fulfilmentType) && !hasRetailItems;
+  // Delivery orders need the exact spot once the location picker is on (not when paying an existing order).
+  const needsDeliverySpot = exactSpotOn && !isPickupOrDineIn && !orderId && !deliverySpot.location;
   const isPreOrder = fulfilmentType === 'pre_order';
   const preorderDates = useMemo(() => {
     const meals = cartItems.filter(item => item.is_meal);
@@ -1314,6 +1342,25 @@ function CheckoutContent() {
                             </div>
                           )}
 
+                          {/* Exact delivery spot: one search field, like ride-hailing apps.
+                              Choosing a place also sets the quartier (pricing) below. */}
+                          {!isPickupOrDineIn && exactSpotOn && !orderId && (
+                            <div id="delivery-spot" className="md:col-span-2 space-y-2">
+                              <LocationPicker
+                                label="Delivery spot"
+                                value={deliverySpot}
+                                onChange={(v) => {
+                                  setDeliverySpot(v);
+                                  if (v.quartier) handleQuartierChange(v.quartier);
+                                  if (v.city) setFormData((f) => ({ ...f, city: f.city || v.city }));
+                                }}
+                              />
+                              {needsDeliverySpot && (
+                                <p className="text-[11px] font-semibold text-amber-600">Search a nearby place or street, or drop the pin, so the rider finds you.</p>
+                              )}
+                            </div>
+                          )}
+
                           {/* Delivery zone — hidden for pickup/dine-in */}
                           {!isPickupOrDineIn && (
                             <div className="md:col-span-2 space-y-3 md:space-y-4">
@@ -1538,7 +1585,14 @@ function CheckoutContent() {
                      </div>
 
                      <button 
-                        onClick={() => setStep(2)}
+                        onClick={() => {
+                          if (needsDeliverySpot) {
+                            toast.error('Search for your delivery spot so the rider can find you.');
+                            document.getElementById('delivery-spot')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            return;
+                          }
+                          setStep(2);
+                        }}
                         disabled={loading || checkoutBlocked}
                         className="mt-6 flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[var(--text-primary)] text-[10px] font-semibold tracking-[0.18em] text-[var(--bg-primary)] shadow-lg transition-all hover:bg-[var(--accent)] hover:text-white active:scale-95 disabled:opacity-20 lg:text-[12px]"
                       >

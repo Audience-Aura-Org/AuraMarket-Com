@@ -78,6 +78,15 @@ const VendorSchema = new mongoose.Schema(
         ref: 'LogisticZone',
         default: null,
       },
+      // Exact pickup spot from the place search / map pin, used for rider distance,
+      // routes and arrival times. Stores set before this have none (prompted).
+      place_name: String,
+      location: {
+        lat: Number,
+        lng: Number,
+        source: { type: String, enum: ['search', 'pin', 'gps', 'saved'] },
+        confirmed_at: Date,
+      },
     },
     phone: {
       type: String,

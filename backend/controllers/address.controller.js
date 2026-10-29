@@ -4,6 +4,7 @@
  */
 
 const User = require('../models/User.model');
+const { confirmedPoint } = require('../utils/geoPoint');
 const Vendor = require('../models/Vendor.model');
 const { hasRole } = require('../utils/roles');
 
@@ -71,6 +72,8 @@ const addAddress = async (req, res, next) => {
       landmark_description: req.body.landmark_description,
       contact_phone: req.body.contact_phone,
       recipient_name: req.body.recipient_name,
+      place_name: req.body.place_name,
+      location: confirmedPoint(req.body.location) || undefined,
       isDefault
     });
 
@@ -94,7 +97,9 @@ const updateAddress = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     const address = user.addresses.id(req.params.id);
-    const allowedFields = ['label', 'street', 'city', 'region', 'quartier', 'zone_id', 'landmark_description', 'contact_phone', 'recipient_name', 'isDefault'];
+    const allowedFields = ['label', 'street', 'city', 'region', 'quartier', 'zone_id', 'landmark_description', 'contact_phone', 'recipient_name', 'isDefault', 'place_name'];
+    // The exact spot is validated (inside Cameroon) before it is stored.
+    if (req.body.location !== undefined) address.location = confirmedPoint(req.body.location) || undefined;
 
     if (!address) {
       return res.status(404).json({ success: false, message: 'Address not found' });

@@ -30,6 +30,7 @@ import AccountHeader from './AccountHeader';
 import AccountSidebar from './AccountSidebar';
 import MyManagersTab from './MyManagersTab';
 import { useLanguage } from '@/context/LanguageContext';
+import LocationPicker from '@/components/location/LocationPicker';
 import { setFontSize, getFontSize, resetFontSettings, FONT_SIZES } from '@/utils/fontSettings';
 
 
@@ -43,6 +44,10 @@ const normalizePickupAddress = (pickup = {}, fallback = {}) => ({
     fallback.address_description ||
     fallback.street ||
     '',
+  // Exact pickup spot (place search / map pin) and its pricing zone.
+  ...(pickup.location?.lat != null ? { location: pickup.location } : {}),
+  ...(pickup.place_name ? { place_name: pickup.place_name } : {}),
+  ...(pickup.zone_id ? { zone_id: pickup.zone_id } : {}),
 });
 
 const normalizeKycPayload = (kyc = {}) => ({
@@ -1050,6 +1055,35 @@ export default function AccountPageClient() {
                           <h4 className="text-[11px] font-semibold tracking-tight text-[var(--text-secondary)]">
                             {storeData.vendor_type === 'restaurant' ? 'Restaurant Location' : 'Store Pickup Address Configuration'}
                           </h4>
+                        </div>
+
+                        {/* Exact spot: one search, like ride-hailing apps. Riders, routes and
+                            arrival times use it; the quartier below still sets prices. */}
+                        <div id="pickup-spot">
+                          <LocationPicker
+                            label={storeData.vendor_type === 'restaurant' ? 'Exact restaurant location' : 'Exact pickup location'}
+                            value={{
+                              location: storeData.pickup_address.location || null,
+                              landmark: storeData.pickup_address.place_name || '',
+                              zone_id: storeData.pickup_address.zone_id || '',
+                              quartier: storeData.pickup_address.quartier || '',
+                              city: storeData.pickup_address.city || '',
+                            }}
+                            onChange={(v) => setStoreData((sd) => ({
+                              ...sd,
+                              pickup_address: {
+                                ...sd.pickup_address,
+                                location: v.location || undefined,
+                                place_name: v.landmark || undefined,
+                                zone_id: v.zone_id || sd.pickup_address.zone_id,
+                                quartier: v.quartier || sd.pickup_address.quartier,
+                                city: v.city || sd.pickup_address.city,
+                              },
+                            }))}
+                          />
+                          {!storeData.pickup_address.location && (
+                            <p className="mt-1.5 text-[11px] font-semibold text-amber-600">Search your store's place or street so riders find you, then save.</p>
+                          )}
                         </div>
 
                         <ZoneAddressPicker

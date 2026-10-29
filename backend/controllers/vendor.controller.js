@@ -7,6 +7,7 @@
  */
 
 const { EARNED_ORDER_MATCH, earnedRevenueExpr } = require('../utils/revenue');
+const { confirmedPoint } = require('../utils/geoPoint');
 const Vendor = require('../models/Vendor.model');
 const Store = require('../models/Store.model');
 const KYC = require('../models/KYC.model');
@@ -53,6 +54,11 @@ const normalizePickupAddress = (incoming = {}, previous = {}) => {
     street: description,
     address_description: description,
     region: incoming.region ?? previous.region ?? '',
+    // Kept across edits (they used to be dropped on every save).
+    zone_id: incoming.zone_id ?? previous.zone_id ?? null,
+    // Exact pickup spot from the place search / map pin.
+    place_name: incoming.place_name ?? previous.place_name ?? undefined,
+    location: incoming.location !== undefined ? (confirmedPoint(incoming.location) || undefined) : previous.location,
   };
 };
 

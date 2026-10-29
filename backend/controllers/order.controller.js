@@ -28,6 +28,7 @@ const { sendEmail }           = require('../utils/emailService');
 const { generateInvoice }     = require('../utils/invoiceGenerator');
 const { getWebUrl }           = require('../utils/url');
 const logisticsService        = require('../services/logistics.service');
+const { confirmedPoint } = require('../utils/geoPoint');
 const { handleVendorPayout }  = require('../services/payment/settle.service');
 const { debitBalance, creditBalance, generateRef } = require('../services/wallet.service');
 const { resolveDelivery, isIntercityEnabled } = require('../services/intercityResolver.service');
@@ -529,6 +530,7 @@ const createOrderAttempt = async (req, res, next, isLastAttempt) => {
       shipping_address: {
          ...(shipping_address || {}),
          quartier: deliveryZone,
+         location: confirmedPoint(shipping_address?.location),
          email:    req.user.email,
          phone:    req.user.phone
       },
@@ -1807,7 +1809,7 @@ const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
         payment_method,
         shipping_method: normalizedShippingMethod,
         logistics_company_id: normalizedShippingMethod === 'logistics_partner' ? logistics_company_id : null,
-        shipping_address: { ...shipping_address, quartier: deliveryZone, email: req.user.email, phone: req.user.phone },
+        shipping_address: { ...shipping_address, quartier: deliveryZone, location: confirmedPoint(shipping_address?.location), email: req.user.email, phone: req.user.phone },
         delivery_description,
         payment_status: 'pending',
         order_status: 'placed',

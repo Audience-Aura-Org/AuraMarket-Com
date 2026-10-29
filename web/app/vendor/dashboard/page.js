@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
 import TrendChart from '@/components/kit/TrendChart';
 import StatCard from '@/components/layout/StatCard';
+import PickupSpotPrompt from '@/components/vendor/PickupSpotPrompt';
 import {
   ArrowRight,
   BarChart3,
@@ -357,6 +358,8 @@ export default function VendorDashboard() {
               </div>
             </div>
           )}
+
+          <PickupSpotPrompt />
 
           {/* Operational Matrix — 4 Core KPIs */}
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">

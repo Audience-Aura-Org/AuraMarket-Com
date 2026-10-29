@@ -79,6 +79,12 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
       const location = r.point ? { lat: r.point.lat, lng: r.point.lng, source: 'search' } : null;
       onChange({ ...value, zone_id: r.zone_id, quartier: r.kind === 'place' ? r.quartier : r.name, district: r.district || '', city: r.city || '', location,
         landmark: r.kind === 'place' && !value.landmark ? r.name : value.landmark });
+    } else if (r.kind === 'place' && r.point) {
+      // A street, landmark or business from the place search: exact spot, quartier
+      // looked up from it (asks the customer if it sits between two quartiers).
+      if (!value.landmark) update({ landmark: r.name });
+      setCenter(r.point);
+      resolvePin(r.point, 'search');
     } else if (r.point) {
       setCenter(r.point); // City or district: move the map there and let them drop the pin.
     }
@@ -106,7 +112,7 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search a landmark, quartier or city"
+          placeholder="Search a place, street, landmark or quartier"
           aria-label={`${label}: search`}
           className="min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-10 pr-10 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[12px] placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
         />
@@ -119,7 +125,7 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
                   {r.kind === 'place' ? <Landmark className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" /> : r.kind === 'quartier' ? <MapPin className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" /> : <Building2 className="mt-0.5 size-4 shrink-0 text-[var(--text-secondary)]" />}
                   <span className="min-w-0">
                     <span className="block truncate text-[12px] font-semibold text-[var(--text-primary)]">{r.name}</span>
-                    <span className="block truncate text-[10px] text-[var(--text-secondary)]">{KIND_LABEL[r.kind]}{placeLine(r) ? ` · ${placeLine(r)}` : ''}</span>
+                    <span className="block truncate text-[10px] text-[var(--text-secondary)]">{r.place_kind === 'street' ? 'Street' : KIND_LABEL[r.kind]}{placeLine(r) ? ` · ${placeLine(r)}` : ''}</span>
                   </span>
                 </button>
               </li>

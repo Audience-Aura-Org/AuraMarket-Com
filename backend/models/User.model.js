@@ -151,6 +151,15 @@ const UserSchema = new mongoose.Schema(
         landmark_description: String, // Required at first checkout, not at signup
         contact_phone: String,        // Delivery contact (may differ from account phone)
         recipient_name: String,       // Name of person receiving the order
+        // Exact spot from the place search / map pin. Addresses saved before this
+        // have none; checkout asks once and saves it here.
+        place_name: String,
+        location: {
+        lat: Number,
+        lng: Number,
+        source: { type: String, enum: ['search', 'pin', 'gps', 'saved'] },
+        confirmed_at: Date,
+      },
       }
     ],
     // User's home district — set during signup zone grid (skippable).
