@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useState, useEffect } from 'react';
-import { Save, Loader2, CheckCircle2, Truck, AlertTriangle } from 'lucide-react';
+import { Save, Loader2, CheckCircle2, Truck, AlertTriangle, ToggleRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
@@ -29,6 +29,22 @@ const NumInput = ({ value, onChange, min, max, step = 1 }) => (
   />
 );
 
+// Rollout switches (PlatformSettings.features, see backend utils/featureFlags.js), in
+// the recommended order of turning them on. All start off.
+const FEATURES = [
+  { key: 'location_picker', label: 'Map pin when choosing addresses', hint: 'Customers search their quartier and drop a pin on a map for the exact spot. Prices still follow the district list.' },
+  { key: 'tracking_links', label: 'Secure tracking links', hint: 'Agencies share a private tracking link (e.g. over WhatsApp) instead of a guessable code.' },
+  { key: 'agency_packages', label: 'Agencies add their own packages', hint: 'Delivery agencies register packages from walk-in customers and send them a tracking link.' },
+  { key: 'rider_accounts', label: 'Rider accounts', hint: 'Agencies invite riders by email; riders get the Rider page to go online and take deliveries.' },
+  { key: 'live_tracking', label: 'Live rider location for customers', hint: 'While a delivery is under way, the sender, recipient and tracking-link holder see the rider move on a map.' },
+  { key: 'auto_rider_dispatch', mode: true, label: 'Automatic rider assignment', hint: 'Offers each delivery to the nearest free rider, then the next one on decline or timeout. Shadow: only records who it would pick (see Manifests) while agencies still assign by hand.' },
+  { key: 'payment_triggered_dispatch', label: 'Dispatch as soon as it is paid', hint: 'With automatic assignment on, a delivery goes to a rider the moment it is paid instead of within 30 seconds.' },
+  { key: 'whatsapp_notifications', label: 'WhatsApp notifications', hint: 'Sends order, payment, delivery and security updates on WhatsApp to users who opted in. Turn on only once the message templates show Active in WhatsApp Manager.', warn: true },
+  { key: 'auto_agency_dispatch', mode: true, label: 'Automatic agency choice', hint: 'Not built yet (only needed with several agencies). Leave off.', disabled: true },
+  { key: 'enhanced_chat', label: 'Enhanced chat', hint: 'Reserved. Chat replies and the faster inbox are already live for everyone. Leave off.', disabled: true },
+];
+const MODES = [['off', 'Off'], ['shadow', 'Shadow'], ['on', 'On']];
+
 export default function AdminSettingsPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuthStore();
@@ -37,6 +53,7 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [s, setS] = useState(null);
   const [firms, setFirms] = useState([]);
+  const [features, setFeatures] = useState({});
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -53,7 +70,10 @@ export default function AdminSettingsPage() {
       api.get('/admin/logistics/firms'),
     ])
       .then(([settingsRes, firmsRes]) => {
-        if (settingsRes.data.success) setS(settingsRes.data.data.settings);
+        if (settingsRes.data.success) {
+          setS(settingsRes.data.data.settings);
+          setFeatures(settingsRes.data.data.settings?.features || {});
+        }
         if (firmsRes.data.success) setFirms(firmsRes.data.data.firms || []);
       })
       .catch(() => toast.error('Failed to load settings'))
@@ -68,9 +88,12 @@ export default function AdminSettingsPage() {
   const save = async () => {
     setSaving(true);
     try {
-      const res = await api.patch('/admin/settings', s);
+      // Only known switches are sent: the server refuses unknown ones.
+      const flags = Object.fromEntries(FEATURES.map((f) => [f.key, f.mode ? (['off', 'shadow', 'on'].includes(features[f.key]) ? features[f.key] : 'off') : features[f.key] === true]));
+      const res = await api.patch('/admin/settings', { ...s, features: flags });
       if (res.data.success) {
         setS(res.data.data.settings);
+        setFeatures(res.data.data.settings?.features || flags);
         toast.success('Settings saved');
       }
     } catch {
@@ -122,6 +145,48 @@ export default function AdminSettingsPage() {
           Save
         </button>
       </div>
+
+      {/* ── Feature rollout ── */}
+      <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 space-y-3">
+        <div>
+          <h2 className="text-[12px] font-bold text-emerald-500 tracking-widest uppercase flex items-center gap-2">
+            <ToggleRight className="size-3.5" /> Features
+          </h2>
+          <p className="mt-1 text-[11px] text-[var(--text-secondary)]">Turn new features on one at a time, top to bottom. Press Save to apply.</p>
+        </div>
+        <ul className="divide-y divide-[var(--glass-border)]">
+          {FEATURES.map((f) => {
+            const value = features[f.key];
+            const on = f.mode ? value === 'on' || value === 'shadow' : value === true;
+            return (
+              <li key={f.key} className={`flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${f.disabled ? 'opacity-50' : ''}`}>
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 text-[13px] font-semibold text-[var(--text-primary)]">
+                    {f.label}
+                    {f.warn && <AlertTriangle className="size-3.5 text-amber-500" aria-label="Check before turning on" />}
+                  </p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-[var(--text-secondary)]">{f.hint}</p>
+                </div>
+                {f.mode ? (
+                  <div className="flex shrink-0 rounded-xl bg-[var(--bg-secondary)] p-1" role="radiogroup" aria-label={f.label}>
+                    {MODES.map(([m, label]) => (
+                      <button key={m} type="button" role="radio" aria-checked={(value || 'off') === m} disabled={f.disabled}
+                        onClick={() => setFeatures((prev) => ({ ...prev, [f.key]: m }))}
+                        className={`min-h-9 rounded-lg px-3 text-[11px] font-semibold ${(value || 'off') === m ? (m === 'on' ? 'bg-emerald-600 text-white' : m === 'shadow' ? 'bg-amber-500 text-white' : 'bg-[var(--bg-primary)] text-[var(--text-primary)] shadow-sm') : 'text-[var(--text-secondary)]'}`}>{label}</button>
+                    ))}
+                  </div>
+                ) : (
+                  <button type="button" role="switch" aria-checked={on} aria-label={f.label} disabled={f.disabled}
+                    onClick={() => setFeatures((prev) => ({ ...prev, [f.key]: !on }))}
+                    className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${on ? 'bg-emerald-600' : 'bg-[var(--bg-secondary)] ring-1 ring-[var(--glass-border)]'}`}>
+                    <span className={`absolute top-1 size-5 rounded-full bg-white shadow transition-all ${on ? 'left-6' : 'left-1'}`} />
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
       {/* ── Commission ── */}
       <section className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 space-y-4">
