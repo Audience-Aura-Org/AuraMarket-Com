@@ -10,6 +10,7 @@ import {
   ArrowUpRight, LayoutDashboard, List, LineChart,
 } from 'lucide-react';
 import api from '@/services/api';
+import RiderPerformance from '@/components/logistics/RiderPerformance';
 import { toast } from 'react-hot-toast';
 import { useAuthStore } from '@/hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -272,6 +273,8 @@ export default function LogisticsAnalyticsPage() {
             </button>
           </section>
         </div>
+
+        <RiderPerformance />
 
       </div>
     </div>

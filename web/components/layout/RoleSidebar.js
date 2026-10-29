@@ -45,6 +45,7 @@ const ADMIN_NAV = [
   { icon: 'receipt_long',   label: 'Transactions',    href: '/admin/transactions' },
   { icon: 'workspace_premium', label: 'Subscriptions', href: '/admin/subscriptions' },
   { icon: 'local_shipping', label: 'Shipment Node',    href: '/admin/logistics' },
+  { icon: 'map',            label: 'Live Map',         href: '/admin/logistics/map' },
   { icon: 'assessment',     label: 'Logistics Audit',  href: '/admin/logistics/audit' },
   { icon: 'payments',       label: 'Earnings',          href: '/admin/logistics/earnings' },
   { icon: 'monitoring',     label: 'Analytics',        href: '/admin/analytics' },

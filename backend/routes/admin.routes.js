@@ -169,6 +169,7 @@ shared.patch('/kyc/:id/review', reviewKYC);
 shared.get('/logistics/shipments', fetchAdminShipments);
 shared.patch('/logistics/shipments/:id', updateAdminShipment);
 shared.get('/logistics/firms', getAdminLogisticsFirms);
+shared.get('/logistics/live-map', require('../controllers/logisticsReport.controller').liveMap);
 shared.get('/logistics/earnings', getLogisticsEarningsReport);
 shared.patch('/logistics/firms/:id/verify', toggleLogisticsVerified);
 shared.patch('/logistics/firms/:id', updateLogisticsFirm);

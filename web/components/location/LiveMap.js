@@ -6,13 +6,7 @@
 import { useEffect, useRef } from 'react';
 import maplibregl from '@/lib/maplibre';
 import { MAP_STYLE } from './PinMap';
-
-const riderDot = () => {
-  const el = document.createElement('div');
-  el.style.cssText = 'width:22px;height:22px;border-radius:9999px;background:#2563eb;border:3px solid #fff;box-shadow:0 0 0 6px rgba(37,99,235,.25),0 2px 6px rgba(0,0,0,.3);transition:transform .2s';
-  el.setAttribute('aria-label', 'Rider');
-  return el;
-};
+import { createVehicleMarker } from './vehicleMarker';
 
 export default function LiveMap({ rider, destination, className = '' }) {
   const container = useRef(null);
@@ -31,21 +25,22 @@ export default function LiveMap({ rider, destination, className = '' }) {
     });
     m.touchZoomRotate.disableRotation();
     m.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
-    marker.current = new maplibregl.Marker({ element: riderDot() }).setLngLat([rider.lng, rider.lat]).addTo(m);
+    // The rider's vehicle, turning to face the road and gliding between GPS fixes.
+    marker.current = createVehicleMarker(maplibregl, { vehicle: rider.vehicle_type, label: 'Rider' }).moveTo(rider).addTo(m);
     if (destination?.lat != null) {
       new maplibregl.Marker({ color: '#ff00ff' }).setLngLat([destination.lng, destination.lat]).addTo(m);
       // Show rider and destination together the first time.
       m.fitBounds([[Math.min(rider.lng, destination.lng), Math.min(rider.lat, destination.lat)], [Math.max(rider.lng, destination.lng), Math.max(rider.lat, destination.lat)]], { padding: 50, maxZoom: 16, duration: 0 });
     }
     map.current = m;
-    return () => { m.remove(); map.current = null; marker.current = null; };
+    return () => { marker.current?.remove(); m.remove(); map.current = null; marker.current = null; };
     // Created once; position updates are applied below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!map.current || !marker.current) return;
-    marker.current.setLngLat([rider.lng, rider.lat]);
+    marker.current.moveTo(rider);
     // Follow the rider only if they are about to leave the visible area.
     if (!map.current.getBounds().contains([rider.lng, rider.lat])) map.current.easeTo({ center: [rider.lng, rider.lat], duration: 600 });
   }, [rider.lat, rider.lng]);

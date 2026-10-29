@@ -56,6 +56,7 @@ router.get('/riders', restrictTo('logistics'), listRiders);
 router.post('/riders/invite', restrictTo('logistics'), inviteRider);
 router.patch('/riders/:riderId', restrictTo('logistics'), updateRider);
 router.post('/riders/:riderId/cash-handovers', restrictTo('logistics'), recordCashHandover);
+router.get('/riders/report', restrictTo('logistics'), require('../controllers/logisticsReport.controller').riderReport);
 
 // ── Agency packages & shareable tracking links ──
 const { createPackage, createTrackingLink } = require('../controllers/agencyPackage.controller');
