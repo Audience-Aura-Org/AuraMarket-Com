@@ -21,6 +21,7 @@ import {
   LogisticsShortcutsRow,
 } from "@/components/logistics/LogisticsSubpageShell";
 import { summarizeLineItems, destinationLine } from "@/lib/logistics";
+import AssignRiderPanel from "@/components/logistics/AssignRiderPanel";
 
 const PAGE_SIZE = 10;
 
@@ -100,7 +101,6 @@ function ShipmentDetail({ shipmentId, onBack }) {
   const [statusNote, setStatusNote] = useState('');
   const [failureReason, setFailureReason] = useState('');
   const [receiverName, setReceiverName] = useState('');
-  const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [pendingStatus, setPendingStatus] = useState(null);
   const messagesEndRef = useRef(null);
 
@@ -157,7 +157,6 @@ function ShipmentDetail({ shipmentId, onBack }) {
       if (newStatus === 'delivered') {
         body.receiver_name = receiverName;
       }
-      if (estimatedDelivery) body.estimated_delivery = estimatedDelivery;
 
       const res = await api.patch(`/logistics/shipments/${shipmentId}/status`, body);
       if (res.data?.success) {
@@ -167,7 +166,6 @@ function ShipmentDetail({ shipmentId, onBack }) {
         setStatusNote('');
         setFailureReason('');
         setReceiverName('');
-        setEstimatedDelivery('');
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update status');
@@ -230,7 +228,7 @@ function ShipmentDetail({ shipmentId, onBack }) {
             </button>
             {isP2P && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-violet-500/10 text-violet-600">P2P</span>}
           </div>
-          <p className="text-[10px] text-[var(--text-secondary)]/50 mt-0.5">{isP2P ? 'Peer-to-peer delivery' : 'Marketplace order'}</p>
+          <p className="text-[10px] text-[var(--text-secondary)]/50 mt-0.5">{isP2P ? 'Peer-to-peer delivery' : shipment.type === 'agency' ? 'Agency package' : 'Marketplace order'}</p>
         </div>
         <button onClick={() => { fetchShipment(); fetchMessages(); }} className="size-10 rounded-xl border border-[var(--glass-border)]/50 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--accent)] active:scale-95 transition-all shrink-0">
           <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
@@ -256,6 +254,9 @@ function ShipmentDetail({ shipmentId, onBack }) {
         </div>
         <ProgressBar status={shipment.status} />
       </div>
+
+      {/* Who is delivering it: offer it to a rider, see the offer or the rider on it. */}
+      <AssignRiderPanel shipment={shipment} onChanged={fetchShipment} inline />
 
       {/* ─── STATUS UPDATE ACTIONS ─── */}
       {transitions.length > 0 && (
@@ -338,28 +339,6 @@ function ShipmentDetail({ shipmentId, onBack }) {
             </div>
           )}
 
-          {/* Estimated delivery */}
-          {!isTerminal && (
-            <div className="flex items-center gap-2">
-              <Clock className="size-3.5 text-[var(--text-secondary)]/40 shrink-0" />
-              <input
-                type="datetime-local"
-                value={estimatedDelivery}
-                onChange={e => setEstimatedDelivery(e.target.value)}
-                className="flex-1 rounded-lg border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 py-1.5 text-[10px] outline-none focus:border-[var(--accent)]"
-                placeholder="Set ETA"
-              />
-              {estimatedDelivery && (
-                <button
-                  onClick={() => updateStatus(shipment.status)}
-                  disabled={updating}
-                  className="rounded-lg bg-[var(--accent)]/10 text-[var(--accent)] px-2.5 py-1.5 text-[10px] font-bold active:scale-95"
-                >
-                  Save ETA
-                </button>
-              )}
-            </div>
-          )}
         </div>
       )}
 
