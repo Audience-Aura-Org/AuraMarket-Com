@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { haptic } from '@/lib/haptics';
 import { Capacitor } from '@capacitor/core';
 import { clearStoredAuthToken, getStoredAuthToken } from './authStorage';
 import { isSessionEndedResponse } from '../lib/session';
@@ -418,6 +419,8 @@ api.interceptors.response.use(
         saveOfflineCache(res.config, res.data);
       } catch {}
     }
+    // Added to cart: a light "done" buzz in the Android app.
+    if (res?.config?.method === 'post' && /\/cart\/?$/.test(res.config.url || '')) haptic('success');
     return res;
   },
   async (error) => {

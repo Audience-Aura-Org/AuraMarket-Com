@@ -885,3 +885,32 @@ html[data-font-size] h4 { font-size: calc(1.25rem * var(--aura-text-scale, 1)); 
 :is(html[data-font-size] body, html) .aura-sidebar nav :is(a, button) { font-family: inherit; font-size: calc(15px * var(--aura-text-scale, 1)); font-weight: 500; letter-spacing: normal; }
 :is(html[data-font-size] body, html) .aura-sidebar nav :is(a, button) > span:not(.material-symbols-outlined) { font-family: inherit; font-size: inherit; font-weight: inherit; letter-spacing: normal; }
 :is(html[data-font-size] body, html) .aura-sidebar nav [aria-current="page"] { font-weight: 600; }
+
+/* ── Android app (html.native-app, set before first paint in app/layout.js) ──
+   Feels like an app, not a website in a browser: no text selection or long-press
+   link previews outside fields, no grey tap flash, no rubber-band overscroll,
+   images cannot be dragged, and website-only sections are hidden. */
+html.native-app,
+html.native-app body {
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+html.native-app body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+html.native-app input,
+html.native-app textarea,
+html.native-app [contenteditable="true"],
+html.native-app .native-selectable {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+html.native-app img {
+  -webkit-user-drag: none;
+}
+html.native-app .web-only {
+  display: none !important;
+}

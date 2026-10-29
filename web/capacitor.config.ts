@@ -21,6 +21,22 @@ const config: CapacitorConfig = {
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
+    // Logo on the brand background until the first screen has painted (hidden from
+    // components/NativeShell.js), so the app never flashes a blank WebView.
+    SplashScreen: {
+      launchAutoHide: false,
+      launchShowDuration: 8000,
+      backgroundColor: '#0a050a',
+      androidScaleType: 'CENTER_CROP',
+      showSpinner: false,
+      splashFullScreen: false,
+      splashImmersive: false,
+    },
+    StatusBar: {
+      backgroundColor: '#0a050a',
+      style: 'DARK',
+      overlaysWebView: false,
+    },
   },
 };
 

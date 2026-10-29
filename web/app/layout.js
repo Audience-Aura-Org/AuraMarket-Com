@@ -102,7 +102,7 @@ const siteNavJsonLd = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-scroll-behavior="smooth" data-font-size="md" data-font="default">
+    <html lang="en" data-scroll-behavior="smooth" data-font-size="md" data-font="default" suppressHydrationWarning>
       <head>
         {/* Viewport: resizes chat content when the virtual keyboard opens in PWA/WebView */}
         <meta
@@ -110,6 +110,9 @@ export default function RootLayout({ children }) {
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"
         />
         <meta name="theme-color" content="#0a050a" />
+        {/* Inside the Android app, mark the page before first paint so website-only
+            parts and browser behaviours are off from the first frame (see globals.css). */}
+        <script dangerouslySetInnerHTML={{ __html: "try{if(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform())document.documentElement.classList.add('native-app')}catch(e){}" }} />
         {/* Structured Data */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />

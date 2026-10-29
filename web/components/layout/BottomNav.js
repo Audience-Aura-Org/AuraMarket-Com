@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { haptic } from "@/lib/haptics";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -148,6 +149,7 @@ export default function BottomNav() {
               <Link
                 key={item.label}
                 href={item.href}
+                onClick={() => haptic()}
                 className={`relative flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1 transition-colors duration-200 active:scale-[0.98] ${
                   isActive
                     ? "text-[var(--accent)]"

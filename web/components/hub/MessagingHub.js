@@ -6,12 +6,13 @@ import dynamic from 'next/dynamic';
 import {
   Send, X, ArrowLeft, Package, Truck, Navigation,
   MessageCircle, Check, CheckCheck, Loader2, Clock, WifiOff,
-  Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical, UserPlus, Reply, X as CloseIcon
+  Search, Trash2, Image as ImageIcon, AlertCircle, MoreVertical, UserPlus, Reply, X as CloseIcon, Copy
 } from 'lucide-react';
 import api from '@/services/personalMessagingApi';
 import { uploadService } from '@/services/upload';
 import { useAuthStore } from '@/hooks/useAuth';
 import { toId, useChat } from '@/context/ChatContext';
+import { haptic } from '@/lib/haptics';
 import socketService from '@/services/socket';
 import { QUICK_REPLIES, fmtDate, sameDay, sameGroup, bubbleRounding } from './chat/ChatUtils';
 import { toast } from 'react-hot-toast';
@@ -1370,6 +1371,7 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
     // Non-blocking — the optimistic message still appears instantly.
     syncActivePid(sendPartnerId);
 
+    haptic();
     setPendingSendCount(count => count + 1);
     const sendStamp = Date.now();
     const quoting = retryMessage ? retryMessage.reply_to || null : (fromComposer && replyTo ? replyQuote(replyTo) : null);
@@ -1569,6 +1571,15 @@ export default function MessagingHub({ vendorId: initialVendorId, product, initi
             className="flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-secondary)]"
           >
             <Reply className="size-4 text-[var(--text-secondary)]" /> Reply
+          </button>
+        )}
+        {floatingMenu.msg?.text && (
+          <button
+            type="button"
+            onClick={() => { navigator.clipboard?.writeText(floatingMenu.msg.text).then(() => toast.success('Copied')).catch(() => {}); haptic(); closeFloatingMenu(); }}
+            className="flex w-full items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-[13px] font-medium text-[var(--text-primary)] transition hover:bg-[var(--bg-secondary)]"
+          >
+            <Copy className="size-4 text-[var(--text-secondary)]" /> Copy
           </button>
         )}
         <button

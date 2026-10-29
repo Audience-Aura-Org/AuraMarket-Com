@@ -15,6 +15,6 @@ export const TABS = [
   { id: 'kyc',           label: 'Verification',   icon: ShieldCheck, roles: ['customer', 'vendor'] },
   { id: 'notifications', label: 'Alerts',          icon: Bell,        roles: ['customer', 'vendor', 'admin', 'logistics', 'manager'] },
   { id: 'security',      label: 'Security',       icon: Shield,      roles: ['customer', 'vendor', 'admin', 'logistics', 'manager'] },
-  { id: 'install',       label: 'Install App',    icon: Smartphone,  roles: ['customer', 'vendor', 'admin', 'logistics', 'manager'] },
+  { id: 'install',       label: 'Install App',    icon: Smartphone,  roles: ['customer', 'vendor', 'admin', 'logistics', 'manager'], webOnly: true }, // hidden inside the Android app
   { id: 'close-account', label: 'Close account',  icon: ShieldAlert, roles: ['customer', 'vendor', 'admin', 'logistics', 'manager'] },
 ];

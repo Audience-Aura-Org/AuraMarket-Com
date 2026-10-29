@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import api from "@/services/api";
 import { useFeatureFlag } from "@/lib/featureFlags";
 import useShareLocation, { openLocationSettings } from "./useShareLocation";
+import { haptic } from "@/lib/haptics";
 
 const NEXT_STEP = {
   assigned: { status: "picked_up", label: "I picked it up" },
@@ -69,7 +70,7 @@ export default function RiderDeliveries() {
 
   const act = async (key, fn, success) => {
     setBusy(key);
-    try { await fn(); if (success) toast.success(success); setFinishing(null); setForm({ note: "", cash: "", reason: "" }); await load(); }
+    try { await fn(); haptic(key.startsWith("rej-") ? "warning" : "success"); if (success) toast.success(success); setFinishing(null); setForm({ note: "", cash: "", reason: "" }); await load(); }
     catch (err) { toast.error(err?.response?.data?.message || "That did not work. Please try again."); await load(); }
     finally { setBusy(null); }
   };

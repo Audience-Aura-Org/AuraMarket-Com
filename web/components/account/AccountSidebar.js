@@ -41,7 +41,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.id)}
-              className={`shrink-0 h-10 px-5 flex items-center gap-2 rounded-full border transition-all active:scale-97 ${
+              className={`${tab.webOnly ? "web-only " : ""}shrink-0 h-10 px-5 flex items-center gap-2 rounded-full border transition-all active:scale-97 ${
                 isActive
                   ? 'bg-[var(--text-primary)] border-[var(--text-primary)] text-[var(--bg-primary)] shadow-md'
                   : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--glass-border)] hover:border-[var(--accent)]/40 hover:text-[var(--text-primary)]'
@@ -89,7 +89,7 @@ export default function AccountSidebar({ activeTab, onTabChange }) {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
-              <div key={tab.id}>
+              <div key={tab.id} className={tab.webOnly ? "web-only" : undefined}>
                 {tab.groupStart && <p className="px-3 pt-5 pb-2 text-[11px] font-medium text-[var(--text-secondary)] opacity-60">{t('nav.sections.' + tab.groupStart.toLowerCase().replace(/[^a-z]+/g, '_'), tab.groupStart)}</p>}
               <button
                 aria-current={isActive ? 'page' : undefined}

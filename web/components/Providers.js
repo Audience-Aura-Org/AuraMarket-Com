@@ -20,6 +20,7 @@ import { hasPendingPushIntent } from '@/lib/native-push';
 // ── Lazy-loaded components — not needed on first paint ─────────────────────
 const Toaster = dynamic(() => import('react-hot-toast').then(mod => mod.Toaster), { ssr: false });
 import { AnimatePresence } from 'framer-motion';
+import NativeShell from '@/components/NativeShell';
 
 // Heavy sidebar & overlay — deferred until after hydration
 const CartSidebar = dynamic(() => import('@/components/CartSidebar'), { ssr: false });
@@ -167,6 +168,9 @@ export default function Providers({ children }) {
 
           {/* Floating upload progress ring — persists across navigation */}
           <FloatingUploadBadge />
+
+          {/* Android app chrome: status bar, splash, offline bar (nothing in browsers) */}
+          <NativeShell />
 
           {/* Global chat overlay — deferred, heavy */}
           {!isAuthRoute && <GlobalChatOverlay />}

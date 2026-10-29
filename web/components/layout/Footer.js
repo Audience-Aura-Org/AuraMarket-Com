@@ -40,7 +40,7 @@ export default function Footer() {
   if (isChatPage || isDashboardRoute) return null;
 
   return (
-    <footer className="w-full border-t border-[var(--glass-border)] bg-[var(--bg-primary)] transition-colors duration-500">
+    <footer className="web-only w-full border-t border-[var(--glass-border)] bg-[var(--bg-primary)] transition-colors duration-500">
       <div className="mx-auto w-full max-w-5xl px-4 py-5 md:px-8 md:py-6">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-between">
           {/* Brand + Legal */}
