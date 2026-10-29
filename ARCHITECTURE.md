@@ -639,5 +639,4 @@ Key invariants:
 | Script | Purpose |
 |--------|---------|
 | `scripts/cancel-stale-payout-txns.js` | Cancel orphan pending payout txns left by refund disputes (idempotent, `--dry-run` safe) |
-| `scripts/reconcile-wallet-balances.js` | Recompute wallet balances from ledger and credit missing amounts (`--dry-run` safe) |
 | `scripts/run-invariants.js` | Run all 30 invariant checks and print report |

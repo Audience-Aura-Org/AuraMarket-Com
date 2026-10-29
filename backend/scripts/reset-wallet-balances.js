@@ -6,7 +6,7 @@
  *
  * Each wallet is reset in its own database transaction, together with a
  * completed "Balance reset" debit in its history and an audit entry, so the
- * ledger agrees with the balance and reconcile-wallet-balances.js keeps it at 0.
+ * wallet history explains why the balance went to 0.
  * Only touches a wallet whose balance has not changed since it was read.
  * The platform wallet (PlatformSettings.platform_wallet_balance) is not touched.
  * A JSON backup of the previous balances is written to backend/backups/ first.
