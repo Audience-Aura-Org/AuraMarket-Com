@@ -8,8 +8,10 @@ import { useCallback, useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Bike, Loader2 } from 'lucide-react';
 import api from '@/services/api';
+import { useGoogleMaps } from '@/lib/googleMaps';
 
-const LiveMap = dynamic(() => import('@/components/location/LiveMap'), {
+// Google Maps when a key is configured, else the free MapLibre map.
+const LiveMap = dynamic(() => (useGoogleMaps ? import('@/components/location/google/GoogleLiveMap') : import('@/components/location/LiveMap')), {
   ssr: false,
   loading: () => <div className="flex h-56 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] sm:h-64"><Loader2 className="size-5 animate-spin text-[var(--accent)]" /></div>,
 });

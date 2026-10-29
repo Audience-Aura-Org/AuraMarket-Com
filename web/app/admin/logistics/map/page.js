@@ -9,8 +9,10 @@ import dynamic from "next/dynamic";
 import { Bike, Loader2, MapPinned, Package, RefreshCw, Timer } from "lucide-react";
 import api from "@/services/api";
 import StatCard from "@/components/layout/StatCard";
+import { useGoogleMaps } from "@/lib/googleMaps";
 
-const FleetMap = dynamic(() => import("@/components/location/FleetMap"), {
+// Google Maps when a key is configured, else the free MapLibre map.
+const FleetMap = dynamic(() => (useGoogleMaps ? import("@/components/location/google/GoogleFleetMap") : import("@/components/location/FleetMap")), {
   ssr: false,
   loading: () => <div className="flex h-[60vh] min-h-[360px] items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]"><Loader2 className="size-5 animate-spin text-[var(--accent)]" /></div>,
 });

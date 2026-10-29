@@ -10,10 +10,12 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { useGoogleMaps } from '@/lib/googleMaps';
 import { Building2, Check, Crosshair, Landmark, Loader2, MapPin, Search, X } from 'lucide-react';
 import api from '@/services/api';
 
-const PinMap = dynamic(() => import('./PinMap'), {
+// Google Maps when a key is configured, else the free MapLibre map.
+const PinMap = dynamic(() => (useGoogleMaps ? import('./google/GooglePinMap') : import('./PinMap')), {
   ssr: false,
   loading: () => <div className="flex h-56 items-center justify-center rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[11px] text-[var(--text-secondary)] sm:h-64">Loading map…</div>,
 });

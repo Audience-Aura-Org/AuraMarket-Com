@@ -50,7 +50,11 @@ const bearing = (a, b) => {
 // Rough metres between two nearby points (enough to ignore GPS jitter).
 const metres = (a, b) => Math.hypot((b.lat - a.lat) * 111320, (b.lng - a.lng) * 111320 * Math.cos((a.lat * Math.PI) / 180));
 
-export function createVehicleMarker(maplibregl, { vehicle = 'motorcycle', color = '#2563eb', label = 'Rider', glideMs = 1500 } = {}) {
+/**
+ * Map-agnostic core: the vehicle element plus turning and gliding. `place(pos)`
+ * puts the marker at { lat, lng } on whichever map library hosts it.
+ */
+function vehicleCore({ vehicle = 'motorcycle', color = '#2563eb', label = 'Rider', glideMs = 1500 } = {}, place) {
   const el = document.createElement('div');
   el.setAttribute('role', 'img');
   el.setAttribute('aria-label', label);
@@ -61,39 +65,69 @@ export function createVehicleMarker(maplibregl, { vehicle = 'motorcycle', color 
   body.innerHTML = svgFor(vehicle);
   el.appendChild(body);
 
-  const marker = new maplibregl.Marker({ element: el, rotationAlignment: 'map' });
   let pos = null;
-  let heading = 0;
   let frame = null;
-
-  const api = {
-    marker,
+  const core = {
     element: el,
-    addTo(map) { marker.addTo(map); return api; },
-    setPopup(popup) { marker.setPopup(popup); return api; },
-    setColor(c) { body.style.color = c; el.style.borderColor = c; return api; },
-    setVehicle(v) { body.innerHTML = svgFor(v); return api; },
-    getLngLat() { return pos; },
+    setColor(c) { body.style.color = c; el.style.borderColor = c; },
+    setVehicle(v) { body.innerHTML = svgFor(v); },
+    getPosition() { return pos; },
     /** Glide to a new fix and face the direction of travel (ignores sub-5 m jitter). */
     moveTo(next) {
-      if (!pos) { pos = { ...next }; marker.setLngLat([next.lng, next.lat]); return api; }
-      if (metres(pos, next) < 5) return api;
-      heading = bearing(pos, next);
-      body.style.transform = `rotate(${heading}deg)`;
+      if (!pos) { pos = { lat: next.lat, lng: next.lng }; place(pos); return; }
+      if (metres(pos, next) < 5) return;
+      body.style.transform = `rotate(${bearing(pos, next)}deg)`;
       const from = { ...pos };
-      pos = { ...next };
+      pos = { lat: next.lat, lng: next.lng };
       if (frame) cancelAnimationFrame(frame);
       const start = performance.now();
       const step = (t) => {
         const k = Math.min(1, (t - start) / glideMs);
         const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2; // ease in-out
-        marker.setLngLat([from.lng + (next.lng - from.lng) * e, from.lat + (next.lat - from.lat) * e]);
+        place({ lat: from.lat + (next.lat - from.lat) * e, lng: from.lng + (next.lng - from.lng) * e });
         frame = k < 1 ? requestAnimationFrame(step) : null;
       };
       frame = requestAnimationFrame(step);
-      return api;
     },
-    remove() { if (frame) cancelAnimationFrame(frame); marker.remove(); },
+    stop() { if (frame) cancelAnimationFrame(frame); },
+  };
+  return core;
+}
+
+/** MapLibre marker. */
+export function createVehicleMarker(maplibregl, options = {}) {
+  let marker = null;
+  const core = vehicleCore(options, (p) => marker.setLngLat([p.lng, p.lat]));
+  marker = new maplibregl.Marker({ element: core.element });
+  const api = {
+    marker,
+    element: core.element,
+    addTo(map) { marker.addTo(map); return api; },
+    setPopup(popup) { marker.setPopup(popup); return api; },
+    setColor(c) { core.setColor(c); return api; },
+    setVehicle(v) { core.setVehicle(v); return api; },
+    getLngLat() { return core.getPosition(); },
+    moveTo(next) { core.moveTo(next); return api; },
+    remove() { core.stop(); marker.remove(); },
+  };
+  return api;
+}
+
+/** Google Maps AdvancedMarkerElement (lib/googleMaps.js). */
+export function createGoogleVehicleMarker(AdvancedMarkerElement, map, options = {}) {
+  let marker = null;
+  const core = vehicleCore(options, (p) => { marker.position = p; });
+  // Google anchors custom content at its bottom edge: centre the disc on the position.
+  core.element.style.transform = 'translateY(50%)';
+  marker = new AdvancedMarkerElement({ map, content: core.element, title: options.label || 'Rider' });
+  const api = {
+    marker,
+    element: core.element,
+    setColor(c) { core.setColor(c); return api; },
+    setVehicle(v) { core.setVehicle(v); return api; },
+    getPosition() { return core.getPosition(); },
+    moveTo(next) { core.moveTo(next); return api; },
+    remove() { core.stop(); marker.map = null; },
   };
   return api;
 }

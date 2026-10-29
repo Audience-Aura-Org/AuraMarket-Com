@@ -27,7 +27,7 @@ export default function RiderSummary({ refreshKey, showCash = false }) {
   }, []);
   useEffect(() => { load(); const t = setInterval(load, 60000); return () => clearInterval(t); }, [load, refreshKey]);
 
-  if (!data) return null;
+  if (!data?.today || !data?.earnings) return null; // nothing (or an unexpected reply) to show yet
   const paid = Boolean(data.pay_rule);
   return (
     <div className="space-y-3">
