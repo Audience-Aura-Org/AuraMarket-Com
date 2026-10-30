@@ -4,7 +4,7 @@
  * Same props as components/location/PinMap.js.
  */
 import { useEffect, useRef } from 'react';
-import { loadGoogleMaps, baseMapOptions } from '@/lib/googleMaps';
+import { loadGoogleMaps, baseMapOptions, guardGoogleMap } from '@/lib/googleMaps';
 
 const DOUALA = { lat: 4.0511, lng: 9.7043 };
 
@@ -28,6 +28,7 @@ export default function GooglePinMap({ pin, center, zoom = 16, onPinChange, clas
       if (cancelled || !container.current) return;
       const start = pin || center || DOUALA;
       const m = new Map(container.current, baseMapOptions({ center: start, zoom: pin ? zoom : 13 }));
+      guardGoogleMap(container.current); // billing/key errors → free map
       const mk = new AdvancedMarkerElement({ map: m, position: start, content: pinElement(), gmpDraggable: true, title: 'Delivery spot' });
       // position may be a LatLng (methods) or a plain { lat, lng }.
       const read = (p) => ({ lat: typeof p.lat === 'function' ? p.lat() : p.lat, lng: typeof p.lng === 'function' ? p.lng() : p.lng });

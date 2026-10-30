@@ -6,7 +6,7 @@
  * Same props as components/location/FleetMap.js.
  */
 import { useEffect, useRef, useState } from 'react';
-import { loadGoogleMaps, baseMapOptions } from '@/lib/googleMaps';
+import { loadGoogleMaps, baseMapOptions, guardGoogleMap } from '@/lib/googleMaps';
 import { createGoogleVehicleMarker } from '../vehicleMarker';
 
 const DOUALA = { lat: 4.0511, lng: 9.7043 };
@@ -34,6 +34,7 @@ export default function GoogleFleetMap({ riders = [], deliveries = [], className
       if (cancelled || !container.current) return;
       lib.current = g;
       map.current = new g.Map(container.current, baseMapOptions({ center: DOUALA, zoom: 12 }));
+      guardGoogleMap(container.current); // billing/key errors → free map
       info.current = new g.InfoWindow();
       setReady(true);
     }).catch(() => {});

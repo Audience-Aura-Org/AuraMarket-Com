@@ -4,7 +4,7 @@
  * GPS fixes) and the destination pin. Same props as components/location/LiveMap.js.
  */
 import { useEffect, useRef } from 'react';
-import { loadGoogleMaps, baseMapOptions } from '@/lib/googleMaps';
+import { loadGoogleMaps, baseMapOptions, guardGoogleMap } from '@/lib/googleMaps';
 import { createGoogleVehicleMarker } from '../vehicleMarker';
 
 const destinationElement = () => {
@@ -29,6 +29,7 @@ export default function GoogleLiveMap({ rider, destination, route = null, classN
       if (cancelled || !container.current) return;
       lib.current = g;
       const m = new Map(container.current, baseMapOptions({ center: { lat: rider.lat, lng: rider.lng }, zoom: 15 }));
+      guardGoogleMap(container.current); // billing/key errors → free map
       vehicle.current = createGoogleVehicleMarker(AdvancedMarkerElement, m, { vehicle: rider.vehicle_type, label: 'Rider' }).moveTo(rider);
       if (destination?.lat != null) {
         new AdvancedMarkerElement({ map: m, position: { lat: destination.lat, lng: destination.lng }, content: destinationElement(), title: 'Delivery address' });

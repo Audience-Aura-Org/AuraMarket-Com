@@ -48,7 +48,9 @@ export function loadGoogleMaps() {
       } catch (e) { markFailed(e.message); reject(e); }
     };
     if (window.google?.maps?.importLibrary) return done();
-    window.__auraGoogleMapsReady = done;
+    // A script that never answers (blocked network, captive portal) must not leave a blank map.
+    const timeout = setTimeout(() => { loading = null; markFailed('no answer in 15 s'); reject(new Error('Google Maps did not load')); }, 15000);
+    window.__auraGoogleMapsReady = () => { clearTimeout(timeout); done(); };
     const s = document.createElement('script');
     s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_KEY)}&v=weekly&loading=async&callback=__auraGoogleMapsReady`;
     s.async = true;
@@ -56,6 +58,24 @@ export function loadGoogleMaps() {
     document.head.appendChild(s);
   });
   return loading;
+}
+
+/**
+ * Google signals billing problems (and some key problems) not through
+ * gm_authFailure but by dimming the map with "For development purposes only" and a
+ * "can't load Google Maps correctly" box. Watch a new map's container for that and
+ * switch every map to the free one. Returns a function that stops watching.
+ */
+export function guardGoogleMap(container) {
+  if (!container || typeof MutationObserver === 'undefined') return () => {};
+  const broken = () => /can.t load Google Maps correctly|For development purposes only/i.test(container.textContent || '');
+  const check = () => { if (broken()) { markFailed('Google map error (billing or key)'); stop(); } };
+  const observer = new MutationObserver(check);
+  observer.observe(container, { childList: true, subtree: true, characterData: true });
+  const timer = setTimeout(() => stop(), 20000); // the error shows within seconds of loading
+  function stop() { observer.disconnect(); clearTimeout(timer); }
+  check();
+  return stop;
 }
 
 /** Map options shared by every Auradime map: app-like gestures, minimal controls. */

@@ -10,7 +10,7 @@ const g = vi.hoisted(() => {
   class InfoWindow { setContent() {} open() {} }
   return { state, lib: { Map, AdvancedMarkerElement, LatLngBounds, InfoWindow } };
 });
-vi.mock('@/lib/googleMaps', () => ({ loadGoogleMaps: async () => g.lib, baseMapOptions: (x) => ({ mapId: 'DEMO_MAP_ID', gestureHandling: 'greedy', ...x }) }));
+vi.mock('@/lib/googleMaps', () => ({ loadGoogleMaps: async () => g.lib, guardGoogleMap: () => () => {}, baseMapOptions: (x) => ({ mapId: 'DEMO_MAP_ID', gestureHandling: 'greedy', ...x }) }));
 
 import GoogleLiveMap from './GoogleLiveMap';
 import GoogleFleetMap from './GoogleFleetMap';
