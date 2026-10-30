@@ -107,3 +107,39 @@ describe('Saved addresses (up to 5, saved when used)', () => {
     expect(list.body.data.max).toBe(5)
   })
 })
+
+describe('Google places in the search', () => {
+  afterEach(() => { delete process.env.GOOGLE_PLACES_API_KEY })
+
+  it('adds Google places after our quartiers, and gives the exact spot only when one is picked', async () => {
+    await LogisticZone.create({ name: 'Simbock', type: 'quartier', level: 3, centroid: { type: 'Point', coordinates: [11.4762, 3.8099] } })
+    process.env.GOOGLE_PLACES_API_KEY = 'test-google-key'
+    const fetch = vi.spyOn(global, 'fetch').mockImplementation(async (url, opts) => {
+      if (String(url).includes('places:autocomplete')) {
+        expect(JSON.parse(opts.body)).toMatchObject({ input: 'simbock pharm', includedRegionCodes: ['cm'], sessionToken: 'sess-12345678' })
+        return { ok: true, json: async () => ({ suggestions: [{ placePrediction: { placeId: 'ChIJpharmacie1234', structuredFormat: { mainText: { text: 'Pharmacie de Simbock' }, secondaryText: { text: 'Route de Mbalmayo, Yaoundé' } } } }] }) }
+      }
+      if (String(url).includes('/places/ChIJpharmacie1234')) {
+        expect(opts.headers['X-Goog-FieldMask']).toContain('location')
+        return { ok: true, json: async () => ({ displayName: { text: 'Pharmacie de Simbock' }, formattedAddress: 'Route de Mbalmayo, Yaoundé', location: { latitude: 3.8105, longitude: 11.4771 }, addressComponents: [{ longText: 'Yaoundé', types: ['locality'] }] }) }
+      }
+      return { ok: true, json: async () => ({ features: [] }) } // OpenStreetMap: nothing
+    })
+    const r = await request(app).get('/api/v1/locations/search').query({ q: 'simbock pharm', session: 'sess-12345678' })
+    expect(r.body.data.results[0]).toMatchObject({ source: 'google', name: 'Pharmacie de Simbock', address: 'Route de Mbalmayo, Yaoundé', google_place_id: 'ChIJpharmacie1234', point: null })
+
+    const picked = await request(app).get('/api/v1/locations/place/ChIJpharmacie1234').query({ session: 'sess-12345678' })
+    expect(picked.body.data.place).toMatchObject({ name: 'Pharmacie de Simbock', point: { lat: 3.8105, lng: 11.4771 }, city: 'Yaoundé' })
+    await request(app).get('/api/v1/locations/place/ChIJpharmacie1234')
+    expect(fetch.mock.calls.filter(([u]) => String(u).includes('/places/ChIJ'))).toHaveLength(1) // cached
+  })
+
+  it('keeps working without Google when the key is refused', async () => {
+    process.env.GOOGLE_PLACES_API_KEY = 'refused-key'
+    vi.spyOn(global, 'fetch').mockResolvedValue({ ok: false, status: 403, text: async () => 'API not enabled', json: async () => ({}) })
+    const r = await request(app).get('/api/v1/locations/search').query({ q: 'bastos market' })
+    expect(r.status).toBe(200)
+    expect(r.body.data.results.every((x) => x.source !== 'google')).toBe(true)
+    expect((await request(app).get('/api/v1/locations/place/ChIJnotreal12345')).status).toBe(404)
+  })
+})

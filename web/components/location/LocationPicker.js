@@ -21,8 +21,16 @@ const PinMap = withMapFallback(() => import('./google/GooglePinMap'), () => impo
 const KIND_LABEL = { quartier: 'Quartier', district: 'District', city: 'City', region: 'Region', place: 'Landmark' };
 const placeLine = (r) => [r.quartier, r.district, r.city].filter((v, i, a) => v && a.indexOf(v) === i && v !== r.name).join(' · ');
 
+// What the search box shows for a chosen spot (like ride-hailing apps keep it there).
+const spotLabel = (v) => [v.place_name, v.quartier].filter((x, i, a) => x && a.indexOf(x) === i).join(', ');
+// One id per typing session: Google bills a session's suggestions and the pick once.
+const newSession = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `s${Date.now()}${Math.random().toString(36).slice(2, 10)}`);
+
 export default function LocationPicker({ value = {}, onChange, label = 'Location' }) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(() => spotLabel(value));
+  const shown = useRef(spotLabel(value)); // text we put in the box ourselves: not a search
+  const session = useRef(newSession());
+  const [picking, setPicking] = useState(false);
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [showMap, setShowMap] = useState(Boolean(value.location));
@@ -33,15 +41,24 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
   const resolveSeq = useRef(0);
   const update = (patch) => onChange({ ...value, ...patch });
 
+  // A spot chosen elsewhere (a saved address): show it in the box unless they are typing.
+  const label_ = spotLabel(value);
+  useEffect(() => {
+    const before = shown.current; // read now: the updater below runs later
+    shown.current = label_;
+    setQuery((q) => (q === before || !q.trim() ? label_ : q));
+  }, [label_]);
+
   // Debounced search-as-you-type.
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 2) { setResults([]); return undefined; }
+    if (q.length < 2 || query === shown.current) { setResults([]); return undefined; }
     let active = true;
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await api.get('/locations/search', { params: { q } });
+        const near = value.location || null;
+        const res = await api.get('/locations/search', { params: { q, session: session.current, ...(near ? { lat: near.lat, lng: near.lng } : {}) } });
         if (active) setResults(res?.data?.data?.results || []);
       } catch { if (active) setResults([]); }
       finally { if (active) setSearching(false); }
@@ -72,8 +89,25 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
     }
   };
 
-  const choose = (r) => {
-    setQuery(''); setResults([]); setResolution(null); setShowMap(true);
+  const showInBox = (text) => { shown.current = text; setQuery(text); };
+
+  const choose = async (r) => {
+    setResults([]); setResolution(null); setShowMap(true);
+    showInBox([r.name, r.kind === 'place' ? r.quartier : null].filter(Boolean).join(', '));
+    if (r.google_place_id && !r.point) {
+      // A Google place: its exact position is fetched only now that it is picked.
+      setPicking(true);
+      try {
+        const res = await api.get(`/locations/place/${encodeURIComponent(r.google_place_id)}`, { params: { session: session.current } });
+        const place = res?.data?.data?.place;
+        session.current = newSession();
+        if (place?.point) { setCenter(place.point); resolvePin(place.point, 'search', place.name || r.name); }
+      } catch (err) {
+        setError(err?.response?.data?.message || 'Could not open this place. Try another or drop the pin.');
+      } finally { setPicking(false); }
+      return;
+    }
+    session.current = newSession();
     if (r.zone_id) {
       // A quartier or a landmark: already tied to a priced quartier.
       const location = r.point ? { lat: r.point.lat, lng: r.point.lng, source: 'search' } : null;
@@ -115,7 +149,9 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
           aria-label={`${label}: search`}
           className="min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-10 pr-10 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[12px] placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
         />
-        {searching && <Loader2 className="absolute right-3.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-[var(--text-secondary)]" aria-hidden="true" />}
+        {searching || picking
+          ? <Loader2 className="absolute right-3.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-[var(--text-secondary)]" aria-hidden="true" />
+          : query && <button type="button" aria-label="Clear the search" onClick={() => { shown.current = ''; setQuery(''); }} className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-[var(--text-secondary)] hover:bg-[var(--accent)]/10"><X className="size-4" /></button>}
         {results.length > 0 && (
           <ul role="listbox" className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] py-1 shadow-lg">
             {results.map((r) => (
@@ -124,7 +160,7 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
                   {r.kind === 'place' ? <Landmark className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" /> : r.kind === 'quartier' ? <MapPin className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" /> : <Building2 className="mt-0.5 size-4 shrink-0 text-[var(--text-secondary)]" />}
                   <span className="min-w-0">
                     <span className="block truncate text-[12px] font-semibold text-[var(--text-primary)]">{r.name}</span>
-                    <span className="block truncate text-[10px] text-[var(--text-secondary)]">{r.place_kind === 'street' ? 'Street' : KIND_LABEL[r.kind]}{placeLine(r) ? ` · ${placeLine(r)}` : ''}</span>
+                    <span className="block truncate text-[10px] text-[var(--text-secondary)]">{r.address || <>{r.place_kind === 'street' ? 'Street' : KIND_LABEL[r.kind]}{placeLine(r) ? ` · ${placeLine(r)}` : ''}</>}</span>
                   </span>
                 </button>
               </li>

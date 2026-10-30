@@ -149,6 +149,21 @@ const trackingLimiter = rateLimit({
 });
 
 /**
+ * Picking a place found by Google (each lookup is billed): a person picks a few per
+ * address, so 60 per 15 minutes is plenty and caps any abuse.
+ */
+const placeLookupLimiter = rateLimit({
+  store: redisStore('auradime:rl:place:'),
+  passOnStoreError: true,
+  windowMs: 15 * 60 * 1000,
+  max: intEnv('PLACE_LOOKUP_RATE_LIMIT_MAX', 60),
+  keyGenerator: userOrIpKey,
+  message: { success: false, message: 'Too many place lookups. Please wait a few minutes, or drop the pin on the map.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
  * Live rider position polling: one open tracking page polls about every 10 s, so it
  * needs more room than code lookups. It only serves deliveries the viewer may see.
  */
@@ -168,6 +183,7 @@ module.exports = {
   liveTrackingLimiter,
   strictLimiter,
   trackingLimiter,
+  placeLookupLimiter,
   publicLimiter,
   walletWriteLimiter,
   videoUploadLimiter,

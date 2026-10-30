@@ -9,6 +9,7 @@
  */
 const LogisticZone = require('../models/LogisticZone.model');
 const Place = require('../models/Place.model');
+const googlePlaces = require('./googlePlaces.service');
 
 // Pins further than this from the nearest quartier centre are not trusted.
 const MAX_CONFIDENT_METERS = Number(process.env.LOCATION_MAX_CONFIDENT_M || 2500);
@@ -65,7 +66,7 @@ const geocode = async (q) => {
   }
 };
 
-const search = async (rawQuery, { limit = 10 } = {}) => {
+const search = async (rawQuery, { limit = 10, session, bias } = {}) => {
   const q = String(rawQuery || '').trim().slice(0, 60);
   if (q.length < 2) return [];
   const pattern = new RegExp(accentInsensitive(q), 'i');
@@ -95,9 +96,17 @@ const search = async (rawQuery, { limit = 10 } = {}) => {
     .sort((a, b) => a.rank - b.rank || a.name.localeCompare(b.name))
     .map(({ rank, ...r }) => r);
   // Our quartiers and curated places first (they carry the pricing zone), then
-  // streets and landmarks from the place search, skipping names we already have.
+  // Google's places (most complete), then OpenStreetMap streets and landmarks,
+  // skipping names we already have.
   const known = new Set(own.map((r) => r.name.toLowerCase()));
-  const extra = (await geocode(q)).filter((r) => r.name && !known.has(r.name.toLowerCase()));
+  const [google, osm] = await Promise.all([googlePlaces.suggest(q, { session, bias }), geocode(q)]);
+  const extra = [];
+  for (const r of [...google, ...osm]) {
+    const k = r.name?.toLowerCase();
+    if (!k || known.has(k)) continue;
+    known.add(k);
+    extra.push(r);
+  }
   const ownSlots = Math.max(4, limit - extra.length);
   return [...own.slice(0, ownSlots), ...extra].slice(0, limit);
 };
