@@ -15,16 +15,8 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
-const PACKAGE_CATEGORIES = [
-  { value: 'document', label: 'Document' },
-  { value: 'fragile', label: 'Fragile' },
-  { value: 'food', label: 'Food' },
-  { value: 'electronics', label: 'Electronics' },
-  { value: 'clothing', label: 'Clothing' },
-  { value: 'household', label: 'Household' },
-  { value: 'other', label: 'Other' },
-];
-
+// The package step only asks for weight and an optional description; bookings
+// still send category "other" (form default), which the backend expects.
 const WEIGHT_TIERS = [
   { value: 'light', label: 'Light (under 5 kg)' },
   { value: 'medium', label: 'Medium (5–15 kg)' },
@@ -692,7 +684,7 @@ export default function DeliveryPage() {
 
   const STEPS = ['Pickup', 'Delivery', 'Package', 'Courier & payment', 'Done'];
   const summaries = ['pickup', 'dropoff'].map(prefix => [form[prefix + '_name'], form[prefix + '_phone'], form[prefix + '_street'] || form[prefix + '_quartier']].filter(Boolean).join(' \u00b7 '));
-  summaries.push([PACKAGE_CATEGORIES.find(o => o.value === form.category)?.label, WEIGHT_TIERS.find(o => o.value === form.weight_tier)?.label, form.scheduled ? form.scheduled_date.replace('T', ' ') : 'As soon as possible'].join(' \u00b7 '));
+  summaries.push([WEIGHT_TIERS.find(o => o.value === form.weight_tier)?.label, form.description.trim(), form.scheduled ? form.scheduled_date.replace('T', ' ') : 'As soon as possible'].filter(Boolean).join(' \u00b7 '));
   summaries.push((selectedQuote?.provider_name || 'Courier') + ' \u00b7 ' + (success?.price || selectedQuote?.price || 0).toLocaleString() + ' XAF');
   const errorNote = error ? (
     <div role="alert" className="flex items-start gap-3 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-3.5">
@@ -754,30 +746,17 @@ export default function DeliveryPage() {
             {step === 2 && renderAddressBox('dropoff', direction === 'request_pickup')}
 
             {step === 3 && <section aria-label="Package" className={CARD}>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className={LABEL} htmlFor="pkg-category">Category</label>
-                  <select id="pkg-category" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={FIELD}>
-                    {PACKAGE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={LABEL} htmlFor="pkg-weight">Weight</label>
-                  <select id="pkg-weight" value={form.weight_tier} onChange={e => setForm(p => ({ ...p, weight_tier: e.target.value }))} className={FIELD}>
-                    {WEIGHT_TIERS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
-                  </select>
-                </div>
+              {/* Just what the courier needs: how heavy, and what it is. */}
+              <div>
+                <label className={LABEL} htmlFor="pkg-weight">Weight</label>
+                <select id="pkg-weight" value={form.weight_tier} onChange={e => setForm(p => ({ ...p, weight_tier: e.target.value }))} className={FIELD}>
+                  {WEIGHT_TIERS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
+                </select>
               </div>
-              <details className="group rounded-2xl border border-[var(--glass-border)] px-3.5 py-2.5" open={Boolean(form.description || form.declared_value)}>
-                <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between text-[12px] font-semibold text-[var(--text-secondary)]">Description and value (optional) <span className="text-[16px] transition-transform group-open:rotate-45" aria-hidden="true">+</span></summary>
-                <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                  <div className="sm:col-span-2"><label className={LABEL} htmlFor="pkg-desc">What is it?</label><input id="pkg-desc" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={FIELD} placeholder="e.g. Two pairs of shoes" /></div>
-                  <div><label className={LABEL} htmlFor="pkg-value">Value</label>
-                    <div className="relative"><input id="pkg-value" inputMode="numeric" value={form.declared_value} onChange={e => setForm(p => ({ ...p, declared_value: e.target.value.replace(/[^0-9]/g, '') }))} className={`${FIELD} pr-14 tabular-nums`} placeholder="0" />
-                      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-[var(--text-secondary)]">XAF</span></div>
-                  </div>
-                </div>
-              </details>
+              <div>
+                <label className={LABEL} htmlFor="pkg-desc">Description <span className="font-normal text-[var(--text-secondary)]">(optional)</span></label>
+                <textarea id="pkg-desc" rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={`${FIELD} resize-none py-3`} placeholder="e.g. Two pairs of shoes in a box" />
+              </div>
               <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-[var(--bg-secondary)] p-3.5">
                 <input type="checkbox" checked={form.prohibited_confirmed} onChange={e => setForm(p => ({ ...p, prohibited_confirmed: e.target.checked }))} className="mt-0.5 size-5 shrink-0 accent-[var(--accent)]" />
                 <span className="min-w-0 flex-1 text-[13px] leading-snug text-[var(--text-primary)]">No prohibited items inside (weapons, drugs, dangerous or illegal goods).</span>
