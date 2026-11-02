@@ -11,7 +11,7 @@ import { FIELD, LABEL, SMALL_BUTTON, HINT } from '@/lib/formStyles';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import {
   Package, Send, ArrowDownToLine, ChevronRight, MapPin, Clock, Wallet, Loader2,
-  CheckCircle2, Check, Pencil, User as UserIcon, X, Smartphone, AlertCircle, Truck, CircleDot, Search,
+  CheckCircle2, Check, Pencil, User as UserIcon, X, Smartphone, AlertCircle, Truck, CircleDot, Search, Phone, Mail, Info,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -529,15 +529,34 @@ export default function DeliveryPage() {
         />
 
         {showSummary ? (
-          <div className="flex items-start gap-3 rounded-2xl bg-[var(--bg-secondary)] p-3">
-            {otherHasLookup && lookupResult.avatar
-              ? <img src={lookupResult.avatar} className="size-9 shrink-0 rounded-full object-cover" alt="" />
-              : <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[13px] font-bold text-[var(--accent)]">{(form[`${prefix}_name`] || '?')[0]}</span>}
-            <div className="min-w-0 flex-1 text-[13px]">
-              <p className="truncate font-semibold">{form[`${prefix}_name`]}{form[`${prefix}_phone`] ? <span className="font-normal text-[var(--text-secondary)]"> · {form[`${prefix}_phone`]}</span> : null}</p>
-              <p className="truncate text-[12px] text-[var(--text-secondary)]">{placeLine || '—'}</p>
-              {form[`${prefix}_landmark`] && <p className="truncate text-[12px] italic text-[var(--text-secondary)]">“{form[`${prefix}_landmark`]}”</p>}
+          // The saved details, one per line so they are easy to check before continuing.
+          <div className="space-y-3 rounded-2xl bg-[var(--bg-secondary)] p-4">
+            <div className="flex items-center gap-3">
+              {otherHasLookup && lookupResult.avatar
+                ? <img src={lookupResult.avatar} className="size-11 shrink-0 rounded-full object-cover" alt="" />
+                : <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[15px] font-bold text-[var(--accent)]">{(form[`${prefix}_name`] || '?')[0]}</span>}
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-semibold">{form[`${prefix}_name`]}</p>
+                <p className="text-[12px] text-[var(--text-secondary)]">{person}{otherHasLookup && lookupResult.username ? ` · @${lookupResult.username}` : ''}</p>
+              </div>
             </div>
+            <dl className="space-y-2 border-t border-[var(--glass-border)] pt-3 text-[13px]">
+              {form[`${prefix}_phone`] && (
+                <div className="flex items-start gap-2.5"><dt className="sr-only">Phone</dt><Phone className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" aria-hidden="true" /><dd className="tabular-nums">{form[`${prefix}_phone`]}</dd></div>
+              )}
+              {form[`${prefix}_email`] && (
+                <div className="flex items-start gap-2.5"><dt className="sr-only">Email</dt><Mail className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" aria-hidden="true" /><dd className="min-w-0 break-words">{form[`${prefix}_email`]}</dd></div>
+              )}
+              <div className="flex items-start gap-2.5"><dt className="sr-only">Place</dt><MapPin className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" aria-hidden="true" />
+                <dd className="min-w-0">
+                  <span className="block">{placeLine || '—'}</span>
+                  <span className={`block text-[12px] ${form[`${prefix}_location`] ? 'text-emerald-600' : 'text-amber-600'}`}>{form[`${prefix}_location`] ? 'Exact spot on the map' : 'Area only: tap Edit to pin the exact spot'}</span>
+                </dd>
+              </div>
+              {form[`${prefix}_landmark`] && (
+                <div className="flex items-start gap-2.5"><dt className="sr-only">Description</dt><Info className="mt-0.5 size-4 shrink-0 text-[var(--accent)]" aria-hidden="true" /><dd className="min-w-0 italic">“{form[`${prefix}_landmark`]}”</dd></div>
+              )}
+            </dl>
           </div>
         ) : (
           <>
@@ -757,8 +776,20 @@ export default function DeliveryPage() {
 
             {step === 3 && <section aria-labelledby="pkg-title" className={CARD}>
               <CardTitle id="pkg-title" icon={Package} title="Package" hint="Helps the courier bring the right vehicle" />
-              <Chips label="Category" options={PACKAGE_CATEGORIES} value={form.category} onChange={(v) => setForm(p => ({ ...p, category: v }))} />
-              <Chips label="Weight" options={WEIGHT_TIERS} value={form.weight_tier} onChange={(v) => setForm(p => ({ ...p, weight_tier: v }))} />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={LABEL} htmlFor="pkg-category">Category</label>
+                  <select id="pkg-category" value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={FIELD}>
+                    {PACKAGE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={LABEL} htmlFor="pkg-weight">Weight</label>
+                  <select id="pkg-weight" value={form.weight_tier} onChange={e => setForm(p => ({ ...p, weight_tier: e.target.value }))} className={FIELD}>
+                    {WEIGHT_TIERS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
+                  </select>
+                </div>
+              </div>
               <details className="group rounded-2xl border border-[var(--glass-border)] px-3.5 py-2.5" open={Boolean(form.description || form.declared_value)}>
                 <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between text-[12px] font-semibold text-[var(--text-secondary)]">Description and value (optional) <span className="text-[16px] transition-transform group-open:rotate-45" aria-hidden="true">+</span></summary>
                 <div className="mt-2 grid gap-3 sm:grid-cols-2">
