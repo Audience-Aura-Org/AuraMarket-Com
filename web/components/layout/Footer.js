@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 
 const LEGAL_LINKS = [
+  { name: 'Track a package', href: '/delivery/track' },
   { name: 'Privacy', href: '/privacy' },
   { name: 'Terms', href: '/terms' },
   { name: 'Cookies', href: '/cookies' },

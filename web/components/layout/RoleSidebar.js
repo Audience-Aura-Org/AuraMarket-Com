@@ -62,6 +62,8 @@ const CUSTOMER_NAV = [
   { icon: 'home',                     label: 'Marketplace',      href: '/shop' },
   { icon: 'restaurant',               label: 'Dine',             href: '/dine' },
   { icon: 'shopping_bag',             label: 'Orders',           href: '/profile?tab=orders' },
+  { icon: 'my_location',              label: 'Track a package',  href: '/delivery/track' },
+  { icon: 'local_shipping',           label: 'Send a package',   href: '/delivery' },
   { icon: 'favorite',                 label: 'Wishlist',         href: '/wishlist' },
   { icon: 'chat',                     label: 'Messages',         href: '/chat',             badge: 'messages' },
   { icon: 'account_balance_wallet',   label: 'Wallet',           href: '/wallet' },

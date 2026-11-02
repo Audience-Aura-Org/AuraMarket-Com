@@ -5,6 +5,7 @@ import { orderParty } from '@/lib/orderParty';
 import { useManagerMode } from '@/hooks/useManagerMode';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Package, ChevronLeft, MapPin,
   ShoppingBag, ShieldCheck, Truck, CheckCircle2,
@@ -1278,6 +1279,12 @@ export default function SingleOrderView({ orderId, onBack }) {
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  {shipment.tracking_code && (
+                    <Link href={`/delivery/track?code=${encodeURIComponent(shipment.tracking_code)}`}
+                      className="inline-flex min-h-[40px] items-center gap-2 rounded-xl bg-[var(--accent)] px-3.5 py-2 text-[11px] font-semibold text-white transition active:opacity-90">
+                      <MapPin className="size-3.5" /> Track delivery
+                    </Link>
+                  )}
                   {canMessageCarrier && (
                     <button type="button" onClick={openCarrierChat}
                       className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/8 px-3.5 py-2 text-[11px] font-semibold text-[var(--accent)] transition active:bg-[var(--accent)]/15">

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, useRef, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import api from '@/services/api';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import LiveRiderCard from '@/components/delivery/LiveRiderCard';
@@ -9,7 +9,7 @@ import {
   Package, MapPin, Clock, CheckCircle2, XCircle, Truck, AlertTriangle,
   Search, Loader2, User, MessageCircle, Send, Copy, Check,
   ArrowLeft, Navigation, Phone, Shield, ChevronDown,
-  Banknote, ArrowDownToLine, ClipboardList, Timer,
+  Banknote, ArrowDownToLine, ClipboardList, Timer, Share2, History, X,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -88,7 +88,7 @@ const PROGRESS_STEPS = [
   { key: 'delivered',        icon: CheckCircle2,  label: 'Delivered' },
 ];
 
-function StatusStepper({ status }) {
+function StatusStepper({ status, showLabel = true }) {
   const currentIdx = STATUS_FLOW.indexOf(status);
   const isFail = ['failed', 'cancelled'].includes(status);
   const failMeta = isFail ? STATUS_META[status] : null;
@@ -112,13 +112,13 @@ function StatusStepper({ status }) {
                     ? 'bg-[var(--accent)] text-white shadow-md shadow-[var(--accent)]/30'
                     : reached
                       ? 'bg-[var(--accent)] text-white'
-                      : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)]/30 text-[var(--text-secondary)]/20'
+                      : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)]/30 text-[var(--text-secondary)]'
                 }`}>
                   {reached && !isCurrent
                     ? <CheckCircle2 className="size-4" />
                     : isCurrent
                       ? <StepIcon className="size-4" />
-                      : <StepIcon className="size-3.5 opacity-30" />
+                      : <StepIcon className="size-3.5" />
                   }
                 </div>
               </div>
@@ -135,27 +135,37 @@ function StatusStepper({ status }) {
         })}
       </div>
 
-      {/* Current status label */}
-      <div className="text-center">
+      {/* Current status label (the status card above already says it) */}
+      {showLabel && <div className="text-center">
         <p className={`text-sm font-bold ${isFail ? failMeta?.color || 'text-rose-500' : 'text-[var(--text-primary)]'}`}>
           {isFail ? failMeta?.label : (STATUS_META[status]?.label || status)}
         </p>
         <p className={`text-[11px] font-medium mt-0.5 ${isFail ? 'text-rose-500/50' : 'text-[var(--text-secondary)] opacity-50'}`}>
           {isFail ? failMeta?.sub : (STATUS_META[status]?.sub || '')}
         </p>
-      </div>
+      </div>}
     </div>
   );
 }
 
+// Codes tracked on this device, newest first, for one-tap tracking next time.
+const RECENT_KEY = 'aura-recent-tracking';
+const readRecent = () => { try { return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]').slice(0, 5); } catch { return []; } };
+const saveRecent = (code) => {
+  const next = [code, ...readRecent().filter((c) => c !== code)].slice(0, 5);
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* private mode */ }
+  return next;
+};
+
 function formatAddress(addr) {
   if (!addr || typeof addr !== 'object') return { lines: [], phone: null };
-  const parts = [addr.street, addr.quartier, addr.city, addr.region, addr.country].filter(Boolean);
+  const parts = [addr.landmark, addr.street, addr.quartier, addr.city].filter((v, i, a) => v && a.indexOf(v) === i);
   return { lines: parts.length ? parts : ['—'], phone: addr.phone || null };
 }
 
 /* ── Main content ──────────────────────────────────────────────────── */
 function TrackContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const codeParam = searchParams.get('code') || '';
   // Secure share links (?t=<token>) from agencies, e.g. sent over WhatsApp.
@@ -172,17 +182,26 @@ function TrackContent() {
   const [showTimeline, setShowTimeline] = useState(false);
   const msgEnd = useRef(null);
   const liveTracking = useFeatureFlag('live_tracking');
+  const [recent, setRecent] = useState([]);
+  useEffect(() => { setRecent(readRecent()); }, []);
 
   const fetchShipment = useCallback(async (tc, background = false) => {
-    if (!tc) return;
+    const clean = String(tc || '').trim().toUpperCase();
+    if (!clean) return;
     if (!background) { setLoading(true); setError(''); }
     try {
-      const res = await api.get(`/p2p/track/${tc.trim().toUpperCase()}`);
-      if (res.data?.success) setShipment(res.data.data.shipment);
-      else if (!background) { setError('Shipment not found'); setShipment(null); }
-    } catch (err) { if (!background) { setError(err.response?.data?.message || 'Shipment not found'); setShipment(null); } }
+      const res = await api.get(`/p2p/track/${encodeURIComponent(clean)}`);
+      if (res.data?.success) {
+        setShipment(res.data.data.shipment);
+        if (!background) {
+          setRecent(saveRecent(clean));
+          // Keep the code in the address bar: refresh and sharing show the same delivery.
+          if (searchParams.get('code') !== clean) router.replace(`/delivery/track?code=${encodeURIComponent(clean)}`, { scroll: false });
+        }
+      } else if (!background) { setError('Shipment not found'); setShipment(null); }
+    } catch (err) { if (!background) { setError(err.response?.data?.message || 'We could not find this code. Check it and try again.'); setShipment(null); } }
     if (!background) setLoading(false);
-  }, []);
+  }, [router, searchParams]);
 
   const fetchMsgs = useCallback(async (id) => {
     try {
@@ -221,10 +240,15 @@ function TrackContent() {
     if (!background) setLoading(false);
   }, []);
 
+  // Load from the link once per code (a search that updates the URL already loaded it).
+  const loadedFor = useRef('');
   useEffect(() => {
+    const key = tokenParam ? `t:${tokenParam}` : codeParam ? `c:${codeParam.toUpperCase()}` : '';
+    if (!key || loadedFor.current === key || (shipment && !tokenParam && shipment.tracking_code === codeParam.toUpperCase())) return;
+    loadedFor.current = key;
     if (tokenParam) fetchByToken(tokenParam);
-    else if (codeParam) fetchShipment(codeParam);
-  }, [tokenParam, codeParam, fetchByToken, fetchShipment]);
+    else fetchShipment(codeParam);
+  }, [tokenParam, codeParam]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (shipment?._id) {
       fetchMsgs(shipment._id);
@@ -232,16 +256,32 @@ function TrackContent() {
       api.patch(`/messages/shipment/${shipment._id}/read`).catch(() => {});
     }
   }, [shipment?._id, fetchMsgs]);
+  const activeId = shipment && !['delivered', 'cancelled', 'failed'].includes(shipment.status) ? shipment._id : null;
+  const activeCode = shipment?.tracking_code;
   useEffect(() => {
-    if (!shipment || ['delivered', 'cancelled', 'failed'].includes(shipment.status)) return;
+    if (!activeId) return undefined;
     // Link viewers refresh through the link: agency packages are not found by code.
-    const iv = setInterval(() => { if (tokenParam) fetchByToken(tokenParam, true); else fetchShipment(shipment.tracking_code, true); fetchMsgs(shipment._id); }, 30000);
-    return () => clearInterval(iv);
-  }, [shipment, tokenParam, fetchShipment, fetchByToken, fetchMsgs]);
+    // Only while the page is visible; coming back to it refreshes at once.
+    const refresh = () => { if (tokenParam) fetchByToken(tokenParam, true); else fetchShipment(activeCode, true); fetchMsgs(activeId); };
+    const iv = setInterval(() => { if (document.visibilityState === 'visible') refresh(); }, 30000);
+    const onShow = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', onShow);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onShow); };
+  }, [activeId, activeCode, tokenParam, fetchShipment, fetchByToken, fetchMsgs]);
 
   const m = shipment ? STATUS_META[shipment.status] || STATUS_META.pending : null;
   const isTerminal = shipment && ['delivered', 'cancelled', 'failed'].includes(shipment.status);
-  useLiveClock(!isTerminal && !!shipment);
+  // The second-by-second clock only matters while the countdown is on screen.
+  useLiveClock(Boolean(shipment?.estimated_delivery && shipment.status === 'pending'));
+  const lastLog = shipment?.shipment_logs?.[shipment.shipment_logs.length - 1];
+
+  const share = async () => {
+    const url = tokenParam ? window.location.href : `${window.location.origin}/delivery/track?code=${encodeURIComponent(shipment.tracking_code)}`;
+    try {
+      if (navigator.share) await navigator.share({ title: `Delivery ${shipment.tracking_code}`, url });
+      else { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    } catch { /* closed the share sheet */ }
+  };
   const pickup = shipment ? formatAddress(shipment.pickup_address) : { lines: [], phone: null };
   const drop = shipment ? formatAddress(shipment.delivery_address) : { lines: [], phone: null };
   // A masked number ("6•• ••• 654") cannot be dialled: drop the call buttons in the public view.
@@ -255,30 +295,35 @@ function TrackContent() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-32">
       {/* ── Sticky Header ─────────────────────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-[var(--bg-primary)]/80 backdrop-blur-xl border-b border-[var(--glass-border)]/20">
+      {/* Sticks under the app's top bar (not behind it). Plain background: no blur on phones. */}
+      <div className="sticky top-[var(--top-nav-height,calc(56px+env(safe-area-inset-top,0px)))] z-30 border-b border-[var(--glass-border)]/40 bg-[var(--bg-primary)] md:top-[var(--top-nav-height-lg,calc(60px+env(safe-area-inset-top,0px)))]">
         <div className="mx-auto max-w-2xl px-4 py-3 space-y-3">
           <div className="flex items-center gap-3">
-            <Link href="/delivery" className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]/40 flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-all shrink-0">
+            <Link href="/delivery" aria-label="Back to deliveries" className="size-9 rounded-xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]/40 flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-all shrink-0">
               <ArrowLeft className="size-4" />
             </Link>
-            <h1 className="text-[15px] font-bold text-[var(--text-primary)] tracking-tight flex-1">Track Delivery</h1>
+            <h1 className="text-[16px] font-bold text-[var(--text-primary)] tracking-tight flex-1">Track a delivery</h1>
           </div>
-          <div className="flex gap-2">
+          <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); fetchShipment(code); }}>
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)]/25 pointer-events-none" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--text-secondary)] pointer-events-none" aria-hidden="true" />
               <input
                 value={code}
                 onChange={e => setCode(e.target.value.toUpperCase())}
-                onKeyDown={e => e.key === 'Enter' && fetchShipment(code)}
-                className="w-full rounded-xl border border-[var(--glass-border)]/40 bg-[var(--bg-secondary)]/60 pl-10 pr-4 py-2.5 text-sm font-mono font-bold outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 placeholder:font-sans placeholder:font-normal placeholder:text-[var(--text-secondary)]/20 min-h-[44px]"
-                placeholder="AURA-XXXXXXXX"
+                aria-label="Tracking code"
+                autoCapitalize="characters"
+                autoComplete="off"
+                spellCheck={false}
+                inputMode="text"
+                className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-10 pr-4 py-2.5 text-[16px] font-mono font-bold outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/15 placeholder:font-sans placeholder:font-normal placeholder:text-[13px] placeholder:text-[var(--text-secondary)] min-h-[44px] md:text-sm"
+                placeholder="Tracking code, e.g. AURA-K7Q2M9XP"
               />
             </div>
-            <button onClick={() => fetchShipment(code)} disabled={loading || !code.trim()}
+            <button type="submit" disabled={loading || !code.trim()}
               className="shrink-0 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-white font-bold text-xs disabled:opacity-40 flex items-center gap-2 active:scale-95 transition-all min-h-[44px]">
               {loading ? <Loader2 className="size-4 animate-spin" /> : 'Track'}
             </button>
-          </div>
+          </form>
         </div>
       </div>
 
@@ -292,13 +337,31 @@ function TrackContent() {
         )}
 
         {/* Empty state */}
-        {!shipment && !loading && !error && (
-          <div className="py-24 text-center">
-            <div className="size-16 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)]/20 mx-auto flex items-center justify-center mb-4">
-              <Package className="size-7 text-[var(--text-secondary)]/15" />
-            </div>
-            <p className="text-sm font-bold text-[var(--text-primary)] mb-1">Enter your tracking code</p>
-            <p className="text-[11px] text-[var(--text-secondary)]/35">Paste or type your AURA- tracking code above</p>
+        {!shipment && !loading && (
+          <div className="py-12 text-center space-y-6">
+            {!error && (
+              <div>
+                <div className="size-16 rounded-2xl bg-[var(--accent)]/10 mx-auto flex items-center justify-center mb-4">
+                  <Package className="size-7 text-[var(--accent)]" />
+                </div>
+                <p className="text-sm font-bold text-[var(--text-primary)] mb-1">Enter your tracking code</p>
+                <p className="text-[12px] text-[var(--text-secondary)]">It starts with AURA- and is in your order, your WhatsApp or SMS message, or the agency&apos;s receipt.</p>
+              </div>
+            )}
+            {recent.length > 0 && (
+              <div className="text-left">
+                <p className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text-primary)]"><History className="size-4 text-[var(--accent)]" /> Tracked on this device</p>
+                <div className="flex flex-wrap gap-2">
+                  {recent.map((c) => (
+                    <button key={c} type="button" onClick={() => { setCode(c); fetchShipment(c); }}
+                      className="min-h-10 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3.5 font-mono text-[12px] font-bold text-[var(--text-primary)] hover:border-[var(--accent)]/40">{c}</button>
+                  ))}
+                  <button type="button" aria-label="Clear this list" onClick={() => { try { localStorage.removeItem(RECENT_KEY); } catch { /* ignore */ } setRecent([]); }}
+                    className="flex size-10 items-center justify-center rounded-xl text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"><X className="size-4" /></button>
+                </div>
+              </div>
+            )}
+            <Link href="/delivery/history" className="inline-flex text-[12px] font-semibold text-[var(--accent)]">See all my deliveries</Link>
           </div>
         )}
 
@@ -306,13 +369,13 @@ function TrackContent() {
         {loading && !shipment && (
           <div className="py-24 flex flex-col items-center gap-3">
             <Loader2 className="size-7 animate-spin text-[var(--accent)]" />
-            <p className="text-[11px] text-[var(--text-secondary)]/35 font-semibold">Looking up shipment...</p>
+            <p className="text-[11px] text-[var(--text-secondary)] font-semibold">Looking up shipment...</p>
           </div>
         )}
 
         {/* ── Shipment detail ──────────────────────────────────────── */}
         {shipment && m && (
-          <div className="space-y-8">
+          <div className="space-y-6">
 
             {/* ── ETA Countdown (top) ─────────────────────────────── */}
             {/* Rough estimate only until a rider accepts; then the live route gives the real time. */}
@@ -334,7 +397,7 @@ function TrackContent() {
                         <Timer className={`size-5 ${!isOverdue ? 'animate-pulse' : ''}`} />
                       </div>
                       <div>
-                        <p className={`text-[9px] font-bold uppercase tracking-widest ${isOverdue ? 'text-rose-500/60' : 'text-[var(--text-secondary)] opacity-40'}`}>
+                        <p className={`text-[10px] font-bold uppercase tracking-widest ${isOverdue ? 'text-rose-500/60' : 'text-[var(--text-secondary)] opacity-40'}`}>
                           {isOverdue ? 'Past Due' : 'Arriving In'}
                         </p>
                         <p className={`text-[11px] font-medium ${isOverdue ? 'text-rose-500/50' : 'text-[var(--text-secondary)] opacity-50'}`}>
@@ -362,22 +425,31 @@ function TrackContent() {
             })()}
 
             {/* ── Header: Tracking Code ───────────────────────────── */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">
-                  {shipment.tracking_code}
-                </h2>
-                <button onClick={copyCode} className="active:scale-95 transition-all">
-                  {copied ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4 text-[var(--text-secondary)]/25" />}
+            {/* Where it is now, at a glance: status, last update, code, share. */}
+            <div className={`rounded-2xl border ${m.border} ${m.bg} p-4`}>
+              <div className="flex items-start gap-3">
+                <span className={`flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-primary)] ${m.color}`}><m.icon className="size-5" /></span>
+                <div className="min-w-0 flex-1">
+                  <p className={`text-[17px] font-bold leading-tight ${m.color}`}>{m.label}</p>
+                  <p className="text-[12px] text-[var(--text-secondary)]">{m.sub}{lastLog?.timestamp ? ` · updated ${timeAgo(lastLog.timestamp)}` : ''}</p>
+                </div>
+                <button type="button" onClick={share} aria-label="Share this tracking page" className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--accent)]">
+                  <Share2 className="size-4" />
                 </button>
               </div>
-              <p className="text-[11px] font-medium text-[var(--text-secondary)] opacity-60">
-                Created {new Date(shipment.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--glass-border)]/40 pt-3">
+                <button type="button" onClick={copyCode} aria-label="Copy tracking code" className="inline-flex items-center gap-1.5 font-mono text-[14px] font-bold text-[var(--text-primary)]">
+                  {shipment.tracking_code}
+                  {copied ? <Check className="size-4 text-emerald-500" /> : <Copy className="size-4 text-[var(--text-secondary)]" />}
+                </button>
+                <span className="text-[11px] text-[var(--text-secondary)]">
+                  Created {new Date(shipment.createdAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                </span>
+              </div>
             </div>
 
             {/* ── Step-by-step Status Progress ─────────────────────── */}
-            <StatusStepper status={shipment.status} />
+            <StatusStepper status={shipment.status} showLabel={false} />
 
             {/* ── Live rider position (link holders and signed-in parties) ── */}
             {liveTracking && !isTerminal && (tokenParam || !shipment.redacted) && (
@@ -387,15 +459,15 @@ function TrackContent() {
             {/* ── Quick Info Row (price + carrier + payment) ──────── */}
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50">Price</p>
-                <p className="mt-1 text-sm font-black text-[var(--text-primary)]">{(shipment.price ?? 0).toLocaleString()} <span className="text-[9px] font-bold text-[var(--text-secondary)] opacity-40">XAF</span></p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Price</p>
+                <p className="mt-1 text-sm font-black text-[var(--text-primary)]">{(shipment.price ?? 0).toLocaleString()} <span className="text-[10px] font-bold text-[var(--text-secondary)]">XAF</span></p>
               </div>
               <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50">Carrier</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Carrier</p>
                 <p className="mt-1 text-[12px] font-bold text-[var(--text-primary)] truncate">{shipment.logistics_id?.company_name || '—'}</p>
               </div>
               <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/20 p-3">
-                <p className="text-[8px] font-bold uppercase tracking-wider text-[var(--text-secondary)] opacity-50">Payment</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)]">Payment</p>
                 <span className={`inline-flex mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                   shipment.payment_status === 'paid' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'
                 }`}>{shipment.payment_status === 'paid' ? 'Paid' : 'Pending'}</span>
@@ -473,14 +545,9 @@ function TrackContent() {
                     )
                   )}
                   {senderObj?.email && (
-                    <p className="text-[11px] text-[var(--text-secondary)] opacity-50 mt-1">{senderObj.email}</p>
+                    <p className="text-[11px] text-[var(--text-secondary)] mt-1">{senderObj.email}</p>
                   )}
                 </div>
-                {shipment.pickup_address && (
-                  <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70 pt-2 border-t border-emerald-500/10">
-                    {pickup.lines.join(', ')}
-                  </div>
-                )}
               </div>
 
               {/* Recipient */}
@@ -505,14 +572,9 @@ function TrackContent() {
                     )
                   )}
                   {recipientObj?.email && (
-                    <p className="text-[11px] text-[var(--text-secondary)] opacity-50 mt-1">{recipientObj.email}</p>
+                    <p className="text-[11px] text-[var(--text-secondary)] mt-1">{recipientObj.email}</p>
                   )}
                 </div>
-                {shipment.delivery_address && (
-                  <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] opacity-70 pt-2 border-t border-rose-500/10">
-                    {drop.lines.join(', ')}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -573,7 +635,7 @@ function TrackContent() {
               <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 overflow-hidden">
                 <div className="max-h-[300px] overflow-y-auto p-4 space-y-3">
                   {messages.length === 0 ? (
-                    <p className="text-center text-[11px] text-[var(--text-secondary)] opacity-40 py-6">
+                    <p className="text-center text-[11px] text-[var(--text-secondary)] py-6">
                       No messages yet. Start the conversation below.
                     </p>
                   ) : messages.map((msg, i) => {
@@ -587,10 +649,10 @@ function TrackContent() {
                             : 'bg-[var(--bg-secondary)] border border-[var(--glass-border)]/50 text-[var(--text-primary)] rounded-bl-md'
                         }`}>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`text-[9px] font-bold uppercase ${isMe ? 'text-white/70' : (roleColors[msg.sender_role] || 'text-[var(--text-secondary)] opacity-50')}`}>
+                            <span className={`text-[10px] font-bold uppercase ${isMe ? 'text-white/70' : (roleColors[msg.sender_role] || 'text-[var(--text-secondary)] opacity-50')}`}>
                               {msg.sender_name || msg.sender_role}
                             </span>
-                            <span className={`text-[9px] ${isMe ? 'text-white/40' : 'text-[var(--text-secondary)] opacity-30'}`}>
+                            <span className={`text-[10px] ${isMe ? 'text-white/70' : 'text-[var(--text-secondary)]'}`}>
                               {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
@@ -604,7 +666,7 @@ function TrackContent() {
                 <form onSubmit={e => { e.preventDefault(); sendMsg(); }} className="flex items-center gap-2 border-t border-[var(--glass-border)]/30 p-3">
                   <input value={msgInput} onChange={e => setMsgInput(e.target.value)}
                     placeholder="Type a message..."
-                    className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[12px] font-medium outline-none focus:border-[var(--accent)]/30 transition-colors placeholder:text-[var(--text-secondary)] placeholder:opacity-30 min-h-[40px]" />
+                    className="flex-1 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[12px] font-medium outline-none focus:border-[var(--accent)]/30 transition-colors placeholder:text-[var(--text-secondary)] min-h-[40px]" />
                   <button type="submit" disabled={!msgInput.trim() || sendingMsg}
                     className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)] text-white transition-all active:scale-95 disabled:opacity-30">
                     {sendingMsg ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
@@ -621,7 +683,7 @@ function TrackContent() {
                   <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 flex-1 text-left">
                     Timeline ({shipment.shipment_logs.length} events)
                   </span>
-                  <ChevronDown className={`size-4 text-[var(--text-secondary)]/30 transition-transform ${showTimeline ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`size-4 text-[var(--text-secondary)] transition-transform ${showTimeline ? 'rotate-180' : ''}`} />
                 </button>
                 {showTimeline && (
                   <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/10 p-4 space-y-0">
@@ -636,12 +698,12 @@ function TrackContent() {
                           </div>
                           <div className="flex-1 min-w-0 pb-1">
                             <div className="flex items-center justify-between gap-2">
-                              <p className={`text-[10px] font-bold capitalize ${first ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]/35'}`}>
+                              <p className={`text-[10px] font-bold capitalize ${first ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                                 {log.status?.replace(/_/g, ' ')}
                               </p>
-                              <p className="text-[8px] text-[var(--text-secondary)]/25 shrink-0">{new Date(log.timestamp).toLocaleString()}</p>
+                              <p className="text-[10px] text-[var(--text-secondary)] shrink-0">{new Date(log.timestamp).toLocaleString()}</p>
                             </div>
-                            {log.note && <p className="text-[9px] text-[var(--text-secondary)]/30 mt-0.5">{log.note}</p>}
+                            {log.note && <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">{log.note}</p>}
                           </div>
                         </div>
                       );
