@@ -621,7 +621,7 @@ export default function DeliveryPage() {
                       </select>
                     </div>
                   )}
-                  <div><label className={LABEL} htmlFor={`${prefix}-street`}>Street or landmark</label><input id={`${prefix}-street`} value={form[`${prefix}_street`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_street`]: e.target.value }))} className={FIELD} placeholder="Building, gate, landmark" /></div>
+                  <div><label className={LABEL} htmlFor={`${prefix}-street`}>Street or landmark</label><input id={`${prefix}-street`} value={form[`${prefix}_street`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_street`]: e.target.value }))} className={FIELD} placeholder="Gate, floor… (optional)" /></div>
                 </div>
               )}
 
@@ -732,7 +732,7 @@ export default function DeliveryPage() {
               </div>
               <div>
                 <label className={LABEL} htmlFor="pkg-desc">Description <span className="font-normal text-[var(--text-secondary)]">(optional)</span></label>
-                <textarea id="pkg-desc" rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={`${FIELD} resize-none py-3`} placeholder="e.g. Two pairs of shoes in a box" />
+                <textarea id="pkg-desc" rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={`${FIELD} resize-none py-3`} placeholder="e.g. Shoes" />
               </div>
               <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-[var(--bg-secondary)] p-3.5">
                 <input type="checkbox" checked={form.prohibited_confirmed} onChange={e => setForm(p => ({ ...p, prohibited_confirmed: e.target.checked }))} className="mt-0.5 size-5 shrink-0 accent-[var(--accent)]" />

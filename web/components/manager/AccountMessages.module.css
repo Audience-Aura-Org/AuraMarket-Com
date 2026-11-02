@@ -46,3 +46,14 @@
  .messages { padding: 16px; max-height: 50dvh; }
  .form { flex-direction: column; align-items: stretch; }
 }
+
+/* Product, status reply and quote inside a bubble: same accent highlight as the main messaging */
+.context { display: flex; align-items: center; gap: 10px; margin: 6px 0; padding: 8px 10px; border-radius: 12px; border: 1px solid color-mix(in srgb,var(--accent) 25%,transparent); background: color-mix(in srgb,var(--accent) 10%,transparent); }
+.context img, .contextIcon { width: 40px; height: 40px; flex: none; border-radius: 8px; object-fit: cover; }
+.contextIcon { display: grid; place-items: center; color: var(--accent); background: color-mix(in srgb,var(--accent) 15%,transparent); }
+.context span, .quote { display: flex; min-width: 0; flex-direction: column; }
+.context b, .quote b { font-size: 12px; font-weight: 600; color: var(--accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.context small, .quote small { font-size: 12px; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.quote { margin: 6px 0; padding: 6px 10px; border-left: 3px solid var(--accent); border-radius: 8px; background: rgba(0,0,0,.05); }
+.photo { display: block; margin: 6px 0; overflow: hidden; border-radius: 10px; }
+.photo img { display: block; max-height: 240px; width: 100%; object-fit: cover; }

@@ -23,6 +23,16 @@ describe('managed account messages',()=>{
   expect(mocks.post.mock.calls[0][1].receiver_id).toBe('buyer');
   for(const [,config] of mocks.get.mock.calls){expect(config.headers['X-Act-As']).toBe('managed-owner');expect(config.__noActAs).toBe(true)}
  });
+ it('highlights the product, status reply and quoted message like the main messaging',async()=>{
+  mocks.get.mockImplementation(async path=>({data:{success:true,data:path==='/chat'?{activeChats:[{partner:{_id:'buyer',name:'Buyer'},partnerName:'Buyer',snippet:'I want this',unread_count:1}]}:{messages:[
+   {_id:'m1',text:'I want this',sender_id:{_id:'buyer'},product_reference:{_id:'p1',name:'Red sneakers',price:15000,images:[{url:'/p.jpg'}]},createdAt:'2026-10-23T10:00:00Z'},
+   {_id:'m2',text:'Still available?',sender_id:{_id:'buyer'},metadata:{type:'story_reply',storyType:'text',storyPreview:'New stock today'},createdAt:'2026-10-23T10:01:00Z'},
+   {_id:'m3',text:'Yes',sender_id:{_id:'managed-owner'},reply_to:{message_id:'m1',sender_id:'buyer',text:'I want this'},createdAt:'2026-10-23T10:02:00Z'}],total:3}}}));
+  render(<AccountMessages/>);fireEvent.click(await screen.findByRole('button',{name:/Buyer.*I want this/}));
+  expect(await screen.findByText('Red sneakers')).toBeTruthy();expect(screen.getByText('15,000 XAF')).toBeTruthy();
+  expect(screen.getByText('Status reply')).toBeTruthy();expect(screen.getByText('New stock today')).toBeTruthy();
+  expect(screen.getAllByText('I want this').length).toBeGreaterThan(1);
+ });
  it('shows access errors without substituting the manager personal inbox',async()=>{
   mocks.get.mockRejectedValue({response:{data:{message:'You do not have messages access for this account.'}}});render(<AccountMessages/>);
   await screen.findByRole('alert');expect(screen.queryByRole('textbox',{name:'Message as managed account'})).toBeNull();

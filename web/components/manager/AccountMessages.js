@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, MessagesSquare, RefreshCw, Send, Search } from 'lucide-react';
+import { ArrowLeft, MessageCircle, MessagesSquare, RefreshCw, Send, Search, ShoppingBag } from 'lucide-react';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import socketService from '@/services/socket';
@@ -10,6 +10,21 @@ const TABS = [{ id: 'direct', label: 'Messages' }, { id: 'order', label: 'Order 
 const identity = value => String(value?._id || value || '');
 const date = value => value ? new Date(value).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '';
 const threadPath = (kind, id) => kind === 'direct' ? `/chat/${id}` : `/messages/${kind}/${id}`;
+
+/** Story/status reply, quoted message, photo and product card, highlighted as in the main messaging. */
+function MessageContext({ message, accountId, partner }) {
+  const story = message.metadata?.type === 'story_reply' ? message.metadata : null;
+  const storyImage = story && (story.storyThumbnail || story.thumbnail_url || story.storyPreviewUrl || (story.storyType === 'image' ? story.content_url : null));
+  const quote = message.reply_to?.sender_id ? message.reply_to : null;
+  const product = message.product_reference?.name ? message.product_reference : null;
+  const productImage = product?.images?.[0]?.url || product?.images?.[0];
+  return <>
+    {story && <div className={styles.context}>{storyImage ? <img src={storyImage} alt="" /> : <span className={styles.contextIcon}><MessageCircle size={16} /></span>}<span><b>Status reply</b><small>{story.storyType === 'text' ? story.storyPreview : story.storyCaption || story.storyCategory || 'Replied to a status'}</small></span></div>}
+    {quote && <div className={styles.quote}><b>{identity(quote.sender_id) === accountId ? 'This account' : partner}</b><small>{quote.text || (quote.has_image ? 'Photo' : quote.has_product ? 'Product' : 'Message')}</small></div>}
+    {message.image_url && <a href={message.image_url} target="_blank" rel="noreferrer" className={styles.photo}><img src={message.image_url} alt="Shared" /></a>}
+    {product && <div className={styles.context}>{productImage ? <img src={productImage} alt="" /> : <span className={styles.contextIcon}><ShoppingBag size={16} /></span>}<span><b>{product.name}</b><small>{(product.price || 0).toLocaleString()} XAF</small></span></div>}
+  </>;
+}
 
 export default function AccountMessages() {
   const user = useAuthStore(state => state.user);
@@ -124,7 +139,7 @@ export default function AccountMessages() {
       </section>
       <section className={styles.conversation} data-open={Boolean(selected)} aria-label="Managed conversation">
         {selected ? <><div className={styles.conversationHeader}><button type="button" className={styles.back} aria-label="Back to conversations" onClick={() => setSelected(null)}><ArrowLeft size={18} /></button><h2>{selected.name}</h2></div>
-          <div className={styles.messages} aria-live="polite">{kind === 'direct' && messages.length < total && <button type="button" onClick={() => loadThread(page + 1)}>Load earlier messages</button>}{loadingThread ? <p role="status">Loading conversation...</p> : messages.map(message => <article key={identity(message)} className={styles.bubble} data-own={identity(message.sender_id) === accountId}><strong>{identity(message.sender_id) === accountId ? 'Sent as ' + (user?.branding?.store_name || user?.name || 'this account') : message.sender_name || message.sender_id?.name || selected.name}</strong><p>{message.text || 'Shared attachment'}</p><time>{date(message.createdAt || message.timestamp)}</time></article>)}{!loadingThread && !messages.length && <p className={styles.empty}>No messages in this conversation yet.</p>}</div>
+          <div className={styles.messages} aria-live="polite">{kind === 'direct' && messages.length < total && <button type="button" onClick={() => loadThread(page + 1)}>Load earlier messages</button>}{loadingThread ? <p role="status">Loading conversation...</p> : messages.map(message => <article key={identity(message)} className={styles.bubble} data-own={identity(message.sender_id) === accountId}><strong>{identity(message.sender_id) === accountId ? 'Sent as ' + (user?.branding?.store_name || user?.name || 'this account') : message.sender_name || message.sender_id?.name || selected.name}</strong><MessageContext message={message} accountId={accountId} partner={selected.name} />{(message.text || !(message.image_url || message.product_reference || message.metadata?.type === 'story_reply')) && <p>{message.text || 'Shared attachment'}</p>}<time>{date(message.createdAt || message.timestamp)}</time></article>)}{!loadingThread && !messages.length && <p className={styles.empty}>No messages in this conversation yet.</p>}</div>
           {threadError && <p role="alert" className={styles.error}>{threadError}</p>}
           <form className={styles.form} onSubmit={send}><textarea aria-label="Message as managed account" value={drafts[currentKey] || ''} maxLength={2000} placeholder={"Reply as " + (user?.branding?.store_name || user?.name || "this account")} onChange={event => { const value = event.target.value; setDrafts(previous => ({...previous, [currentKey]: value})); }} /><button type="submit" disabled={sending || loadingThread || !(drafts[currentKey] || '').trim()}><Send size={16} /> Send</button></form>
         </> : <p className={styles.empty}>Choose a conversation to read and reply as this account.</p>}

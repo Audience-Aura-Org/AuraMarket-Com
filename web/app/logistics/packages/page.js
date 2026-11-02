@@ -179,21 +179,21 @@ export default function AgencyPackagesPage() {
                   [who]: v.address_id ? { name: f[who].name || v.recipient_name || "", phone: f[who].phone || v.contact_phone || "" } : f[who],
                 }))} />
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div><label className={LABEL} htmlFor={`${who}-name`}>{who === "sender" ? "Sender's name" : "Recipient's name"}</label><input id={`${who}-name`} autoComplete="off" value={form[who].name} onChange={(e) => set(`${who}.name`, e.target.value)} placeholder={who === "sender" ? "Who hands it over" : "Who receives it"} className={FIELD} /></div>
+                  <div><label className={LABEL} htmlFor={`${who}-name`}>{who === "sender" ? "Sender's name" : "Recipient's name"}</label><input id={`${who}-name`} autoComplete="off" value={form[who].name} onChange={(e) => set(`${who}.name`, e.target.value)} placeholder="Full name" className={FIELD} /></div>
                   <div><label className={LABEL} htmlFor={`${who}-phone`}>Phone</label><input id={`${who}-phone`} type="tel" inputMode="tel" autoComplete="off" value={form[who].phone} onChange={(e) => set(`${who}.phone`, e.target.value)} placeholder="677 12 34 56" className={`${FIELD} tabular-nums`} /></div>
                 </div>
               </Step>
             ))}
 
             <Step n={3} step={step} title={STEP_TITLES[2]} summary={summary[3]} onEdit={() => setStep(3)} onNext={() => next(3)}>
-              <div><label className={LABEL} htmlFor="pkg-desc">What is it?</label><input id="pkg-desc" value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="e.g. Two boxes of shoes" className={FIELD} /></div>
+              <div><label className={LABEL} htmlFor="pkg-desc">What is it?</label><input id="pkg-desc" value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="e.g. Shoes" className={FIELD} /></div>
               <Chips label="Category" options={CATEGORIES} value={form.category} onChange={(v) => set("category", v)} />
               <Chips label="Size" options={WEIGHTS} value={form.weight_tier} onChange={(v) => set("weight_tier", v)} />
               <details className="group rounded-2xl border border-[var(--glass-border)] px-3.5 py-2.5" open={Boolean(form.reference || form.handling_instructions)}>
                 <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between text-[12px] font-semibold text-[var(--text-secondary)]">More details (optional) <span className="text-[16px] transition-transform group-open:rotate-45" aria-hidden="true">+</span></summary>
                 <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                  <div><label className={LABEL} htmlFor="pkg-ref">Your reference</label><input id="pkg-ref" value={form.reference} onChange={(e) => set("reference", e.target.value)} placeholder="e.g. INV-2041" className={FIELD} /></div>
-                  <div><label className={LABEL} htmlFor="pkg-handling">Handling</label><input id="pkg-handling" value={form.handling_instructions} onChange={(e) => set("handling_instructions", e.target.value)} placeholder="e.g. Keep upright" className={FIELD} /></div>
+                  <div><label className={LABEL} htmlFor="pkg-ref">Your reference</label><input id="pkg-ref" value={form.reference} onChange={(e) => set("reference", e.target.value)} placeholder="INV-2041" className={FIELD} /></div>
+                  <div><label className={LABEL} htmlFor="pkg-handling">Handling</label><input id="pkg-handling" value={form.handling_instructions} onChange={(e) => set("handling_instructions", e.target.value)} placeholder="Fragile" className={FIELD} /></div>
                 </div>
               </details>
             </Step>
@@ -202,10 +202,10 @@ export default function AgencyPackagesPage() {
               <div>
                 <label className={LABEL} htmlFor="pkg-fee">Delivery fee</label>
                 <div className="relative">
-                  <input id="pkg-fee" inputMode="numeric" value={form.fee} onChange={(e) => set("fee", e.target.value.replace(/[^0-9]/g, ""))} placeholder="Leave empty: your Route Pricing" className={`${FIELD} pr-14 tabular-nums`} />
+                  <input id="pkg-fee" inputMode="numeric" value={form.fee} onChange={(e) => set("fee", e.target.value.replace(/[^0-9]/g, ""))} placeholder="Auto" className={`${FIELD} pr-14 tabular-nums`} />
                   <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-[var(--text-secondary)]">XAF</span>
                 </div>
-                <p className="mt-1 text-[11px] text-[var(--text-secondary)]">Empty: we use your Route Pricing (by quartier or by distance).</p>
+                <p className="mt-1 text-[11px] text-[var(--text-secondary)]">Leave empty to use your Route Pricing.</p>
               </div>
               <Chips label="Who pays" options={[["sender", "Sender"], ["recipient", "Recipient"]]} value={form.payer}
                 onChange={(v) => setForm((f) => ({ ...f, payer: v, payment_arrangement: v === "recipient" ? "pay_on_delivery" : "paid_to_agency" }))} />

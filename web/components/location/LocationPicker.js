@@ -146,7 +146,7 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search a place, street, landmark or quartier"
+          placeholder="Search a place"
           aria-label={`${label}: search`}
           className={`${FIELD} pl-10 pr-10`}
         />
@@ -209,7 +209,7 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
       <input
         value={value.landmark || ''}
         onChange={(e) => update({ landmark: e.target.value.slice(0, 200) })}
-        placeholder="Description (optional): gate, floor, shop next door"
+        placeholder="Gate, floor… (optional)"
         aria-label={`${label}: address description (optional)`}
         className={FIELD}
       />

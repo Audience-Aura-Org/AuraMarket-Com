@@ -151,8 +151,8 @@ export default function LogisticsRidersPage() {
             <p className="text-[12px] font-semibold">Invite a rider</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="Full name" aria-label="Full name" className={FIELD} />
-              <input required type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="Email (they sign in with it)" aria-label="Email" className={FIELD} />
-              <input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="Phone, e.g. 677 12 34 56" aria-label="Phone" className={FIELD} />
+              <input required type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="Email" aria-label="Email" className={FIELD} />
+              <input value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="Phone" aria-label="Phone" className={FIELD} />
               <div className="grid grid-cols-2 gap-3">
                 <select value={form.vehicle_type} onChange={(e) => setForm((f) => ({ ...f, vehicle_type: e.target.value }))} aria-label="Vehicle" className={FIELD}>
                   {VEHICLES.map((v) => <option key={v.value} value={v.value}>{v.label}</option>)}
