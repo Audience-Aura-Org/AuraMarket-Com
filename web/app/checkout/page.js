@@ -25,6 +25,7 @@ import { applyVariantPricing, formatVariantLabel } from '@/utils/variants';
 import { MOBILE_MONEY_PROVIDERS } from '@/lib/formatting';
 import { Capacitor } from '@capacitor/core';
 import AddressField, { spotFromSaved } from '@/components/location/AddressField';
+import { FIELD, LABEL } from '@/lib/formStyles';
 import { useFeatureFlag } from '@/lib/featureFlags';
 
 // Payment gateway return URLs must be public HTTPS URLs, never capacitor://localhost.
@@ -1301,31 +1302,31 @@ function CheckoutContent() {
 
                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
                           <div className="space-y-2 md:space-y-3">
-                            <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Consignee Name</label>
+                            <label className={LABEL}>Consignee Name</label>
                             <input 
                               placeholder="Full Name"
                               value={formData.name}
                               onChange={e => setFormData(prev => ({...prev, name: e.target.value}))}
-                              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
+                              className={FIELD}
                             />
                           </div>
                           <div className="space-y-2 md:space-y-3">
-                            <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Comms Protocol (Phone)</label>
+                            <label className={LABEL}>Comms Protocol (Phone)</label>
                             <input 
                               placeholder="+237 ..."
                               value={formData.phone}
                               onChange={e => setFormData(prev => ({...prev, phone: e.target.value}))}
-                              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
+                              className={FIELD}
                             />
                           </div>
                           <div className="md:col-span-2 space-y-2 md:space-y-3">
-                            <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Handshake Email</label>
+                            <label className={LABEL}>Handshake Email</label>
                             <input 
                               type="email"
                               placeholder="email@example.com"
                               value={formData.email}
                               onChange={e => setFormData(prev => ({...prev, email: e.target.value}))}
-                              className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
+                              className={FIELD}
                             />
                           </div>
                           
@@ -1333,7 +1334,7 @@ function CheckoutContent() {
                           {/* Pre-order date/time — only for pre_order mode */}
                           {isPreOrder && (
                             <div className="md:col-span-2 space-y-2 md:space-y-3">
-                              <label className="text-[11px] lg:text-[12px] font-semibold text-[var(--text-secondary)] tracking-tight ml-1">
+                              <label className={LABEL}>
                                 Scheduled Date <span className="text-orange-500">*</span>
                               </label>
                               <PreorderDateSelect dates={preorderDates} value={preOrderDate} onChange={setPreOrderDate} className="md:mx-0" />
@@ -1368,7 +1369,7 @@ function CheckoutContent() {
                           {/* Delivery zone and street: only without the address field (place search off). */}
                           {!isPickupOrDineIn && !(exactSpotOn && !orderId) && (
                             <div className="md:col-span-2 space-y-3 md:space-y-4">
-                              <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Delivery Quartier (Zone)</label>
+                              <label className={LABEL}>Delivery Quartier (Zone)</label>
                               <ZonePickerField
                                 value={deliveryQuartier}
                                 onChange={handleQuartierChange}
@@ -1379,13 +1380,13 @@ function CheckoutContent() {
 
                           {!isPickupOrDineIn && !(exactSpotOn && !orderId) && (
                             <div className="md:col-span-2 space-y-2 md:space-y-3">
-                              <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Precise Landing Details (Build/Street No.)</label>
+                              <label className={LABEL}>Precise Landing Details (Build/Street No.)</label>
                               <textarea
                                 placeholder="House number, color of gate, or specific landmarks..."
                                 rows={3}
                                 value={formData.address}
                                 onChange={e => setFormData(prev => ({...prev, address: e.target.value}))}
-                                className="w-full resize-none rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 py-3 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
+                                className={`${FIELD} resize-none py-3`}
                               />
                             </div>
                           )}
@@ -1394,7 +1395,7 @@ function CheckoutContent() {
 
                        {/* Logistics section — hidden for pickup/dine-in */}
                        {!isPickupOrDineIn && <div className="pt-4 space-y-4">
-                          <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Delivery Option</label>
+                          <label className={LABEL}>Delivery Option</label>
                           <div className="relative">
                              <button 
                                 type="button"
@@ -1450,7 +1451,7 @@ function CheckoutContent() {
                        </div>}
 
                        <div className="pt-4 space-y-4">
-                           <label className="text-[11px] lg:text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight  ml-1">Payment Strategy</label>
+                           <label className={LABEL}>Payment Strategy</label>
                            <div className="relative">
                               <button
                                 key={formData.paymentMethod}
@@ -1556,7 +1557,7 @@ function CheckoutContent() {
                                               setFormData(prev => ({...prev, eversend: {...prev.eversend, phone: e.target.value}}));
                                             }
                                           }}
-                                          className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
+                                          className={FIELD}
                                        />
                                     </div>
                                     <div className="space-y-2">
@@ -1567,7 +1568,7 @@ function CheckoutContent() {
                                           <select
                                             value={formData.payunit.provider}
                                             onChange={(e) => setFormData(prev => ({...prev, payunit: {...prev.payunit, provider: e.target.value}}))}
-                                            className="h-12 w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-4 text-[16px] font-semibold outline-none transition-all focus:border-[var(--accent)] md:text-[13px]"
+                                            className={FIELD}
                                           >
                                             {MOBILE_MONEY_PROVIDERS.map(p => (
                                               <option key={p.id} value={p.id}>{p.label}</option>
@@ -2049,7 +2050,7 @@ function SearchableZoneDropdown({ open, selected, onSelect, onClose, zones }) {
                placeholder={selected ? 'Search another zone...' : 'Search Quartier...'}
                value={query}
                onChange={e => setQuery(e.target.value)}
-               className="w-full bg-transparent pl-10 pr-4 py-2 text-[16px] font-semibold tracking-tight outline-none placeholder:text-[16px]"
+               className="w-full bg-transparent pl-10 pr-4 py-2 text-[14px] font-normal outline-none placeholder:text-[13px]"
             />
          </div>
       </div>
@@ -2117,7 +2118,7 @@ function SearchableLogisticsDropdown({ firms, selectedId, onSelect, loading, ope
                placeholder="Search Logistics Node..."
                value={query}
                onChange={e => setQuery(e.target.value)}
-               className="w-full bg-transparent pl-10 pr-4 py-2 text-[16px] font-semibold tracking-tight outline-none placeholder:text-[16px]"
+               className="w-full bg-transparent pl-10 pr-4 py-2 text-[14px] font-normal outline-none placeholder:text-[13px]"
             />
          </div>
       </div>

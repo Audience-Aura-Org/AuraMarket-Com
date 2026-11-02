@@ -7,6 +7,7 @@ import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import WhatsAppSupport from '@/components/logistics/WhatsAppSupport';
 import AddressField from '@/components/location/AddressField';
+import { FIELD, LABEL } from '@/lib/formStyles';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import {
   Package, Send, ArrowDownToLine, ChevronRight, MapPin,
@@ -40,8 +41,9 @@ const minPickupDateTime = () => {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
 
-const INPUT_CLASS ='delivery-input w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/50 px-3.5 py-2.5 text-[13px] font-semibold text-[var(--text-primary)] placeholder:font-normal outline-none transition-all focus:border-[var(--accent)]/50 min-h-[44px]';
-const LABEL_CLASS = 'delivery-label block text-[11px] font-bold text-[var(--text-secondary)] mb-1.5 ml-0.5';
+// Same fields and labels as the address components and the other forms.
+const INPUT_CLASS = FIELD;
+const LABEL_CLASS = LABEL;
 
 export default function DeliveryPage() {
   const router = useRouter();
@@ -721,12 +723,6 @@ export default function DeliveryPage() {
     <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)]/20 pb-32 pt-4 sm:pt-6">
       <WhatsAppSupport />
       <style jsx>{`
-        .delivery-input, .delivery-input::placeholder { font-size: 16px; }
-        .delivery-label { font-size: 12px; }
-        @media (min-width: 768px) {
-          .delivery-input, .delivery-input::placeholder { font-size: 14px; }
-          .delivery-label { font-size: 12px; }
-        }
         .direction-btn {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
