@@ -1,7 +1,7 @@
 import {describe,it,expect,vi,beforeEach,afterEach} from 'vitest';
 import {render,screen,fireEvent,waitFor,cleanup} from '@testing-library/react';
 const mocks=vi.hoisted(()=>({init:vi.fn(),poll:vi.fn(),stop:vi.fn(),events:{}}));
-vi.mock('@/services/paymentProvider',()=>({initiateSmartCameroonCollection:mocks.init,initiateCollection:mocks.init,pollTransactionStatus:mocks.poll,recheckTransaction:vi.fn()}));
+vi.mock('@/services/paymentProvider',()=>({initiateSmartCameroonCollection:mocks.init,initiateCollection:mocks.init,pollTransactionStatus:mocks.poll,recheckTransaction:vi.fn(),detectCameroonNetwork:()=>null}));
 vi.mock('@/services/socket',()=>({default:{on:(name,cb)=>{mocks.events[name]=cb},off:(name)=>{delete mocks.events[name]}}}));
 vi.mock('@/hooks/useAuth',()=>({useAuthStore:selector=>selector({setWalletBalance:vi.fn()})}));
 vi.mock('@/services/api',()=>({default:{get:vi.fn()}}));
