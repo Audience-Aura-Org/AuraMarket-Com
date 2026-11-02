@@ -129,7 +129,9 @@ const createPackage = async (req, res, next) => {
     const body = shipment.toObject();
     delete body.tracking_token_hash;
     // The agency's most used pickup and delivery places come back as saved addresses.
-    rememberLater(req.user._id, pickup.address, drop.address);
+    rememberLater(req.user._id,
+      { ...pickup.address, recipient_name: sender.name, contact_phone: sender.phone },
+      { ...drop.address, recipient_name: recipient.name, contact_phone: recipient.phone });
     res.status(201).json({ success: true, data: { shipment: body, ...shareBundle(shipment, token, firm.company_name) } });
   } catch (err) { next(err); }
 };

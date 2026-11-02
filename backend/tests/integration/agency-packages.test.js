@@ -124,3 +124,14 @@ describe('Tracking links', () => {
     expect((await request(app).get('/api/v1/track/abc')).status).toBe(404)
   })
 })
+
+describe('Saved places for agencies', () => {
+  it('saves the pickup and delivery places with their contact for next time', async () => {
+    expect((await create(owner)).status).toBe(201)
+    let saved = []
+    for (let i = 0; i < 40 && saved.length < 2; i++) { await new Promise((r) => setTimeout(r, 50)); saved = (await User.findById(owner._id).lean()).addresses || [] }
+    expect(saved).toHaveLength(2)
+    expect(saved.find((a) => a.quartier === 'Akwa')).toMatchObject({ recipient_name: 'Mama Ngozi', contact_phone: '677123456' })
+    expect(saved.find((a) => a.quartier === 'Bonamoussadi')).toMatchObject({ recipient_name: 'Jean Mbarga', landmark_description: 'Blue gate after the pharmacy' })
+  })
+})

@@ -66,6 +66,7 @@ export default function AddressField({ label = 'Address', value = {}, onChange, 
                     <span className="block truncate text-[12px] font-semibold">{a.label || a.place_name || a.quartier || 'Address'}</span>
                     <span className="block truncate text-[10px] text-[var(--text-secondary)]">{savedLine(a) || 'No place yet'}</span>
                     {a.landmark_description && <span className="block truncate text-[10px] text-[var(--text-secondary)] opacity-80">{a.landmark_description}</span>}
+                    {(a.recipient_name || a.contact_phone) && <span className="block truncate text-[10px] font-medium text-[var(--accent)]">{[a.recipient_name, a.contact_phone].filter(Boolean).join(" · ")}</span>}
                   </span>
                 </button>
               );
