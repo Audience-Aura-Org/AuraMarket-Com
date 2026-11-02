@@ -11,7 +11,7 @@ import { FIELD, LABEL, SMALL_BUTTON, HINT } from '@/lib/formStyles';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import {
   Package, Send, ArrowDownToLine, ChevronRight, MapPin, Clock, Wallet, Loader2,
-  CheckCircle2, Check, Pencil, User as UserIcon, X, Smartphone, AlertCircle, Truck, CircleDot, Search, Phone, Mail, Info,
+  CheckCircle2, Check, Pencil, User as UserIcon, X, Smartphone, AlertCircle, Truck, Search, Phone, Mail, Info,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -39,20 +39,6 @@ const minPickupDateTime = () => {
 };
 
 const CARD = 'space-y-5 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 sm:p-6';
-
-/** Section heading: icon, title, one-line hint, optional action on the right. */
-function CardTitle({ id, icon: Icon, title, hint, action = null }) {
-  return (
-    <div className="flex items-start gap-3">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]"><Icon className="size-4" /></span>
-      <div className="min-w-0 flex-1">
-        <h2 id={id} className="text-[16px] font-semibold text-[var(--text-primary)]">{title}</h2>
-        {hint && <p className={`${HINT} text-[12px]`}>{hint}</p>}
-      </div>
-      {action}
-    </div>
-  );
-}
 
 /** One-tap choices instead of a dropdown. options: [{ value, label }]. */
 function Chips({ label, options, value, onChange }) {
@@ -514,19 +500,8 @@ export default function DeliveryPage() {
     };
 
     return (
-      <section aria-labelledby={`${prefix}-title`} className={CARD}>
-        <CardTitle
-          id={`${prefix}-title`}
-          icon={isPickup ? CircleDot : MapPin}
-          title={`${isPickup ? 'Pickup' : 'Delivery'}${who ? ` · ${who}` : ''}`}
-          hint={isPickup ? 'Where the rider collects the package' : 'Where the package goes'}
-          action={showSummary ? (
-            <div className="flex shrink-0 gap-1">
-              <button type="button" onClick={() => setEditing(true)} aria-label={`Edit ${isPickup ? 'pickup' : 'delivery'}`} className={`${SMALL_BUTTON} justify-center`}><Pencil className="size-4" /></button>
-              {otherHasLookup && <button type="button" onClick={clearLookup} aria-label="Remove this person" className={`${SMALL_BUTTON} justify-center text-rose-500`}><X className="size-4" /></button>}
-            </div>
-          ) : null}
-        />
+      // No heading: the progress line above already names the step.
+      <section aria-label={isPickup ? 'Pickup' : 'Delivery'} className={CARD}>
 
         {showSummary ? (
           // The saved details, one per line so they are easy to check before continuing.
@@ -535,9 +510,13 @@ export default function DeliveryPage() {
               {otherHasLookup && lookupResult.avatar
                 ? <img src={lookupResult.avatar} className="size-11 shrink-0 rounded-full object-cover" alt="" />
                 : <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[15px] font-bold text-[var(--accent)]">{(form[`${prefix}_name`] || '?')[0]}</span>}
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="truncate text-[15px] font-semibold">{form[`${prefix}_name`]}</p>
-                <p className="text-[12px] text-[var(--text-secondary)]">{person}{otherHasLookup && lookupResult.username ? ` · @${lookupResult.username}` : ''}</p>
+                <p className="text-[12px] text-[var(--text-secondary)]">{who === 'You' ? `You · ${person.toLowerCase()}` : person}{otherHasLookup && lookupResult.username ? ` · @${lookupResult.username}` : ''}</p>
+              </div>
+              <div className="flex shrink-0 gap-1">
+                <button type="button" onClick={() => setEditing(true)} aria-label={`Edit ${isPickup ? 'pickup' : 'delivery'}`} className={`${SMALL_BUTTON} justify-center`}><Pencil className="size-4" /> Edit</button>
+                {otherHasLookup && <button type="button" onClick={clearLookup} aria-label="Remove this person" className={`${SMALL_BUTTON} justify-center text-rose-500`}><X className="size-4" /></button>}
               </div>
             </div>
             <dl className="space-y-2 border-t border-[var(--glass-border)] pt-3 text-[13px]">
@@ -774,8 +753,7 @@ export default function DeliveryPage() {
             {step === 1 && renderAddressBox('pickup', direction === 'send')}
             {step === 2 && renderAddressBox('dropoff', direction === 'request_pickup')}
 
-            {step === 3 && <section aria-labelledby="pkg-title" className={CARD}>
-              <CardTitle id="pkg-title" icon={Package} title="Package" hint="Helps the courier bring the right vehicle" />
+            {step === 3 && <section aria-label="Package" className={CARD}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className={LABEL} htmlFor="pkg-category">Category</label>
@@ -841,7 +819,7 @@ export default function DeliveryPage() {
         {step === 4 && (
           <div className="space-y-6">
             <section aria-labelledby="courier-title" className={CARD}>
-              <CardTitle id="courier-title" icon={Truck} title="Courier & payment" hint={loading ? 'Finding couriers for your trip...' : `${quotes.length} available for this trip`} />
+              <p id="courier-title" className="text-[13px] text-[var(--text-secondary)]">{loading ? 'Finding couriers for your trip...' : `${quotes.length} courier${quotes.length === 1 ? '' : 's'} available for this trip`}</p>
               {loading && <p role="status" className={HINT}>Loading quotes...</p>}
               {!loading && !quotes.length && <button type="button" className={SMALL_BUTTON} onClick={() => handleGetQuote(true)}>Retry quotes</button>}
               <div role="radiogroup" aria-labelledby="courier-title" className="space-y-2">
