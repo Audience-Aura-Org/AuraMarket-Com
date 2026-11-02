@@ -7,10 +7,10 @@ import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import WhatsAppSupport from '@/components/logistics/WhatsAppSupport';
 import AddressField from '@/components/location/AddressField';
-import { FIELD, LABEL, SMALL_BUTTON } from '@/lib/formStyles';
+import { FIELD, LABEL, SMALL_BUTTON, HINT } from '@/lib/formStyles';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import {
-  Package, Send, ArrowDownToLine, ChevronRight, MapPin, Clock, Wallet, CreditCard, Loader2,
+  Package, Send, ArrowDownToLine, ChevronRight, MapPin, Clock, Wallet, Loader2,
   CheckCircle2, Check, Pencil, User as UserIcon, X, Smartphone, AlertCircle, Truck, CircleDot, Search,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
@@ -38,7 +38,7 @@ const minPickupDateTime = () => {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
 
-const CARD = 'space-y-3.5 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 sm:p-5';
+const CARD = 'space-y-5 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-5 sm:p-6';
 
 /** Section heading: icon, title, one-line hint, optional action on the right. */
 function CardTitle({ id, icon: Icon, title, hint, action = null }) {
@@ -46,8 +46,8 @@ function CardTitle({ id, icon: Icon, title, hint, action = null }) {
     <div className="flex items-start gap-3">
       <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]"><Icon className="size-4" /></span>
       <div className="min-w-0 flex-1">
-        <h2 id={id} className="text-[14px] font-semibold text-[var(--text-primary)]">{title}</h2>
-        {hint && <p className="text-[12px] text-[var(--text-secondary)]">{hint}</p>}
+        <h2 id={id} className="text-[16px] font-semibold text-[var(--text-primary)]">{title}</h2>
+        {hint && <p className={`${HINT} text-[12px]`}>{hint}</p>}
       </div>
       {action}
     </div>
@@ -62,7 +62,7 @@ function Chips({ label, options, value, onChange }) {
       <div className="flex flex-wrap gap-1.5">
         {options.map((o) => (
           <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
-            className={`min-h-10 rounded-xl border px-3 text-[12px] font-semibold transition-colors ${value === o.value ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-primary)]'}`}>{o.label}</button>
+            className={`inline-flex min-h-10 items-center rounded-xl border px-3 text-[12px] font-semibold transition-colors ${value === o.value ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-primary)]'}`}>{o.label}</button>
         ))}
       </div>
     </div>
@@ -94,7 +94,7 @@ export default function DeliveryPage() {
 
 
   const [direction, setDirection] = useState('send');
-  const [step, setStep] = useState(1); // 1=form, 2=quote, 3=confirm
+  const [step, setStep] = useState(1); // Pickup, delivery, package, courier and payment, done
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [quotes, setQuotes] = useState([]);
@@ -301,8 +301,14 @@ export default function DeliveryPage() {
     setLookupLoading(false);
   };
 
-  const handleGetQuote = async () => {
-    setError('');
+  const quoteRequestRef = useRef(0);
+  const formTopRef = useRef(null);
+  // Payment edits keep the quote; trip edits invalidate it and any in-flight request.
+  const quoteData = JSON.stringify(Object.fromEntries(Object.entries(form).filter(([key]) => !['payment_method', 'momo_phone'].includes(key))));
+
+  const handleGetQuote = async (clearError = false) => {
+    const request = ++quoteRequestRef.current;
+    if (clearError) setError('');
     if (!form.pickup_zone_id || !form.dropoff_zone_id) {
       setError('Please select pickup and delivery quartiers');
       return;
@@ -322,17 +328,51 @@ export default function DeliveryPage() {
         pickup_location: form.pickup_location || undefined,
         dropoff_location: form.dropoff_location || undefined,
       });
+      if (request !== quoteRequestRef.current) return;
       if (res.data?.success && res.data.data.coverage && res.data.data.quotes?.length) {
         setQuotes(res.data.data.quotes);
         setSelectedQuote(res.data.data.quotes[0]); // Pre-select cheapest
-        setStep(2);
       } else {
         setError(res.data?.data?.reason || 'No coverage for this route');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to get quote');
+      if (request === quoteRequestRef.current) setError(err.response?.data?.message || 'Failed to get quote');
     }
-    setLoading(false);
+    if (request === quoteRequestRef.current) setLoading(false);
+  };
+
+  useEffect(() => {
+    setQuotes([]);
+    setSelectedQuote(null);
+    quoteRequestRef.current++;
+    // Fixing what was missing clears the message (quote errors come back from the refetch).
+    setError('');
+  }, [direction, quoteData]);
+
+  useEffect(() => {
+    if (step === 4) handleGetQuote();
+    else setLoading(false);
+    return () => { quoteRequestRef.current++; };
+  }, [step, direction, quoteData]);
+
+  useEffect(() => {
+    formTopRef.current?.scrollIntoView({ behavior: window.matchMedia('(min-width: 640px) and (prefers-reduced-motion: no-preference)').matches ? 'smooth' : 'instant', block: 'start' });
+  }, [step]);
+
+  const goToStep = (next) => { setError(''); setStep(next); };
+  const handleContinue = () => {
+    const prefix = step === 1 ? 'pickup' : 'dropoff';
+    const missing = [];
+    if (step <= 2) {
+      if (!form[prefix + '_zone_id']) missing.push(STEPS[step - 1].toLowerCase() + ' place (select a quartier)');
+      if (!form[prefix + '_name'].trim()) missing.push('name');
+      if (!form[prefix + '_phone'].trim()) missing.push('phone');
+    } else {
+      if (!form.prohibited_confirmed) missing.push('confirmation that there are no prohibited items');
+      if (form.scheduled && !form.scheduled_date) missing.push('scheduled pickup date and time');
+    }
+    if (missing.length) { setError('Please provide: ' + missing.join(', ') + '.'); return; }
+    goToStep(step + 1);
   };
 
   // Poll the payment verify endpoint until confirmed or failed
@@ -361,7 +401,7 @@ export default function DeliveryPage() {
           paymentPollRef.current = null;
           setPendingPayment(null);
           setError(res.data?.reason || 'Payment was declined. Please try again.');
-          setStep(2);
+          setStep(4);
         }
       } catch (_) { /* keep polling on network errors */ }
     }, 5000);
@@ -429,14 +469,14 @@ export default function DeliveryPage() {
           // MoMo payment initiated — show waiting screen and poll for confirmation
           setSuccess(shipmentData);
           setPendingPayment(payment);
-          setStep(3);
+          setStep(5);
           startPaymentPolling(payment.gateway, payment.reference, shipmentData);
         } else if (payment_error) {
           setError(`Shipment booked but payment failed: ${payment_error}. Please try paying from your deliveries.`);
         } else {
           // Wallet payment — already paid
           setSuccess(shipmentData);
-          setStep(3);
+          setStep(5);
           if (form.payment_method === 'wallet') refreshWalletBalance?.();
         }
       } else {
@@ -482,8 +522,8 @@ export default function DeliveryPage() {
           hint={isPickup ? 'Where the rider collects the package' : 'Where the package goes'}
           action={showSummary ? (
             <div className="flex shrink-0 gap-1">
-              <button type="button" onClick={() => setEditing(true)} aria-label={`Edit ${isPickup ? 'pickup' : 'delivery'}`} className="flex size-9 items-center justify-center rounded-xl text-[var(--accent)] hover:bg-[var(--accent)]/10"><Pencil className="size-4" /></button>
-              {otherHasLookup && <button type="button" onClick={clearLookup} aria-label="Remove this person" className="flex size-9 items-center justify-center rounded-xl text-rose-500 hover:bg-rose-500/10"><X className="size-4" /></button>}
+              <button type="button" onClick={() => setEditing(true)} aria-label={`Edit ${isPickup ? 'pickup' : 'delivery'}`} className={`${SMALL_BUTTON} justify-center`}><Pencil className="size-4" /></button>
+              {otherHasLookup && <button type="button" onClick={clearLookup} aria-label="Remove this person" className={`${SMALL_BUTTON} justify-center text-rose-500`}><X className="size-4" /></button>}
             </div>
           ) : null}
         />
@@ -507,8 +547,8 @@ export default function DeliveryPage() {
                 <div className="space-y-2 rounded-2xl border border-[var(--glass-border)] p-3">
                   <div className="flex gap-2">
                     <input value={lookupQuery} onChange={e => setLookupQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLookup()}
-                      className={FIELD} placeholder="Username, phone or email" aria-label="Find an Auradime user" autoFocus />
-                    <button type="button" onClick={handleLookup} disabled={lookupLoading || lookupQuery.length < 3} className="shrink-0 rounded-2xl bg-[var(--accent)] px-4 text-[13px] font-semibold text-white disabled:opacity-50">
+                      className={`${FIELD} min-w-0`} placeholder="Username, phone or email" aria-label="Find an Auradime user" autoFocus />
+                    <button type="button" onClick={handleLookup} disabled={lookupLoading || lookupQuery.length < 3} className={`${SMALL_BUTTON} shrink-0`}>
                       {lookupLoading ? <Loader2 className="size-4 animate-spin" /> : 'Find'}
                     </button>
                   </div>
@@ -527,7 +567,7 @@ export default function DeliveryPage() {
                       ))}
                     </div>
                   )}
-                  <button type="button" onClick={() => { setFindOpen(false); setLookupResults([]); setLookupMsg(''); }} className="text-[12px] font-semibold text-[var(--text-secondary)]">Cancel</button>
+                  <button type="button" onClick={() => { setFindOpen(false); setLookupResults([]); setLookupMsg(''); }} className={SMALL_BUTTON}>Cancel</button>
                 </div>
               ) : (
                 <button type="button" onClick={() => setFindOpen(true)} className={SMALL_BUTTON}>
@@ -541,66 +581,73 @@ export default function DeliveryPage() {
               </p>
             )}
 
-            {locationPickerEnabled ? (
-              // Saved places (only when there are some), a place search with map pin, and an optional description.
-              <AddressField
-                label={isPickup ? 'Pickup place' : 'Delivery place'}
-                value={{ address_id: form[`${prefix}_address_id`] || '', zone_id: form[`${prefix}_zone_id`], quartier: form[`${prefix}_quartier`], district: form[`${prefix}_district`], city: form[`${prefix}_city`], location: form[`${prefix}_location`] || null, place_name: form[`${prefix}_street`] || '', landmark: form[`${prefix}_landmark`] || '' }}
-                onChange={(v) => setForm(p => ({
-                  ...p,
-                  [`${prefix}_address_id`]: v.address_id || '',
-                  [`${prefix}_zone_id`]: v.zone_id || '', [`${prefix}_quartier`]: v.quartier || '', [`${prefix}_district`]: v.district || '',
-                  [`${prefix}_city`]: v.city || p[`${prefix}_city`], [`${prefix}_location`]: v.location || null,
-                  [`${prefix}_street`]: v.place_name || '', [`${prefix}_landmark`]: v.landmark || '',
-                  // A saved address brings its contact when the fields are still empty.
-                  ...(v.address_id ? { [`${prefix}_name`]: p[`${prefix}_name`] || v.recipient_name || '', [`${prefix}_phone`]: p[`${prefix}_phone`] || v.contact_phone || '' } : {}),
-                }))}
-              />
-            ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className={LABEL}>City</label>
-                  <select value={form[`${prefix}_city`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_city`]: e.target.value, [`${prefix}_district`]: '', [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={FIELD}>
-                    <option value="">Select city</option>
-                    {cities.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-                  </select>
+            <div className="space-y-5">
+              <h3 className={LABEL}>Where</h3>
+              {locationPickerEnabled ? (
+                // Saved places (only when there are some), a place search with map pin, and an optional description.
+                <AddressField
+                  label={isPickup ? 'Pickup place' : 'Delivery place'}
+                  value={{ address_id: form[`${prefix}_address_id`] || '', zone_id: form[`${prefix}_zone_id`], quartier: form[`${prefix}_quartier`], district: form[`${prefix}_district`], city: form[`${prefix}_city`], location: form[`${prefix}_location`] || null, place_name: form[`${prefix}_street`] || '', landmark: form[`${prefix}_landmark`] || '' }}
+                  onChange={(v) => setForm(p => ({
+                    ...p,
+                    [`${prefix}_address_id`]: v.address_id || '',
+                    [`${prefix}_zone_id`]: v.zone_id || '', [`${prefix}_quartier`]: v.quartier || '', [`${prefix}_district`]: v.district || '',
+                    [`${prefix}_city`]: v.city || p[`${prefix}_city`], [`${prefix}_location`]: v.location || null,
+                    [`${prefix}_street`]: v.place_name || '', [`${prefix}_landmark`]: v.landmark || '',
+                    // A saved address brings its contact when the fields are still empty.
+                    ...(v.address_id ? { [`${prefix}_name`]: p[`${prefix}_name`] || v.recipient_name || '', [`${prefix}_phone`]: p[`${prefix}_phone`] || v.contact_phone || '' } : {}),
+                  }))}
+                />
+              ) : (
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  <div>
+                    <label className={LABEL} htmlFor={`${prefix}-city`}>City</label>
+                    <select id={`${prefix}-city`} value={form[`${prefix}_city`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_city`]: e.target.value, [`${prefix}_district`]: '', [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={FIELD}>
+                      <option value="">Select city</option>
+                      {cities.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                    </select>
+                  </div>
+                  {getDistrictOpts(form[`${prefix}_city`]).length > 0 && (
+                    <div>
+                      <label className={LABEL} htmlFor={`${prefix}-district`}>District</label>
+                      <select id={`${prefix}-district`} value={form[`${prefix}_district`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_district`]: e.target.value, [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={FIELD}>
+                        <option value="">Select district</option>
+                        {getDistrictOpts(form[`${prefix}_city`]).map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  {getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]).length > 0 && (
+                    <div>
+                      <label className={LABEL} htmlFor={`${prefix}-quartier`}>Quartier</label>
+                      <select id={`${prefix}-quartier`} value={form[`${prefix}_quartier`]} onChange={e => {
+                        const zone = getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]).find(z => z.name === e.target.value);
+                        setForm(p => ({ ...p, [`${prefix}_quartier`]: e.target.value, [`${prefix}_zone_id`]: zone?._id || '' }));
+                      }} className={FIELD}>
+                        <option value="">Select quartier</option>
+                        {getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]).map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div><label className={LABEL} htmlFor={`${prefix}-street`}>Street or landmark</label><input id={`${prefix}-street`} value={form[`${prefix}_street`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_street`]: e.target.value }))} className={FIELD} placeholder="Building, gate, landmark" /></div>
                 </div>
-                {getDistrictOpts(form[`${prefix}_city`]).length > 0 && (
-                  <div>
-                    <label className={LABEL}>District</label>
-                    <select value={form[`${prefix}_district`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_district`]: e.target.value, [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={FIELD}>
-                      <option value="">Select district</option>
-                      {getDistrictOpts(form[`${prefix}_city`]).map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-                    </select>
-                  </div>
-                )}
-                {getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]).length > 0 && (
-                  <div>
-                    <label className={LABEL}>Quartier</label>
-                    <select value={form[`${prefix}_quartier`]} onChange={e => {
-                      const zone = getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]).find(z => z.name === e.target.value);
-                      setForm(p => ({ ...p, [`${prefix}_quartier`]: e.target.value, [`${prefix}_zone_id`]: zone?._id || '' }));
-                    }} className={FIELD}>
-                      <option value="">Select quartier</option>
-                      {getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]).map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
-                    </select>
-                  </div>
-                )}
-                <div><label className={LABEL}>Street or landmark</label><input value={form[`${prefix}_street`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_street`]: e.target.value }))} className={FIELD} placeholder="Building, gate, landmark" /></div>
-              </div>
-            )}
+              )}
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div><label className={LABEL} htmlFor={`${prefix}-name`}>{person}&apos;s name</label><input id={`${prefix}-name`} value={form[`${prefix}_name`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_name`]: e.target.value }))} className={FIELD} placeholder="Full name" autoComplete="off" /></div>
-              <div><label className={LABEL} htmlFor={`${prefix}-phone`}>Phone</label><input id={`${prefix}-phone`} type="tel" inputMode="tel" value={form[`${prefix}_phone`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_phone`]: e.target.value }))} className={`${FIELD} tabular-nums`} placeholder="677 12 34 56" autoComplete="off" /></div>
             </div>
-            <details open={Boolean(form[`${prefix}_email`])}>
-              <summary className="cursor-pointer list-none text-[12px] font-semibold text-[var(--accent)]">+ Add email (optional)</summary>
-              <input type="email" value={form[`${prefix}_email`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_email`]: e.target.value }))} className={`${FIELD} mt-2`} placeholder="email@example.com" aria-label={`${person}'s email`} />
-            </details>
+            <div className="space-y-5">
+              <h3 className={LABEL}>Who</h3>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div><label className={LABEL} htmlFor={`${prefix}-name`}>{person}&apos;s name</label><input id={`${prefix}-name`} value={form[`${prefix}_name`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_name`]: e.target.value }))} className={FIELD} placeholder="Full name" autoComplete="off" /></div>
+                <div><label className={LABEL} htmlFor={`${prefix}-phone`}>Phone</label><input id={`${prefix}-phone`} type="tel" inputMode="tel" value={form[`${prefix}_phone`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_phone`]: e.target.value }))} className={`${FIELD} tabular-nums`} placeholder="677 12 34 56" autoComplete="off" /></div>
+              </div>
+              <details open={Boolean(form[`${prefix}_email`])}>
+                <summary className="cursor-pointer list-none text-[12px] font-semibold text-[var(--accent)]">+ Add email (optional)</summary>
+                <input type="email" value={form[`${prefix}_email`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_email`]: e.target.value }))} className={`${FIELD} mt-2`} placeholder="email@example.com" aria-label={`${person}'s email`} />
+              </details>
+
+            </div>
 
             {canSummarise && editing && (
-              <button type="button" onClick={() => setEditing(false)} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] text-[13px] font-semibold"><Check className="size-4 text-emerald-600" /> Done</button>
+              <button type="button" onClick={() => setEditing(false)} className={`${SMALL_BUTTON} w-full justify-center`}><Check className="size-4 text-emerald-600" /> Done</button>
             )}
           </>
         )}
@@ -645,7 +692,10 @@ export default function DeliveryPage() {
     }));
   };
 
-  const STEPS = ['Details', 'Courier & payment', 'Done'];
+  const STEPS = ['Pickup', 'Delivery', 'Package', 'Courier & payment', 'Done'];
+  const summaries = ['pickup', 'dropoff'].map(prefix => [form[prefix + '_name'], form[prefix + '_phone'], form[prefix + '_street'] || form[prefix + '_quartier']].filter(Boolean).join(' \u00b7 '));
+  summaries.push([PACKAGE_CATEGORIES.find(o => o.value === form.category)?.label, WEIGHT_TIERS.find(o => o.value === form.weight_tier)?.label, form.scheduled ? form.scheduled_date.replace('T', ' ') : 'As soon as possible'].join(' \u00b7 '));
+  summaries.push((selectedQuote?.provider_name || 'Courier') + ' \u00b7 ' + (success?.price || selectedQuote?.price || 0).toLocaleString() + ' XAF');
   const errorNote = error ? (
     <div role="alert" className="flex items-start gap-3 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-3.5">
       <AlertCircle className="mt-0.5 size-4 shrink-0 text-rose-500" />
@@ -657,7 +707,7 @@ export default function DeliveryPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] pb-32 pt-4 sm:pt-6">
       <WhatsAppSupport />
-      <div className="mx-auto w-full max-w-2xl space-y-4 px-3 sm:px-4">
+      <div ref={formTopRef} className="mx-auto w-full max-w-[640px] scroll-mt-6 space-y-6 px-3 sm:px-4">
         {/* Header with quick links */}
         <header className="flex items-center gap-3">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)] text-white"><Truck className="size-5" /></span>
@@ -668,15 +718,7 @@ export default function DeliveryPage() {
           <Link href="/delivery/track" className={`${SMALL_BUTTON} shrink-0`}><Search className="size-4 text-[var(--accent)]" /> Track</Link>
         </header>
 
-        {/* Progress */}
-        <div className="space-y-1.5" aria-live="polite">
-          <div className="flex items-center justify-between text-[12px]"><span className="font-semibold">Step {step} of 3</span><span className="text-[var(--text-secondary)]">{STEPS[step - 1]}</span></div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg-secondary)]"><div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${(step / 3) * 100}%` }} /></div>
-        </div>
-
-        {/* ── Step 1: who, where, what, when ─────────────────────────── */}
-        {step === 1 && (
-          <div className="space-y-4">
+        {step === 1 && <div className="space-y-5">
             <div role="radiogroup" aria-label="What do you want to do?" className="grid grid-cols-2 gap-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-1">
               {[['send', 'Send a package', Send], ['request_pickup', 'Request a pickup', ArrowDownToLine]].map(([value, label, Icon]) => (
                 <button key={value} type="button" role="radio" aria-checked={direction === value} onClick={() => setDirection(value)}
@@ -689,10 +731,31 @@ export default function DeliveryPage() {
               {direction === 'send' ? 'A rider collects from you and delivers to someone.' : 'A rider collects from someone and brings it to you.'}
             </p>
 
-            {renderAddressBox('pickup', direction === 'send')}
-            {renderAddressBox('dropoff', direction === 'request_pickup')}
+        </div>}
 
-            <section aria-labelledby="pkg-title" className={CARD}>
+        {/* Progress */}
+        <div className="space-y-1.5" aria-live="polite">
+          <p className="text-[12px] font-semibold">Step {step} of 5 &middot; {STEPS[step - 1]}</p>
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg-secondary)]"><div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${(step / 5) * 100}%` }} /></div>
+        </div>
+
+        {step > 1 && <div className="space-y-3">
+          {STEPS.slice(0, step - 1).map((title, index) => (
+            <div key={title} className="flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--glass-border)] p-3">
+              <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+              <p className="min-w-0 flex-1 truncate text-[12px]"><span className="font-semibold">{title}</span><span className="text-[var(--text-secondary)]"> &middot; {summaries[index]}</span></p>
+              {step < 5 && <button type="button" className={SMALL_BUTTON} onClick={() => goToStep(index + 1)}>Edit</button>}
+            </div>
+          ))}
+        </div>}
+
+        {/* Steps 1-3: one set of details at a time */}
+        {step <= 3 && (
+          <div className="space-y-6">
+            {step === 1 && renderAddressBox('pickup', direction === 'send')}
+            {step === 2 && renderAddressBox('dropoff', direction === 'request_pickup')}
+
+            {step === 3 && <section aria-labelledby="pkg-title" className={CARD}>
               <CardTitle id="pkg-title" icon={Package} title="Package" hint="Helps the courier bring the right vehicle" />
               <Chips label="Category" options={PACKAGE_CATEGORIES} value={form.category} onChange={(v) => setForm(p => ({ ...p, category: v }))} />
               <Chips label="Weight" options={WEIGHT_TIERS} value={form.weight_tier} onChange={(v) => setForm(p => ({ ...p, weight_tier: v }))} />
@@ -706,46 +769,50 @@ export default function DeliveryPage() {
                   </div>
                 </div>
               </details>
-              <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-[var(--bg-secondary)] p-3">
-                <input type="checkbox" checked={form.prohibited_confirmed} onChange={e => setForm(p => ({ ...p, prohibited_confirmed: e.target.checked }))} className="mt-0.5 size-4 accent-[var(--accent)]" />
-                <span className="text-[12px] leading-snug text-[var(--text-secondary)]">No prohibited items inside (weapons, drugs, dangerous or illegal goods).</span>
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-[var(--bg-secondary)] p-3.5">
+                <input type="checkbox" checked={form.prohibited_confirmed} onChange={e => setForm(p => ({ ...p, prohibited_confirmed: e.target.checked }))} className="mt-0.5 size-5 shrink-0 accent-[var(--accent)]" />
+                <span className="min-w-0 flex-1 text-[13px] leading-snug text-[var(--text-primary)]">No prohibited items inside (weapons, drugs, dangerous or illegal goods).</span>
               </label>
-            </section>
-
-            <section aria-labelledby="when-title" className={CARD}>
-              <CardTitle id="when-title" icon={Clock} title="Pickup time" />
-              <Chips label="When" options={[{ value: 'now', label: 'As soon as possible' }, { value: 'later', label: 'Schedule' }]} value={form.scheduled ? 'later' : 'now'}
-                onChange={(v) => setForm(p => ({ ...p, scheduled: v === 'later' }))} />
-              {(form.scheduled || error?.includes('not currently available')) && (
-                <label className="relative block">
-                  <span className="sr-only">Pickup date and time</span>
-                  <input type="datetime-local" value={form.scheduled_date} onChange={e => setForm(p => ({ ...p, scheduled_date: e.target.value }))}
-                    min={minPickupDateTime()} className={`${FIELD} appearance-none`} style={form.scheduled_date ? undefined : { color: 'transparent' }} />
-                  {/* iOS Safari / Android WebView draw an empty datetime field as a blank box: show our own prompt */}
-                  {!form.scheduled_date && (
-                    <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
-                      <Clock className="size-4 text-[var(--accent)]" /> Tap to choose the date and time
-                    </span>
-                  )}
-                </label>
-              )}
-            </section>
+              <div className="space-y-5 border-t border-[var(--glass-border)] pt-5">
+                <h3 className={LABEL}>Pickup time</h3>
+                <Chips label="When" options={[{ value: 'now', label: 'As soon as possible' }, { value: 'later', label: 'Schedule' }]} value={form.scheduled ? 'later' : 'now'}
+                  onChange={(v) => setForm(p => ({ ...p, scheduled: v === 'later' }))} />
+                {(form.scheduled || error?.includes('not currently available')) && (
+                  <label className={`${LABEL} relative block`}>
+                    <span className="sr-only">Pickup date and time</span>
+                    <input type="datetime-local" value={form.scheduled_date} onChange={e => setForm(p => ({ ...p, scheduled_date: e.target.value }))}
+                      min={minPickupDateTime()} className={`${FIELD} appearance-none`} style={form.scheduled_date ? undefined : { color: 'transparent' }} />
+                    {/* iOS Safari / Android WebView draw an empty datetime field as a blank box: show our own prompt */}
+                    {!form.scheduled_date && (
+                      <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
+                        <Clock className="size-4 text-[var(--accent)]" /> Tap to choose the date and time
+                      </span>
+                    )}
+                  </label>
+                )}
+              </div>
+            </section>}
 
             {errorNote}
 
-            <button type="button" onClick={handleGetQuote} disabled={loading}
+            <div className="flex flex-col-reverse gap-3 sm:flex-row">
+            <button type="button" disabled={step === 1} onClick={() => goToStep(step - 1)} className={`${SMALL_BUTTON} min-h-12 justify-center`}>Back</button>
+            <button type="button" onClick={handleContinue} disabled={loading}
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-[14px] font-semibold text-white disabled:opacity-50">
-              {loading ? <Loader2 className="size-4 animate-spin" /> : null} See couriers and prices <ChevronRight className="size-4" />
+              {loading ? <Loader2 className="size-4 animate-spin" /> : null} Continue <ChevronRight className="size-4" />
             </button>
+            </div>
             {user && <Link href="/delivery/history" className="block text-center text-[12px] font-semibold text-[var(--accent)]">My deliveries</Link>}
           </div>
         )}
 
-        {/* ── Step 2: courier and payment ───────────────────────────── */}
-        {step === 2 && quotes.length > 0 && (
-          <div className="space-y-4">
+        {/* Step 4: courier and payment */}
+        {step === 4 && (
+          <div className="space-y-6">
             <section aria-labelledby="courier-title" className={CARD}>
-              <CardTitle id="courier-title" icon={Truck} title="Choose a courier" hint={`${quotes.length} available for this trip`} />
+              <CardTitle id="courier-title" icon={Truck} title="Courier & payment" hint={loading ? 'Finding couriers for your trip...' : `${quotes.length} available for this trip`} />
+              {loading && <p role="status" className={HINT}>Loading quotes...</p>}
+              {!loading && !quotes.length && <button type="button" className={SMALL_BUTTON} onClick={() => handleGetQuote(true)}>Retry quotes</button>}
               <div role="radiogroup" aria-labelledby="courier-title" className="space-y-2">
                 {quotes.map(q => (
                   <Choice key={q.provider_id} selected={selectedQuote?.provider_id === q.provider_id} onClick={() => setSelectedQuote(q)}
@@ -762,32 +829,32 @@ export default function DeliveryPage() {
                   <div className="flex justify-between border-t border-[var(--glass-border)] pt-1.5 font-bold"><span>Total</span><span className="tabular-nums text-[var(--accent)]">{selectedQuote.price?.toLocaleString()} XAF</span></div>
                 </div>
               )}
-            </section>
-
-            <section aria-labelledby="pay-title" className={CARD}>
-              <CardTitle id="pay-title" icon={CreditCard} title="Payment" />
-              <div role="radiogroup" aria-labelledby="pay-title" className="space-y-2">
-                {user && (
-                  <Choice selected={form.payment_method === 'wallet'} onClick={() => setForm(prev => ({ ...prev, payment_method: 'wallet' }))}
-                    icon={Wallet} title="Aura Wallet" sub={`Balance: ${displayedWalletBalance.toLocaleString()} XAF`} />
-                )}
-                <Choice selected={isMomo} onClick={() => { if (!isMomo) selectPaymentMethod('pawapay'); }}
-                  icon={Smartphone} title="Mobile Money" sub="MTN or Orange Money: approve on your phone" />
-              </div>
-              {isMomo && (
-                <div className="space-y-3 rounded-2xl bg-[var(--bg-secondary)] p-3.5">
-                  <Chips label="Pay with" options={momoProviders.map(o => ({ value: o.id, label: o.label }))} value={form.payment_method} onChange={selectPaymentMethod} />
-                  <p className="-mt-1 text-[11px] text-[var(--text-secondary)]">{selectedMomo.description}</p>
-                  <div><label className={LABEL} htmlFor="momo-phone">Mobile Money number</label>
-                    <input id="momo-phone" type="tel" inputMode="tel" value={form.momo_phone} onChange={e => setForm(prev => ({ ...prev, momo_phone: e.target.value }))} placeholder="6XX XXX XXX" className={`${FIELD} tabular-nums`} /></div>
+              <div className="space-y-5 border-t border-[var(--glass-border)] pt-5">
+                <h3 id="pay-title" className={LABEL}>Payment</h3>
+                <p className={HINT}>Choose how you would like to pay.</p>
+                <div role="radiogroup" aria-labelledby="pay-title" className="space-y-2">
+                  {user && (
+                    <Choice selected={form.payment_method === 'wallet'} onClick={() => setForm(prev => ({ ...prev, payment_method: 'wallet' }))}
+                      icon={Wallet} title="Aura Wallet" sub={`Balance: ${displayedWalletBalance.toLocaleString()} XAF`} />
+                  )}
+                  <Choice selected={isMomo} onClick={() => { if (!isMomo) selectPaymentMethod('pawapay'); }}
+                    icon={Smartphone} title="Mobile Money" sub="MTN or Orange Money: approve on your phone" />
                 </div>
-              )}
+                {isMomo && (
+                  <div className="space-y-5 rounded-2xl bg-[var(--bg-secondary)] p-4">
+                    <Chips label="Pay with" options={momoProviders.map(o => ({ value: o.id, label: o.label }))} value={form.payment_method} onChange={selectPaymentMethod} />
+                    <p className={HINT}>{selectedMomo.description}</p>
+                    <div><label className={LABEL} htmlFor="momo-phone">Mobile Money number</label>
+                      <input id="momo-phone" type="tel" inputMode="tel" value={form.momo_phone} onChange={e => setForm(prev => ({ ...prev, momo_phone: e.target.value }))} placeholder="6XX XXX XXX" className={`${FIELD} tabular-nums`} /></div>
+                  </div>
+                )}
+              </div>
             </section>
 
             {errorNote}
 
-            <div className="grid grid-cols-[1fr_2fr] gap-2">
-              <button type="button" onClick={() => setStep(1)} className="min-h-12 rounded-2xl border border-[var(--glass-border)] text-[14px] font-semibold">Back</button>
+            <div className="flex flex-col-reverse gap-3 sm:grid sm:grid-cols-[1fr_2fr]">
+              <button type="button" onClick={() => goToStep(3)} className="min-h-12 rounded-2xl border border-[var(--glass-border)] text-[14px] font-semibold">Back</button>
               <button type="button" onClick={handleBook} disabled={loading || !selectedQuote}
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-[14px] font-semibold text-white disabled:opacity-50">
                 {loading ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Confirm & pay{selectedQuote ? ` ${selectedQuote.price?.toLocaleString()} XAF` : ''}
@@ -796,33 +863,33 @@ export default function DeliveryPage() {
           </div>
         )}
 
-        {/* ── Step 3: booked, or waiting for the Mobile Money approval ── */}
-        {step === 3 && success && (
-          <div className="space-y-4">
+        {/* Step 5: booked, or waiting for Mobile Money approval */}
+        {step === 5 && success && (
+          <div className="space-y-6">
             {pendingPayment && !pendingPayment.timedOut && (
-              <section className={`${CARD} text-center`}>
+              <section aria-labelledby="done-title" className={`${CARD} text-center`}>
                 <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-amber-500 text-white"><Loader2 className="size-7 animate-spin" /></span>
-                <h2 className="text-[18px] font-bold">Approve the payment on your phone</h2>
+                <h2 id="done-title" className="text-[16px] font-semibold">Approve the payment on your phone</h2>
                 <p className="text-[13px] text-[var(--text-secondary)]">A Mobile Money prompt was sent. Enter your PIN to confirm.</p>
                 <p className="text-[22px] font-bold tabular-nums text-amber-600">{(pendingPayment.gross_amount || success.price)?.toLocaleString()} XAF</p>
                 {pendingPayment.collection_fee > 0 && <p className="text-[11px] text-[var(--text-secondary)]">Includes {pendingPayment.collection_fee?.toLocaleString()} XAF Mobile Money fee</p>}
               </section>
             )}
             {pendingPayment?.timedOut && (
-              <section className={`${CARD} text-center`}>
+              <section aria-labelledby="done-title" className={`${CARD} text-center`}>
                 <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-rose-500 text-white"><AlertCircle className="size-7" /></span>
-                <h2 className="text-[18px] font-bold">Payment not confirmed yet</h2>
+                <h2 id="done-title" className="text-[16px] font-semibold">Payment not confirmed yet</h2>
                 <p className="text-[13px] text-[var(--text-secondary)]">If you approved it, it may still go through. You can follow the delivery or try again.</p>
                 <div className="grid grid-cols-2 gap-2">
                   <button type="button" onClick={() => router.push(`/delivery/track?code=${success.tracking_code}`)} className="min-h-12 rounded-2xl bg-[var(--accent)] text-[14px] font-semibold text-white">Track</button>
-                  <button type="button" onClick={() => { setPendingPayment(null); setStep(2); setSuccess(null); }} className="min-h-12 rounded-2xl border border-[var(--glass-border)] text-[14px] font-semibold">Try again</button>
+                  <button type="button" onClick={() => { setPendingPayment(null); setStep(4); setSuccess(null); }} className="min-h-12 rounded-2xl border border-[var(--glass-border)] text-[14px] font-semibold">Try again</button>
                 </div>
               </section>
             )}
             {!pendingPayment && (
-              <section className={`${CARD} text-center`}>
+              <section aria-labelledby="done-title" className={`${CARD} text-center`}>
                 <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-600 text-white"><CheckCircle2 className="size-7" /></span>
-                <h2 className="text-[18px] font-bold">Delivery booked</h2>
+                <h2 id="done-title" className="text-[16px] font-semibold">Delivery booked</h2>
                 <p className="text-[13px] text-[var(--text-secondary)]">We will tell you when a rider is on the way.</p>
                 <div className="rounded-2xl bg-[var(--bg-secondary)] p-3.5">
                   <p className="text-[11px] text-[var(--text-secondary)]">Tracking code</p>
@@ -837,7 +904,7 @@ export default function DeliveryPage() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => router.push(`/delivery/track?code=${success.tracking_code}`)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-[14px] font-semibold text-white"><Package className="size-4" /> Track it</button>
-              <button type="button" onClick={() => { setStep(1); setSuccess(null); setQuotes([]); setSelectedQuote(null); }} className="min-h-12 rounded-2xl border border-[var(--glass-border)] text-[14px] font-semibold">Book another</button>
+              <button type="button" onClick={() => { goToStep(1); setSuccess(null); setPendingPayment(null); if (paymentPollRef.current) clearInterval(paymentPollRef.current); setQuotes([]); setSelectedQuote(null); }} className="min-h-12 rounded-2xl border border-[var(--glass-border)] text-[14px] font-semibold">Book another</button>
             </div>
           </div>
         )}
