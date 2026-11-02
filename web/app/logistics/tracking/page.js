@@ -22,6 +22,7 @@ import {
 } from "@/components/logistics/LogisticsSubpageShell";
 import { summarizeLineItems, destinationLine } from "@/lib/logistics";
 import AssignRiderPanel from "@/components/logistics/AssignRiderPanel";
+import ShipmentPlan from "@/components/admin/ShipmentPlan";
 
 const PAGE_SIZE = 10;
 
@@ -342,38 +343,9 @@ function ShipmentDetail({ shipmentId, onBack }) {
         </div>
       )}
 
-      {/* Route */}
-      <div className="rounded-2xl border border-[var(--glass-border)]/30 bg-[var(--bg-secondary)]/30 p-4">
-        <div className="flex items-start gap-3">
-          <div className="flex flex-col items-center pt-1 shrink-0">
-            <div className="size-3 rounded-full bg-emerald-500 ring-4 ring-emerald-500/10" />
-            <div className="w-0.5 h-10 bg-gradient-to-b from-emerald-500/60 to-rose-500/60 my-1" />
-            <div className="size-3 rounded-full bg-rose-500 ring-4 ring-rose-500/10" />
-          </div>
-          <div className="flex-1 min-w-0 space-y-3">
-            <div>
-              <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Pickup</p>
-              <p className="text-xs font-semibold text-[var(--text-primary)] mt-0.5">{addr(shipment.pickup_address) || addr(shipment.order_id?.shipping_address) || '—'}</p>
-              {(shipment.pickup_address?.name || shipment.pickup_address?.phone) && (
-                <p className="text-[10px] text-[var(--text-secondary)]/50 mt-0.5 flex items-center gap-1.5">
-                  {shipment.pickup_address.name && <><User className="size-2.5" />{shipment.pickup_address.name}</>}
-                  {shipment.pickup_address.phone && <><Phone className="size-2.5 ml-2" />{shipment.pickup_address.phone}</>}
-                </p>
-              )}
-            </div>
-            <div>
-              <p className="text-[9px] font-bold text-rose-600 uppercase tracking-wider">Delivery</p>
-              <p className="text-xs font-semibold text-[var(--text-primary)] mt-0.5">{addr(shipment.delivery_address) || '—'}</p>
-              {(shipment.delivery_address?.name || shipment.delivery_address?.phone) && (
-                <p className="text-[10px] text-[var(--text-secondary)]/50 mt-0.5 flex items-center gap-1.5">
-                  {shipment.delivery_address.name && <><User className="size-2.5" />{shipment.delivery_address.name}</>}
-                  {shipment.delivery_address.phone && <><Phone className="size-2.5 ml-2" />{shipment.delivery_address.phone}</>}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Where to pick up and drop off: exact spot or quartier centre, the description
+          the customer or store wrote, directions, phone, the road route and the rider. */}
+      <ShipmentPlan shipmentId={shipment._id} url={`/logistics/shipments/${shipment._id}/plan`} title="Pickup & drop-off" />
 
       {/* Order / Package Info */}
       <div className="rounded-2xl border border-[var(--glass-border)]/30 bg-[var(--bg-secondary)]/30 p-4">

@@ -45,6 +45,7 @@ router.get('/shipments/vendor', restrictTo('vendor', 'admin'), getVendorShipment
 router.post('/onboard', onboardLogistics);
 router.get('/shipments/firm', restrictTo('logistics', 'admin'), getFirmShipments);
 router.get('/analytics', restrictTo('logistics'), getFirmAnalytics);
+router.get('/shipments/:id/plan', restrictTo('logistics', 'admin'), require('../controllers/logisticsReport.controller').shipmentPlan);
 router.get('/shipments/:id', restrictTo('logistics', 'admin'), getFirmShipmentById);
 router.get('/profile', restrictTo('logistics', 'admin'), getProfile);
 router.patch('/profile', restrictTo('logistics', 'admin'), updateProfile);

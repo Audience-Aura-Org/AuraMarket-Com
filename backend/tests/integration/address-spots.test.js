@@ -143,3 +143,15 @@ describe('Google places in the search', () => {
     expect((await request(app).get('/api/v1/locations/place/ChIJnotreal12345')).status).toBe(404)
   })
 })
+
+it('gives the rider the store’s place name and pickup description, and the customer’s place', async () => {
+  const { vendor } = await createVendor()
+  await Vendor.updateOne({ _id: vendor._id }, { $set: { pickup_address: { city: 'Yaoundé', quartier: 'Etoug-Ebe I', place_name: 'Carrefour Etoug-Ebe', address_description: 'Green shop under the bridge', location: { lat: 3.8521, lng: 11.4759, source: 'search' } } } })
+  const firm = await LogisticsCompany.create({ user_id: new mongoose.Types.ObjectId(), company_name: 'Aura Deliveries', contact_email: 'ops2@x.cm', contact_phone: '+237600000097', service_regions: ['Yaoundé'], vehicle_types: ['motorcycle'], quartier_prices: [{ quartier: 'Simbock', price: 1000 }] })
+  const order = await Order.create({ customer_id: new mongoose.Types.ObjectId(), vendor_id: vendor._id, products: [{ product_id: new mongoose.Types.ObjectId(), vendor_id: vendor._id, name: 'Shoes', price: 5000, regular_price: 5000, quantity: 1 }], subtotal: 5000, total_amount: 6000, payment_method: 'wallet',
+    shipping_method: 'logistics_partner', logistics_company_id: firm._id,
+    shipping_address: { city: 'Yaoundé', quartier: 'Simbock', place_name: 'Tradex Simbock', landmark: 'Blue gate', location: SPOT } })
+  const [s] = await logistics.createShipmentsForOrder(order, 'Simbock', firm._id)
+  expect(s.pickup_address).toMatchObject({ place_name: 'Carrefour Etoug-Ebe', description: 'Green shop under the bridge' })
+  expect(s.delivery_address).toMatchObject({ place_name: 'Tradex Simbock', landmark: 'Blue gate' })
+})

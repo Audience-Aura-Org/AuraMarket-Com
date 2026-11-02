@@ -23,7 +23,9 @@ const NEXT_STEP = {
   picked_up: { status: "out_for_delivery", label: "I'm on the way" },
   in_transit: { status: "out_for_delivery", label: "I'm on the way" },
 };
-const place = (a) => [a?.landmark, a?.street, a?.quartier, a?.city].filter(Boolean).join(", ");
+// Place, street, quartier, city (no repeats); the written description is shown apart.
+const place = (a) => [a?.place_name, a?.street, a?.quartier, a?.city].filter((v, i, all) => v && all.indexOf(v) === i).join(", ");
+const note = (a) => a?.description || a?.landmark || "";
 
 export default function RiderMapPage() {
   const jobs = useRiderJobs();
@@ -94,6 +96,7 @@ export default function RiderMapPage() {
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">{toPickup ? "Go to pickup" : "Deliver to"}</p>
                   <p className="truncate text-[15px] font-bold">{place(stop) || point?.quartier || "—"}</p>
+                  {note(stop) && <p className="line-clamp-2 text-[12px] italic">“{note(stop)}”</p>}
                   {stop?.contact && <p className="truncate text-[11px] text-[var(--text-secondary)]">{stop.contact}</p>}
                 </div>
                 {eta != null && (

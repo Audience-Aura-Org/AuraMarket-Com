@@ -4,6 +4,7 @@
  *   GET /logistics/riders/report?days=30   agency: rider performance + dispatch quality
  *   GET /admin/logistics/live-map          admin: online riders and deliveries under way
  *   GET /admin/logistics/shipments/:id/plan admin: how one delivery is mapped and priced
+ *   GET /logistics/shipments/:id/plan       agency: the same, for its own deliveries
  */
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const RiderProfile = require('../models/RiderProfile.model');
@@ -88,7 +89,14 @@ const shipmentPlan = async (req, res, next) => {
   try {
     const mongoose = require('mongoose');
     if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ success: false, message: 'Shipment not found.' });
-    const s = await Shipment.findById(req.params.id)
+    // Agencies only see their own deliveries; admins see any.
+    const filter = { _id: req.params.id };
+    if (req.user.role !== 'admin') {
+      const agency = await LogisticsCompany.findOne({ user_id: req.user._id }).select('_id').lean();
+      if (!agency) return res.status(404).json({ success: false, message: 'Shipment not found.' });
+      filter.logistics_id = agency._id;
+    }
+    const s = await Shipment.findOne(filter)
       .populate('logistics_id', 'company_name pricing service_regions')
       .populate('rider_id', 'name phone')
       .populate('order_id', 'shipping_fee order_number')
@@ -112,7 +120,10 @@ const shipmentPlan = async (req, res, next) => {
     const spot = (a, point) => point && {
       lat: point.lat, lng: point.lng, exact: !point.approx,
       how: point.approx ? 'Quartier centre (no exact spot given)' : SPOT_SOURCE[a?.location?.source] || 'Exact spot',
-      label: [a?.place_name || a?.landmark, a?.street, a?.quartier, a?.city].filter(Boolean).join(', '),
+      label: [a?.place_name, a?.street, a?.quartier, a?.city].filter((v, i, all) => v && all.indexOf(v) === i).join(', '),
+      // What the customer or store wrote about the spot (gate, floor, shop next door).
+      description: a?.description || a?.landmark || null,
+      phone: a?.phone || null,
     };
     const firm = s.logistics_id;
     const feeSource = s.agency_package?.fee_source || (firm?.pricing?.mode === 'distance' ? 'distance' : 'district');

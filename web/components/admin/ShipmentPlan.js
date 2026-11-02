@@ -1,6 +1,7 @@
 "use client";
 /**
- * Admin: how one delivery is mapped out (GET /admin/logistics/shipments/:id/plan).
+ * How one delivery is mapped out, for admins (GET /admin/logistics/shipments/:id/plan)
+ * and for the delivering agency (pass url="/logistics/shipments/:id/plan").
  * Pickup and drop-off are exact spots (place search, map pin, GPS or a saved
  * address) or, without one, the quartier centre. The road route between them gives
  * the km and minutes. Distance-priced agencies charge base + per km on that road
@@ -8,7 +9,7 @@
  */
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { Bike, CircleDot, Loader2, MapPin, Receipt, Route } from "lucide-react";
+import { Bike, CircleDot, Loader2, MapPin, Navigation, Phone, Receipt, Route } from "lucide-react";
 import api from "@/services/api";
 
 const RiderMap = dynamic(() => import("@/components/location/RiderMap"), {
@@ -35,24 +36,31 @@ function Row({ icon: Icon, label, children }) {
   );
 }
 
+const directions = (s) => `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`;
+
 const Spot = ({ s }) => s ? (
   <>
     <p className="font-semibold">{s.label || "—"}</p>
-    <p className={`text-[11px] ${s.exact ? "text-emerald-600" : "text-amber-600"}`}>{s.exact ? `Exact spot · ${s.how}` : s.how}</p>
+    {s.description && <p className="mt-0.5 rounded-lg bg-[var(--bg-primary)] px-2 py-1 text-[12px] italic">“{s.description}”</p>}
+    <p className={`mt-0.5 text-[11px] ${s.exact ? "text-emerald-600" : "text-amber-600"}`}>{s.exact ? `Exact spot · ${s.how}` : s.how}</p>
+    <div className="mt-1.5 flex flex-wrap gap-1.5">
+      <a href={directions(s)} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-lg bg-[var(--accent)] px-2.5 text-[11px] font-semibold text-white"><Navigation className="size-3.5" /> Directions</a>
+      {s.phone && <a href={`tel:${s.phone}`} className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-[var(--glass-border)] px-2.5 text-[11px] font-semibold"><Phone className="size-3.5" /> {s.phone}</a>}
+    </div>
   </>
 ) : <p className="text-[11px] text-rose-600">Not on the map: no spot and no known quartier.</p>;
 
-export default function ShipmentPlan({ shipmentId }) {
+export default function ShipmentPlan({ shipmentId, url = null, title = "How this delivery is mapped" }) {
   const [plan, setPlan] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!shipmentId) return;
     setPlan(null); setError("");
-    api.get(`/admin/logistics/shipments/${shipmentId}/plan`, { skipClientCache: true })
+    api.get(url || `/admin/logistics/shipments/${shipmentId}/plan`, { skipClientCache: true })
       .then((res) => setPlan(res.data?.data || null))
       .catch((err) => setError(err?.response?.data?.message || "Could not load how this delivery is mapped."));
-  }, [shipmentId]);
+  }, [shipmentId, url]);
 
   if (error) return <p className="rounded-2xl bg-rose-500/5 p-3 text-[11px] text-rose-600">{error}</p>;
   if (!plan) return <div className="flex h-24 items-center justify-center"><Loader2 className="size-5 animate-spin text-[var(--accent)]" /></div>;
@@ -62,8 +70,8 @@ export default function ShipmentPlan({ shipmentId }) {
   const r = plan.fee.rates;
 
   return (
-    <section aria-label="How this delivery is mapped" className="space-y-3 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-3 sm:p-4">
-      <p className="text-[12px] font-bold">How this delivery is mapped</p>
+    <section aria-label={title} className="space-y-3 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-secondary)]/40 p-3 sm:p-4">
+      <p className="text-[12px] font-bold">{title}</p>
       {job && <div className="h-56 overflow-hidden rounded-2xl border border-[var(--glass-border)] sm:h-64"><RiderMap me={null} job={job} padding={36} /></div>}
       <div className="divide-y divide-[var(--glass-border)]">
         <Row icon={CircleDot} label="Pickup"><Spot s={plan.pickup} /></Row>

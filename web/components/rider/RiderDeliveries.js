@@ -18,7 +18,9 @@ const NEXT_STEP = {
 };
 const STATUS_LABEL = { assigned: "Go to pickup", picked_up: "Picked up", in_transit: "On the way", out_for_delivery: "On the way", delivered: "Delivered", failed: "Failed", cancelled: "Cancelled" };
 
-const place = (a) => [a?.landmark, a?.street, a?.quartier, a?.city].filter(Boolean).join(", ");
+// Place, street, quartier, city (no repeats); the written description is shown apart.
+const place = (a) => [a?.place_name, a?.street, a?.quartier, a?.city].filter((v, i, all) => v && all.indexOf(v) === i).join(", ");
+const note = (a) => a?.description || a?.landmark || "";
 function Stop({ label, address, contact, phone, navApp }) {
   return (
     <div className="flex items-start gap-2.5">
@@ -26,6 +28,7 @@ function Stop({ label, address, contact, phone, navApp }) {
       <div className="min-w-0 flex-1">
         <p className="text-[10px] text-[var(--text-secondary)]">{label}</p>
         <p className="text-[12px] font-semibold">{place(address) || "—"}</p>
+        {note(address) && <p className="mt-0.5 text-[11px] italic text-[var(--text-primary)]">“{note(address)}”</p>}
         {contact && <p className="text-[10px] text-[var(--text-secondary)]">{contact}</p>}
       </div>
       <div className="flex shrink-0 gap-1.5">

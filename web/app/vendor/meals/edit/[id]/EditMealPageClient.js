@@ -66,7 +66,9 @@ function EditMealPageInner() {
   const params = useParams();
   const searchParams = useSearchParams();
   // Support both ?id=xxx (static APK route) and /edit/[id] (dynamic web route)
-  const id = searchParams?.get('id') || params?.id;
+  // Also opened by managers at /manager/as/{account}/meals/edit/{id}.
+  const slug = Array.isArray(params?.slug) ? params.slug : [];
+  const id = searchParams?.get('id') || params?.id || (slug[0] === 'meals' && slug[1] === 'edit' ? slug[2] : undefined);
 
   const fileInputRef = useRef(null);
   const savingRef = useRef(false);

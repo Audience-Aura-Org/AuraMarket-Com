@@ -17,7 +17,7 @@ export function resolveSwitchTarget({ pathname, accountId, actAsId, accounts }) 
 
   const target = accounts.find((a) => a.id === accountId);
   const section = pathname.match(/^\/manager\/as\/[^/]+\/([^/?#]+)/)?.[1];
-  const keep = section && getWorkspaceNav(target?.role).some((n) => n.slug === section);
+  const keep = section && getWorkspaceNav(target?.role, target).some((n) => n.slug === section);
   return `/manager/as/${accountId}/${keep ? section : 'dashboard'}`;
 }
 

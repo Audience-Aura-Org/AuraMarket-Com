@@ -49,6 +49,7 @@ export default function LogisticsPricingPage() {
   const [bulkUpdatePrice, setBulkUpdatePrice] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pricingMode, setPricingMode] = useState("district");
+  const [showOldPrices, setShowOldPrices] = useState(false);
   const itemsPerPage = 8;
 
   useEffect(() => {
@@ -233,13 +234,18 @@ export default function LogisticsPricingPage() {
 
         <DistancePricing zones={zones} onModeChange={setPricingMode} />
 
+        {/* With distance pricing the quartier list is not used: keep it folded away. */}
         {pricingMode === "distance" && (
-          <p className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3 text-[11px] text-[var(--text-secondary)]">
-            Distance pricing is on, so this quartier list is not used for fees. It is kept in case you switch back.
-          </p>
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-3 text-[12px] text-[var(--text-secondary)]">
+            <p className="min-w-0 flex-1">Fees come from the road distance between the exact pickup and drop-off spots. Your old quartier price list is kept in case you switch back.</p>
+            <button type="button" onClick={() => setShowOldPrices((v) => !v)} aria-expanded={showOldPrices}
+              className="min-h-10 shrink-0 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3.5 text-[12px] font-semibold text-[var(--text-primary)]">
+              {showOldPrices ? "Hide quartier prices" : "Show quartier prices"}
+            </button>
+          </div>
         )}
 
-        <section className="space-y-4 lg:space-y-6">
+        {(pricingMode !== "distance" || showOldPrices) && <section className="space-y-4 lg:space-y-6">
           <div className="flex items-center gap-3 lg:gap-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-purple-500/20 bg-purple-500/10 text-purple-600 shadow-sm lg:size-12 lg:rounded-2xl">
               <MapPinIcon className="size-5 lg:size-6" />
@@ -612,7 +618,7 @@ export default function LogisticsPricingPage() {
               </div>
             </div>
           </div>
-        </section>
+        </section>}
       </div>
     </div>
   );

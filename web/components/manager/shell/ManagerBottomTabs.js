@@ -68,7 +68,7 @@ export default function ManagerBottomTabs() {
       </div>
     ));
   } else if (accountId) {
-    const pages = getWorkspaceNav(account?.role).map((p) => ({ ...p, href: `/manager/as/${accountId}/${p.slug}` }));
+    const pages = getWorkspaceNav(account?.role, account).map((p) => ({ ...p, href: `/manager/as/${accountId}/${p.slug}` }));
     const isActive = (href) => pathname === href || pathname.startsWith(`${href}/`);
     tabs = pages.slice(0, 4).map((p) => <Tab key={p.slug} href={p.href} icon={p.icon} label={p.label} active={isActive(p.href)} />);
     more = pages.slice(4);

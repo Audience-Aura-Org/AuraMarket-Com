@@ -38,6 +38,7 @@ const COMPONENTS = {
     'products/edit': dynamic(() => import('@/app/vendor/products/edit/page'), { ssr: false, loading: PageLoading }),
     meals:           dynamic(() => import('@/app/vendor/meals/page'), { ssr: false, loading: PageLoading }),
     'meals/add':     dynamic(() => import('@/app/vendor/meals/add/page'), { ssr: false, loading: PageLoading }),
+    'meals/edit':    dynamic(() => import('@/app/vendor/meals/edit/[id]/EditMealPageClient'), { ssr: false, loading: PageLoading }),
     kitchen:         dynamic(() => import('@/app/vendor/kitchen/page'), { ssr: false, loading: PageLoading }),
     stories:         dynamic(() => import('@/app/vendor/stories/page'), { ssr: false, loading: PageLoading }),
     orders:          dynamic(() => import('@/app/vendor/orders/page'), { ssr: false, loading: PageLoading }),
@@ -72,7 +73,9 @@ export function getWorkspaceComponent(role, slug = 'dashboard') {
   const roleMap = COMPONENTS[role];
   if (!roleMap) return null;
   const section = String(slug).split('/')[0];
-  return roleMap[slug] || roleMap[section] || roleMap.dashboard || null;
+  // 'meals/edit/<id>' → the 'meals/edit' page (it reads the id from the URL).
+  const twoLevels = String(slug).split('/').slice(0, 2).join('/');
+  return roleMap[slug] || roleMap[twoLevels] || roleMap[section] || roleMap.dashboard || null;
 }
 
 /** Workspace page navigation lives in workspaceNav.js (pure, testable). */

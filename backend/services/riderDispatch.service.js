@@ -258,8 +258,9 @@ const openDeliveries = async (rider) => {
     const pickup = fresh ? await pickupPoint(s.pickup_address) : null;
     rows.push({
       id: s._id, tracking_code: s.tracking_code, status: s.status, type: s.type || 'order', price: s.price, created_at: s.createdAt,
-      pickup: { quartier: s.pickup_address?.quartier || null, landmark: s.pickup_address?.landmark || s.pickup_address?.street || null, city: s.pickup_address?.city || null },
-      delivery: { quartier: s.delivery_address?.quartier || null, landmark: s.delivery_address?.landmark || null, city: s.delivery_address?.city || null },
+      // Place and description, never phone numbers, until the rider takes it.
+      pickup: { quartier: s.pickup_address?.quartier || null, place_name: s.pickup_address?.place_name || s.pickup_address?.street || null, description: s.pickup_address?.description || s.pickup_address?.landmark || null, city: s.pickup_address?.city || null },
+      delivery: { quartier: s.delivery_address?.quartier || null, place_name: s.delivery_address?.place_name || null, description: s.delivery_address?.description || s.delivery_address?.landmark || null, city: s.delivery_address?.city || null },
       package: { category: s.package_details?.category, weight_tier: s.package_details?.weight_tier, description: s.package_details?.description },
       cash_to_collect: s.agency_package?.payment_arrangement === 'pay_on_delivery' ? s.agency_package.amount_due_on_delivery
         : s.order_id?.payment_method === 'pay_on_delivery' && s.order_id?.payment_status !== 'paid' ? s.order_id.total_amount : 0,

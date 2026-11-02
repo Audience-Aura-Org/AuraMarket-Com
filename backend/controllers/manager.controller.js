@@ -321,14 +321,17 @@ exports.getAccounts = async (req, res, next) => {
     );
 
     // Last activity per account
-    const [lastAct, metrics] = await Promise.all([
+    const [lastAct, metrics, vendorTypes] = await Promise.all([
       ActivityLog.aggregate([
         { $match: { manager_id: req.user._id } },
         { $group: { _id: '$user_id', last: { $max: '$createdAt' } } },
       ]),
       accountMetrics(scope),
+      // Restaurants get kitchen and meal pages in the manager's workspace.
+      require('../models/Vendor.model').find({ user_id: { $in: scope.links.map((l) => l.user_id) } }).select('user_id vendor_type').lean(),
     ]);
     const la = new Map(lastAct.map((a) => [String(a._id), a.last]));
+    const vt = new Map(vendorTypes.map((v) => [String(v.user_id), v.vendor_type || null]));
     const health = accountHealth(tasks);
 
     ok(
@@ -342,6 +345,7 @@ exports.getAccounts = async (req, res, next) => {
           name: u.name,
           email: u.email,
           role: l.owned ? u.previous_role : u.role,
+          vendor_type: vt.get(uid) || null, // 'restaurant' for food vendors
           owned: Boolean(l.owned),
           avatar: u.avatar || null,
           permissions: l.permissions,

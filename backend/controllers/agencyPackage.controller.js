@@ -57,7 +57,7 @@ const addressFrom = async (input, label) => {
   return {
     zone,
     address: {
-      street: text(input.street || input.place_name, 200), quartier: zone.name, city: parents.find((p) => p.type === 'city')?.name || '',
+      street: text(input.street || input.place_name, 200), place_name: text(input.place_name, 120) || null, quartier: zone.name, city: parents.find((p) => p.type === 'city')?.name || '',
       region: parents.find((p) => p.type === 'region')?.name || undefined, phone: text(input.phone, 20) || undefined,
       zone_id: zone._id, landmark: text(input.landmark, 200) || null, location: confirmedPoint(input.location) || undefined,
     },

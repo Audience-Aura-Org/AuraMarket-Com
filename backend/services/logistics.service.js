@@ -389,7 +389,9 @@ const createShipmentsForOrder = async (order, quartier, logisticsId, session = n
       price: chargedFee ?? perVendor?.get(vendor._id.toString()) ?? perShipmentFee,
       estimated_delivery: etaDate,
       pickup_address: {
-        ...vendor.pickup_address,
+        ...(typeof vendor.pickup_address?.toObject === 'function' ? vendor.pickup_address.toObject() : vendor.pickup_address),
+        // The store's own description of its pickup spot.
+        description: vendor.pickup_address?.address_description || null,
         phone: vendor.phone,
       },
       delivery_address: {

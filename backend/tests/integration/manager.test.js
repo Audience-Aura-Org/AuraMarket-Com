@@ -20,6 +20,7 @@ const { createUser, createAdmin, createVendor,
         createProductForVendor } = require('../factories')
 const { asUser }                 = require('../helpers/auth')
 
+const Vendor = require('../../models/Vendor.model')
 const User              = require('../../models/User.model')
 const Order             = require('../../models/Order.model')
 const Product           = require('../../models/Product.model')
@@ -162,6 +163,13 @@ describe('Manager space — access', () => {
 
     const res = await request(app).get('/api/v1/manager/accounts').set(asUser(manager)).expect(200)
     expect(res.body.data.map((a) => a.id)).toEqual([String(active._id)])
+  })
+
+  it('marks managed restaurants so the workspace shows their kitchen pages', async () => {
+    const { manager, vendorUser, vendor } = await setup()
+    await Vendor.updateOne({ _id: vendor._id }, { $set: { vendor_type: 'restaurant' } })
+    const res = await request(app).get('/api/v1/manager/accounts').set(asUser(manager)).expect(200)
+    expect(res.body.data.find((a) => a.id === String(vendorUser._id))).toMatchObject({ role: 'vendor', vendor_type: 'restaurant' })
   })
 })
 

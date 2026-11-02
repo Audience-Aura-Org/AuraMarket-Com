@@ -20,3 +20,5 @@ process.env.REDIS_SOCKET_ENABLED     = 'false'
 process.env.DISABLE_CACHE            = 'true'
 // Never call the real routing service from tests (dotenv does not override a set value).
 process.env.ORS_API_KEY              = ''
+process.env.GOOGLE_PLACES_API_KEY    = '' // never call Google from tests (tests set a fake key when needed)
+process.env.GOOGLE_MAPS_SERVER_KEY   = ''

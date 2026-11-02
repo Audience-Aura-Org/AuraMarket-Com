@@ -71,7 +71,7 @@ export default function ManagerRail() {
                 <p className="m-fs-12 m-faint mt-1.5 leading-snug">{describePermissions(account.permissions)}</p>
               </div>
             )}
-            {getWorkspaceNavGroups(account?.role).map(group => <div key={group.label} className="pt-3 first:pt-0" role="group" aria-label={group.label}>
+            {getWorkspaceNavGroups(account?.role, account).map(group => <div key={group.label} className="pt-3 first:pt-0" role="group" aria-label={group.label}>
               <p className="hidden lg:block px-3 pb-2 m-fs-11 m-faint font-medium">{group.label}</p>
               <div className="space-y-0.5">{group.items.map(item => {
                 const href = '/manager/as/' + accountId + '/' + item.slug;

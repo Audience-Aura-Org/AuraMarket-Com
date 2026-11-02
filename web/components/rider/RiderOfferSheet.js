@@ -47,8 +47,8 @@ export default function RiderOfferSheet() {
         </div>
 
         <div id="offer-route" className="space-y-2.5 rounded-2xl bg-[var(--bg-secondary)] p-3.5">
-          <p className="flex items-start gap-2.5 text-[13px]"><span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-[#111827]" /><span><span className="block text-[10px] text-[var(--text-secondary)]">Pickup</span><span className="font-semibold">{[s.pickup?.landmark || s.pickup?.street, s.pickup?.quartier].filter(Boolean).join(", ") || "—"}</span></span></p>
-          <p className="flex items-start gap-2.5 text-[13px]"><MapPin className="mt-0.5 size-4 shrink-0 text-[#ff00ff]" /><span><span className="block text-[10px] text-[var(--text-secondary)]">Drop-off</span><span className="font-semibold">{[s.delivery?.landmark || s.delivery?.street, s.delivery?.quartier].filter(Boolean).join(", ") || "—"}</span></span></p>
+          <p className="flex items-start gap-2.5 text-[13px]"><span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-[#111827]" /><span><span className="block text-[10px] text-[var(--text-secondary)]">Pickup</span><span className="block font-semibold">{[s.pickup?.place_name || s.pickup?.street, s.pickup?.quartier].filter(Boolean).join(", ") || "—"}</span>{(s.pickup?.description || s.pickup?.landmark) && <span className="block text-[11px] italic text-[var(--text-secondary)]">“{s.pickup?.description || s.pickup?.landmark}”</span>}</span></p>
+          <p className="flex items-start gap-2.5 text-[13px]"><MapPin className="mt-0.5 size-4 shrink-0 text-[#ff00ff]" /><span><span className="block text-[10px] text-[var(--text-secondary)]">Drop-off</span><span className="block font-semibold">{[s.delivery?.place_name || s.delivery?.street, s.delivery?.quartier].filter(Boolean).join(", ") || "—"}</span>{(s.delivery?.description || s.delivery?.landmark) && <span className="block text-[11px] italic text-[var(--text-secondary)]">“{s.delivery?.description || s.delivery?.landmark}”</span>}</span></p>
         </div>
 
         <div className="flex flex-wrap gap-2 text-[11px]">

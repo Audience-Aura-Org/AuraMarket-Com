@@ -14,13 +14,14 @@ import { secondsLeft, useRiderJobs } from "./RiderJobsContext";
 
 const xaf = (n) => `${Number(n || 0).toLocaleString()} XAF`;
 const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-const stop = (a) => [a?.landmark, a?.quartier].filter(Boolean).join(", ") || "—";
+const stop = (a) => [a?.place_name, a?.quartier].filter((v, i, all) => v && all.indexOf(v) === i).join(", ") || "—";
+const note = (a) => a?.description || a?.landmark || "";
 
 function Route({ from, to }) {
   return (
     <div className="space-y-1 text-[12px]">
-      <p className="flex items-start gap-2"><span className="mt-1.5 size-2 shrink-0 rounded-full bg-[#111827]" /><span className="min-w-0 truncate"><span className="font-semibold">{stop(from)}</span></span></p>
-      <p className="flex items-start gap-2"><MapPin className="mt-0.5 size-3.5 shrink-0 text-[#ff00ff]" /><span className="min-w-0 truncate"><span className="font-semibold">{stop(to)}</span></span></p>
+      <p className="flex items-start gap-2"><span className="mt-1.5 size-2 shrink-0 rounded-full bg-[#111827]" /><span className="min-w-0"><span className="block truncate font-semibold">{stop(from)}</span>{note(from) && <span className="block truncate text-[11px] italic text-[var(--text-secondary)]">“{note(from)}”</span>}</span></p>
+      <p className="flex items-start gap-2"><MapPin className="mt-0.5 size-3.5 shrink-0 text-[#ff00ff]" /><span className="min-w-0"><span className="block truncate font-semibold">{stop(to)}</span>{note(to) && <span className="block truncate text-[11px] italic text-[var(--text-secondary)]">“{note(to)}”</span>}</span></p>
     </div>
   );
 }

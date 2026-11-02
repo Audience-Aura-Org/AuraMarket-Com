@@ -61,6 +61,10 @@ const ShipmentSchema = new mongoose.Schema(
       phone: String,
       zone_id: { type: mongoose.Schema.Types.ObjectId, ref: 'LogisticZone', default: null },
       landmark: { type: String, default: null },
+      // The place chosen in the search ("Tradex Simbock") and the written description
+      // of the spot (gate, floor, shop next door), shown to agencies and riders.
+      place_name: { type: String, default: null },
+      description: { type: String, default: null },
       // Exact spot confirmed by the customer on the map; pricing still uses zone_id.
       location: {
         lat: Number,
@@ -77,6 +81,10 @@ const ShipmentSchema = new mongoose.Schema(
       phone: String,
       zone_id: { type: mongoose.Schema.Types.ObjectId, ref: 'LogisticZone', default: null },
       landmark: { type: String, default: null },
+      // The place chosen in the search ("Tradex Simbock") and the written description
+      // of the spot (gate, floor, shop next door), shown to agencies and riders.
+      place_name: { type: String, default: null },
+      description: { type: String, default: null },
       // Exact spot confirmed by the customer on the map; pricing still uses zone_id.
       location: {
         lat: Number,

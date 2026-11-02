@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Package, ShoppingCart, Wallet, BarChart3, Star, Scale,
-  ClipboardList, Tags, MapPin, MessagesSquare, User,
+  ClipboardList, Tags, MapPin, MessagesSquare, User, ChefHat, UtensilsCrossed, PlusCircle,
 } from 'lucide-react';
 
 /**
@@ -33,14 +33,26 @@ const NAVS = {
   ],
 };
 
-export function getWorkspaceNav(role) {
+// A restaurant's own menu: kitchen and meals instead of products (as in its sidebar).
+const RESTAURANT = [
+  { slug: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { slug: 'kitchen',   label: 'Kitchen',   icon: ChefHat },
+  { slug: 'meals',     label: 'Meals',     icon: UtensilsCrossed },
+  { slug: 'meals/add', label: 'Add meal',  icon: PlusCircle },
+  ...NAVS.vendor.filter((n) => !['dashboard', 'products'].includes(n.slug)),
+];
+
+/** Pages for an account; pass the account so restaurants get their kitchen pages. */
+export function getWorkspaceNav(role, account = null) {
+  if (role === 'vendor' && account?.vendor_type === 'restaurant') return RESTAURANT;
   return NAVS[role] || [];
 }
 
-export function getWorkspaceNavGroups(role) {
-  const nav = getWorkspaceNav(role);
+export function getWorkspaceNavGroups(role, account = null) {
+  const nav = getWorkspaceNav(role, account);
   const sections = [
     ['Overview', ['dashboard']],
+    ['Kitchen', ['kitchen', 'meals', 'meals/add']],
     ['Operations', ['products', 'orders', 'manifests', 'tracking']],
     ['Finance', ['wallet', 'pricing']],
     ['Communication & support', ['messages', 'disputes']],

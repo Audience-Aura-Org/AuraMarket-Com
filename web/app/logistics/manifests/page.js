@@ -26,6 +26,7 @@ import StatCard from "@/components/layout/StatCard";
 import ShipmentStatusModal from "@/components/logistics/ShipmentStatusModal";
 import ShareTrackingLink from "@/components/logistics/ShareTrackingLink";
 import AssignRiderPanel from "@/components/logistics/AssignRiderPanel";
+import ShipmentPlan from "@/components/admin/ShipmentPlan";
 import { summarizeLineItems, destinationLine } from "@/lib/logistics";
 import {
   LogisticsSubpageHeader,
@@ -242,7 +243,11 @@ export default function LogisticsManifestsPage() {
               <ShipmentStatusModal
                 embedded open
                 shipment={selectedShipment}
-                riderPanel={<AssignRiderPanel shipment={selectedShipment} inline />}
+                riderPanel={<div className="space-y-3">
+                  <AssignRiderPanel shipment={selectedShipment} inline />
+                  {/* Exact spots, descriptions, directions and the route. */}
+                  {selectedShipment?._id && <ShipmentPlan shipmentId={selectedShipment._id} url={`/logistics/shipments/${selectedShipment._id}/plan`} title="Pickup & drop-off" />}
+                </div>}
                 updateData={updateData}
                 setUpdateData={setUpdateData}
                 updating={updating}
