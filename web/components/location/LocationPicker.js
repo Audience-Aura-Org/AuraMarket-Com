@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react';
 import withMapFallback from './withMapFallback';
 import { Building2, Check, Crosshair, Landmark, Loader2, MapPin, Search, X } from 'lucide-react';
 import api from '@/services/api';
+import { FIELD, LABEL, SMALL_BUTTON } from '@/lib/formStyles';
 
 // Google Maps when a key is configured, else the free MapLibre map.
 const PinMap = withMapFallback(() => import('./google/GooglePinMap'), () => import('./PinMap'),
@@ -138,7 +139,7 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
 
   return (
     <div className="space-y-2.5">
-      <p className="text-[12px] font-medium text-[var(--text-primary)]">{label}</p>
+      <p className={LABEL.replace("mb-1.5 ", "")}>{label}</p>
 
       <div className="relative">
         <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-[var(--text-secondary)]" aria-hidden="true" />
@@ -147,7 +148,7 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search a place, street, landmark or quartier"
           aria-label={`${label}: search`}
-          className="min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] pl-10 pr-10 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[12px] placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
+          className={`${FIELD} pl-10 pr-10`}
         />
         {searching || picking
           ? <Loader2 className="absolute right-3.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-[var(--text-secondary)]" aria-hidden="true" />
@@ -170,11 +171,11 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={useMyLocation} disabled={locating} className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[11px] font-semibold text-[var(--text-primary)] hover:border-[var(--accent)]/40 disabled:opacity-50">
+        <button type="button" onClick={useMyLocation} disabled={locating} className={SMALL_BUTTON}>
           {locating ? <Loader2 className="size-3.5 animate-spin" /> : <Crosshair className="size-3.5 text-[var(--accent)]" />} Use my current location
         </button>
         {!showMap && (
-          <button type="button" onClick={() => setShowMap(true)} className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3 text-[11px] font-semibold text-[var(--text-primary)] hover:border-[var(--accent)]/40">
+          <button type="button" onClick={() => setShowMap(true)} className={SMALL_BUTTON}>
             <MapPin className="size-3.5 text-[var(--accent)]" /> Choose on map
           </button>
         )}
@@ -208,9 +209,9 @@ export default function LocationPicker({ value = {}, onChange, label = 'Location
       <input
         value={value.landmark || ''}
         onChange={(e) => update({ landmark: e.target.value.slice(0, 200) })}
-        placeholder="Address description (optional), e.g. blue gate after the pharmacy"
+        placeholder="Description (optional): gate, floor, shop next door"
         aria-label={`${label}: address description (optional)`}
-        className="min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3.5 text-[13px] text-[var(--text-primary)] outline-none placeholder:text-[12px] placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)]"
+        className={FIELD}
       />
       {error && <p role="alert" className="text-[11px] text-rose-600">{error}</p>}
     </div>

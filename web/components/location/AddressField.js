@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { Check, MapPin } from 'lucide-react';
 import api from '@/services/api';
 import LocationPicker from './LocationPicker';
+import { LABEL } from '@/lib/formStyles';
 
 let cache = null; // one request shared by every field on the page
 export const loadSavedAddresses = (fresh = false) => {
@@ -49,12 +50,15 @@ export default function AddressField({ label = 'Address', value = {}, onChange, 
   const usable = saved.filter((a) => a._id !== 'vendor_pickup');
   return (
     <div className="space-y-2.5">
-      {showSaved && usable.length > 0 && (
+      {showSaved && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[12px] font-medium text-[var(--text-primary)]">{label}: saved</p>
+            <p className={LABEL.replace("mb-1.5 ", "")}>Saved places</p>
             <Link href="/profile?tab=addresses" className="text-[11px] font-semibold text-[var(--accent)]">Manage</Link>
           </div>
+          {usable.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-[var(--glass-border)] px-3.5 py-2.5 text-[12px] text-[var(--text-secondary)]">No saved places yet. Places you use here are saved automatically (up to 5) and show up here next time.</p>
+          ) : (
           <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="listbox" aria-label={`${label}: saved addresses`}>
             {usable.map((a) => {
               const active = value.address_id === a._id;
@@ -72,10 +76,11 @@ export default function AddressField({ label = 'Address', value = {}, onChange, 
               );
             })}
           </div>
+          )}
         </div>
       )}
       <LocationPicker
-        label={showSaved && usable.length ? 'Or search a new place' : label}
+        label={showSaved ? 'Or search a place' : label}
         value={value}
         onChange={(v) => {
           // Editing the description keeps the saved address; moving the spot makes it a new one.

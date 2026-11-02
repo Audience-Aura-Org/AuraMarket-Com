@@ -13,10 +13,9 @@ import AddressField from "@/components/location/AddressField";
 import { LogisticsSubpageHeader } from "@/components/logistics/LogisticsSubpageShell";
 import { useFeatureFlag } from "@/lib/featureFlags";
 import AssignRiderPanel from "@/components/logistics/AssignRiderPanel";
+// Same fields and labels as the address components.
+import { FIELD, LABEL } from "@/lib/formStyles";
 
-// 16px text on phones (iOS zooms into smaller fields), 13px from tablet up.
-const FIELD = "min-h-11 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3.5 text-[16px] text-[var(--text-primary)] outline-none placeholder:text-[13px] placeholder:text-[var(--text-secondary)] focus:border-[var(--accent)] sm:text-[13px]";
-const LABEL = "mb-1.5 block text-[12px] font-medium text-[var(--text-primary)]";
 const CARD = "space-y-3.5 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 sm:p-5";
 
 function StepTitle({ n, id, children }) {
