@@ -20,6 +20,7 @@ import toast from 'react-hot-toast';
 import api from '@/services/api';
 import { paymentMessage } from '@/lib/paymentLabels';
 import { FIELD } from '@/lib/formStyles';
+import NetworkLogo from '@/components/wallet/NetworkLogo';
 import { resolveCameroonMobileMoneyGateway, isPawaPayOrangeEnabled } from '@/services/paymentProvider';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
@@ -375,12 +376,15 @@ function SubscribeContent() {
                     <div className="mt-4 space-y-4">
                       <label className="block">
                         <span className="text-xs font-bold text-[var(--text-secondary)]">{t('subscription.phone', 'Phone number')}</span>
-                        <input
-                          value={phone}
-                          onChange={(event) => setPhone(event.target.value)}
-                          placeholder="651188134"
-                          type="tel" className={FIELD}
-                        />
+                        <span className="relative mt-1 block">
+                          <input
+                            value={phone}
+                            onChange={(event) => setPhone(event.target.value)}
+                            placeholder="651188134"
+                            type="tel" className={`${FIELD} pr-14`}
+                          />
+                          <NetworkLogo phone={phone} />
+                        </span>
                       </label>
 
 

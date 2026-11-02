@@ -10,6 +10,7 @@ import { paymentMessage } from '@/lib/paymentLabels';
 import WhatsAppSupport from '@/components/logistics/WhatsAppSupport';
 import AddressField from '@/components/location/AddressField';
 import { FIELD, LABEL, SMALL_BUTTON, HINT } from '@/lib/formStyles';
+import NetworkLogo from '@/components/wallet/NetworkLogo';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import {
   Package, Send, ArrowDownToLine, ChevronRight, MapPin, Clock, Wallet, Loader2,
@@ -800,7 +801,7 @@ export default function DeliveryPage() {
                 {isMomo && (
                   <div className="space-y-5 rounded-2xl bg-[var(--bg-secondary)] p-4">
                     <div><label className={LABEL} htmlFor="momo-phone">Mobile Money number</label>
-                      <input id="momo-phone" type="tel" inputMode="tel" value={form.momo_phone} onChange={e => setForm(prev => ({ ...prev, momo_phone: e.target.value }))} placeholder="6XX XXX XXX" className={`${FIELD} tabular-nums`} /></div>
+                      <div className="relative"><input id="momo-phone" type="tel" inputMode="tel" value={form.momo_phone} onChange={e => setForm(prev => ({ ...prev, momo_phone: e.target.value }))} placeholder="6XX XXX XXX" className={`${FIELD} pr-14 tabular-nums`} /><NetworkLogo phone={form.momo_phone} /></div></div>
                   </div>
                 )}
               </div>

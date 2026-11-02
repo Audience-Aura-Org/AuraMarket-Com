@@ -47,12 +47,22 @@ const normalizedCameroonPhone = (phone = '') => {
 
 // Cameroon Orange ranges: 620–629, 655–659 and 690–699. Orange goes to PayUnit
 // until the backend reports PawaPay Orange as enabled (PAWAPAY_ORANGE_ENABLED).
-export const resolveCameroonMobileMoneyGateway = (phone = '', { pawapayOrange = false } = {}) => {
+const isOrangePrefix = (p) => (p >= 620 && p <= 629) || (p >= 655 && p <= 659) || (p >= 690 && p <= 699);
+// Cameroon MTN ranges: 650–654 and 670–689.
+const isMtnPrefix = (p) => (p >= 650 && p <= 654) || (p >= 670 && p <= 689);
+
+/** 'mtn' | 'orange' once the first three digits name the network, else null (for the logo). */
+export const detectCameroonNetwork = (phone = '') => {
   const local = normalizedCameroonPhone(phone);
+  if (local.length < 3) return null;
   const prefix3 = Number(local.slice(0, 3));
-  const isOrange = (prefix3 >= 620 && prefix3 <= 629)
-    || (prefix3 >= 655 && prefix3 <= 659)
-    || (prefix3 >= 690 && prefix3 <= 699);
+  if (isOrangePrefix(prefix3)) return 'orange';
+  if (isMtnPrefix(prefix3)) return 'mtn';
+  return null;
+};
+
+export const resolveCameroonMobileMoneyGateway = (phone = '', { pawapayOrange = false } = {}) => {
+  const isOrange = isOrangePrefix(Number(normalizedCameroonPhone(phone).slice(0, 3)));
 
   return {
     gateway: isOrange && !pawapayOrange ? 'payunit' : 'pawapay',

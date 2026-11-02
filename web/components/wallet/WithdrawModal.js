@@ -18,6 +18,7 @@ import api from '@/services/api';
 import { paymentMessage } from '@/lib/paymentLabels';
 import { resolveConfiguredCameroonMobileMoneyGateway } from '@/services/paymentProvider';
 import { FIELD } from '@/lib/formStyles';
+import NetworkLogo from '@/components/wallet/NetworkLogo';
 import { useAuthStore } from '@/hooks/useAuth';
 
 const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
@@ -85,9 +86,12 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
   const field = (key, label, placeholder, type = 'text') => (
     <div className="space-y-1.5 font-poppins font-normal">
       <label className="text-[10px] lg:text-[12px] font-semibold tracking-widest text-[var(--text-secondary)] opacity-50">{label}</label>
-      <input type={type} placeholder={placeholder} value={form[key]}
-        onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-        className={FIELD} />
+      <div className="relative">
+        <input type={type} placeholder={placeholder} value={form[key]}
+          onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+          className={type === 'tel' ? `${FIELD} pr-14` : FIELD} />
+        {type === 'tel' && <NetworkLogo phone={form[key]} />}
+      </div>
     </div>
   );
 

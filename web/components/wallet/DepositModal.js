@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { initiateSmartCameroonCollection, pollTransactionStatus, recheckTransaction } from '@/services/paymentProvider';
 import { FIELD } from '@/lib/formStyles';
+import NetworkLogo from '@/components/wallet/NetworkLogo';
 import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 
@@ -320,8 +321,9 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
                       placeholder="6XX XXX XXX"
-                      className={`${FIELD} pl-12`}
+                      className={`${FIELD} pl-12 pr-14`}
                     />
+                    <NetworkLogo phone={phone} />
                   </div>
                 </div>
 

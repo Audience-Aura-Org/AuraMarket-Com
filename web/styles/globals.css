@@ -638,6 +638,15 @@ body:has(.checkout-page) select {
   }
 }
 
+/* MTN / Orange logo popping into a Mobile Money number field (scale, not transform, keeps the centring) */
+@keyframes network-pop {
+  0%   { opacity: 0; scale: 0.4; }
+  70%  { opacity: 1; scale: 1.08; }
+  100% { opacity: 1; scale: 1; }
+}
+.network-logo { animation: network-pop 0.22s ease-out; }
+@media (prefers-reduced-motion: reduce) { .network-logo { animation: none; } }
+
 /* ── WhatsApp-style shimmer for story skeleton loading ── */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }

@@ -27,6 +27,7 @@ import { MOBILE_MONEY_PROVIDERS } from '@/lib/formatting';
 import { Capacitor } from '@capacitor/core';
 import AddressField, { spotFromSaved } from '@/components/location/AddressField';
 import { FIELD, LABEL } from '@/lib/formStyles';
+import NetworkLogo from '@/components/wallet/NetworkLogo';
 import { useFeatureFlag } from '@/lib/featureFlags';
 
 // Payment gateway return URLs must be public HTTPS URLs, never capacitor://localhost.
@@ -1518,9 +1519,12 @@ function CheckoutContent() {
                            {isMobileMoneyPayment(formData.paymentMethod) && (
                               <div className="mt-4 space-y-2">
                                  <label className={LABEL}>Mobile Money number</label>
-                                 <input type="tel" placeholder="+237..." value={formData.pawapay.phone}
-                                    onChange={e => setFormData(prev => ({ ...prev, pawapay: { ...prev.pawapay, phone: e.target.value } }))}
-                                    className={FIELD} />
+                                 <div className="relative">
+                                    <input type="tel" placeholder="+237..." value={formData.pawapay.phone}
+                                       onChange={e => setFormData(prev => ({ ...prev, pawapay: { ...prev.pawapay, phone: e.target.value } }))}
+                                       className={`${FIELD} pr-14`} />
+                                    <NetworkLogo phone={formData.pawapay.phone} />
+                                 </div>
                               </div>
                            )}
                         </div>
