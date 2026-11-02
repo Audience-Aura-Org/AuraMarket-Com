@@ -69,7 +69,9 @@ export default function PWAInit() {
       if (nativeResult?.permission === 'denied' && !pushDeniedToastedRef.current) {
         pushDeniedToastedRef.current = true;
         toast(
-          'Notifications are blocked. Enable them in Android Settings \u2192 Apps \u2192 Auradime \u2192 Notifications.',
+          Capacitor.getPlatform() === 'ios'
+            ? 'Notifications are blocked. Enable them in Settings \u2192 Auradime \u2192 Notifications.'
+            : 'Notifications are blocked. Enable them in Android Settings \u2192 Apps \u2192 Auradime \u2192 Notifications.',
           { duration: 6000 }
         );
       }

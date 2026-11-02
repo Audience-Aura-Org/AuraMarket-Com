@@ -85,6 +85,10 @@ const sendAndroidPush = async (tokens, payload) => {
         clickAction: 'FCM_PLUGIN_ACTIVITY',
       },
     },
+    // iOS (via APNs): play the default sound and group alerts per notification
+    apns: {
+      payload: { aps: { sound: 'default', 'thread-id': payload.type || 'notification' } },
+    },
   });
 
   const invalidTokens = [];

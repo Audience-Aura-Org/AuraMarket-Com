@@ -8,7 +8,7 @@ const PushSubscriptionSchema = new mongoose.Schema({
   },
   channel: {
     type: String,
-    enum: ['web', 'android'],
+    enum: ['web', 'android', 'ios'],
     default: 'web',
   },
   subscription: {
@@ -24,7 +24,7 @@ const PushSubscriptionSchema = new mongoose.Schema({
   },
   device_type: {
     type: String,
-    enum: ['mobile', 'desktop', 'tablet', 'android'],
+    enum: ['mobile', 'desktop', 'tablet', 'android', 'ios'],
     default: 'mobile'
   },
   // Android app version that registered this token (e.g. "1.7.1"). Null means an

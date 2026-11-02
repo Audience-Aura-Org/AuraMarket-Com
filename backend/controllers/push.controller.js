@@ -87,17 +87,18 @@ const subscribe = async (req, res, next) => {
 
 /**
  * @route   POST /api/push/native-token
- * @desc    Save a user's native Android FCM token
+ * @desc    Save a user's native app FCM token (Android or iOS)
  * @access  Private
  */
 const saveNativeToken = async (req, res, next) => {
   try {
-    const { token, platform = 'android', device_type = 'android' } = req.body;
+    const { token, platform = 'android' } = req.body;
+    const device_type = platform;
     const appVersion = /^\d+\.\d+(\.\d+)?$/.test(String(req.body.app_version || '')) ? String(req.body.app_version) : null;
     const cleanToken = String(token || '').trim();
 
-    if (!cleanToken || platform !== 'android') {
-      return res.status(400).json({ success: false, message: 'Invalid Android push token.' });
+    if (!cleanToken || !['android', 'ios'].includes(platform)) {
+      return res.status(400).json({ success: false, message: 'Invalid app push token.' });
     }
 
     // A native token belongs to one active account. When the same phone signs
@@ -112,7 +113,7 @@ const saveNativeToken = async (req, res, next) => {
       { user_id: req.user._id, fcm_token: cleanToken },
       {
         user_id: req.user._id,
-        channel: 'android',
+        channel: platform,
         fcm_token: cleanToken,
         device_type,
         app_version: appVersion,
@@ -127,8 +128,8 @@ const saveNativeToken = async (req, res, next) => {
       { upsert: true, returnDocument: 'after', runValidators: true }
     );
 
-    console.log(`[FCM] Android push token saved for ${req.user._id} token=${cleanToken.slice(-16)}`);
-    res.status(200).json({ success: true, message: 'Android push token saved.' });
+    console.log(`[FCM] ${platform} push token saved for ${req.user._id} token=${cleanToken.slice(-16)}`);
+    res.status(200).json({ success: true, message: 'Push token saved.' });
   } catch (error) {
     next(error);
   }

@@ -2,12 +2,13 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 import { afterEach, beforeEach, it, expect, vi } from 'vitest';
 import AppUpdatePrompt from './AppUpdatePrompt';
 
-const mocks = vi.hoisted(() => ({ get: vi.fn(), version: '1.6.1' }));
+const mocks = vi.hoisted(() => ({ get: vi.fn(), version: '1.6.1', platform: 'android' }));
+vi.mock('@capacitor/core', () => ({ Capacitor: { getPlatform: () => mocks.platform } }));
 vi.mock('@capacitor/app', () => ({ App: { getInfo: async () => ({ version: mocks.version }), addListener: async () => ({ remove: () => {} }) } }));
 vi.mock('@/services/api', () => ({ default: { get: mocks.get } }));
 
 const reply = (data) => mocks.get.mockResolvedValue({ data: { success: true, data: { latest: '1.7.1', download_url: 'https://auradime.com/downloads/Auradime.apk', ...data } } });
-beforeEach(() => { localStorage.clear(); mocks.get.mockReset(); });
+beforeEach(() => { localStorage.clear(); mocks.get.mockReset(); mocks.platform = 'android'; });
 afterEach(cleanup);
 
 it('offers the update, can be put off for a day, and asks with the installed version', async () => {
@@ -37,4 +38,13 @@ it('shows nothing when up to date', async () => {
   render(<AppUpdatePrompt />);
   await waitFor(() => expect(mocks.get).toHaveBeenCalled());
   expect(screen.queryByText('Update available')).toBeNull();
+});
+
+it('never offers the APK inside the iPhone app (it updates from the App Store)', async () => {
+  mocks.platform = 'ios';
+  reply({ update_available: true, update_required: true });
+  render(<AppUpdatePrompt />);
+  await new Promise((r) => setTimeout(r, 50));
+  expect(mocks.get).not.toHaveBeenCalled();
+  expect(screen.queryByRole('alertdialog')).toBeNull();
 });

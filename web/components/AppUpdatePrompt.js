@@ -16,6 +16,9 @@ export default function AppUpdatePrompt() {
 
   const check = useCallback(async () => {
     try {
+      // iPhones update from the App Store; only the Android app downloads the APK.
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.getPlatform() !== 'android') return;
       const { App } = await import('@capacitor/app');
       const { version } = await App.getInfo();
       const res = await api.get('/app/version', { params: { v: version }, skipClientCache: true, __skipRetry: true });

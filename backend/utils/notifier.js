@@ -295,9 +295,10 @@ const sendNotification = async (app, recipientId, data) => {
 
       try {
         // Use pre-fetched subscriptions — no extra DB query needed here
-        const rawWebSubs = (!VAPID_PUB || !VAPID_PRIV) ? [] : pushSubs.filter((sub) => sub.channel !== 'android' && sub.subscription?.endpoint && !finishedPushEndpoints.has(sub.subscription.endpoint) && !String(sub.subscription.endpoint).startsWith('fcm:'));
+        const rawWebSubs = (!VAPID_PUB || !VAPID_PRIV) ? [] : pushSubs.filter((sub) => sub.channel !== 'android' && sub.channel !== 'ios' && sub.subscription?.endpoint && !finishedPushEndpoints.has(sub.subscription.endpoint) && !String(sub.subscription.endpoint).startsWith('fcm:'));
         const androidTokens = pushSubs
-          .filter((sub) => sub.channel === 'android' && sub.fcm_token && !finishedAndroidTokens.has(sub.fcm_token))
+          // Android and iOS app tokens both go through FCM
+          .filter((sub) => (sub.channel === 'android' || sub.channel === 'ios') && sub.fcm_token && !finishedAndroidTokens.has(sub.fcm_token))
           .map((sub) => sub.fcm_token);
 
         // Validate subscription objects — purge any stored as truncated/malformed JSON strings

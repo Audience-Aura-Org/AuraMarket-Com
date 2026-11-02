@@ -1,0 +1,63 @@
+# Codemagic: builds the Auradime iPhone app on a cloud Mac and sends it to TestFlight.
+# Started by hand from the Codemagic dashboard (no automatic trigger).
+#
+# Set up once in Codemagic (Team settings):
+#   - Integrations → App Store Connect: add an API key named "Auradime ASC".
+#   - codemagic.yaml settings → Code signing identities: generate an "Apple Distribution"
+#     certificate and fetch the App Store profile for com.auradime.app.
+#   - Environment variables, group "auradime_ios":
+#       GOOGLE_SERVICE_INFO_PLIST        base64 of GoogleService-Info.plist from Firebase
+#                                         (not needed if the file is committed in web/ios/App/App/)
+#       NEXT_PUBLIC_GOOGLE_MAPS_API_KEY  optional; the free map is used without it
+#       APP_STORE_APPLE_ID               the app's Apple ID (App Store Connect → App Information)
+workflows:
+  ios-testflight:
+    name: iOS app → TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: Auradime ASC
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.auradime.app
+      groups:
+        - auradime_ios
+      vars:
+        XCODE_WORKSPACE: web/ios/App/App.xcworkspace
+        XCODE_SCHEME: App
+      node: 22
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Install web dependencies
+        script: cd web && npm ci
+      - name: Firebase config for push notifications
+        script: |
+          PLIST=web/ios/App/App/GoogleService-Info.plist
+          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > "$PLIST"; fi
+          if [ ! -f "$PLIST" ]; then
+            echo "GoogleService-Info.plist is missing: add the iOS app in Firebase and set GOOGLE_SERVICE_INFO_PLIST."
+            exit 1
+          fi
+      - name: Build the app pages and sync iOS
+        script: |
+          cd web
+          echo "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}" > .env.local
+          npm run mobile:build:web
+          npx cap sync ios
+      - name: Signing profiles
+        script: xcode-project use-profiles
+      - name: Build number (one above the last TestFlight build)
+        script: |
+          LAST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          cd web/ios/App && agvtool new-version -all $((LAST + 1))
+      - name: Build the .ipa
+        script: xcode-project build-ipa --workspace "$XCODE_WORKSPACE" --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

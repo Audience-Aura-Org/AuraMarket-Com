@@ -34,6 +34,16 @@ describe('Android push token', () => {
     const rows = Object.fromEntries((await PushSubscription.find({ user_id: u._id }).lean()).map((r) => [r.fcm_token, r.app_version]))
     expect(rows).toEqual({ 'tok-new': '1.7.1', 'tok-old': null, 'tok-bad': null })
   })
+
+  it('saves iPhone app tokens as iOS and refuses unknown platforms', async () => {
+    const u = await createUser({ email: 'ios-push@test.cm' })
+    const ok = await request(app).post('/api/v1/push/native-token').set(authHeader(signToken(u))).send({ token: 'ios-tok', platform: 'ios', app_version: '1.7.2' })
+    expect(ok.status).toBe(200)
+    const row = await PushSubscription.findOne({ fcm_token: 'ios-tok' }).lean()
+    expect(row).toMatchObject({ channel: 'ios', device_type: 'ios', app_version: '1.7.2' })
+    const bad = await request(app).post('/api/v1/push/native-token').set(authHeader(signToken(u))).send({ token: 'x', platform: 'windows' })
+    expect(bad.status).toBe(400)
+  })
 })
 
 describe('Admin overrides', () => {

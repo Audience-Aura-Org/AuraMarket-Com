@@ -77,11 +77,13 @@ async function getNativePushModules() {
     import('@capacitor/push-notifications'),
   ]);
 
-  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') {
+  // Android and iOS both register an FCM token (iOS: AppDelegate swaps the APNs token for it).
+  const platform = Capacitor.getPlatform();
+  if (!Capacitor.isNativePlatform() || !['android', 'ios'].includes(platform)) {
     return null;
   }
 
-  return { PushNotifications };
+  return { PushNotifications, platform };
 }
 
 export async function registerNativeAndroidPush() {
@@ -89,7 +91,7 @@ export async function registerNativeAndroidPush() {
     const modules = await getNativePushModules();
     if (!modules) return { success: false, unsupported: true };
 
-    const { PushNotifications } = modules;
+    const { PushNotifications, platform } = modules;
     let permission = await PushNotifications.checkPermissions();
 
     if (permission.receive === 'prompt') {
@@ -111,8 +113,7 @@ export async function registerNativeAndroidPush() {
         const appVersion = await import('@capacitor/app').then(({ App }) => App.getInfo()).then((i) => i.version).catch(() => null);
         await api.post('/push/native-token', {
           token: value,
-          platform: 'android',
-          device_type: 'android',
+          platform,
           app_version: appVersion,
         }, { __skipRetry: true });
         console.log('✅ [FCM] Android push token synchronized.');
