@@ -7,15 +7,12 @@ import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
 import WhatsAppSupport from '@/components/logistics/WhatsAppSupport';
 import AddressField from '@/components/location/AddressField';
-import { FIELD, LABEL } from '@/lib/formStyles';
+import { FIELD, LABEL, SMALL_BUTTON } from '@/lib/formStyles';
 import { useFeatureFlag } from '@/lib/featureFlags';
 import {
-  Package, Send, ArrowDownToLine, ChevronRight, MapPin,
-  Clock, Wallet, CreditCard, Loader2, CheckCircle2,
-  Pencil, Phone, Mail, User as UserIcon, X,
-  ChevronDown, Smartphone, AlertCircle, Truck,
+  Package, Send, ArrowDownToLine, ChevronRight, MapPin, Clock, Wallet, CreditCard, Loader2,
+  CheckCircle2, Check, Pencil, User as UserIcon, X, Smartphone, AlertCircle, Truck, CircleDot, Search,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/context/LanguageContext';
 
 const PACKAGE_CATEGORIES = [
@@ -29,7 +26,7 @@ const PACKAGE_CATEGORIES = [
 ];
 
 const WEIGHT_TIERS = [
-  { value: 'light', label: 'Light (< 5 kg)' },
+  { value: 'light', label: 'Light (under 5 kg)' },
   { value: 'medium', label: 'Medium (5–15 kg)' },
   { value: 'heavy', label: 'Heavy (15–30 kg)' },
   { value: 'extra_heavy', label: 'Extra Heavy (30+ kg)' },
@@ -41,9 +38,52 @@ const minPickupDateTime = () => {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
 
-// Same fields and labels as the address components and the other forms.
-const INPUT_CLASS = FIELD;
-const LABEL_CLASS = LABEL;
+const CARD = 'space-y-3.5 rounded-3xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-4 sm:p-5';
+
+/** Section heading: icon, title, one-line hint, optional action on the right. */
+function CardTitle({ id, icon: Icon, title, hint, action = null }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent)]/10 text-[var(--accent)]"><Icon className="size-4" /></span>
+      <div className="min-w-0 flex-1">
+        <h2 id={id} className="text-[14px] font-semibold text-[var(--text-primary)]">{title}</h2>
+        {hint && <p className="text-[12px] text-[var(--text-secondary)]">{hint}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+/** One-tap choices instead of a dropdown. options: [{ value, label }]. */
+function Chips({ label, options, value, onChange }) {
+  return (
+    <div role="radiogroup" aria-label={label}>
+      <p className={LABEL}>{label}</p>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((o) => (
+          <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
+            className={`min-h-10 rounded-xl border px-3 text-[12px] font-semibold transition-colors ${value === o.value ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-primary)]'}`}>{o.label}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** A selectable card (courier, payment method) with a radio dot. */
+function Choice({ selected, onClick, icon: Icon, leading = null, title, sub, right = null }) {
+  return (
+    <button type="button" role="radio" aria-checked={selected} onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-colors ${selected ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)] bg-[var(--bg-primary)] hover:border-[var(--accent)]/40'}`}>
+      {leading || <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${selected ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'}`}><Icon className="size-5" /></span>}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-semibold">{title}</span>
+        {sub && <span className="block truncate text-[12px] text-[var(--text-secondary)]">{sub}</span>}
+      </span>
+      {right}
+      <span className={`flex size-5 shrink-0 items-center justify-center rounded-full border-2 ${selected ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--glass-border)]'}`}>{selected && <span className="size-1.5 rounded-full bg-white" />}</span>
+    </button>
+  );
+}
 
 export default function DeliveryPage() {
   const router = useRouter();
@@ -61,7 +101,6 @@ export default function DeliveryPage() {
   const [selectedQuote, setSelectedQuote] = useState(null);
   const [zones, setZones] = useState([]);
   const [success, setSuccess] = useState(null);
-  const [paymentOpen, setPaymentOpen] = useState(false);
   const [pendingPayment, setPendingPayment] = useState(null); // { gateway, reference }
   const paymentPollRef = useRef(null);
 
@@ -86,6 +125,7 @@ export default function DeliveryPage() {
   const [lookupLoading, setLookupLoading] = useState(false);
   const [editingMyBox, setEditingMyBox] = useState(false);
   const [editingOtherBox, setEditingOtherBox] = useState(false);
+  const [findOpen, setFindOpen] = useState(false);
 
   // Fetch saved addresses for signed-in user
   const [userAddresses, setUserAddresses] = useState([]);
@@ -106,16 +146,6 @@ export default function DeliveryPage() {
     }).catch(() => {});
   }, [user]);
 
-  // Close payment dropdown on outside click
-  useEffect(() => {
-    if (!paymentOpen) return;
-    const handleClick = () => setPaymentOpen(false);
-    const timer = setTimeout(() => document.addEventListener('click', handleClick), 0);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('click', handleClick);
-    };
-  }, [paymentOpen]);
 
   const quartiers = zones.filter(z => z.type === 'quartier');
   const cities = zones.filter(z => z.type === 'city' || z.type === 'region');
@@ -418,261 +448,163 @@ export default function DeliveryPage() {
     setLoading(false);
   };
 
-  // Unified address box — isMyBox=true means this is the logged-in user's side (autofilled)
-  const renderAddressBox = (prefix, label, color, isMyBox) => {
-    const isOtherSide = !isMyBox;
-    const distOpts = getDistrictOpts(form[`${prefix}_city`]);
-    const qOpts = getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]);
+  // One side of the trip. Pickup is always the sender, delivery the recipient.
+  // Filled sides (your own, or an Auradime user you found) fold into a summary with Edit.
+  const renderAddressBox = (prefix, isMyBox) => {
+    const isOther = !isMyBox;
+    const isPickup = prefix === 'pickup';
+    const person = isPickup ? 'Sender' : 'Recipient';
+    const otherHasLookup = isOther && lookupResult && user;
+    const editing = isMyBox ? editingMyBox : editingOtherBox;
+    const setEditing = isMyBox ? setEditingMyBox : setEditingOtherBox;
+    const hasPlace = Boolean(form[`${prefix}_zone_id`] || form[`${prefix}_location`]);
+    const canSummarise = ((isMyBox && user) || otherHasLookup) && form[`${prefix}_name`] && hasPlace;
+    const showSummary = canSummarise && !editing;
+    const placeLine = [form[`${prefix}_street`], form[`${prefix}_quartier`], form[`${prefix}_city`]].filter((v, i, a) => v && a.indexOf(v) === i).join(', ');
+    const who = isMyBox && user ? 'You' : otherHasLookup ? lookupResult.name?.split(' ')[0] : null;
 
-    // Summary view: collapsed card for the user's own box OR the other side when lookup user is selected
-    const otherHasLookup = isOtherSide && lookupResult && user;
-    const showSummary = (isMyBox && user && !editingMyBox) || (otherHasLookup && !editingOtherBox);
-    const hasAddress = form[`${prefix}_city`] || form[`${prefix}_street`];
-    const isPopulated = isMyBox ? !!user : !!otherHasLookup;
-
-    // Build address string
-    const addressParts = [form[`${prefix}_street`], form[`${prefix}_quartier`], form[`${prefix}_district`], form[`${prefix}_city`]].filter(Boolean);
-
-    // Determine header label
-    const headerLabel = isMyBox && user
-      ? `${label} (${user.name?.split(' ')[0] || 'You'})`
-      : otherHasLookup
-        ? `${label} (${lookupResult.name?.split(' ')[0] || 'Other'})`
-        : `${label} Location`;
+    const clearLookup = () => {
+      setLookupResult(null); setLookupResults([]); setLookupQuery(''); setLookupMsg(''); setEditingOtherBox(false); setFindOpen(false);
+      setForm(p => ({
+        ...p, other_user_id: null,
+        [`${prefix}_name`]: '', [`${prefix}_phone`]: '', [`${prefix}_email`]: '',
+        [`${prefix}_street`]: '', [`${prefix}_city`]: '', [`${prefix}_district`]: '',
+        [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '', [`${prefix}_location`]: null, [`${prefix}_landmark`]: '', [`${prefix}_address_id`]: '',
+      }));
+    };
 
     return (
-      <div className={`rounded-2xl border p-4 space-y-3 transition-all ${isPopulated ? 'border-[var(--accent)]/30 bg-gradient-to-br from-[var(--accent)]/10 to-transparent' : 'border-[var(--glass-border)] bg-[var(--bg-secondary)]'}`}>
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-[var(--text-primary)] text-[15px] flex items-center gap-2.5">
-            <div className={`rounded-lg p-2 ${isPopulated ? 'bg-[var(--accent)]/20' : 'bg-[var(--text-secondary)]/10'}`}>
-              <MapPin className={`size-4 ${isPopulated ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
+      <section aria-labelledby={`${prefix}-title`} className={CARD}>
+        <CardTitle
+          id={`${prefix}-title`}
+          icon={isPickup ? CircleDot : MapPin}
+          title={`${isPickup ? 'Pickup' : 'Delivery'}${who ? ` · ${who}` : ''}`}
+          hint={isPickup ? 'Where the rider collects the package' : 'Where the package goes'}
+          action={showSummary ? (
+            <div className="flex shrink-0 gap-1">
+              <button type="button" onClick={() => setEditing(true)} aria-label={`Edit ${isPickup ? 'pickup' : 'delivery'}`} className="flex size-9 items-center justify-center rounded-xl text-[var(--accent)] hover:bg-[var(--accent)]/10"><Pencil className="size-4" /></button>
+              {otherHasLookup && <button type="button" onClick={clearLookup} aria-label="Remove this person" className="flex size-9 items-center justify-center rounded-xl text-rose-500 hover:bg-rose-500/10"><X className="size-4" /></button>}
             </div>
-            <span>{headerLabel}</span>
-          </h3>
-          <div className="flex items-center gap-1">
-            {/* Edit / Done for my box */}
-            {isMyBox && user && !editingMyBox && (
-              <button onClick={() => setEditingMyBox(true)} className="rounded-lg p-2 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors">
-                <Pencil className="size-4" />
-              </button>
-            )}
-            {isMyBox && user && editingMyBox && (
-              <button onClick={() => setEditingMyBox(false)} className="rounded-lg p-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/10 transition-colors">
-                <CheckCircle2 className="size-4" />
-              </button>
-            )}
-            {/* Edit / Done / Clear for other box with lookup result */}
-            {otherHasLookup && !editingOtherBox && (
-              <button onClick={() => setEditingOtherBox(true)} className="rounded-lg p-2 text-[11px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors">
-                <Pencil className="size-4" />
-              </button>
-            )}
-            {otherHasLookup && editingOtherBox && (
-              <button onClick={() => setEditingOtherBox(false)} className="rounded-lg p-2 text-[11px] font-semibold text-emerald-600 hover:bg-emerald-500/10 transition-colors">
-                <CheckCircle2 className="size-4" />
-              </button>
-            )}
-            {otherHasLookup && (
-              <button onClick={() => {
-                setLookupResult(null);
-                setLookupResults([]);
-                setLookupQuery('');
-                setLookupMsg('');
-                setEditingOtherBox(false);
-                setForm(p => ({
-                  ...p, other_user_id: null,
-                  [`${prefix}_name`]: '', [`${prefix}_phone`]: '', [`${prefix}_email`]: '',
-                  [`${prefix}_street`]: '', [`${prefix}_city`]: '', [`${prefix}_district`]: '',
-                  [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '',
-                }));
-              }} className="rounded-lg p-2 text-[11px] font-semibold text-rose-500 hover:bg-rose-500/10 transition-colors">
-                <X className="size-4" />
-              </button>
-            )}
-          </div>
-        </div>
+          ) : null}
+        />
 
-        {/* Summary card (collapsed view for logged-in user or looked-up other party) */}
-        {showSummary && (
-          <div className="space-y-2">
-            {/* Show avatar + username for lookup result */}
-            {otherHasLookup && lookupResult && (
-              <div className="flex items-center gap-2.5 mb-1">
-                {lookupResult.avatar ? (
-                  <img src={lookupResult.avatar} className="size-8 rounded-full object-cover" alt="" />
-                ) : (
-                  <div className="size-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[12px]">
-                    {lookupResult.name?.[0]}
-                  </div>
-                )}
-                <div>
-                  <p className="text-[13px] font-semibold text-[var(--text-primary)]">{lookupResult.name}</p>
-                  {lookupResult.username && <p className="text-[10px] text-[var(--text-secondary)]">@{lookupResult.username}</p>}
-                </div>
-              </div>
-            )}
-            {form[`${prefix}_name`] && !otherHasLookup && (
-              <div className="flex items-center gap-2.5">
-                <UserIcon className="size-3.5 text-[var(--text-secondary)]/60 shrink-0" />
-                <span className="text-[13px] font-medium text-[var(--text-primary)]">{form[`${prefix}_name`]}</span>
-              </div>
-            )}
-            {form[`${prefix}_phone`] && (
-              <div className="flex items-center gap-2.5">
-                <Phone className="size-3.5 text-[var(--text-secondary)]/60 shrink-0" />
-                <span className="text-[13px] text-[var(--text-primary)]">{form[`${prefix}_phone`]}</span>
-              </div>
-            )}
-            {form[`${prefix}_email`] && (
-              <div className="flex items-center gap-2.5">
-                <Mail className="size-3.5 text-[var(--text-secondary)]/60 shrink-0" />
-                <span className="text-[13px] text-[var(--text-primary)]">{form[`${prefix}_email`]}</span>
-              </div>
-            )}
-            {hasAddress && (
-              <div className="flex items-start gap-2.5 mt-1 pt-1 border-t border-[var(--glass-border)]/50">
-                <MapPin className="size-3.5 text-[var(--text-secondary)]/60 shrink-0 mt-0.5" />
-                <span className="text-[13px] text-[var(--text-secondary)] leading-snug">{addressParts.join(', ') || 'No address set'}</span>
-              </div>
-            )}
-            {!form[`${prefix}_name`] && !form[`${prefix}_phone`] && !hasAddress && (
-              <p className="text-[12px] text-[var(--text-secondary)]/60 italic">
-                {isMyBox ? 'No info yet — tap Edit to add your details' : 'No address info — tap Edit to add details'}
-              </p>
-            )}
+        {showSummary ? (
+          <div className="flex items-start gap-3 rounded-2xl bg-[var(--bg-secondary)] p-3">
+            {otherHasLookup && lookupResult.avatar
+              ? <img src={lookupResult.avatar} className="size-9 shrink-0 rounded-full object-cover" alt="" />
+              : <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[13px] font-bold text-[var(--accent)]">{(form[`${prefix}_name`] || '?')[0]}</span>}
+            <div className="min-w-0 flex-1 text-[13px]">
+              <p className="truncate font-semibold">{form[`${prefix}_name`]}{form[`${prefix}_phone`] ? <span className="font-normal text-[var(--text-secondary)]"> · {form[`${prefix}_phone`]}</span> : null}</p>
+              <p className="truncate text-[12px] text-[var(--text-secondary)]">{placeLine || '—'}</p>
+              {form[`${prefix}_landmark`] && <p className="truncate text-[12px] italic text-[var(--text-secondary)]">“{form[`${prefix}_landmark`]}”</p>}
+            </div>
           </div>
-        )}
-
-        {/* Full editable form (always shown for other side, shown on edit for my side) */}
-        {!showSummary && (
+        ) : (
           <>
-            {/* User lookup on the other party's side (auth users only) */}
-            {isOtherSide && user && (
-              <>
-                {!lookupResult && lookupResults.length === 0 && (
+            {/* Send to (or collect from) someone on Auradime: fills their details in one go. */}
+            {isOther && user && !lookupResult && (
+              findOpen || lookupResults.length > 0 ? (
+                <div className="space-y-2 rounded-2xl border border-[var(--glass-border)] p-3">
                   <div className="flex gap-2">
-                    <input value={lookupQuery} onChange={e => setLookupQuery(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && handleLookup()}
-                      className={INPUT_CLASS} placeholder="Search by username, phone, or email" />
-                    <button onClick={handleLookup} disabled={lookupLoading}
-                      className="shrink-0 rounded-xl bg-[var(--accent)] px-4 text-[13px] font-semibold text-white disabled:opacity-50">
-                      {lookupLoading ? '...' : 'Find'}
+                    <input value={lookupQuery} onChange={e => setLookupQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLookup()}
+                      className={FIELD} placeholder="Username, phone or email" aria-label="Find an Auradime user" autoFocus />
+                    <button type="button" onClick={handleLookup} disabled={lookupLoading || lookupQuery.length < 3} className="shrink-0 rounded-2xl bg-[var(--accent)] px-4 text-[13px] font-semibold text-white disabled:opacity-50">
+                      {lookupLoading ? <Loader2 className="size-4 animate-spin" /> : 'Find'}
                     </button>
                   </div>
-                )}
-                {lookupMsg && !lookupResult && lookupResults.length === 0 && (
-                  <p className="text-[12px] text-rose-500 font-medium">{lookupMsg}</p>
-                )}
-                {/* Multiple results — let user pick */}
-                {lookupResults.length > 1 && !lookupResult && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[12px] font-semibold text-[var(--text-secondary)]">Multiple accounts found — select one:</p>
-                      <button onClick={() => { setLookupResults([]); setLookupQuery(''); }}
-                        className="text-[11px] text-rose-500 font-semibold">Cancel</button>
+                  {lookupMsg && <p className="text-[12px] text-rose-500">{lookupMsg}</p>}
+                  {lookupResults.length > 1 && (
+                    <div className="space-y-1.5">
+                      <p className="text-[12px] text-[var(--text-secondary)]">Several accounts match. Choose one:</p>
+                      {lookupResults.map(u => (
+                        <button key={u._id} type="button" onClick={() => selectLookupUser(u)} className="flex w-full items-center gap-3 rounded-2xl border border-[var(--glass-border)] p-2.5 text-left hover:border-[var(--accent)]/40">
+                          {u.avatar ? <img src={u.avatar} className="size-9 rounded-full object-cover" alt="" /> : <span className="flex size-9 items-center justify-center rounded-full bg-[var(--accent)]/10 text-[13px] font-bold text-[var(--accent)]">{u.name?.[0]}</span>}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13px] font-semibold">{u.name}</span>
+                            <span className="block truncate text-[11px] text-[var(--text-secondary)]">{[u.username && `@${u.username}`, [u.address?.quartier, u.address?.city].filter(Boolean).join(', ')].filter(Boolean).join(' · ')}</span>
+                          </span>
+                        </button>
+                      ))}
                     </div>
-                    {lookupResults.map(u => (
-                      <button key={u._id} onClick={() => selectLookupUser(u)}
-                        className="w-full flex items-center gap-3 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-3 text-left transition-all hover:border-[var(--accent)]/40">
-                        {u.avatar ? (
-                          <img src={u.avatar} className="size-10 rounded-full object-cover" alt="" />
-                        ) : (
-                          <div className="size-10 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[14px]">
-                            {u.name?.[0]}
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{u.name}</p>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {u.username && <span className="text-[11px] text-[var(--text-secondary)]">@{u.username}</span>}
-                            {u.role && u.role !== 'user' && (
-                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--accent)]/10 text-[var(--accent)] capitalize">{u.role}</span>
-                            )}
-                          </div>
-                          {u.address?.city && <p className="text-[11px] text-[var(--text-secondary)] mt-0.5 truncate">{[u.address.quartier, u.address.city].filter(Boolean).join(', ')}</p>}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {/* When lookupResult is selected but user tapped Edit, show a small
-                    reminder chip so they know which user is linked */}
-                {lookupResult && editingOtherBox && (
-                  <div className="flex items-center gap-2 rounded-lg bg-[var(--accent)]/5 px-3 py-2">
-                    {lookupResult.avatar ? (
-                      <img src={lookupResult.avatar} className="size-6 rounded-full object-cover" alt="" />
-                    ) : (
-                      <div className="size-6 rounded-full bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] font-bold text-[10px]">
-                        {lookupResult.name?.[0]}
-                      </div>
-                    )}
-                    <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Editing for {lookupResult.name}</span>
-                  </div>
-                )}
-              </>
-            )}
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {/* Contact info */}
-              <div><label className={LABEL_CLASS}>Full Name</label><input value={form[`${prefix}_name`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_name`]: e.target.value }))} className={INPUT_CLASS} placeholder="Full name" /></div>
-              <div><label className={LABEL_CLASS}>Phone</label><input value={form[`${prefix}_phone`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_phone`]: e.target.value }))} className={INPUT_CLASS} placeholder="+237..." /></div>
-              <div className="md:col-span-2"><details><summary className={LABEL_CLASS + " cursor-pointer py-2"}>Email (optional)</summary><input value={form[`${prefix}_email`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_email`]: e.target.value }))} className={INPUT_CLASS} placeholder="email@example.com" /></details></div>
-
-              {locationPickerEnabled ? (
-                // One field: saved addresses, a place search (with map pin) and an optional description.
-                <div className="md:col-span-2">
-                  <AddressField
-                    label={prefix === 'pickup' ? 'Pickup address' : 'Delivery address'}
-                    value={{ address_id: form[`${prefix}_address_id`] || '', zone_id: form[`${prefix}_zone_id`], quartier: form[`${prefix}_quartier`], district: form[`${prefix}_district`], city: form[`${prefix}_city`], location: form[`${prefix}_location`] || null, place_name: form[`${prefix}_street`] || '', landmark: form[`${prefix}_landmark`] || '' }}
-                    onChange={(v) => setForm(p => ({
-                      ...p,
-                      [`${prefix}_address_id`]: v.address_id || '',
-                      [`${prefix}_zone_id`]: v.zone_id || '', [`${prefix}_quartier`]: v.quartier || '', [`${prefix}_district`]: v.district || '',
-                      [`${prefix}_city`]: v.city || p[`${prefix}_city`], [`${prefix}_location`]: v.location || null,
-                      [`${prefix}_street`]: v.place_name || '', [`${prefix}_landmark`]: v.landmark || '',
-                      // A saved address brings its contact when the fields are still empty.
-                      ...(v.address_id ? { [`${prefix}_name`]: p[`${prefix}_name`] || v.recipient_name || '', [`${prefix}_phone`]: p[`${prefix}_phone`] || v.contact_phone || '' } : {}),
-                    }))}
-                  />
+                  )}
+                  <button type="button" onClick={() => { setFindOpen(false); setLookupResults([]); setLookupMsg(''); }} className="text-[12px] font-semibold text-[var(--text-secondary)]">Cancel</button>
                 </div>
               ) : (
-                <>
-                {/* Address dropdowns */}
+                <button type="button" onClick={() => setFindOpen(true)} className={SMALL_BUTTON}>
+                  <UserIcon className="size-4 text-[var(--accent)]" /> Find the {person.toLowerCase()} on Auradime
+                </button>
+              )
+            )}
+            {otherHasLookup && (
+              <p className="flex items-center gap-2 rounded-2xl bg-[var(--accent)]/5 px-3 py-2 text-[12px] text-[var(--text-secondary)]">
+                <UserIcon className="size-4 text-[var(--accent)]" /> Linked to {lookupResult.name}
+              </p>
+            )}
+
+            {locationPickerEnabled ? (
+              // Saved places (only when there are some), a place search with map pin, and an optional description.
+              <AddressField
+                label={isPickup ? 'Pickup place' : 'Delivery place'}
+                value={{ address_id: form[`${prefix}_address_id`] || '', zone_id: form[`${prefix}_zone_id`], quartier: form[`${prefix}_quartier`], district: form[`${prefix}_district`], city: form[`${prefix}_city`], location: form[`${prefix}_location`] || null, place_name: form[`${prefix}_street`] || '', landmark: form[`${prefix}_landmark`] || '' }}
+                onChange={(v) => setForm(p => ({
+                  ...p,
+                  [`${prefix}_address_id`]: v.address_id || '',
+                  [`${prefix}_zone_id`]: v.zone_id || '', [`${prefix}_quartier`]: v.quartier || '', [`${prefix}_district`]: v.district || '',
+                  [`${prefix}_city`]: v.city || p[`${prefix}_city`], [`${prefix}_location`]: v.location || null,
+                  [`${prefix}_street`]: v.place_name || '', [`${prefix}_landmark`]: v.landmark || '',
+                  // A saved address brings its contact when the fields are still empty.
+                  ...(v.address_id ? { [`${prefix}_name`]: p[`${prefix}_name`] || v.recipient_name || '', [`${prefix}_phone`]: p[`${prefix}_phone`] || v.contact_phone || '' } : {}),
+                }))}
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
-                  <label className={LABEL_CLASS}>City</label>
-                  <select value={form[`${prefix}_city`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_city`]: e.target.value, [`${prefix}_district`]: '', [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={INPUT_CLASS}>
+                  <label className={LABEL}>City</label>
+                  <select value={form[`${prefix}_city`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_city`]: e.target.value, [`${prefix}_district`]: '', [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={FIELD}>
                     <option value="">Select city</option>
                     {cities.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
                   </select>
                 </div>
-                {distOpts.length > 0 && (
+                {getDistrictOpts(form[`${prefix}_city`]).length > 0 && (
                   <div>
-                    <label className={LABEL_CLASS}>District</label>
-                    <select value={form[`${prefix}_district`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_district`]: e.target.value, [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={INPUT_CLASS}>
+                    <label className={LABEL}>District</label>
+                    <select value={form[`${prefix}_district`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_district`]: e.target.value, [`${prefix}_quartier`]: '', [`${prefix}_zone_id`]: '' }))} className={FIELD}>
                       <option value="">Select district</option>
-                      {distOpts.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                      {getDistrictOpts(form[`${prefix}_city`]).map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
                     </select>
                   </div>
                 )}
-                {qOpts.length > 0 && (
+                {getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]).length > 0 && (
                   <div>
-                    <label className={LABEL_CLASS}>Quartier</label>
+                    <label className={LABEL}>Quartier</label>
                     <select value={form[`${prefix}_quartier`]} onChange={e => {
-                      const zone = qOpts.find(z => z.name === e.target.value);
+                      const zone = getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]).find(z => z.name === e.target.value);
                       setForm(p => ({ ...p, [`${prefix}_quartier`]: e.target.value, [`${prefix}_zone_id`]: zone?._id || '' }));
-                    }} className={INPUT_CLASS}>
+                    }} className={FIELD}>
                       <option value="">Select quartier</option>
-                      {qOpts.map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
+                      {getQuartierOpts(form[`${prefix}_district`], form[`${prefix}_city`]).map(z => <option key={z._id} value={z.name}>{z.name}</option>)}
                     </select>
                   </div>
                 )}
-                <div><label className={LABEL_CLASS}>Street / Landmark</label><input value={form[`${prefix}_street`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_street`]: e.target.value }))} className={INPUT_CLASS} placeholder="Building, gate, landmark..." /></div>
-                </>
-              )}
+                <div><label className={LABEL}>Street or landmark</label><input value={form[`${prefix}_street`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_street`]: e.target.value }))} className={FIELD} placeholder="Building, gate, landmark" /></div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div><label className={LABEL} htmlFor={`${prefix}-name`}>{person}&apos;s name</label><input id={`${prefix}-name`} value={form[`${prefix}_name`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_name`]: e.target.value }))} className={FIELD} placeholder="Full name" autoComplete="off" /></div>
+              <div><label className={LABEL} htmlFor={`${prefix}-phone`}>Phone</label><input id={`${prefix}-phone`} type="tel" inputMode="tel" value={form[`${prefix}_phone`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_phone`]: e.target.value }))} className={`${FIELD} tabular-nums`} placeholder="677 12 34 56" autoComplete="off" /></div>
             </div>
+            <details open={Boolean(form[`${prefix}_email`])}>
+              <summary className="cursor-pointer list-none text-[12px] font-semibold text-[var(--accent)]">+ Add email (optional)</summary>
+              <input type="email" value={form[`${prefix}_email`]} onChange={e => setForm(p => ({ ...p, [`${prefix}_email`]: e.target.value }))} className={`${FIELD} mt-2`} placeholder="email@example.com" aria-label={`${person}'s email`} />
+            </details>
+
+            {canSummarise && editing && (
+              <button type="button" onClick={() => setEditing(false)} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-[var(--glass-border)] text-[13px] font-semibold"><Check className="size-4 text-emerald-600" /> Done</button>
+            )}
           </>
         )}
-      </div>
+      </section>
     );
   };
 
@@ -704,14 +636,8 @@ export default function DeliveryPage() {
   ];
 
   const selectedMomo = momoProviders.find(o => o.id === form.payment_method) || momoProviders[0];
-  const SelectedMomoIcon = selectedMomo.icon;
-  const sortedMomoProviders = [
-    selectedMomo,
-    ...momoProviders.filter(o => o.id !== selectedMomo.id),
-  ];
 
   const selectPaymentMethod = (method) => {
-    setPaymentOpen(false);
     setForm(prev => ({
       ...prev,
       payment_method: method,
@@ -719,596 +645,199 @@ export default function DeliveryPage() {
     }));
   };
 
+  const STEPS = ['Details', 'Courier & payment', 'Done'];
+  const errorNote = error ? (
+    <div role="alert" className="flex items-start gap-3 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-3.5">
+      <AlertCircle className="mt-0.5 size-4 shrink-0 text-rose-500" />
+      <p className="flex-1 text-[13px] text-rose-600">{error}</p>
+      <button type="button" onClick={() => setError('')} aria-label="Dismiss" className="shrink-0 rounded-lg p-1 text-rose-400 hover:bg-rose-500/10"><X className="size-4" /></button>
+    </div>
+  ) : null;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)]/20 pb-32 pt-4 sm:pt-6">
+    <div className="min-h-screen bg-[var(--bg-primary)] pb-32 pt-4 sm:pt-6">
       <WhatsAppSupport />
-      <style jsx>{`
-        .direction-btn {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .direction-btn:hover {
-          transform: translateY(-2px);
-        }
-      `}</style>
-      <div className="mx-auto max-w-2xl px-3 sm:px-4">
-        {/* Header */}
-        <div className="mb-5 sm:mb-8 rounded-2xl border border-[var(--accent)]/15 bg-gradient-to-r from-[var(--accent)]/10 via-[var(--accent)]/5 to-transparent p-4 sm:p-5">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="flex size-11 sm:size-13 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]/70 text-white shadow-lg shadow-[var(--accent)]/20">
-              <Truck className="size-5 sm:size-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tight">Pickup & Delivery</h1>
-              <p className="text-[11px] sm:text-[13px] text-[var(--text-secondary)] mt-0.5">Send or receive packages across Cameroon</p>
-            </div>
+      <div className="mx-auto w-full max-w-2xl space-y-4 px-3 sm:px-4">
+        {/* Header with quick links */}
+        <header className="flex items-center gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent)] text-white"><Truck className="size-5" /></span>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[18px] font-bold leading-tight">Pickup & Delivery</h1>
+            <p className="text-[12px] text-[var(--text-secondary)]">Send or receive a package anywhere in Cameroon</p>
           </div>
+          <Link href="/delivery/track" className={`${SMALL_BUTTON} shrink-0`}><Search className="size-4 text-[var(--accent)]" /> Track</Link>
+        </header>
+
+        {/* Progress */}
+        <div className="space-y-1.5" aria-live="polite">
+          <div className="flex items-center justify-between text-[12px]"><span className="font-semibold">Step {step} of 3</span><span className="text-[var(--text-secondary)]">{STEPS[step - 1]}</span></div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-[var(--bg-secondary)]"><div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: `${(step / 3) * 100}%` }} /></div>
         </div>
 
-        {/* Step 3: Success / Waiting for Payment */}
-        {step === 3 && success && (
-          <div className="space-y-6">
-            {/* Waiting for MoMo payment */}
-            {pendingPayment && !pendingPayment.timedOut && (
-              <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 to-amber-500/5 p-8 text-center">
-                <div className="mb-4 flex justify-center">
-                  <div className="rounded-full bg-gradient-to-br from-amber-400 to-amber-600 p-4">
-                    <Loader2 className="size-10 text-white animate-spin" />
-                  </div>
-                </div>
-                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1">Approve Payment</h2>
-                <p className="text-[var(--text-secondary)] text-[14px] mb-4">Check your phone for the USSD prompt and approve the payment</p>
-                <div className="rounded-2xl bg-white/5 p-4 backdrop-blur-sm space-y-2">
-                  <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wide">Amount</p>
-                  <p className="font-mono text-[22px] font-bold text-amber-600">{(pendingPayment.gross_amount || success.price)?.toLocaleString()} XAF</p>
-                  {pendingPayment.collection_fee > 0 && (
-                    <p className="text-[11px] text-[var(--text-secondary)]">Includes {pendingPayment.collection_fee?.toLocaleString()} XAF collection fee</p>
-                  )}
-                </div>
-              </div>
-            )}
-            {/* Payment timed out */}
-            {pendingPayment?.timedOut && (
-              <div className="rounded-3xl border border-rose-500/30 bg-gradient-to-br from-rose-500/10 to-rose-500/5 p-8 text-center">
-                <div className="mb-4 flex justify-center">
-                  <div className="rounded-full bg-gradient-to-br from-rose-400 to-rose-600 p-3">
-                    <AlertCircle className="size-10 text-white" />
-                  </div>
-                </div>
-                <h2 className="text-xl font-bold text-[var(--text-primary)] mb-1">Payment Not Confirmed</h2>
-                <p className="text-[var(--text-secondary)] text-[14px] mb-4">We didn't receive a confirmation. If you approved the payment, it may still process.</p>
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <button onClick={() => router.push(`/delivery/track?code=${success.tracking_code}`)}
-                    className="flex-1 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent)]/80 px-6 py-3.5 text-[14px] font-semibold text-white">
-                    Track Delivery
-                  </button>
-                  <button onClick={() => { setPendingPayment(null); setStep(2); setSuccess(null); }}
-                    className="flex-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-6 py-3.5 text-[14px] font-semibold text-[var(--text-primary)]">
-                    Try Again
-                  </button>
-                </div>
-              </div>
-            )}
-            {/* Payment confirmed / wallet payment */}
-            {!pendingPayment && (
-              <div className="rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-8 text-center">
-                <div className="mb-4 flex justify-center">
-                  <div className="rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 p-3">
-                    <CheckCircle2 className="size-10 text-white" />
-                  </div>
-                </div>
-                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1">Delivery Booked!</h2>
-                <p className="text-[var(--text-secondary)] text-[14px] mb-4">Your package is ready for pickup</p>
-                <div className="rounded-2xl bg-white/5 p-4 backdrop-blur-sm">
-                  <p className="text-[11px] font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-2">Tracking Code</p>
-                  <p className="font-mono text-[18px] font-bold text-[var(--accent)] tracking-wider">{success.tracking_code}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Booking Details Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-[var(--glass-border)] bg-gradient-to-br from-[var(--bg-secondary)] to-transparent p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Package className="size-4 text-[var(--accent)]" />
-                  <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">Amount</p>
-                </div>
-                <p className="text-[18px] font-bold text-[var(--text-primary)]">{success.price?.toLocaleString()} XAF</p>
-              </div>
-              <div className="rounded-2xl border border-[var(--glass-border)] bg-gradient-to-br from-[var(--bg-secondary)] to-transparent p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <CreditCard className="size-4 text-[var(--accent)]" />
-                  <p className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">Payment</p>
-                </div>
-                <span className={`text-[13px] font-bold px-3 py-1 rounded-full inline-block ${
-                  success.payment_status === 'paid'
-                    ? 'bg-emerald-500/20 text-emerald-600'
-                    : 'bg-amber-500/20 text-amber-600'
-                }`}>
-                  {success.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
-                </span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <button onClick={() => router.push(`/delivery/track?code=${success.tracking_code}`)}
-                className="flex-1 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent)]/80 px-6 py-3.5 text-[14px] font-semibold text-white shadow-lg shadow-[var(--accent)]/20 hover:shadow-xl hover:shadow-[var(--accent)]/30 transition-all hover:scale-105">
-                <div className="flex items-center justify-center gap-2">
-                  <Package className="size-4" />
-                  Track Package
-                </div>
-              </button>
-              <button onClick={() => { setStep(1); setSuccess(null); setQuotes([]); setSelectedQuote(null); }}
-                className="flex-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-6 py-3.5 text-[14px] font-semibold text-[var(--text-primary)] hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5 transition-all">
-                Book Another
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Provider Selection & Quote Review */}
-        {step === 2 && quotes.length > 0 && (
-          <div className="space-y-6">
-            {/* Provider Selection */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-[var(--text-primary)] text-[15px] tracking-tight">Select Provider</h3>
-                  <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">{quotes.length} available for your route</p>
-                </div>
-                <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-bold text-[var(--accent)]">
-                  Step 1 of 2
-                </span>
-              </div>
-              <div className="space-y-3">
-                {quotes.map(q => {
-                  const isSelected = selectedQuote?.provider_id === q.provider_id;
-                  return (
-                    <button
-                      key={q.provider_id}
-                      onClick={() => setSelectedQuote(q)}
-                      className={`group w-full text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
-                        isSelected
-                          ? 'border-[var(--accent)] bg-gradient-to-r from-[var(--accent)]/10 to-[var(--accent)]/5 shadow-lg shadow-[var(--accent)]/10'
-                          : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30 hover:shadow-md hover:shadow-black/5'
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        {q.provider_logo ? (
-                          <img src={q.provider_logo} className={`size-14 rounded-2xl object-cover shadow-sm transition-all ${isSelected ? 'ring-2 ring-[var(--accent)]/30' : ''}`} alt="" />
-                        ) : (
-                          <div className={`size-14 rounded-2xl flex items-center justify-center font-bold text-[18px] transition-all ${
-                            isSelected
-                              ? 'bg-gradient-to-br from-[var(--accent)] to-[var(--accent)]/70 text-white shadow-md shadow-[var(--accent)]/20'
-                              : 'bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/10 text-[var(--accent)]'
-                          }`}>
-                            {q.provider_name?.[0]}
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-[14px] font-bold text-[var(--text-primary)] truncate">{q.provider_name}</p>
-                            {isSelected && <CheckCircle2 className="size-4 shrink-0 text-[var(--accent)]" />}
-                          </div>
-                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                            {q.estimated_delivery_minutes && (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--text-secondary)] bg-[var(--bg-primary)] px-2.5 py-1 rounded-lg border border-[var(--glass-border)]">
-                                <Clock className="size-3" />~{q.estimated_delivery_minutes} min
-                              </span>
-                            )}
-                            {q.provider_rating > 0 && (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
-                                <span className="text-[10px]">&#9733;</span> {q.provider_rating.toFixed(1)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Selected Quote Summary */}
-            {selectedQuote && (
-              <div className="rounded-2xl border border-[var(--accent)]/20 bg-gradient-to-br from-[var(--accent)]/10 to-transparent p-5 space-y-3">
-                <div className="flex justify-between text-[13px]">
-                  <span className="text-[var(--text-secondary)]">Base Delivery Fee</span>
-                  <span className="font-semibold text-[var(--text-primary)]">{selectedQuote.base_price?.toLocaleString()} XAF</span>
-                </div>
-                {selectedQuote.platform_fee > 0 && (
-                  <div className="flex justify-between text-[13px]">
-                    <span className="text-[var(--text-secondary)]">Platform Fee</span>
-                    <span className="font-semibold text-[var(--text-primary)]">{selectedQuote.platform_fee.toLocaleString()} XAF</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t border-[var(--accent)]/20 pt-3">
-                  <span className="font-bold text-[var(--text-primary)] text-[14px]">Total Cost</span>
-                  <span className="font-bold text-[var(--accent)] text-[18px]">{selectedQuote.price?.toLocaleString()} XAF</span>
-                </div>
-              </div>
-            )}
-
-            {/* Payment Strategy */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-[var(--text-primary)] text-[15px] tracking-tight">Payment Method</h3>
-                <span className="rounded-full bg-[var(--accent)]/10 px-3 py-1 text-[11px] font-bold text-[var(--accent)]">
-                  Step 2 of 2
-                </span>
-              </div>
-
-              {/* Wallet Option */}
-              {user && (
-                <button
-                  type="button"
-                  onClick={() => { setForm(prev => ({ ...prev, payment_method: 'wallet' })); setPaymentOpen(false); }}
-                  className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all ${
-                    form.payment_method === 'wallet'
-                      ? 'border-[var(--accent)] bg-gradient-to-r from-[var(--accent)]/10 to-[var(--accent)]/5 shadow-md shadow-[var(--accent)]/10'
-                      : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30'
-                  }`}
-                >
-                  <div className={`flex size-11 shrink-0 items-center justify-center rounded-2xl border transition-all ${
-                    form.payment_method === 'wallet'
-                      ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]'
-                      : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)]'
-                  }`}>
-                    <Wallet className="size-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <p className="truncate text-[12px] font-semibold tracking-tight text-[var(--text-primary)]">Aura Wallet</p>
-                      <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
-                        {displayedWalletBalance.toLocaleString()} XAF
-                      </span>
-                    </div>
-                    <p className="mt-0.5 line-clamp-1 text-[10px] font-medium text-[var(--text-secondary)]">Pay from your Auradime wallet balance.</p>
-                  </div>
-                  {form.payment_method === 'wallet' && <CheckCircle2 className="size-5 shrink-0 text-[var(--accent)]" />}
-                </button>
-              )}
-
-              {/* Mobile Money Option */}
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!isMomo) {
-                      setForm(prev => ({
-                        ...prev,
-                        payment_method: 'pawapay',
-                        momo_phone: prev.momo_phone || (user?.phone || ''),
-                      }));
-                    }
-                  }}
-                  className={`flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition-all ${
-                    isMomo
-                      ? 'border-[var(--accent)] bg-gradient-to-r from-[var(--accent)]/10 to-[var(--accent)]/5 shadow-md shadow-[var(--accent)]/10'
-                      : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/30'
-                  }`}
-                >
-                  <div className={`flex size-11 shrink-0 items-center justify-center rounded-2xl border transition-all ${
-                    isMomo
-                      ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]'
-                      : 'border-[var(--glass-border)] bg-[var(--bg-primary)] text-[var(--text-secondary)]'
-                  }`}>
-                    <Smartphone className="size-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <p className="truncate text-[12px] font-semibold tracking-tight text-[var(--text-primary)]">Mobile Money</p>
-                      {isMomo && (
-                        <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-500">
-                          {selectedMomo.label}
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 line-clamp-1 text-[10px] font-medium text-[var(--text-secondary)]">MTN or Orange Mobile Money payment.</p>
-                  </div>
-                  {isMomo && <CheckCircle2 className="size-5 shrink-0 text-[var(--accent)]" />}
-                </button>
-
-                {/* Mobile Money Details (provider dropdown + phone field) */}
-                <AnimatePresence>
-                  {isMomo && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4 space-y-3">
-                        {/* Provider Selector Dropdown */}
-                        <div className="relative">
-                          <label className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight ml-0.5 mb-1.5 block">Payment Provider</label>
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setPaymentOpen(open => !open); }}
-                            className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left transition-all ${
-                              paymentOpen
-                                ? 'border-[var(--accent)] bg-[var(--bg-primary)]'
-                                : 'border-[var(--glass-border)] bg-[var(--bg-primary)]'
-                            }`}
-                          >
-                            <div className="flex min-w-0 items-center gap-2.5">
-                              <div className="flex size-8 shrink-0 items-center justify-center rounded-xl border border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]">
-                                <SelectedMomoIcon className="size-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="truncate text-[12px] font-semibold text-[var(--text-primary)]">{selectedMomo.label}</p>
-                                <p className="line-clamp-1 text-[10px] text-[var(--text-secondary)]">{selectedMomo.description}</p>
-                              </div>
-                            </div>
-                            <ChevronDown className={`size-4 shrink-0 opacity-45 transition-transform ${paymentOpen ? 'rotate-180' : ''}`} />
-                          </button>
-
-                          <AnimatePresence>
-                            {paymentOpen && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -6 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -6 }}
-                                transition={{ duration: 0.16 }}
-                                className="absolute left-0 right-0 top-full z-[120] mt-1 max-h-[220px] overflow-y-auto rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] shadow-2xl"
-                              >
-                                {sortedMomoProviders.map(option => {
-                                  const Icon = option.icon;
-                                  const active = option.id === form.payment_method;
-                                  return (
-                                    <button
-                                      key={option.id}
-                                      type="button"
-                                      onClick={() => selectPaymentMethod(option.id)}
-                                      className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-all hover:bg-[var(--accent)]/5 ${
-                                        active ? 'bg-[var(--accent)]/10' : ''
-                                      }`}
-                                    >
-                                      <div className={`flex size-8 shrink-0 items-center justify-center rounded-xl border ${
-                                        active
-                                          ? 'border-[var(--accent)]/25 bg-[var(--accent)]/10 text-[var(--accent)]'
-                                          : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                                      }`}>
-                                        <Icon className="size-3.5" />
-                                      </div>
-                                      <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <p className="truncate text-[11px] font-semibold text-[var(--text-primary)]">{option.label}</p>
-                                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
-                                            active ? 'bg-[var(--accent)]/15 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                                          }`}>
-                                            {active ? 'Selected' : option.badge}
-                                          </span>
-                                        </div>
-                                      </div>
-                                      {active && <CheckCircle2 className="size-3.5 shrink-0 text-[var(--accent)]" />}
-                                    </button>
-                                  );
-                                })}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-
-                        {/* Phone Number Field */}
-                        <div>
-                          <label className="text-[10px] font-bold text-[var(--text-secondary)] tracking-tight ml-0.5 mb-1.5 block">Collection Number</label>
-                          <input
-                            type="tel"
-                            value={form.momo_phone}
-                            onChange={e => setForm(prev => ({ ...prev, momo_phone: e.target.value }))}
-                            placeholder="+237 6XX XXX XXX"
-                            className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--bg-primary)] px-3.5 py-2.5 text-[13px] font-semibold text-[var(--text-primary)] placeholder:font-normal placeholder:text-[var(--text-secondary)]/50 outline-none transition-all focus:border-[var(--accent)]/50 min-h-[44px]"
-                          />
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-
-            {/* Error Banner */}
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="rounded-2xl border border-rose-500/20 bg-gradient-to-r from-rose-500/10 to-rose-500/5 p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="shrink-0 rounded-xl bg-rose-500/15 p-2">
-                      <AlertCircle className="size-4 text-rose-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-bold text-rose-500">Booking Failed</p>
-                      <p className="text-[12px] text-rose-500/80 mt-0.5 leading-relaxed">{error}</p>
-                    </div>
-                    <button onClick={() => setError('')} className="shrink-0 rounded-lg p-1.5 text-rose-400 hover:bg-rose-500/10 transition-colors">
-                      <X className="size-3.5" />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <div className="flex gap-3">
-              <button onClick={() => { setStep(1); setPaymentOpen(false); }}
-                className="flex-1 rounded-2xl border border-[var(--glass-border)] py-3.5 text-[14px] font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-all hover:border-[var(--accent)]/40">
-                ← Back
-              </button>
-              <button onClick={handleBook} disabled={loading || !selectedQuote}
-                className="flex-1 rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent)]/80 py-3.5 text-[14px] font-semibold text-white disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20 hover:shadow-xl hover:shadow-[var(--accent)]/30 transition-all hover:scale-105">
-                {loading ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-                Confirm & Pay
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 1: Booking Form */}
+        {/* ── Step 1: who, where, what, when ─────────────────────────── */}
         {step === 1 && (
-          <div className="space-y-5">
-            {/* Direction Toggle */}
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-4">
-              <button onClick={() => setDirection('send')}
-                className={`direction-btn flex flex-row items-center justify-center gap-2 rounded-2xl border-2 p-3 transition-all active:scale-[0.97] ${
-                  direction === 'send'
-                    ? 'border-[var(--accent)] bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 shadow-lg shadow-[var(--accent)]/10'
-                    : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40'
-                }`}>
-                <div className={`rounded-full p-2.5 sm:p-3 transition-all ${
-                  direction === 'send' ? 'bg-[var(--accent)]/20' : 'bg-[var(--text-secondary)]/10'
-                }`}>
-                  <Send className={`size-5 sm:size-6 ${direction === 'send' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                </div>
-                <span className={`text-[12px] sm:text-[14px] font-bold ${direction === 'send' ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
-                  Send Package
-                </span>
-              </button>
-              <button onClick={() => setDirection('request_pickup')}
-                className={`direction-btn flex flex-row items-center justify-center gap-2 rounded-2xl border-2 p-3 transition-all active:scale-[0.97] ${
-                  direction === 'request_pickup'
-                    ? 'border-[var(--accent)] bg-gradient-to-br from-[var(--accent)]/20 to-[var(--accent)]/5 shadow-lg shadow-[var(--accent)]/10'
-                    : 'border-[var(--glass-border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)]/40'
-                }`}>
-                <div className={`rounded-full p-2.5 sm:p-3 transition-all ${
-                  direction === 'request_pickup' ? 'bg-[var(--accent)]/20' : 'bg-[var(--text-secondary)]/10'
-                }`}>
-                  <ArrowDownToLine className={`size-5 sm:size-6 ${direction === 'request_pickup' ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)]'}`} />
-                </div>
-                <span className={`text-[12px] sm:text-[14px] font-bold ${direction === 'request_pickup' ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
-                  Request Pickup
-                </span>
-              </button>
-            </div>
-
-            {/* Pickup */}
-            {renderAddressBox('pickup', 'Pickup', 'emerald', direction === 'send')}
-
-            {/* Delivery */}
-            {renderAddressBox('dropoff', 'Delivery', 'rose', direction === 'request_pickup')}
-
-            {/* Package Details */}
-            <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-5 space-y-4">
-              <h3 className="font-bold text-[var(--text-primary)] text-[15px] flex items-center gap-2.5">
-                <div className="rounded-lg bg-[var(--accent)]/20 p-2">
-                  <Package className="size-4 text-[var(--accent)]" />
-                </div>
-                Package Details
-              </h3>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <div>
-                  <label className={LABEL_CLASS}>Category</label>
-                  <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={INPUT_CLASS}>
-                    {PACKAGE_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className={LABEL_CLASS}>Weight</label>
-                  <select value={form.weight_tier} onChange={e => setForm(p => ({ ...p, weight_tier: e.target.value }))} className={INPUT_CLASS}>
-                    {WEIGHT_TIERS.map(w => <option key={w.value} value={w.value}>{w.label}</option>)}
-                  </select>
-                </div>
-                <details className="md:col-span-2"><summary className="cursor-pointer py-2 text-sm font-semibold">Declared value & package description (optional)</summary><div className="mt-2 grid gap-3">
-                <div><label className={LABEL_CLASS}>Declared Value (XAF)</label><input type="number" value={form.declared_value} onChange={e => setForm(p => ({ ...p, declared_value: e.target.value }))} className={INPUT_CLASS} placeholder="0" /></div>
-                <div className="md:col-span-2"><label className={LABEL_CLASS}>Description</label><textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={`${INPUT_CLASS} resize-none`} rows={2} placeholder="Describe your package" /></div>
-                </div></details>
-              </div>
-
-              {/* Prohibited items */}
-              <label className="flex items-start gap-3 cursor-pointer mt-2">
-                <input type="checkbox" checked={form.prohibited_confirmed} onChange={e => setForm(p => ({ ...p, prohibited_confirmed: e.target.checked }))}
-                  className="mt-0.5 accent-[var(--accent)]" />
-                <span className="text-[11px] text-[var(--text-secondary)] leading-tight">
-                  I confirm this package does not contain prohibited items (weapons, drugs, hazardous materials, illegal goods).
-                </span>
-              </label>
-            </div>
-
-            {/* Schedule */}
-            <div className="rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-[var(--text-primary)] text-[15px] flex items-center gap-2.5">
-                  <div className="rounded-lg bg-[var(--accent)]/20 p-2">
-                    <Clock className="size-4 text-[var(--accent)]" />
-                  </div>
-                  Pickup Time
-                </h3>
-                {/* A real switch button: a label around a display:none checkbox can drop taps in mobile WebViews */}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={form.scheduled}
-                  aria-label="Schedule pickup for later"
-                  onClick={() => setForm(p => ({ ...p, scheduled: !p.scheduled }))}
-                  className="flex min-h-9 items-center gap-2 rounded-lg px-3 py-1.5 transition-colors hover:bg-[var(--accent)]/5"
-                >
-                  <span className="text-[12px] font-bold text-[var(--text-primary)]">{form.scheduled ? 'Scheduled' : 'ASAP'}</span>
-                  <span className={`relative flex size-5 items-center justify-center rounded-full border-2 transition-colors ${
-                    form.scheduled ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--text-secondary)]/40'
-                  }`}>
-                    {form.scheduled && <span className="size-1.5 rounded-full bg-white" />}
-                  </span>
+          <div className="space-y-4">
+            <div role="radiogroup" aria-label="What do you want to do?" className="grid grid-cols-2 gap-1 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] p-1">
+              {[['send', 'Send a package', Send], ['request_pickup', 'Request a pickup', ArrowDownToLine]].map(([value, label, Icon]) => (
+                <button key={value} type="button" role="radio" aria-checked={direction === value} onClick={() => setDirection(value)}
+                  className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl text-[13px] font-semibold transition-colors ${direction === value ? 'bg-[var(--bg-primary)] text-[var(--accent)] shadow-sm' : 'text-[var(--text-secondary)]'}`}>
+                  <Icon className="size-4" /> {label}
                 </button>
-              </div>
+              ))}
+            </div>
+            <p className="-mt-2 text-[12px] text-[var(--text-secondary)]">
+              {direction === 'send' ? 'A rider collects from you and delivers to someone.' : 'A rider collects from someone and brings it to you.'}
+            </p>
+
+            {renderAddressBox('pickup', direction === 'send')}
+            {renderAddressBox('dropoff', direction === 'request_pickup')}
+
+            <section aria-labelledby="pkg-title" className={CARD}>
+              <CardTitle id="pkg-title" icon={Package} title="Package" hint="Helps the courier bring the right vehicle" />
+              <Chips label="Category" options={PACKAGE_CATEGORIES} value={form.category} onChange={(v) => setForm(p => ({ ...p, category: v }))} />
+              <Chips label="Weight" options={WEIGHT_TIERS} value={form.weight_tier} onChange={(v) => setForm(p => ({ ...p, weight_tier: v }))} />
+              <details className="group rounded-2xl border border-[var(--glass-border)] px-3.5 py-2.5" open={Boolean(form.description || form.declared_value)}>
+                <summary className="flex min-h-8 cursor-pointer list-none items-center justify-between text-[12px] font-semibold text-[var(--text-secondary)]">Description and value (optional) <span className="text-[16px] transition-transform group-open:rotate-45" aria-hidden="true">+</span></summary>
+                <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                  <div className="sm:col-span-2"><label className={LABEL} htmlFor="pkg-desc">What is it?</label><input id="pkg-desc" value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} className={FIELD} placeholder="e.g. Two pairs of shoes" /></div>
+                  <div><label className={LABEL} htmlFor="pkg-value">Value</label>
+                    <div className="relative"><input id="pkg-value" inputMode="numeric" value={form.declared_value} onChange={e => setForm(p => ({ ...p, declared_value: e.target.value.replace(/[^0-9]/g, '') }))} className={`${FIELD} pr-14 tabular-nums`} placeholder="0" />
+                      <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[12px] font-semibold text-[var(--text-secondary)]">XAF</span></div>
+                  </div>
+                </div>
+              </details>
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-[var(--bg-secondary)] p-3">
+                <input type="checkbox" checked={form.prohibited_confirmed} onChange={e => setForm(p => ({ ...p, prohibited_confirmed: e.target.checked }))} className="mt-0.5 size-4 accent-[var(--accent)]" />
+                <span className="text-[12px] leading-snug text-[var(--text-secondary)]">No prohibited items inside (weapons, drugs, dangerous or illegal goods).</span>
+              </label>
+            </section>
+
+            <section aria-labelledby="when-title" className={CARD}>
+              <CardTitle id="when-title" icon={Clock} title="Pickup time" />
+              <Chips label="When" options={[{ value: 'now', label: 'As soon as possible' }, { value: 'later', label: 'Schedule' }]} value={form.scheduled ? 'later' : 'now'}
+                onChange={(v) => setForm(p => ({ ...p, scheduled: v === 'later' }))} />
               {(form.scheduled || error?.includes('not currently available')) && (
                 <label className="relative block">
                   <span className="sr-only">Pickup date and time</span>
                   <input type="datetime-local" value={form.scheduled_date} onChange={e => setForm(p => ({ ...p, scheduled_date: e.target.value }))}
-                    min={minPickupDateTime()}
-                    className={`${INPUT_CLASS} appearance-none`}
-                    style={form.scheduled_date ? undefined : { color: 'transparent' }} />
+                    min={minPickupDateTime()} className={`${FIELD} appearance-none`} style={form.scheduled_date ? undefined : { color: 'transparent' }} />
                   {/* iOS Safari / Android WebView draw an empty datetime field as a blank box: show our own prompt */}
                   {!form.scheduled_date && (
                     <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center gap-2 text-[13px] text-[var(--text-secondary)]">
-                      <Clock className="size-3.5 text-[var(--accent)]" />
-                      <span className="text-[13px]">Tap to choose pickup date &amp; time</span>
+                      <Clock className="size-4 text-[var(--accent)]" /> Tap to choose the date and time
                     </span>
                   )}
                 </label>
               )}
-            </div>
+            </section>
 
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.2 }}
-                  className="rounded-2xl border border-rose-500/20 bg-gradient-to-r from-rose-500/10 to-rose-500/5 p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="shrink-0 rounded-xl bg-rose-500/15 p-2">
-                      <AlertCircle className="size-4 text-rose-500" />
-                    </div>
-                    <p className="flex-1 text-[13px] font-semibold text-rose-500 leading-relaxed">{error}</p>
-                    <button onClick={() => setError('')} className="shrink-0 rounded-lg p-1.5 text-rose-400 hover:bg-rose-500/10 transition-colors">
-                      <X className="size-3.5" />
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {errorNote}
 
-            <button onClick={handleGetQuote} disabled={loading}
-              className="w-full rounded-2xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent)]/80 py-3.5 sm:py-4 text-[13px] sm:text-[14px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-[var(--accent)]/20 transition-all active:scale-[0.98] min-h-[48px]">
-              {loading ? <Loader2 className="size-4 animate-spin" /> : <ChevronRight className="size-5" />}
-              Get Quote & Compare
+            <button type="button" onClick={handleGetQuote} disabled={loading}
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-[14px] font-semibold text-white disabled:opacity-50">
+              {loading ? <Loader2 className="size-4 animate-spin" /> : null} See couriers and prices <ChevronRight className="size-4" />
             </button>
+            {user && <Link href="/delivery/history" className="block text-center text-[12px] font-semibold text-[var(--accent)]">My deliveries</Link>}
+          </div>
+        )}
 
-            {/* Links */}
-            <div className="flex flex-col gap-2.5 text-[12px] sm:text-[13px]">
-              <Link href="/delivery/track" className="rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 text-[var(--accent)] font-semibold py-3 min-h-[44px] active:scale-[0.98] transition-all text-center">
-                Track an Existing Delivery
-              </Link>
-              {user && <Link href="/delivery/history" className="rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] text-[var(--text-primary)] font-semibold py-3 min-h-[44px] active:scale-[0.98] transition-all text-center">
-                View My Deliveries
-              </Link>}
+        {/* ── Step 2: courier and payment ───────────────────────────── */}
+        {step === 2 && quotes.length > 0 && (
+          <div className="space-y-4">
+            <section aria-labelledby="courier-title" className={CARD}>
+              <CardTitle id="courier-title" icon={Truck} title="Choose a courier" hint={`${quotes.length} available for this trip`} />
+              <div role="radiogroup" aria-labelledby="courier-title" className="space-y-2">
+                {quotes.map(q => (
+                  <Choice key={q.provider_id} selected={selectedQuote?.provider_id === q.provider_id} onClick={() => setSelectedQuote(q)}
+                    leading={q.provider_logo ? <img src={q.provider_logo} className="size-10 rounded-xl object-cover" alt="" /> : null}
+                    icon={Truck} title={q.provider_name}
+                    sub={[q.estimated_delivery_minutes && `~${q.estimated_delivery_minutes} min`, q.provider_rating > 0 && `★ ${q.provider_rating.toFixed(1)}`].filter(Boolean).join(' · ') || 'Delivery partner'}
+                    right={<span className="shrink-0 text-[14px] font-bold tabular-nums">{q.price?.toLocaleString()} <span className="text-[11px] font-semibold text-[var(--text-secondary)]">XAF</span></span>} />
+                ))}
+              </div>
+              {selectedQuote && (
+                <div className="space-y-1.5 rounded-2xl bg-[var(--bg-secondary)] p-3.5 text-[13px]">
+                  <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Delivery</span><span className="tabular-nums">{selectedQuote.base_price?.toLocaleString()} XAF</span></div>
+                  {selectedQuote.platform_fee > 0 && <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Service fee</span><span className="tabular-nums">{selectedQuote.platform_fee.toLocaleString()} XAF</span></div>}
+                  <div className="flex justify-between border-t border-[var(--glass-border)] pt-1.5 font-bold"><span>Total</span><span className="tabular-nums text-[var(--accent)]">{selectedQuote.price?.toLocaleString()} XAF</span></div>
+                </div>
+              )}
+            </section>
+
+            <section aria-labelledby="pay-title" className={CARD}>
+              <CardTitle id="pay-title" icon={CreditCard} title="Payment" />
+              <div role="radiogroup" aria-labelledby="pay-title" className="space-y-2">
+                {user && (
+                  <Choice selected={form.payment_method === 'wallet'} onClick={() => setForm(prev => ({ ...prev, payment_method: 'wallet' }))}
+                    icon={Wallet} title="Aura Wallet" sub={`Balance: ${displayedWalletBalance.toLocaleString()} XAF`} />
+                )}
+                <Choice selected={isMomo} onClick={() => { if (!isMomo) selectPaymentMethod('pawapay'); }}
+                  icon={Smartphone} title="Mobile Money" sub="MTN or Orange Money: approve on your phone" />
+              </div>
+              {isMomo && (
+                <div className="space-y-3 rounded-2xl bg-[var(--bg-secondary)] p-3.5">
+                  <Chips label="Pay with" options={momoProviders.map(o => ({ value: o.id, label: o.label }))} value={form.payment_method} onChange={selectPaymentMethod} />
+                  <p className="-mt-1 text-[11px] text-[var(--text-secondary)]">{selectedMomo.description}</p>
+                  <div><label className={LABEL} htmlFor="momo-phone">Mobile Money number</label>
+                    <input id="momo-phone" type="tel" inputMode="tel" value={form.momo_phone} onChange={e => setForm(prev => ({ ...prev, momo_phone: e.target.value }))} placeholder="6XX XXX XXX" className={`${FIELD} tabular-nums`} /></div>
+                </div>
+              )}
+            </section>
+
+            {errorNote}
+
+            <div className="grid grid-cols-[1fr_2fr] gap-2">
+              <button type="button" onClick={() => setStep(1)} className="min-h-12 rounded-2xl border border-[var(--glass-border)] text-[14px] font-semibold">Back</button>
+              <button type="button" onClick={handleBook} disabled={loading || !selectedQuote}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-[14px] font-semibold text-white disabled:opacity-50">
+                {loading ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Confirm & pay{selectedQuote ? ` ${selectedQuote.price?.toLocaleString()} XAF` : ''}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 3: booked, or waiting for the Mobile Money approval ── */}
+        {step === 3 && success && (
+          <div className="space-y-4">
+            {pendingPayment && !pendingPayment.timedOut && (
+              <section className={`${CARD} text-center`}>
+                <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-amber-500 text-white"><Loader2 className="size-7 animate-spin" /></span>
+                <h2 className="text-[18px] font-bold">Approve the payment on your phone</h2>
+                <p className="text-[13px] text-[var(--text-secondary)]">A Mobile Money prompt was sent. Enter your PIN to confirm.</p>
+                <p className="text-[22px] font-bold tabular-nums text-amber-600">{(pendingPayment.gross_amount || success.price)?.toLocaleString()} XAF</p>
+                {pendingPayment.collection_fee > 0 && <p className="text-[11px] text-[var(--text-secondary)]">Includes {pendingPayment.collection_fee?.toLocaleString()} XAF Mobile Money fee</p>}
+              </section>
+            )}
+            {pendingPayment?.timedOut && (
+              <section className={`${CARD} text-center`}>
+                <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-rose-500 text-white"><AlertCircle className="size-7" /></span>
+                <h2 className="text-[18px] font-bold">Payment not confirmed yet</h2>
+                <p className="text-[13px] text-[var(--text-secondary)]">If you approved it, it may still go through. You can follow the delivery or try again.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => router.push(`/delivery/track?code=${success.tracking_code}`)} className="min-h-12 rounded-2xl bg-[var(--accent)] text-[14px] font-semibold text-white">Track</button>
+                  <button type="button" onClick={() => { setPendingPayment(null); setStep(2); setSuccess(null); }} className="min-h-12 rounded-2xl border border-[var(--glass-border)] text-[14px] font-semibold">Try again</button>
+                </div>
+              </section>
+            )}
+            {!pendingPayment && (
+              <section className={`${CARD} text-center`}>
+                <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-600 text-white"><CheckCircle2 className="size-7" /></span>
+                <h2 className="text-[18px] font-bold">Delivery booked</h2>
+                <p className="text-[13px] text-[var(--text-secondary)]">We will tell you when a rider is on the way.</p>
+                <div className="rounded-2xl bg-[var(--bg-secondary)] p-3.5">
+                  <p className="text-[11px] text-[var(--text-secondary)]">Tracking code</p>
+                  <p className="font-mono text-[18px] font-bold tracking-wider text-[var(--accent)]">{success.tracking_code}</p>
+                </div>
+              </section>
+            )}
+            <div className="grid grid-cols-2 gap-2 text-[13px]">
+              <div className="rounded-2xl border border-[var(--glass-border)] p-3.5"><p className="text-[11px] text-[var(--text-secondary)]">Amount</p><p className="mt-0.5 text-[16px] font-bold tabular-nums">{success.price?.toLocaleString()} XAF</p></div>
+              <div className="rounded-2xl border border-[var(--glass-border)] p-3.5"><p className="text-[11px] text-[var(--text-secondary)]">Payment</p>
+                <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${success.payment_status === 'paid' ? 'bg-emerald-500/15 text-emerald-700' : 'bg-amber-500/15 text-amber-700'}`}>{success.payment_status === 'paid' ? 'Paid' : 'Pending'}</span></div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => router.push(`/delivery/track?code=${success.tracking_code}`)} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-[14px] font-semibold text-white"><Package className="size-4" /> Track it</button>
+              <button type="button" onClick={() => { setStep(1); setSuccess(null); setQuotes([]); setSelectedQuote(null); }} className="min-h-12 rounded-2xl border border-[var(--glass-border)] text-[14px] font-semibold">Book another</button>
             </div>
           </div>
         )}

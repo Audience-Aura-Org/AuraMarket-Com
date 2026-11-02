@@ -50,15 +50,13 @@ export default function AddressField({ label = 'Address', value = {}, onChange, 
   const usable = saved.filter((a) => a._id !== 'vendor_pickup');
   return (
     <div className="space-y-2.5">
-      {showSaved && (
+      {/* Saved places only when there are some. */}
+      {showSaved && usable.length > 0 && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between gap-2">
             <p className={LABEL.replace("mb-1.5 ", "")}>Saved places</p>
             <Link href="/profile?tab=addresses" className="text-[11px] font-semibold text-[var(--accent)]">Manage</Link>
           </div>
-          {usable.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-[var(--glass-border)] px-3.5 py-2.5 text-[12px] text-[var(--text-secondary)]">No saved places yet. Places you use here are saved automatically (up to 5) and show up here next time.</p>
-          ) : (
           <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="listbox" aria-label={`${label}: saved addresses`}>
             {usable.map((a) => {
               const active = value.address_id === a._id;
@@ -76,11 +74,10 @@ export default function AddressField({ label = 'Address', value = {}, onChange, 
               );
             })}
           </div>
-          )}
         </div>
       )}
       <LocationPicker
-        label={showSaved ? 'Or search a place' : label}
+        label={showSaved && usable.length ? 'Or search a place' : label}
         value={value}
         onChange={(v) => {
           // Editing the description keeps the saved address; moving the spot makes it a new one.
