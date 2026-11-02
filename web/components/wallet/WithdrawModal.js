@@ -12,16 +12,18 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, CheckCircle2, Phone,
-  Globe, ArrowRight, ArrowLeft, Wallet, AlertCircle, Loader2
+  ArrowRight, ArrowLeft, Wallet, AlertCircle, Loader2
 } from 'lucide-react';
 import api from '@/services/api';
+import { paymentMessage } from '@/lib/paymentLabels';
+import { resolveConfiguredCameroonMobileMoneyGateway } from '@/services/paymentProvider';
+import { FIELD } from '@/lib/formStyles';
 import { useAuthStore } from '@/hooks/useAuth';
 
 const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
 
 const METHODS = [
-  { id: 'momo',     label: 'Mobile Wallet',   sub: 'MTN or Orange Money number',  icon: Phone,  color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
-  { id: 'eversend', label: 'Eversend Wallet',  sub: 'Transfer to Eversend account', icon: Globe,  color: 'bg-purple-500/10 text-purple-500 border-purple-500/20' },
+  { id: 'momo',     label: 'Mobile Money',   sub: 'MTN or Orange Money: approve the prompt on your phone',  icon: Phone,  color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' },
 ];
 
 const COUNTRIES = [
@@ -35,7 +37,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
   const [step, setStep]     = useState(1); // 1=amount, 2=method, 3=details, 4=review
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState(null);
-  
+
   // Load initial form values from localStorage if they exist
   const [form, setForm]     = useState(() => {
     if (typeof window !== 'undefined') {
@@ -85,14 +87,16 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
       <label className="text-[10px] lg:text-[12px] font-semibold tracking-widest text-[var(--text-secondary)] opacity-50">{label}</label>
       <input type={type} placeholder={placeholder} value={form[key]}
         onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-        className="w-full h-12 px-4 rounded-2xl bg-[var(--bg-secondary)] border border-[var(--glass-border)] text-sm font-medium outline-none focus:border-[var(--accent)] transition-all" />
+        className={FIELD} />
     </div>
   );
 
   const submit = async () => {
     setLoading(true); setError('');
     try {
+      const route = await resolveConfiguredCameroonMobileMoneyGateway(form.phoneNumber);
       const res = await api.post('/withdrawals', {
+        payout_gateway: route.gateway,
         amount: amtNum,
         currency: 'XAF',
         withdrawal_method: method.id,
@@ -221,7 +225,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
                 <AlertCircle className="size-3.5" /> Exceeds your balance of {fmt(availableBalance)} XAF
               </p>
             )}
-            {error && <p className="text-xs text-red-500 font-semibold flex items-center gap-2"><AlertCircle className="size-3.5" />{error}</p>}
+            {error && <p className="text-xs text-red-500 font-semibold flex items-center gap-2"><AlertCircle className="size-3.5" />{paymentMessage(error)}</p>}
             <button onClick={continueFromAmount} disabled={amtNum < MIN || amtNum > availableBalance}
               className="w-full h-13 bg-[var(--accent)] text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-30 transition-all py-3">
               Continue <ArrowRight className="size-4" />
@@ -268,7 +272,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
               </select>
             </div>
             {method.id === 'momo'     && field('phoneNumber',  'MOBILE WALLET NUMBER', '+237...', 'tel')}
-            {method.id === 'eversend' && field('eversendTag',  'EVERSEND TAG / PHONE', '@tag or phone')}
+
             {field('note', 'NOTE (OPTIONAL)', 'Reason for withdrawal...')}
             <button onClick={() => {
               const missing =
@@ -281,7 +285,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
               className="w-full h-13 bg-[var(--accent)] text-white rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all py-3">
               Review <ArrowRight className="size-4" />
             </button>
-            {error && <p className="text-xs text-red-500 font-semibold text-center">{error}</p>}
+            {error && <p className="text-xs text-red-500 font-semibold text-center">{paymentMessage(error)}</p>}
           </div>
         )}
 
@@ -306,7 +310,7 @@ export default function WithdrawModal({ balance, onClose, onSuccess }) {
             <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-xs text-amber-600 font-semibold leading-relaxed">
               This request requires admin approval before funds are sent. Admin will process the payout through the appropriate gateway.
             </div>
-            {error && <p className="text-xs text-red-500 font-semibold flex items-center gap-2"><AlertCircle className="size-3.5" />{error}</p>}
+            {error && <p className="text-xs text-red-500 font-semibold flex items-center gap-2"><AlertCircle className="size-3.5" />{paymentMessage(error)}</p>}
             <button onClick={submit} disabled={loading}
               className="w-full h-13 bg-[var(--text-primary)] text-[var(--bg-primary)] rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-[var(--accent)] hover:text-white transition-all py-3">
               {loading ? <Loader2 className="size-4 animate-spin" /> : <Wallet className="size-4" />}

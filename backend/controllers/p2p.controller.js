@@ -13,6 +13,7 @@ const { generateTrackingCode } = require('../services/logistics.service');
 const { isShipmentParty, redactShipmentForPublic } = require('../utils/trackingPrivacy');
 const { confirmedPoint } = require('../utils/geoPoint');
 const { rememberLater } = require('../services/savedAddress.service');
+const { withMobileMoneyFallback } = require('../services/payment/mobileMoneyFallback');
 const { getQuotes, getQuoteForProvider } = require('../services/p2p.service');
 const LogisticsCompany = require('../models/LogisticsCompany.model');
 const { debitBalance, creditBalance } = require('../services/wallet.service');
@@ -438,12 +439,22 @@ const createP2PShipment = async (req, res) => {
     let paymentResult = null;
     if (shipmentData._gatewayPayment) {
       try {
-        paymentResult = await initiateP2PGatewayPayment({
+        // The customer chose "Mobile Money": start with the gateway picked for their
+        // number and fall back (PawaPay → PayUnit → Eversend) only when one clearly
+        // failed before charging. A gateway given up on has its pending record closed.
+        const { amount: gwAmount, gateway: firstGateway } = shipmentData._gatewayPayment;
+        paymentResult = await withMobileMoneyFallback(firstGateway, gwAmount, (gateway) => initiateP2PGatewayPayment({
           ...shipmentData._gatewayPayment,
+          gateway,
           user: req.user,
           shipment,
           trackingCode,
           req,
+        }), {
+          onFallback: (gateway, err) => Transaction.updateMany(
+            { 'metadata.shipment_id': shipment._id, gateway, status: 'pending' },
+            { $set: { status: 'failed', 'metadata.failure_reason': `Not started (${String(err.message).slice(0, 120)}); tried the next Mobile Money route` } },
+          ).catch(() => {}),
         });
         // Store payment reference on shipment
         await Shipment.findByIdAndUpdate(shipment._id, {

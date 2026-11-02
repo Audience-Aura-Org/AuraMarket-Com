@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
+import { resolveConfiguredCameroonMobileMoneyGateway } from '@/services/paymentProvider';
+import { paymentMessage } from '@/lib/paymentLabels';
 import WhatsAppSupport from '@/components/logistics/WhatsAppSupport';
 import AddressField from '@/components/location/AddressField';
 import { FIELD, LABEL, SMALL_BUTTON, HINT } from '@/lib/formStyles';
@@ -429,7 +431,7 @@ export default function DeliveryPage() {
           email: form[`${otherPfx}_email`],
         },
         scheduled_pickup: form.scheduled ? form.scheduled_date : null,
-        payment_method: form.payment_method,
+        payment_method: form.payment_method === 'wallet' ? 'wallet' : (await resolveConfiguredCameroonMobileMoneyGateway(form.momo_phone)).gateway,
         momo_phone: form.momo_phone || undefined,
       };
 
@@ -445,7 +447,7 @@ export default function DeliveryPage() {
         const { shipment: shipmentData, payment, payment_error } = res.data.data;
         if (payment?.reference) {
           // MoMo payment initiated — show waiting screen and poll for confirmation
-          setSuccess(shipmentData);
+          setSuccess({ ...shipmentData, gross_amount: payment.gross_amount });
           setPendingPayment(payment);
           setStep(5);
           startPaymentPolling(payment.gateway, payment.reference, shipmentData);
@@ -453,7 +455,7 @@ export default function DeliveryPage() {
           setError(`Shipment booked but payment failed: ${payment_error}. Please try paying from your deliveries.`);
         } else {
           // Wallet payment — already paid
-          setSuccess(shipmentData);
+          setSuccess({ ...shipmentData, payment_status: 'paid' });
           setStep(5);
           if (form.payment_method === 'wallet') refreshWalletBalance?.();
         }
@@ -648,32 +650,6 @@ export default function DeliveryPage() {
   // ── Payment strategy ──────────────────────────────────────────────
   const isMomo = ['pawapay', 'payunit', 'eversend'].includes(form.payment_method);
 
-  const momoProviders = [
-    {
-      id: 'pawapay',
-      label: 'PawaPay',
-      badge: 'Primary',
-      description: 'MTN / Orange Mobile Money in Cameroon via PawaPay.',
-      icon: Smartphone,
-    },
-    {
-      id: 'payunit',
-      label: 'PayUnit',
-      badge: 'Fallback',
-      description: 'MTN Mobile Money and Orange Money via PayUnit.',
-      icon: Smartphone,
-    },
-    {
-      id: 'eversend',
-      label: 'Eversend',
-      badge: '500 XAF min',
-      description: 'Mobile money collection with a 500 XAF minimum.',
-      icon: Smartphone,
-    },
-  ];
-
-  const selectedMomo = momoProviders.find(o => o.id === form.payment_method) || momoProviders[0];
-
   const selectPaymentMethod = (method) => {
     setForm(prev => ({
       ...prev,
@@ -689,7 +665,7 @@ export default function DeliveryPage() {
   const errorNote = error ? (
     <div role="alert" className="flex items-start gap-3 rounded-2xl border border-rose-500/25 bg-rose-500/5 p-3.5">
       <AlertCircle className="mt-0.5 size-4 shrink-0 text-rose-500" />
-      <p className="flex-1 text-[13px] text-rose-600">{error}</p>
+      <p className="flex-1 text-[13px] text-rose-600">{paymentMessage(error)}</p>
       <button type="button" onClick={() => setError('')} aria-label="Dismiss" className="shrink-0 rounded-lg p-1 text-rose-400 hover:bg-rose-500/10"><X className="size-4" /></button>
     </div>
   ) : null;
@@ -806,17 +782,10 @@ export default function DeliveryPage() {
                   <Choice key={q.provider_id} selected={selectedQuote?.provider_id === q.provider_id} onClick={() => setSelectedQuote(q)}
                     leading={q.provider_logo ? <img src={q.provider_logo} className="size-10 rounded-xl object-cover" alt="" /> : null}
                     icon={Truck} title={q.provider_name}
-                    sub={[q.estimated_delivery_minutes && `~${q.estimated_delivery_minutes} min`, q.provider_rating > 0 && `★ ${q.provider_rating.toFixed(1)}`].filter(Boolean).join(' · ') || 'Delivery partner'}
+                    sub={[Number.isFinite(Number(q.estimated_delivery_minutes)) && Number(q.estimated_delivery_minutes) >= 1 && Number(q.estimated_delivery_minutes) <= 600 && `~${q.estimated_delivery_minutes} min`, q.provider_rating > 0 && `★ ${q.provider_rating.toFixed(1)}`].filter(Boolean).join(' · ') || 'Delivery partner'}
                     right={<span className="shrink-0 text-[14px] font-bold tabular-nums">{q.price?.toLocaleString()} <span className="text-[11px] font-semibold text-[var(--text-secondary)]">XAF</span></span>} />
                 ))}
               </div>
-              {selectedQuote && (
-                <div className="space-y-1.5 rounded-2xl bg-[var(--bg-secondary)] p-3.5 text-[13px]">
-                  <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Delivery</span><span className="tabular-nums">{selectedQuote.base_price?.toLocaleString()} XAF</span></div>
-                  {selectedQuote.platform_fee > 0 && <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Service fee</span><span className="tabular-nums">{selectedQuote.platform_fee.toLocaleString()} XAF</span></div>}
-                  <div className="flex justify-between border-t border-[var(--glass-border)] pt-1.5 font-bold"><span>Total</span><span className="tabular-nums text-[var(--accent)]">{selectedQuote.price?.toLocaleString()} XAF</span></div>
-                </div>
-              )}
               <div className="space-y-5 border-t border-[var(--glass-border)] pt-5">
                 <h3 id="pay-title" className={LABEL}>Payment</h3>
                 <p className={HINT}>Choose how you would like to pay.</p>
@@ -826,12 +795,10 @@ export default function DeliveryPage() {
                       icon={Wallet} title="Aura Wallet" sub={`Balance: ${displayedWalletBalance.toLocaleString()} XAF`} />
                   )}
                   <Choice selected={isMomo} onClick={() => { if (!isMomo) selectPaymentMethod('pawapay'); }}
-                    icon={Smartphone} title="Mobile Money" sub="MTN or Orange Money: approve on your phone" />
+                    icon={Smartphone} title="Mobile Money" sub="MTN or Orange Money: approve the prompt on your phone" />
                 </div>
                 {isMomo && (
                   <div className="space-y-5 rounded-2xl bg-[var(--bg-secondary)] p-4">
-                    <Chips label="Pay with" options={momoProviders.map(o => ({ value: o.id, label: o.label }))} value={form.payment_method} onChange={selectPaymentMethod} />
-                    <p className={HINT}>{selectedMomo.description}</p>
                     <div><label className={LABEL} htmlFor="momo-phone">Mobile Money number</label>
                       <input id="momo-phone" type="tel" inputMode="tel" value={form.momo_phone} onChange={e => setForm(prev => ({ ...prev, momo_phone: e.target.value }))} placeholder="6XX XXX XXX" className={`${FIELD} tabular-nums`} /></div>
                   </div>
@@ -877,8 +844,8 @@ export default function DeliveryPage() {
             {!pendingPayment && (
               <section aria-labelledby="done-title" className={`${CARD} text-center`}>
                 <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-600 text-white"><CheckCircle2 className="size-7" /></span>
-                <h2 id="done-title" className="text-[16px] font-semibold">Delivery booked</h2>
-                <p className="text-[13px] text-[var(--text-secondary)]">We will tell you when a rider is on the way.</p>
+                <h2 id="done-title" className="text-[16px] font-semibold">Payment confirmed</h2>
+                <p className="text-[13px] text-[var(--text-secondary)]">{(success.gross_amount || success.price)?.toLocaleString()} XAF paid · your delivery is booked</p>
                 <div className="rounded-2xl bg-[var(--bg-secondary)] p-3.5">
                   <p className="text-[11px] text-[var(--text-secondary)]">Tracking code</p>
                   <p className="font-mono text-[18px] font-bold tracking-wider text-[var(--accent)]">{success.tracking_code}</p>
@@ -886,7 +853,7 @@ export default function DeliveryPage() {
               </section>
             )}
             <div className="grid grid-cols-2 gap-2 text-[13px]">
-              <div className="rounded-2xl border border-[var(--glass-border)] p-3.5"><p className="text-[11px] text-[var(--text-secondary)]">Amount</p><p className="mt-0.5 text-[16px] font-bold tabular-nums">{success.price?.toLocaleString()} XAF</p></div>
+              <div className="rounded-2xl border border-[var(--glass-border)] p-3.5"><p className="text-[11px] text-[var(--text-secondary)]">Amount paid</p><p className="mt-0.5 text-[16px] font-bold tabular-nums">{(success.gross_amount || success.price)?.toLocaleString()} XAF</p></div>
               <div className="rounded-2xl border border-[var(--glass-border)] p-3.5"><p className="text-[11px] text-[var(--text-secondary)]">Payment</p>
                 <span className={`mt-1 inline-block rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${success.payment_status === 'paid' ? 'bg-emerald-500/15 text-emerald-700' : 'bg-amber-500/15 text-amber-700'}`}>{success.payment_status === 'paid' ? 'Paid' : 'Pending'}</span></div>
             </div>

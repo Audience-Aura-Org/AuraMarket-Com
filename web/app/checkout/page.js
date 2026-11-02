@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/services/api';
-import { initiateCollection, initiateSmartCameroonCollection, pollTransactionStatus } from '@/services/paymentProvider';
+import { paymentMethodLabel, paymentMessage } from '@/lib/paymentLabels';
+import { resolveCameroonMobileMoneyGateway, initiateSmartCameroonCollection, pollTransactionStatus } from '@/services/paymentProvider';
 import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
 import Link from 'next/link';
@@ -85,7 +86,7 @@ function CheckoutContent() {
   const scheduledForParam = searchParams.get('scheduledFor'); // pre-order date from MealDetailModal
   const { user, setWalletBalance: setSharedWalletBalance, walletBalance, refreshWalletBalance } = useAuthStore();
   const feeRates = useMobileMoneyFeeRates();
-  const estimateCheckoutFee = (amount, method) => estimateMobileMoneyFee(amount, method, {
+  const estimateCheckoutFee = (amount, method) => estimateMobileMoneyFee(amount, isMobileMoneyPayment(method) ? resolveCameroonMobileMoneyGateway(formData.pawapay?.phone || formData.phone, { pawapayOrange: feeRates.pawapay_orange_enabled }).gateway : method, {
     provider: method === 'pawapay' ? detectPawaPayProvider(formData.pawapay?.phone || formData.phone) : null,
     rates: feeRates,
   }).fee;
@@ -294,7 +295,7 @@ function CheckoutContent() {
       }
     } catch (err) {
       setCartItems(previousItems);
-      toast.error(err?.response?.data?.message || 'Could not remove item.');
+      toast.error(paymentMessage(err?.response?.data?.message || 'Could not remove item.'));
     } finally {
       cartStore.endMutation();
       setRemovingItemKey(null);
@@ -580,11 +581,7 @@ function CheckoutContent() {
       setError(`Your wallet balance (${displayedWalletBalance.toLocaleString()} XAF) is insufficient for this order (${computedOrderTotal.toLocaleString()} XAF).`);
       return;
     }
-    if (isEversend && totalAmount < 500) {
-      setError(`Eversend requires a minimum payment of 500 XAF. Your current total is ${totalAmount.toLocaleString()} XAF.`);
-      toast.error('Minimum amount for Eversend is 500 XAF');
-      return;
-    }
+
     const minimumErrors = vendorMinimumErrors;
     if (minimumErrors.length > 0) {
       setMinimumWarningsDismissed(false);
@@ -720,7 +717,7 @@ function CheckoutContent() {
         }
       } else if (isExternal) {
         const gateway = isPayUnit ? 'payunit' : isPawaPay ? 'pawapay' : 'eversend';
-        const gatewayLabel = isPayUnit ? 'PayUnit' : isPawaPay ? 'PawaPay' : 'Eversend';
+        const gatewayLabel = 'Mobile Money';
         const gatewayFields = isPayUnit ? formData.payunit : isPawaPay ? formData.pawapay : formData.eversend;
         setEversendCheckout({
           active: true,
@@ -741,9 +738,7 @@ function CheckoutContent() {
            order_ids: finalOrderIds,
            redirect_url: `${getPublicWebOrigin()}/wallet/verify?gateway=${gateway}&type=checkout`,
         };
-        const evRes = gateway === 'pawapay'
-          ? await initiateSmartCameroonCollection(collectionPayload)
-          : await initiateCollection(gateway, collectionPayload);
+        const evRes = await initiateSmartCameroonCollection(collectionPayload);
         const resolvedGateway = evRes.gateway || gateway;
 
         if (!evRes.success) {
@@ -841,7 +836,7 @@ function CheckoutContent() {
       const msg = err?.response?.data?.message || err?.message || 'Checkout failed. Please try again.';
       setError(msg);
       setEversendCheckout({ active: false, reference: null, message: '', gateway: '', phone: '' });
-      toast.error(msg);
+      toast.error(paymentMessage(msg));
     } finally {
       checkoutInFlightRef.current = false;
       setLoading(false);
@@ -965,16 +960,8 @@ function CheckoutContent() {
   const paymentOptions = [
     {
       id: 'pawapay',
-      label: 'PawaPay',
-      badge: 'Primary',
-      description: 'MTN / Orange Mobile Money in Cameroon via PawaPay.',
-      icon: Smartphone,
-    },
-    {
-      id: 'payunit',
-      label: 'PayUnit',
-      badge: 'Fallback',
-      description: 'MTN Mobile Money and Orange Money via PayUnit.',
+      label: 'Mobile Money',
+      description: 'MTN or Orange Money: approve the prompt on your phone',
       icon: Smartphone,
     },
     {
@@ -983,13 +970,6 @@ function CheckoutContent() {
       badge: `${displayedWalletBalance.toLocaleString()} XAF`,
       description: 'Pay from your Auradime wallet balance.',
       icon: CreditCard,
-    },
-    {
-      id: 'eversend',
-      label: 'Eversend',
-      badge: '500 XAF min',
-      description: 'Mobile money collection with a 500 XAF minimum.',
-      icon: Smartphone,
     },
   ];
   const selectedPayment = paymentOptions.find((option) => option.id === formData.paymentMethod) || paymentOptions[0];
@@ -1081,15 +1061,15 @@ function CheckoutContent() {
                 <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Approve Payment</h2>
                 {eversendCheckout.gateway && (
                   <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] opacity-80">
-                    via {eversendCheckout.gateway === 'payunit' ? 'PayUnit' : eversendCheckout.gateway === 'pawapay' ? 'PawaPay' : 'Eversend'}
+                    Mobile Money
                   </p>
                 )}
                 <p className="mt-2 text-[12px] font-semibold leading-relaxed tracking-tight text-[var(--text-secondary)] opacity-70">
-                  {eversendCheckout.message || 'Waiting for mobile money confirmation...'}
+                  {paymentMessage(eversendCheckout.message) || 'Waiting for mobile money confirmation...'}
                 </p>
                 <div className="mt-6 space-y-2 text-left">
                   {[
-                    `Request sent to ${eversendCheckout.gateway === 'payunit' ? 'PayUnit' : eversendCheckout.gateway === 'pawapay' ? 'PawaPay' : 'Eversend'}`,
+                    'Mobile Money request sent',
                     eversendCheckout.orangeHosted ? 'Authorize via Orange payment page' : `Approve prompt on ${eversendCheckout.phone || formData.phone}`,
                     'Confirming order payment',
                   ].map((label, index) => (
@@ -1535,54 +1515,12 @@ function CheckoutContent() {
                               </div>
                            )}
 
-                           {['payunit', 'eversend', 'pawapay'].includes(formData.paymentMethod) && (
-                              <div className="mt-4 rounded-2xl border border-[var(--accent)]/20 bg-[var(--accent)]/5 p-4 animate-in fade-in slide-in-from-top-4 duration-500">
-                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div className="space-y-2">
-                                       <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">Collection Number</label>
-                                       <input
-                                          type="text"
-                                          placeholder="+237..."
-                                          value={
-                                            formData.paymentMethod === 'payunit' ? formData.payunit.phone
-                                            : formData.paymentMethod === 'pawapay' ? formData.pawapay.phone
-                                            : formData.eversend.phone
-                                          }
-                                          onChange={e => {
-                                            if (formData.paymentMethod === 'payunit') {
-                                              setFormData(prev => ({...prev, payunit: {...prev.payunit, phone: e.target.value}}));
-                                            } else if (formData.paymentMethod === 'pawapay') {
-                                              setFormData(prev => ({...prev, pawapay: {...prev.pawapay, phone: e.target.value}}));
-                                            } else {
-                                              setFormData(prev => ({...prev, eversend: {...prev.eversend, phone: e.target.value}}));
-                                            }
-                                          }}
-                                          className={FIELD}
-                                       />
-                                    </div>
-                                    <div className="space-y-2">
-                                       <label className="text-[11px] lg:text-[12px]  font-semibold tracking-tight text-[var(--text-secondary)] opacity-60 ml-1">
-                                          {formData.paymentMethod === 'payunit' ? 'Network' : 'Currency'}
-                                       </label>
-                                       {formData.paymentMethod === 'payunit' ? (
-                                          <select
-                                            value={formData.payunit.provider}
-                                            onChange={(e) => setFormData(prev => ({...prev, payunit: {...prev.payunit, provider: e.target.value}}))}
-                                            className={FIELD}
-                                          >
-                                            {MOBILE_MONEY_PROVIDERS.map(p => (
-                                              <option key={p.id} value={p.id}>{p.label}</option>
-                                            ))}
-                                          </select>
-                                       ) : (
-                                          <div className="flex h-12 w-full cursor-not-allowed select-none items-center gap-2 rounded-xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[11px] font-semibold lg:text-[12px]">
-                                             <span className="text-[var(--text-primary)]">XAF</span>
-                                             <span className="text-[var(--text-secondary)] opacity-50">Central African Franc</span>
-                                             <span className="ml-auto text-[10px] lg:text-[12px]  font-semibold tracking-widest bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-lg">LOCKED</span>
-                                          </div>
-                                       )}
-                                    </div>
-                                 </div>
+                           {isMobileMoneyPayment(formData.paymentMethod) && (
+                              <div className="mt-4 space-y-2">
+                                 <label className={LABEL}>Mobile Money number</label>
+                                 <input type="tel" placeholder="+237..." value={formData.pawapay.phone}
+                                    onChange={e => setFormData(prev => ({ ...prev, pawapay: { ...prev.pawapay, phone: e.target.value } }))}
+                                    className={FIELD} />
                               </div>
                            )}
                         </div>

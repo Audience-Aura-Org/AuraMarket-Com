@@ -15,6 +15,7 @@ import Link from 'next/link';
 import cartStore from '@/services/cartStore';
 import { useAuthStore } from '@/hooks/useAuth';
 import api from '@/services/api';
+import { paymentMethodLabel, paymentMessage } from '@/lib/paymentLabels';
 
 // â”€â”€ Payment State Machine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // States: 'loading' | 'pending' | 'successful' | 'failed' | 'timeout' | 'recheck'
@@ -93,7 +94,7 @@ function VerifyContent() {
     } else if (gateway && !['eversend', 'payunit', 'pawapay'].includes(gateway)) {
       setState('failed');
       setMessage('This payment gateway has been removed from Auradime.');
-      setReason('Please return and use Aura Wallet or PayUnit.');
+      setReason('Please return and use Wallet or Mobile Money.');
 
     } else {
       setState('failed');
@@ -111,7 +112,7 @@ function VerifyContent() {
     if (!ref) return;
     setRecheckLoading(true);
     setState('recheck');
-    setMessage(`Re-checking payment status from ${gateway}...`);
+    setMessage(`Re-checking ${paymentMethodLabel(gateway)} payment status...`);
 
     const result = await recheckTransaction(gateway, ref);
 
@@ -216,11 +217,11 @@ function VerifyContent() {
             <div className="text-center space-y-3 mb-8">
               <h1 className={`text-2xl  font-bold tracking-tighter ${cfg.color}`}>{cfg.title}</h1>
               <p className="text-[12px]  font-semibold text-[var(--text-secondary)] tracking-tight leading-relaxed opacity-70">
-                {message}
+                {paymentMessage(message)}
               </p>
               {reason && (
                 <div className="mt-4 p-4 rounded-2xl bg-red-500/10 border border-red-500/20">
-                  <p className="text-[11px] lg:text-[12px]  font-semibold text-red-400 tracking-tight">{reason}</p>
+                  <p className="text-[11px] lg:text-[12px]  font-semibold text-red-400 tracking-tight">{paymentMessage(reason)}</p>
                 </div>
               )}
             </div>

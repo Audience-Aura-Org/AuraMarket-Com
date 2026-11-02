@@ -1,13 +1,14 @@
 "use client";
 
+import { paymentMessage } from '@/lib/paymentLabels';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldCheck, Loader2, X, CheckCircle2, AlertTriangle,
   XCircle, RotateCcw, Smartphone, ExternalLink,
 } from 'lucide-react';
-import { initiateCollection, initiateSmartCameroonCollection, pollTransactionStatus, recheckTransaction } from '@/services/paymentProvider';
-import api from '@/services/api';
+import { initiateSmartCameroonCollection, pollTransactionStatus, recheckTransaction } from '@/services/paymentProvider';
+import { FIELD } from '@/lib/formStyles';
 import socketService from '@/services/socket';
 import { useAuthStore } from '@/hooks/useAuth';
 
@@ -28,9 +29,6 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   const feeRates = useMobileMoneyFeeRates();
   const [amount, setAmount]     = useState('');
   const [phone, setPhone]       = useState(userPhone);
-  const [network, setNetwork]   = useState('CM');
-  const [service, setService]   = useState('CM_MTNMOMO');
-  const [pawapayNetwork, setPawapayNetwork] = useState(''); // 'MTN MoMo' | 'Orange Money' | ''
   const [ref, setRef]           = useState(null);
   const [status, setStatus]     = useState('pending'); // 'pending'|'success'|'failed'|'timeout'
   const [message, setMessage]   = useState('');
@@ -47,46 +45,19 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
   useEffect(() => {
     if (!open || !ref || status !== 'pending') return;
     const onPaymentStatus = event => {
-      if (event?.gateway !== 'pawapay' || event.reference !== ref || event.status !== 'FAILED') return;
+      if (event?.gateway !== gateway || event.reference !== ref || event.status !== 'FAILED') return;
       stopPollingRef.current?.(); stopPollingRef.current = null;
       setStatus('failed'); setStep('result'); setReason(event.reason || event.message || 'The mobile-money provider declined this deposit.');
     };
     socketService.on('payment_status', onPaymentStatus);
     return () => socketService.off('payment_status', onPaymentStatus);
-  }, [open, ref, status]);
+  }, [open, ref, status, gateway]);
 
   // Pre-fill phone when userPhone prop changes (e.g. after auth loads)
   useEffect(() => {
     if (userPhone && !phone) setPhone(userPhone);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userPhone]);
-
-  // Auto-detect MTN vs Orange from phone prefix as user types.
-  // Cameroon 9-digit local prefixes: Orange = 620-629, 655-659, 690-699; MTN = everything else.
-  useEffect(() => {
-    if (gateway !== 'payunit' || !phone) return;
-    const local = phone.replace(/[^\d]/g, '').replace(/^237/, '').replace(/^0/, '');
-    if (local.length >= 3) {
-      const prefix = parseInt(local.slice(0, 3), 10);
-      const isOrange = (prefix >= 620 && prefix <= 629) || (prefix >= 655 && prefix <= 659) || (prefix >= 690 && prefix <= 699);
-      setService(isOrange ? 'CM_ORANGE' : 'CM_MTNMOMO');
-    }
-  }, [phone, gateway]);
-
-  // PawaPay: auto-detect operator from 2-digit prefix (matches backend detectProvider logic).
-  // MTN: 65x, 67x, 68x — Orange: 62x, 69x
-  useEffect(() => {
-    if (gateway !== 'pawapay' || !phone) { setPawapayNetwork(''); return; }
-    const local = phone.replace(/[^\d]/g, '').replace(/^237/, '').replace(/^0/, '');
-    if (local.length >= 2) {
-      const p = parseInt(local.slice(0, 2), 10);
-      const prefix3 = Number(local.slice(0, 3));
-      if (prefix3 >= 655 && prefix3 <= 659) setPawapayNetwork('Orange Money');
-      else if ([65, 67, 68].includes(p)) setPawapayNetwork('MTN MoMo');
-      else if ([69, 62].includes(p)) setPawapayNetwork('Orange Money');
-      else setPawapayNetwork('');
-    }
-  }, [phone, gateway]);
 
   // Reset when modal opens
   useEffect(() => {
@@ -103,14 +74,13 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
       setMessage('');
       setOrangeHosted(false);
       setCheckoutUrl(null);
-      setPawapayNetwork('');
     }
   }, [open]);
 
   if (!open) return null;
 
-  const { netAmount, fee: collectionFee, grossAmount: approvalAmount } = estimateMobileMoneyFee(amount, gateway, {
-    provider: gateway === 'pawapay' ? detectPawaPayProvider(phone) : null,
+  const { netAmount, fee: collectionFee, grossAmount: approvalAmount } = estimateMobileMoneyFee(amount, detectPawaPayProvider(phone) === 'ORANGE_MONEY_CMR' && !feeRates.pawapay_orange_enabled ? 'payunit' : 'pawapay', {
+    provider: detectPawaPayProvider(phone),
     rates: feeRates,
   });
 
@@ -156,7 +126,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
     if (inProgressRef.current) return;
     inProgressRef.current = true;
 
-    const min = gateway === 'eversend' ? 500 : 1;
+    const min = 1;
     if (!amount || Number(amount) < min) {
       inProgressRef.current = false;
       return;
@@ -178,13 +148,10 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
         amount: Number(amount),
         currency: 'XAF',
         phone,
-        country: network,
-        provider: gw === 'payunit' ? service : undefined,
+        country: 'CM',
       };
 
-      const res = gateway === 'pawapay'
-        ? await initiateSmartCameroonCollection(payload)
-        : await initiateCollection(gateway, payload);
+      const res = await initiateSmartCameroonCollection(payload);
       gw = res.gateway || gateway;
       if (gw !== gateway) setGateway(gw);
 
@@ -196,9 +163,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
         setOrangeHosted(isOrange);
         setCheckoutUrl(hostedUrl);
         setMessage(
-          res.fallbackUsed
-            ? 'PawaPay was unavailable, so we switched to PayUnit before creating a payment request.'
-            : isOrange
+          isOrange
             ? 'Open the payment page below to authorize your Orange Money payment.'
             : 'Charge request sent. Awaiting approval on your phone...'
         );
@@ -323,25 +288,9 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
               </div>
 
               <div className="space-y-4">
-                {/* Gateway */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-semibold tracking-tight opacity-30 ml-1">Deposit gateway</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'pawapay',  label: 'PawaPay',  sub: 'MTN MoMo', min: 'Primary' },
-                      { id: 'payunit',  label: 'PayUnit',  sub: 'MTN / Orange', min: 'Fallback' },
-                      { id: 'eversend', label: 'Eversend', sub: 'Multi-country', min: 'Min 500' },
-                    ].map(node => (
-                      <button
-                        key={node.id}
-                        onClick={() => setGateway(node.id)}
-                        className={`rounded-xl border p-2.5 text-left transition-all ${gateway === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-55 hover:opacity-100'}`}
-                      >
-                        <span className="block text-[11px] font-semibold tracking-tight">{node.label}</span>
-                        <span className="block text-[9px] font-medium opacity-70">{node.sub} · {node.min}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div className="rounded-2xl border border-[var(--accent)] p-4">
+                  <p className="text-sm font-semibold">Mobile Money</p>
+                  <p className="text-[11px] text-[var(--text-secondary)]">MTN or Orange Money: approve the prompt on your phone</p>
                 </div>
 
                 {/* Amount */}
@@ -351,12 +300,12 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                     type="number"
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
-                    placeholder={gateway === 'eversend' ? 'Min 500' : 'Enter amount'}
+                    placeholder="Enter amount"
                     className="w-full h-12 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-xl font-semibold text-center text-[var(--accent)] outline-none focus:border-[var(--accent)] transition-all placeholder:opacity-10 shadow-inner tabular-nums"
                   />
                   {netAmount > 0 && (
                     <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-50 text-center tabular-nums">
-                      You will be charged {approvalAmount.toLocaleString()} XAF (includes {collectionFee.toLocaleString()} XAF mobile money fee). {netAmount.toLocaleString()} XAF reaches your wallet and can be withdrawn without fees.
+                      You will be charged {approvalAmount.toLocaleString()} XAF (includes {collectionFee.toLocaleString()} XAF Mobile Money fee). {netAmount.toLocaleString()} XAF reaches your wallet and can be withdrawn without fees.
                     </p>
                   )}
                 </div>
@@ -371,64 +320,14 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
                       placeholder="6XX XXX XXX"
-                      className="w-full h-11 pl-12 pr-4 bg-[var(--bg-secondary)] border border-[var(--glass-border)] rounded-xl text-sm font-medium outline-none focus:border-[var(--accent)] transition-all shadow-inner"
+                      className={`${FIELD} pl-12`}
                     />
                   </div>
                 </div>
 
-                {/* Network / Country */}
-                {gateway === 'eversend' ? (
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-semibold tracking-tight opacity-30 ml-1">Country</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[{ id: 'CM', label: 'Cameroon' }, { id: 'CI', label: 'Ivory Coast' }].map(node => (
-                        <button
-                          key={node.id}
-                          onClick={() => setNetwork(node.id)}
-                          className={`h-10 rounded-xl border font-semibold text-[10px] tracking-tight transition-all ${network === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
-                        >
-                          {node.label}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-[10px] font-semibold text-amber-500/80">Eversend deposits require at least 500 XAF.</p>
-                  </div>
-                ) : gateway === 'pawapay' ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 ml-1">
-                      <label className="text-[10px] font-semibold tracking-tight opacity-30">Network</label>
-                      {pawapayNetwork && <span className="text-[9px] font-semibold text-emerald-500 opacity-70 tracking-tight">· auto-detected</span>}
-                    </div>
-                    <div className={`h-10 rounded-xl border flex items-center justify-center font-semibold text-[10px] tracking-tight transition-all ${pawapayNetwork === 'MTN MoMo' ? 'bg-[var(--accent)]/10 border-[var(--accent)]/30 text-[var(--accent)]' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40'}`}>
-                      {pawapayNetwork === 'Orange Money' ? 'Orange: use PayUnit' : pawapayNetwork || 'Enter an MTN number above'}
-                    </div>
-                    {pawapayNetwork === 'Orange Money' && (
-                      <p className="text-[10px] font-semibold text-amber-500/80">PawaPay Orange is not enabled yet. Select PayUnit for Orange Money.</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-1.5 ml-1">
-                      <label className="text-[10px] font-semibold tracking-tight opacity-30">Network</label>
-                      {phone && <span className="text-[9px] font-semibold text-emerald-500 opacity-70 tracking-tight">· auto-detected</span>}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {[{ id: 'CM_MTNMOMO', label: 'MTN MoMo' }, { id: 'CM_ORANGE', label: 'Orange Money' }].map(node => (
-                        <button
-                          key={node.id}
-                          onClick={() => setService(node.id)}
-                          className={`h-10 rounded-xl border font-semibold text-[10px] tracking-tight transition-all ${service === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-40 hover:opacity-100'}`}
-                        >
-                          {node.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 <button
                   onClick={handleInit}
-                  disabled={submitting || !amount || !phone || (gateway === 'pawapay' && pawapayNetwork === 'Orange Money')}
+                  disabled={submitting || !amount || !phone}
                   className="w-full h-12 bg-emerald-500 text-white rounded-xl font-semibold text-[11px] tracking-tight shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 mt-2 disabled:opacity-40"
                 >
                   {submitting ? <Loader2 className="size-5 animate-spin" /> : <ShieldCheck className="size-5" />}
@@ -509,7 +408,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
 
               <div className="w-full bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--glass-border)] flex items-center gap-3">
                 <div className="size-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
-                <p className="text-[11px] font-semibold tracking-tight text-[var(--accent)] text-left">{message || 'Waiting for mobile money confirmation...'}</p>
+                <p className="text-[11px] font-semibold tracking-tight text-[var(--accent)] text-left">{paymentMessage(message) || 'Waiting for mobile money confirmation...'}</p>
               </div>
               <p className="text-[10px] font-semibold tracking-tight opacity-20 mt-4">
                 {orangeHosted ? 'After authorizing on the page, return here — payment is confirmed automatically.' : 'Keep the app open until your payment is confirmed'}
@@ -534,7 +433,7 @@ export default function DepositModal({ open, onClose, onSuccess, userPhone = '' 
               </h4>
               <div role={status === 'failed' ? 'alert' : 'status'} className="bg-[var(--bg-secondary)]/50 border border-[var(--glass-border)] rounded-xl p-4 mb-4 w-full">
                 <p className="text-[13px] font-medium text-[var(--text-primary)] leading-relaxed">
-                  {status === 'success' ? message : reason || message}
+                  {paymentMessage(status === 'success' ? message : reason || message)}
                 </p>
                 {(status === 'failed' || status === 'timeout') && ref && (
                   <p className="text-[10px] font-mono text-rose-400/60 mt-2 tracking-tight break-all">Ref: {ref}</p>

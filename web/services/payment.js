@@ -22,7 +22,7 @@ export const paymentService = {
   initializeEversend: async (data) => {
     // Eversend hard minimum for XAF is 500
     if (data.currency === 'XAF' && data.amount < 500) {
-      throw new Error('Eversend requires a minimum of 500 XAF for processing.');
+      throw new Error('Mobile Money requires at least 500 XAF for this payment route.');
     }
     const res = await api.post('/payments/eversend/initialize', data);
     return res.data;

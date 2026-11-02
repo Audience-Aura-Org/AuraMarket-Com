@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '@/services/api';
-import { resolveCameroonMobileMoneyGateway } from '@/services/paymentProvider';
+import { paymentMessage } from '@/lib/paymentLabels';
+import { FIELD } from '@/lib/formStyles';
+import { resolveCameroonMobileMoneyGateway, isPawaPayOrangeEnabled } from '@/services/paymentProvider';
 import { useAuthStore } from '@/hooks/useAuth';
 import { useLanguage } from '@/context/LanguageContext';
 import DashboardLayout from '@/components/layout/DashboardLayout';
@@ -76,7 +78,7 @@ function SubscribeContent() {
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [method, setMethod] = useState('pawapay');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [provider, setProvider] = useState('CM_MTNMOMO');
+  const [pawapayOrange, setPawapayOrange] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const selectedPlan = useMemo(
@@ -92,6 +94,9 @@ function SubscribeContent() {
     const version = ++statusVersion.current;
     setLoading(true);
     try {
+      const orangeEnabled = await isPawaPayOrangeEnabled();
+      if (version !== statusVersion.current) return;
+      setPawapayOrange(orangeEnabled);
       const res = await api.get('/subscriptions/me', { params: { role }, skipClientCache: true });
       if (version !== statusVersion.current) return;
       const next = res.data.data;
@@ -99,7 +104,7 @@ function SubscribeContent() {
       const currentPlanId = next?.subscription?.plan_id?._id || next?.subscription?.plan_id;
       setSelectedPlanId((current) => current || currentPlanId || next?.plans?.[0]?._id || null);
     } catch (error) {
-      toast.error(error.response?.data?.message || t('subscription.loadFailed', 'Could not load subscription.'));
+      toast.error(paymentMessage(error.response?.data?.message || t('subscription.loadFailed', 'Could not load subscription.')));
     } finally {
       if (version === statusVersion.current) setLoading(false);
     }
@@ -117,17 +122,6 @@ function SubscribeContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id, role, hasHydrated]);
 
-  // Auto-detect Orange vs MTN from phone prefix (mirrors checkout + deposit modal logic)
-  useEffect(() => {
-    if (method !== 'payunit' || !phone) return;
-    const local = phone.replace(/[^\d]/g, '').replace(/^237/, '').replace(/^0/, '');
-    if (local.length >= 3) {
-      const prefix = parseInt(local.slice(0, 3), 10);
-      const isOrange = (prefix >= 655 && prefix <= 659) || (prefix >= 690 && prefix <= 699);
-      setProvider(isOrange ? 'CM_ORANGE' : 'CM_MTNMOMO');
-    }
-  }, [phone, method]);
-
   const pay = async () => {
     if (!selectedPlan || inFlight.current) return;
     if (selectedPlan.contact_required) {
@@ -142,9 +136,8 @@ function SubscribeContent() {
     inFlight.current = true;
     setSubmitting(true);
     try {
-      const resolvedMethod = method === 'pawapay'
-        ? resolveCameroonMobileMoneyGateway(phone).gateway
-        : method;
+      const route = method === 'wallet' ? null : resolveCameroonMobileMoneyGateway(phone, { pawapayOrange });
+      const resolvedMethod = route?.gateway || method;
       const res = await api.post('/subscriptions/initialize', {
         plan_id: selectedPlan._id,
         role,
@@ -152,14 +145,14 @@ function SubscribeContent() {
         currency: selectedPlan.currency || 'XAF',
         phone,
         country: 'CM',
-        provider: resolvedMethod === 'payunit' ? resolveCameroonMobileMoneyGateway(phone).provider || provider : undefined,
+        provider: route?.provider,
         redirect_url: `${window.location.origin}/wallet/verify?gateway=${resolvedMethod}&type=subscription&role=${encodeURIComponent(role)}`,
       });
 
       const verificationGateway = res.data?.data?.gateway || resolvedMethod;
       if (method === 'wallet' || res.data?.data?.active || res.data?.data?.status?.active) {
         await refreshWalletBalance?.();
-        toast.success(res.data.message || t('subscription.activated', 'Subscription activated.'));
+        toast.success(paymentMessage(res.data.message) || t('subscription.activated', 'Subscription activated.'));
         await loadStatus();
         router.replace(role === 'vendor' ? '/vendor/dashboard' : role === 'logistics' ? '/logistics/dashboard' : '/profile');
         return;
@@ -180,7 +173,7 @@ function SubscribeContent() {
         toast.success(t('subscription.requestSent', 'Payment request sent.'));
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || t('subscription.paymentFailed', 'Subscription payment failed.'));
+      toast.error(paymentMessage(error.response?.data?.message || t('subscription.paymentFailed', 'Subscription payment failed.')));
     } finally {
       inFlight.current = false;
       setSubmitting(false);
@@ -371,32 +364,11 @@ function SubscribeContent() {
                     >
                       <Smartphone className="size-5 text-[var(--accent)]" />
                       <div>
-                        <p className="text-sm font-bold">{t('subscription.pawapayTitle', 'MTN Mobile Money')}</p>
-                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.pawapayHelp', 'Pay with MTN Mobile Money (Cameroon).')}</p>
+                        <p className="text-sm font-bold">Mobile Money</p>
+                        <p className="text-[11px] text-[var(--text-secondary)]">MTN or Orange Money: approve the prompt on your phone</p>
                       </div>
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setMethod('payunit')}
-                      className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'payunit' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
-                    >
-                      <Smartphone className="size-5 text-[var(--accent)]" />
-                      <div>
-                        <p className="text-sm font-bold">{t('subscription.payunitTitle', 'PayUnit - fallback')}</p>
-                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.payunitHelp', 'Cameroon mobile-money fallback for MTN and Orange.')}</p>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMethod('eversend')}
-                      className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left ${method === 'eversend' ? 'border-[var(--accent)] bg-[var(--accent)]/5' : 'border-[var(--glass-border)]'}`}
-                    >
-                      <Smartphone className="size-5 text-[var(--accent)]" />
-                      <div>
-                        <p className="text-sm font-bold">{t('subscription.eversendTitle', 'Eversend - multi-country')}</p>
-                        <p className="text-[11px] text-[var(--text-secondary)]">{t('subscription.eversendHelp', 'Multi-country mobile money and card collection where available.')}</p>
-                      </div>
-                    </button>
+
                   </div>
 
                   {['payunit', 'eversend', 'pawapay'].includes(method) && (
@@ -407,27 +379,11 @@ function SubscribeContent() {
                           value={phone}
                           onChange={(event) => setPhone(event.target.value)}
                           placeholder="651188134"
-                          className="mt-2 h-12 w-full rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-4 text-[13px] placeholder:text-[11px] placeholder:font-normal font-semibold outline-none focus:border-[var(--accent)]"
+                          type="tel" className={FIELD}
                         />
                       </label>
-                      
-                      {method === 'payunit' && (
-                        <div className="space-y-2">
-                          <span className="text-xs font-bold text-[var(--text-secondary)]">{t('subscription.provider', 'Network provider')}</span>
-                          <div className="grid grid-cols-2 gap-3">
-                            {MOBILE_MONEY_PROVIDERS.map(node => (
-                              <button
-                                key={node.id}
-                                type="button"
-                                onClick={() => setProvider(node.id)}
-                                className={`h-11 rounded-2xl border font-bold text-xs tracking-tight transition-all ${provider === node.id ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' : 'bg-[var(--bg-secondary)] border-[var(--glass-border)] text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
-                              >
-                                {node.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+
+
                     </div>
                   )}
 

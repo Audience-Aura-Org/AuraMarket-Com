@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '@/hooks/useAuth';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import api from '@/services/api';
+import { paymentMethodLabel, paymentMessage } from '@/lib/paymentLabels';
 import { recheckTransaction, recheckWithdrawal } from '@/services/paymentProvider';
 import Pagination from '@/components/common/Pagination';
 import StatCard from '@/components/layout/StatCard';
@@ -58,6 +59,7 @@ function ReceiptModal({ tx, onClose }) {
           </div>
           <h3 className="text-xl font-bold tracking-tight">Aura Dime</h3>
           <p className="text-[11px] font-semibold text-slate-400 tracking-tight">Official Transaction Receipt</p>
+          <p className="text-[11px] text-slate-400">{paymentMethodLabel(tx.gateway)}</p>
         </div>
         <div className="space-y-4 mb-8 text-sm">
           <div className="flex justify-between border-b border-slate-100 pb-2">
@@ -110,7 +112,7 @@ export default function WalletPage() {
   const depositActionHandledRef = useRef(false);
 
   const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
+    setToast({ msg: paymentMessage(msg), type });
     setTimeout(() => setToast(null), 4000);
   };
 
@@ -334,7 +336,7 @@ export default function WalletPage() {
               'bg-amber-500 text-white'
             }`}
           >
-            {toast.msg}
+            {paymentMessage(toast.msg)}
           </motion.div>
         )}
       </AnimatePresence>
@@ -483,8 +485,8 @@ export default function WalletPage() {
                         <config.Icon className="size-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-semibold tracking-tight truncate capitalize">{tx.description || tx.type}</p>
-                        <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{new Date(tx.createdAt).toLocaleDateString()}</p>
+                        <p className="text-[11px] font-semibold tracking-tight truncate capitalize">{paymentMessage(tx.description || tx.type)}</p>
+                        <p className="text-[10px] font-semibold text-[var(--text-secondary)] opacity-40 tracking-tight">{paymentMethodLabel(tx.gateway)} ? {new Date(tx.createdAt).toLocaleDateString()}</p>
                         {tx.status === 'pending' && ['eversend', 'payunit', 'pawapay'].includes(tx.gateway) && ['deposit', 'payment', 'withdrawal'].includes(tx.type) && (
                           <button
                             onClick={(e) => { e.stopPropagation(); handleRecheckTx(tx); }}
@@ -543,7 +545,7 @@ export default function WalletPage() {
                        <AlertCircle className="size-5" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm text-[var(--text-primary)] capitalize">{wr.withdrawal_method} {t('wallet.withdrawal', 'Withdrawal')}</p>
+                      <p className="font-bold text-sm text-[var(--text-primary)] capitalize">{paymentMethodLabel(wr.withdrawal_method)} {t('wallet.withdrawal', 'Withdrawal')}</p>
                       <p className="text-[11px] font-semibold text-[var(--text-secondary)] opacity-40">{new Date(wr.createdAt).toLocaleDateString()} · {wr.status}</p>
                     </div>
                     <div className="text-right">

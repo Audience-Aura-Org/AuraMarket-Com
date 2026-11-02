@@ -31,7 +31,11 @@ export const fetchGatewayConfig = async (gateway = 'eversend') => {
  * @param {object} payload - Gateway-specific details
  */
 export const initiateCollection = async (gateway, payload) => {
-  const res = await api.post(`/payments/${gateway}/initialize`, payload);
+  if (gateway === 'eversend' && Number(payload.amount) < 500) throw new Error('Mobile Money requires at least 500 XAF for this payment route.');
+  const requestPayload = payload.redirect_url
+    ? { ...payload, redirect_url: payload.redirect_url.replace(/([?&]gateway=)[^&]*/, '$1' + gateway) }
+    : payload;
+  const res = await api.post(`/payments/${gateway}/initialize`, requestPayload);
   return res.data;
 };
 
@@ -58,7 +62,7 @@ export const resolveCameroonMobileMoneyGateway = (phone = '', { pawapayOrange = 
 };
 
 let pawapayOrangeRequest = null;
-const isPawaPayOrangeEnabled = () => {
+export const isPawaPayOrangeEnabled = () => {
   pawapayOrangeRequest ||= (async () => {
     try {
       const res = await api.get('/payments/fees');
@@ -70,6 +74,9 @@ const isPawaPayOrangeEnabled = () => {
   })();
   return pawapayOrangeRequest;
 };
+
+export const resolveConfiguredCameroonMobileMoneyGateway = async (phone) =>
+  resolveCameroonMobileMoneyGateway(phone, { pawapayOrange: await isPawaPayOrangeEnabled() });
 
 const isSafePreChargeFallbackError = (error) => {
   const status = error?.response?.status;
@@ -87,7 +94,7 @@ const isSafePreChargeFallbackError = (error) => {
  * or service failure; retrying after a network timeout could create two charges.
  */
 export const initiateSmartCameroonCollection = async (payload) => {
-  const route = resolveCameroonMobileMoneyGateway(payload.phone, { pawapayOrange: await isPawaPayOrangeEnabled() });
+  const route = await resolveConfiguredCameroonMobileMoneyGateway(payload.phone);
   const requestPayload = { ...payload, provider: route.provider };
 
   try {
@@ -104,6 +111,7 @@ export const initiateSmartCameroonCollection = async (payload) => {
         return { ...result, gateway: 'payunit', routedNetwork: route.network, fallbackUsed: true };
       } catch (payunitError) {
         if (!isSafePreChargeFallbackError(payunitError)) throw payunitError;
+        if (Number(payload.amount) < 500) throw payunitError;
         // PayUnit also down → last resort: Eversend
         const result = await initiateCollection('eversend', payload);
         return { ...result, gateway: 'eversend', routedNetwork: route.network, fallbackUsed: true, fallbackLevel: 2 };
@@ -111,7 +119,7 @@ export const initiateSmartCameroonCollection = async (payload) => {
     }
 
     // PayUnit (Orange) failed → try Eversend
-    if (route.gateway === 'payunit') {
+    if (route.gateway === 'payunit' && Number(payload.amount) >= 500) {
       const result = await initiateCollection('eversend', payload);
       return { ...result, gateway: 'eversend', routedNetwork: route.network, fallbackUsed: true };
     }
