@@ -27,12 +27,12 @@ const {
   getPlatformFinancialStats,
 } = require('../controllers/wallet.controller');
 
-const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { protect, restrictTo, blockGuests } = require('../middleware/auth.middleware');
 const { loadManagerScope } = require('../middleware/managerScope.middleware');
 const { walletWriteLimiter } = require('../middleware/rateLimiter');
 
 // All Wallet routes require authentication
-router.use(protect);
+router.use(protect, blockGuests);
 
 // ── General Customer / Vendor ─────────────────
 router.get('/', getWalletBalance);

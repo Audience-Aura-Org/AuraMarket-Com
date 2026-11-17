@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { protect, restrictTo, blockGuests } = require('../middleware/auth.middleware');
 const {
   getMySubscription,
   initializeSubscription,
@@ -14,7 +14,7 @@ const {
   deleteUserSubscription,
 } = require('../controllers/subscription.controller');
 
-router.use(protect);
+router.use(protect, blockGuests);
 router.param('id', (req, res, next, id) => require('mongoose').isValidObjectId(id) ? next() : res.status(400).json({ success: false, message: 'Invalid record ID.' }));
 
 router.get('/me', getMySubscription);

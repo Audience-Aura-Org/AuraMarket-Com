@@ -16,6 +16,7 @@ const AuthOtp = require('../models/AuthOtp.model');
 const {
   clearAuthCookie,
   createAuthToken,
+  createGuestToken,
   createSignupToken,
   normalizeEmail,
   sendOtpToEmail,
@@ -733,8 +734,27 @@ const getAdminInfo = async (req, res, next) => {
   }
 };
 
+// @route POST /api/auth/guest — instant Buy Now for visitors with no account.
+// Always a NEW hidden customer: guests are never found by phone or email. The
+// token is returned in the body only (no cookie), so the browser's normal
+// signed-out session is left alone and only the Buy Now popup sends it.
+const createGuestSession = async (req, res, next) => {
+  try {
+    const user = await User.create({
+      name: 'Guest',
+      email: `guest-${require('crypto').randomBytes(8).toString('hex')}@guest.auradime.invalid`,
+      role: 'customer',
+      is_guest: true,
+    });
+    res.status(201).json({ success: true, token: createGuestToken(user), data: { user: buildSafeUser(user) } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
+  createGuestSession,
   login,
   verify2FALogin,
   sendOtp,

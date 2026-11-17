@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { protect, restrictTo, blockGuests } = require('../middleware/auth.middleware');
 const { 
   submitReview, 
   getProductReviews, 
@@ -12,7 +12,7 @@ const {
 router.get('/product/:id', getProductReviews);
 
 // Protected (Customer)
-router.post('/', protect, submitReview);
+router.post('/', protect, blockGuests, submitReview);
 
 // Admin Only
 router.get('/admin', protect, restrictTo('admin'), getAllReviews);

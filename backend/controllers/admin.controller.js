@@ -249,7 +249,7 @@ const getPlatformAnalytics = async (req, res, next) => {
       deliveredOrders,
       activeOrders
     ] = await Promise.all([
-      User.countDocuments(scoped('User', {}, s)),
+      User.countDocuments(scoped('User', { is_guest: { $ne: true } }, s)),
       Vendor.countDocuments(scoped('Vendor', {}, s)),
       Product.countDocuments(scoped('Product', {}, s)),
       Product.countDocuments(scoped('Product', { status: 'active' }, s)),
@@ -269,8 +269,9 @@ const getPlatformAnalytics = async (req, res, next) => {
         { $group: { _id: '$status', total: { $sum: '$amount' } } }
       ]),
       s ? Promise.resolve(null) : buildAdminEarningsSummary(),
-      User.countDocuments(scoped('User', { is_online: true }, s)),
+      User.countDocuments(scoped('User', { is_online: true, is_guest: { $ne: true } }, s)),
       User.countDocuments(scoped('User', {
+        is_guest: { $ne: true },
         last_seen: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
       }, s)),
       Transaction.countDocuments(scoped('Transaction', { status: 'failed' }, s)),
@@ -1612,7 +1613,7 @@ const getAdvancedAnalytics = async (req, res, next) => {
 
     // 4. Role-Based User Breakdown
     const roleBreakdown = await User.aggregate([
-      { $match: scoped('User', {}, s) },
+      { $match: scoped('User', { is_guest: { $ne: true } }, s) },
       { $group: { _id: '$role', count: { $sum: 1 } } }
     ]);
 
@@ -1659,7 +1660,7 @@ const getAdvancedAnalytics = async (req, res, next) => {
           total_escrow: totalEscrow[0]?.total || 0
         },
         platform_summary: {
-          total_users: await User.countDocuments(scoped('User', {}, s)),
+          total_users: await User.countDocuments(scoped('User', { is_guest: { $ne: true } }, s)),
           total_vendors: await Vendor.countDocuments(scoped('Vendor', {}, s)),
           live_shipments: liveShipments,
           stock_alerts: stockAlerts

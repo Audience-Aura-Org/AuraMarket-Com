@@ -113,6 +113,8 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // Hidden customer created by instant Buy Now for a visitor with no account.
+    is_guest: { type: Boolean, default: false, index: true },
     auth_provider: {
       type: String,
       enum: ['email_otp', 'password'],

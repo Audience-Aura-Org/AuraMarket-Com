@@ -242,4 +242,9 @@ const loadVendorOptional = async (req, res, next) => {
   }
 };
 
-module.exports = { protect, restrictTo, protectOptional, loadVendor, loadVendorOptional, resolveUserFromToken, getRequestToken };
+// Guests (instant Buy Now) may place and follow their orders, nothing else.
+const blockGuests = (req, res, next) => (req.user?.is_guest
+  ? res.status(403).json({ success: false, message: 'Guest accounts cannot do this.' })
+  : next());
+
+module.exports = { protect, restrictTo, blockGuests, protectOptional, loadVendor, loadVendorOptional, resolveUserFromToken, getRequestToken };

@@ -10,18 +10,21 @@ const {
   getUser,
   updateProfile,
   getAdminInfo,
+  createGuestSession,
 } = require('../controllers/auth.controller');
+const { guestSessionLimiter } = require('../middleware/rateLimiter');
 
-const { protect, protectOptional } = require('../middleware/auth.middleware');
+const { protect, protectOptional, blockGuests } = require('../middleware/auth.middleware');
 
 router.post('/send-otp', sendOtp);
 router.post('/verify-otp', verifyOtp);
+router.post('/guest', guestSessionLimiter, createGuestSession);
 router.post('/logout', protectOptional, logout);
 
 router.get('/me', protect, getMe);
 router.get('/admin-info', protect, getAdminInfo);
 router.get('/users/:id', protect, getUser);
-router.patch('/update-profile', protect, updateProfile);
-router.post('/delete-account', protect, deleteAccount);
+router.patch('/update-profile', protect, blockGuests, updateProfile);
+router.post('/delete-account', protect, blockGuests, deleteAccount);
 
 module.exports = router;

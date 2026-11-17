@@ -14,6 +14,7 @@ const FEATURE_FLAGS = Object.freeze({
   payment_triggered_dispatch: 'boolean',
   enhanced_chat: 'boolean',
   whatsapp_notifications: 'boolean', // send opted-in users WhatsApp updates
+  instant_buy: 'boolean',            // Buy Now pays by Mobile Money in a popup, guests allowed
 });
 const MODES = ['off', 'shadow', 'on'];
 

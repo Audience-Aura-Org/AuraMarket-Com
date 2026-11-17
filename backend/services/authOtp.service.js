@@ -65,6 +65,13 @@ const createAuthToken = (user) => {
   );
 };
 
+// Guest sessions (instant Buy Now) last 90 days on the device that made them.
+const createGuestToken = (user) => jwt.sign(
+  { id: user._id, tokenVersion: user.token_version || 0, type: 'auth' },
+  JWT_SECRET,
+  { expiresIn: '90d' }
+);
+
 const createSignupToken = (email) => {
   return jwt.sign({ email: normalizeEmail(email), type: 'signup' }, JWT_SECRET, {
     expiresIn: SIGNUP_TOKEN_EXPIRES_IN,
@@ -269,6 +276,7 @@ module.exports = {
   OTP_TTL_MINUTES,
   clearAuthCookie,
   createAuthToken,
+  createGuestToken,
   createSignupToken,
   normalizeEmail,
   sendOtpToEmail,

@@ -178,8 +178,20 @@ const liveTrackingLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Each call creates a guest account, so cap it per IP (sized for carrier NAT).
+const guestSessionLimiter = rateLimit({
+  store: redisStore('auradime:rl:guest:'),
+  passOnStoreError: true,
+  windowMs: 60 * 60 * 1000,
+  max: intEnv('GUEST_SESSION_RATE_LIMIT_MAX', 60),
+  message: { success: false, message: 'Too many checkout attempts from this network. Please wait a moment.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   apiLimiter,
+  guestSessionLimiter,
   liveTrackingLimiter,
   strictLimiter,
   trackingLimiter,

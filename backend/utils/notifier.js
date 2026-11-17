@@ -408,8 +408,9 @@ const sendNotification = async (app, recipientId, data) => {
       enqueueJob('email', async () => {
         try {
           const EmailLog = require('../models/EmailLog.model');
-          const user = await User.findById(recipientId).select('email name role preferred_language');
-          let targetEmail = overrideEmail || user?.email;
+          const user = await User.findById(recipientId).select('email name role preferred_language is_guest');
+          // Guests have a placeholder address that must never be mailed.
+          let targetEmail = user?.is_guest ? null : (overrideEmail || user?.email);
 
           if (role === 'logistics' && !overrideEmail) {
             const LogisticsCompany = require('../models/LogisticsCompany.model');

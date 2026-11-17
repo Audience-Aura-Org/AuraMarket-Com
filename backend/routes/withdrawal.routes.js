@@ -15,7 +15,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { protect, restrictTo } = require('../middleware/auth.middleware');
+const { protect, restrictTo, blockGuests } = require('../middleware/auth.middleware');
 const { loadManagerScope } = require('../middleware/managerScope.middleware');
 const { walletWriteLimiter } = require('../middleware/rateLimiter');
 
@@ -31,7 +31,7 @@ const {
 } = require('../controllers/withdrawal.controller');
 
 // ── All authenticated users ───────────────────
-router.use(protect);
+router.use(protect, blockGuests);
 router.post('/', walletWriteLimiter, submitWithdrawal);
 router.get('/mine', getMyWithdrawals);
 router.get('/mine/:id/recheck', userRecheckWithdrawal);
