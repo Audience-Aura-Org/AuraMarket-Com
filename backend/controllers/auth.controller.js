@@ -740,6 +740,10 @@ const getAdminInfo = async (req, res, next) => {
 // signed-out session is left alone and only the Buy Now popup sends it.
 const createGuestSession = async (req, res, next) => {
   try {
+    const { isEnabled } = require('../utils/featureFlags');
+    if (!isEnabled(await require('../models/PlatformSettings.model').getSettings(), 'instant_buy')) {
+      return res.status(403).json({ success: false, message: 'Buying without an account is not available yet.' });
+    }
     const user = await User.create({
       name: 'Guest',
       email: `guest-${require('crypto').randomBytes(8).toString('hex')}@guest.auradime.invalid`,

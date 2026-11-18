@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { CheckCircle2, Loader2, Smartphone, X } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
-import { ensureGuestSession } from '@/lib/guestSession';
+import { clearGuestSession, ensureGuestSession } from '@/lib/guestSession';
 import { authConfigFor, failInstantOrder, placeInstantOrder, sendDeliveryDetails } from '@/lib/instantBuy';
 import { initiateSmartCameroonCollection, pollTransactionStatus } from '@/services/paymentProvider';
 import { detectPawaPayProvider, estimateMobileMoneyFee, useMobileMoneyFeeRates } from '@/lib/mobileMoneyFees';
@@ -103,14 +103,27 @@ export default function InstantBuySheet({ open, item, quantity = 1, variant, sel
     setBusy(true);
     setError('');
     try {
-      if (!user) await ensureGuestSession();
-      const config = authConfigFor(user);
-      configRef.current = config;
-      const { orderIds: ids } = await placeInstantOrder({
+      const order = {
         productId: item.productId, quantity, variant, selected_options: selectedOptions,
         area: zone ? { quartier: zone.name, zone_id: zone._id } : {}, logisticsCompanyId: firmId, phone,
         fulfilment_type: fulfilmentType || undefined,
-      }, config);
+      };
+      const place = async () => {
+        if (!user) await ensureGuestSession();
+        configRef.current = authConfigFor(user);
+        return placeInstantOrder(order, configRef.current);
+      };
+      let placed;
+      try {
+        placed = await place();
+      } catch (err) {
+        // A guest session the server no longer knows (expired, cleaned up): start a new one, once.
+        if (user || err?.response?.status !== 401) throw err;
+        clearGuestSession();
+        placed = await place();
+      }
+      const ids = placed.orderIds;
+      const config = configRef.current;
       setOrderIds(ids);
       const res = await initiateSmartCameroonCollection({ amount: total, currency: 'XAF', phone, country: 'CM', order_ids: ids }, config);
       const reference = res?.data?.reference || res?.data?.transaction_id;

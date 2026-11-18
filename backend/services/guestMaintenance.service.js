@@ -17,28 +17,37 @@ const { createWithdrawalRecord } = require('./withdrawalRecord.service');
 const { withLock } = require('../utils/locks');
 
 const MIN_REFUND_PAYOUT = 500; // WithdrawalRequest minimum
+const MAX_FAILED_PAYOUTS = 3;   // then an admin handles it by hand
 const IDLE_GUEST_DAYS = 7;
 const SWEEP_MS = 5 * 60 * 1000;
 const PURGE_MS = 24 * 60 * 60 * 1000;
 
-/** The number the guest paid with: their latest order's contact phone, else the collection's. */
+/**
+ * The number that paid: the latest completed collection's phone. Never the
+ * delivery contact, which the buyer types freely (a gift recipient, or a
+ * number used to cash out someone else's money).
+ */
 const guestPhone = async (guestId) => {
-  const order = await Order.findOne({ customer_id: guestId, 'shipping_address.phone': { $nin: [null, ''] } })
-    .sort({ createdAt: -1 }).select('shipping_address.phone').lean();
-  if (order) return order.shipping_address.phone;
-  const tx = await Transaction.findOne({ user_id: guestId, 'metadata.phone': { $nin: [null, ''] } })
-    .sort({ createdAt: -1 }).select('metadata.phone').lean();
+  const tx = await Transaction.findOne({
+    user_id: guestId, type: { $in: ['payment', 'deposit'] }, status: 'completed', 'metadata.phone': { $nin: [null, ''] },
+  }).sort({ createdAt: -1 }).select('metadata.phone').lean();
   return tx?.metadata?.phone || null;
 };
 
 const sweepGuestRefunds = async (app = null) => {
-  const guests = await User.find({ is_guest: true, is_active: true, wallet_balance: { $gte: MIN_REFUND_PAYOUT } })
-    .select('_id wallet_balance').limit(50).lean();
+  const settings = await PlatformSettings.getSettings();
+  if (settings.withdrawals_maintenance_mode) return 0;
+  const minimum = Math.max(MIN_REFUND_PAYOUT, Number(settings.min_withdrawal_amount) || 0);
+  const guests = await User.find({ is_guest: true, is_active: true, wallet_balance: { $gte: minimum } })
+    .select('_id wallet_balance').sort({ updatedAt: 1 }).limit(50).lean();
   let created = 0;
   for (const guest of guests) {
     try {
       const open = await WithdrawalRequest.exists({ requested_by: guest._id, status: { $in: ['pending', 'approved'] } });
       if (open) continue;
+      // A number that keeps failing is not retried every 5 minutes forever.
+      const failures = await WithdrawalRequest.countDocuments({ requested_by: guest._id, status: { $in: ['failed', 'rejected'] } });
+      if (failures >= MAX_FAILED_PAYOUTS) continue;
       const phone = await guestPhone(guest._id);
       if (!phone) continue;
       const session = await mongoose.startSession();
@@ -49,7 +58,7 @@ const sweepGuestRefunds = async (app = null) => {
           // Re-read inside the transaction so a concurrent change is not double-paid.
           const fresh = await User.findById(guest._id).select('wallet_balance').session(session).lean();
           const amount = Math.floor(Number(fresh?.wallet_balance || 0));
-          if (amount < MIN_REFUND_PAYOUT) return;
+          if (amount < minimum) return;
           record = await createWithdrawalRecord({
             userId: guest._id,
             role: 'user',
@@ -79,13 +88,20 @@ const sweepGuestRefunds = async (app = null) => {
 
 const purgeIdleGuests = async () => {
   const cutoff = new Date(Date.now() - IDLE_GUEST_DAYS * 24 * 60 * 60 * 1000);
-  const candidates = await User.find({ is_guest: true, createdAt: { $lt: cutoff } }).select('_id').limit(500).lean();
   let removed = 0;
-  for (const { _id } of candidates) {
-    if (await Order.exists({ customer_id: _id })) continue;
-    if (await Transaction.exists({ user_id: _id })) continue;
-    const res = await User.deleteOne({ _id, is_guest: true });
-    removed += res.deletedCount;
+  let after = null;
+  // Page by _id: guests that bought stay forever, so a plain limit would rescan them every day.
+  for (let page = 0; page < 40; page += 1) {
+    const candidates = await User.find({ is_guest: true, createdAt: { $lt: cutoff }, ...(after ? { _id: { $gt: after } } : {}) })
+      .select('_id').sort({ _id: 1 }).limit(500).lean();
+    if (!candidates.length) break;
+    after = candidates[candidates.length - 1]._id;
+    for (const { _id } of candidates) {
+      if (await Order.exists({ customer_id: _id })) continue;
+      if (await Transaction.exists({ user_id: _id })) continue;
+      const res = await User.deleteOne({ _id, is_guest: true });
+      removed += res.deletedCount;
+    }
   }
   return removed;
 };

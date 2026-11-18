@@ -22,7 +22,7 @@ beforeAll(() => { app = buildApp() })
 
 let buyer, vendor, vendorUser, firm
 beforeEach(async () => {
-  await PlatformSettings.create([{ commission_rate: 0, commission_type: 'percentage' }])
+  await PlatformSettings.create([{ commission_rate: 0, commission_type: 'percentage', features: { instant_buy: true } }])
   buyer = await createUser()
   ;({ user: vendorUser, vendor } = await createVendor())
   const owner = await createLogisticsUser()

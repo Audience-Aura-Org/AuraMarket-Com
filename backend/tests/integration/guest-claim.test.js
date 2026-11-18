@@ -15,8 +15,11 @@ const Transaction = require('../../models/Transaction.model')
 const Escrow = require('../../models/Escrow.model')
 const User = require('../../models/User.model')
 
+const PlatformSettings = require('../../models/PlatformSettings.model')
+
 let app
 beforeAll(() => { app = buildApp() })
+beforeEach(async () => { await PlatformSettings.create([{ commission_rate: 0, commission_type: 'percentage', features: { instant_buy: true } }]) })
 
 const newGuest = async () => {
   const res = await request(app).post('/api/v1/auth/guest').send({})

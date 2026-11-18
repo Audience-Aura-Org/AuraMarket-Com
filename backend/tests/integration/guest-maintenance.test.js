@@ -6,7 +6,7 @@
  */
 
 const { buildApp } = require('../setup/app')
-const { createUser, createVendor, createOrder } = require('../factories')
+const { createUser, createVendor, createOrder, createTransaction } = require('../factories')
 
 const User = require('../../models/User.model')
 const WithdrawalRequest = require('../../models/WithdrawalRequest.model')
@@ -20,7 +20,8 @@ beforeEach(async () => { await PlatformSettings.create([{ commission_rate: 0, co
 const guestWithOrder = async (balance) => {
   const guest = await createUser({ is_guest: true, wallet_balance: balance })
   const { vendor } = await createVendor()
-  await createOrder({ customerId: guest._id, vendorId: vendor._id }, { payment_status: 'refunded', shipping_address: { quartier: 'Akwa', phone: '677123456' } })
+  await createOrder({ customerId: guest._id, vendorId: vendor._id }, { payment_status: 'refunded', shipping_address: { quartier: 'Akwa', phone: '699000000' } })
+  await createTransaction(guest._id, { type: 'payment', status: 'completed', gateway: 'pawapay', metadata: { phone: '677123456' } })
   return guest
 }
 

@@ -11,8 +11,11 @@ const { buildApp }    = require('../setup/app')
 const { createAdmin } = require('../factories')
 const { asUser }      = require('../helpers/auth')
 
+const PlatformSettings = require('../../models/PlatformSettings.model')
+
 let app
 beforeAll(() => { app = buildApp() })
+beforeEach(async () => { await PlatformSettings.create([{ commission_rate: 0, commission_type: 'percentage', features: { instant_buy: true } }]) })
 
 const newGuest = () => request(app).post('/api/v1/auth/guest').send({})
 

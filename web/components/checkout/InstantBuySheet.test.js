@@ -5,6 +5,7 @@ const m = vi.hoisted(() => ({
   user: null,
   apiGet: vi.fn(),
   ensureGuestSession: vi.fn(),
+  clearGuestSession: vi.fn(),
   placeInstantOrder: vi.fn(),
   sendDeliveryDetails: vi.fn(),
   failInstantOrder: vi.fn(),
@@ -14,7 +15,7 @@ const m = vi.hoisted(() => ({
 
 vi.mock('@/hooks/useAuth', () => ({ useAuthStore: (sel) => sel({ user: m.user }) }));
 vi.mock('@/services/api', () => ({ default: { get: (...a) => m.apiGet(...a) } }));
-vi.mock('@/lib/guestSession', () => ({ ensureGuestSession: (...a) => m.ensureGuestSession(...a) }));
+vi.mock('@/lib/guestSession', () => ({ ensureGuestSession: (...a) => m.ensureGuestSession(...a), clearGuestSession: (...a) => m.clearGuestSession(...a) }));
 vi.mock('@/lib/instantBuy', () => ({
   authConfigFor: (user) => (user ? {} : { headers: { Authorization: 'Bearer gtok' } }),
   placeInstantOrder: (...a) => m.placeInstantOrder(...a),
@@ -121,5 +122,15 @@ describe('InstantBuySheet', () => {
     fireEvent.click(screen.getByRole('radio', { name: /FastShip/ }));
     // No number typed yet → highest collection rate (1.77%) + payout 1.3%: 11,000 → 11,344
     expect((await screen.findByRole('button', { name: /^Pay / })).textContent).toMatch(/11[\s,. ]?344/);
+  });
+
+  it('replaces a guest session the server no longer accepts, once', async () => {
+    m.placeInstantOrder.mockRejectedValueOnce({ response: { status: 401 } }).mockResolvedValueOnce({ orderIds: ['abcdef123456'] });
+    open();
+    await chooseAreaAndPay();
+    await screen.findByText(/Payment confirmed/);
+    expect(m.clearGuestSession).toHaveBeenCalledTimes(1);
+    expect(m.ensureGuestSession).toHaveBeenCalledTimes(2);
+    expect(m.placeInstantOrder).toHaveBeenCalledTimes(2);
   });
 });

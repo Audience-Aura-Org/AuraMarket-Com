@@ -81,7 +81,9 @@ export default function DineMealCard({ meal, onSelect = null }) {
   };
 
   const handleBuyNow = () => {
-    if (instantBuy.enabled) {
+    // Meals with options or closed restaurants keep the normal flow (options are chosen in checkout).
+    const hasOptions = (meal.meal?.option_groups || []).length > 0;
+    if (instantBuy.enabled && !hasOptions && restaurant_open !== false) {
       instantBuy.open({ item: { productId: meal._id, name, price, image: thumbnail_url, vendorId: vendor_id?._id || vendor_id }, quantity: 1, fulfilmentType: 'delivery' });
       return;
     }

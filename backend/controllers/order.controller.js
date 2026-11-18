@@ -29,6 +29,8 @@ const { generateInvoice }     = require('../utils/invoiceGenerator');
 const { getWebUrl }           = require('../utils/url');
 const logisticsService        = require('../services/logistics.service');
 const { confirmedPoint } = require('../utils/geoPoint');
+const PlatformSettings = require('../models/PlatformSettings.model');
+const { isEnabled } = require('../utils/featureFlags');
 const { rememberLater } = require('../services/savedAddress.service');
 const { handleVendorPayout }  = require('../services/payment/settle.service');
 const { debitBalance, creditBalance, generateRef } = require('../services/wallet.service');
@@ -170,7 +172,15 @@ const restoreOrderInventory = async (order, session) => {
 // @desc    Create a new order
 // @access  Private (Role: customer)
 // ─────────────────────────────────────────────
+// Instant Buy Now orders (paid before the exact spot is known) exist only while
+// the admin flag is on; otherwise the request is treated as a normal checkout.
+const instantBuyOn = async () => isEnabled(await PlatformSettings.getSettings(), 'instant_buy');
+const honourInstantBuyFlag = async (req) => {
+  if (req.body?.delivery_details_pending === true && !(await instantBuyOn())) req.body.delivery_details_pending = false;
+};
+
 const createOrderAttempt = async (req, res, next, isLastAttempt) => {
+  await honourInstantBuyFlag(req);
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -1496,6 +1506,7 @@ const findCheckoutReplay = async (customerId, checkoutKey) => {
 };
 
 const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
+  await honourInstantBuyFlag(req);
   const checkoutKey = readCheckoutKey(req);
   const replayedIds = await findCheckoutReplay(req.user._id, checkoutKey);
   if (replayedIds) {
@@ -2005,7 +2016,10 @@ const createOrdersFromCart = withTxnRetry(createOrdersFromCartAttempt, 'createOr
 //          spot. The area was priced and paid, so it cannot change. Allowed until
 //          the parcel is picked up; releases the held rider dispatch.
 // ─────────────────────────────────────────────
-const DETAIL_FIELDS = ['full_name', 'phone', 'street', 'landmark', 'place_name', 'zone_id'];
+// zone_id is not editable: it is the area that was priced and paid.
+const DETAIL_FIELDS = ['full_name', 'phone', 'street', 'landmark', 'place_name'];
+// A pin further than this from the paid area's centre is another area.
+const PIN_MAX_KM = 8;
 const PICKED_UP = ['picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed', 'cancelled'];
 const submitDeliveryDetails = async (req, res, next) => {
   try {
@@ -2013,6 +2027,9 @@ const submitDeliveryDetails = async (req, res, next) => {
     if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
     if (order.payment_status !== 'paid') {
       return res.status(409).json({ success: false, message: 'This order is not paid yet.' });
+    }
+    if (!['pending', 'complete'].includes(order.delivery_details_status)) {
+      return res.status(409).json({ success: false, message: 'Delivery details can only be changed on Instant Buy orders.' });
     }
     const body = req.body || {};
     const paidArea = String(order.shipping_address?.quartier || '').trim().toLowerCase();
@@ -2032,18 +2049,34 @@ const submitDeliveryDetails = async (req, res, next) => {
       if (body[key] !== undefined && body[key] !== '') patch[key] = typeof body[key] === 'string' ? body[key].trim() : body[key];
     }
     const location = confirmedPoint(body.location);
-    if (location) patch.location = location;
+    if (location) {
+      const LogisticZone = require('../models/LogisticZone.model');
+      const zone = order.shipping_address?.zone_id
+        ? await LogisticZone.findById(order.shipping_address.zone_id).select('centroid').lean()
+        : await LogisticZone.findOne({ type: 'quartier', name: new RegExp('^' + escapeRegExp(order.shipping_address?.quartier || '') + '$', 'i') }).select('centroid').lean();
+      const [lng, lat] = zone?.centroid?.coordinates || [];
+      if (lat != null && lng != null) {
+        const { distanceKm } = require('../services/riderDispatch.service');
+        if (distanceKm({ lat, lng }, location) > PIN_MAX_KM) {
+          return res.status(400).json({ success: false, message: 'That spot is outside the area you paid for.' });
+        }
+      }
+      patch.location = location;
+    }
     Object.assign(order.shipping_address, patch);
     order.markModified('shipping_address');
     order.delivery_details_status = 'complete';
     // Release the held dispatch: the worker creates the shipment on its next tick.
-    if (!shipment && order.rider_dispatch_at) order.rider_dispatch_at = new Date();
+    // Meals keep the kitchen's prep-time timer.
+    if (!shipment && order.rider_dispatch_at && !order.food_status) order.rider_dispatch_at = new Date();
     await order.save();
 
-    if (shipment) {
+    // Re-read: the worker may have created the shipment (area only) while this request ran.
+    const current = shipment || await Shipment.findOne({ order_id: order._id });
+    if (current && !PICKED_UP.includes(current.status)) {
       const { full_name, ...addressPatch } = patch;
-      shipment.delivery_address = { ...(shipment.delivery_address?.toObject?.() || shipment.delivery_address || {}), ...addressPatch };
-      await shipment.save();
+      current.delivery_address = { ...(current.delivery_address?.toObject?.() || current.delivery_address || {}), ...addressPatch };
+      await current.save();
     }
     if (!req.user.is_guest) rememberLater(req.user._id, { ...order.shipping_address.toObject(), location });
 

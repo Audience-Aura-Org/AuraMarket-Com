@@ -33,7 +33,8 @@ const { sendNotification } = require('../utils/notifier');
 const DUE_KINDS = {
   $or: [
     { food_status: 'preparing', fulfilment_type: 'delivery' },
-    { food_status: null, delivery_details_status: { $in: ['pending', 'complete'] } },
+    // Cancelled or refunded during the hold: no shipment exists yet, so nothing else stops the rider.
+    { food_status: null, delivery_details_status: { $in: ['pending', 'complete'] }, payment_status: 'paid', order_status: { $nin: ['cancelled', 'refunded', 'failed'] } },
   ],
 };
 const logisticsService = require('./logistics.service');

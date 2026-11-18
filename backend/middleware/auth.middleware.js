@@ -58,6 +58,27 @@ const shouldRestrictForVerification = (user) => (
   !['admin', 'manager'].includes(user.role) && ['held', 'pending', 'rejected'].includes(user.verification_status)
 );
 
+// Instant Buy Now guests may only buy and follow that purchase. Everything else
+// (account settings, uploads, chat, disputes, P2P…) needs a real account.
+const GUEST_ROUTES = [
+  ['GET', /^\/auth\/me$/],
+  ['GET', /^\/orders\/my-orders$/],
+  ['POST', /^\/orders(\/cart-split)?$/],
+  ['GET', /^\/orders\/[a-f0-9]{24}$/],
+  ['PATCH', /^\/orders\/[a-f0-9]{24}\/delivery-details$/],
+  ['POST', /^\/orders\/[a-f0-9]{24}\/cancel$/],
+  ['POST', /^\/payments\/(pawapay|payunit|eversend)\/initialize$/],
+  ['POST', /^\/payments\/pawapay\/checkout\/initialize$/],
+  ['GET', /^\/payments\/(pawapay|payunit|eversend)\/(verify|recheck)\/[^/]+$/],
+  ['POST', /^\/payments\/(pawapay|payunit|eversend)\/recheck\/[^/]+$/],
+  ['POST', /^\/payments\/checkout\/failed$/],
+  ['GET', /^\/payments\/(fees|gateways)$/],
+];
+const isGuestRouteAllowed = (req) => {
+  const path = String(req.originalUrl || '').split('?')[0].replace(/^\/api(\/v\d+)?/, '').replace(/\/+$/, '');
+  return GUEST_ROUTES.some(([method, pattern]) => method === req.method && pattern.test(path));
+};
+
 const rejectUnverifiedWrite = (req, res) => {
   if (shouldRestrictForVerification(req.user) && !isVerificationWriteAllowed(req)) {
     res.status(423).json({
@@ -137,6 +158,10 @@ const protect = async (req, res, next) => {
         success: false,
         message: 'This session is no longer valid.',
       });
+    }
+
+    if (user.is_guest && !isGuestRouteAllowed(req)) {
+      return res.status(403).json({ success: false, message: 'Guest accounts cannot do this.' });
     }
 
     // 4. Attach user to request object

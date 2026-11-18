@@ -18,11 +18,10 @@ const claimGuest = async (guestId, userId, session) => {
   const guest = await User.findOne({ _id: guestId, is_guest: true, is_active: true }).session(session);
   if (!guest) return { orders: 0, transactions: 0 };
 
+  // One operation at a time: a MongoDB transaction does not allow parallel operations.
   const opts = { session };
-  const [orders, transactions] = await Promise.all([
-    Order.updateMany({ customer_id: guestId }, { $set: { customer_id: userId } }, opts),
-    Transaction.updateMany({ user_id: guestId }, { $set: { user_id: userId } }, opts),
-  ]);
+  const orders = await Order.updateMany({ customer_id: guestId }, { $set: { customer_id: userId } }, opts);
+  const transactions = await Transaction.updateMany({ user_id: guestId }, { $set: { user_id: userId } }, opts);
   await Escrow.updateMany({ buyer_id: guestId }, { $set: { buyer_id: userId } }, opts);
   await Dispute.updateMany({ initiator_id: guestId }, { $set: { initiator_id: userId } }, opts);
   await WithdrawalRequest.updateMany({ requested_by: guestId }, { $set: { requested_by: userId } }, opts);
@@ -30,7 +29,8 @@ const claimGuest = async (guestId, userId, session) => {
 
   const balance = Number(guest.wallet_balance || 0);
   if (balance > 0) {
-    await debitBalance(guestId, balance, session);
+    // Never credit what was not debited.
+    if (!(await debitBalance(guestId, balance, session))) throw new Error('Guest balance changed during the claim.');
     await creditBalance(userId, balance, session);
   }
   await User.updateOne({ _id: guestId }, { $set: { is_active: false, guest_claimed_by: userId } }, opts);
