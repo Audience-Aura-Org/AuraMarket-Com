@@ -109,6 +109,8 @@ const OrderSchema = new mongoose.Schema(
       country: { type: String, default: 'Cameroon' },
       phone: String,
       email: String,
+      // Recipient when it is not the account holder (Instant Buy Now guests give it after paying).
+      full_name: String,
       // Exact delivery spot chosen with the place search / map pin (optional; older
       // orders have none). Pricing still follows the quartier.
       zone_id: { type: mongoose.Schema.Types.ObjectId, ref: 'LogisticZone', default: null },

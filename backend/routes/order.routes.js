@@ -27,6 +27,7 @@ const {
   dispatchIntercityParcel,
   markIntercityArrived,
   markIntercityCollected,
+  submitDeliveryDetails,
 } = require('../controllers/order.controller');
 
 const { protect, restrictTo, loadVendor } = require('../middleware/auth.middleware');
@@ -43,6 +44,7 @@ router.get('/my-orders', restrictTo('customer', 'vendor', 'logistics'), getCusto
 
 router.post('/:id/refund', restrictTo('customer', 'vendor', 'logistics'), requestRefund);
 router.post('/:id/cancel', restrictTo('customer', 'vendor', 'logistics'), cancelOrder);
+router.patch('/:id/delivery-details', restrictTo('customer', 'vendor', 'logistics'), submitDeliveryDetails);
 router.post('/:id/pay-direct', restrictTo('customer', 'vendor', 'logistics'), payDirectly);
 
 // ── Vendor Seller Routes ───────────────────────────────────────────────────

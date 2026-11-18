@@ -707,7 +707,8 @@ const createOrderAttempt = async (req, res, next, isLastAttempt) => {
       });
     }
 
-    if (shipping_address?.quartier || shipping_address?.location) rememberLater(req.user._id, { ...shipping_address, location: confirmedPoint(shipping_address.location) });
+    // Instant Buy Now sends only the area here; the full address is remembered once the buyer gives it.
+    if (req.body.delivery_details_pending !== true && (shipping_address?.quartier || shipping_address?.location)) rememberLater(req.user._id, { ...shipping_address, location: confirmedPoint(shipping_address.location) });
     res.status(201).json({
       success: true,
       message: 'Order created successfully.',
@@ -1981,7 +1982,8 @@ const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
     }
 
     // Keep the delivery address for next time (up to 5 per account).
-    if (shipping_address?.quartier || shipping_address?.location) rememberLater(req.user._id, { ...shipping_address, location: confirmedPoint(shipping_address.location) });
+    // Instant Buy Now sends only the area here; the full address is remembered once the buyer gives it.
+    if (req.body.delivery_details_pending !== true && (shipping_address?.quartier || shipping_address?.location)) rememberLater(req.user._id, { ...shipping_address, location: confirmedPoint(shipping_address.location) });
     res.status(201).json({ success: true, data: { orderIds: createdOrderIds } });
   } catch (error) {
     if (session.inTransaction()) await session.abortTransaction();
@@ -1996,6 +1998,74 @@ const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
   }
 };
 const createOrdersFromCart = withTxnRetry(createOrdersFromCartAttempt, 'createOrdersFromCart');
+
+// ─────────────────────────────────────────────
+// @route   PATCH /api/orders/:id/delivery-details
+// @desc    Instant Buy Now: after paying, the buyer gives name, phone and exact
+//          spot. The area was priced and paid, so it cannot change. Allowed until
+//          the parcel is picked up; releases the held rider dispatch.
+// ─────────────────────────────────────────────
+const DETAIL_FIELDS = ['full_name', 'phone', 'street', 'landmark', 'place_name', 'zone_id'];
+const PICKED_UP = ['picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'failed', 'cancelled'];
+const submitDeliveryDetails = async (req, res, next) => {
+  try {
+    const order = await Order.findOne({ _id: req.params.id, customer_id: req.user._id });
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
+    if (order.payment_status !== 'paid') {
+      return res.status(409).json({ success: false, message: 'This order is not paid yet.' });
+    }
+    const body = req.body || {};
+    const paidArea = String(order.shipping_address?.quartier || '').trim().toLowerCase();
+    if (body.quartier && String(body.quartier).trim().toLowerCase() !== paidArea) {
+      return res.status(400).json({ success: false, message: 'The delivery area was paid for and cannot change.' });
+    }
+    const shipment = await Shipment.findOne({ order_id: order._id });
+    if (shipment && PICKED_UP.includes(shipment.status)) {
+      return res.status(409).json({ success: false, message: 'The parcel was already picked up.' });
+    }
+    if (!String(body.phone || '').trim()) {
+      return res.status(400).json({ success: false, message: 'A phone number is required.' });
+    }
+
+    const patch = {};
+    for (const key of DETAIL_FIELDS) {
+      if (body[key] !== undefined && body[key] !== '') patch[key] = typeof body[key] === 'string' ? body[key].trim() : body[key];
+    }
+    const location = confirmedPoint(body.location);
+    if (location) patch.location = location;
+    Object.assign(order.shipping_address, patch);
+    order.markModified('shipping_address');
+    order.delivery_details_status = 'complete';
+    // Release the held dispatch: the worker creates the shipment on its next tick.
+    if (!shipment && order.rider_dispatch_at) order.rider_dispatch_at = new Date();
+    await order.save();
+
+    if (shipment) {
+      const { full_name, ...addressPatch } = patch;
+      shipment.delivery_address = { ...(shipment.delivery_address?.toObject?.() || shipment.delivery_address || {}), ...addressPatch };
+      await shipment.save();
+    }
+    if (!req.user.is_guest) rememberLater(req.user._id, { ...order.shipping_address.toObject(), location });
+
+    setImmediate(async () => {
+      try {
+        const vendor = await Vendor.findById(order.vendor_id).select('user_id').lean();
+        if (vendor) {
+          await sendNotification(req.app, vendor.user_id, {
+            title: 'Delivery details received',
+            message: `Order #${order._id.toString().slice(-6).toUpperCase()}: ${patch.full_name || 'the buyer'}, ${patch.phone}${patch.landmark ? `, ${patch.landmark}` : ''}.`,
+            type: 'order_status',
+            metadata: { target_id: order._id, link: `/vendor/orders/${order._id}` },
+          });
+        }
+      } catch (e) { console.error('[deliveryDetails] notify failed:', e.message); }
+    });
+
+    res.status(200).json({ success: true, data: { order } });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // ─────────────────────────────────────────────
 // @route   PATCH /api/orders/:id/food-status
@@ -2559,6 +2629,7 @@ const markIntercityCollected = async (req, res, next) => {
 };
 
 module.exports = {
+  submitDeliveryDetails,
   createOrder,
   getCustomerOrders,
   getVendorOrders,
