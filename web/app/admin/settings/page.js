@@ -40,6 +40,7 @@ const FEATURES = [
   { key: 'auto_rider_dispatch', mode: true, label: 'Automatic rider assignment', hint: 'Offers each delivery to the nearest free rider, then the next one on decline or timeout. Shadow: only records who it would pick (see Manifests) while agencies still assign by hand.' },
   { key: 'payment_triggered_dispatch', label: 'Dispatch as soon as it is paid', hint: 'With automatic assignment on, a delivery goes to a rider the moment it is paid instead of within 30 seconds.' },
   { key: 'whatsapp_notifications', label: 'WhatsApp notifications', hint: 'Sends order, payment, delivery and security updates on WhatsApp to users who opted in. Turn on only once the message templates show Active in WhatsApp Manager.', warn: true },
+  { key: 'instant_buy', label: 'Instant Buy Now', hint: 'Buy Now opens a Mobile Money payment in a popup. Visitors can buy without an account and give their name, phone and exact spot after paying; signed-in buyers just confirm their saved address. Off: Buy Now goes to the normal checkout.' },
   { key: 'auto_agency_dispatch', mode: true, label: 'Automatic agency choice', hint: 'Not built yet (only needed with several agencies). Leave off.', disabled: true },
   { key: 'enhanced_chat', label: 'Enhanced chat', hint: 'Reserved. Chat replies and the faster inbox are already live for everyone. Leave off.', disabled: true },
 ];
