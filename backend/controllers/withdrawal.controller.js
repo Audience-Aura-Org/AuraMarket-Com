@@ -22,9 +22,9 @@ const eversend = require('../services/eversend.service');
 const pawapay  = require('../services/payment/gateways/pawapay.gateway');
 const webhookHealth = require('../services/webhookHealthMonitor.service');
 const { sendNotification } = require('../utils/notifier');
-const { debitBalance, creditBalance } = require('../services/wallet.service');
+const { creditBalance } = require('../services/wallet.service');
+const { createWithdrawalRecord } = require('../services/withdrawalRecord.service');
 const { scoped, assertInScope, assertAccessLevel } = require('../utils/scopeFilter');
-const crypto = require('crypto');
 const { RETRY_TXN, shouldRetryTxn, withTxnRetry } = require('../utils/txnRetry');
 
 // ── Restaurant withdrawal gate thresholds ────────────────────────────────────
@@ -32,7 +32,6 @@ const { RETRY_TXN, shouldRetryTxn, withTxnRetry } = require('../utils/txnRetry')
 const RESTAURANT_MIN_COMPLETED_ORDERS = 5;  // Must complete ≥5 orders before first withdrawal
 const RESTAURANT_MIN_ACCOUNT_AGE_DAYS = 7;  // Account must be ≥7 days old
 
-const generateTxRef = () => `AURA-WD-${crypto.randomBytes(6).toString('hex').toUpperCase()}`;
 
 // Country ISO-2 → dial code map for E.164 normalisation (Eversend requirement)
 const DIAL_CODES = {
@@ -296,44 +295,10 @@ const submitWithdrawalAttempt = async (req, res, _next, isLastAttempt) => {
 
     const role = ['vendor', 'logistics'].includes(userRole) ? userRole : 'user';
 
-    // ── Atomic balance deduction (prevents double-spend on concurrent requests)
-    const debitResult = await debitBalance(userId, amount, session);
-    if (!debitResult) throw Object.assign(new Error('Insufficient wallet balance.'), { statusCode: 400 });
-
-    // ── Create request
-    const [withdrawalRequest] = await WithdrawalRequest.create([{
-      requested_by: userId,
-      role,
-      amount,
-      currency,
-      withdrawal_method,
-      payout_gateway: null,
-      recipient_details: {
-        phone_number:   recipient_details.phone_number   || null,
-        eversend_tag:   recipient_details.eversend_tag   || null,
-        beneficiary_id: recipient_details.beneficiary_id || null,
-        first_name,
-        last_name,
-        country,
-      },
-      note: note || null,
-      status: 'pending',
-      balance_deducted: true,
-      auto_approval_epoch: platformSettings.withdrawal_automation?.enabled && currency === 'XAF' && country === 'CM' && require('../utils/withdrawalAutomation').supportedPawaPayoutPhone(recipient_details.phone_number) ? platformSettings.withdrawal_automation.epoch : null,
-    }], { session, ordered: true });
-
-    // ── Create Pending Transaction Immediately
-    await Transaction.create([{
-      user_id: userId,
-      type: 'withdrawal',
-      amount: amount,
-      reference: generateTxRef(),
-      status: 'pending',
-      description: `Withdrawal via ${withdrawal_method.toUpperCase()} to ${recipient_details.phone_number || recipient_details.account_number || recipient_details.eversend_tag || recipient_details.beneficiary_id}`,
-      gateway: 'manual',
-      currency: currency,
-      metadata: { withdrawal_request_id: withdrawalRequest._id },
-    }], { session, ordered: true });
+    // ── Debit + request + pending ledger entry (atomic, shared with the guest refund sweep)
+    const { withdrawalRequest, debitResult } = await createWithdrawalRecord({
+      userId, role, amount, currency, withdrawal_method, recipient_details, note, platformSettings,
+    }, session);
 
     await session.commitTransaction();
     session.endSession();

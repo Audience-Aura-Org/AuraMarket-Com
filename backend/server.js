@@ -96,6 +96,8 @@ const { startIntercityArrivalLapseWorker } = require('./services/intercityArriva
 startIntercityArrivalLapseWorker(app);
 const { startStaleTransactionCleanupWorker } = require('./services/staleTransactionCleanup.service');
 startStaleTransactionCleanupWorker(app);
+const { startGuestMaintenanceWorker } = require('./services/guestMaintenance.service');
+startGuestMaintenanceWorker(app); // Instant Buy Now: guest refunds to MoMo, idle guest cleanup
 
 // Phase 3 Step 11 — Hourly dine-feed cache invalidation
 // open_status / next_status_change_at is computed at cache-write time (Africa/Douala).
