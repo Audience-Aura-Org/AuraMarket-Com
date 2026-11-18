@@ -4,6 +4,7 @@ import { Star, Clock, Plus, MessageSquare, ShoppingCart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@/context/ChatContext';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useInstantBuy } from '@/hooks/useInstantBuy';
 import { useFollow } from '@/hooks/useFollow';
 
 const FALLBACK_THEMES = [
@@ -54,6 +55,7 @@ export default function MealCard({
   const router       = useRouter();
   const { openChat } = useChat();
   const { user }     = useAuthStore();
+  const instantBuy   = useInstantBuy();
   const { isFollowing, toggleFollow, loading: followLoading } = useFollow(vendorId);
 
   const handleMessage = () => {
@@ -66,9 +68,13 @@ export default function MealCard({
   };
 
   const handleBuyNow = () => {
-    if (!user) { router.push('/login'); return; }
+    if (!user && !instantBuy.enabled) { router.push('/login'); return; }
     if (unavailable) return;
     if (hasOptions) { onSelect(meal); return; }
+    if (instantBuy.enabled) {
+      instantBuy.open({ item: { productId: meal._id, name: meal.name, price: meal.price, image: thumbnail, vendorId: vendorId || meal.vendor_id?._id || meal.vendor_id }, quantity: 1, fulfilmentType: 'delivery' });
+      return;
+    }
     router.push(`/checkout?productId=${meal._id}&quantity=1`);
   };
 

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useInstantBuy } from '@/hooks/useInstantBuy';
 import { useFollow } from '@/hooks/useFollow';
 import { trackView, trackCart } from '@/services/tracking';
 import ProductCard from '@/components/ProductCard';
@@ -26,6 +27,7 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
   const id = explicitProductId || params?.id;
   const router = useRouter();
   const { user } = useAuthStore();
+  const instantBuy = useInstantBuy();
   const { openChat } = useChat();
   const { t, label } = useLanguage();
   const imgRef = useRef(null);
@@ -151,8 +153,16 @@ export default function ProductDetailsPage({ productId: explicitProductId = null
   };
 
   const handleBuyNow = async () => {
-    if (!user) return router.push('/login');
+    if (!user && !instantBuy.enabled) return router.push('/login');
     if (!product.vendor_id) return;
+    if (instantBuy.enabled) {
+      instantBuy.open({
+        item: { productId: id, name: product.name, price: displayPrice, image: product.images?.[0]?.url || product.images?.[0], vendorId: product.vendor_id?._id || product.vendor_id },
+        quantity,
+        variant: currentVariant?.combination,
+      });
+      return;
+    }
     
     let url = `/checkout?productId=${id}&quantity=${quantity}`;
     if (currentVariant) {

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { trackAction, trackWishlist } from '@/services/tracking';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useInstantBuy } from '@/hooks/useInstantBuy';
 import { useChat } from '@/context/ChatContext';
 import { useFollow } from '@/hooks/useFollow';
 import api from '@/services/api';
@@ -49,6 +50,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
   const minimumAmount = Number(vendor_id?.store?.minimum_order_amount) || Number(vendorMinimum) || 0;
 
   const { user } = useAuthStore();
+  const instantBuy = useInstantBuy();
   const { isFollowing, toggleFollow, loading: followLoading } = useFollow(vendorId);
   const [addingToCart, setAddingToCart] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
@@ -98,7 +100,7 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
 
   const handleBuyNow = (e) => {
     e.stopPropagation();
-    if (!user) { router.push('/login?from=' + encodeURIComponent(window.location.pathname + window.location.search)); return; }
+    if (!user && !instantBuy.enabled) { router.push('/login?from=' + encodeURIComponent(window.location.pathname + window.location.search)); return; }
 
     // Minimum order check — Buy Now is a single item so if price < minimum, block it
     if (minimumAmount > 0 && displayPrice < minimumAmount) {
@@ -120,6 +122,10 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
     }
 
     // Direct Buy Now logic
+    if (instantBuy.enabled) {
+      instantBuy.open({ item: { productId, name, price: displayPrice, image: mainImage, vendorId: vendor_id?._id || vendor_id }, quantity: 1 });
+      return;
+    }
     router.push(`/checkout?productId=${productId}&quantity=1`);
   };
 
@@ -140,6 +146,11 @@ export default function ProductCard({ product, layout = "grid", onOpenChat = nul
           style: { borderRadius: '16px', background: '#333', color: '#fff', fontSize: '12px', fontWeight: 'bold' },
         });
         setIsVariantModalOpen(false);
+        return;
+      }
+      if (instantBuy.enabled) {
+        setIsVariantModalOpen(false);
+        instantBuy.open({ item: { productId, name, price: variantPrice, image: mainImage, vendorId: vendor_id?._id || vendor_id }, quantity: 1, variant: variantOrProduct.combination });
         return;
       }
       router.push(`/checkout?productId=${productId}&quantity=1&variant=${encodeURIComponent(JSON.stringify(variantOrProduct.combination))}`);

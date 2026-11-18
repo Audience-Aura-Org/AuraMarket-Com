@@ -7,6 +7,7 @@ import { Star, Plus, MessageSquare, Clock, ShoppingCart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useChat } from '@/context/ChatContext';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useInstantBuy } from '@/hooks/useInstantBuy';
 import { useFollow } from '@/hooks/useFollow';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
@@ -46,6 +47,7 @@ export default function DineMealCard({ meal, onSelect = null }) {
   const router       = useRouter();
   const { openChat } = useChat();
   const { user }     = useAuthStore();
+  const instantBuy   = useInstantBuy();
   const { isFollowing, toggleFollow, loading: followLoading } = useFollow(vendor_id?.toString());
   const [adding, setAdding] = useState(false);
 
@@ -79,6 +81,10 @@ export default function DineMealCard({ meal, onSelect = null }) {
   };
 
   const handleBuyNow = () => {
+    if (instantBuy.enabled) {
+      instantBuy.open({ item: { productId: meal._id, name, price, image: thumbnail_url, vendorId: vendor_id?._id || vendor_id }, quantity: 1, fulfilmentType: 'delivery' });
+      return;
+    }
     if (!user) { router.push('/login'); return; }
     router.push(`/checkout?productId=${meal._id}&quantity=1`);
   };

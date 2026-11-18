@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/hooks/useAuth';
+import { useInstantBuy } from '@/hooks/useInstantBuy';
 import api from '@/services/api';
 import { toast } from 'react-hot-toast';
 import { cartStore } from '@/services/cartStore';
@@ -62,6 +63,7 @@ function computeDefaults(optionGroups = []) {
 
 export default function MealDetailModal({ meal, onClose }) {
   const { user }  = useAuthStore();
+  const instantBuy = useInstantBuy();
   const router    = useRouter();
 
   const [fullProduct,    setFullProduct]    = useState(null);
@@ -210,8 +212,18 @@ export default function MealDetailModal({ meal, onClose }) {
 
   /* ── Buy Now ── */
   const handleBuyNow = async () => {
-    if (!user) { router.push('/login'); return; }
+    const instant = instantBuy.enabled && optionGroups.length === 0 && !isPreOrder;
+    if (!user && !instant) { router.push('/login'); return; }
     if (!canOrder) return;
+    if (instant) {
+      onClose();
+      instantBuy.open({
+        item: { productId: meal._id, name: meal.name, price: meal.price, image: meal.images?.[0]?.url || meal.thumbnail_url, vendorId: meal.vendor_id?._id || meal.vendor_id },
+        quantity,
+        fulfilmentType: bookingType || 'delivery',
+      });
+      return;
+    }
 
     /* No options → direct checkout URL */
     if (optionGroups.length === 0) {
