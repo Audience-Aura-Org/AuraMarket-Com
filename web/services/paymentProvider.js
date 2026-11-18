@@ -30,12 +30,12 @@ export const fetchGatewayConfig = async (gateway = 'eversend') => {
  * @param {string} gateway - 'eversend', 'payunit', etc.
  * @param {object} payload - Gateway-specific details
  */
-export const initiateCollection = async (gateway, payload) => {
+export const initiateCollection = async (gateway, payload, requestConfig = {}) => {
   if (gateway === 'eversend' && Number(payload.amount) < 500) throw new Error('Mobile Money requires at least 500 XAF for this payment route.');
   const requestPayload = payload.redirect_url
     ? { ...payload, redirect_url: payload.redirect_url.replace(/([?&]gateway=)[^&]*/, '$1' + gateway) }
     : payload;
-  const res = await api.post(`/payments/${gateway}/initialize`, requestPayload);
+  const res = await api.post(`/payments/${gateway}/initialize`, requestPayload, requestConfig);
   return res.data;
 };
 
@@ -103,12 +103,12 @@ const isSafePreChargeFallbackError = (error) => {
  * A fallback is intentionally limited to a definite pre-charge route
  * or service failure; retrying after a network timeout could create two charges.
  */
-export const initiateSmartCameroonCollection = async (payload) => {
+export const initiateSmartCameroonCollection = async (payload, requestConfig = {}) => {
   const route = await resolveConfiguredCameroonMobileMoneyGateway(payload.phone);
   const requestPayload = { ...payload, provider: route.provider };
 
   try {
-    const result = await initiateCollection(route.gateway, requestPayload);
+    const result = await initiateCollection(route.gateway, requestPayload, requestConfig);
     return { ...result, gateway: route.gateway, routedNetwork: route.network };
   } catch (error) {
     if (!isSafePreChargeFallbackError(error)) throw error;
@@ -117,20 +117,20 @@ export const initiateSmartCameroonCollection = async (payload) => {
     if (route.gateway === 'pawapay') {
       try {
         const fallbackPayload = { ...payload, provider: route.provider };
-        const result = await initiateCollection('payunit', fallbackPayload);
+        const result = await initiateCollection('payunit', fallbackPayload, requestConfig);
         return { ...result, gateway: 'payunit', routedNetwork: route.network, fallbackUsed: true };
       } catch (payunitError) {
         if (!isSafePreChargeFallbackError(payunitError)) throw payunitError;
         if (Number(payload.amount) < 500) throw payunitError;
         // PayUnit also down → last resort: Eversend
-        const result = await initiateCollection('eversend', payload);
+        const result = await initiateCollection('eversend', payload, requestConfig);
         return { ...result, gateway: 'eversend', routedNetwork: route.network, fallbackUsed: true, fallbackLevel: 2 };
       }
     }
 
     // PayUnit (Orange) failed → try Eversend
     if (route.gateway === 'payunit' && Number(payload.amount) >= 500) {
-      const result = await initiateCollection('eversend', payload);
+      const result = await initiateCollection('eversend', payload, requestConfig);
       return { ...result, gateway: 'eversend', routedNetwork: route.network, fallbackUsed: true };
     }
 
@@ -145,7 +145,7 @@ export const initiateSmartCameroonCollection = async (payload) => {
  * @param {string} gateway   - Gateway used
  * @param {string} reference - Transaction reference
  */
-export const pollTransactionStatus = (gateway, reference, { onPending, onSuccess, onFailed, onTimeout }, interval = 5000, maxDuration = 300000) => {
+export const pollTransactionStatus = (gateway, reference, { onPending, onSuccess, onFailed, onTimeout }, interval = 5000, maxDuration = 300000, requestConfig = {}) => {
   let stopped = false;
   let timer;
   const startTime = Date.now();
@@ -155,7 +155,7 @@ export const pollTransactionStatus = (gateway, reference, { onPending, onSuccess
     if (stopped) return;
     if (Date.now() - startTime >= maxDuration) { finish(onTimeout, { reference }); return; }
     try {
-      const res = await api.get('/payments/' + encodeURIComponent(gateway) + '/verify/' + encodeURIComponent(reference), { skipClientCache: true, __skipRetry: true });
+      const res = await api.get('/payments/' + encodeURIComponent(gateway) + '/verify/' + encodeURIComponent(reference), { ...requestConfig, skipClientCache: true, __skipRetry: true });
       if (stopped) return;
       const { status, data, message, reason } = res.data;
       if (status === 'SUCCESSFUL') { finish(onSuccess, { data, message }); return; }

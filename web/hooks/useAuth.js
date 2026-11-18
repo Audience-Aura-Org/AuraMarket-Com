@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { claimGuestSessionAfterLogin } from '@/lib/guestSession';
 import api from '../services/api';
 import socketService from '../services/socket';
 import { clearStoredAuthToken, setStoredAuthToken, getStoredAuthToken } from '../services/authStorage';
@@ -175,6 +176,8 @@ const baseAuthStore = create(
             error: null,
             rememberedEmail: user.email,
           });
+          // Orders bought as a guest on this device (Instant Buy Now) join the account.
+          claimGuestSessionAfterLogin().catch(() => {});
           return { success: true, user };
         } catch (err) {
           const message = err.code === 'ECONNABORTED'
