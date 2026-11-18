@@ -26,6 +26,7 @@ import RiderInviteBanner from '@/components/rider/RiderInviteBanner';
 // Heavy sidebar & overlay — deferred until after hydration
 const CartSidebar = dynamic(() => import('@/components/CartSidebar'), { ssr: false });
 const InstantBuyHost = dynamic(() => import('@/components/checkout/InstantBuyHost'), { ssr: false });
+const GuestClaimPrompt = dynamic(() => import('@/components/checkout/GuestClaimPrompt'), { ssr: false });
 const GlobalChatOverlay = dynamic(() => import('@/components/layout/GlobalChatOverlay'), { ssr: false });
 const PWAInit = dynamic(() => import('@/components/PWAInit'), { ssr: false });
 const MobileKeyboardRecovery = dynamic(() => import('@/components/MobileKeyboardRecovery'), { ssr: false });
@@ -165,6 +166,7 @@ export default function Providers({ children }) {
             {/* Cart sidebar — only on storefront routes */}
             {!isDashboardRoute && !isAuthRoute && !isImmersiveChat && <CartSidebar />}
             {!isDashboardRoute && !isAuthRoute && <InstantBuyHost />}
+            {!isAuthRoute && <GuestClaimPrompt />}
           </div>
 
           {!isAuthRoute && !isImmersiveChat && !isManagerRoute && <BottomNav />}
