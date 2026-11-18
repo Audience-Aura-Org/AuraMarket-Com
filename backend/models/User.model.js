@@ -115,6 +115,8 @@ const UserSchema = new mongoose.Schema(
     },
     // Hidden customer created by instant Buy Now for a visitor with no account.
     is_guest: { type: Boolean, default: false, index: true },
+    // Set when a real account took over this guest's orders (guest is then inactive).
+    guest_claimed_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     auth_provider: {
       type: String,
       enum: ['email_otp', 'password'],

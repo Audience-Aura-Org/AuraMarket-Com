@@ -752,9 +752,47 @@ const createGuestSession = async (req, res, next) => {
   }
 };
 
+// @route POST /api/auth/guest/claim — signed-in user takes over the guest
+// session held on this device ({ guest_token }). Never matched by phone.
+const claimGuestSession = async (req, res, next) => {
+  const jwt = require('jsonwebtoken');
+  const mongoose = require('mongoose');
+  const { JWT_SECRET } = require('../config/env');
+  let decoded;
+  try {
+    decoded = jwt.verify(String(req.body?.guest_token || ''), JWT_SECRET);
+  } catch {
+    return res.status(400).json({ success: false, message: 'This guest session is not valid.' });
+  }
+  try {
+    const guest = await User.findById(decoded.id).select('is_guest is_active guest_claimed_by +token_version').lean();
+    if (!guest?.is_guest || Number(decoded.tokenVersion) !== Number(guest.token_version || 0)) {
+      return res.status(400).json({ success: false, message: 'This guest session is not valid.' });
+    }
+    if (!guest.is_active) {
+      // Already claimed: a repeat by the same account is harmless.
+      return String(guest.guest_claimed_by) === String(req.user._id)
+        ? res.status(200).json({ success: true, data: { orders: 0 } })
+        : res.status(400).json({ success: false, message: 'This guest session is not valid.' });
+    }
+    const { claimGuest } = require('../services/guestClaim.service');
+    const session = await mongoose.startSession();
+    let result;
+    try {
+      await session.withTransaction(async () => { result = await claimGuest(guest._id, req.user._id, session); });
+    } finally {
+      await session.endSession();
+    }
+    res.status(200).json({ success: true, data: { orders: result.orders } });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   createGuestSession,
+  claimGuestSession,
   login,
   verify2FALogin,
   sendOtp,
