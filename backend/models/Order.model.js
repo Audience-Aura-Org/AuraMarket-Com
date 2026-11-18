@@ -244,6 +244,11 @@ const OrderSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Instant Buy Now: paid before the buyer gave the exact spot. 'pending' holds
+    // rider dispatch (rider_dispatch_at = paid + 30 min) until the details arrive.
+    // null for every other order.
+    delivery_details_status: { type: String, enum: ['pending', 'complete'], default: null },
+
     // Immutable status log — same shape as Shipment.shipment_logs[].
     // Records every state transition with actor, timestamp, and optional note.
     status_logs: [

@@ -25,7 +25,17 @@ const mongoose  = require('mongoose');
 const Order     = require('../models/Order.model');
 const Shipment  = require('../models/Shipment.model');
 const Vendor    = require('../models/Vendor.model');
+const LogisticsCompany = require('../models/LogisticsCompany.model');
 const { sendNotification } = require('../utils/notifier');
+
+// Orders whose shipment waits on a timer: accepted meals still preparing, and
+// Instant Buy Now orders waiting for (or just given) the buyer's exact spot.
+const DUE_KINDS = {
+  $or: [
+    { food_status: 'preparing', fulfilment_type: 'delivery' },
+    { food_status: null, delivery_details_status: { $in: ['pending', 'complete'] } },
+  ],
+};
 const logisticsService = require('./logistics.service');
 const { withLock } = require('../utils/locks');
 
@@ -47,9 +57,8 @@ const dispatchRiderForOrder = async (order, app) => {
     // Re-fetch + lock within the transaction to avoid race with concurrent workers
     const locked = await Order.findOne({
       _id:              order._id,
-      food_status:      'preparing',
       rider_dispatch_at: { $ne: null, $lte: new Date() },
-      fulfilment_type:  'delivery',
+      ...DUE_KINDS,
     }).session(session);
 
     if (!locked) {
@@ -110,9 +119,36 @@ const dispatchRiderForOrder = async (order, app) => {
     }
 
     // Clear the scheduled flag so this order is excluded from future scans
+    const detailsMissing = locked.delivery_details_status === 'pending';
+    const isFood = Boolean(locked.food_status);
     locked.rider_dispatch_at = null;
     await locked.save({ session });
     await session.commitTransaction();
+
+    // Instant Buy Now buyer never sent the exact spot: the rider goes with the
+    // area, so the vendor and the delivery firm call the buyer first.
+    if (detailsMissing) {
+      setImmediate(async () => {
+        try {
+          const [vendor, firm] = await Promise.all([
+            Vendor.findById(locked.vendor_id).select('user_id').lean(),
+            LogisticsCompany.findById(locked.logistics_company_id).select('user_id').lean(),
+          ]);
+          const ref = locked._id.toString().slice(-6).toUpperCase();
+          const message = `Order #${ref}: Buyer has not sent the exact spot. Call ${locked.shipping_address?.phone || 'the buyer'} before delivery.`;
+          for (const userId of [vendor?.user_id, firm?.user_id].filter(Boolean)) {
+            await sendNotification(app, userId, {
+              title: 'Call the buyer for the address',
+              message,
+              type: 'order_status',
+              metadata: { target_id: locked._id, link: `/vendor/orders/${locked._id}` },
+            });
+          }
+        } catch (notifyErr) {
+          console.error('[delayedRiderDispatch] call-buyer notification failed:', notifyErr.message);
+        }
+      });
+    }
 
     // Background notifications (non-blocking)
     setImmediate(async () => {
@@ -131,7 +167,9 @@ const dispatchRiderForOrder = async (order, app) => {
         // Notify the buyer that their rider is on the way
         await sendNotification(app, locked.customer_id, {
           title:   'Rider On The Way',
-          message: 'A rider has been dispatched to collect your food order. It will be with you soon!',
+          message: isFood
+            ? 'A rider has been dispatched to collect your food order. It will be with you soon!'
+            : 'A rider has been dispatched for your order. It will be with you soon!',
           type:    'order_status',
           metadata: { target_id: locked._id, link: `/orders/${locked._id}` },
         });
@@ -160,10 +198,9 @@ const runDelayedRiderDispatch = async (app) => {
   try {
     const now = new Date();
     const candidates = await Order.find({
-      food_status:       'preparing',
       rider_dispatch_at: { $ne: null, $lte: now },
-      fulfilment_type:   'delivery',
       logistics_company_id: { $ne: null },
+      ...DUE_KINDS,
     })
       .select('_id customer_id vendor_id food_status logistics_company_id shipping_address rider_dispatch_at products fulfilment_type')
       .sort('rider_dispatch_at')

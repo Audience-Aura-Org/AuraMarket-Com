@@ -259,6 +259,17 @@ const handleVendorPayout = async (order, session, overrideAmount = null) => {
  * @param {boolean}       [params.skipBalanceDeduct] - Skip deducting buyer wallet (e.g. already deducted)
  * @returns {Object} settled order
  */
+// Instant Buy Now orders are paid before the buyer gives the exact spot: no rider
+// until the details arrive, or 30 minutes pass (DETAILS_WAIT_MS).
+const DETAILS_WAIT_MS = 30 * 60 * 1000;
+const holdForDeliveryDetails = async (order, session) => {
+  if (order.food_status || order.delivery_details_status !== 'pending') return false;
+  if (order.shipping_method !== 'logistics_partner' || !order.logistics_company_id) return false;
+  order.rider_dispatch_at = new Date(Date.now() + DETAILS_WAIT_MS);
+  await order.save({ session });
+  return true;
+};
+
 const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBalanceDeduct = false, paymentGateway = 'wallet' }) => {
   const order = typeof orderId === 'object' ? orderId : await Order.findById(orderId).session(session);
   if (!order || order.payment_status !== 'pending') return null;
@@ -310,7 +321,9 @@ const settleOrder = async ({ orderId, userId, session, app, webUrl = '', skipBal
 
   // A food delivery is dispatched only after kitchen acceptance. Gateway
   // confirmation must not assign a rider to a meal that can still be rejected.
-  if (!order.food_status && order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
+  if (await holdForDeliveryDetails(order, session)) {
+    // Instant Buy Now: the delayed-dispatch worker creates the shipment later.
+  } else if (!order.food_status && order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
     const quartier = order.shipping_address?.quartier;
     if (quartier) {
       const existing = await Shipment.findOne({ order_id: order._id }).session(session);
@@ -499,7 +512,9 @@ const settleOrders = async (userId, orderIds, session, app = null, skipBalanceDe
     }
 
     // Keep bulk checkout settlement identical to single-order settlement.
-    if (!order.food_status && order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
+    if (await holdForDeliveryDetails(order, session)) {
+      // Instant Buy Now: the delayed-dispatch worker creates the shipment later.
+    } else if (!order.food_status && order.shipping_method === 'logistics_partner' && order.logistics_company_id) {
       const quartier = order.shipping_address?.quartier;
       if (quartier) {
         const existing = await Shipment.findOne({ order_id: order._id }).session(session);

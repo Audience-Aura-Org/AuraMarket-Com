@@ -520,6 +520,7 @@ const createOrderAttempt = async (req, res, next, isLastAttempt) => {
     assertOrderTotal({ subtotal, shipping_fee, collection_fee, discount, total_amount });
 
     const orderData = {
+      ...(req.body.delivery_details_pending === true ? { delivery_details_status: 'pending' } : {}),
       customer_id:     req.user._id,
       vendor_id,
       products:        validatedProducts,
@@ -1804,6 +1805,7 @@ const createOrdersFromCartAttempt = async (req, res, next, isLastAttempt) => {
 
       const [newOrder] = await Order.create([{
         customer_id: req.user._id,
+        ...(req.body.delivery_details_pending === true ? { delivery_details_status: 'pending' } : {}),
         vendor_id: vendorId,
         products: orderProducts,
         subtotal:        toXAF(subtotal),
