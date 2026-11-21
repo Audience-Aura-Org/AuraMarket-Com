@@ -61,9 +61,12 @@ beforeEach(() => {
 afterEach(cleanup);
 
 const open = () => render(<InstantBuySheet open item={item} quantity={1} onClose={() => {}} />);
+const chooseArea = async (typed = 'akw', name = 'Akwa') => {
+  fireEvent.change(await screen.findByLabelText('Delivery area'), { target: { value: typed } });
+  fireEvent.click(await screen.findByRole('option', { name }));
+};
 const chooseAreaAndPay = async (phone = '677123456') => {
-  await screen.findByRole('option', { name: 'Akwa' });
-  fireEvent.change(screen.getByLabelText('Delivery area'), { target: { value: 'z1' } });
+  await chooseArea();
   fireEvent.change(screen.getByLabelText('Mobile Money number'), { target: { value: phone } });
   const pay = await screen.findByRole('button', { name: /^Pay / });
   fireEvent.click(pay);
@@ -92,7 +95,9 @@ describe('InstantBuySheet', () => {
   it('signed-in: area and address come from the saved address; Confirm sends it', async () => {
     m.user = { _id: 'u1', name: 'Paul', phone: '677000111' };
     open();
-    await waitFor(() => expect(screen.getByLabelText('Delivery area').value).toBe('z1'));
+    // The saved area is shown, not a picker.
+    expect((await screen.findByText('Delivering to')).parentElement.textContent).toMatch(/Akwa/);
+    expect(screen.queryByLabelText('Delivery area')).toBeNull();
     fireEvent.change(screen.getByLabelText('Mobile Money number'), { target: { value: '677000111' } });
     fireEvent.click(await screen.findByRole('button', { name: /^Pay / }));
     await screen.findByText(/Payment confirmed/);
@@ -114,8 +119,7 @@ describe('InstantBuySheet', () => {
 
   it('only zone-priced delivery companies can be chosen, and they change the total', async () => {
     open();
-    await screen.findByRole('option', { name: 'Akwa' });
-    fireEvent.change(screen.getByLabelText('Delivery area'), { target: { value: 'z1' } });
+    await chooseArea();
     fireEvent.click(await screen.findByRole('button', { name: 'Change' }));
     expect(await screen.findByRole('radio', { name: /FastShip/ })).toBeTruthy();
     expect(screen.queryByRole('radio', { name: /FarAway/ })).toBeNull();
@@ -132,5 +136,17 @@ describe('InstantBuySheet', () => {
     expect(m.clearGuestSession).toHaveBeenCalledTimes(1);
     expect(m.ensureGuestSession).toHaveBeenCalledTimes(2);
     expect(m.placeInstantOrder).toHaveBeenCalledTimes(2);
+  });
+
+  it('the area is a search: typing narrows the list, and a choice can be changed', async () => {
+    open();
+    fireEvent.change(await screen.findByLabelText('Delivery area'), { target: { value: 'bona' } });
+    expect(await screen.findByRole('option', { name: 'Bonapriso' })).toBeTruthy();
+    expect(screen.queryByRole('option', { name: 'Akwa' })).toBeNull();
+    fireEvent.click(screen.getByRole('option', { name: 'Bonapriso' }));
+    expect((await screen.findByText('Delivering to')).parentElement.textContent).toMatch(/Bonapriso/);
+    fireEvent.click(screen.getByRole('button', { name: 'Change area' }));
+    await chooseArea();
+    expect(screen.getByText('Delivering to').parentElement.textContent).toMatch(/Akwa/);
   });
 });

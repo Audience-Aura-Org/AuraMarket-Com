@@ -25,6 +25,8 @@ import { FIELD, LABEL } from '@/lib/formStyles';
 
 const SELLER = 'vendor_managed';
 const fmt = (n) => Number(n || 0).toLocaleString('fr-CM');
+// "Bépanda" matches "bepanda": lower case, accents dropped.
+const fold = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const BUTTON = 'flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--accent)] text-sm font-semibold text-white transition-opacity disabled:opacity-40';
 
 export default function InstantBuySheet({ open, item, quantity = 1, variant, selectedOptions = [], fulfilmentType = null, onClose }) {
@@ -35,6 +37,8 @@ export default function InstantBuySheet({ open, item, quantity = 1, variant, sel
   const [step, setStep] = useState('pay');
   const [zones, setZones] = useState([]);
   const [zoneId, setZoneId] = useState('');
+  const [areaQuery, setAreaQuery] = useState('');
+  const [pickingArea, setPickingArea] = useState(false);
   const [firms, setFirms] = useState([]);
   const [intercity, setIntercity] = useState(false);
   const [firmId, setFirmId] = useState(SELLER);
@@ -72,6 +76,12 @@ export default function InstantBuySheet({ open, item, quantity = 1, variant, sel
   }, [open, needsAddress, user]);
 
   const zone = zones.find((z) => z._id === zoneId) || null;
+  const areaMatches = useMemo(() => {
+    const q = fold(areaQuery);
+    if (!q) return [];
+    return zones.filter((z) => fold(z.name).includes(q) || fold(z.parent_id?.name).includes(q)).slice(0, 8);
+  }, [zones, areaQuery]);
+  const pickArea = (id) => { setZoneId(id); setAreaQuery(''); setPickingArea(false); };
 
   // Delivery companies for the area. Distance-priced ones need the exact spot, so they stay in full checkout.
   useEffect(() => {
@@ -194,13 +204,32 @@ export default function InstantBuySheet({ open, item, quantity = 1, variant, sel
         {step === 'pay' && (
           <div className="space-y-4">
             {needsAddress && (
-              <div>
-                <label htmlFor="ib-area" className={LABEL}>Delivery area</label>
-                <select id="ib-area" value={zoneId} onChange={(e) => setZoneId(e.target.value)} className={FIELD}>
-                  <option value="">Choose your area</option>
-                  {zones.map((z) => <option key={z._id} value={z._id}>{z.name}</option>)}
-                </select>
-              </div>
+              zone && !pickingArea ? (
+                // Saved or chosen area: shown, not asked again.
+                <div className="flex items-center justify-between gap-2 rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-secondary)] px-3.5 py-3 text-sm">
+                  <span className="min-w-0 truncate"><span className="text-xs text-[var(--text-secondary)]">Delivering to</span> <span className="font-semibold">{zone.name}</span></span>
+                  <button type="button" onClick={() => setPickingArea(true)} aria-label="Change area" className="shrink-0 text-xs font-semibold text-[var(--accent)]">Change</button>
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="ib-area" className={LABEL}>Delivery area</label>
+                  <input id="ib-area" type="search" value={areaQuery} onChange={(e) => setAreaQuery(e.target.value)} placeholder="Search your area, e.g. Akwa" autoComplete="off" className={FIELD} role="combobox" aria-expanded={areaMatches.length > 0} aria-controls="ib-area-list" />
+                  {areaMatches.length > 0 && (
+                    <div id="ib-area-list" role="listbox" aria-label="Areas" className="mt-1.5 max-h-56 overflow-y-auto rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1">
+                      {areaMatches.map((z) => (
+                        <button key={z._id} type="button" role="option" aria-selected={z._id === zoneId} aria-label={z.name} onClick={() => pickArea(z._id)}
+                          className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm hover:bg-[var(--bg-secondary)]">
+                          <span className="font-medium">{z.name}</span>
+                          {z.parent_id?.name && <span className="text-[11px] text-[var(--text-secondary)]">{z.parent_id.name}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {areaQuery.trim() && zones.length > 0 && areaMatches.length === 0 && (
+                    <p className="mt-1.5 text-xs text-[var(--text-secondary)]">No area found. Try another spelling.</p>
+                  )}
+                </div>
+              )
             )}
 
             {needsAddress && zone && !intercity && (
