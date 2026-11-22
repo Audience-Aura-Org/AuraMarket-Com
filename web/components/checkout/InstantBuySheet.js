@@ -12,7 +12,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, Loader2, Smartphone, X } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Loader2, Smartphone, X } from 'lucide-react';
 import api from '@/services/api';
 import { useAuthStore } from '@/hooks/useAuth';
 import { clearGuestSession, ensureGuestSession } from '@/lib/guestSession';
@@ -76,12 +76,15 @@ export default function InstantBuySheet({ open, item, quantity = 1, variant, sel
   }, [open, needsAddress, user]);
 
   const zone = zones.find((z) => z._id === zoneId) || null;
+  const [areaOpen, setAreaOpen] = useState(false);
+  // Dropdown: every area when opened, narrowed as the buyer types.
   const areaMatches = useMemo(() => {
     const q = fold(areaQuery);
-    if (!q) return [];
-    return zones.filter((z) => fold(z.name).includes(q) || fold(z.parent_id?.name).includes(q)).slice(0, 8);
+    const list = q ? zones.filter((z) => fold(z.name).includes(q) || fold(z.parent_id?.name).includes(q)) : zones;
+    return [...list].sort((a, b) => a.name.localeCompare(b.name));
   }, [zones, areaQuery]);
-  const pickArea = (id) => { setZoneId(id); setAreaQuery(''); setPickingArea(false); };
+  const showAreaList = areaOpen && areaMatches.length > 0;
+  const pickArea = (id) => { setZoneId(id); setAreaQuery(''); setAreaOpen(false); setPickingArea(false); };
 
   // Delivery companies for the area. Distance-priced ones need the exact spot, so they stay in full checkout.
   useEffect(() => {
@@ -92,8 +95,12 @@ export default function InstantBuySheet({ open, item, quantity = 1, variant, sel
       if (!active) return;
       const data = res?.data?.data || {};
       setIntercity(Boolean(data.is_intercity));
-      setFirms((data.firms || []).filter((f) => f.pricing_mode !== 'distance' && f.fee_estimate != null));
-      setFirmId(SELLER);
+      // A delivery company first (cheapest); the seller ships only when none covers the area.
+      const usable = (data.firms || [])
+        .filter((f) => f.pricing_mode !== 'distance' && f.fee_estimate != null)
+        .sort((a, b) => Number(a.fee_estimate) - Number(b.fee_estimate));
+      setFirms(usable);
+      setFirmId(usable[0]?._id || SELLER);
     }).catch(() => { if (active) setFirms([]); });
     return () => { active = false; };
   }, [zone, item?.vendorId]);
@@ -213,9 +220,16 @@ export default function InstantBuySheet({ open, item, quantity = 1, variant, sel
               ) : (
                 <div>
                   <label htmlFor="ib-area" className={LABEL}>Delivery area</label>
-                  <input id="ib-area" type="search" value={areaQuery} onChange={(e) => setAreaQuery(e.target.value)} placeholder="Search your area, e.g. Akwa" autoComplete="off" className={FIELD} role="combobox" aria-expanded={areaMatches.length > 0} aria-controls="ib-area-list" />
-                  {areaMatches.length > 0 && (
-                    <div id="ib-area-list" role="listbox" aria-label="Areas" className="mt-1.5 max-h-56 overflow-y-auto rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1">
+                  <div className="relative">
+                    <input id="ib-area" type="text" value={areaQuery} onChange={(e) => { setAreaQuery(e.target.value); setAreaOpen(true); }} onFocus={() => setAreaOpen(true)} onClick={() => setAreaOpen(true)}
+                      onKeyDown={(e) => { if (e.key === 'Escape') setAreaOpen(false); if (e.key === 'Enter' && areaMatches[0]) pickArea(areaMatches[0]._id); }}
+                      placeholder="Choose or search your area" autoComplete="off" className={`${FIELD} pr-10`} role="combobox" aria-expanded={showAreaList} aria-controls="ib-area-list" />
+                    <button type="button" tabIndex={-1} aria-label="Show areas" onClick={() => setAreaOpen((v) => !v)} className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-[var(--text-secondary)]">
+                      <ChevronDown className={`size-4 transition-transform ${showAreaList ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
+                  {showAreaList && (
+                    <div id="ib-area-list" role="listbox" aria-label="Areas" className="mt-1.5 max-h-56 overflow-y-auto overscroll-contain rounded-2xl border border-[var(--glass-border)] bg-[var(--bg-primary)] p-1">
                       {areaMatches.map((z) => (
                         <button key={z._id} type="button" role="option" aria-selected={z._id === zoneId} aria-label={z.name} onClick={() => pickArea(z._id)}
                           className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm hover:bg-[var(--bg-secondary)]">
@@ -240,7 +254,7 @@ export default function InstantBuySheet({ open, item, quantity = 1, variant, sel
                 </div>
                 {choosing && (
                   <div className="mt-2 space-y-1.5" role="radiogroup" aria-label="Delivery">
-                    {[{ _id: SELLER, company_name: 'Seller delivers', fee_estimate: 0 }, ...firms].map((f) => (
+                    {[...firms, { _id: SELLER, company_name: 'Seller delivers', fee_estimate: 0 }].map((f) => (
                       <label key={f._id} className="flex cursor-pointer items-center justify-between gap-2 rounded-xl px-2 py-1.5 text-xs hover:bg-[var(--bg-primary)]">
                         <span className="flex items-center gap-2">
                           <input type="radio" name="ib-firm" checked={firmId === f._id} onChange={() => { setFirmId(f._id); setChoosing(false); }} aria-label={`${f.company_name} ${fmt(f.fee_estimate)} XAF`} />

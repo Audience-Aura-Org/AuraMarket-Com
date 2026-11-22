@@ -78,7 +78,7 @@ describe('InstantBuySheet', () => {
     await chooseAreaAndPay();
     await screen.findByText(/Payment confirmed · 10[\s,. ]?326 XAF/);
     expect(m.ensureGuestSession).toHaveBeenCalled();
-    expect(m.placeInstantOrder.mock.calls[0][0]).toMatchObject({ productId: 'p1', quantity: 1, area: { quartier: 'Akwa', zone_id: 'z1' }, logisticsCompanyId: 'vendor_managed', phone: '677123456' });
+    expect(m.placeInstantOrder.mock.calls[0][0]).toMatchObject({ productId: 'p1', quantity: 1, area: { quartier: 'Akwa', zone_id: 'z1' }, logisticsCompanyId: 'f1', phone: '677123456' });
     expect(m.placeInstantOrder.mock.calls[0][1]).toEqual({ headers: { Authorization: 'Bearer gtok' } });
     expect(m.collect.mock.calls[0][0]).toMatchObject({ phone: '677123456', order_ids: ['abcdef123456'] });
     expect(m.collect.mock.calls[0][1]).toEqual({ headers: { Authorization: 'Bearer gtok' } });
@@ -117,15 +117,37 @@ describe('InstantBuySheet', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
   });
 
-  it('only zone-priced delivery companies can be chosen, and they change the total', async () => {
+  it('a delivery company comes first; only zone-priced ones are offered and they set the total', async () => {
     open();
     await chooseArea();
-    fireEvent.click(await screen.findByRole('button', { name: 'Change' }));
-    expect(await screen.findByRole('radio', { name: /FastShip/ })).toBeTruthy();
+    // FastShip (1,000) is picked for the buyer: 11,000 → 11,344 at the highest rate (no number typed yet).
+    expect(await screen.findByText(/FastShip · 1[\s,. ]?000 XAF/)).toBeTruthy();
+    expect((await screen.findByRole('button', { name: /^Pay / })).textContent).toMatch(/11[\s,. ]?344/);
+    fireEvent.click(screen.getByRole('button', { name: 'Change' }));
+    expect(screen.getByRole('radio', { name: /FastShip/ })).toBeTruthy();
     expect(screen.queryByRole('radio', { name: /FarAway/ })).toBeNull();
-    fireEvent.click(screen.getByRole('radio', { name: /FastShip/ }));
-    // No number typed yet → highest collection rate (1.77%) + payout 1.3%: 11,000 → 11,344
-    expect((await screen.findByRole('button', { name: /^Pay / })).textContent).toMatch(/11[\s,. ]?344/);
+    fireEvent.click(screen.getByRole('radio', { name: /Seller delivers/ }));
+    expect(screen.getByText('Seller delivers')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Pay / }).textContent).not.toMatch(/11[\s,. ]?344/);
+  });
+
+  it('the seller ships when no delivery company covers the area', async () => {
+    m.apiGet.mockImplementation((url) => {
+      if (url.startsWith('/logistics/zones')) return Promise.resolve({ data: { data: { zones: [{ _id: 'z1', name: 'Akwa', type: 'quartier' }] } } });
+      if (url.startsWith('/logistics/compatible-firms')) return Promise.resolve({ data: { data: { firms: [firms[1]], is_intercity: false } } });
+      return Promise.resolve({ data: {} });
+    });
+    open();
+    await chooseArea();
+    expect(await screen.findByText('Seller delivers')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Change' })).toBeNull();
+  });
+
+  it('the area is a dropdown: tapping it lists every area', async () => {
+    open();
+    fireEvent.focus(await screen.findByLabelText('Delivery area'));
+    expect(await screen.findByRole('option', { name: 'Akwa' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Bonapriso' })).toBeTruthy();
   });
 
   it('replaces a guest session the server no longer accepts, once', async () => {
